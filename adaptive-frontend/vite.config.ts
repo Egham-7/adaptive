@@ -33,8 +33,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ["react", "react-dom"],
-          // Split large dependencies into separate chunks
-          utils: ["lodash", "date-fns"],
         },
         // Optimize chunk size
         chunkFileNames: "assets/js/[name]-[hash].js",
