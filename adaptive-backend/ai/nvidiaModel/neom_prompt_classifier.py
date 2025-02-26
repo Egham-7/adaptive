@@ -190,6 +190,7 @@ model = CustomModel(
     weights_map=config.weights_map,
     divisor_map=config.divisor_map,
 ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
-model.eval()
+
+#model.eval()
 
 
