@@ -1,0 +1,13 @@
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# Python
+*.pyc
+__pycache__/
+
+# Large model files
+*.dylib
+*/vocab/vectors
+*/transformer/model
