@@ -5,10 +5,13 @@ import { visualizer } from "rollup-plugin-visualizer";
 import compression from "vite-plugin-compression";
 import { VitePWA } from "vite-plugin-pwa";
 
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+
 export default defineConfig({
   plugins: [
     react(),
     compression(), // Enables Gzip/Brotli compression
+    TanStackRouterVite({ autoCodeSplitting: true }),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
