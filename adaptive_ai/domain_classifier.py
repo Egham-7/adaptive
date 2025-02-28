@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoConfig, AutoTokenizer
-from .nvidiaModel.neom_domain_classifier import CustomModel  
+from adaptive_ai.nvidiaModel.neom_domain_classifier import CustomModel  
 
 class DomainClassifier:
     def __init__(self, model_name="nvidia/domain-classifier"):

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from ai.prompt_classifier import PromptClassifier
-from ai.domain_classifier import DomainClassifier
-from ai.adaptive_bot import ChatBot
+from adaptive_ai.prompt_classifier import PromptClassifier
+from adaptive_ai.domain_classifier import DomainClassifier
+from adaptive_ai.adaptive_bot import ChatBot
 from pydantic import BaseModel
 
 app = FastAPI()
