@@ -1,4 +1,4 @@
-from adaptive_ai.nvidiaModel.neom_prompt_classifier import model,tokenizer
+from   nvidiaModel.neom_prompt_classifier import model,tokenizer
 
 class PromptClassifier:
     def __init__(self):
