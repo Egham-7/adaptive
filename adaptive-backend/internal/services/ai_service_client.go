@@ -12,7 +12,7 @@ type PromptClassifierClient struct {
 
 // NewPromptClassifierClient creates a new client for the prompt classifier API
 func NewPromptClassifierClient() *PromptClassifierClient {
-	baseURL := os.Getenv("BASE_URL")
+	baseURL := os.Getenv("ADAPTIVE_AI_BASE_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:8000"
 	}
