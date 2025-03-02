@@ -3,8 +3,9 @@ package services
 import (
 	"adaptive-backend/internal/models"
 	"context"
-	"github.com/conneroisu/groq-go"
 	"os"
+
+	"github.com/conneroisu/groq-go"
 )
 
 // GroqService handles Groq API interactions
@@ -22,7 +23,7 @@ func NewGroqService() (*GroqService, error) {
 }
 
 // CreateChatCompletion processes a chat completion request with Groq
-func (s *GroqService) CreateChatCompletion(req *models.ChatCompletionRequest) (*models.ChatCompletionResponse, error) {
+func (s *GroqService) CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
 	// Convert our unified message format to Groq's format
 	messages := make([]groq.ChatCompletionMessage, len(req.Messages))
 	for i, msg := range req.Messages {
@@ -59,9 +60,8 @@ func (s *GroqService) CreateChatCompletion(req *models.ChatCompletionRequest) (*
 	}
 
 	groqReq := groq.ChatCompletionRequest{
-		Model:     model,
-		Messages:  messages,
-		MaxTokens: req.MaxTokens,
+		Model:    model,
+		Messages: messages,
 	}
 
 	chatCompletionsResponse, err := s.client.ChatCompletion(context.Background(), groqReq)
@@ -77,4 +77,3 @@ func (s *GroqService) CreateChatCompletion(req *models.ChatCompletionRequest) (*
 		Response: chatCompletionsResponse,
 	}, nil
 }
-
