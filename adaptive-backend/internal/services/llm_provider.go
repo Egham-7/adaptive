@@ -6,7 +6,7 @@ import (
 )
 
 type LLMProvider interface {
-	CreateChatCompletion(req *models.ChatCompletionRequest) (*models.ChatCompletionResponse, error)
+	CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error)
 }
 
 func NewLLMProvider(providerName string) (LLMProvider, error) {

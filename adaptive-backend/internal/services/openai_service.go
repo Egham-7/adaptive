@@ -21,7 +21,7 @@ func NewOpenAIService() *OpenAIService {
 }
 
 // CreateChatCompletion processes a chat completion request with OpenAI
-func (s *OpenAIService) CreateChatCompletion(req *models.ChatCompletionRequest) (*models.ChatCompletionResponse, error) {
+func (s *OpenAIService) CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
 	messages := make([]openai.ChatCompletionMessage, len(req.Messages))
 	for i, msg := range req.Messages {
 		messages[i] = openai.ChatCompletionMessage{
@@ -38,9 +38,8 @@ func (s *OpenAIService) CreateChatCompletion(req *models.ChatCompletionRequest) 
 
 	// Create OpenAI request
 	openaiReq := openai.ChatCompletionRequest{
-		Model:     model,
-		Messages:  messages,
-		MaxTokens: req.MaxTokens,
+		Model:    model,
+		Messages: messages,
 	}
 
 	// Call OpenAI API
