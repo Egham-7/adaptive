@@ -31,7 +31,7 @@ async def classify_prompt(request: PromptRequest):
 
 
 
-@app.post("/bot")
+@app.post("/select-model")
 async def chat_bot(request: PromptRequest):
     complexity = prompt_classifier.classify_prompt(request.prompt)
     complexity = complexity["prompt_complexity_score"][0]
@@ -46,9 +46,12 @@ async def chat_bot(request: PromptRequest):
     # Find a model within the suitable models that matches the complexity score
     for model_name in suitable_models:
         complexity_range = model_capabilities[model_name]["complexity_range"]
+        provider = model_capabilities[model_name]["provider"]
         if complexity_range[0] <= complexity <= complexity_range[1]:
-            return {"selected_model": model_name}
+            return {"selected_model": model_name,
+                    "provider":provider}
     
     # If no model matches the complexity score, return a default model
-    return {"selected_model": suitable_models[0]}
+    return {"selected_model": suitable_models[0],
+            "provider":model_capabilities[suitable_models[0]]["provider"]}
 
