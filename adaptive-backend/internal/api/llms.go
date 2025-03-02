@@ -3,13 +3,13 @@ package api
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
+
 	"github.com/gofiber/fiber/v2"
 )
 
 // ChatCompletionRequest is the request body for the chat completion endpoint
 type ChatCompletionRequest struct {
-	Provider string                       `json:"provider"`
-	Request  models.ChatCompletionRequest `json:"request"`
+	Request models.ChatCompletionRequest `json:"request"`
 }
 
 // ChatCompletion handles chat completion requests
@@ -53,4 +53,3 @@ func ChatCompletion(c *fiber.Ctx) error {
 	// Return successful response
 	return c.JSON(resp)
 }
-
