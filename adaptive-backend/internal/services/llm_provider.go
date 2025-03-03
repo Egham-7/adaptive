@@ -3,6 +3,7 @@ package services
 import (
 	"adaptive-backend/internal/models"
 	"errors"
+	"strings"
 )
 
 type LLMProvider interface {
@@ -10,7 +11,7 @@ type LLMProvider interface {
 }
 
 func NewLLMProvider(providerName string) (LLMProvider, error) {
-	switch providerName {
+	switch strings.ToLower(providerName) {
 	case "openai":
 		return NewOpenAIService(), nil
 	case "groq":
