@@ -1,7 +1,9 @@
 package main
 
 import (
+	"adaptive-backend/internal/api"
 	"log"
+	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -25,5 +27,9 @@ func main() {
 		})
 	})
 
-	log.Fatal(app.Listen(":3000"))
+	app.Post("/api/chat/completion", api.ChatCompletion)
+
+	port := os.Getenv("ADDR")
+
+	log.Fatal(app.Listen(port))
 }
