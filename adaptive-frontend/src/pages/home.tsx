@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 
 export default function Home() {
   const [message, setMessage] = useState("");
-  const [selectedModel, setSelectedModel] = useState(undefined);
+  const [selectedModel] = useState(undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
