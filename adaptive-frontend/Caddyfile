@@ -1,0 +1,55 @@
+:3000 {
+    # Serve all static files from the dist directory
+    root * /app/dist
+
+    # Enable compression for better performance
+    encode gzip zstd
+
+    # Hide dot files
+    @hidden {
+        path */.*
+    }
+    respond @hidden 404
+
+    # Handle SPA routing
+    try_files {path} /index.html
+
+    # Set security headers
+    header {
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+        
+        # Control frame embedding
+        X-Frame-Options "SAMEORIGIN"
+        
+        # Enable XSS protection
+        X-XSS-Protection "1; mode=block"
+        
+        # Basic CSP - can be expanded as needed
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'"
+        
+        # Remove server information
+        -Server
+        
+        # Define referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # Enable caching for static assets
+        Cache-Control "public, max-age=3600"
+    }
+
+    # Set specific cache headers for static assets
+    @static {
+        path *.js *.css *.jpg *.jpeg *.png *.gif *.ico *.svg *.woff *.woff2
+    }
+    
+    header @static {
+        Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # Log all requests
+    log {
+        output stdout
+        format json
+    }
+
