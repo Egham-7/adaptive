@@ -15,7 +15,7 @@ export function HomeLayout() {
       </header>
 
       {/* Main Content with Outlet */}
-      <main className="container flex min-h-screen flex-col items-center justify-center pt-16 pb-8">
+      <main className="flex min-h-screen w-full flex-col items-center justify-center pt-16 pb-8">
         <div className="w-full max-w-3xl space-y-8">
           <Outlet />
         </div>
