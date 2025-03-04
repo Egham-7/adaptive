@@ -1,6 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { SignInButton, SignUpButton } from "@clerk/clerk-react";
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+} from "@clerk/clerk-react";
 
 const navLinks = [
   { href: "#features", label: "Features" },
@@ -10,7 +15,7 @@ const navLinks = [
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky p-6 top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex gap-8 items-center">
           <Link to="/" className="flex items-center">
@@ -30,24 +35,42 @@ export default function Header() {
             ))}
           </nav>
         </div>
+
         <div className="flex items-center gap-4">
-          <SignInButton>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="font-medium hover:text-primary-600 hover:bg-primary-50/50"
+          <SignedIn>
+            <Link
+              to="/home"
+              className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
             >
-              Log in
-            </Button>
-          </SignInButton>
-          <SignUpButton>
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
-            >
-              Get Started
-            </Button>
-          </SignUpButton>
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+              >
+                Go to App
+              </Button>
+            </Link>
+          </SignedIn>
+
+          <SignedOut>
+            {/* Show this when user is signed out */}
+            <SignInButton signUpForceRedirectUrl="/home">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="font-medium hover:text-primary-600 hover:bg-primary-50/50"
+              >
+                Log in
+              </Button>
+            </SignInButton>
+            <SignUpButton signInForceRedirectUrl="/home">
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+              >
+                Get Started
+              </Button>
+            </SignUpButton>
+          </SignedOut>
         </div>
       </div>
     </header>
