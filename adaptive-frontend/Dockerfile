@@ -1,6 +1,13 @@
 # Build stage
 FROM oven/bun:latest AS build
 
+# Add the build argument
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ARG VITE_BASE_API_URL
+# Make it available as an environment variable during build
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_BASE_API_URL=$VITE_BASE_API_URL
+
 WORKDIR /app
 
 # Copy package files
@@ -16,7 +23,7 @@ COPY . .
 RUN bun run build
 
 # Format Caddyfile stage
-FROM caddy:alpine AS caddy-formatter
+FROM caddy:latest AS caddy-formatter
 
 # Copy the Caddyfile
 COPY Caddyfile /etc/caddy/Caddyfile
@@ -25,7 +32,7 @@ COPY Caddyfile /etc/caddy/Caddyfile
 RUN caddy fmt --overwrite /etc/caddy/Caddyfile
 
 # Production stage with Caddy
-FROM caddy:alpine
+FROM caddy:latest
 
 # Copy formatted Caddyfile from formatter stage
 COPY --from=caddy-formatter /etc/caddy/Caddyfile /etc/caddy/Caddyfile

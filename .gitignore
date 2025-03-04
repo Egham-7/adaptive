@@ -2,6 +2,7 @@
 .venv/
 venv/
 ENV/
+.env
 
 # Python
 *.pyc
@@ -11,3 +12,4 @@ __pycache__/
 *.dylib
 */vocab/vectors
 */transformer/model
+
