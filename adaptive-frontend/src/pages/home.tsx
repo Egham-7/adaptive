@@ -150,47 +150,49 @@ export default function Home() {
 
       <main className="w-full max-w-5xl mx-auto flex flex-col h-screen pt-[80px] pb-[140px]">
         {/* Chat Messages Area */}
-        {messages.length === 0 ? (
-          <>
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <MessageSquare className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-xl font-medium mb-2">Welcome to Adaptive</h2>
-            <div className="text-muted-foreground max-w-md">
-              Send a message to start a conversation. Adaptive will select the
-              best AI model for your specific query.
-            </div>
-          </>
-        ) : (
-          messages.map((msg: Message, index: number) => (
-            <div
-              key={index}
-              className={cn(
-                "flex w-full max-w-[90%] rounded-2xl p-4",
-                msg.role === "user"
-                  ? "ml-auto bg-primary text-primary-foreground"
-                  : "bg-muted",
-              )}
-            >
-              <div className="prose prose-sm dark:prose-invert">
-                {msg.content}
+        <div className="flex-1 overflow-y-auto w-full space-y-6 py-6">
+          {messages.length === 0 ? (
+            <>
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8 text-primary" />
               </div>
+              <h2 className="text-xl font-medium mb-2">Welcome to Adaptive</h2>
+              <div className="text-muted-foreground max-w-md">
+                Send a message to start a conversation. Adaptive will select the
+                best AI model for your specific query.
+              </div>
+            </>
+          ) : (
+            messages.map((msg: Message, index: number) => (
+              <div
+                key={index}
+                className={cn(
+                  "flex w-full max-w-[90%] rounded-2xl p-4",
+                  msg.role === "user"
+                    ? "ml-auto bg-primary text-primary-foreground"
+                    : "bg-muted",
+                )}
+              >
+                <div className="prose prose-sm dark:prose-invert">
+                  {msg.content}
+                </div>
+              </div>
+            ))
+          )}
+
+          {isLoading && (
+            <div className="flex items-center gap-3 rounded-2xl bg-muted p-4 max-w-[90%]">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <p>Processing your request...</p>
             </div>
-          ))
-        )}
+          )}
 
-        {isLoading && (
-          <div className="flex items-center gap-3 rounded-2xl bg-muted p-4 max-w-[90%]">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <p>Processing your request...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center gap-3 rounded-2xl bg-destructive/10 p-4 max-w-[90%] text-destructive border border-destructive/20">
-            <p>Error: {error}</p>
-          </div>
-        )}
+          {error && (
+            <div className="flex items-center gap-3 rounded-2xl bg-destructive/10 p-4 max-w-[90%] text-destructive border border-destructive/20">
+              <p>Error: {error}</p>
+            </div>
+          )}
+        </div>
 
         <div ref={messagesEndRef} />
       </main>
