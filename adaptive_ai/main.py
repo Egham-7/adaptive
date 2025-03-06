@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from llms import domain_model_mapping, model_capabilities
 from parameters import adjust_parameters
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 app = FastAPI()
 
@@ -23,20 +24,26 @@ class LLMProvider(ABC):
     def get_parameters(self) -> dict:
         pass
 
+@dataclass
 class OpenGroqAILLMProvider(LLMProvider):
-    def __init__(self, model:str,temperature: float, top_p: float, presence_penalty: float,
-                 frequency_penalty: float, max_tokens: float, n: int):
-        self.model = model
-        self.temperature = round(temperature, 2)
-        self.top_p = round(top_p, 2)
-        self.presence_penalty = round(presence_penalty, 2)
-        self.frequency_penalty = round(frequency_penalty, 2)
-        self.max_tokens = int(max_tokens)
-        self.n = n
+    model: str
+    temperature: float
+    top_p: float
+    presence_penalty: float
+    frequency_penalty: float
+    max_tokens: int
+    n: int
+
+    def __post_init__(self):
+        self.temperature = round(self.temperature, 2)
+        self.top_p = round(self.top_p, 2)
+        self.presence_penalty = round(self.presence_penalty, 2)
+        self.frequency_penalty = round(self.frequency_penalty, 2)
+        self.max_tokens = int(self.max_tokens)
 
     def get_parameters(self) -> dict:
         return {
-            "model":self.model,
+            "model": self.model,
             "temperature": self.temperature,
             "top_p": self.top_p,
             "presence_penalty": self.presence_penalty,
