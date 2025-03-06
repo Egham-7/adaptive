@@ -1,16 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Union, Dict, Type, cast, TypedDict
+from typing import Union, Dict, Type, cast
 
-from models.llms import domain_parameters
-
-
-class DomainParametersType(TypedDict):
-    Temperature: float
-    TopP: float
-    PresencePenalty: float
-    FrequencyPenalty: float
-    MaxCompletionTokens: int
-    N: int
+from models.llms import domain_parameters, DomainParametersType
 
 
 class LLMProviderParameters(ABC):

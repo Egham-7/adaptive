@@ -1,4 +1,22 @@
-model_capabilities = {
+from typing import TypedDict, Tuple, Literal, Dict
+
+
+class DomainParametersType(TypedDict):
+    Temperature: float
+    TopP: float
+    PresencePenalty: float
+    FrequencyPenalty: float
+    MaxCompletionTokens: int
+    N: int
+
+
+class ModelCapability(TypedDict):
+    description: str
+    complexity_range: Tuple[float, float]
+    provider: Literal["GROQ", "OpenAI", "DEEPSEEK"]
+
+
+model_capabilities: Dict[str, ModelCapability] = {
     "gemma2-9b-it": {
         "description": "A compact 9B parameter model tailored for Italian language tasks and creative generation.",
         "complexity_range": (0.3, 0.6),
