@@ -91,21 +91,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
       {/* Sticky Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm py-3 border-b">
-        <div className="max-w-5xl mx-auto w-full px-4">
+      <header className="fixed top-0 left-0 right-0 z-50 py-3 border-b bg-background/95 backdrop-blur-sm">
+        <div className="w-full max-w-5xl px-4 mx-auto">
           <div className="flex items-center justify-between">
             {/* Logo and Heading */}
             <div className="flex items-center gap-3">
               <div className="relative w-10 h-10 overflow-hidden">
                 <img
                   src="https://v0.dev/placeholder.svg"
-                  className="rounded-lg object-cover w-full h-full"
+                  className="object-cover w-full h-full rounded-lg"
                   alt="Adaptive Logo"
                 />
               </div>
-              <h1 className="text-2xl font-display font-semibold">Adaptive</h1>
+              <h1 className="text-2xl font-semibold font-display">Adaptive</h1>
             </div>
 
             {/* Model Display (Read-only) */}
@@ -116,7 +116,7 @@ export default function Home() {
                     <div className="flex items-center gap-2 bg-secondary/50 hover:bg-secondary rounded-full px-3 py-1.5 text-sm transition-colors">
                       <Cpu className="w-4 h-4 text-muted-foreground" />
                       <span className="hidden sm:inline truncate max-w-[120px]">
-                        {currentModel || "Auto-selected model"}
+                        {currentModel || "Model not selected"}
                       </span>
                       {currentProvider && (
                         <Badge
@@ -129,7 +129,7 @@ export default function Home() {
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Model is auto-selected based on your query</p>
+                    {currentModel || "Model not selected"}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -138,9 +138,9 @@ export default function Home() {
                 variant="outline"
                 size="sm"
                 onClick={resetConversation}
-                className="hidden sm:flex items-center gap-1"
+                className="items-center hidden gap-1 sm:flex"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="w-4 h-4" />
                 <span>New Chat</span>
               </Button>
             </div>
@@ -150,14 +150,14 @@ export default function Home() {
 
       <main className="w-full max-w-5xl mx-auto flex flex-col h-screen pt-[80px] pb-[140px]">
         {/* Chat Messages Area */}
-        <div className="flex-1 overflow-y-auto w-full space-y-6 py-6">
+        <div className="flex-1 w-full py-6 space-y-6 overflow-y-auto">
           {messages.length === 0 ? (
             <>
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-primary/10">
                 <MessageSquare className="w-8 h-8 text-primary" />
               </div>
-              <h2 className="text-xl font-medium mb-2">Welcome to Adaptive</h2>
-              <div className="text-muted-foreground max-w-md">
+              <h2 className="mb-2 text-xl font-medium">Welcome to Adaptive</h2>
+              <div className="max-w-md text-muted-foreground">
                 Send a message to start a conversation. Adaptive will select the
                 best AI model for your specific query.
               </div>
@@ -170,10 +170,10 @@ export default function Home() {
                   "flex w-full max-w-[90%] rounded-2xl p-4",
                   msg.role === "user"
                     ? "ml-auto bg-primary text-primary-foreground"
-                    : "bg-muted",
+                    : "bg-muted"
                 )}
               >
-                <div className="prose prose-sm dark:prose-invert">
+                <div className="prose-sm prose dark:prose-invert">
                   {msg.content}
                 </div>
               </div>
@@ -182,7 +182,7 @@ export default function Home() {
 
           {isLoading && (
             <div className="flex items-center gap-3 rounded-2xl bg-muted p-4 max-w-[90%]">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
               <p>Processing your request...</p>
             </div>
           )}
@@ -198,41 +198,41 @@ export default function Home() {
       </main>
 
       {/* Fixed Bottom Section */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm pt-3 pb-5 border-t z-40">
-        <div className="max-w-5xl mx-auto w-full px-4 space-y-3">
+      <footer className="fixed bottom-0 left-0 right-0 z-40 pt-3 pb-5 border-t bg-background/95 backdrop-blur-sm">
+        <div className="w-full max-w-5xl px-4 mx-auto space-y-3">
           {/* Action Buttons */}
           {showActions && (
-            <div className="flex flex-wrap justify-center gap-2 pb-2 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex flex-wrap justify-center gap-2 pb-2 duration-200 animate-in fade-in slide-in-from-bottom-2">
               <Button
                 variant="secondary"
                 size="sm"
-                className="rounded-full gap-2"
+                className="gap-2 rounded-full"
               >
-                <ImageIcon className="h-4 w-4" />
+                <ImageIcon className="w-4 h-4" />
                 <span>Create image</span>
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                className="rounded-full gap-2"
+                className="gap-2 rounded-full"
               >
-                <FileText className="h-4 w-4" />
+                <FileText className="w-4 h-4" />
                 <span>Summarize text</span>
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                className="rounded-full gap-2"
+                className="gap-2 rounded-full"
               >
-                <Eye className="h-4 w-4" />
+                <Eye className="w-4 h-4" />
                 <span>Analyze images</span>
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                className="rounded-full gap-2"
+                className="gap-2 rounded-full"
               >
-                <GraduationCap className="h-4 w-4" />
+                <GraduationCap className="w-4 h-4" />
                 <span>Get advice</span>
               </Button>
               <DropdownMenu>
@@ -242,7 +242,7 @@ export default function Home() {
                     size="sm"
                     className="rounded-full"
                   >
-                    <MoreHorizontal className="h-4 w-4" />
+                    <MoreHorizontal className="w-4 h-4" />
                     <span className="sr-only">More options</span>
                   </Button>
                 </DropdownMenuTrigger>
@@ -258,7 +258,7 @@ export default function Home() {
           {/* Message Input Area with shadcn Form */}
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="relative">
-              <div className="rounded-full bg-card p-1 shadow-lg border">
+              <div className="p-1 border rounded-full shadow-lg bg-card">
                 <div className="flex items-center gap-1">
                   <Button
                     type="button"
@@ -271,7 +271,7 @@ export default function Home() {
                     <ChevronDown
                       className={cn(
                         "h-5 w-5 transition-transform",
-                        showActions ? "rotate-180" : "",
+                        showActions ? "rotate-180" : ""
                       )}
                     />
                   </Button>
@@ -284,7 +284,7 @@ export default function Home() {
                           <Input
                             {...field}
                             placeholder="Message Adaptive..."
-                            className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground text-base"
+                            className="flex-1 text-base bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
                             disabled={isLoading}
                           />
                         </FormControl>
@@ -299,9 +299,9 @@ export default function Home() {
                     disabled={isLoading || !form.formState.isValid}
                   >
                     {isLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                      <Send className="h-5 w-5" />
+                      <Send className="w-5 h-5" />
                     )}
                   </Button>
                 </div>
@@ -310,7 +310,7 @@ export default function Home() {
           </Form>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground pt-1">
+          <p className="pt-1 text-xs text-center text-muted-foreground">
             Results may vary. Verify important information.
           </p>
         </div>

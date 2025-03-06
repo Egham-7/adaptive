@@ -4,6 +4,7 @@ import {
   OpenAIResponse,
   AnthropicResponse,
   GroqResponse,
+  DeepSeekResponse,
 } from "@/services/llms/types";
 import { useChatCompletion } from "./use-chat-completion";
 
@@ -29,6 +30,12 @@ function extractMessageContent(provider: string, response: unknown): string {
     case "groq": {
       const groqResp = response as GroqResponse;
       return groqResp.choices[0]?.message.content || "";
+    }
+
+    case "deepseek": {
+      const deepseekResp = response as DeepSeekResponse;
+
+      return deepseekResp.choices[0]?.message.content || "";
     }
 
     default:
@@ -72,7 +79,7 @@ export const useConversation = (initialMessages: Message[] = []) => {
   const [error, setError] = useState<string | null>(null);
   const [lastResponse, setLastResponse] = useState<{
     provider: string;
-    response: OpenAIResponse | AnthropicResponse | GroqResponse;
+    response: OpenAIResponse | AnthropicResponse | GroqResponse | DeepSeekResponse;
   } | null>(null);
 
   const chatMutation = useChatCompletion();
@@ -108,7 +115,7 @@ export const useConversation = (initialMessages: Message[] = []) => {
       // Extract content from the response based on provider
       const assistantContent = extractMessageContent(
         response.provider,
-        response.response,
+        response.response
       );
 
       // Add the assistant message to the conversation
