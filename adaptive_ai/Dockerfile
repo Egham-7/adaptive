@@ -1,22 +1,15 @@
 # Use Python 3.13 as the base image
-FROM python:3.13-slim
+FROM python:3.13-slim AS builder
 
-# Set environment variables
+# Set build environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
   PYTHONUNBUFFERED=1 \
   POETRY_HOME="/opt/poetry" \
-  POETRY_VIRTUALENVS_CREATE=false \
-  POETRY_VERSION=2.0.1
+  POETRY_VERSION=2.0.1 \
+  POETRY_VIRTUALENVS_IN_PROJECT=true
 
-# Install Poetry version 2
-RUN apt-get update && apt-get install -y curl && \
-  curl -sSL https://install.python-poetry.org | python3 - --version ${POETRY_VERSION} && \
-  apt-get purge -y --auto-remove curl && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
-
-# Add Poetry to PATH
-ENV PATH="$POETRY_HOME/bin:$PATH"
+# Install Poetry with pip (more direct than curl method)
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 
 # Set the working directory
 WORKDIR /app
@@ -24,16 +17,36 @@ WORKDIR /app
 # Copy Poetry configuration files
 COPY pyproject.toml poetry.lock* ./
 
-RUN poetry lock
+# Install dependencies into the project's virtualenv
+RUN poetry install --only main --no-root --no-interaction
 
-# Install dependencies
-RUN poetry install --only main --no-root
+# Final stage
+FROM python:3.13-slim
+
+# Set runtime environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+  PYTHONUNBUFFERED=1 \
+  PATH="/app/.venv/bin:$PATH"
+
+# Set working directory
+WORKDIR /app
+
+# Create a non-root user to run the application
+RUN adduser --disabled-password --gecos "" appuser && \
+  chown -R appuser:appuser /app
+
+# Copy the virtual environment from the builder stage
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
 # Copy the application code
-COPY . .
+COPY --chown=appuser:appuser . .
 
 # Expose the port the app runs on
 EXPOSE 8000
 
-# Command to run the application
-CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Switch to non-root user
+USER appuser
+
+
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -20,6 +20,14 @@ func NewLLMProvider(providerName string) (LLMProvider, error) {
 			return nil, err
 		}
 		return service, nil
+
+	case "deepseek":
+		service, err := NewDeepSeekService()
+		if err != nil {
+			return nil, err
+		}
+
+		return service, nil
 	default:
 		return nil, errors.New("unsupported provider: " + providerName)
 	}
