@@ -26,12 +26,12 @@ def adjust_parameters(domain: str, prompt_scores: dict):
     
     # Return final adjusted parameters
     return {
-        "Temperature": round(temperature, 2),
-        "TopP": round(top_p, 2),
-        "PresencePenalty": round(presence_penalty, 2),
-        "FrequencyPenalty": round(frequency_penalty, 2),
-        "MaxCompletionTokens": int(max_tokens),
-        "N": n
+        "temperature": round(temperature, 2),
+        "top_p": round(top_p, 2),
+        "presence_penalty": round(presence_penalty, 2),
+        "frequency_penalty": round(frequency_penalty, 2),
+        "max_tokens": int(max_tokens),
+        "n": n
     }
 
 # Example usage

@@ -78,6 +78,7 @@ async def chat_bot(request: PromptRequest):
         if complexity_range[0] <= complexity_score <= complexity_range[1]:
             return {"selected_model": model_name, "provider": provider}
 
+    
     # Find best parameters combinations
     prompt_scores = {
     "creativity_scope": complexity["creativity_scope"],
@@ -87,20 +88,27 @@ async def chat_bot(request: PromptRequest):
     "domain_knowledge": complexity["domain_knowledge"]
 }
     parameters = adjust_parameters(domain, prompt_scores)
+    
     """
     return {
-        "Temperature": round(temperature, 2),
-        "TopP": round(top_p, 2),
-        "PresencePenalty": round(presence_penalty, 2),
-        "FrequencyPenalty": round(frequency_penalty, 2),
-        "MaxCompletionTokens": int(max_tokens),
-        "N": n
-    }
-    """
+        "temperature": round(temperature, 2),
+        "top_p": round(top_p, 2),
+        "presence_penalty": round(presence_penalty, 2),
+        "frequency_penalty": round(frequency_penalty, 2),
+        "max_tokens": int(max_tokens),
+        "n": n
+    }"""
+
     print(parameters)
+    if(model_capabilities[suitable_models[0]]["provider"]=="OpenAI"|"GROQ"):
+        parameters_model = {
+            "model": suitable_models[0],  
+            **parameters
+        }
+    else:
+        parameters_model = {}
     # If no model matches the complexity score, return a default model
     return {
-        "selected_model": suitable_models[0],
-        "provider": model_capabilities[suitable_models[0]]["provider"],
-        "parameters": parameters
+        "parameters": parameters_model,
+        "provider":model_capabilities[suitable_models[0]]["provider"]
     }
