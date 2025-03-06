@@ -5,6 +5,7 @@ import {
   OpenAIResponse,
   AnthropicResponse,
   GroqResponse,
+  DeepSeekResponse,
 } from "./types";
 
 /**
@@ -30,6 +31,9 @@ function typeProviderResponse(
       return response as AnthropicResponse;
     case "groq":
       return response as GroqResponse;
+
+    case "deepseek":
+      return response as DeepSeekResponse;
     default:
       throw new Error("Must be a valid provider.");
   }
