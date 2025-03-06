@@ -1,5 +1,5 @@
 [project]
-name = "adaptive-backend"
+name = "adaptive-ai"
 version = "0.1.0"
 description = ""
 authors = [{ name = "Your Name", email = "you@example.com" }]
@@ -12,6 +12,10 @@ dependencies = [
   "huggingface-hub (>=0.29.1,<0.30.0)",
   "transformers (>=4.49.0,<5.0.0)",
   "torch (>=2.6.0,<3.0.0)",
+  "mypy (>=1.15.0,<2.0.0)",
+  "black (>=25.1.0,<26.0.0)",
+  "ruff (>=0.9.9,<0.10.0)",
+  "microsoft-python-type-stubs @ git+https://github.com/microsoft/python-type-stubs.git",
 ]
 
 
