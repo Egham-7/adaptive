@@ -4,6 +4,7 @@ from domain_classifier import DomainClassifier
 from pydantic import BaseModel
 from llms import domain_model_mapping, model_capabilities
 from parameters import adjust_parameters
+from abc import ABC, abstractmethod
 
 app = FastAPI()
 
@@ -16,6 +17,33 @@ async def read_root():
 prompt_classifier = PromptClassifier()
 domain_classifier = DomainClassifier()
 
+
+class LLMProvider(ABC):
+    @abstractmethod
+    def get_parameters(self) -> dict:
+        pass
+
+class OpenGroqAILLMProvider(LLMProvider):
+    def __init__(self, model:str,temperature: float, top_p: float, presence_penalty: float,
+                 frequency_penalty: float, max_tokens: float, n: int):
+        self.model = model
+        self.temperature = round(temperature, 2)
+        self.top_p = round(top_p, 2)
+        self.presence_penalty = round(presence_penalty, 2)
+        self.frequency_penalty = round(frequency_penalty, 2)
+        self.max_tokens = int(max_tokens)
+        self.n = n
+
+    def get_parameters(self) -> dict:
+        return {
+            "model":self.model,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "presence_penalty": self.presence_penalty,
+            "frequency_penalty": self.frequency_penalty,
+            "max_tokens": self.max_tokens,
+            "n": self.n
+        }
 
 class PromptRequest(BaseModel):
     prompt: str
@@ -61,54 +89,44 @@ async def chat_bot(request: PromptRequest):
 @app.post("/parameters")
 async def chat_bot(request: PromptRequest):
     complexity = prompt_classifier.classify_prompt(request.prompt)
-    
     complexity_score = complexity["prompt_complexity_score"][0]
     domain = domain_classifier.classify(request.prompt)[0]
 
     if domain not in domain_model_mapping:
         raise ValueError(f"Domain '{domain}' is not recognized.")
 
-    # Filter models suitable for the given domain
     suitable_models = domain_model_mapping[domain]
 
-    # Find a model within the suitable models that matches the complexity score
     for model_name in suitable_models:
         complexity_range = model_capabilities[model_name]["complexity_range"]
         provider = model_capabilities[model_name]["provider"]
         if complexity_range[0] <= complexity_score <= complexity_range[1]:
-            return {"selected_model": model_name, "provider": provider}
+            selected_model = {"selected_model": model_name, "provider": provider}
+            break
+    else:
+        selected_model = {"selected_model": suitable_models[0], "provider": model_capabilities[suitable_models[0]]["provider"]}
 
-    
-    # Find best parameters combinations
     prompt_scores = {
-    "creativity_scope": complexity["creativity_scope"],
-    "reasoning": complexity["reasoning"],
-    "contextual_knowledge": complexity["contextual_knowledge"],
-    "prompt_complexity_score": complexity["prompt_complexity_score"],
-    "domain_knowledge": complexity["domain_knowledge"]
-}
-    parameters = adjust_parameters(domain, prompt_scores)
+        "creativity_scope": complexity["creativity_scope"],
+        "reasoning": complexity["reasoning"],
+        "contextual_knowledge": complexity["contextual_knowledge"],
+        "prompt_complexity_score": complexity["prompt_complexity_score"],
+        "domain_knowledge": complexity["domain_knowledge"]
+    }
     
-    """
-    return {
-        "temperature": round(temperature, 2),
-        "top_p": round(top_p, 2),
-        "presence_penalty": round(presence_penalty, 2),
-        "frequency_penalty": round(frequency_penalty, 2),
-        "max_tokens": int(max_tokens),
-        "n": n
-    }"""
+    parameters = adjust_parameters(domain, prompt_scores)
+    provider = selected_model["provider"]
 
-    print(parameters)
-    if(model_capabilities[suitable_models[0]]["provider"]=="OpenAI"|"GROQ"):
-        parameters_model = {
-            "model": suitable_models[0],  
+    if provider in ["OpenAI", "GROQ"]:
+        llm_provider = OpenGroqAILLMProvider(
+            model=selected_model["selected_model"],
             **parameters
-        }
+        )
+        parameters_model = llm_provider.get_parameters()
     else:
         parameters_model = {}
-    # If no model matches the complexity score, return a default model
+
     return {
         "parameters": parameters_model,
-        "provider":model_capabilities[suitable_models[0]]["provider"]
+        "provider": provider
     }
