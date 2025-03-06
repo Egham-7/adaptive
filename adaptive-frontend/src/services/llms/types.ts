@@ -114,12 +114,42 @@ export interface GroqResponse {
 }
 
 /**
+ * DeepSeek style response object for chat completions
+ */
+export interface DeepSeekResponse {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: Array<{
+    index: number;
+    message: {
+      role: string;
+      content: string;
+      tool_call_id?: string;
+    };
+    logprobs?: {
+      token_logprobs: number[];
+      tokens: string[];
+      top_logprobs: Array<Record<string, number>>;
+    };
+    finish_reason: "stop" | "length" | "tool_calls" | "content_filter";
+  }>;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+/**
  * Union type for various provider responses
  */
 export type ProviderResponse =
   | OpenAIResponse
   | AnthropicResponse
-  | GroqResponse;
+  | GroqResponse
+  | DeepSeekResponse;
 
 /**
  * Response from chat completion API
