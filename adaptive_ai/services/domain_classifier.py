@@ -5,6 +5,7 @@ from torch import nn
 from huggingface_hub import PyTorchModelHubMixin
 
 
+
 class CustomModel(nn.Module, PyTorchModelHubMixin):
     def __init__(self, config):
         super(CustomModel, self).__init__()
@@ -13,25 +14,36 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         self.fc = nn.Linear(self.model.config.hidden_size, len(config["id2label"]))
 
     def forward(self, input_ids, attention_mask):
-        features = self.model(
-            input_ids=input_ids, attention_mask=attention_mask
-        ).last_hidden_state
+        features = self.model(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
         dropped = self.dropout(features)
         outputs = self.fc(dropped)
         return torch.softmax(outputs[:, 0, :], dim=1)
 
 
+
 class DomainClassifier:
-    def __init__(self):
-        self.model = AutoModel.from_pretrained("nvidia/domain-classifier")
-        self.tokenizer = AutoTokenizer.from_pretrained("nvidia/domain-classifier")
-        self.config = AutoConfig.from_pretrained("nvidia/domain-classifier")
+    def __init__(self, model_name="nvidia/domain-classifier"):
+        """
+        Initialize the DomainClassifier with the specified model.
+
+        Args:
+            model_name (str): The name of the pre-trained model to load.
+        """
+        self.config = AutoConfig.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model = CustomModel.from_pretrained(model_name)
         self.model.eval()
 
     def classify(self, texts):
-        if isinstance(texts, str):
-            texts = [texts]
+        """
+        Classify a list of text samples into their respective domains.
 
+        Args:
+            texts (list of str): The text samples to classify.
+
+        Returns:
+            list of str: The predicted domains for each text sample.
+        """
         inputs = self.tokenizer(
             texts, return_tensors="pt", padding="longest", truncation=True
         )
@@ -44,6 +56,9 @@ class DomainClassifier:
         return predicted_domains
 
 
+
 @lru_cache()
 def get_domain_classifier():
     return DomainClassifier()
+
+
