@@ -188,5 +188,5 @@ func determineOpenAIModel(requestedModel string) string {
 	}
 
 	// For unknown models, fall back to default
-	return openai.GPT3Dot5Turbo
+	return openai.GPT4oMini
 }

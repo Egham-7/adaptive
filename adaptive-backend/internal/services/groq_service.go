@@ -148,10 +148,6 @@ func determineGroqModel(requestedModel string) groq.ChatModel {
 		return groq.ModelLlama370B8192
 	case "llama3-8b":
 		return groq.ModelLlama38B8192
-	case "llama3-70b-tool-use", "llama3-70b-tools":
-		return groq.ModelLlama3Groq70B8192ToolUsePreview
-	case "llama3-8b-tool-use", "llama3-8b-tools":
-		return groq.ModelLlama3Groq8B8192ToolUsePreview
 	case "mixtral-8x7b", "mixtral":
 		return groq.ModelMixtral8X7B32768
 	case "gemma-7b":
@@ -159,6 +155,6 @@ func determineGroqModel(requestedModel string) groq.ChatModel {
 	case "gemma-2-9b", "gemma2-9b":
 		return groq.ModelGemma29BIt
 	default:
-		return groq.ModelLlama3Groq70B8192ToolUsePreview // Default for unknown models
+		return groq.ModelLlama318BInstant
 	}
 }
