@@ -1,11 +1,11 @@
 # Use Python 3.13 as the base image
-FROM python:3.13-slim AS builder
+FROM python:3.11.10-slim AS builder
 
 # Set build environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
   PYTHONUNBUFFERED=1 \
   POETRY_HOME="/opt/poetry" \
-  POETRY_VERSION=2.0.1 \
+  POETRY_VERSION=2.1.1 \
   POETRY_VIRTUALENVS_IN_PROJECT=true
 
 # Install Poetry with pip (more direct than curl method)
@@ -21,7 +21,7 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry install --only main --no-root --no-interaction
 
 # Final stage
-FROM python:3.13-slim
+FROM python:3.11.10-slim
 
 # Set runtime environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
