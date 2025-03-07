@@ -28,9 +28,14 @@ func ChatCompletion(c *fiber.Ctx) error {
 	}
 
 	full_chat_completion_req := models.ProviderChatCompletionRequest{
-		Provider: selected_model.Provider,
-		Model:    selected_model.SelectedModel,
-		Messages: req.Messages,
+		Provider:         selected_model.Provider,
+		Model:            selected_model.SelectedModel,
+		Messages:         req.Messages,
+		Temperature:      selected_model.Parameters.Temperature,
+		N:                selected_model.Parameters.N,
+		MaxTokens:        selected_model.Parameters.MaxTokens,
+		PresencePenalty:  selected_model.Parameters.PresencePenalty,
+		FrequencyPenalty: selected_model.Parameters.FrequencyPenalty,
 	}
 
 	// Get the appropriate LLM provider

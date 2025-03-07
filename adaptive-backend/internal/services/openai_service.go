@@ -46,16 +46,13 @@ func (s *OpenAIService) CreateChatCompletion(req *models.ProviderChatCompletionR
 
 	// Create OpenAI request
 	openaiReq := openai.ChatCompletionRequest{
-		Model:    model,
-		Messages: messages,
-	}
-
-	// Add optional parameters if they exist
-	if req.Temperature != 0 {
-		openaiReq.Temperature = req.Temperature
-	}
-	if req.MaxTokens != 0 {
-		openaiReq.MaxTokens = req.MaxTokens
+		Model:               model,
+		Messages:            messages,
+		Temperature:         req.Temperature,
+		TopP:                req.TopP,
+		MaxCompletionTokens: req.MaxTokens,
+		FrequencyPenalty:    req.FrequencyPenalty,
+		PresencePenalty:     req.PresencePenalty,
 	}
 
 	// Call OpenAI API
@@ -156,23 +153,36 @@ func convertToolCalls(toolCalls []tools.ToolCall) []openai.ToolCall {
 	return result
 }
 
-// determineOpenAIModel selects the appropriate model based on request
 func determineOpenAIModel(requestedModel string) string {
 	if requestedModel == "" {
 		return openai.GPT3Dot5Turbo // Default model
 	}
 
-	// Map of supported models - can be expanded as needed
+	// Map of supported models - one entry per model family
 	supportedModels := map[string]bool{
-		openai.GPT3Dot5Turbo:    true,
-		openai.GPT4:             true,
-		openai.GPT4Turbo:        true,
-		openai.GPT4TurboPreview: true,
-		"gpt-4o":                true,
-		"gpt-4o-mini":           true,
+		// O1 models
+		openai.O1:        true,
+		openai.O1Mini:    true,
+		openai.O1Preview: true,
+
+		// O3 Models
+		openai.O3Mini: true,
+
+		// GPT-4 models
+		openai.GPT4:              true,
+		openai.GPT432K:           true,
+		openai.GPT4o:             true,
+		openai.GPT4oLatest:       true,
+		openai.GPT4oMini:         true,
+		openai.GPT4Turbo:         true,
+		openai.GPT4TurboPreview:  true,
+		openai.GPT4VisionPreview: true,
+
+		// GPT-3.5 models
+		openai.GPT3Dot5Turbo: true,
 	}
 
-	// If the requested model is supported, use it
+	// If the requested model is directly supported, use it
 	if _, ok := supportedModels[requestedModel]; ok {
 		return requestedModel
 	}

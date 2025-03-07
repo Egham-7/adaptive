@@ -42,9 +42,13 @@ func (s *DeepSeekService) CreateChatCompletion(req *models.ProviderChatCompletio
 
 	// Create DeepSeek request
 	deepseekReq := &deepseek.ChatCompletionRequest{
-		Model:       model,
-		Messages:    messages,
-		Temperature: req.Temperature,
+		Model:            model,
+		Messages:         messages,
+		Temperature:      req.Temperature,
+		PresencePenalty:  req.PresencePenalty,
+		FrequencyPenalty: req.FrequencyPenalty,
+		MaxTokens:        req.MaxTokens,
+		TopP:             req.TopP,
 	}
 
 	// Add optional parameters if they exist

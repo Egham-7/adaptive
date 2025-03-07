@@ -9,11 +9,15 @@ type ChatCompletionRequest struct {
 }
 
 type ProviderChatCompletionRequest struct {
-	Provider    string    `json:"provider"`
-	Model       string    `json:"model"`
-	Messages    []Message `json:"messages"`
-	Temperature float32   `json:"maxTemperature"`
-	MaxTokens   int       `json:"maxTokens"`
+	Provider         string    `json:"provider"`
+	Model            string    `json:"model"`
+	Messages         []Message `json:"messages"`
+	Temperature      float32   `json:"maxTemperature"`
+	N                int       `json:"n"`
+	MaxTokens        int       `json:"maxTokens"`
+	TopP             float32   `json:"top_p"`
+	PresencePenalty  float32   `json:"presence_penalty"`
+	FrequencyPenalty float32   `json:"frequency_penalty"`
 }
 
 // ChatMessagePartType is the chat message part type.
@@ -94,8 +98,19 @@ type SelectModelRequest struct {
 	Prompt string `json:"prompt"`
 }
 
-// ModelResponse represents the response from the select-model endpoint
+// SelectModelResponse represents the response from the select-model endpoint
 type SelectModelResponse struct {
-	SelectedModel string `json:"selected_model"`
-	Provider      string `json:"provider"`
+	SelectedModel string           `json:"selected_model"`
+	Provider      string           `json:"provider"`
+	Parameters    OpenAIParameters `json:"parameters"`
+}
+
+// OpenAIParameters represents OpenAI-specific model parameters
+type OpenAIParameters struct {
+	MaxTokens        int     `json:"max_tokens,omitempty"`
+	Temperature      float32 `json:"temperature,omitempty"`
+	TopP             float32 `json:"top_p,omitempty"`
+	PresencePenalty  float32 `json:"presence_penalty,omitempty"`
+	FrequencyPenalty float32 `json:"frequency_penalty,omitempty"`
+	N                int     `json:"n",omitempty`
 }
