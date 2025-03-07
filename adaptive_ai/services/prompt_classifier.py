@@ -1,3 +1,4 @@
+from functools import lru_cache
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,10 +15,8 @@ class MeanPooling(nn.Module):
             attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
         )
         sum_embeddings = torch.sum(last_hidden_state * input_mask_expanded, 1)
-
         sum_mask = input_mask_expanded.sum(1)
         sum_mask = torch.clamp(sum_mask, min=1e-9)
-
         mean_embeddings = sum_embeddings / sum_mask
         return mean_embeddings
 
@@ -35,59 +34,46 @@ class MulticlassHead(nn.Module):
 class CustomModel(nn.Module, PyTorchModelHubMixin):
     def __init__(self, target_sizes, task_type_map, weights_map, divisor_map):
         super(CustomModel, self).__init__()
-
         self.backbone = AutoModel.from_pretrained("microsoft/DeBERTa-v3-base")
         self.target_sizes = target_sizes.values()
         self.task_type_map = task_type_map
         self.weights_map = weights_map
         self.divisor_map = divisor_map
-
         self.heads = [
             MulticlassHead(self.backbone.config.hidden_size, sz)
             for sz in self.target_sizes
         ]
-
         for i, head in enumerate(self.heads):
             self.add_module(f"head_{i}", head)
-
         self.pool = MeanPooling()
 
     def compute_results(self, preds, target, decimal=4):
         if target == "task_type":
-            task_type = {}
-
             top2_indices = torch.topk(preds, k=2, dim=1).indices
             softmax_probs = torch.softmax(preds, dim=1)
             top2_probs = softmax_probs.gather(1, top2_indices)
             top2 = top2_indices.detach().cpu().tolist()
             top2_prob = top2_probs.detach().cpu().tolist()
-
             top2_strings = [
                 [self.task_type_map[str(idx)] for idx in sample] for sample in top2
             ]
             top2_prob_rounded = [
                 [round(value, 3) for value in sublist] for sublist in top2_prob
             ]
-
             counter = 0
             for sublist in top2_prob_rounded:
                 if sublist[1] < 0.1:
                     top2_strings[counter][1] = "NA"
                 counter += 1
-
             task_type_1 = [sublist[0] for sublist in top2_strings]
             task_type_2 = [sublist[1] for sublist in top2_strings]
             task_type_prob = [sublist[0] for sublist in top2_prob_rounded]
-
             return (task_type_1, task_type_2, task_type_prob)
-
         else:
             preds = torch.softmax(preds, dim=1)
-
             weights = np.array(self.weights_map[target])
             weighted_sum = np.sum(np.array(preds.detach().cpu()) * weights, axis=1)
             scores = weighted_sum / self.divisor_map[target]
-
             scores = [round(value, decimal) for value in scores]
             if target == "number_of_few_shots":
                 scores = [x if x >= 0.05 else 0 for x in scores]
@@ -95,7 +81,6 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def process_logits(self, logits):
         result = {}
-
         # Round 1: "task_type"
         task_type_logits = logits[0]
         task_type_results = self.compute_results(task_type_logits, target="task_type")
@@ -160,22 +145,18 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                 result["number_of_few_shots"],
             )
         ]
-
         return result
 
     def forward(self, batch):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
-
         last_hidden_state = outputs.last_hidden_state
         mean_pooled_representation = self.pool(last_hidden_state, attention_mask)
-
         logits = [
             self.heads[k](mean_pooled_representation)
             for k in range(len(self.target_sizes))
         ]
-
         return self.process_logits(logits)
 
 
@@ -183,7 +164,6 @@ config = AutoConfig.from_pretrained("nvidia/prompt-task-and-complexity-classifie
 tokenizer = AutoTokenizer.from_pretrained(
     "nvidia/prompt-task-and-complexity-classifier"
 )
-
 model = CustomModel(
     target_sizes=config.target_sizes,
     task_type_map=config.task_type_map,
@@ -191,6 +171,25 @@ model = CustomModel(
     divisor_map=config.divisor_map,
 ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
 
-#model.eval()
+
+class PromptClassifier:
+    def __init__(self):
+        self.model = model
+        self.tokenizer = tokenizer
+
+    def classify_prompt(self, prompt):
+        encoded_texts = self.tokenizer(
+            [prompt],
+            return_tensors="pt",
+            add_special_tokens=True,
+            max_length=512,
+            padding="max_length",
+            truncation=True,
+        )
+        result = self.model(encoded_texts)
+        return result
 
 
+@lru_cache()
+def get_prompt_classifier():
+    return PromptClassifier()

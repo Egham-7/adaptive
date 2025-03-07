@@ -1,58 +1,42 @@
 from fastapi import FastAPI
-from prompt_classifier import PromptClassifier
-from domain_classifier import DomainClassifier
-from pydantic import BaseModel
-from llms import domain_model_mapping, model_capabilities
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
-app = FastAPI()
+# Import routers
+from api.routes.model_selection import router as model_selector_router
+from api.routes.classifier import router as classifier_router
+
+# Create the FastAPI app
+app = FastAPI(
+    title="AI Model Selection API",
+    description="API for selecting and configuring AI models based on prompt analysis",
+    version="1.0.0",
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, replace with specific origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers with prefixes
+app.include_router(model_selector_router, prefix="/api/model", tags=["Model Selection"])
+app.include_router(classifier_router, prefix="/api/classify", tags=["Classification"])
 
 
+# Root endpoint
 @app.get("/")
-async def read_root():
-    return {"message": "Hello, World!"}
-
-
-prompt_classifier = PromptClassifier()
-domain_classifier = DomainClassifier()
-
-
-class PromptRequest(BaseModel):
-    prompt: str
-
-
-@app.post("/classify/prompt")
-async def classify_prompt(request: PromptRequest):
-    result = prompt_classifier.classify_prompt(request.prompt)
-    return result
-
-
-@app.post("/classify/domain")
-async def classify_domain(request: PromptRequest):
-    result = domain_classifier.classify(request.prompt)
-    return result
-
-
-@app.post("/select-model")
-async def chat_bot(request: PromptRequest):
-    complexity = prompt_classifier.classify_prompt(request.prompt)
-    complexity = complexity["prompt_complexity_score"][0]
-    domain = domain_classifier.classify(request.prompt)[0]
-
-    if domain not in domain_model_mapping:
-        raise ValueError(f"Domain '{domain}' is not recognized.")
-
-    # Filter models suitable for the given domain
-    suitable_models = domain_model_mapping[domain]
-
-    # Find a model within the suitable models that matches the complexity score
-    for model_name in suitable_models:
-        complexity_range = model_capabilities[model_name]["complexity_range"]
-        provider = model_capabilities[model_name]["provider"]
-        if complexity_range[0] <= complexity <= complexity_range[1]:
-            return {"selected_model": model_name, "provider": provider}
-
-    # If no model matches the complexity score, return a default model
+async def root():
     return {
-        "selected_model": suitable_models[0],
-        "provider": model_capabilities[suitable_models[0]]["provider"],
+        "message": "Welcome to Adaptive",
+        "docs": "/docs",
+        "redoc": "/redoc",
     }
+
+
+# Run the application
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
