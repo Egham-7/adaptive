@@ -46,16 +46,13 @@ func (s *OpenAIService) CreateChatCompletion(req *models.ProviderChatCompletionR
 
 	// Create OpenAI request
 	openaiReq := openai.ChatCompletionRequest{
-		Model:    model,
-		Messages: messages,
-	}
-
-	// Add optional parameters if they exist
-	if req.Temperature != 0 {
-		openaiReq.Temperature = req.Temperature
-	}
-	if req.MaxTokens != 0 {
-		openaiReq.MaxTokens = req.MaxTokens
+		Model:               model,
+		Messages:            messages,
+		Temperature:         req.Temperature,
+		TopP:                req.TopP,
+		MaxCompletionTokens: req.MaxTokens,
+		FrequencyPenalty:    req.FrequencyPenalty,
+		PresencePenalty:     req.PresencePenalty,
 	}
 
 	// Call OpenAI API

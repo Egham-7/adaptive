@@ -45,8 +45,13 @@ func (s *GroqService) CreateChatCompletion(req *models.ProviderChatCompletionReq
 	model := determineGroqModel(req.Model)
 
 	groqReq := groq.ChatCompletionRequest{
-		Model:    model,
-		Messages: messages,
+		Model:            model,
+		Messages:         messages,
+		Temperature:      req.Temperature,
+		TopP:             req.TopP,
+		MaxTokens:        req.MaxTokens,
+		PresencePenalty:  req.PresencePenalty,
+		FrequencyPenalty: req.FrequencyPenalty,
 	}
 
 	chatCompletionsResponse, err := s.client.ChatCompletion(context.Background(), groqReq)
