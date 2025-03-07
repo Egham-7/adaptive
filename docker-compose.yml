@@ -3,6 +3,9 @@ services:
     build:
       context: ./adaptive-frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
+        - VITE_BASE_API_URL=${VITE_BASE_API_URL}
     ports:
       - "3000:3000"
     depends_on:
@@ -30,6 +33,7 @@ services:
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - ADDR=:8080
       - ADAPTIVE_AI_BASE_URL=http://backend-python:8000
+      - ALLOWED_ORIGINS=http://localhost:3000
 
     restart: unless-stopped
     networks:
