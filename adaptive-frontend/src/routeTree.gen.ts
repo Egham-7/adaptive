@@ -14,6 +14,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as HomeImport } from './routes/_home'
 import { Route as IndexImport } from './routes/index'
 import { Route as HomeHomeImport } from './routes/_home/home'
+import { Route as HomeConversationsConversationIdImport } from './routes/_home/conversations/$conversationId'
 
 // Create/Update Routes
 
@@ -33,6 +34,13 @@ const HomeHomeRoute = HomeHomeImport.update({
   path: '/home',
   getParentRoute: () => HomeRoute,
 } as any)
+
+const HomeConversationsConversationIdRoute =
+  HomeConversationsConversationIdImport.update({
+    id: '/conversations/$conversationId',
+    path: '/conversations/$conversationId',
+    getParentRoute: () => HomeRoute,
+  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -59,6 +67,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeHomeImport
       parentRoute: typeof HomeImport
     }
+    '/_home/conversations/$conversationId': {
+      id: '/_home/conversations/$conversationId'
+      path: '/conversations/$conversationId'
+      fullPath: '/conversations/$conversationId'
+      preLoaderRoute: typeof HomeConversationsConversationIdImport
+      parentRoute: typeof HomeImport
+    }
   }
 }
 
@@ -66,10 +81,12 @@ declare module '@tanstack/react-router' {
 
 interface HomeRouteChildren {
   HomeHomeRoute: typeof HomeHomeRoute
+  HomeConversationsConversationIdRoute: typeof HomeConversationsConversationIdRoute
 }
 
 const HomeRouteChildren: HomeRouteChildren = {
   HomeHomeRoute: HomeHomeRoute,
+  HomeConversationsConversationIdRoute: HomeConversationsConversationIdRoute,
 }
 
 const HomeRouteWithChildren = HomeRoute._addFileChildren(HomeRouteChildren)
@@ -78,12 +95,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '': typeof HomeRouteWithChildren
   '/home': typeof HomeHomeRoute
+  '/conversations/$conversationId': typeof HomeConversationsConversationIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '': typeof HomeRouteWithChildren
   '/home': typeof HomeHomeRoute
+  '/conversations/$conversationId': typeof HomeConversationsConversationIdRoute
 }
 
 export interface FileRoutesById {
@@ -91,14 +110,20 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_home': typeof HomeRouteWithChildren
   '/_home/home': typeof HomeHomeRoute
+  '/_home/conversations/$conversationId': typeof HomeConversationsConversationIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '' | '/home'
+  fullPaths: '/' | '' | '/home' | '/conversations/$conversationId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '' | '/home'
-  id: '__root__' | '/' | '/_home' | '/_home/home'
+  to: '/' | '' | '/home' | '/conversations/$conversationId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_home'
+    | '/_home/home'
+    | '/_home/conversations/$conversationId'
   fileRoutesById: FileRoutesById
 }
 
@@ -132,11 +157,16 @@ export const routeTree = rootRoute
     "/_home": {
       "filePath": "_home.tsx",
       "children": [
-        "/_home/home"
+        "/_home/home",
+        "/_home/conversations/$conversationId"
       ]
     },
     "/_home/home": {
       "filePath": "_home/home.tsx",
+      "parent": "/_home"
+    },
+    "/_home/conversations/$conversationId": {
+      "filePath": "_home/conversations/$conversationId.tsx",
       "parent": "/_home"
     }
   }
