@@ -9,7 +9,7 @@ import { Conversation } from "./types";
  * @returns Promise with the created conversation
  */
 export const createConversation = async (
-  title: string,
+  title?: string,
 ): Promise<Conversation> => {
   const response = await axios.post<Conversation>(
     `${API_BASE_URL}/api/conversations`,
@@ -69,4 +69,18 @@ export const updateConversation = async (
  */
 export const deleteConversation = async (id: number): Promise<void> => {
   await axios.delete(`${API_BASE_URL}/api/conversations/${id}`);
+};
+
+/**
+ * Deletes all messages for a conversation
+ *
+ * @param conversationId - The conversation ID
+ * @returns Promise that resolves when all messages are deleted
+ */
+export const deleteAllMessages = async (
+  conversationId: number,
+): Promise<void> => {
+  await axios.delete(
+    `${API_BASE_URL}/api/conversations/${conversationId}/messages/batch`,
+  );
 };
