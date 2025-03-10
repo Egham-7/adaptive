@@ -54,11 +54,13 @@ export function MessageList({
       {messages.length === 0 ? (
         <EmptyState />
       ) : (
-        messages.map((msg: Message) => (
+        messages.map((msg: Message, index) => (
           <MessageItem
             key={msg.id}
             message={msg}
             conversationId={conversationId}
+            index={index}
+            messages={messages}
           />
         ))
       )}
@@ -72,15 +74,83 @@ export function MessageList({
 function MessageItem({
   message,
   conversationId,
+  index,
+  messages,
 }: {
   message: Message;
   conversationId: number;
+  index: number;
+  messages: Message[];
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
 
   const { mutate: updateMessage } = useUpdateMessage();
   const { mutate: deleteMessage } = useDeleteMessage();
+
+  const hasSubsequentMessages = index < messages.length - 1;
+
+  // Dialog state for confirming edits that will delete subsequent messages
+  const [showEditConfirmDialog, setShowEditConfirmDialog] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 640px)");
+
+  const handleEdit = () => {
+    if (hasSubsequentMessages) {
+      setShowEditConfirmDialog(true);
+    } else {
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    // First update the current message
+    updateMessage(
+      {
+        conversationId,
+        messageId: message.id,
+        updates: { content: editedContent },
+      },
+      {
+        onSuccess: () => {
+          setIsEditing(false);
+          // Then delete all subsequent messages if there are any
+          if (hasSubsequentMessages) {
+            const subsequentMessageIds = messages
+              .slice(index + 1)
+              .map((msg) => msg.id);
+
+            subsequentMessageIds.forEach((id) =>
+              deleteMessage({ conversationId, messageId: id })
+            );
+          }
+        },
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    deleteMessage(
+      {
+        conversationId,
+        messageId: message.id,
+      },
+      {
+        onSuccess: () => {
+          // Delete all subsequent messages if there are any
+          if (hasSubsequentMessages) {
+            const subsequentMessageIds = messages
+              .slice(index + 1)
+              .map((msg) => msg.id);
+
+            subsequentMessageIds.forEach((id) =>
+              deleteMessage({ conversationId, messageId: id })
+            );
+          }
+        },
+      }
+    );
+  };
+
   return (
     <div
       className={cn(
@@ -106,18 +176,14 @@ function MessageItem({
                   ? "hover:bg-primary-foreground/10"
                   : "hover:bg-background/80"
               )}
-              onClick={() => setIsEditing(true)}
+              onClick={handleEdit}
             >
               <Pencil className="w-4 h-4" />
             </Button>
             <DeleteMessageDialog
               userMessage={message.role === "user"}
-              onDelete={() => {
-                deleteMessage({
-                  conversationId,
-                  messageId: message.id,
-                });
-              }}
+              hasSubsequentMessages={hasSubsequentMessages}
+              onDelete={handleDelete}
             />
           </div>
         </div>
@@ -156,20 +222,7 @@ function MessageItem({
                   ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
                   : "bg-background/80 hover:bg-background"
               )}
-              onClick={() => {
-                updateMessage(
-                  {
-                    conversationId,
-                    messageId: message.id,
-                    updates: { content: editedContent },
-                  },
-                  {
-                    onSuccess: () => {
-                      setIsEditing(false);
-                    },
-                  }
-                );
-              }}
+              onClick={handleSaveEdit}
             >
               <Save className="w-4 h-4 mr-2" />
               Save
@@ -177,18 +230,47 @@ function MessageItem({
           </div>
         </div>
       )}
+
+      {/* Confirmation dialog for editing with subsequent messages */}
+      {showEditConfirmDialog &&
+        (isMobile ? (
+          <EditConfirmDrawer
+            onConfirm={() => {
+              setShowEditConfirmDialog(false);
+              setIsEditing(true);
+            }}
+            onCancel={() => setShowEditConfirmDialog(false)}
+          />
+        ) : (
+          <EditConfirmDialog
+            onConfirm={() => {
+              setShowEditConfirmDialog(false);
+              setIsEditing(true);
+            }}
+            onCancel={() => setShowEditConfirmDialog(false)}
+          />
+        ))}
     </div>
   );
 }
 
 function DeleteMessageDialog({
   userMessage,
+  hasSubsequentMessages,
   onDelete,
 }: {
   userMessage: boolean;
+  hasSubsequentMessages: boolean;
   onDelete: () => void;
 }) {
   const isMobile = useMediaQuery("(max-width: 640px)");
+  const dialogTitle = hasSubsequentMessages
+    ? "Delete Messages"
+    : "Delete Message";
+
+  const dialogDescription = hasSubsequentMessages
+    ? "Editing this message will also delete all subsequent messages in the conversation. This action cannot be undone."
+    : "Are you sure you want to delete this message? This action cannot be undone.";
 
   if (isMobile) {
     return (
@@ -209,11 +291,8 @@ function DeleteMessageDialog({
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Delete Message</DrawerTitle>
-            <DrawerDescription>
-              Are you sure you want to delete this message? This action cannot
-              be undone.
-            </DrawerDescription>
+            <DrawerTitle>{dialogTitle}</DrawerTitle>
+            <DrawerDescription>{dialogDescription}</DrawerDescription>
           </DrawerHeader>
           <DrawerFooter className="pt-2">
             <DrawerClose asChild>
@@ -248,11 +327,8 @@ function DeleteMessageDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Message</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to delete this message? This action cannot be
-            undone.
-          </DialogDescription>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild>
@@ -266,6 +342,66 @@ function DeleteMessageDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function EditConfirmDialog({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Dialog defaultOpen>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Message</DialogTitle>
+          <DialogDescription>
+            Editing this message will also delete all subsequent messages in the
+            conversation. This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="default" onClick={onConfirm}>
+            Continue with Edit
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditConfirmDrawer({
+  onConfirm,
+  onCancel,
+}: {
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Drawer defaultOpen>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Edit Message</DrawerTitle>
+          <DrawerDescription>
+            Editing this message will also delete all subsequent messages in the
+            conversation. This action cannot be undone.
+          </DrawerDescription>
+        </DrawerHeader>
+        <DrawerFooter>
+          <Button variant="default" onClick={onConfirm}>
+            Continue with Edit
+          </Button>
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
