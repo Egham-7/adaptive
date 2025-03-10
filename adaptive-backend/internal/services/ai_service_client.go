@@ -3,6 +3,7 @@ package services
 import (
 	"adaptive-backend/internal/models"
 	"os"
+	"time"
 )
 
 // PromptClassifierClient is a client for the prompt classifier API
@@ -24,6 +25,7 @@ func NewPromptClassifierClient() *PromptClassifierClient {
 
 func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModelResponse, error) {
 	var result models.SelectModelResponse
-	err := c.client.Post("/api/model/select-model", models.SelectModelRequest{Prompt: prompt}, &result, nil)
+	err := c.client.Post("/api/model/select-model", models.SelectModelRequest{Prompt: prompt}, &result, &RequestOptions{Timeout: 50 * time.Second})
+
 	return &result, err
 }

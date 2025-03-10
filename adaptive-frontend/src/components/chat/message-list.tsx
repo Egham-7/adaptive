@@ -29,7 +29,7 @@ export function MessageList({ messages, isLoading, error }: MessageListProps) {
               "flex w-full max-w-[90%] rounded-2xl p-4",
               msg.role === "user"
                 ? "ml-auto bg-primary text-primary-foreground"
-                : "bg-muted"
+                : "bg-muted",
             )}
           >
             <div className="prose-sm prose dark:prose-invert">
@@ -65,8 +65,8 @@ function EmptyState() {
       </div>
       <h2 className="mb-2 text-xl font-medium">Welcome to Adaptive</h2>
       <div className="max-w-md text-muted-foreground">
-        Send a message to start a conversation. Adaptive will select the
-        best AI model for your specific query.
+        Send a message to start a conversation. Adaptive will select the best AI
+        model for your specific query.
       </div>
     </>
   );

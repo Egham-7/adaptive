@@ -8,7 +8,6 @@ services:
         - VITE_BASE_API_URL=${VITE_BASE_API_URL}
     environment:
       - PORT=3000
-      - VITE_BASE_API_URL=${VITE_BASE_API_URL}
     ports:
       - "3000:3000"
     depends_on:
