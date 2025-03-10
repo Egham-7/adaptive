@@ -3,15 +3,10 @@ import {
   ChatCompletionRequest,
   ChatCompletionResponse,
   OpenAIResponse,
-  AnthropicResponse,
   GroqResponse,
   DeepSeekResponse,
 } from "./types";
-
-/**
- * Base URL for API requests
- */
-const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || "";
+import { API_BASE_URL } from "../common";
 
 /**
  * Helper function to type the response based on provider name
@@ -20,15 +15,13 @@ const API_BASE_URL = import.meta.env.VITE_BASE_API_URL || "";
  * @param response - The response data
  * @returns The properly typed response
  */
-function typeProviderResponse(
+export function typeProviderResponse(
   provider: string,
   response: unknown,
-): OpenAIResponse | AnthropicResponse | GroqResponse {
+): OpenAIResponse | GroqResponse | DeepSeekResponse {
   switch (provider.toLowerCase()) {
     case "openai":
       return response as OpenAIResponse;
-    case "anthropic":
-      return response as AnthropicResponse;
     case "groq":
       return response as GroqResponse;
 
