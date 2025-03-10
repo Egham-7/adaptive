@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { convertToApiMessages, getMessages } from "@/services/messages";
+import {  getMessages } from "@/services/messages";
 
 export const useConversationMessages = (conversationId: number) =>
   useQuery({
@@ -7,6 +7,6 @@ export const useConversationMessages = (conversationId: number) =>
     queryFn: async () => {
       const dbMessages = await getMessages(conversationId);
 
-      return convertToApiMessages(dbMessages);
+      return  dbMessages;
     },
   });
