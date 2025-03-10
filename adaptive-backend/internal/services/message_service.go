@@ -83,20 +83,6 @@ func (s *MessageService) DeleteAllMessages(conversationID uint) error {
 	return s.messageRepo.DeleteAllByConversationId(conversationID)
 }
 
-func (s *MessageService) ConvertToAPIMessages(dbMessages []models.DBMessage) []models.Message {
-	apiMessages := make([]models.Message, len(dbMessages))
-
-	for i, msg := range dbMessages {
-		apiMessages[i] = models.Message{
-			Role:    msg.Role,
-			Content: msg.Content,
-		}
-	}
-
-	return apiMessages
-}
-
 func (s *MessageService) BatchDeleteMessages(ids []uint) error {
-
 	return s.messageRepo.BatchDelete(ids)
 }
