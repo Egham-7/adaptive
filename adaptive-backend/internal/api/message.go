@@ -136,7 +136,7 @@ func (h *MessageHandler) DeleteMessage(c *fiber.Ctx) error {
 }
 
 // DeleteMessages handles DELETE /conversations/:id/messages
-func (h *MessageHandler) DeleteConversationMessages(c *fiber.Ctx) error {
+func (h *MessageHandler) DeleteAllConversationMessages(c *fiber.Ctx) error {
 	conversationID, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -144,7 +144,27 @@ func (h *MessageHandler) DeleteConversationMessages(c *fiber.Ctx) error {
 		})
 	}
 
-	if err := h.service.DeleteMessages(uint(conversationID)); err != nil {
+	if err := h.service.DeleteAllMessages(uint(conversationID)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *MessageHandler) BatchDeleteMessages(c *fiber.Ctx) error {
+	var request struct {
+		MessageIDs []uint `json:"message_ids"`
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if err := h.service.BatchDeleteMessages(request.MessageIDs); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
