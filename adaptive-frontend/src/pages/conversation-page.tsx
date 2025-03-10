@@ -17,6 +17,7 @@ import { AlertCircle, RefreshCw, Cpu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MessageList } from "@/components/chat/message-list";
 import { cn } from "@/lib/utils";
+import { convertToApiMessages } from "@/services/messages";
 
 export default function ConversationPage() {
   const [showActions, setShowActions] = useState(true);
@@ -45,6 +46,8 @@ export default function ConversationPage() {
     refetch: refetchMessages,
   } = useConversationMessages(numericConversationId);
 
+  const chatCompletionMessages = convertToApiMessages(messages);
+
   // Manage conversation state
   const { title, setTitle: setStateTitle } = useConversationState({
     conversationId: numericConversationId,
@@ -66,7 +69,7 @@ export default function ConversationPage() {
     sendMessage: originalSendMessage,
     isLoading: isSendingMessage,
     error: sendError,
-  } = useSendMessage(numericConversationId, messages);
+  } = useSendMessage(numericConversationId, chatCompletionMessages);
 
   // Action functions
   const setTitle = async (newTitle: string) => {

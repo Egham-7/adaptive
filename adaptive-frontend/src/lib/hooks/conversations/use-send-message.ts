@@ -11,7 +11,9 @@ export const useSendMessage = (conversationId: number, messages: Message[]) => {
   const sendMessage = useCallback(
     async (content: string) => {
       // Create message object
-      const userMessage: Message = { role: "user", content };
+      const userMessage: Message = {
+        role: "user", content,
+      };
 
       try {
         // Get response from AI

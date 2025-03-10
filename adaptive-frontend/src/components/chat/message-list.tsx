@@ -1,6 +1,5 @@
 import { Loader2, MessageSquare, Pencil, Save, X, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Message } from "@/services/llms/types";
 import { useEffect, useRef, useState } from "react";
 import Markdown from "../markdown";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,10 +27,11 @@ import {
 import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { useDeleteMessage } from "@/lib/hooks/conversations/use-delete-message";
 import { useUpdateMessage } from "@/lib/hooks/conversations/use-update-message";
+import { DBMessage } from "@/services/messages/types";
 
 interface MessageListProps {
   conversationId: number;
-  messages: Message[];
+  messages: DBMessage[];
   isLoading: boolean;
   error: string | null;
 }
@@ -54,7 +54,7 @@ export function MessageList({
       {messages.length === 0 ? (
         <EmptyState />
       ) : (
-        messages.map((msg: Message, index) => (
+        messages.map((msg, index) => (
           <MessageItem
             key={msg.id}
             message={msg}
@@ -77,10 +77,10 @@ function MessageItem({
   index,
   messages,
 }: {
-  message: Message;
+  message: DBMessage;
   conversationId: number;
   index: number;
-  messages: Message[];
+  messages: DBMessage[];
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
