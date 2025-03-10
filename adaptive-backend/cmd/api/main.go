@@ -42,8 +42,8 @@ func SetupRoutes(app *fiber.App) {
 	messages := apiGroup.Group("/messages")
 	messages.Get("/:id", messageHandler.GetMessage)
 	messages.Put("/:id", messageHandler.UpdateMessage)
-	messages.Delete("/:id", messageHandler.DeleteMessage)
 	messages.Delete("/batch", messageHandler.BatchDeleteMessages)
+	messages.Delete("/:id", messageHandler.DeleteMessage)
 }
 
 func main() {

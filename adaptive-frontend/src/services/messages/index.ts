@@ -62,12 +62,11 @@ export const getMessage = async (
  * @returns Promise with the updated message
  */
 export const updateMessage = async (
-  conversationId: number,
   messageId: number,
   updates: { role?: string; content?: string },
 ): Promise<DBMessage> => {
   const response = await axios.put<DBMessage>(
-    `${API_BASE_URL}/api/conversations/${conversationId}/messages/${messageId}`,
+    `${API_BASE_URL}/api/messages/${messageId}`,
     updates,
   );
   return response.data;
@@ -80,34 +79,22 @@ export const updateMessage = async (
  * @param messageId - The message ID
  * @returns Promise with the deletion result
  */
-export const deleteMessage = async (
-  conversationId: number,
-  messageId: number,
-): Promise<void> => {
-  await axios.delete(
-    `${API_BASE_URL}/api/conversations/${conversationId}/messages/${messageId}`,
-  );
+export const deleteMessage = async (messageId: number): Promise<void> => {
+  await axios.delete(`${API_BASE_URL}/api/messages/${messageId}`);
 };
 
 /**
  * Deletes batch of messages
- * 
+ *
  * @param messageIds - Array of message IDs to delete
  * @returns Promise with the deletion result
  */
 
-export const deleteMessages = async (
-  messageIds: number[]
-) : Promise<void> => {
-
-  await axios.delete(
-    `${API_BASE_URL}/api/messages/batch`,
-    {
-      data: { messageIds }
-    }
-  )
-
-}
+export const deleteMessages = async (messageIds: number[]): Promise<void> => {
+  await axios.delete(`${API_BASE_URL}/api/messages/batch`, {
+    data: { messageIds },
+  });
+};
 
 /**
  * Converts database messages to the API message format used for chat completion

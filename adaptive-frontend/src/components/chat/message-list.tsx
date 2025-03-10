@@ -1,4 +1,13 @@
-import { Loader2, MessageSquare, Pencil, Save, X, Trash2 } from "lucide-react";
+import {
+  Loader2,
+  MessageSquare,
+  Pencil,
+  Save,
+  X,
+  Trash2,
+  User,
+  Bot,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 import Markdown from "../markdown";
@@ -28,8 +37,6 @@ import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { useDeleteMessage } from "@/lib/hooks/conversations/use-delete-message";
 import { useUpdateMessage } from "@/lib/hooks/conversations/use-update-message";
 import { DBMessage } from "@/services/messages/types";
-import { useChatCompletion } from "@/lib/hooks/conversations/use-chat-completion";
-import { useDeleteMessages } from "@/lib/hooks/conversations/use-delete-messages";
 
 interface MessageListProps {
   conversationId: number;
@@ -44,6 +51,7 @@ export function MessageList({
   isLoading,
   error,
 }: MessageListProps) {
+  console.log("Messages: ", messages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom when messages change
@@ -86,98 +94,47 @@ function MessageItem({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
-  const { mutateAsync: updateMessage } = useUpdateMessage();
-  const { mutateAsync: deleteMessage } = useDeleteMessage();
-  const { mutateAsync: createChatCompletion } = useChatCompletion();
-  const { mutateAsync: deleteMessages } = useDeleteMessages();
+  const { mutateAsync: updateMessage, isPending: isUpdating } =
+    useUpdateMessage();
+  const { mutateAsync: deleteMessage, isPending: isDeleting } =
+    useDeleteMessage();
   const hasSubsequentMessages = index < messages.length - 1;
-  const [showEditConfirmDialog, setShowEditConfirmDialog] = useState(false);
-  const isMobile = useMediaQuery("(max-width: 640px)");
+  const isProcessing = isUpdating || isDeleting;
 
   const handleEdit = () => {
-    if (hasSubsequentMessages) {
-      setShowEditConfirmDialog(true);
-    } else {
-      setIsEditing(true);
-    }
+    // Simply enter edit mode without any confirmation
+    setIsEditing(true);
   };
 
-  // Add the retry handler function
   const handleRetry = async () => {
-    // Update message with the same content (no changes)
-    await updateMessage(
-      {
-        conversationId,
-        messageId: message.id,
-        updates: { content: message.content },
-      },
-      {
-        onSuccess: async () => {
-          // Then delete all subsequent messages if there are any
-          if (hasSubsequentMessages) {
-            const subsequentMessageIds = messages
-              .slice(index + 1)
-              .map((msg) => msg.id);
-            await deleteMessages({
-              messageIds: subsequentMessageIds,
-              conversationId,
-            });
-            await createChatCompletion({ messages });
-          }
-        },
-      }
-    );
+    await updateMessage({
+      conversationId,
+      messageId: message.id,
+      updates: { content: message.content },
+      index,
+      messages,
+    });
   };
 
   const handleSaveEdit = async () => {
-    // First update the current message
-    await updateMessage(
-      {
-        conversationId,
-        messageId: message.id,
-        updates: { content: editedContent },
-      },
-      {
-        onSuccess: async () => {
-          setIsEditing(false);
-          // Then delete all subsequent messages if there are any
-          if (hasSubsequentMessages) {
-            const subsequentMessageIds = messages
-              .slice(index + 1)
-              .map((msg) => msg.id);
-            await deleteMessages({
-              messageIds: subsequentMessageIds,
-              conversationId,
-            });
-            await createChatCompletion({ messages });
-          }
-        },
-      }
-    );
+    await updateMessage({
+      conversationId,
+      messageId: message.id,
+      updates: { role: "user", content: editedContent },
+      index,
+      messages,
+    });
+    // UI-specific logic stays in the component
+    setIsEditing(false);
   };
 
   const handleDelete = async () => {
-    await deleteMessage(
-      {
-        conversationId,
-        messageId: message.id,
-      },
-      {
-        onSuccess: async () => {
-          // Delete all subsequent messages if there are any
-          if (hasSubsequentMessages) {
-            const subsequentMessageIds = messages
-              .slice(index + 1)
-              .map((msg) => msg.id);
-
-            await deleteMessages({
-              messageIds: subsequentMessageIds,
-              conversationId,
-            });
-          }
-        },
-      }
-    );
+    await deleteMessage({
+      conversationId,
+      messageId: message.id,
+      messages,
+      index,
+    });
   };
 
   return (
@@ -186,17 +143,28 @@ function MessageItem({
         "flex flex-col w-full max-w-[90%] rounded-2xl p-4 group",
         message.role === "user"
           ? "ml-auto bg-primary text-primary-foreground"
-          : "bg-muted"
+          : "bg-muted",
+        isProcessing && "opacity-60",
       )}
     >
       {!isEditing ? (
         <div className="flex items-start justify-between w-full">
-          <Markdown
-            content={message.content}
-            className={message.role === "user" ? "text-primary-foreground" : ""}
-          />
-          <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100">
-            {/* Add retry button */}
+          <div className="flex items-start gap-3 w-full">
+            {message.role === "user" ? (
+              <User className="w-5 h-5 mt-1 shrink-0 text-primary-foreground" />
+            ) : (
+              <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
+            )}
+            <Markdown
+              content={message.content}
+              className={
+                message.role === "user"
+                  ? "text-primary-foreground w-full"
+                  : "w-full"
+              }
+            />
+          </div>
+          <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
             <Button
               variant="ghost"
               size="icon"
@@ -204,11 +172,14 @@ function MessageItem({
                 "h-8 w-8",
                 message.role === "user"
                   ? "hover:bg-primary-foreground/10"
-                  : "hover:bg-background/80"
+                  : "hover:bg-background/80",
               )}
               onClick={handleRetry}
+              disabled={isProcessing}
             >
-              <Loader2 className="w-4 h-4" />
+              <Loader2
+                className={cn("w-4 h-4", isUpdating && "animate-spin")}
+              />
             </Button>
             <Button
               variant="ghost"
@@ -217,9 +188,10 @@ function MessageItem({
                 "h-8 w-8",
                 message.role === "user"
                   ? "hover:bg-primary-foreground/10"
-                  : "hover:bg-background/80"
+                  : "hover:bg-background/80",
               )}
               onClick={handleEdit}
+              disabled={isProcessing}
             >
               <Pencil className="w-4 h-4" />
             </Button>
@@ -227,19 +199,27 @@ function MessageItem({
               userMessage={message.role === "user"}
               hasSubsequentMessages={hasSubsequentMessages}
               onDelete={handleDelete}
+              disabled={isProcessing}
             />
           </div>
         </div>
       ) : (
         <div className="flex flex-col w-full gap-2">
-          <Textarea
-            value={editedContent}
-            onChange={(e) => setEditedContent(e.target.value)}
-            className={cn(
-              "min-h-[100px] bg-transparent border-muted-foreground/20",
-              message.role === "user" ? "text-primary-foreground" : ""
+          <div className="flex items-start gap-3 w-full">
+            {message.role === "user" ? (
+              <User className="w-5 h-5 mt-1 shrink-0 text-primary-foreground" />
+            ) : (
+              <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
             )}
-          />
+            <Textarea
+              value={editedContent}
+              onChange={(e) => setEditedContent(e.target.value)}
+              className={cn(
+                "min-h-[100px] bg-transparent border-muted-foreground/20 w-full",
+                message.role === "user" ? "text-primary-foreground" : "",
+              )}
+            />
+          </div>
           <div className="flex justify-end gap-2">
             <Button
               size="sm"
@@ -247,12 +227,13 @@ function MessageItem({
               className={cn(
                 message.role === "user"
                   ? "hover:bg-primary-foreground/10"
-                  : "hover:bg-background/80"
+                  : "hover:bg-background/80",
               )}
               onClick={() => {
                 setEditedContent(message.content);
                 setIsEditing(false);
               }}
+              disabled={isProcessing}
             >
               <X className="w-4 h-4 mr-2" />
               Cancel
@@ -263,46 +244,35 @@ function MessageItem({
               className={cn(
                 message.role === "user"
                   ? "bg-primary-foreground/10 hover:bg-primary-foreground/20"
-                  : "bg-background/80 hover:bg-background"
+                  : "bg-background/80 hover:bg-background",
               )}
               onClick={handleSaveEdit}
+              disabled={isProcessing}
             >
-              <Save className="w-4 h-4 mr-2" />
+              {isUpdating ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
               Save
             </Button>
           </div>
         </div>
       )}
-      {/* Confirmation dialog for editing with subsequent messages */}
-      {showEditConfirmDialog &&
-        (isMobile ? (
-          <EditConfirmDrawer
-            onConfirm={() => {
-              setShowEditConfirmDialog(false);
-              setIsEditing(true);
-            }}
-            onCancel={() => setShowEditConfirmDialog(false)}
-          />
-        ) : (
-          <EditConfirmDialog
-            onConfirm={() => {
-              setShowEditConfirmDialog(false);
-              setIsEditing(true);
-            }}
-            onCancel={() => setShowEditConfirmDialog(false)}
-          />
-        ))}
     </div>
   );
 }
+
 function DeleteMessageDialog({
   userMessage,
   hasSubsequentMessages,
   onDelete,
+  disabled,
 }: {
   userMessage: boolean;
   hasSubsequentMessages: boolean;
   onDelete: () => void;
+  disabled: boolean;
 }) {
   const isMobile = useMediaQuery("(max-width: 640px)");
   const dialogTitle = hasSubsequentMessages
@@ -324,8 +294,9 @@ function DeleteMessageDialog({
               "h-8 w-8",
               userMessage
                 ? "hover:bg-primary-foreground/10"
-                : "hover:bg-background/80"
+                : "hover:bg-background/80",
             )}
+            disabled={disabled}
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -360,7 +331,7 @@ function DeleteMessageDialog({
             "h-8 w-8",
             userMessage
               ? "hover:bg-primary-foreground/10"
-              : "hover:bg-background/80"
+              : "hover:bg-background/80",
           )}
         >
           <Trash2 className="w-4 h-4" />
@@ -383,66 +354,6 @@ function DeleteMessageDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function EditConfirmDialog({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <Dialog defaultOpen>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Edit Message</DialogTitle>
-          <DialogDescription>
-            Editing this message will also delete all subsequent messages in the
-            conversation. This action cannot be undone.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button variant="default" onClick={onConfirm}>
-            Continue with Edit
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function EditConfirmDrawer({
-  onConfirm,
-  onCancel,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <Drawer defaultOpen>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Edit Message</DrawerTitle>
-          <DrawerDescription>
-            Editing this message will also delete all subsequent messages in the
-            conversation. This action cannot be undone.
-          </DrawerDescription>
-        </DrawerHeader>
-        <DrawerFooter>
-          <Button variant="default" onClick={onConfirm}>
-            Continue with Edit
-          </Button>
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
   );
 }
 

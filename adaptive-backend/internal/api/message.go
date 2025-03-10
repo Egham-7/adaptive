@@ -33,9 +33,7 @@ func (h *MessageHandler) GetMessagesByConversation(c *fiber.Ctx) error {
 		})
 	}
 
-	// Convert to API messages if needed
-	apiMessages := h.service.ConvertToAPIMessages(messages)
-	return c.JSON(apiMessages)
+	return c.JSON(messages)
 }
 
 // GetMessage handles GET /messages/:id
@@ -155,7 +153,7 @@ func (h *MessageHandler) DeleteAllConversationMessages(c *fiber.Ctx) error {
 
 func (h *MessageHandler) BatchDeleteMessages(c *fiber.Ctx) error {
 	var request struct {
-		MessageIDs []uint `json:"message_ids"`
+		MessageIDs []uint `json:"messageIds"`
 	}
 
 	if err := c.BodyParser(&request); err != nil {
