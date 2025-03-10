@@ -7,6 +7,7 @@ export type MessageRole = "user" | "assistant" | "system" | "tool";
  * Represents a single chat message
  */
 export interface Message {
+  id: number;
   role: MessageRole;
   content: string;
   tool_call_id?: string;
