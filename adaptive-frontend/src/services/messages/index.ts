@@ -100,6 +100,5 @@ export const convertToApiMessages = (dbMessages: DBMessage[]): Message[] => {
     id: msg.id,
     role: msg.role,
     content: msg.content,
-    // Other fields are omitted as they're not needed for the API
   }));
 };
