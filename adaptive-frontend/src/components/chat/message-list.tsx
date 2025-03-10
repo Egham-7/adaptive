@@ -118,9 +118,10 @@ function MessageItem({
             const subsequentMessageIds = messages
               .slice(index + 1)
               .map((msg) => msg.id);
-            subsequentMessageIds.forEach((id) =>
-              deleteMessage({ conversationId, messageId: id })
-            );
+            await deleteMessages({
+              messageIds: subsequentMessageIds,
+              conversationId,
+            });
             await createChatCompletion({ messages });
           }
         },
