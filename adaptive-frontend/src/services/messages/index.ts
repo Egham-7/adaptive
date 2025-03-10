@@ -97,6 +97,7 @@ export const deleteMessage = async (
  */
 export const convertToApiMessages = (dbMessages: DBMessage[]): Message[] => {
   return dbMessages.map((msg) => ({
+    id: msg.id,
     role: msg.role,
     content: msg.content,
     // Other fields are omitted as they're not needed for the API

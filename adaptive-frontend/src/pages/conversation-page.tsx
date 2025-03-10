@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useParams } from "@tanstack/react-router";
-
-import { useConversationState } from "@/lib/hooks/use-conversation-state";
-import { useSendMessage } from "@/lib/hooks/use-send-message";
-import { useUpdateConversation } from "@/lib/hooks/use-update-conversation";
-import { useDeleteConversationMessages } from "@/lib/hooks/use-delete-conversation-messages";
-import { useConversationMessages } from "@/lib/hooks/use-conversation-message";
-import { useConversation } from "@/lib/hooks/use-conversation";
+import { useConversationState } from "@/lib/hooks/conversations/use-conversation-state";
+import { useSendMessage } from "@/lib/hooks/conversations/use-send-message";
+import { useUpdateConversation } from "@/lib/hooks/conversations/use-update-conversation";
+import { useDeleteConversationMessages } from "@/lib/hooks/conversations/use-delete-conversation-messages";
+import { useConversationMessages } from "@/lib/hooks/conversations/use-conversation-message";
+import { useConversation } from "@/lib/hooks/conversations/use-conversation";
 
 // Components
 import { ChatFooter } from "@/components/chat/chat-footer";
@@ -23,11 +22,11 @@ export default function ConversationPage() {
   const [showActions, setShowActions] = useState(true);
   const [lastResponse, setLastResponse] =
     useState<ChatCompletionResponse | null>(null);
-
+  
   const { conversationId } = useParams({
     from: "/_home/conversations/$conversationId",
   });
-
+  
   const numericConversationId = Number(conversationId);
 
   // Fetch conversation data
@@ -120,7 +119,7 @@ export default function ConversationPage() {
 
     return (
       <Alert variant="destructive" className="my-4">
-        <AlertCircle className="h-4 w-4" />
+        <AlertCircle className="w-4 h-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
           {error instanceof Error
@@ -133,7 +132,7 @@ export default function ConversationPage() {
               onClick={handleRetry}
               className="flex items-center gap-1"
             >
-              <RefreshCw className="h-3 w-3" />
+              <RefreshCw className="w-3 h-3" />
               Retry
             </Button>
           </div>
@@ -146,11 +145,11 @@ export default function ConversationPage() {
   const MessageSkeleton = () => (
     <div className="flex-1 w-full py-6 space-y-6 overflow-y-auto">
       {/* Welcome message skeleton */}
-      <div className="flex flex-col items-center justify-center text-center px-4 opacity-70">
-        <Skeleton className="w-16 h-16 rounded-full mb-4" />
-        <Skeleton className="h-7 w-48 mb-2" />
-        <Skeleton className="h-4 w-64 mb-1" />
-        <Skeleton className="h-4 w-56 mb-1" />
+      <div className="flex flex-col items-center justify-center px-4 text-center opacity-70">
+        <Skeleton className="w-16 h-16 mb-4 rounded-full" />
+        <Skeleton className="w-48 mb-2 h-7" />
+        <Skeleton className="w-64 h-4 mb-1" />
+        <Skeleton className="w-56 h-4 mb-1" />
         <Skeleton className="h-4 w-60" />
       </div>
 
@@ -179,7 +178,7 @@ export default function ConversationPage() {
           >
             {/* Avatar skeleton */}
             {!isUser && (
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
                 <Cpu className="w-4 h-4 text-primary/40" />
               </div>
             )}
@@ -193,7 +192,7 @@ export default function ConversationPage() {
               )}
             >
               {/* Message content lines */}
-              <Skeleton className="h-4 w-full" />
+              <Skeleton className="w-full h-4" />
               <Skeleton className="h-4 w-[90%]" />
               {(msg.length === "long" || msg.length === "very-long") && (
                 <>
@@ -207,14 +206,13 @@ export default function ConversationPage() {
                   <Skeleton className="h-4 w-[75%]" />
                 </>
               )}
-
               {/* Time stamp skeleton */}
-              <Skeleton className="h-3 w-12 mt-1 opacity-50 self-end" />
+              <Skeleton className="self-end w-12 h-3 mt-1 opacity-50" />
             </div>
 
             {/* User avatar skeleton */}
             {isUser && (
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+              <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/20">
                 <User className="w-4 h-4 text-primary/40" />
               </div>
             )}
@@ -224,13 +222,13 @@ export default function ConversationPage() {
 
       {/* Typing indicator skeleton */}
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
           <Cpu className="w-4 h-4 text-primary/40" />
         </div>
         <div className="flex items-center gap-1 p-3 rounded-2xl bg-muted/80 w-[100px]">
-          <Skeleton className="h-2 w-2 rounded-full" />
-          <Skeleton className="h-2 w-2 rounded-full" />
-          <Skeleton className="h-2 w-2 rounded-full" />
+          <Skeleton className="w-2 h-2 rounded-full" />
+          <Skeleton className="w-2 h-2 rounded-full" />
+          <Skeleton className="w-2 h-2 rounded-full" />
         </div>
       </div>
     </div>
@@ -252,6 +250,7 @@ export default function ConversationPage() {
           getErrorContent()
         ) : (
           <MessageList
+            conversationId={numericConversationId}
             messages={messages}
             isLoading={isSendingMessage}
             error={sendError ? String(sendError) : null}

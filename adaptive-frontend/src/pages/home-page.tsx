@@ -18,7 +18,7 @@ import {
   BrainCircuit,
 } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
-import { useCreateConversation } from "@/lib/hooks/use-create-conversation";
+import { useCreateConversation } from "@/lib/hooks/conversations/use-create-conversation";
 
 export default function Home() {
   const router = useRouter();
