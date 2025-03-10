@@ -90,6 +90,26 @@ export const deleteMessage = async (
 };
 
 /**
+ * Deletes batch of messages
+ * 
+ * @param messageIds - Array of message IDs to delete
+ * @returns Promise with the deletion result
+ */
+
+export const deleteMessages = async (
+  messageIds: number[]
+) : Promise<void> => {
+
+  await axios.delete(
+    `${API_BASE_URL}/api/messages/batch`,
+    {
+      data: { messageIds }
+    }
+  )
+
+}
+
+/**
  * Converts database messages to the API message format used for chat completion
  *
  * @param dbMessages - Array of database messages

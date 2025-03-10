@@ -28,6 +28,8 @@ import { useMediaQuery } from "@/lib/hooks/use-media-query";
 import { useDeleteMessage } from "@/lib/hooks/conversations/use-delete-message";
 import { useUpdateMessage } from "@/lib/hooks/conversations/use-update-message";
 import { DBMessage } from "@/services/messages/types";
+import { useChatCompletion } from "@/lib/hooks/conversations/use-chat-completion";
+import { useDeleteMessages } from "@/lib/hooks/conversations/use-delete-messages";
 
 interface MessageListProps {
   conversationId: number;
@@ -84,13 +86,11 @@ function MessageItem({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
-
-  const { mutate: updateMessage } = useUpdateMessage();
-  const { mutate: deleteMessage } = useDeleteMessage();
-
+  const { mutateAsync: updateMessage } = useUpdateMessage();
+  const { mutateAsync: deleteMessage } = useDeleteMessage();
+  const { mutateAsync: createChatCompletion } = useChatCompletion();
+  const { mutateAsync: deleteMessages } = useDeleteMessages();
   const hasSubsequentMessages = index < messages.length - 1;
-
-  // Dialog state for confirming edits that will delete subsequent messages
   const [showEditConfirmDialog, setShowEditConfirmDialog] = useState(false);
   const isMobile = useMediaQuery("(max-width: 640px)");
 
@@ -102,49 +102,77 @@ function MessageItem({
     }
   };
 
-  const handleSaveEdit = () => {
-    // First update the current message
-    updateMessage(
+  // Add the retry handler function
+  const handleRetry = async () => {
+    // Update message with the same content (no changes)
+    await updateMessage(
       {
         conversationId,
         messageId: message.id,
-        updates: { content: editedContent },
+        updates: { content: message.content },
       },
       {
-        onSuccess: () => {
-          setIsEditing(false);
+        onSuccess: async () => {
           // Then delete all subsequent messages if there are any
           if (hasSubsequentMessages) {
             const subsequentMessageIds = messages
               .slice(index + 1)
               .map((msg) => msg.id);
-
             subsequentMessageIds.forEach((id) =>
               deleteMessage({ conversationId, messageId: id })
             );
+            await createChatCompletion({ messages });
           }
         },
       }
     );
   };
 
-  const handleDelete = () => {
-    deleteMessage(
+  const handleSaveEdit = async () => {
+    // First update the current message
+    await updateMessage(
+      {
+        conversationId,
+        messageId: message.id,
+        updates: { content: editedContent },
+      },
+      {
+        onSuccess: async () => {
+          setIsEditing(false);
+          // Then delete all subsequent messages if there are any
+          if (hasSubsequentMessages) {
+            const subsequentMessageIds = messages
+              .slice(index + 1)
+              .map((msg) => msg.id);
+            await deleteMessages({
+              messageIds: subsequentMessageIds,
+              conversationId,
+            });
+            await createChatCompletion({ messages });
+          }
+        },
+      }
+    );
+  };
+
+  const handleDelete = async () => {
+    await deleteMessage(
       {
         conversationId,
         messageId: message.id,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           // Delete all subsequent messages if there are any
           if (hasSubsequentMessages) {
             const subsequentMessageIds = messages
               .slice(index + 1)
               .map((msg) => msg.id);
 
-            subsequentMessageIds.forEach((id) =>
-              deleteMessage({ conversationId, messageId: id })
-            );
+            await deleteMessages({
+              messageIds: subsequentMessageIds,
+              conversationId,
+            });
           }
         },
       }
@@ -167,6 +195,20 @@ function MessageItem({
             className={message.role === "user" ? "text-primary-foreground" : ""}
           />
           <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100">
+            {/* Add retry button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8",
+                message.role === "user"
+                  ? "hover:bg-primary-foreground/10"
+                  : "hover:bg-background/80"
+              )}
+              onClick={handleRetry}
+            >
+              <Loader2 className="w-4 h-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -230,7 +272,6 @@ function MessageItem({
           </div>
         </div>
       )}
-
       {/* Confirmation dialog for editing with subsequent messages */}
       {showEditConfirmDialog &&
         (isMobile ? (
@@ -253,7 +294,6 @@ function MessageItem({
     </div>
   );
 }
-
 function DeleteMessageDialog({
   userMessage,
   hasSubsequentMessages,

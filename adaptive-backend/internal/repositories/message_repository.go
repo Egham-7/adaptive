@@ -42,8 +42,14 @@ func (r *MessageRepository) Delete(id uint) error {
 	return config.DB.Delete(&models.DBMessage{}, id).Error
 }
 
-func (r *MessageRepository) DeleteByConversationId(id uint) error {
+func (r *MessageRepository) DeleteAllByConversationId(id uint) error {
 	err := config.DB.Where("conversation_id = ?", id).Delete(&models.DBMessage{}).Error
+
+	return err
+}
+
+func (r *MessageRepository) BatchDelete(ids []uint) error {
+	err := config.DB.Where("id IN (?)", ids).Delete(&models.DBMessage{}).Error
 
 	return err
 }

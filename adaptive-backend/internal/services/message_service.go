@@ -79,8 +79,8 @@ func (s *MessageService) DeleteMessage(id uint) error {
 	return s.messageRepo.Delete(id)
 }
 
-func (s *MessageService) DeleteMessages(conversationID uint) error {
-	return s.messageRepo.DeleteByConversationId(conversationID)
+func (s *MessageService) DeleteAllMessages(conversationID uint) error {
+	return s.messageRepo.DeleteAllByConversationId(conversationID)
 }
 
 func (s *MessageService) ConvertToAPIMessages(dbMessages []models.DBMessage) []models.Message {
@@ -94,4 +94,9 @@ func (s *MessageService) ConvertToAPIMessages(dbMessages []models.DBMessage) []m
 	}
 
 	return apiMessages
+}
+
+func (s *MessageService) BatchDeleteMessages(ids []uint) error {
+
+	return s.messageRepo.BatchDelete(ids)
 }

@@ -36,13 +36,14 @@ func SetupRoutes(app *fiber.App) {
 	// Message routes related to conversations
 	conversations.Get("/:id/messages", messageHandler.GetMessagesByConversation)
 	conversations.Post("/:id/messages", messageHandler.CreateMessage)
-	conversations.Delete("/:id/messages/batch", messageHandler.DeleteConversationMessages)
+	conversations.Delete("/:id/messages/", messageHandler.DeleteAllConversationMessages)
 
 	// Individual message routes
 	messages := apiGroup.Group("/messages")
 	messages.Get("/:id", messageHandler.GetMessage)
 	messages.Put("/:id", messageHandler.UpdateMessage)
 	messages.Delete("/:id", messageHandler.DeleteMessage)
+	messages.Delete("/batch", messageHandler.BatchDeleteMessages)
 }
 
 func main() {
