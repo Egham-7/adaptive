@@ -15,28 +15,33 @@ interface MarkdownProps {
 
 export default function Markdown({ content, className }: MarkdownProps) {
   return (
-    <div className={cn("prose prose-sm dark:prose-invert w-full max-w-none", className)}>
+    <div
+      className={cn(
+        "prose prose-sm dark:prose-invert w-full max-w-none",
+        className,
+      )}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw, rehypeSanitize]}
         components={{
           a: (props) => (
-            <a 
-              {...props} 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <a
+              {...props}
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-blue-500 hover:underline"
             />
           ),
           code(props) {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { children, className, ref, ...rest } = props;
-            const match = /language-(\w+)/.exec(className || '');
-            
+            const match = /language-(\w+)/.exec(className || "");
+
             if (!match) {
               return (
-                <code 
-                  {...rest} 
+                <code
+                  {...rest}
                   className="bg-muted-foreground/20 px-1 py-0.5 rounded text-sm"
                 >
                   {children}
@@ -45,8 +50,8 @@ export default function Markdown({ content, className }: MarkdownProps) {
             }
 
             const language = match[1];
-            const codeString = String(children).replace(/\n$/, '');
-            
+            const codeString = String(children).replace(/\n$/, "");
+
             return (
               <CodeBlock language={language} value={codeString}>
                 <SyntaxHighlighter
@@ -54,10 +59,10 @@ export default function Markdown({ content, className }: MarkdownProps) {
                   PreTag="div"
                   language={language}
                   style={oneDark}
-                  customStyle={{ 
-                    margin: 0, 
+                  customStyle={{
+                    margin: 0,
                     borderRadius: 0,
-                    background: 'transparent' 
+                    background: "transparent",
                   }}
                 >
                   {codeString}
@@ -106,26 +111,21 @@ function CodeBlock({ language, value, children }: CodeBlockProps) {
   };
 
   return (
-    <div className="relative my-4 rounded-md group bg-muted-foreground/10">
+    <div className="relative my-4 rounded-md group bg-muted-foreground/10 max-w-[90%]">
       {language && (
         <div className="px-3 py-1 font-mono text-xs bg-muted-foreground/20 text-muted-foreground rounded-t-md">
           {language}
         </div>
       )}
-      <div className="p-4 overflow-auto">
-        {children}
-      </div>
+      <div className="p-4 overflow-auto">{children}</div>
       <button
         onClick={handleCopy}
         className="absolute top-2 right-2 p-1.5 rounded-md bg-background/80 text-muted-foreground hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary opacity-0 group-hover:opacity-100"
         aria-label="Copy code"
       >
-        {copied ? (
-          <Check className="w-4 h-4" />
-        ) : (
-          <Copy className="w-4 h-4" />
-        )}
+        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
       </button>
     </div>
   );
 }
+
