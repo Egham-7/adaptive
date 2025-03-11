@@ -3,15 +3,18 @@ package api
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
+	"bufio"
+	"fmt"
+	"io"
 	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/valyala/fasthttp"
 )
 
 func StreamChatCompletion(c *fiber.Ctx) error {
 	requestID := c.Get("X-Request-ID", time.Now().String())
-
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
 		log.Printf("[%s] Error parsing request body: %v", requestID, err)
@@ -21,7 +24,6 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[%s] Processing chat completion with %d messages", requestID, len(req.Messages))
-
 	prompt_classifier_client := services.NewPromptClassifierClient()
 	prompt := req.Messages[len(req.Messages)-1]
 
@@ -35,7 +37,6 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[%s] Selected model: %s from provider: %s", requestID, selected_model.SelectedModel, selected_model.Provider)
-
 	full_chat_completion_req := models.ProviderChatCompletionRequest{
 		Provider:         selected_model.Provider,
 		Model:            selected_model.SelectedModel,
@@ -48,7 +49,6 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 		Stream:           true,
 	}
 
-	// Get the appropriate LLM provider
 	log.Printf("[%s] Initializing LLM provider: %s", requestID, full_chat_completion_req.Provider)
 	provider, err := services.NewLLMProvider(full_chat_completion_req.Provider)
 	if err != nil {
@@ -58,19 +58,15 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 
-	// Call the provider's chat completion
 	log.Printf("[%s] Sending request to provider for chat completion", requestID)
 	startTime := time.Now()
 	resp, err := provider.StreamChatCompletion(&full_chat_completion_req)
 	duration := time.Since(startTime)
-
 	if err != nil {
 		log.Printf("[%s] Chat completion failed after %v: %v", requestID, duration, err)
-		// If there's an error but we have a response with error details
 		if resp != nil && resp.Error != "" {
 			return c.Status(fiber.StatusInternalServerError).JSON(resp)
 		}
-		// Generic error
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate completion: " + err.Error(),
 		})
@@ -84,25 +80,58 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
 
-	// Get appropriate stream reader
-	streamReader, err := services.GetStreamReader(resp, resp.Provider, requestID)
-	if err != nil {
-		log.Printf("[%s] Failed to create stream reader: %v", requestID, err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+	// Follow the Fiber docs pattern using StreamWriter
+	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+		streamReader, err := services.GetStreamReader(resp, resp.Provider, requestID)
+		if err != nil {
+			log.Printf("[%s] Failed to create stream reader: %v", requestID, err)
+			fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
+			w.Flush()
+			return
+		}
 
-	// Make sure we close the stream when done
-	defer streamReader.Close()
+		defer func() {
+			streamReader.Close()
+			log.Printf("[%s] Stream completed", requestID)
+		}()
 
-	// Send the stream directly to the client using Fiber's pull-based SendStream
-	streamStartTime := time.Now()
-	defer func() {
-		log.Printf("[%s] Stream completed after %v", requestID, time.Since(streamStartTime))
-	}()
+		buffer := make([]byte, 1024)
+		startTime := time.Now()
 
-	return c.Status(fiber.StatusOK).Type("text/event-stream").SendStream(streamReader)
+		for {
+			n, err := streamReader.Read(buffer)
+			if n > 0 {
+				// Write the buffer contents to the response
+				_, writeErr := w.Write(buffer[:n])
+				if writeErr != nil {
+					log.Printf("[%s] Error writing to response: %v", requestID, writeErr)
+					break
+				}
+
+				// Flush to send data immediately to client
+				if flushErr := w.Flush(); flushErr != nil {
+					log.Printf("[%s] Error flushing data: %v", requestID, flushErr)
+					break
+				}
+			}
+
+			// Check for EOF (end of stream)
+			if err == io.EOF {
+				log.Printf("[%s] Stream completed after %v", requestID, time.Since(startTime))
+				break
+			}
+
+			// Handle other errors
+			if err != nil {
+				log.Printf("[%s] Error reading from stream: %v", requestID, err)
+				fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
+				w.Flush()
+				break
+			}
+		}
+	}))
+
+	return nil
 }
 
 func ChatCompletion(c *fiber.Ctx) error {
