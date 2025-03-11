@@ -25,6 +25,48 @@ func NewDeepSeekService() (*DeepSeekService, error) {
 	return &DeepSeekService{client: client}, nil
 }
 
+// StreamChatCompletion processes a streaming chat completion request with DeepSeek
+
+func (s *DeepSeekService) StreamChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	// Convert our messages to DeepSeek format
+	messages := make([]deepseek.ChatCompletionMessage, len(req.Messages))
+	for i, msg := range req.Messages {
+		messages[i] = convertToDeepSeekMessage(msg)
+	}
+
+	// Determine which model to use
+	model := determineDeepSeekModel(req.Model)
+
+	// Create DeepSeek request
+	deepseekReq := &deepseek.StreamChatCompletionRequest{
+		Model:            model,
+		Messages:         messages,
+		Temperature:      req.Temperature,
+		PresencePenalty:  req.PresencePenalty,
+		FrequencyPenalty: req.FrequencyPenalty,
+		MaxTokens:        req.MaxTokens,
+		TopP:             req.TopP,
+		Stream:           req.Stream,
+	}
+
+	stream, err := s.client.CreateChatCompletionStream(context.Background(), deepseekReq)
+	if err != nil {
+		return &models.ChatCompletionResponse{
+			Provider: "deepseek",
+			Error:    err.Error(),
+		}, fmt.Errorf("deepseek stream chat completion failed: %w", err)
+	}
+
+	return &models.ChatCompletionResponse{
+		Provider: "deepseek",
+		Response: stream,
+	}, nil
+}
+
 // CreateChatCompletion processes a chat completion request with DeepSeek
 func (s *DeepSeekService) CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
 	if req == nil {
@@ -49,11 +91,6 @@ func (s *DeepSeekService) CreateChatCompletion(req *models.ProviderChatCompletio
 		FrequencyPenalty: req.FrequencyPenalty,
 		MaxTokens:        req.MaxTokens,
 		TopP:             req.TopP,
-	}
-
-	// Add optional parameters if they exist
-	if req.MaxTokens != 0 {
-		deepseekReq.MaxTokens = req.MaxTokens
 	}
 
 	// Call DeepSeek API
