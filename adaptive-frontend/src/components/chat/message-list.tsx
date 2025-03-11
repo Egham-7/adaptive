@@ -43,6 +43,8 @@ interface MessageListProps {
   messages: DBMessage[];
   isLoading: boolean;
   error: string | null;
+  streamingContent: string;
+  isStreaming: boolean;
 }
 
 export function MessageList({
@@ -50,6 +52,8 @@ export function MessageList({
   messages,
   isLoading,
   error,
+  isStreaming = false,
+  streamingContent = "",
 }: MessageListProps) {
   console.log("Messages: ", messages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -61,20 +65,41 @@ export function MessageList({
 
   return (
     <div className="flex-1 w-full py-6 space-y-6 overflow-y-auto">
-      {messages.length === 0 ? (
+      {messages.length === 0 && !isStreaming ? (
         <EmptyState />
       ) : (
-        messages.map((msg, index) => (
-          <MessageItem
-            key={msg.id}
-            message={msg}
-            conversationId={conversationId}
-            index={index}
-            messages={messages}
-          />
-        ))
+        <>
+          {messages.map((msg, index) => (
+            <MessageItem
+              key={msg.id}
+              message={msg}
+              conversationId={conversationId}
+              index={index}
+              messages={messages}
+            />
+          ))}
+
+          {/* Display streaming content in real-time */}
+          {isStreaming && streamingContent && (
+            <div className="flex flex-col w-full max-w-[90%] rounded-2xl p-4 bg-muted">
+              <div className="flex items-start gap-3 w-full">
+                <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
+                <div className="w-full">
+                  <Markdown content={streamingContent} />
+                  <div className="flex items-center mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <span className="animate-pulse">●</span>
+                      <span>AI is typing...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
-      {isLoading && <LoadingIndicator />}
+
+      {isLoading && !isStreaming && <LoadingIndicator />}
       {error && <ErrorMessage error={error} />}
       <div ref={messagesEndRef} />
     </div>
