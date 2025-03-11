@@ -105,8 +105,18 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 		return r.Read(p) // Recursively call to handle the buffer
 	}
 
+	type enhancedResponse struct {
+		openai.ChatCompletionStreamResponse
+		Provider string `json:"provider"`
+	}
+
+	enhanced := enhancedResponse{
+		ChatCompletionStreamResponse: response,
+		Provider:                     "openai",
+	}
+
 	// Marshal the response to JSON
-	jsonData, err := json.Marshal(response)
+	jsonData, err := json.Marshal(enhanced)
 	if err != nil {
 		log.Printf("[%s] Error marshaling response: %v", r.requestID, err)
 		r.buffer = []byte("data: {\"error\": \"Failed to marshal response\"}\n\n")
@@ -188,8 +198,18 @@ func (r *GroqStreamReader) Read(p []byte) (n int, err error) {
 		return r.Read(p) // Recursively call to handle the buffer
 	}
 
+	type enhancedResponse struct {
+		*groq.ChatCompletionStreamResponse
+		Provider string `json:"provider"`
+	}
+
+	enhanced := enhancedResponse{
+		ChatCompletionStreamResponse: response,
+		Provider:                     "groq",
+	}
+
 	// Marshal the response to JSON
-	jsonData, err := json.Marshal(response)
+	jsonData, err := json.Marshal(enhanced)
 	if err != nil {
 		log.Printf("[%s] Error marshaling Groq response: %v", r.requestID, err)
 		r.buffer = []byte("data: {\"error\": \"Failed to marshal response\"}\n\n")
@@ -271,8 +291,18 @@ func (r *DeepSeekStreamReader) Read(p []byte) (n int, err error) {
 		return r.Read(p) // Recursively call to handle the buffer
 	}
 
+	type enhancedResponse struct {
+		deepseek.StreamChatCompletionResponse
+		Provider string `json:"provider"`
+	}
+
+	enhanced := enhancedResponse{
+		StreamChatCompletionResponse: *response,
+		Provider:                     "deepseek",
+	}
+
 	// Marshal the response to JSON
-	jsonData, err := json.Marshal(response)
+	jsonData, err := json.Marshal(enhanced)
 	if err != nil {
 		log.Printf("[%s] Error marshaling DeepSeek response: %v", r.requestID, err)
 		r.buffer = []byte("data: {\"error\": \"Failed to marshal response\"}\n\n")

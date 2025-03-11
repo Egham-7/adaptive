@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -22,8 +23,10 @@ func SetupRoutes(app *fiber.App) {
 	// API group
 	apiGroup := app.Group("/api")
 
-	// Chat completion endpoint
-	apiGroup.Post("/chat/completion", api.ChatCompletion)
+	chatCompletions := apiGroup.Group("/chat/completions")
+
+	chatCompletions.Post("/", api.ChatCompletion)
+	chatCompletions.Post("/stream", api.StreamChatCompletion)
 
 	// Conversation routes
 	conversations := apiGroup.Group("/conversations")
@@ -62,6 +65,9 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:           "Adaptive v1.0",
 		EnablePrintRoutes: true,
+		ReadTimeout:       2 * time.Minute,
+		WriteTimeout:      2 * time.Minute,
+		IdleTimeout:       5 * time.Minute,
 	})
 	config.Initialize("adaptive.db")
 
