@@ -111,7 +111,7 @@ function CodeBlock({ language, value, children }: CodeBlockProps) {
   };
 
   return (
-    <div className="relative my-4 rounded-md group bg-muted-foreground/10 max-w-full">
+    <div className="relative my-4 rounded-md group bg-muted-foreground/10 max-w-[90%]">
       {language && (
         <div className="px-3 py-1 font-mono text-xs bg-muted-foreground/20 text-muted-foreground rounded-t-md">
           {language}
