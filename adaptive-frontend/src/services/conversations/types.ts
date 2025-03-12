@@ -1,4 +1,4 @@
-import { Message } from "../llms/types";
+import { DBMessage } from "../messages/types";
 
 /**
  * Conversation model
@@ -8,5 +8,5 @@ export interface Conversation {
   title: string;
   created_at: string;
   updated_at: string;
-  messages?: Message[];
+  messages?: DBMessage[];
 }
