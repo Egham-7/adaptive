@@ -5,6 +5,7 @@ import { routeTree } from "./routeTree.gen.ts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ClerkProvider } from "@clerk/clerk-react";
 import "./index.css";
+import { SidebarProvider } from "./components/ui/sidebar.tsx";
 
 // Create the router instance
 const router = createRouter({
@@ -37,7 +38,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <SidebarProvider>
+          <RouterProvider router={router} />
+        </SidebarProvider>
       </QueryClientProvider>
     </ClerkProvider>
   </StrictMode>,

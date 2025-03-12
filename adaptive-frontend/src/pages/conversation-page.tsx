@@ -240,7 +240,7 @@ export default function ConversationPage() {
   );
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-background text-foreground">
+    <div className="flex flex-col w-full  bg-background text-foreground">
       <ChatHeader
         currentModel={currentModel}
         currentProvider={currentProvider}
