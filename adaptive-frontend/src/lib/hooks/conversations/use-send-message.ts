@@ -18,6 +18,13 @@ export const useSendMessage = (conversationId: number, messages: Message[]) => {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
 
+  const updateStreamingContent = useCallback((newContent: string) => {
+    // Using requestAnimationFrame for smoother UI updates
+    requestAnimationFrame(() => {
+      setStreamingContent((prev) => prev + newContent);
+    });
+  }, []);
+
   const sendMessage = useCallback(
     async (content: string) => {
       // Create message object
@@ -61,7 +68,7 @@ export const useSendMessage = (conversationId: number, messages: Message[]) => {
 
             // Update streaming content
             if (newContent) {
-              setStreamingContent((prev) => prev + newContent);
+              updateStreamingContent(newContent);
             }
           },
           onComplete: () => {
@@ -94,6 +101,7 @@ export const useSendMessage = (conversationId: number, messages: Message[]) => {
       streamingMutation,
       streamingContent,
       modelInfo,
+      updateStreamingContent,
     ],
   );
 
