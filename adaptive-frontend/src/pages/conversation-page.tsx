@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, RefreshCw, Cpu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MessageList } from "@/components/chat/message-list";
+import MessageList from "@/components/chat/message-list";
 import { cn } from "@/lib/utils";
 import { convertToApiMessages } from "@/services/messages";
 
