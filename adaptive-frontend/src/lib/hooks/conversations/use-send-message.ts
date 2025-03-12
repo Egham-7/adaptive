@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Message, StreamingResponse } from "@/services/llms/types";
 import { extractContentFromStreamingResponse } from "@/services/llms/types";
 import { useCreateMessage } from "./use-create-message";
@@ -9,26 +9,31 @@ interface ModelInfo {
   model?: string;
 }
 
-export const useSendMessage = (conversationId: number, messages: Message[]) => {
-  const createMessageMutation = useCreateMessage();
-  const streamingMutation = useStreamingChatCompletion();
+export function useSendMessage(conversationId: number, messages: Message[]) {
+  // Mutations
+  const createMessage = useCreateMessage();
+  const streamingCompletion = useStreamingChatCompletion();
 
-  // State to track streaming and model information
-  const [streamingContent, setStreamingContent] = useState<string>("");
-  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  // State
+  const [streamingContent, setStreamingContent] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+
+  // Monitor streaming mutation errors
+  useEffect(() => {
+    if (streamingCompletion.error && isStreaming) {
+      setIsStreaming(false);
+    }
+  }, [streamingCompletion.error, isStreaming]);
 
   const sendMessage = useCallback(
     async (content: string) => {
-      // Create message object
-      const userMessage: Message = {
-        role: "user",
-        content,
-      };
+      const userMessage: Message = { role: "user", content };
+      let accumulatedContent = "";
 
       try {
-        // Save user message to database
-        await createMessageMutation.mutateAsync({
+        // Store user message
+        await createMessage.mutateAsync({
           convId: conversationId,
           message: userMessage,
         });
@@ -38,20 +43,11 @@ export const useSendMessage = (conversationId: number, messages: Message[]) => {
         setIsStreaming(true);
         setModelInfo(null);
 
-        // Get all messages including the new user message
-        const allMessages = [...messages, userMessage];
-
-        // Start streaming the AI response
-        const abortFunction = await streamingMutation.mutateAsync({
-          request: {
-            messages: allMessages,
-          },
+        // Start streaming completion
+        const abortFunction = await streamingCompletion.mutateAsync({
+          request: { messages: [...messages, userMessage] },
           onChunk: (chunk: StreamingResponse) => {
-            console.log("Chunk:", chunk);
-            // Extract content
-            const newContent = extractContentFromStreamingResponse(chunk);
-
-            // Update model info if available in the chunk
+            // Set model info if available
             if (chunk.model && !modelInfo) {
               setModelInfo({
                 provider: chunk.provider,
@@ -59,57 +55,49 @@ export const useSendMessage = (conversationId: number, messages: Message[]) => {
               });
             }
 
-            // Update streaming content
+            // Update content
+            const newContent = extractContentFromStreamingResponse(chunk);
             if (newContent) {
-              setStreamingContent((prev) => prev + newContent);
+              accumulatedContent += newContent;
+              requestAnimationFrame(() => {
+                setStreamingContent(accumulatedContent);
+              });
             }
           },
-          onComplete: () => {
+          onComplete: async () => {
             setIsStreaming(false);
 
-            // Save the complete AI response to the database
-            if (streamingContent) {
-              createMessageMutation.mutate({
+            // Store assistant message if there's content
+            if (accumulatedContent) {
+              await createMessage.mutateAsync({
                 convId: conversationId,
-                message: { role: "assistant", content: streamingContent },
+                message: { role: "assistant", content: accumulatedContent },
               });
             }
           },
         });
 
-        return {
-          abortFunction,
-          conversationId,
-        };
+        return { abortFunction, conversationId };
       } catch (error) {
         setIsStreaming(false);
         console.error("Error sending message:", error);
         throw error;
       }
     },
-    [
-      conversationId,
-      messages,
-      createMessageMutation,
-      streamingMutation,
-      streamingContent,
-      modelInfo,
-    ],
+    [conversationId, messages, createMessage, streamingCompletion, modelInfo],
   );
 
   const abortStreaming = useCallback(() => {
-    if (streamingMutation.data) {
-      streamingMutation.data();
+    if (streamingCompletion.data) {
+      streamingCompletion.data();
       setIsStreaming(false);
     }
-  }, [streamingMutation]);
+  }, [streamingCompletion]);
 
   const isLoading =
-    createMessageMutation.isPending ||
-    streamingMutation.isPending ||
-    isStreaming;
+    createMessage.isPending || streamingCompletion.isPending || isStreaming;
 
-  const error = createMessageMutation.error || streamingMutation.error;
+  const error = createMessage.error || streamingCompletion.error;
 
   return {
     sendMessage,
@@ -120,4 +108,4 @@ export const useSendMessage = (conversationId: number, messages: Message[]) => {
     modelInfo,
     error,
   };
-};
+}

@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, RefreshCw, Cpu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MessageList } from "@/components/chat/message-list";
+import MessageList from "@/components/chat/message-list";
 import { cn } from "@/lib/utils";
 import { convertToApiMessages } from "@/services/messages";
 
@@ -240,7 +240,7 @@ export default function ConversationPage() {
   );
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-background text-foreground">
+    <div className="flex flex-col w-full  bg-background text-foreground">
       <ChatHeader
         currentModel={currentModel}
         currentProvider={currentProvider}
