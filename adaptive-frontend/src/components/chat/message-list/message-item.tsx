@@ -49,42 +49,46 @@ const MessageContent = memo(
           }
         />
       </div>
-      <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-8 w-8",
-            message.role === "user"
-              ? "hover:bg-primary-foreground/10"
-              : "hover:bg-background/80",
-          )}
-          onClick={onRetry}
-          disabled={isProcessing}
-        >
-          <Loader2 className={cn("w-4 h-4", isProcessing && "animate-spin")} />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn(
-            "h-8 w-8",
-            message.role === "user"
-              ? "hover:bg-primary-foreground/10"
-              : "hover:bg-background/80",
-          )}
-          onClick={onEdit}
-          disabled={isProcessing}
-        >
-          <Pencil className="w-4 h-4" />
-        </Button>
-        <DeleteMessageDialog
-          userMessage={message.role === "user"}
-          hasSubsequentMessages={hasSubsequentMessages}
-          onDelete={onDelete}
-          disabled={isProcessing}
-        />
-      </div>
+      {message.role === "user" && (
+        <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8",
+              message.role === "user"
+                ? "hover:bg-primary-foreground/10"
+                : "hover:bg-background/80",
+            )}
+            onClick={onRetry}
+            disabled={isProcessing}
+          >
+            <Loader2
+              className={cn("w-4 h-4", isProcessing && "animate-spin")}
+            />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-8 w-8",
+              message.role === "user"
+                ? "hover:bg-primary-foreground/10"
+                : "hover:bg-background/80",
+            )}
+            onClick={onEdit}
+            disabled={isProcessing}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <DeleteMessageDialog
+            userMessage={message.role === "user"}
+            hasSubsequentMessages={hasSubsequentMessages}
+            onDelete={onDelete}
+            disabled={isProcessing}
+          />
+        </div>
+      )}
     </div>
   ),
 );
@@ -191,7 +195,7 @@ export const MessageItem = memo(function MessageItem({
     await updateMessage({
       conversationId,
       messageId: message.id,
-      updates: { content: message.content },
+      updates: { content: message.content, role: "user" },
       index,
       messages,
     });
