@@ -50,7 +50,7 @@ export function ChatbotSidebar() {
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
-            <h1 className="text-xl font-bold">ChatBot</h1>
+            <h1 className="text-xl font-bold">Adaptive</h1>
           </div>
           <SidebarTrigger />
         </div>
