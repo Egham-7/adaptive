@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { SidebarTrigger } from "../ui/sidebar";
 
 interface ChatHeaderProps {
   currentModel?: string;
@@ -44,11 +45,12 @@ export function ChatHeader({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 py-3 border-b bg-background/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 p-3 border-b bg-background/95 backdrop-blur-sm">
       <div className="w-full max-w-5xl px-4 mx-auto">
         <div className="flex items-center justify-between">
           {/* Logo and Heading */}
           <div className="flex items-center gap-3">
+            <SidebarTrigger />
             <div className="relative w-10 h-10 overflow-hidden">
               <img
                 src="https://v0.dev/placeholder.svg"
@@ -56,7 +58,6 @@ export function ChatHeader({
                 alt="Adaptive Logo"
               />
             </div>
-
             {isEditing ? (
               <form onSubmit={handleSubmit} onBlur={handleSubmit}>
                 <Input
@@ -86,7 +87,6 @@ export function ChatHeader({
               </div>
             )}
           </div>
-
           {/* Model Display (Read-only) */}
           <div className="flex items-center gap-3">
             <TooltipProvider>
@@ -109,7 +109,6 @@ export function ChatHeader({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
             <Button
               variant="outline"
               size="sm"
@@ -125,4 +124,3 @@ export function ChatHeader({
     </header>
   );
 }
-
