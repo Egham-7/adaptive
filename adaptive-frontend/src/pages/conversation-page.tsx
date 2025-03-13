@@ -240,7 +240,7 @@ export default function ConversationPage() {
   );
 
   return (
-    <div className="flex flex-col w-full  bg-background text-foreground">
+    <div className="flex flex-col w-full h-full min-h-full bg-background text-foreground">
       <ChatHeader
         currentModel={currentModel}
         currentProvider={currentProvider}
@@ -248,22 +248,20 @@ export default function ConversationPage() {
         title={title}
         setTitle={setTitle}
       />
-      <main className="w-full max-w-5xl mx-auto flex flex-col h-screen pt-[80px] pb-[140px]">
-        {initialLoading ? (
-          <MessageSkeleton />
-        ) : getErrorContent() ? (
-          getErrorContent()
-        ) : (
-          <MessageList
-            conversationId={numericConversationId}
-            messages={messages}
-            isLoading={isSendingMessage}
-            error={sendError ? String(sendError) : null}
-            isStreaming={isStreaming}
-            streamingContent={streamingContent}
-          />
-        )}
-      </main>
+      {initialLoading ? (
+        <MessageSkeleton />
+      ) : getErrorContent() ? (
+        getErrorContent()
+      ) : (
+        <MessageList
+          conversationId={numericConversationId}
+          messages={messages}
+          isLoading={isSendingMessage}
+          error={sendError ? String(sendError) : null}
+          isStreaming={isStreaming}
+          streamingContent={streamingContent}
+        />
+      )}
       <ChatFooter
         isLoading={isLoading}
         sendMessage={sendMessage}

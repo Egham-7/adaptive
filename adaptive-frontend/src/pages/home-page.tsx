@@ -1,7 +1,4 @@
-"use client";
-
 import type React from "react";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,27 +16,40 @@ import {
 } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
 import { useCreateConversation } from "@/lib/hooks/conversations/use-create-conversation";
+import { useSidebar } from "@/components/ui/sidebar";
+import { ModeToggle } from "@/components/mode-toggle";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
-export default function Home() {
-  const router = useRouter();
+// Header Component
+interface HeaderProps {
+  openMobile: boolean;
+  open: boolean;
+}
 
-  const { mutateAsync } = useCreateConversation();
-
-  const handleCreateChat = async () => {
-    const conversation = await mutateAsync("New Conversation");
-    router.navigate({
-      to: "/conversations/$conversationId",
-      params: { conversationId: String(conversation.id) },
-    });
-  };
-
+function Header({ openMobile, open }: HeaderProps) {
   return (
-    <div className="flex flex-col items-center text-center">
+    <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10 mb-5">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center gap-2">
+          {!openMobile && !open && <SidebarTrigger />}
+          <span className="font-display text-xl font-bold">Adaptive</span>
+        </div>
+        <ModeToggle />
+      </div>
+    </header>
+  );
+}
+
+// Hero Component
+interface HeroProps {
+  onCreateChat: () => Promise<void>;
+}
+
+function Hero({ onCreateChat }: HeroProps) {
+  return (
+    <>
       <div className="mb-8 flex items-center justify-center">
         <div className="relative">
-          <div className="absolute -top-6 -right-6">
-            <BrainCircuit className="h-12 w-12 text-primary animate-pulse" />
-          </div>
           <div className="bg-primary/10 p-6 rounded-full">
             <Settings className="h-16 w-16 text-primary animate-spin-slow" />
           </div>
@@ -63,33 +73,16 @@ export default function Home() {
       <Button
         size="lg"
         className="text-lg px-8 py-6 h-auto gap-2 mb-12"
-        onClick={handleCreateChat}
+        onClick={onCreateChat}
       >
         <MessageSquarePlusIcon className="h-5 w-5" />
         Start New Conversation
       </Button>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-        <FeatureCard
-          icon={<Target className="h-8 w-8" />}
-          title="Domain-Specific"
-          description="Automatically detects your domain and selects specialized models for better results."
-        />
-        <FeatureCard
-          icon={<Zap className="h-8 w-8" />}
-          title="Intelligent Switching"
-          description="Seamlessly switches between models based on the complexity of your prompts."
-        />
-        <FeatureCard
-          icon={<BrainCircuit className="h-8 w-8" />}
-          title="Optimized Performance"
-          description="Get the best performance and accuracy without manually selecting models."
-        />
-      </div>
-    </div>
+    </>
   );
 }
 
+// Feature Card Component
 interface FeatureCardProps {
   icon: React.ReactNode;
   title: string;
@@ -107,5 +100,68 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
         <CardDescription className="text-sm">{description}</CardDescription>
       </CardContent>
     </Card>
+  );
+}
+
+// Features Section Component
+function FeaturesSection() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+      <FeatureCard
+        icon={<Target className="h-8 w-8" />}
+        title="Domain-Specific"
+        description="Automatically detects your domain and selects specialized models for better results."
+      />
+      <FeatureCard
+        icon={<Zap className="h-8 w-8" />}
+        title="Intelligent Switching"
+        description="Seamlessly switches between models based on the complexity of your prompts."
+      />
+      <FeatureCard
+        icon={<BrainCircuit className="h-8 w-8" />}
+        title="Optimized Performance"
+        description="Get the best performance and accuracy without manually selecting models."
+      />
+    </div>
+  );
+}
+
+// Footer Component
+function Footer() {
+  return (
+    <footer className="border-t">
+      <div className="container flex h-16 items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Built with modern technologies
+        </p>
+        <p className="text-sm text-muted-foreground">
+          © {new Date().getFullYear()} Adaptive AI
+        </p>
+      </div>
+    </footer>
+  );
+}
+
+// Main Home Component
+export default function Home() {
+  const router = useRouter();
+  const { mutateAsync } = useCreateConversation();
+  const { open, openMobile } = useSidebar();
+
+  const handleCreateChat = async () => {
+    const conversation = await mutateAsync("New Conversation");
+    router.navigate({
+      to: "/conversations/$conversationId",
+      params: { conversationId: String(conversation.id) },
+    });
+  };
+
+  return (
+    <div className="flex flex-col items-center text-center h-full">
+      <Header openMobile={openMobile} open={open} />
+      <Hero onCreateChat={handleCreateChat} />
+      <FeaturesSection />
+      <Footer />
+    </div>
   );
 }
