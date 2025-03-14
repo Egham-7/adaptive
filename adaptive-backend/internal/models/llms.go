@@ -18,6 +18,7 @@ type ProviderChatCompletionRequest struct {
 	TopP             float32   `json:"top_p"`
 	PresencePenalty  float32   `json:"presence_penalty"`
 	FrequencyPenalty float32   `json:"frequency_penalty"`
+	Stream           bool      `json:"stream"`
 }
 
 // ChatMessagePartType is the chat message part type.

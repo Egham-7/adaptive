@@ -29,6 +29,47 @@ func NewOpenAIService() *OpenAIService {
 	}
 }
 
+// StreamChatCompletion processes a streaming chat completion request with OpenAI
+
+func (s *OpenAIService) StreamChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	// Convert our messages to OpenAI format
+	messages := make([]openai.ChatCompletionMessage, len(req.Messages))
+	for i, msg := range req.Messages {
+		messages[i] = convertToOpenAIMessage(msg)
+	}
+
+	// Determine which model to use
+	model := determineOpenAIModel(req.Model)
+
+	// Create OpenAI request
+	openaiReq := openai.ChatCompletionRequest{
+		Model:               model,
+		Messages:            messages,
+		Temperature:         req.Temperature,
+		TopP:                req.TopP,
+		MaxCompletionTokens: req.MaxTokens,
+		FrequencyPenalty:    req.FrequencyPenalty,
+		PresencePenalty:     req.PresencePenalty,
+	}
+
+	stream, err := s.client.CreateChatCompletionStream(context.Background(), openaiReq)
+	if err != nil {
+		return &models.ChatCompletionResponse{
+			Provider: "openai",
+			Error:    err.Error(),
+		}, fmt.Errorf("openai streaming chat completion failed: %w", err)
+	}
+
+	return &models.ChatCompletionResponse{
+		Provider: "openai",
+		Response: stream,
+	}, nil
+}
+
 // CreateChatCompletion processes a chat completion request with OpenAI
 func (s *OpenAIService) CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
 	if req == nil {

@@ -1,63 +1,111 @@
-import { useCallback } from "react";
-import { Message } from "@/services/llms/types";
-import { typeProviderResponse } from "@/services/llms";
-import { useChatCompletion } from "./use-chat-completion";
+import { useCallback, useState, useEffect } from "react";
+import { Message, StreamingResponse } from "@/services/llms/types";
+import { extractContentFromStreamingResponse } from "@/services/llms/types";
 import { useCreateMessage } from "./use-create-message";
+import { useStreamingChatCompletion } from "./use-streaming-chat-completion";
 
-export const useSendMessage = (conversationId: number, messages: Message[]) => {
-  const createMessageMutation = useCreateMessage();
-  const chatCompletionMutation = useChatCompletion();
+interface ModelInfo {
+  provider?: string;
+  model?: string;
+}
+
+export function useSendMessage(conversationId: number, messages: Message[]) {
+  // Mutations
+  const createMessage = useCreateMessage();
+  const streamingCompletion = useStreamingChatCompletion();
+
+  // State
+  const [streamingContent, setStreamingContent] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+
+  // Monitor streaming mutation errors
+  useEffect(() => {
+    if (streamingCompletion.error && isStreaming) {
+      setIsStreaming(false);
+    }
+  }, [streamingCompletion.error, isStreaming]);
 
   const sendMessage = useCallback(
     async (content: string) => {
-      // Create message object
-      const userMessage: Message = {
-        role: "user", content,
-      };
+      const userMessage: Message = { role: "user", content };
+      let accumulatedContent = "";
 
       try {
-        // Get response from AI
-        const allMessages = [...messages, userMessage];
-        const response = await chatCompletionMutation.mutateAsync({
-          messages: allMessages,
-        });
-
-        const providerResponse = typeProviderResponse(
-          response.provider,
-          response.response,
-        );
-
-        // Extract content from response and save AI's reply
-        const assistantContent = providerResponse.choices[0].message.content;
-
-        // Save user message to database
-        await createMessageMutation.mutateAsync({
+        // Store user message
+        await createMessage.mutateAsync({
           convId: conversationId,
           message: userMessage,
         });
 
-        await createMessageMutation.mutateAsync({
-          convId: conversationId,
-          message: { role: "assistant", content: assistantContent },
+        // Reset streaming state
+        setStreamingContent("");
+        setIsStreaming(true);
+        setModelInfo(null);
+
+        // Start streaming completion
+        const abortFunction = await streamingCompletion.mutateAsync({
+          request: { messages: [...messages, userMessage] },
+          onChunk: (chunk: StreamingResponse) => {
+            // Set model info if available
+            if (chunk.model && !modelInfo) {
+              setModelInfo({
+                provider: chunk.provider,
+                model: chunk.model,
+              });
+            }
+
+            // Update content
+            const newContent = extractContentFromStreamingResponse(chunk);
+            if (newContent) {
+              accumulatedContent += newContent;
+              requestAnimationFrame(() => {
+                setStreamingContent(accumulatedContent);
+              });
+            }
+          },
+          onComplete: async () => {
+            setIsStreaming(false);
+
+            // Store assistant message if there's content
+            if (accumulatedContent) {
+              await createMessage.mutateAsync({
+                convId: conversationId,
+                message: { role: "assistant", content: accumulatedContent },
+              });
+            }
+          },
         });
 
-        return { response, conversationId: conversationId };
+        return { abortFunction, conversationId };
       } catch (error) {
+        setIsStreaming(false);
         console.error("Error sending message:", error);
         throw error;
       }
     },
-    [conversationId, messages, createMessageMutation, chatCompletionMutation],
+    [conversationId, messages, createMessage, streamingCompletion, modelInfo],
   );
 
-  const isLoading =
-    createMessageMutation.isPending || chatCompletionMutation.isPending;
+  const abortStreaming = useCallback(() => {
+    if (streamingCompletion.data) {
+      streamingCompletion.data();
+      setIsStreaming(false);
+    }
+  }, [streamingCompletion]);
 
-  const error = createMessageMutation.error || chatCompletionMutation.error;
+  const isLoading =
+    createMessage.isPending || streamingCompletion.isPending || isStreaming;
+
+  const error = createMessage.error || streamingCompletion.error;
 
   return {
     sendMessage,
+    abortStreaming,
     isLoading,
+    isStreaming,
+    streamingContent,
+    modelInfo,
     error,
   };
-};
+}

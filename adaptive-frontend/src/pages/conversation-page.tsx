@@ -10,24 +10,21 @@ import { useConversation } from "@/lib/hooks/conversations/use-conversation";
 // Components
 import { ChatFooter } from "@/components/chat/chat-footer";
 import { ChatHeader } from "@/components/chat/chat-header";
-import { ChatCompletionResponse } from "@/services/llms/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, RefreshCw, Cpu, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MessageList } from "@/components/chat/message-list";
+import MessageList from "@/components/chat/message-list";
 import { cn } from "@/lib/utils";
 import { convertToApiMessages } from "@/services/messages";
 
 export default function ConversationPage() {
   const [showActions, setShowActions] = useState(true);
-  const [lastResponse, setLastResponse] =
-    useState<ChatCompletionResponse | null>(null);
-  
+
   const { conversationId } = useParams({
     from: "/_home/conversations/$conversationId",
   });
-  
+
   const numericConversationId = Number(conversationId);
 
   // Fetch conversation data
@@ -69,6 +66,10 @@ export default function ConversationPage() {
     sendMessage: originalSendMessage,
     isLoading: isSendingMessage,
     error: sendError,
+    isStreaming,
+    streamingContent,
+    modelInfo,
+    abortStreaming,
   } = useSendMessage(numericConversationId, chatCompletionMessages);
 
   // Action functions
@@ -82,12 +83,13 @@ export default function ConversationPage() {
 
   const sendMessage = async (content: string) => {
     const response = await originalSendMessage(content);
-    setLastResponse(response.response);
     return response;
   };
 
   const resetConversation = async () => {
-    setLastResponse(null);
+    if (isStreaming) {
+      abortStreaming();
+    }
     await deleteMessages(numericConversationId);
   };
 
@@ -106,8 +108,8 @@ export default function ConversationPage() {
   };
 
   // Get current model info from the last response
-  const currentProvider = lastResponse?.provider;
-  const currentModel = lastResponse?.response?.model;
+  const currentProvider = modelInfo?.provider;
+  const currentModel = modelInfo?.model;
 
   // Retry function for errors
   const handleRetry = () => {
@@ -238,7 +240,7 @@ export default function ConversationPage() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
+    <div className="flex flex-col w-full h-full min-h-full bg-background text-foreground">
       <ChatHeader
         currentModel={currentModel}
         currentProvider={currentProvider}
@@ -246,25 +248,27 @@ export default function ConversationPage() {
         title={title}
         setTitle={setTitle}
       />
-      <main className="w-full max-w-5xl mx-auto flex flex-col h-screen pt-[80px] pb-[140px]">
-        {initialLoading ? (
-          <MessageSkeleton />
-        ) : getErrorContent() ? (
-          getErrorContent()
-        ) : (
-          <MessageList
-            conversationId={numericConversationId}
-            messages={messages}
-            isLoading={isSendingMessage}
-            error={sendError ? String(sendError) : null}
-          />
-        )}
-      </main>
+      {initialLoading ? (
+        <MessageSkeleton />
+      ) : getErrorContent() ? (
+        getErrorContent()
+      ) : (
+        <MessageList
+          conversationId={numericConversationId}
+          messages={messages}
+          isLoading={isSendingMessage}
+          error={sendError ? String(sendError) : null}
+          isStreaming={isStreaming}
+          streamingContent={streamingContent}
+        />
+      )}
       <ChatFooter
         isLoading={isLoading}
         sendMessage={sendMessage}
         showActions={showActions}
         toggleActions={toggleActions}
+        isStreaming={isStreaming}
+        abortStreaming={abortStreaming}
       />
     </div>
   );

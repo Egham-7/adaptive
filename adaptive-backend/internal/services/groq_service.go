@@ -29,6 +29,45 @@ func NewGroqService() (*GroqService, error) {
 	return &GroqService{client: client}, nil
 }
 
+func (s *GroqService) StreamChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
+	if req == nil {
+		return nil, fmt.Errorf("request cannot be nil")
+	}
+
+	// Convert our unified message format to Groq's format
+	messages := make([]groq.ChatCompletionMessage, len(req.Messages))
+	for i, msg := range req.Messages {
+		messages[i] = convertToGroqMessage(msg)
+	}
+
+	// Determine which model to use
+	model := determineGroqModel(req.Model)
+
+	groqReq := groq.ChatCompletionRequest{
+		Model:            model,
+		Messages:         messages,
+		Temperature:      req.Temperature,
+		TopP:             req.TopP,
+		MaxTokens:        req.MaxTokens,
+		PresencePenalty:  req.PresencePenalty,
+		FrequencyPenalty: req.FrequencyPenalty,
+		Stream:           req.Stream,
+	}
+
+	stream, err := s.client.ChatCompletionStream(context.Background(), groqReq)
+	if err != nil {
+		return &models.ChatCompletionResponse{
+			Provider: "groq",
+			Error:    err.Error(),
+		}, fmt.Errorf("groq chat stream completion failed: %w", err)
+	}
+
+	return &models.ChatCompletionResponse{
+		Response: stream,
+		Provider: "groq",
+	}, nil
+}
+
 // CreateChatCompletion processes a chat completion request with Groq
 func (s *GroqService) CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
 	if req == nil {

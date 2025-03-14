@@ -19,9 +19,16 @@ interface MessageInputProps {
   sendMessage: (message: string) => void;
   showActions: boolean;
   toggleActions: () => void;
+  disabled?: boolean;
 }
 
-export function MessageInput({ isLoading, sendMessage, showActions, toggleActions }: MessageInputProps) {
+export function MessageInput({
+  isLoading,
+  sendMessage,
+  showActions,
+  toggleActions,
+  disabled,
+}: MessageInputProps) {
   // Setup form with react-hook-form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -52,7 +59,7 @@ export function MessageInput({ isLoading, sendMessage, showActions, toggleAction
               <ChevronDown
                 className={cn(
                   "h-5 w-5 transition-transform",
-                  showActions ? "rotate-180" : ""
+                  showActions ? "rotate-180" : "",
                 )}
               />
             </Button>
@@ -66,7 +73,7 @@ export function MessageInput({ isLoading, sendMessage, showActions, toggleAction
                       {...field}
                       placeholder="Message Adaptive..."
                       className="flex-1 text-base bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
-                      disabled={isLoading}
+                      disabled={isLoading || disabled}
                     />
                   </FormControl>
                 </FormItem>
@@ -91,3 +98,4 @@ export function MessageInput({ isLoading, sendMessage, showActions, toggleAction
     </Form>
   );
 }
+
