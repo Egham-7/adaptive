@@ -173,7 +173,6 @@ export function ApiKeyManagement() {
                 <TableHead>API Key</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Last Used</TableHead>
-                <TableHead>Permissions</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
