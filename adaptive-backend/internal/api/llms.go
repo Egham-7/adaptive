@@ -3,6 +3,8 @@ package api
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
+	"adaptive-backend/internal/services/providers"
+	"adaptive-backend/internal/services/stream_readers"
 	"bufio"
 	"fmt"
 	"io"
@@ -50,7 +52,7 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[%s] Initializing LLM provider: %s", requestID, full_chat_completion_req.Provider)
-	provider, err := services.NewLLMProvider(full_chat_completion_req.Provider)
+	provider, err := providers.NewLLMProvider(full_chat_completion_req.Provider)
 	if err != nil {
 		log.Printf("[%s] Failed to initialize provider: %v", requestID, err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -82,7 +84,7 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 
 	// Follow the Fiber docs pattern using StreamWriter
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		streamReader, err := services.GetStreamReader(resp, resp.Provider, requestID)
+		streamReader, err := stream_readers.GetStreamReader(resp, resp.Provider, requestID)
 		if err != nil {
 			log.Printf("[%s] Failed to create stream reader: %v", requestID, err)
 			fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
@@ -176,7 +178,7 @@ func ChatCompletion(c *fiber.Ctx) error {
 
 	// Get the appropriate LLM provider
 	log.Printf("[%s] Initializing LLM provider: %s", requestID, full_chat_completion_req.Provider)
-	provider, err := services.NewLLMProvider(full_chat_completion_req.Provider)
+	provider, err := providers.NewLLMProvider(full_chat_completion_req.Provider)
 	if err != nil {
 		log.Printf("[%s] Failed to initialize provider: %v", requestID, err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
