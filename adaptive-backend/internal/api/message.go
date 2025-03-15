@@ -1,19 +1,19 @@
 package api
 
 import (
-	"adaptive-backend/internal/services"
+	"adaptive-backend/internal/services/conversations"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type MessageHandler struct {
-	service *services.MessageService
+	service *conversations.MessageService
 }
 
 func NewMessageHandler() *MessageHandler {
 	return &MessageHandler{
-		service: services.NewMessageService(),
+		service: conversations.NewMessageService(),
 	}
 }
 

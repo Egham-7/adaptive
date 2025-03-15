@@ -1,4 +1,4 @@
-package repositories
+package conversations
 
 import (
 	"adaptive-backend/config"
