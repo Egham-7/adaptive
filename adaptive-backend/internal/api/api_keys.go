@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type APIKeyHandler struct {
@@ -28,10 +29,6 @@ type CreateAPIKeyResponse struct {
 type UpdateAPIKeyRequest struct {
 	Name   string `json:"name"`
 	Status string `json:"status"`
-}
-
-type VerifyAPIKeyRequest struct {
-	APIKey string `json:"api_key"`
 }
 
 type VerifyAPIKeyResponse struct {
@@ -61,14 +58,14 @@ func (h *APIKeyHandler) GetAllAPIKeysByUserId(c *fiber.Ctx) error {
 
 // GetAPIKeyById handles GET /api-keys/:id
 func (h *APIKeyHandler) GetAPIKeyById(c *fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid API key ID",
 		})
 	}
 
-	apiKey, err := h.service.GetAPIKeyById(uint(id))
+	apiKey, err := h.service.GetAPIKeyById(id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "API key not found",
@@ -113,39 +110,15 @@ func (h *APIKeyHandler) CreateAPIKey(c *fiber.Ctx) error {
 	})
 }
 
-// VerifyAPIKey handles POST /api-keys/verify
-func (h *APIKeyHandler) VerifyAPIKey(c *fiber.Ctx) error {
-	var request VerifyAPIKeyRequest
-	if err := c.BodyParser(&request); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
-	}
-
-	apiKey, valid, err := h.service.VerifyAPIKey(request.APIKey)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-
-	response := VerifyAPIKeyResponse{
-		Valid: valid,
-	}
-
-	if valid {
-		response.APIKey = apiKey
-	}
-
-	return c.JSON(response)
-}
-
 // UpdateAPIKey handles PUT /api-keys/:id
 func (h *APIKeyHandler) UpdateAPIKey(c *fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	idStr := c.Params("id")
+
+	// Convert string ID to UUID
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid API key ID",
+			"error": "Invalid API key ID format",
 		})
 	}
 
@@ -157,7 +130,7 @@ func (h *APIKeyHandler) UpdateAPIKey(c *fiber.Ctx) error {
 	}
 
 	// First get the existing API key
-	apiKey, err := h.service.GetAPIKeyById(uint(id))
+	apiKey, err := h.service.GetAPIKeyById(id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "API key not found",
