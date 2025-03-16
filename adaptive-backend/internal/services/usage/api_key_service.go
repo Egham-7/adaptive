@@ -31,7 +31,7 @@ func (s *APIKeyService) CreateAPIKey(apiKey *models.APIKey) error {
 
 // GenerateAPIKey creates a new API key with a secure random value
 // It returns the API key model and the full API key string
-func (s *APIKeyService) GenerateAPIKey(userId uuid.UUID, name, status string, expiresAt *time.Time) (models.APIKey, string, error) {
+func (s *APIKeyService) GenerateAPIKey(userId string, name, status string, expiresAt *time.Time) (models.APIKey, string, error) {
 	// Generate a random key
 	keyBytes := make([]byte, 32) // 256 bits
 	if _, err := rand.Read(keyBytes); err != nil {
@@ -71,7 +71,7 @@ func (s *APIKeyService) GenerateAPIKey(userId uuid.UUID, name, status string, ex
 	return apiKey, formattedKey, nil
 }
 
-func (s *APIKeyService) GetAllAPIKeysByUserId(userId uint) ([]models.APIKey, error) {
+func (s *APIKeyService) GetAllAPIKeysByUserId(userId string) ([]models.APIKey, error) {
 	return s.repo.GetAllByUserId(userId)
 }
 

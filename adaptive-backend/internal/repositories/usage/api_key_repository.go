@@ -15,7 +15,7 @@ func (*APIKeyRepository) Create(apiKey *models.APIKey) error {
 	return config.DB.Create(apiKey).Error
 }
 
-func (*APIKeyRepository) GetAllByUserId(userId uint) ([]models.APIKey, error) {
+func (*APIKeyRepository) GetAllByUserId(userId string) ([]models.APIKey, error) {
 	var keys []models.APIKey
 	err := config.DB.Where("user_id = ?", userId).Find(&keys).Error
 	return keys, err
