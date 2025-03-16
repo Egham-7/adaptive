@@ -75,7 +75,7 @@ func (s *APIKeyService) GetAllAPIKeysByUserId(userId string) ([]models.APIKey, e
 	return s.repo.GetAllByUserId(userId)
 }
 
-func (s *APIKeyService) GetAPIKeyById(id uint) (models.APIKey, error) {
+func (s *APIKeyService) GetAPIKeyById(id uuid.UUID) (models.APIKey, error) {
 	return s.repo.GetById(id)
 }
 
