@@ -19,14 +19,26 @@ func SetupRoutes(app *fiber.App) {
 	// Create handler instances
 	conversationHandler := api.NewConversationHandler()
 	messageHandler := api.NewMessageHandler()
+	apiKeyHandler := api.NewAPIKeyHandler()
+	chatCompletionHandler := api.NewChatCompletionHandler()
 
 	// API group
 	apiGroup := app.Group("/api")
 
 	chatCompletions := apiGroup.Group("/chat/completions")
 
-	chatCompletions.Post("/", api.ChatCompletion)
-	chatCompletions.Post("/stream", api.StreamChatCompletion)
+	chatCompletions.Post("/", chatCompletionHandler.ChatCompletion)
+	chatCompletions.Post("/stream", chatCompletionHandler.StreamChatCompletion)
+
+	// API key routes
+
+	apiKeys := apiGroup.Group("/api_keys")
+
+	apiKeys.Get("/:userId", apiKeyHandler.GetAllAPIKeysByUserId)
+	apiKeys.Get("/:id", apiKeyHandler.GetAPIKeyById)
+	apiKeys.Post("/", apiKeyHandler.CreateAPIKey)
+	apiKeys.Put("/:id", apiKeyHandler.UpdateAPIKey)
+	apiKeys.Delete("/:id", apiKeyHandler.DeleteAPIKey)
 
 	// Conversation routes
 	conversations := apiGroup.Group("/conversations")
