@@ -1,8 +1,22 @@
 import { Outlet } from "@tanstack/react-router";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import ApiPlatformSidebar from "@/components/api-platform-sidebar";
+import { useAuth } from "@clerk/clerk-react";
+import { useRouter } from "@tanstack/react-router";
+import { ApiPlatformSkeleton } from "@/components/skeletons/api-platform-layout-skeleton";
 
 export function APIPlatformLayout() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  const { navigate } = useRouter();
+
+  if (!isLoaded) {
+    return <ApiPlatformSkeleton />;
+  }
+
+  if (!isSignedIn) {
+    navigate({ to: "/" });
+  }
   return (
     <div className="flex min-h-screen">
       <ApiPlatformSidebar />
