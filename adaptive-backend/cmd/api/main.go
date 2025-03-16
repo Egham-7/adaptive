@@ -3,6 +3,7 @@ package main
 import (
 	"adaptive-backend/config"
 	"adaptive-backend/internal/api"
+	"adaptive-backend/internal/middleware"
 	"fmt"
 	"log"
 	"os"
@@ -22,6 +23,8 @@ func SetupRoutes(app *fiber.App) {
 	apiKeyHandler := api.NewAPIKeyHandler()
 	chatCompletionHandler := api.NewChatCompletionHandler()
 
+	authMiddleware := middleware.AuthMiddleware()
+
 	// API group
 	apiGroup := app.Group("/api")
 
@@ -32,7 +35,7 @@ func SetupRoutes(app *fiber.App) {
 
 	// API key routes
 
-	apiKeys := apiGroup.Group("/api_keys")
+	apiKeys := apiGroup.Group("/api_keys", authMiddleware)
 
 	apiKeys.Get("/:userId", apiKeyHandler.GetAllAPIKeysByUserId)
 	apiKeys.Get("/:id", apiKeyHandler.GetAPIKeyById)
@@ -41,7 +44,7 @@ func SetupRoutes(app *fiber.App) {
 	apiKeys.Delete("/:id", apiKeyHandler.DeleteAPIKey)
 
 	// Conversation routes
-	conversations := apiGroup.Group("/conversations")
+	conversations := apiGroup.Group("/conversations", authMiddleware)
 	conversations.Get("/", conversationHandler.GetAllConversations)
 	conversations.Get("/:id", conversationHandler.GetConversation)
 	conversations.Post("/", conversationHandler.CreateConversation)
@@ -54,7 +57,7 @@ func SetupRoutes(app *fiber.App) {
 	conversations.Delete("/:id/messages/", messageHandler.DeleteAllConversationMessages)
 
 	// Individual message routes
-	messages := apiGroup.Group("/messages")
+	messages := apiGroup.Group("/messages", authMiddleware)
 	messages.Get("/:id", messageHandler.GetMessage)
 	messages.Put("/:id", messageHandler.UpdateMessage)
 	messages.Delete("/batch", messageHandler.BatchDeleteMessages)
