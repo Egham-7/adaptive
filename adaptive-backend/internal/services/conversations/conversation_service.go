@@ -1,8 +1,8 @@
-package services
+package conversations
 
 import (
 	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/repositories"
+	repositories "adaptive-backend/internal/repositories/conversations"
 )
 
 // ConversationService handles business logic for conversations

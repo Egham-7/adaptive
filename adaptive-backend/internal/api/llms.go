@@ -3,6 +3,8 @@ package api
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
+	"adaptive-backend/internal/services/providers"
+	"adaptive-backend/internal/services/stream_readers"
 	"bufio"
 	"fmt"
 	"io"
@@ -13,8 +15,21 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-func StreamChatCompletion(c *fiber.Ctx) error {
+type ChatCompletionHandler struct {
+	promptClassifierClient *services.PromptClassifierClient
+}
+
+// NewChatCompletionHandler creates a new instance of ChatCompletionHandler
+func NewChatCompletionHandler() *ChatCompletionHandler {
+	return &ChatCompletionHandler{
+		promptClassifierClient: services.NewPromptClassifierClient(),
+	}
+}
+
+// StreamChatCompletion handles streaming chat completion requests
+func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	requestID := c.Get("X-Request-ID", time.Now().String())
+
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
 		log.Printf("[%s] Error parsing request body: %v", requestID, err)
@@ -24,11 +39,11 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[%s] Processing chat completion with %d messages", requestID, len(req.Messages))
-	prompt_classifier_client := services.NewPromptClassifierClient()
-	prompt := req.Messages[len(req.Messages)-1]
 
+	prompt := req.Messages[len(req.Messages)-1]
 	log.Printf("[%s] Selecting model for prompt", requestID)
-	selected_model, err := prompt_classifier_client.SelectModel(prompt.Content)
+
+	selected_model, err := h.promptClassifierClient.SelectModel(prompt.Content)
 	if err != nil {
 		log.Printf("[%s] Model selection failed: %v", requestID, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -37,6 +52,7 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[%s] Selected model: %s from provider: %s", requestID, selected_model.SelectedModel, selected_model.Provider)
+
 	full_chat_completion_req := models.ProviderChatCompletionRequest{
 		Provider:         selected_model.Provider,
 		Model:            selected_model.SelectedModel,
@@ -50,7 +66,7 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[%s] Initializing LLM provider: %s", requestID, full_chat_completion_req.Provider)
-	provider, err := services.NewLLMProvider(full_chat_completion_req.Provider)
+	provider, err := providers.NewLLMProvider(full_chat_completion_req.Provider)
 	if err != nil {
 		log.Printf("[%s] Failed to initialize provider: %v", requestID, err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -62,6 +78,7 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	startTime := time.Now()
 	resp, err := provider.StreamChatCompletion(&full_chat_completion_req)
 	duration := time.Since(startTime)
+
 	if err != nil {
 		log.Printf("[%s] Chat completion failed after %v: %v", requestID, duration, err)
 		if resp != nil && resp.Error != "" {
@@ -82,7 +99,7 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 
 	// Follow the Fiber docs pattern using StreamWriter
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		streamReader, err := services.GetStreamReader(resp, resp.Provider, requestID)
+		streamReader, err := stream_readers.GetStreamReader(resp, resp.Provider, requestID)
 		if err != nil {
 			log.Printf("[%s] Failed to create stream reader: %v", requestID, err)
 			fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
@@ -107,7 +124,6 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 					log.Printf("[%s] Error writing to response: %v", requestID, writeErr)
 					break
 				}
-
 				// Flush to send data immediately to client
 				if flushErr := w.Flush(); flushErr != nil {
 					log.Printf("[%s] Error flushing data: %v", requestID, flushErr)
@@ -134,7 +150,8 @@ func StreamChatCompletion(c *fiber.Ctx) error {
 	return nil
 }
 
-func ChatCompletion(c *fiber.Ctx) error {
+// ChatCompletion handles non-streaming chat completion requests
+func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	requestID := c.Get("X-Request-ID", time.Now().String())
 	log.Printf("[%s] Received chat completion request", requestID)
 
@@ -149,11 +166,10 @@ func ChatCompletion(c *fiber.Ctx) error {
 
 	log.Printf("[%s] Processing chat completion with %d messages", requestID, len(req.Messages))
 
-	prompt_classifier_client := services.NewPromptClassifierClient()
 	prompt := req.Messages[len(req.Messages)-1]
-
 	log.Printf("[%s] Selecting model for prompt", requestID)
-	selected_model, err := prompt_classifier_client.SelectModel(prompt.Content)
+
+	selected_model, err := h.promptClassifierClient.SelectModel(prompt.Content)
 	if err != nil {
 		log.Printf("[%s] Model selection failed: %v", requestID, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -176,7 +192,7 @@ func ChatCompletion(c *fiber.Ctx) error {
 
 	// Get the appropriate LLM provider
 	log.Printf("[%s] Initializing LLM provider: %s", requestID, full_chat_completion_req.Provider)
-	provider, err := services.NewLLMProvider(full_chat_completion_req.Provider)
+	provider, err := providers.NewLLMProvider(full_chat_completion_req.Provider)
 	if err != nil {
 		log.Printf("[%s] Failed to initialize provider: %v", requestID, err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -203,6 +219,7 @@ func ChatCompletion(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[%s] Chat completion successful in %v", requestID, duration)
+
 	// Return successful response
 	return c.JSON(resp)
 }

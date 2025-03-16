@@ -24,7 +24,7 @@ func Initialize(dbPath string) error {
 	}
 
 	// Auto migrate the schema
-	err = DB.AutoMigrate(&models.Conversation{}, &models.DBMessage{})
+	err = DB.AutoMigrate(&models.Conversation{}, &models.DBMessage{}, &models.APIKey{})
 	if err != nil {
 		return err
 	}

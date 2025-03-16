@@ -1,14 +1,14 @@
 package api
 
 import (
-	"adaptive-backend/internal/services"
+	"adaptive-backend/internal/services/conversations"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 type ConversationHandler struct {
-	service *services.ConversationService
+	service *conversations.ConversationService
 }
 
 type CreateConversationRequest struct {
@@ -17,7 +17,7 @@ type CreateConversationRequest struct {
 
 func NewConversationHandler() *ConversationHandler {
 	return &ConversationHandler{
-		service: services.NewConversationService(),
+		service: conversations.NewConversationService(),
 	}
 }
 
