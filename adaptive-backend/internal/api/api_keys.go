@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 type APIKeyHandler struct {
@@ -15,10 +14,10 @@ type APIKeyHandler struct {
 }
 
 type CreateAPIKeyRequest struct {
-	Name      string    `json:"name"`
-	UserID    uuid.UUID `json:"user_id"`
-	Status    string    `json:"status"`
-	ExpiresAt string    `json:"expires_at,omitempty"`
+	Name      string `json:"name"`
+	UserID    string `json:"user_id"`
+	Status    string `json:"status"`
+	ExpiresAt string `json:"expires_at,omitempty"`
 }
 
 type CreateAPIKeyResponse struct {
@@ -48,14 +47,9 @@ func NewAPIKeyHandler() *APIKeyHandler {
 
 // GetAllAPIKeysByUserId handles GET /api-keys/user/:userId
 func (h *APIKeyHandler) GetAllAPIKeysByUserId(c *fiber.Ctx) error {
-	userId, err := strconv.ParseUint(c.Params("userId"), 10, 64)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid user ID",
-		})
-	}
+	userId := c.Params("userId")
 
-	apiKeys, err := h.service.GetAllAPIKeysByUserId(uint(userId))
+	apiKeys, err := h.service.GetAllAPIKeysByUserId(userId)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),

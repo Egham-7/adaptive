@@ -8,7 +8,7 @@ import (
 
 type APIKey struct {
 	ID         uuid.UUID  `json:"id" gorm:"type:uuid;primary_key"`
-	UserID     uuid.UUID  `json:"user_id" gorm:"type:uuid;not null"`
+	UserID     string     `json:"user_id" gorm:"type:uuid;not null"`
 	Name       string     `json:"name" gorm:"type:varchar(255);not null"`
 	KeyPrefix  string     `json:"key_prefix" gorm:"type:varchar(10);not null"`
 	KeyHash    string     `json:"key_hash" gorm:"type:varchar(255);not null"`
