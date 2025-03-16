@@ -3,7 +3,6 @@ package api
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/usage"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -152,14 +151,14 @@ func (h *APIKeyHandler) UpdateAPIKey(c *fiber.Ctx) error {
 
 // DeleteAPIKey handles DELETE /api-keys/:id
 func (h *APIKeyHandler) DeleteAPIKey(c *fiber.Ctx) error {
-	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid API key ID",
 		})
 	}
 
-	if err := h.service.DeleteAPIKey(uint(id)); err != nil {
+	if err := h.service.DeleteAPIKey(id); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "API key not found",
 		})
