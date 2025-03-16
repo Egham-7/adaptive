@@ -12,14 +12,21 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as HomeImport } from './routes/_home'
+import { Route as ApiplatformImport } from './routes/_api_platform'
 import { Route as IndexImport } from './routes/index'
 import { Route as HomeHomeImport } from './routes/_home/home'
+import { Route as ApiplatformApiplatformImport } from './routes/_api_platform/api_platform'
 import { Route as HomeConversationsConversationIdImport } from './routes/_home/conversations/$conversationId'
 
 // Create/Update Routes
 
 const HomeRoute = HomeImport.update({
   id: '/_home',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ApiplatformRoute = ApiplatformImport.update({
+  id: '/_api_platform',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -33,6 +40,12 @@ const HomeHomeRoute = HomeHomeImport.update({
   id: '/home',
   path: '/home',
   getParentRoute: () => HomeRoute,
+} as any)
+
+const ApiplatformApiplatformRoute = ApiplatformApiplatformImport.update({
+  id: '/api_platform',
+  path: '/api_platform',
+  getParentRoute: () => ApiplatformRoute,
 } as any)
 
 const HomeConversationsConversationIdRoute =
@@ -53,12 +66,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/_api_platform': {
+      id: '/_api_platform'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof ApiplatformImport
+      parentRoute: typeof rootRoute
+    }
     '/_home': {
       id: '/_home'
       path: ''
       fullPath: ''
       preLoaderRoute: typeof HomeImport
       parentRoute: typeof rootRoute
+    }
+    '/_api_platform/api_platform': {
+      id: '/_api_platform/api_platform'
+      path: '/api_platform'
+      fullPath: '/api_platform'
+      preLoaderRoute: typeof ApiplatformApiplatformImport
+      parentRoute: typeof ApiplatformImport
     }
     '/_home/home': {
       id: '/_home/home'
@@ -79,6 +106,18 @@ declare module '@tanstack/react-router' {
 
 // Create and export the route tree
 
+interface ApiplatformRouteChildren {
+  ApiplatformApiplatformRoute: typeof ApiplatformApiplatformRoute
+}
+
+const ApiplatformRouteChildren: ApiplatformRouteChildren = {
+  ApiplatformApiplatformRoute: ApiplatformApiplatformRoute,
+}
+
+const ApiplatformRouteWithChildren = ApiplatformRoute._addFileChildren(
+  ApiplatformRouteChildren,
+)
+
 interface HomeRouteChildren {
   HomeHomeRoute: typeof HomeHomeRoute
   HomeConversationsConversationIdRoute: typeof HomeConversationsConversationIdRoute
@@ -94,6 +133,7 @@ const HomeRouteWithChildren = HomeRoute._addFileChildren(HomeRouteChildren)
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '': typeof HomeRouteWithChildren
+  '/api_platform': typeof ApiplatformApiplatformRoute
   '/home': typeof HomeHomeRoute
   '/conversations/$conversationId': typeof HomeConversationsConversationIdRoute
 }
@@ -101,6 +141,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '': typeof HomeRouteWithChildren
+  '/api_platform': typeof ApiplatformApiplatformRoute
   '/home': typeof HomeHomeRoute
   '/conversations/$conversationId': typeof HomeConversationsConversationIdRoute
 }
@@ -108,20 +149,29 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/_api_platform': typeof ApiplatformRouteWithChildren
   '/_home': typeof HomeRouteWithChildren
+  '/_api_platform/api_platform': typeof ApiplatformApiplatformRoute
   '/_home/home': typeof HomeHomeRoute
   '/_home/conversations/$conversationId': typeof HomeConversationsConversationIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '' | '/home' | '/conversations/$conversationId'
+  fullPaths:
+    | '/'
+    | ''
+    | '/api_platform'
+    | '/home'
+    | '/conversations/$conversationId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '' | '/home' | '/conversations/$conversationId'
+  to: '/' | '' | '/api_platform' | '/home' | '/conversations/$conversationId'
   id:
     | '__root__'
     | '/'
+    | '/_api_platform'
     | '/_home'
+    | '/_api_platform/api_platform'
     | '/_home/home'
     | '/_home/conversations/$conversationId'
   fileRoutesById: FileRoutesById
@@ -129,11 +179,13 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiplatformRoute: typeof ApiplatformRouteWithChildren
   HomeRoute: typeof HomeRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiplatformRoute: ApiplatformRouteWithChildren,
   HomeRoute: HomeRouteWithChildren,
 }
 
@@ -148,11 +200,18 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/_api_platform",
         "/_home"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/_api_platform": {
+      "filePath": "_api_platform.tsx",
+      "children": [
+        "/_api_platform/api_platform"
+      ]
     },
     "/_home": {
       "filePath": "_home.tsx",
@@ -160,6 +219,10 @@ export const routeTree = rootRoute
         "/_home/home",
         "/_home/conversations/$conversationId"
       ]
+    },
+    "/_api_platform/api_platform": {
+      "filePath": "_api_platform/api_platform.tsx",
+      "parent": "/_api_platform"
     },
     "/_home/home": {
       "filePath": "_home/home.tsx",
