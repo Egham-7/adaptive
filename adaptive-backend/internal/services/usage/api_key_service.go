@@ -83,7 +83,7 @@ func (s *APIKeyService) UpdateAPIKey(apiKey *models.APIKey) error {
 	return s.repo.Update(apiKey)
 }
 
-func (s *APIKeyService) DeleteAPIKey(id uint) error {
+func (s *APIKeyService) DeleteAPIKey(id uuid.UUID) error {
 	return s.repo.Delete(id)
 }
 
