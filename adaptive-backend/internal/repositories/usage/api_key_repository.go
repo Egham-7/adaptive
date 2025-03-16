@@ -33,7 +33,7 @@ func (*APIKeyRepository) Update(apiKey *models.APIKey) error {
 	return config.DB.Save(apiKey).Error
 }
 
-func (*APIKeyRepository) Delete(id uint) error {
+func (*APIKeyRepository) Delete(id uuid.UUID) error {
 	return config.DB.Delete(&models.APIKey{}, id).Error
 }
 
