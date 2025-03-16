@@ -3,6 +3,8 @@ package usage
 import (
 	"adaptive-backend/config"
 	"adaptive-backend/internal/models"
+
+	"github.com/google/uuid"
 )
 
 type APIKeyRepository struct{}
@@ -21,7 +23,7 @@ func (*APIKeyRepository) GetAllByUserId(userId string) ([]models.APIKey, error) 
 	return keys, err
 }
 
-func (*APIKeyRepository) GetById(id uint) (models.APIKey, error) {
+func (*APIKeyRepository) GetById(id uuid.UUID) (models.APIKey, error) {
 	var key models.APIKey
 	err := config.DB.First(&key, id).Error
 	return key, err
