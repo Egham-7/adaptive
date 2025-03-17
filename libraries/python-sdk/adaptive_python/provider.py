@@ -1,6 +1,7 @@
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, Annotated
 from pydantic import BaseModel
-
+from pydantic import Discriminator
+import json
 # Represents a chat message role
 MessageRole = str  # "user" | "assistant" | "system" | "tool"
 
@@ -122,8 +123,10 @@ class DeepSeekStreamingResponse(BaseStreamingResponse):
     created: int
     choices: List[Dict[str, Any]]
 
-StreamingResponse = Union[OpenAIStreamingResponse, GroqStreamingResponse, DeepSeekStreamingResponse]
-
+StreamingResponse = Annotated[
+    Union[OpenAIStreamingResponse, GroqStreamingResponse, DeepSeekStreamingResponse],
+    Discriminator("type")
+]
 
 
 def extract_content_from_streaming_response(chunk: StreamingResponse) -> str:
@@ -133,3 +136,16 @@ def extract_content_from_streaming_response(chunk: StreamingResponse) -> str:
         choice = chunk.choices[0]
         return choice.get("text", "") or choice.get("message", {}).get("content", "")
     return ""
+
+
+
+def parse_streaming_response(data: str) -> StreamingResponse:
+    json_data = json.loads(data)
+    if "object" in json_data and json_data["object"] == "chat.completion.chunk":
+        return OpenAIStreamingResponse(**json_data)
+    elif "provider" in json_data and json_data["provider"] == "groq":
+        return GroqStreamingResponse(**json_data)
+    elif "provider" in json_data and json_data["provider"] == "deepseek":
+        return DeepSeekStreamingResponse(**json_data)
+    else:
+        raise ValueError(f"Unknown streaming response type: {json_data}")
