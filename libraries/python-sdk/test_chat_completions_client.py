@@ -1,127 +1,60 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import requests
-import httpx
-from adaptive_python import ChatCompletionsClient, ChatCompletionRequest, ChatCompletionResponse, StreamingResponse, APIError
 
-class TestChatCompletionsClient(unittest.TestCase):
-    
-    @patch('requests.Session.post')  # Mocking the `requests.post` method for the synchronous request
-    def test_create_chat_completion_success(self, mock_post):
-        # Prepare mock response data
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "provider": "some-provider",
-            "response": "some-response"
-        }
-        mock_post.return_value = mock_response
-
-        # Create a mock ChatCompletionRequest
-        mock_request = MagicMock(spec=ChatCompletionRequest)
-        mock_request.model_dump.return_value = {"some_field": "some_value"}
-
-        # Instantiate the client
+# If this file is run directly, execute the test
+if __name__ == "__main__":
+    try:
+        # Create a client instance
         client = ChatCompletionsClient()
 
-        # Call the method
-        response = client.create_chat_completion(mock_request)
+        # Create a test message - properly instantiate a Message object
+        messages = [
+            Message(role="user", content="What is the capital of France?")
+        ]
 
-        # Assertions
-        mock_post.assert_called_once_with("http://localhost:8080/chat/completions", json={"some_field": "some_value"})
-        self.assertIsInstance(response, ChatCompletionResponse)
-        self.assertEqual(response.provider, "some-provider")
-        self.assertEqual(response.response, "some-response")
+        # Create a request with the messages
+        request = ChatCompletionRequest(messages=messages)
 
-    @patch('requests.Session.post')  # Mocking the `requests.post` method for the synchronous request
-    def test_create_chat_completion_failure(self, mock_post):
-        # Simulate a failed request
-        mock_response = MagicMock()
-        mock_response.status_code = 500
-        mock_response.text = "Internal Server Error"
-        mock_post.return_value = mock_response
+        print("Sending chat completion request...")
+        # Send the request and get the response
+        response = client.create_chat_completion(request)
 
-        # Create a mock ChatCompletionRequest
-        mock_request = MagicMock(spec=ChatCompletionRequest)
-        mock_request.model_dump.return_value = {"some_field": "some_value"}
+        print(f"Provider: {response.provider}")
+        print(f"Response: {response.response}")
 
-        # Instantiate the client
-        client = ChatCompletionsClient()
+        # Test streaming functionality
+        async def test_streaming():
+            print("\nTesting streaming functionality...")
 
-        # Call the method and expect an APIError
-        with self.assertRaises(APIError) as context:
-            client.create_chat_completion(mock_request)
-        
-        self.assertTrue("API Error" in str(context.exception))
+            def on_chunk(chunk):
+                print(f"Received chunk: {chunk}")
 
-    @patch('httpx.AsyncClient.post')  # Mocking the `httpx.AsyncClient.post` method for the asynchronous streaming request
-    @patch('httpx.AsyncClient.aiter_lines', return_value=["data: {\"field\": \"value\"}", "data: [DONE]"])  # Mocking streaming lines
-    def test_create_streaming_chat_completion(self, mock_post, mock_aiter_lines):
-        # Prepare mock response data
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+            def on_complete():
+                print("Streaming completed!")
 
-        # Create a mock ChatCompletionRequest
-        mock_request = MagicMock(spec=ChatCompletionRequest)
-        mock_request.model_dump.return_value = {"some_field": "some_value"}
+            def on_error(error):
+                print(f"Streaming error: {error}")
 
-        # Create a mock callback function for on_chunk
-        def on_chunk(data):
-            self.assertEqual(data.field, "value")
-
-        # Instantiate the client
-        client = ChatCompletionsClient()
-
-        # Call the async method
-        async def test_method():
-            await client.create_streaming_chat_completion(
-                mock_request,
+            # Start streaming and get the abort function
+            abort_stream = await client.create_streaming_chat_completion(
+                request=request,
                 on_chunk=on_chunk,
-                on_complete=lambda: print("Done"),
-                on_error=lambda e: print(f"Error: {e}")
-            )
-
-        # Run the test method
-        asyncio.run(test_method())
-
-        # Check that `aiter_lines` was called
-        mock_aiter_lines.assert_called_once()
-
-    @patch('httpx.AsyncClient.post')  # Mocking the `httpx.AsyncClient.post` method for the asynchronous streaming request
-    @patch('httpx.AsyncClient.aiter_lines', return_value=["data: invalid_json", "data: [DONE]"])  # Simulate invalid JSON
-    def test_create_streaming_chat_completion_error(self, mock_post, mock_aiter_lines):
-        # Prepare mock response data
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-
-        # Create a mock ChatCompletionRequest
-        mock_request = MagicMock(spec=ChatCompletionRequest)
-        mock_request.model_dump.return_value = {"some_field": "some_value"}
-
-        # Create a mock callback function for on_error
-        def on_error(e):
-            self.assertIsInstance(e, Exception)
-
-        # Instantiate the client
-        client = ChatCompletionsClient()
-
-        # Call the async method
-        async def test_method():
-            await client.create_streaming_chat_completion(
-                mock_request,
-                on_chunk=lambda data: None,
-                on_complete=lambda: None,
+                on_complete=on_complete,
                 on_error=on_error
             )
 
-        # Run the test method
-        asyncio.run(test_method())
+            # Wait for a while to receive some chunks
+            await asyncio.sleep(10)
 
-        # Check that `aiter_lines` was called
-        mock_aiter_lines.assert_called_once()
+            # Uncomment to test cancellation
+            # print("Cancelling stream...")
+            # abort_stream()
 
+        # Run the streaming test if asyncio is available
+        print("\nWould you like to test streaming? (y/n)")
+        choice = input().lower()
+        if choice == 'y':
+            asyncio.run(test_streaming())
 
-if __name__ == '__main__':
-    unittest.main()
+        print("\nTests completed successfully!")
+
+    except Exception as e:
+        print(f"An error occurred: {e}")

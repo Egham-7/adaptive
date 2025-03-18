@@ -1,5 +1,5 @@
 from typing import Any, Union
-from .provider import OpenAIResponse, GroqResponse, DeepSeekResponse
+from provider import OpenAIResponse, GroqResponse, DeepSeekResponse
 
 def parse_provider_response(provider: str, response: dict) -> Union[OpenAIResponse, GroqResponse, DeepSeekResponse]:
     """Parses API response based on provider type."""
