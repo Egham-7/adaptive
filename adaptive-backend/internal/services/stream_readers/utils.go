@@ -1,0 +1,82 @@
+package stream_readers
+
+import (
+	"adaptive-backend/internal/models"
+	"bufio"
+	"fmt"
+	"io"
+	"log"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/valyala/fasthttp"
+)
+
+// handleStream manages the streaming response to the client
+func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string) error {
+	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+		streamReader, err := GetStreamReader(resp, resp.Provider, requestID)
+		if err != nil {
+			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
+			return
+		}
+
+		defer closeStreamReader(streamReader, requestID)
+
+		if err := pumpStreamData(w, streamReader, requestID); err != nil {
+			sendErrorEvent(w, requestID, "Stream error", err)
+		}
+	}))
+
+	return nil
+}
+
+// Helper functions to make the main function cleaner
+func closeStreamReader(streamReader io.ReadCloser, requestID string) {
+	if err := streamReader.Close(); err != nil {
+		log.Printf("[%s] Error closing stream reader: %v", requestID, err)
+	}
+	log.Printf("[%s] Stream completed", requestID)
+}
+
+func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string) error {
+	buffer := make([]byte, 1024)
+	startTime := time.Now()
+
+	for {
+		n, err := streamReader.Read(buffer)
+
+		if n > 0 {
+			if err := writeAndFlush(w, buffer[:n], requestID); err != nil {
+				return err
+			}
+		}
+
+		if err == io.EOF {
+			log.Printf("[%s] Stream completed after %v", requestID, time.Since(startTime))
+			return nil
+		}
+
+		if err != nil {
+			return fmt.Errorf("reading from stream: %w", err)
+		}
+	}
+}
+
+func writeAndFlush(w *bufio.Writer, data []byte, requestID string) error {
+	if _, err := w.Write(data); err != nil {
+		return fmt.Errorf("writing to response: %w", err)
+	}
+
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("flushing data: %w", err)
+	}
+
+	return nil
+}
+
+func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) {
+	log.Printf("[%s] %s: %v", requestID, message, err)
+	fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
+	w.Flush()
+}

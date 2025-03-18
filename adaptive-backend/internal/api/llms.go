@@ -5,14 +5,10 @@ import (
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/stream_readers"
-	"bufio"
-	"fmt"
-	"io"
 	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/valyala/fasthttp"
 )
 
 type ChatCompletionHandler struct {
@@ -97,55 +93,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
 
-	// Follow the Fiber docs pattern using StreamWriter
-	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		streamReader, err := stream_readers.GetStreamReader(resp, resp.Provider, requestID)
-		if err != nil {
-			log.Printf("[%s] Failed to create stream reader: %v", requestID, err)
-			fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
-			w.Flush()
-			return
-		}
-
-		defer func() {
-			streamReader.Close()
-			log.Printf("[%s] Stream completed", requestID)
-		}()
-
-		buffer := make([]byte, 1024)
-		startTime := time.Now()
-
-		for {
-			n, err := streamReader.Read(buffer)
-			if n > 0 {
-				// Write the buffer contents to the response
-				_, writeErr := w.Write(buffer[:n])
-				if writeErr != nil {
-					log.Printf("[%s] Error writing to response: %v", requestID, writeErr)
-					break
-				}
-				// Flush to send data immediately to client
-				if flushErr := w.Flush(); flushErr != nil {
-					log.Printf("[%s] Error flushing data: %v", requestID, flushErr)
-					break
-				}
-			}
-
-			// Check for EOF (end of stream)
-			if err == io.EOF {
-				log.Printf("[%s] Stream completed after %v", requestID, time.Since(startTime))
-				break
-			}
-
-			// Handle other errors
-			if err != nil {
-				log.Printf("[%s] Error reading from stream: %v", requestID, err)
-				fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
-				w.Flush()
-				break
-			}
-		}
-	}))
+	stream_readers.HandleStream(c, resp, requestID)
 
 	return nil
 }
