@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/clerk-react";
 
 export const useConversationMessages = (conversationId: number) => {
   const { getToken, isLoaded, isSignedIn } = useAuth();
-  useQuery({
+  return useQuery({
     queryKey: ["messages", conversationId],
     queryFn: async () => {
       if (!isLoaded || !isSignedIn) {

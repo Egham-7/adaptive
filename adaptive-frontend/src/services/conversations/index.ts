@@ -122,7 +122,7 @@ export const deleteAllMessages = async (
   authToken: string,
 ): Promise<void> => {
   await axios.delete(
-    `${API_BASE_URL}/api/conversations/${conversationId}/messages/batch`,
+    `${API_BASE_URL}/api/conversations/${conversationId}/messages/`,
     {
       headers: {
         Authorization: `Bearer ${authToken}`,
