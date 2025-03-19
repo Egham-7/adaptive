@@ -6,6 +6,7 @@ import { useCreateMessage } from "./use-create-message";
 import { typeProviderResponse } from "@/services/llms";
 import { useChatCompletion } from "./use-chat-completion";
 import { Message, MessageRole } from "@/services/llms/types";
+import { useAuth } from "@clerk/clerk-react";
 
 export function useUpdateMessage() {
   const queryClient = useQueryClient();
@@ -13,6 +14,8 @@ export function useUpdateMessage() {
   const { mutateAsync: deleteMessages } = useDeleteMessages();
   const { mutateAsync: createMessage } = useCreateMessage();
   const { mutateAsync: createChatCompletion } = useChatCompletion();
+
+  const { getToken, isLoaded, isSignedIn } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -28,8 +31,17 @@ export function useUpdateMessage() {
       index: number;
       messages: DBMessage[];
     }) => {
+      if (!isLoaded || !isSignedIn) {
+        throw new Error("User is not signed in");
+      }
+
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("User is not signed in");
+      }
       // First update the message
-      const updatedMessage = await updateMessage(messageId, updates);
+      const updatedMessage = await updateMessage(messageId, updates, token);
 
       // Handle additional operations if needed
       // Delete subsequent messages if there are any
@@ -87,4 +99,3 @@ export function useUpdateMessage() {
     },
   });
 }
-
