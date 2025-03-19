@@ -33,6 +33,7 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
       - ADDR=:8080
       - ADAPTIVE_AI_BASE_URL=http://backend-python:8000
       - ALLOWED_ORIGINS=http://localhost:3000

@@ -2,10 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteMessage } from "@/services/messages";
 import { DBMessage } from "@/services/messages/types";
 import { useDeleteMessages } from "./use-delete-messages";
+import { useAuth } from "@clerk/clerk-react";
 
 export function useDeleteMessage() {
   const queryClient = useQueryClient();
   const { mutateAsync: deleteMessages } = useDeleteMessages();
+
+  const { getToken, isLoaded, isSignedIn } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -19,6 +22,15 @@ export function useDeleteMessage() {
       messages: DBMessage[];
       index: number;
     }) => {
+      if (!isLoaded || !isSignedIn) {
+        throw new Error("User is not signed in");
+      }
+
+      const token = await getToken();
+
+      if (!token) {
+        throw new Error("User is not signed in");
+      }
       const hasSubsequentMessages = index < messages.length - 1;
 
       if (hasSubsequentMessages) {
@@ -32,7 +44,7 @@ export function useDeleteMessage() {
         });
       }
 
-      return deleteMessage(messageId);
+      return deleteMessage(messageId, token);
     },
 
     onSuccess: (_data, variables) => {
