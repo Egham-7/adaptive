@@ -1,0 +1,105 @@
+name: Backend Checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "adaptive_ai/**"
+      - ".github/workflows/classifier-checks.yml"
+      - "poetry.lock"
+      - "pyproject.toml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "adaptive_ai/**"
+      - ".github/workflows/classifier-checks.yml"
+      - "poetry.lock"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+jobs:
+  test-lint-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./adaptive_ai
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+
+      - name: Cache Poetry dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: ./adaptive_ai/.venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Update Poetry lock file
+        run: poetry lock
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      - name: Install project
+        run: poetry install --no-interaction
+
+      - name: Run tests with coverage
+        id: tests
+        run: poetry run pytest --cov=. --cov-report=xml
+        continue-on-error: true
+
+      - name: Upload test coverage
+        if: always() && steps.tests.outcome == 'success'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./adaptive_ai/coverage.xml
+          flags: backend-python
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run type checking
+        id: typecheck
+        run: poetry run mypy .
+        continue-on-error: true
+
+      - name: Run linting with Ruff
+        id: ruff
+        run: poetry run ruff check . --output-format=github
+        continue-on-error: true
+
+      - name: Run code formatting check with Black
+        id: black
+        run: poetry run black . --check --diff
+        continue-on-error: true
+
+      - name: Check for failing steps
+        if: always()
+        run: |
+          if [[ "${{ steps.tests.outcome }}" == "failure" || "${{ steps.typecheck.outcome }}" == "failure" || "${{ steps.ruff.outcome }}" == "failure" || "${{ steps.black.outcome }}" == "failure" || "${{ steps.security.outcome }}" == "failure" ]]; then
+            echo "One or more checks failed!"
+            exit 1
+          fi
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
