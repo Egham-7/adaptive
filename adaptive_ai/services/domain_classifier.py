@@ -5,7 +5,6 @@ from torch import nn
 from huggingface_hub import PyTorchModelHubMixin
 
 
-
 class CustomModel(nn.Module, PyTorchModelHubMixin):
     def __init__(self, config):
         super(CustomModel, self).__init__()
@@ -14,11 +13,12 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         self.fc = nn.Linear(self.model.config.hidden_size, len(config["id2label"]))
 
     def forward(self, input_ids, attention_mask):
-        features = self.model(input_ids=input_ids, attention_mask=attention_mask).last_hidden_state
+        features = self.model(
+            input_ids=input_ids, attention_mask=attention_mask
+        ).last_hidden_state
         dropped = self.dropout(features)
         outputs = self.fc(dropped)
         return torch.softmax(outputs[:, 0, :], dim=1)
-
 
 
 class DomainClassifier:
@@ -56,9 +56,6 @@ class DomainClassifier:
         return predicted_domains
 
 
-
 @lru_cache()
 def get_domain_classifier():
     return DomainClassifier()
-
-

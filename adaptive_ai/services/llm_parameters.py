@@ -70,7 +70,6 @@ class OpenAIParameters(LLMProviderParameters):
 
     def get_parameters(self) -> dict:
         return {
-
             "temperature": self.temperature,
             "top_p": self.top_p,
             "presence_penalty": self.presence_penalty,
@@ -136,7 +135,6 @@ class GroqParameters(LLMProviderParameters):
 
     def get_parameters(self) -> dict:
         return {
-         
             "temperature": self.temperature,
             "top_p": self.top_p,
             "presence_penalty": self.presence_penalty,
