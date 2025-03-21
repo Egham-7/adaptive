@@ -49,6 +49,9 @@ jobs:
           version: latest
           working-directory: ./adaptive-backend
           args: --timeout=5m
+          skip-cache: true
+          skip-pkg-cache: true
+          skip-build-cache: true
 
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
