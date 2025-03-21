@@ -1,61 +1,78 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Cpu, Zap, Search } from "lucide-react";
+import { Cpu, Lock, Sparkles, Zap } from "lucide-react";
 
-export default function Features() {
+export default function FeaturesSection() {
   const features = [
     {
-      icon: <Cpu className="h-6 w-6" />,
-      title: "Efficient Model Selection",
-      description:
-        "Automatically route queries to the most efficient AI models, saving you on computing costs without compromising on quality.",
+      icon: <Zap className="size-4" />,
+      title: "Lightning Fast",
+      description: "Experience unparalleled speed with our optimized platform.",
     },
     {
-      icon: <Zap className="h-6 w-6" />,
-      title: "Fast Inference",
-      description:
-        "Experience reduced latency with optimized GPU scheduling, delivering faster responses for your AI applications.",
+      icon: <Cpu className="size-4" />,
+      title: "Intuitive Interface",
+      description: "Navigate with ease through our user-friendly design.",
     },
     {
-      icon: <Search className="h-6 w-6" />,
-      title: "Real-Time Benchmarking",
-      description:
-        "Track performance metrics and cost savings in real time, ensuring you get the best ROI with every query processed.",
+      icon: <Lock className="size-4" />,
+      title: "Security",
+      description: "Work seamlessly with your team in real-time.",
+    },
+    {
+      icon: <Sparkles className="size-4" />,
+      title: "AI Powered",
+      description: "Experience the power of AI to enhance your workflow.",
     },
   ];
 
   return (
-    <section
-      id="features"
-      className="w-full py-12 md:py-24 lg:py-32 bg-primary-50 dark:bg-primary-950"
-    >
-      <div className="container px-4 md:px-6">
-        <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12 text-primary-600 dark:text-primary-200">
-          Key Features
-        </h2>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+    <section className="overflow-hidden py-16 md:py-32">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 md:space-y-12">
+        <div className="relative z-10 max-w-2xl">
+          <h2 className="text-4xl font-semibold lg:text-5xl">
+            Built for Scaling teams
+          </h2>
+          <p className="mt-6 text-lg">
+            Empower your team with workflows that adapt to your needs, whether
+            you prefer git synchronization or a AI Agents interface.
+          </p>
+        </div>
+
+        <div className="relative -mx-4 rounded-3xl p-3 md:-mx-12 lg:col-span-3">
+          <div className="perspective-midrange">
+            <div className="rotate-x-6 -skew-2">
+              <div className="aspect-88/36 relative">
+                <div className="bg-radial-[at_75%_25%] to-background z-1 -inset-17 absolute from-transparent to-75%"></div>
+                <img
+                  src="/mail-upper.png"
+                  className="absolute inset-0 z-10"
+                  alt="payments illustration dark"
+                />
+                <img
+                  src="/mail-back.png"
+                  className="hidden dark:block"
+                  alt="payments illustration dark"
+                />
+                <img
+                  src="/mail-back-light.png"
+                  className="dark:hidden"
+                  alt="payments illustration light"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative mx-auto grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-8 lg:grid-cols-4">
           {features.map((feature, index) => (
-            <Card
-              key={index}
-              className="bg-card text-card-foreground dark:bg-card dark:text-card-foreground"
-            >
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary-600 dark:text-primary-200">
-                  {feature.icon}
-                  <span>{feature.title}</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-primary-500 dark:text-primary-400">
-                  {feature.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
+            <div key={index} className="space-y-2">
+              <div className="flex items-center gap-2">
+                {feature.icon}
+                <h3 className="text-sm font-medium">{feature.title}</h3>
+              </div>
+              <p className="text-muted-foreground text-sm">
+                {feature.description}
+              </p>
+            </div>
           ))}
         </div>
       </div>
