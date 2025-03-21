@@ -92,6 +92,4 @@ func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) {
 		log.Printf("[%s] Failed to flush error event: %v", requestID, flushErr)
 		return
 	}
-
-	return
 }
