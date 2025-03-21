@@ -1,108 +1,188 @@
+import { Link } from "@tanstack/react-router";
+import { Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { SignUpButton } from "@clerk/clerk-react";
 
 export default function Pricing() {
-  const plans = [
-    {
-      name: "Starter",
-      price: "$49.99",
-      description: "For small teams just starting with LLMs",
-      features: ["1 user", "10 projects", "10GB storage", "Basic LLM support"],
-    },
-    {
-      name: "Growth",
-      price: "$149.99",
-      description: "Ideal for growing teams utilizing LLM-driven workflows",
-      features: [
-        "5 users",
-        "50 projects",
-        "50GB storage",
-        "Priority LLM support",
-      ],
-    },
-    {
-      name: "Enterprise",
-      price: "Custom",
-      description:
-        "For organizations with large-scale LLM-driven infrastructure needs",
-      features: [
-        "Unlimited users",
-        "Unlimited projects",
-        "Unlimited storage",
-        "24/7 dedicated LLM support",
-      ],
-    },
-  ];
-
   return (
-    <section
-      id="pricing"
-      className="w-full py-12 md:py-24 lg:py-32 bg-background"
-    >
-      <div className="container px-4 md:px-6">
-        <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl text-center mb-12 text-primary-600 dark:text-primary-200">
-          Adaptive Pricing Plans
-        </h2>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {plans.map((plan, index) => (
-            <Card
-              key={index}
-              className="flex flex-col justify-between border border-border dark:border-border/50 bg-card"
-            >
-              <CardHeader>
-                <CardTitle className="text-primary-600 dark:text-primary-200">
-                  {plan.name}
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  {plan.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-primary-600 dark:text-primary-200">
-                  {plan.price}
-                </p>
-                <p className="text-sm text-muted-foreground dark:text-muted-foreground">
-                  per month
-                </p>
-                <ul className="mt-4 space-y-2">
-                  {plan.features.map((feature, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-center text-muted-foreground dark:text-muted-foreground"
-                    >
-                      <svg
-                        className="w-4 h-4 mr-2 text-primary-600 dark:text-primary-200"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5 13l4 4L19 7"
-                        ></path>
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full bg-primary-600 text-primary-50 hover:bg-primary-700 dark:bg-primary-500 dark:text-primary-50 dark:hover:bg-primary-600">
-                  Choose Plan
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+    <section className="py-16 md:py-32 overflow-hidden">
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-2xl space-y-6 text-center">
+          <h1 className="text-center text-4xl font-semibold font-display lg:text-5xl">
+            Pay Only for What You Use
+          </h1>
+          <p className="text-muted-foreground">
+            Adaptive's usage-based pricing ensures you only pay for the
+            resources you consume. Scale up or down instantly with no upfront
+            commitments or hidden fees.
+          </p>
+        </div>
+
+        <div className="mt-8 grid gap-6 md:mt-20 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-medium">Developer</CardTitle>
+              <div className="flex items-baseline my-3">
+                <span className="text-2xl font-semibold">$0.005</span>
+                <span className="text-sm text-muted-foreground ml-1">
+                  / 1K tokens
+                </span>
+              </div>
+              <CardDescription className="text-sm">
+                No minimum spend, pay as you go
+              </CardDescription>
+              <Button asChild variant="outline" className="mt-4 w-full">
+                <SignUpButton></SignUpButton>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <hr className="border-dashed" />
+              <ul className="list-outside space-y-3 text-sm">
+                {[
+                  "Pay-as-you-go pricing",
+                  "Basic LLM routing",
+                  "Standard API access",
+                  "Community support",
+                  "$10 free credit to start",
+                  "No credit card required",
+                ].map((item, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <Check className="size-3 text-primary-600" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="relative">
+            <span className="absolute inset-x-0 -top-3 mx-auto flex h-6 w-fit items-center rounded-full bg-gradient-to-r from-primary-600 to-secondary-600 px-3 py-1 text-xs font-medium text-white ring-1 ring-inset ring-white/20 ring-offset-1 ring-offset-gray-950/5">
+              Popular
+            </span>
+            <CardHeader>
+              <CardTitle className="font-medium">Business</CardTitle>
+              <div className="flex items-baseline my-3">
+                <span className="text-2xl font-semibold">$0.004</span>
+                <span className="text-sm text-muted-foreground ml-1">
+                  / 1K tokens
+                </span>
+              </div>
+              <CardDescription className="text-sm">
+                $100 minimum monthly spend
+              </CardDescription>
+              <Button
+                asChild
+                className="mt-4 w-full bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity shadow-subtle"
+              >
+                <SignUpButton>
+                  <Button>
+                    <Zap className="relative size-4 mr-2" />
+                    <span>Get Started</span>
+                  </Button>
+                </SignUpButton>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <hr className="border-dashed" />
+              <ul className="list-outside space-y-3 text-sm">
+                {[
+                  "20% volume discount",
+                  "Advanced LLM routing",
+                  "Multi-model fallbacks",
+                  "Priority email support",
+                  "Usage analytics dashboard",
+                  "Custom API keys",
+                  "Request caching",
+                  "Webhook integrations",
+                  "Team access controls",
+                  "99.9% uptime SLA",
+                ].map((item, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <Check className="size-3 text-primary-600" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="flex flex-col">
+            <CardHeader>
+              <CardTitle className="font-medium">Enterprise</CardTitle>
+              <div className="flex items-baseline my-3">
+                <span className="text-2xl font-semibold">Custom</span>
+              </div>
+              <CardDescription className="text-sm">
+                Volume-based discounts available
+              </CardDescription>
+              <Button
+                asChild
+                variant="outline"
+                className="mt-4 w-full border-primary-600 text-primary-600 hover:bg-primary-50/50 dark:border-primary-500 dark:text-primary-500 dark:hover:bg-primary-900/20"
+              >
+                <Link to="/">Contact Sales</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <hr className="border-dashed" />
+              <ul className="list-outside space-y-3 text-sm">
+                {[
+                  "Volume-based pricing",
+                  "Dedicated account manager",
+                  "Custom SLAs and support",
+                  "Advanced cost optimization",
+                  "Private model deployment",
+                  "Custom model fine-tuning",
+                  "Enterprise SSO",
+                  "Audit logs & compliance",
+                  "On-premise deployment options",
+                  "MSA and custom contracts",
+                ].map((item, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <Check className="size-3 text-primary-600" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-16 mx-auto max-w-3xl">
+          <div className="rounded-lg border p-6 bg-muted/30">
+            <h3 className="text-lg font-medium mb-4">Volume Discounts</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 rounded-md bg-background border">
+                <div className="text-sm font-medium text-muted-foreground">
+                  1M - 10M tokens/month
+                </div>
+                <div className="mt-2 text-xl font-semibold">10% off</div>
+              </div>
+              <div className="p-4 rounded-md bg-background border">
+                <div className="text-sm font-medium text-muted-foreground">
+                  10M - 50M tokens/month
+                </div>
+                <div className="mt-2 text-xl font-semibold">20% off</div>
+              </div>
+              <div className="p-4 rounded-md bg-background border">
+                <div className="text-sm font-medium text-muted-foreground">
+                  50M+ tokens/month
+                </div>
+                <div className="mt-2 text-xl font-semibold">Contact us</div>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              All plans include access to our core infrastructure. Volume
+              discounts are applied automatically based on your monthly usage.
+            </p>
+          </div>
         </div>
       </div>
     </section>

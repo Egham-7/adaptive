@@ -1,31 +1,52 @@
+import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { Rocket } from "lucide-react";
+import { SignedOut, SignUpButton, SignedIn } from "@clerk/clerk-react";
 
-export default function CTA() {
+export default function CallToAction() {
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32 bg-primary-600 text-white">
-      <div className="container px-4 md:px-6">
-        <div className="flex flex-col items-center space-y-4 text-center">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-              Smarter AI, Lower Costs.
-            </h2>
-            <p className="mx-auto max-w-[700px] text-primary-100 md:text-xl">
-              Dynamically route queries to the most efficient AI models,
-              reducing costs without sacrificing performance.
-            </p>
-          </div>
-          <div className="space-x-4">
+    <section className="py-16 md:py-32">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="text-center">
+          <h2 className="text-balance text-4xl font-semibold font-display lg:text-5xl">
+            Start Building with Adaptive
+          </h2>
+          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+            Optimize your LLM workloads today and experience the power of
+            intelligent infrastructure that scales with your needs.
+          </p>
+          <div className="mt-12 flex flex-wrap justify-center gap-4">
+            <SignedOut>
+              <SignUpButton mode="modal">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+                >
+                  <Rocket className="relative size-4 mr-2" />
+                  <span>Get Started</span>
+                </Button>
+              </SignUpButton>
+            </SignedOut>
+
+            <SignedIn>
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+              >
+                <Rocket className="relative size-4 mr-2" />
+                <Link to="/home">Get Started</Link>
+              </Button>
+            </SignedIn>
+
             <Button
+              asChild
               size="lg"
-              className="bg-secondary-500 hover:bg-secondary-600 text-white"
+              variant="outline"
+              className="border-primary-600 text-primary-600 hover:bg-primary-50/50 dark:border-primary-500 dark:text-primary-500 dark:hover:bg-primary-900/20"
             >
-              Try It for Free
-            </Button>
-            <Button
-              size="lg"
-              className="bg-transparent border-2 border-primary-100 text-white hover:bg-primary-700"
-            >
-              Learn More
+              <Link to="/">
+                <span>Book Demo</span>
+              </Link>
             </Button>
           </div>
         </div>
