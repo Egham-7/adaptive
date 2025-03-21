@@ -7,12 +7,16 @@ on:
       - "adaptive-backend/**"
       - "go.mod"
       - "go.sum"
+      - ".github/workflows/backend-checks.yml"
+
   pull_request:
     branches: [main]
     paths:
       - "adaptive-backend/**"
       - "go.mod"
       - "go.sum"
+      - ".github/workflows/backend-checks.yml"
+
   workflow_dispatch:
 
 jobs:
