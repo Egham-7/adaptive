@@ -166,3 +166,29 @@ func (h *APIKeyHandler) DeleteAPIKey(c *fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+func (h *APIKeyHandler) VerifyAPIKey(c *fiber.Ctx) error {
+	apiKey := c.Request().Header.Peek("X-API-Key")
+
+	if len(apiKey) == 0 {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "API key is missing",
+		})
+	}
+
+	_, verified, error := h.service.VerifyAPIKey(string(apiKey))
+
+	if error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Failed to verify api key",
+		})
+	}
+
+	if !verified {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid",
+		})
+	}
+
+	return nil
+}
