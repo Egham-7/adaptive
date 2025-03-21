@@ -1,4 +1,4 @@
-name: Backend Checks
+name: AI Service Checks
 
 on:
   push:
