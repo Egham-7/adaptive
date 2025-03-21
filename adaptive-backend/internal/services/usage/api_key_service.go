@@ -130,7 +130,10 @@ func (s *APIKeyService) VerifyAPIKey(providedKey string) (models.APIKey, bool, e
 			// Update last used time
 			key.LastUsedAt = new(time.Time)
 			*key.LastUsedAt = time.Now()
-			s.repo.Update(&key)
+			err := s.repo.Update(&key)
+			if err != nil {
+				return key, false, err
+			}
 
 			// Check if key is expired
 			if key.ExpiresAt != nil && key.ExpiresAt.Before(time.Now()) {
