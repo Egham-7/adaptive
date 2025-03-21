@@ -53,12 +53,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-poetry-
 
-      - name: Install dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
-
       - name: Install project
-        run: poetry install --no-interaction
+        run: poetry install --no-interaction --no-root
 
       - name: Run tests with coverage
         id: tests
