@@ -16,6 +16,7 @@ dependencies = [
   "black (>=25.1.0,<26.0.0)",
   "ruff (>=0.9.9,<0.10.0)",
   "microsoft-python-type-stubs @ git+https://github.com/microsoft/python-type-stubs.git",
+  "pytest (>=8.3.5,<9.0.0)",
 ]
 
 
