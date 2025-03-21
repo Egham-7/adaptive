@@ -44,7 +44,12 @@ jobs:
         with:
           version: latest
           working-directory: ./adaptive-backend
-          args: --timeout=5m
+          args:
+            --timeout=5m
+            # Keep caching but use a different cache key to avoid conflicts
+          cache-key: go-lint-cache-${{ github.run_id }}
+          # Only save cache on main branch to reduce storage usage
+          only-new-issues: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
