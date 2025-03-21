@@ -28,6 +28,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@tanstack/react-query": "^5.65.1",
     "@tanstack/react-router": "^1.99.13",
+    "@tanstack/router-cli": "^1.114.27",
     "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.7.9",
     "class-variance-authority": "^0.7.1",
@@ -50,7 +51,6 @@
     "tailwind-merge": "^3.0.1",
     "tailwindcss": "3",
     "tailwindcss-animate": "^1.0.7",
-    "tsr": "^1.3.4",
     "vaul": "^1.1.2",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"
