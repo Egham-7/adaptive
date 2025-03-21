@@ -1,0 +1,100 @@
+name: Frontend Checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "adaptive-frontend/**"
+      - ".github/workflows/frontend-checks.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "adaptive-frontend/**"
+      - ".github/workflows/frontend-checks.yml"
+  workflow_dispatch:
+
+jobs:
+  test-lint-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./adaptive-frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        id: cache-deps
+        with:
+          path: |
+            ./adaptive-frontend/node_modules
+            ./adaptive-frontend/.bun
+          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-frontend/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Install dependencies (cached)
+        if: steps.cache-deps.outputs.cache-hit == 'true'
+        run: bun install --frozen-lockfile --no-save
+
+      - name: Generate Route Tree
+        run: bun run generate-routes
+
+      - name: Run tests
+        id: tests
+        run: bun test --coverage
+        continue-on-error: true
+
+      - name: Upload test coverage
+        if: always() && steps.tests.outcome == 'success'
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./adaptive-frontend/coverage
+          flags: frontend
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run ESLint
+        id: lint
+        run: bun run lint --max-warnings=0
+        continue-on-error: true
+
+      - name: Type check
+        id: typecheck
+        run: bun run typecheck
+        continue-on-error: true
+
+      - name: Build check
+        id: build
+        if: steps.tests.outcome == 'success' || steps.tests.outcome == 'skipped'
+        run: bun run build
+        continue-on-error: true
+
+      - name: Upload build artifacts
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: ./adaptive-frontend/dist
+          retention-days: 7
+
+      - name: Check for failing steps
+        if: always()
+        run: |
+          if [[ "${{ steps.tests.outcome }}" == "failure" || "${{ steps.lint.outcome }}" == "failure" || "${{ steps.typecheck.outcome }}" == "failure" || "${{ steps.build.outcome }}" == "failure" ]]; then
+            echo "One or more checks failed!"
+            exit 1
+          fi
