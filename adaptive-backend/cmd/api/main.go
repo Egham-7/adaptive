@@ -85,7 +85,10 @@ func main() {
 		WriteTimeout:      2 * time.Minute,
 		IdleTimeout:       5 * time.Minute,
 	})
-	config.Initialize("adaptive.db")
+	err := config.Initialize("adaptive.db")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Setup middleware
 	setupMiddleware(app, allowedOrigins)
