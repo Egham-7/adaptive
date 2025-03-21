@@ -75,12 +75,23 @@ func writeAndFlush(w *bufio.Writer, data []byte, requestID string) error {
 	return nil
 }
 
-func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) error {
-	log.Printf("[%s] %s: %v", requestID, message, err)
-	fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error())
-	if err := w.Flush(); err != nil {
-		return fmt.Errorf("flushing error: %w", err)
+func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) {
+	if err == nil {
+		log.Printf("[%s] Warning: sendErrorEvent called with nil error", requestID)
+		return
 	}
 
-	return nil
+	log.Printf("[%s] %s: %v", requestID, message, err)
+
+	if _, writeErr := fmt.Fprintf(w, "data: {\"error\": \"%s\"}\n\n", err.Error()); writeErr != nil {
+		log.Printf("[%s] Failed to write error event: %v", requestID, writeErr)
+		return
+	}
+
+	if flushErr := w.Flush(); flushErr != nil {
+		log.Printf("[%s] Failed to flush error event: %v", requestID, flushErr)
+		return
+	}
+
+	return
 }
