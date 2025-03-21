@@ -93,7 +93,13 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
 
-	stream_readers.HandleStream(c, resp, requestID)
+	err = stream_readers.HandleStream(c, resp, requestID)
+	if err != nil {
+		log.Printf("[%s] Error handling stream: %v", requestID, err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Stream handling failed: " + err.Error(),
+		})
+	}
 
 	return nil
 }
