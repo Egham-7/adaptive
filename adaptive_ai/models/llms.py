@@ -54,12 +54,12 @@ model_capabilities: Dict[str, ModelCapability] = {
     },
     "o1-mini": {
         "description": "A smaller version of the O1 model, designed for quicker and lighter tasks.",
-        "complexity_range": (0.0, 0.15),  # For lightweight tasks
+        "complexity_range": (0.20, 1.0),  # For lightweight tasks
         "provider": "OpenAI",
     },
     "o1": {
         "description": "A powerful general-purpose model capable of handling a wide range of tasks efficiently.",
-        "complexity_range": (0.20, 0.90),  # General-purpose, higher complexity range
+        "complexity_range": (0.20, 1.0),  # General-purpose, higher complexity range
         "provider": "OpenAI",
     },
 }
