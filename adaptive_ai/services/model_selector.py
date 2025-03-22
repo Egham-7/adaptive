@@ -36,7 +36,9 @@ class ModelSelector:
         # Analyze prompt and get domain
         prompt_analysis = self._analyze_prompt(prompt)
         domain = prompt_analysis["domain"]
+  
         complexity_score = prompt_analysis["complexity_score"]
+    
         prompt_scores = prompt_analysis["prompt_scores"]
 
         # Select the most appropriate model for the domain and complexity
@@ -51,9 +53,12 @@ class ModelSelector:
 
         # Return complete model selection info
         return {
+            "prompt_scores":prompt_analysis["prompt_scores"],
             "selected_model": model_name,
             "provider": provider_name,
-            "parameters": parameters,
+            "complexity:": complexity_score,
+            "domain:": domain,
+            #"parameters": parameters,
         }
 
     def get_model_parameters(self, prompt: str) -> Dict[str, Any]:
@@ -100,14 +105,16 @@ class ModelSelector:
         Raises:
             ValueError: If the classified domain is not recognized
         """
-        # Get complexity analysis
-        complexity = self.prompt_classifier.classify_prompt(prompt)
-        complexity_score = float(complexity["prompt_complexity_score"][0])
+        
 
         # Get domain
         domain = self.domain_classifier.classify(prompt)[0]
         if domain not in domain_model_mapping:
             raise ValueError(f"Domain '{domain}' is not recognized.")
+
+        # Get complexity analysis
+        complexity = self.prompt_classifier.classify_prompt(prompt, domain)
+        complexity_score = float(complexity["prompt_complexity_score"][0])
 
         # Extract prompt scores for parameter tuning
         prompt_scores = {
@@ -139,26 +146,33 @@ class ModelSelector:
         """
         suitable_models = domain_model_mapping[domain]
 
+        # Log the models being checked for the given domain
+        print(f"Domain: {domain} - Models: {suitable_models}")
+
         # Find a model that matches the complexity score
         for model_name in suitable_models:
-            complexity_range: Tuple[float, float] = model_capabilities[model_name][
-                "complexity_range"
-            ]
+            complexity_range: Tuple[float, float] = model_capabilities[model_name]["complexity_range"]
             provider: str = model_capabilities[model_name]["provider"]
 
             # Explicitly cast complexity range values to float to satisfy mypy
             lower_bound = float(complexity_range[0])
             upper_bound = float(complexity_range[1])
 
+            # Log the complexity range for debugging
+            print(f"Checking model: {model_name} | Complexity Range: ({lower_bound}, {upper_bound}) | Score: {complexity_score}")
+
             if lower_bound <= complexity_score <= upper_bound:
+                print(f"Selected model: {model_name} within complexity range.")
                 return {"model_name": model_name, "provider": provider}
 
         # If no model matches, return the first suitable model as default
         default_model = suitable_models[0]
+        print(f"Returning default model: {default_model}")
         return {
             "model_name": default_model,
             "provider": model_capabilities[default_model]["provider"],
         }
+
 
     def _get_parameters(
         self,

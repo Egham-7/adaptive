@@ -19,47 +19,47 @@ class ModelCapability(TypedDict):
 model_capabilities: Dict[str, ModelCapability] = {
     "gemma2-9b-it": {
         "description": "A compact 9B parameter model tailored for Italian language tasks and creative generation.",
-        "complexity_range": (0.3, 0.6),
+        "complexity_range": (0.0, 0.15),  # Lower complexity range
         "provider": "GROQ",
     },
     "llama-3.3-70b-verstile": {
         "description": "A versatile 70B parameter model capable of handling a wide range of tasks.",
-        "complexity_range": (0.5, 0.9),
+        "complexity_range": (0.20, 0.40),  # Higher complexity range for advanced tasks
         "provider": "GROQ",
     },
     "llama-3.1-8b-instant": {
         "description": "An 8B parameter model optimized for quick, instant responses.",
-        "complexity_range": (0.2, 0.5),
+        "complexity_range": (0.0, 0.15),  # Lower complexity range for quick tasks
         "provider": "GROQ",
     },
     "llama-guard-3-8b": {
         "description": "An 8B parameter model with enhanced safety features and guardrails for sensitive applications.",
-        "complexity_range": (0.3, 0.6),
+        "complexity_range": (0.0, 0.20),  # Guardrails for sensitive domains
         "provider": "GROQ",
     },
     "llama3-70b-8192": {
         "description": "A 70B parameter model with an extended context window (8192 tokens) for detailed analyses.",
-        "complexity_range": (0.5, 0.9),
+        "complexity_range": (0.20, 0.40),  # Higher complexity range
         "provider": "GROQ",
     },
     "llama3-8b-8192": {
         "description": "An efficient 8B parameter model featuring an extended context window for concise tasks.",
-        "complexity_range": (0.2, 0.6),
+        "complexity_range": (0.0, 0.15),  # Optimized for concise tasks
         "provider": "GROQ",
     },
     "mixtral-8x7b-32768": {
         "description": "A multi-model ensemble comprising eight 7B models with a 32768-token context window for complex tasks.",
-        "complexity_range": (0.4, 0.8),
+        "complexity_range": (0.15, 0.30),  # For medium-to-high complexity tasks
         "provider": "GROQ",
     },
     "o1-mini": {
         "description": "A smaller version of the O1 model, designed for quicker and lighter tasks.",
-        "complexity_range": (0.3, 0.6),
+        "complexity_range": (0.0, 0.15),  # For lightweight tasks
         "provider": "OpenAI",
     },
     "o1": {
         "description": "A powerful general-purpose model capable of handling a wide range of tasks efficiently.",
-        "complexity_range": (0.5, 0.9),
+        "complexity_range": (0.20, 0.90),  # General-purpose, higher complexity range
         "provider": "OpenAI",
     },
 }
