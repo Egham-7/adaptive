@@ -9,7 +9,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SidebarTrigger } from "../ui/sidebar";
+import { SidebarTrigger, useSidebar } from "../ui/sidebar";
+import { SiOpenai } from "react-icons/si";
 
 interface ChatHeaderProps {
   currentModel?: string;
@@ -19,7 +20,27 @@ interface ChatHeaderProps {
   setTitle: (title: string) => void;
 }
 
-export function ChatHeader({
+function ProviderIcon({ provider }: { provider: string }) {
+  const providerLower = provider.toLowerCase();
+
+  // Return the appropriate icon based on the provider
+  switch (providerLower) {
+    case "openai":
+      return <SiOpenai className="w-4 h-4" />;
+    case "groq":
+      return <img src="/groq.png" alt="Groq" className="w-4 h-4" />;
+    case "deepseek":
+      return <img src="/deepseek.svg" alt="Deepseek" className="w-4 h-4" />;
+    default:
+      return (
+        <div className="w-4 h-4 flex items-center justify-center">
+          <Cpu className="w-full h-full" />
+        </div>
+      );
+  }
+}
+
+export default function ChatHeader({
   currentModel,
   currentProvider,
   resetConversation,
@@ -28,12 +49,6 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Helper to capitalize first letter
-  const capitalizeFirstLetter = (str?: string) => {
-    if (!str) return "";
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,13 +59,15 @@ export function ChatHeader({
     setIsEditing(false);
   };
 
+  const { open, openMobile } = useSidebar();
+
   return (
     <header className="sticky top-0 z-50 p-3 border-b bg-background/95 backdrop-blur-sm">
       <div className="w-full max-w-5xl px-4 mx-auto">
         <div className="flex items-center justify-between">
           {/* Logo and Heading */}
           <div className="flex items-center gap-3">
-            <SidebarTrigger />
+            {!open && !openMobile && <SidebarTrigger />}
             <div className="relative w-10 h-10 overflow-hidden">
               <img
                 src="https://v0.dev/placeholder.svg"
@@ -99,7 +116,7 @@ export function ChatHeader({
                     </span>
                     {currentProvider && (
                       <Badge variant="outline" className="text-xs font-normal">
-                        {capitalizeFirstLetter(currentProvider)}
+                        <ProviderIcon provider={currentProvider} />
                       </Badge>
                     )}
                   </div>
