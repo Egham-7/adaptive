@@ -93,7 +93,7 @@ jobs:
         uses: golang/govulncheck-action@v1
         with:
           go-version-input: "1.24.1"
-          go-package: ./
+          working-directory: ./adaptive-backend
 
   docker:
     runs-on: ubuntu-latest
