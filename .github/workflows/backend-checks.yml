@@ -69,14 +69,28 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     needs: build-test-lint
+    defaults:
+      run:
+        working-directory: ./adaptive-backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          args: -exclude-dir=vendor -exclude-dir=.git -exclude-dir=testdata ./adaptive-backend/...
+          go-version: "1.23.6"
+          cache: true
+          cache-dependency-path: ./go.sum
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run Gosec Security Scanner
+        run: gosec -exclude-dir=vendor -exclude-dir=.git -exclude-dir=testdata ./...
 
       - name: Run govulncheck
         uses: golang/govulncheck-action@v1
