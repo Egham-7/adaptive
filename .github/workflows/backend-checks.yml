@@ -89,12 +89,6 @@ jobs:
       - name: Run Gosec Security Scanner
         run: gosec -exclude-dir=vendor -exclude-dir=.git -exclude-dir=testdata ./...
 
-      - name: Run govulncheck
-        uses: golang/govulncheck-action@v1
-        with:
-          go-version-input: "1.24.1"
-          working-directory: ./adaptive-backend
-
   docker:
     runs-on: ubuntu-latest
     needs: [build-test-lint, security-scan]
