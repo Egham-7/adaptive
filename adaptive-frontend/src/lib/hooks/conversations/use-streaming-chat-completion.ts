@@ -5,17 +5,24 @@ import {
 } from "@/services/llms/types";
 import { createStreamingChatCompletion } from "@/services/llms";
 
-// Create a structured input type for the mutation
+/**
+ * Parameters for streaming chat completion
+ */
 export type StreamingChatCompletionParams = {
+  /** The request to send to the LLM */
   request: ChatCompletionRequest;
+  /** Callback for each chunk of the streaming response */
   onChunk: (chunk: StreamingResponse) => void;
+  /** Callback when streaming is complete */
   onComplete?: () => void;
+  /** Callback when an error occurs during streaming */
+  onError?: (error: Error) => void;
 };
 
 /**
- * Custom hook for streaming chat completions with TanStack Query
+ * Custom hook for streaming chat completions
  *
- * @returns A mutation object with an abort function in the data field
+ * @returns A mutation object that returns an abort function when successful
  */
 export const useStreamingChatCompletion = (): UseMutationResult<
   () => void, // Return type is the abort function
@@ -23,29 +30,45 @@ export const useStreamingChatCompletion = (): UseMutationResult<
   StreamingChatCompletionParams
 > => {
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       request,
       onChunk,
       onComplete,
+      onError,
     }: StreamingChatCompletionParams) => {
-      // Create a Promise that resolves to the abort function
-      return new Promise<() => void>((resolve) => {
-        // Start the streaming process
+      try {
+        // Start the streaming process and get the abort function
         const abortFn = createStreamingChatCompletion(
           request,
           onChunk,
           onComplete,
           (error) => {
-            console.error("Chat completion error:", error);
+            // Handle streaming errors
+            console.error("Streaming error:", error);
+            if (onError) onError(error);
           },
         );
 
-        // Immediately resolve with the abort function
-        resolve(abortFn);
-      });
+        // Return the abort function
+        return abortFn;
+      } catch (error) {
+        // Handle setup errors
+        const formattedError =
+          error instanceof Error ? error : new Error(String(error));
+
+        console.error("Chat completion setup error:", formattedError);
+
+        if (onError) {
+          onError(formattedError);
+        }
+
+        throw formattedError;
+      }
     },
+
+    // This handles errors from the mutation itself (not from streaming)
     onError: (error) => {
-      console.error("Chat completion error:", error);
+      console.error("Chat completion mutation error:", error);
     },
   });
 };

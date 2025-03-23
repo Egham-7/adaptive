@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -112,7 +113,7 @@ export function ApiKeyManagement() {
   });
 
   // Create a new API key
-  const onSubmit = (values: CreateApiKeyFormValues) => {
+  const onSubmit = async (values: CreateApiKeyFormValues) => {
     if (!userId) return;
 
     // Calculate expiration date if needed
@@ -143,7 +144,7 @@ export function ApiKeyManagement() {
       expires_at: expiresAt,
     };
 
-    createAPIKeyMutation.mutate(apiKeyData, {
+    await createAPIKeyMutation.mutateAsync(apiKeyData, {
       onSuccess: (response) => {
         setOpen(false);
         form.reset();
@@ -280,16 +281,18 @@ export function ApiKeyManagement() {
               <Button variant="outline">Cancel</Button>
             </DrawerClose>
           ) : (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
           )}
-          <Button type="submit" disabled={createAPIKeyMutation.isPending}>
-            {createAPIKeyMutation.isPending ? "Creating..." : "Create Key"}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Creating..." : "Create Key"}
           </Button>
         </div>
       </form>

@@ -37,6 +37,7 @@ services:
       - ADDR=:8080
       - ADAPTIVE_AI_BASE_URL=http://backend-python:8000
       - ALLOWED_ORIGINS=http://localhost:3000
+      - ENV=development
 
     restart: unless-stopped
     networks:

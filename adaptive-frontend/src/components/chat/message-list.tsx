@@ -1,8 +1,8 @@
-import { Loader2, MessageSquare, Bot } from "lucide-react";
-import { useEffect, useRef, memo } from "react";
-import Markdown from "../markdown";
+import { Loader2, MessageSquare } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { DBMessage } from "@/services/messages/types";
 import { MessageItem } from "./message-list/message-item";
+import StreamingMessage from "./message-list/streaming-message";
 
 interface MessageListProps {
   conversationId: number;
@@ -13,24 +13,6 @@ interface MessageListProps {
   isStreaming: boolean;
 }
 
-// Simple, focused streaming message component
-const StreamingMessage = memo(({ content }: { content: string }) => (
-  <div className="flex flex-col w-full max-w-[90%] rounded-2xl p-4 bg-muted">
-    <div className="flex items-start gap-3 w-full">
-      <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
-      <div className="w-full">
-        <Markdown content={content} />
-        <div className="flex items-center mt-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <span className="animate-pulse">●</span>
-            <span>AI is typing...</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-));
-
 function MessageList({
   conversationId,
   messages,
@@ -40,25 +22,10 @@ function MessageList({
   streamingContent = "",
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const prevContentLengthRef = useRef(0);
 
-  // Smart scrolling that balances responsiveness and smoothness
   useEffect(() => {
-    // When streaming, only scroll on significant content changes
-    if (isStreaming) {
-      const significantChange =
-        streamingContent.length - prevContentLengthRef.current > 15;
-
-      if (significantChange) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        prevContentLengthRef.current = streamingContent.length;
-      }
-    } else {
-      // Regular scroll behavior for non-streaming updates
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      prevContentLengthRef.current = 0;
-    }
-  }, [messages, isStreaming, streamingContent]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, streamingContent]);
 
   return (
     <div className="flex-1 w-full py-6 space-y-6 overflow-y-auto">
