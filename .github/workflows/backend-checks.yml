@@ -116,3 +116,22 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/adaptive-backend:${{ github.sha }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/adaptive-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/adaptive-backend:buildcache,mode=max
+
+  deploy-to-azure:
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        run: |
+          az containerapp update \
+            --name adaptive-backend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.DOCKERHUB_USERNAME }}/adaptive-backend:${{ github.sha }} \
+            --set-env-vars "KEY=value" \
+            --revision-suffix ${{ github.sha }}

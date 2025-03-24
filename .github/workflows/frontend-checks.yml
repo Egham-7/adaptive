@@ -98,3 +98,57 @@ jobs:
             echo "One or more checks failed!"
             exit 1
           fi
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: test-lint-typecheck
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./adaptive-frontend
+          file: ./adaptive-frontend/Dockerfile
+          push: true
+          build-args: |
+            VITE_BASE_API_URL=${{ secrets.VITE_BASE_API_URL }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/adaptive-frontend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/adaptive-frontend:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/adaptive-frontend:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/adaptive-frontend:buildcache,mode=max
+
+  deploy-to-azure:
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Container APP
+        if: steps.check-app.outputs.exists == '0'
+        run: |
+          az containerapp update \
+            --name frontend \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${{ secrets.DOCKERHUB_USERNAME }}/adaptive-frontend:${{ github.sha }} \
+            --registry-server docker.io \
+            --registry-username ${{ secrets.DOCKERHUB_USERNAME }} \
+            --registry-password ${{ secrets.DOCKERHUB_TOKEN }} \
+            --set-env-vars "PORT=3000" "VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}" "VITE_BASE_API_URL=${{ secrets.VITE_BASE_API_URL }}" \
+            --revision-suffix ${{ github.sha }}

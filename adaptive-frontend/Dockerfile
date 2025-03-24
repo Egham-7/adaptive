@@ -3,10 +3,8 @@ FROM oven/bun:latest AS build
 
 # Add the build argument
 ARG VITE_CLERK_PUBLISHABLE_KEY
-ARG VITE_BASE_API_URL
 # Make it available as an environment variable during build
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
-ENV VITE_BASE_API_URL=$VITE_BASE_API_URL
 
 WORKDIR /app
 
