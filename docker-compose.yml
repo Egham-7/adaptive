@@ -5,7 +5,6 @@ services:
       dockerfile: Dockerfile
       args:
         - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
-        - VITE_BASE_API_URL=${VITE_BASE_API_URL}
     environment:
       - PORT=3000
     ports:
