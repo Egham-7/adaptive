@@ -38,14 +38,6 @@ export default defineConfig({
         assetFileNames: "assets/[ext]/[name]-[hash].[ext]",
       },
     },
-    // Enable minification optimizations
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: false,
-        drop_debugger: false,
-      },
-    },
   },
 
   server: {
