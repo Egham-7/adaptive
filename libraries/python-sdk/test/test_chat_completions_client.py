@@ -1,19 +1,10 @@
-from completionschat import ChatCompletionsClient
-from chat import Chat
-from exceptions import APIError
 
-class Adaptive:
-    def __init__(self, api_key: str):
-        """
-        Initialize the Adaptive client.
-        """
-        self._chat_client = ChatCompletionsClient(api_key=api_key)
-        self.chat = Chat(self._chat_client)
-
+from adaptive_sdk.client import Adaptive
+from adaptive_sdk.exceptions.api_error import APIError
 # For testing during development
 if __name__ == "__main__":
     client = Adaptive(api_key="test")
-
+    
     # Use a test API key for development
     adaptive = Adaptive(api_key="test")
     
