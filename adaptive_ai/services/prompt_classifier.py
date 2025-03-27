@@ -5,6 +5,7 @@ import torch.nn as nn
 from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
+
 class MeanPooling(nn.Module):
     def __init__(self):
         super(MeanPooling, self).__init__()
@@ -19,6 +20,7 @@ class MeanPooling(nn.Module):
         mean_embeddings = sum_embeddings / sum_mask
         return mean_embeddings
 
+
 class MulticlassHead(nn.Module):
     def __init__(self, input_size, num_classes):
         super(MulticlassHead, self).__init__()
@@ -27,6 +29,7 @@ class MulticlassHead(nn.Module):
     def forward(self, x):
         x = self.fc(x)
         return x
+
 
 class CustomModel(nn.Module, PyTorchModelHubMixin):
     def __init__(self, target_sizes, task_type_map, weights_map, divisor_map):
@@ -78,34 +81,33 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def process_logits(self, logits, domain):
         DOMAIN_WEIGHTS = {
-        "Adult": [0.50, 0.30, 0.10, 0.05, 0.03, 0.02],
-        "Arts_and_Entertainment": [0.45, 0.20, 0.10, 0.15, 0.05, 0.05],
-        "Autos_and_Vehicles": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        "Beauty_and_Fitness": [0.40, 0.30, 0.15, 0.05, 0.05, 0.05],
-        "Books_and_Literature": [0.50, 0.25, 0.10, 0.10, 0.03, 0.02],
-        "Business_and_Industrial": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        "Computers_and_Electronics": [0.20, 0.40, 0.20, 0.15, 0.05, 0.00],
-        "Finance": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-        "Food_and_Drink": [0.20, 0.20, 0.10, 0.15, 0.10, 0.25],
-        "Games": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-        "Health": [0.10, 0.35, 0.30, 0.20, 0.05, 0.00],
-        "Hobbies_and_Leisure": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-        "Home_and_Garden": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        "Internet_and_Telecom": [0.25, 0.40, 0.15, 0.10, 0.05, 0.05],
-        "Jobs_and_Education": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-        "Law_and_Government": [0.20, 0.40, 0.20, 0.10, 0.05, 0.05],
-        "News": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        "Online_Communities": [0.25, 0.25, 0.15, 0.10, 0.20, 0.05],
-        "People_and_Society": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-        "Pets_and_Animals": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-        "Real_Estate": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        "Science": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-        "Sensitive_Subjects": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        "Shopping": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-        "Sports": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-        "Travel_and_Transportation": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-    }
-
+            "Adult": [0.50, 0.30, 0.10, 0.05, 0.03, 0.02],
+            "Arts_and_Entertainment": [0.45, 0.20, 0.10, 0.15, 0.05, 0.05],
+            "Autos_and_Vehicles": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+            "Beauty_and_Fitness": [0.40, 0.30, 0.15, 0.05, 0.05, 0.05],
+            "Books_and_Literature": [0.50, 0.25, 0.10, 0.10, 0.03, 0.02],
+            "Business_and_Industrial": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+            "Computers_and_Electronics": [0.20, 0.40, 0.20, 0.15, 0.05, 0.00],
+            "Finance": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
+            "Food_and_Drink": [0.20, 0.20, 0.10, 0.15, 0.10, 0.25],
+            "Games": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
+            "Health": [0.10, 0.35, 0.30, 0.20, 0.05, 0.00],
+            "Hobbies_and_Leisure": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
+            "Home_and_Garden": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+            "Internet_and_Telecom": [0.25, 0.40, 0.15, 0.10, 0.05, 0.05],
+            "Jobs_and_Education": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
+            "Law_and_Government": [0.20, 0.40, 0.20, 0.10, 0.05, 0.05],
+            "News": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+            "Online_Communities": [0.25, 0.25, 0.15, 0.10, 0.20, 0.05],
+            "People_and_Society": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
+            "Pets_and_Animals": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
+            "Real_Estate": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+            "Science": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
+            "Sensitive_Subjects": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+            "Shopping": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
+            "Sports": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
+            "Travel_and_Transportation": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+        }
 
         if domain not in DOMAIN_WEIGHTS:
             raise ValueError(f"Unknown domain: {domain}")
@@ -179,14 +181,16 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         ]
         return result
 
-
     def forward(self, batch, domain):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
         last_hidden_state = outputs.last_hidden_state
         mean_pooled_representation = self.pool(last_hidden_state, attention_mask)
-        logits = [self.heads[k](mean_pooled_representation) for k in range(len(self.target_sizes))]
+        logits = [
+            self.heads[k](mean_pooled_representation)
+            for k in range(len(self.target_sizes))
+        ]
         return self.process_logits(logits, domain)
 
 
@@ -200,7 +204,6 @@ model = CustomModel(
     weights_map=config.weights_map,
     divisor_map=config.divisor_map,
 ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
-
 
 
 class PromptClassifier:
@@ -218,13 +221,10 @@ class PromptClassifier:
             truncation=True,
         )
         result = self.model(encoded_texts, domain)
-        
+
         return result
-       
+
 
 @lru_cache()
 def get_prompt_classifier():
     return PromptClassifier()
-
-
-

@@ -36,29 +36,25 @@ class ModelSelector:
         # Analyze prompt and get domain
         prompt_analysis = self._analyze_prompt(prompt)
         domain = prompt_analysis["domain"]
-  
+
         complexity_score = prompt_analysis["complexity_score"]
-    
-        prompt_scores = prompt_analysis["prompt_scores"]
+
 
         # Select the most appropriate model for the domain and complexity
         model_info = self._find_suitable_model(domain, complexity_score)
         model_name = model_info["model_name"]
         provider_name = model_info["provider"]
 
-        # Get optimized parameters for the selected model
-        parameters = self._get_parameters(
-            provider_name, model_name, domain, prompt_scores
-        )
+        
 
         # Return complete model selection info
         return {
-            "prompt_scores":prompt_analysis["prompt_scores"],
+            "prompt_scores": prompt_analysis["prompt_scores"],
             "selected_model": model_name,
             "provider": provider_name,
             "complexity:": complexity_score,
             "domain:": domain,
-            #"parameters": parameters,
+            # "parameters": parameters,
         }
 
     def get_model_parameters(self, prompt: str) -> Dict[str, Any]:
@@ -105,7 +101,6 @@ class ModelSelector:
         Raises:
             ValueError: If the classified domain is not recognized
         """
-        
 
         # Get domain
         domain = self.domain_classifier.classify(prompt)[0]
@@ -151,7 +146,9 @@ class ModelSelector:
 
         # Find a model that matches the complexity score
         for model_name in suitable_models:
-            complexity_range: Tuple[float, float] = model_capabilities[model_name]["complexity_range"]
+            complexity_range: Tuple[float, float] = model_capabilities[model_name][
+                "complexity_range"
+            ]
             provider: str = model_capabilities[model_name]["provider"]
 
             # Explicitly cast complexity range values to float to satisfy mypy
@@ -159,7 +156,9 @@ class ModelSelector:
             upper_bound = float(complexity_range[1])
 
             # Log the complexity range for debugging
-            print(f"Checking model: {model_name} | Complexity Range: ({lower_bound}, {upper_bound}) | Score: {complexity_score}")
+            print(
+                f"Checking model: {model_name} | Complexity Range: ({lower_bound}, {upper_bound}) | Score: {complexity_score}"
+            )
 
             if lower_bound <= complexity_score <= upper_bound:
                 print(f"Selected model: {model_name} within complexity range.")
@@ -172,7 +171,6 @@ class ModelSelector:
             "model_name": default_model,
             "provider": model_capabilities[default_model]["provider"],
         }
-
 
     def _get_parameters(
         self,
