@@ -1,6 +1,6 @@
 module adaptive-backend
 
-go 1.23.6
+go 1.24.1
 
 require (
 	github.com/clerk/clerk-sdk-go/v2 v2.2.0
@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	gorm.io/driver/sqlite v1.5.7
-	gorm.io/gorm v1.25.12 // indirect
+	gorm.io/gorm v1.25.12
 )
 
 require (
@@ -24,7 +24,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cohesion-org/deepseek-go v1.2.4
 	github.com/go-jose/go-jose/v3 v3.0.4 // indirect
-	github.com/google/uuid v1.6.0 // indirect
+	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

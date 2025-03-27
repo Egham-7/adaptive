@@ -9,7 +9,7 @@ import { useConversation } from "@/lib/hooks/conversations/use-conversation";
 
 // Components
 import { ChatFooter } from "@/components/chat/chat-footer";
-import { ChatHeader } from "@/components/chat/chat-header";
+import ChatHeader from "@/components/chat/chat-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, RefreshCw, Cpu, User } from "lucide-react";
@@ -250,17 +250,18 @@ export default function ConversationPage() {
       />
       {initialLoading ? (
         <MessageSkeleton />
-      ) : getErrorContent() ? (
-        getErrorContent()
       ) : (
-        <MessageList
-          conversationId={numericConversationId}
-          messages={messages}
-          isLoading={isSendingMessage}
-          error={sendError ? String(sendError) : null}
-          isStreaming={isStreaming}
-          streamingContent={streamingContent}
-        />
+        <>
+          {getErrorContent()}
+          <MessageList
+            conversationId={numericConversationId}
+            messages={messages}
+            isLoading={isSendingMessage}
+            error={sendError ? String(sendError) : null}
+            isStreaming={isStreaming}
+            streamingContent={streamingContent}
+          />
+        </>
       )}
       <ChatFooter
         isLoading={isLoading}

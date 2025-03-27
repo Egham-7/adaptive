@@ -42,18 +42,14 @@ export default function FeaturesSection() {
             <div className="rotate-x-6 -skew-2">
               <div className="aspect-88/36 relative">
                 <div className="bg-radial-[at_75%_25%] to-background z-1 -inset-17 absolute from-transparent to-75%"></div>
+
                 <img
-                  src="/mail-upper.png"
-                  className="absolute inset-0 z-10"
-                  alt="payments illustration dark"
-                />
-                <img
-                  src="/mail-back.png"
+                  src="/adaptive-chat.jpeg"
                   className="hidden dark:block"
                   alt="payments illustration dark"
                 />
                 <img
-                  src="/mail-back-light.png"
+                  src="/adaptive-chat-light.jpeg"
                   className="dark:hidden"
                   alt="payments illustration light"
                 />
