@@ -1,4 +1,4 @@
-name: Trigger auto deployment for frontend
+name: Deploy frontend
 
 # When this action will be executed
 on:
