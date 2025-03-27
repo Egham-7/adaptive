@@ -46,6 +46,7 @@ COPY --from=build /app/dist /app/dist
 EXPOSE 3000
 
 # Explicitly start Caddy with the configuration file
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"] "run", "--config", "/etc/caddy/Caddyfile"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]
+
 
 
