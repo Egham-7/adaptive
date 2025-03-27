@@ -1,22 +1,21 @@
-name: Trigger auto deployment for backend-python
+name: Deploy AI Service
 
 # When this action will be executed
 on:
   # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
+    branches: [main]
     paths:
-    - '**'
-    - '.github/workflows/backend-python-AutoDeployTrigger-7ba1ac75-764d-4a6f-a34b-f728e575c095.yml'
+      - "**"
+      - ".github/workflows/ai_service_deploy.yml"
 
-  # Allow manual trigger 
-  workflow_dispatch:      
+  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write #This is required for requesting the OIDC JWT Token
       contents: read #Required when GH token is used to authenticate with private repo
 
@@ -44,5 +43,3 @@ jobs:
           imageToBuild: adaptiveregistry.azurecr.io/backend-python:${{ github.sha }}
           _buildArgumentsKey_: |
             _buildArgumentsValues_
-
-
