@@ -39,13 +39,10 @@ class ModelSelector:
 
         complexity_score = prompt_analysis["complexity_score"]
 
-
         # Select the most appropriate model for the domain and complexity
         model_info = self._find_suitable_model(domain, complexity_score)
         model_name = model_info["model_name"]
         provider_name = model_info["provider"]
-
-        
 
         # Return complete model selection info
         return {
