@@ -13,3 +13,4 @@ __pycache__/
 */vocab/vectors
 */transformer/model
 
+.mypy_cache
