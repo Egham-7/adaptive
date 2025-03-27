@@ -1,50 +1,48 @@
-:{$PORT}{
-    # Root directory for the site
-    root * /app/dist
-    file_server 
+:{$PORT}
 
-    # Hide dot files
-    @hidden {
-        path */.*
-    }
-    respond @hidden 404
+{
+	# Root directory for the site
+	root * /app/dist
+	file_server
 
-  
+	# Hide dot files
+	@hidden {
+		path */.*
+	}
+	respond @hidden 404
 
+	# SPA routing
+	try_files {path} /index.html
 
-    # SPA routing
-    try_files {path} /index.html
+	# Cache optimization for static assets
+	@static {
+		path *.js *.css *.jpg *.jpeg *.png *.gif *.ico *.svg *.woff *.woff2
+	}
+	header @static {
+		Cache-Control "public, max-age=31536000, immutable"
+	}
 
+	# HTML files should be revalidated more frequently
+	@html {
+		path *.html
+	}
+	header @html {
+		Cache-Control "public, max-age=3600, must-revalidate"
+	}
 
-    # Cache optimization for static assets
-    @static {
-        path *.js *.css *.jpg *.jpeg *.png *.gif *.ico *.svg *.woff *.woff2
-    }
-    header @static {
-        Cache-Control "public, max-age=31536000, immutable"
-    }
+	# Structured logging with relevant fields
+	log {
+		output stdout
+		format json {
+			time_format iso8601
+			message_key message
+		}
+		level INFO
+	}
 
-    # HTML files should be revalidated more frequently
-    @html {
-        path *.html
-    }
-    header @html {
-        Cache-Control "public, max-age=3600, must-revalidate"
-    }
-
-    # Structured logging with relevant fields
-    log {
-        output stdout
-        format json {
-            time_format iso8601
-            message_key message
-        }
-        level INFO
-    }
-
-    # Health check endpoint for container orchestration
-    respond /health 200 {
-        body "OK"
-        close
-    }
+	# Health check endpoint for container orchestration
+	respond /health 200 {
+		body "OK"
+		close
+	}
 }

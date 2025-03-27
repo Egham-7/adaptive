@@ -40,7 +40,7 @@ log "Building and pushing Docker image..."
 docker buildx build \
   --platform linux/amd64 \
   --tag "$ACR_NAME.azurecr.io/$CONTAINER_APP_NAME:$IMAGE_TAG" \
-  --build-arg VITE_CLERK_PUBLISHABLE_KEY="$VITE_CLERK_PUBLISHABLE_KEY" \
+  --build-arg VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY \
   --push \
   --file Dockerfile \
   .
@@ -77,6 +77,7 @@ if ! az containerapp update \
   --image "$ACR_NAME.azurecr.io/$CONTAINER_APP_NAME:$IMAGE_TAG" \
   --set-env-vars \
   "VITE_BASE_API_URL"="$BACKEND_GO_FQDN" \
+  "VITE_CLERK_PUBLISHABLE_KEY"="$VITE_CLERK_PUBLISHABLE_KEY" \
   "PORT=3000"; then
   log "ERROR: Failed to update Container App."
   exit 1
