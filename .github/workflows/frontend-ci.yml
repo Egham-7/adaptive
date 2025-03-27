@@ -1,0 +1,133 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "adaptive-frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "adaptive-frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  test-lint-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./adaptive-frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "23"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: latest
+          run_install: false
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v4
+        id: cache-deps
+        with:
+          path: |
+            ./adaptive-frontend/node_modules
+            ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('./adaptive-frontend/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Route Tree
+        run: pnpm run generate-routes
+
+      - name: Run tests
+        id: tests
+        run: pnpm test --coverage
+        continue-on-error: true
+
+      - name: Upload test coverage
+        if: always() && steps.tests.outcome == 'success'
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./adaptive-frontend/coverage
+          flags: frontend
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run ESLint
+        id: lint
+        run: pnpm run lint
+        continue-on-error: true
+
+      - name: Type check
+        id: typecheck
+        run: pnpm run typecheck
+        continue-on-error: true
+
+      - name: Build check
+        id: build
+        if: steps.tests.outcome == 'success' || steps.tests.outcome == 'skipped'
+        run: pnpm run build
+        continue-on-error: true
+
+      - name: Upload build artifacts
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: ./adaptive-frontend/dist
+          retention-days: 7
+
+      - name: Check for failing steps
+        if: always()
+        run: |
+          if [[ "${{ steps.tests.outcome }}" == "failure" || "${{ steps.lint.outcome }}" == "failure" || "${{ steps.typecheck.outcome }}" == "failure" || "${{ steps.build.outcome }}" == "failure" ]]; then
+            echo "One or more checks failed!"
+            exit 1
+          fi
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test-lint-typecheck]
+    # Only deploy on push to main, not on PRs
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.FRONTEND_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.FRONTEND_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.FRONTEND_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/adaptive-frontend
+          dockerfilePath: Dockerfile
+          registryUrl: adaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.FRONTEND_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.FRONTEND_REGISTRY_PASSWORD }}
+          containerAppName: frontend
+          resourceGroup: adaptive
+          imageToBuild: adaptiveregistry.azurecr.io/frontend:${{ github.sha }}
+          buildArguments: |
+            VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
