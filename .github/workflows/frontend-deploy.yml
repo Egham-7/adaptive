@@ -4,22 +4,19 @@ name: Trigger auto deployment for frontend
 on:
   # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
+    branches: [main]
     paths:
-    - '**'
-    - '.github/workflows/frontend-AutoDeployTrigger-81420c64-c090-4bec-912a-ab61564d8c1d.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
+      - "adaptive-frontend/**"
+      - ".github/workflows/frontend-deploy.yml"
+  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       id-token: write #This is required for requesting the OIDC JWT Token
       contents: read #Required when GH token is used to authenticate with private repo
-
     steps:
       - name: Checkout to the branch
         uses: actions/checkout@v2
@@ -35,14 +32,12 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive-frontend
-          _dockerfilePathKey_: _dockerfilePath_
+          dockerfilePath: Dockerfile
           registryUrl: adaptiveregistry.azurecr.io
           registryUsername: ${{ secrets.FRONTEND_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.FRONTEND_REGISTRY_PASSWORD }}
           containerAppName: frontend
           resourceGroup: adaptive
           imageToBuild: adaptiveregistry.azurecr.io/frontend:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
-
-
+          buildArguments: |
+            VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
