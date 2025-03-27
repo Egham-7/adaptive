@@ -79,40 +79,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                 scores = [x if x >= 0.05 else 0 for x in scores]
             return scores
 
-    def process_logits(self, logits, domain):
-        DOMAIN_WEIGHTS = {
-            "Adult": [0.50, 0.30, 0.10, 0.05, 0.03, 0.02],
-            "Arts_and_Entertainment": [0.45, 0.20, 0.10, 0.15, 0.05, 0.05],
-            "Autos_and_Vehicles": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Beauty_and_Fitness": [0.40, 0.30, 0.15, 0.05, 0.05, 0.05],
-            "Books_and_Literature": [0.50, 0.25, 0.10, 0.10, 0.03, 0.02],
-            "Business_and_Industrial": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Computers_and_Electronics": [0.20, 0.40, 0.20, 0.15, 0.05, 0.00],
-            "Finance": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-            "Food_and_Drink": [0.20, 0.20, 0.10, 0.15, 0.10, 0.25],
-            "Games": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Health": [0.10, 0.35, 0.30, 0.20, 0.05, 0.00],
-            "Hobbies_and_Leisure": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Home_and_Garden": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Internet_and_Telecom": [0.25, 0.40, 0.15, 0.10, 0.05, 0.05],
-            "Jobs_and_Education": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Law_and_Government": [0.20, 0.40, 0.20, 0.10, 0.05, 0.05],
-            "News": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Online_Communities": [0.25, 0.25, 0.15, 0.10, 0.20, 0.05],
-            "People_and_Society": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Pets_and_Animals": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Real_Estate": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Science": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-            "Sensitive_Subjects": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Shopping": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Sports": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Travel_and_Transportation": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        }
-
-        if domain not in DOMAIN_WEIGHTS:
-            raise ValueError(f"Unknown domain: {domain}")
-        weights = DOMAIN_WEIGHTS[domain]
-
+    def process_logits(self, logits):
         result = {}
         # Round 1: "task_type"
         task_type_logits = logits[0]
@@ -159,15 +126,14 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         result[target] = self.compute_results(constraint_ct_logits, target=target)
 
         # Round 9: "prompt_complexity_score"
-        # Use domain-specific weights instead of fixed weights
         result["prompt_complexity_score"] = [
             round(
-                weights[0] * creativity
-                + weights[1] * reasoning
-                + weights[2] * constraint
-                + weights[3] * domain_knowledge
-                + weights[4] * contextual_knowledge
-                + weights[5] * few_shots,
+                0.35 * creativity
+                + 0.25 * reasoning
+                + 0.15 * constraint
+                + 0.15 * domain_knowledge
+                + 0.05 * contextual_knowledge
+                + 0.05 * few_shots,
                 5,
             )
             for creativity, reasoning, constraint, domain_knowledge, contextual_knowledge, few_shots in zip(
@@ -181,7 +147,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         ]
         return result
 
-    def forward(self, batch, domain):
+    def forward(self, batch):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
@@ -191,7 +157,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             self.heads[k](mean_pooled_representation)
             for k in range(len(self.target_sizes))
         ]
-        return self.process_logits(logits, domain)
+        return self.process_logits(logits)
 
 
 config = AutoConfig.from_pretrained("nvidia/prompt-task-and-complexity-classifier")
@@ -211,7 +177,7 @@ class PromptClassifier:
         self.model = model
         self.tokenizer = tokenizer
 
-    def classify_prompt(self, prompt, domain):
+    def classify_prompt(self, prompt):
         encoded_texts = self.tokenizer(
             [prompt],
             return_tensors="pt",
@@ -220,8 +186,7 @@ class PromptClassifier:
             padding="max_length",
             truncation=True,
         )
-        result = self.model(encoded_texts, domain)
-
+        result = self.model(encoded_texts)
         return result
 
 
