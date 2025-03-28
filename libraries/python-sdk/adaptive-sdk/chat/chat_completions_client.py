@@ -4,7 +4,7 @@ from provider.provider import ChatCompletionResponse, StreamingResponse, parse_s
 from utils.utils import parse_provider_response
 from exceptions.api_error import APIError
 
-API_BASE_URL = "http://localhost:8080/api/chat/completions"
+API_BASE_URL = "https://backend-go.salmonwave-ec8d1f2a.eastus.azurecontainerapps.io/"
 
 class StreamHandler:
     """Base class for handling different types of streaming responses."""
@@ -28,7 +28,7 @@ class SSEStreamHandler(StreamHandler):
         """Process a chunk from an SSE stream."""
         self.buffer += chunk
         
-        # Check if we have a complete SSE message
+        # Check if we have a complete SSE message   
         if "\n\n" not in self.buffer:
             return None
         
@@ -89,7 +89,7 @@ class ChatCompletionsClient:
         
         # Send request
         response = self.session.post(
-            API_BASE_URL, 
+            f"{API_BASE_URL}/api/chat/completions", 
             json=payload,
             headers=self.headers
         )  
@@ -176,7 +176,7 @@ class ChatCompletionsClient:
         
         # Make the streaming request
         response = self.session.post(
-            f"{API_BASE_URL}/stream",
+            f"{API_BASE_URL}/api/chat/completions/stream",
             json=payload,
             headers=streaming_headers,
             stream=True
