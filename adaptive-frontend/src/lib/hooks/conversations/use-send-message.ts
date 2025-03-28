@@ -24,7 +24,6 @@ export function useSendMessage(conversationId: number, messages: Message[]) {
   const resetStreamingState = useCallback(() => {
     setStreamingContent("");
     setIsStreaming(true);
-    setModelInfo(null);
     setSendError(null);
   }, []);
 
