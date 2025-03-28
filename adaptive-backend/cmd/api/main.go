@@ -109,6 +109,7 @@ func main() {
 }
 
 // setupMiddleware configures all the application middleware
+
 func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	app.Use(logger.New())
 	app.Use(recover.New())
@@ -119,5 +120,7 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
+		MaxAge:           86400, // Preflight requests can be cached for 24 hours
+		ExposeHeaders:    "Content-Length, Content-Type",
 	}))
 }
