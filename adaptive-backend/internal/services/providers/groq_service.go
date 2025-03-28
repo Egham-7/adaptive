@@ -187,7 +187,7 @@ func determineGroqModel(requestedModel string) groq.ChatModel {
 		return groq.ModelLlama370B8192
 	case "llama3-8b":
 		return groq.ModelLlama38B8192
-	case "mixtral-8x7b-327568":
+	case "mixtral-8x7b-32768":
 		return groq.ModelMixtral8X7B32768
 	case "gemma-7b":
 		return groq.ModelGemma7BIt

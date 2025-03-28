@@ -34,21 +34,24 @@ const MessageContent = memo(
     isProcessing: boolean;
   }) => (
     <div className="flex items-start justify-between w-full">
-      <div className="flex items-start gap-3 w-full">
+      <div className="flex items-start gap-3 w-full overflow-hidden">
         {message.role === "user" ? (
           <User className="w-5 h-5 mt-1 shrink-0 text-primary-foreground" />
         ) : (
           <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
         )}
-        <Markdown
-          content={message.content}
-          className={
-            message.role === "user"
-              ? "text-primary-foreground w-full"
-              : "w-full"
-          }
-        />
+        <div className="overflow-hidden w-full">
+          <Markdown
+            content={message.content}
+            className={
+              message.role === "user"
+                ? "text-primary-foreground w-full break-words"
+                : "w-full break-words"
+            }
+          />
+        </div>
       </div>
+
       {message.role === "user" && (
         <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
           <Button
@@ -92,6 +95,7 @@ const MessageContent = memo(
     </div>
   ),
 );
+
 MessageContent.displayName = "MessageContent";
 
 // Message edit form component with corrected prop types
@@ -99,7 +103,7 @@ const MessageEditForm = memo(
   ({
     message,
     editedContent,
-    onChangeContent, // Changed from setEditedContent
+    onChangeContent,
     onCancel,
     onSave,
     isUpdating,
@@ -107,7 +111,7 @@ const MessageEditForm = memo(
   }: {
     message: DBMessage;
     editedContent: string;
-    onChangeContent: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; // Fixed type
+    onChangeContent: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
     onCancel: () => void;
     onSave: () => void;
     isUpdating: boolean;
@@ -124,7 +128,7 @@ const MessageEditForm = memo(
           value={editedContent}
           onChange={onChangeContent}
           className={cn(
-            "min-h-[100px] bg-transparent border-muted-foreground/20 w-full",
+            "min-h-[100px] bg-transparent border-muted-foreground/20 w-full overflow-hidden break-words",
             message.role === "user" ? "text-primary-foreground" : "",
           )}
         />
@@ -166,6 +170,7 @@ const MessageEditForm = memo(
     </div>
   ),
 );
+
 MessageEditForm.displayName = "MessageEditForm";
 
 // Main MessageItem component
@@ -177,12 +182,10 @@ export const MessageItem = memo(function MessageItem({
 }: MessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
-
   const { mutateAsync: updateMessage, isPending: isUpdating } =
     useUpdateMessage();
   const { mutateAsync: deleteMessage, isPending: isDeleting } =
     useDeleteMessage();
-
   const hasSubsequentMessages = index < messages.length - 1;
   const isProcessing = isUpdating || isDeleting;
 
@@ -250,7 +253,7 @@ export const MessageItem = memo(function MessageItem({
   return (
     <div
       className={cn(
-        "flex flex-col w-full max-w-[90%] rounded-2xl p-4 group",
+        "flex flex-col w-full max-w-[90%] rounded-2xl p-4 group overflow-hidden",
         message.role === "user"
           ? "ml-auto bg-primary text-primary-foreground"
           : "bg-muted",
@@ -270,7 +273,7 @@ export const MessageItem = memo(function MessageItem({
         <MessageEditForm
           message={message}
           editedContent={editedContent}
-          onChangeContent={handleEditedContentChange} // Changed prop name
+          onChangeContent={handleEditedContentChange}
           onCancel={handleCancel}
           onSave={handleSaveEdit}
           isUpdating={isUpdating}
@@ -280,3 +283,4 @@ export const MessageItem = memo(function MessageItem({
     </div>
   );
 });
+
