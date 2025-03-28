@@ -25,6 +25,7 @@ export function useSendMessage(conversationId: number, messages: Message[]) {
     setStreamingContent("");
     setIsStreaming(true);
     setSendError(null);
+    setModelInfo(null);
   }, []);
 
   const handleStreamingError = useCallback((error: unknown) => {
