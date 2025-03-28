@@ -19,7 +19,7 @@ export function HomeLayout() {
   return (
     <div className="min-h-screen bg-background flex w-full">
       <ChatbotSidebar />
-      <main className="flex-1 container p-10">
+      <main className="flex-1 container p-10 w-full overflow-hidden">
         <Outlet />
       </main>
     </div>
