@@ -1,0 +1,86 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+/vendor/
+/Godeps/
+
+# Binary output directories
+/bin/
+/dist/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment and configuration files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Log files
+*.log
+/logs/
+
+# Temporary files
+/tmp/
+/temp/
+
+# Air live reload
+/tmp-air/
+
+# Debug files
+debug
+__debug_bin
+
+# Database files
+*.db
+*.sqlite
+
+# Compiled Object files, Static and Dynamic libs
+*.o
+*.a
+
+# Application specific files
+config.local.yaml
+config.dev.yaml
+config.prod.yaml
+
+# Node.js (if using for frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+
+# Build output
+build/
+public/assets/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
