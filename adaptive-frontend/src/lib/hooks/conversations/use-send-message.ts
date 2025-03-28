@@ -53,7 +53,7 @@ export function useSendMessage(conversationId: number, messages: Message[]) {
 
   const handleModelInfo = useCallback(
     (chunk: StreamingResponse) => {
-      if (chunk.model && !modelInfo) {
+      if ((chunk.model && chunk.provider) && !modelInfo) {
         setModelInfo({
           provider: chunk.provider,
           model: chunk.model,
