@@ -7,6 +7,7 @@ import { typeProviderResponse } from "@/services/llms";
 import { useChatCompletion } from "./use-chat-completion";
 import { Message, MessageRole } from "@/services/llms/types";
 import { useAuth } from "@clerk/clerk-react";
+import { toast } from "sonner";
 
 export function useUpdateMessage() {
   const queryClient = useQueryClient();
@@ -96,6 +97,9 @@ export function useUpdateMessage() {
       queryClient.invalidateQueries({
         queryKey: ["messages", variables.conversationId],
       });
+    },
+    onError: () => {
+      toast.error("Failed to update message");
     },
   });
 }
