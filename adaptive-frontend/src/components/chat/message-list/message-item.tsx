@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from "react";
+import { useState, useCallback, memo } from "react";
 import { Loader2, Pencil, Save, X, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +51,6 @@ const MessageContent = memo(
           />
         </div>
       </div>
-
       {message.role === "user" && (
         <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
           <Button
@@ -250,37 +249,67 @@ export const MessageItem = memo(function MessageItem({
     [],
   );
 
-  return (
-    <div
-      className={cn(
-        "flex flex-col w-full max-w-[90%] rounded-2xl p-4 group overflow-hidden",
-        message.role === "user"
-          ? "ml-auto bg-primary text-primary-foreground"
-          : "bg-muted",
-        isProcessing && "opacity-60",
-      )}
-    >
-      {!isEditing ? (
-        <MessageContent
-          message={message}
-          onEdit={handleEdit}
-          onRetry={handleRetry}
-          onDelete={handleDelete}
-          hasSubsequentMessages={hasSubsequentMessages}
-          isProcessing={isProcessing}
-        />
-      ) : (
-        <MessageEditForm
-          message={message}
-          editedContent={editedContent}
-          onChangeContent={handleEditedContentChange}
-          onCancel={handleCancel}
-          onSave={handleSaveEdit}
-          isUpdating={isUpdating}
-          isProcessing={isProcessing}
-        />
-      )}
-    </div>
-  );
+  // Different styling for user vs AI messages
+  if (message.role === "user") {
+    return (
+      <div
+        className={cn(
+          "flex flex-col w-full max-w-[90%] rounded-2xl p-4 group overflow-hidden ml-auto bg-primary text-primary-foreground",
+          isProcessing && "opacity-60",
+        )}
+      >
+        {!isEditing ? (
+          <MessageContent
+            message={message}
+            onEdit={handleEdit}
+            onRetry={handleRetry}
+            onDelete={handleDelete}
+            hasSubsequentMessages={hasSubsequentMessages}
+            isProcessing={isProcessing}
+          />
+        ) : (
+          <MessageEditForm
+            message={message}
+            editedContent={editedContent}
+            onChangeContent={handleEditedContentChange}
+            onCancel={handleCancel}
+            onSave={handleSaveEdit}
+            isUpdating={isUpdating}
+            isProcessing={isProcessing}
+          />
+        )}
+      </div>
+    );
+  } else {
+    // AI message - full width, no bubble styling
+    return (
+      <div
+        className={cn(
+          "flex flex-col w-full py-4 px-2 group border-b border-border",
+          isProcessing && "opacity-60",
+        )}
+      >
+        {!isEditing ? (
+          <MessageContent
+            message={message}
+            onEdit={handleEdit}
+            onRetry={handleRetry}
+            onDelete={handleDelete}
+            hasSubsequentMessages={hasSubsequentMessages}
+            isProcessing={isProcessing}
+          />
+        ) : (
+          <MessageEditForm
+            message={message}
+            editedContent={editedContent}
+            onChangeContent={handleEditedContentChange}
+            onCancel={handleCancel}
+            onSave={handleSaveEdit}
+            isUpdating={isUpdating}
+            isProcessing={isProcessing}
+          />
+        )}
+      </div>
+    );
+  }
 });
-
