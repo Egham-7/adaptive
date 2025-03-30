@@ -1,9 +1,11 @@
-import { useMutation, UseMutationResult } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   ChatCompletionRequest,
   StreamingResponse,
 } from "@/services/llms/types";
 import { createStreamingChatCompletion } from "@/services/llms";
+import { useState, useCallback } from "react";
+import { extractContentFromStreamingResponse } from "@/services/llms/types";
 
 /**
  * Parameters for streaming chat completion
@@ -12,63 +14,122 @@ export type StreamingChatCompletionParams = {
   /** The request to send to the LLM */
   request: ChatCompletionRequest;
   /** Callback for each chunk of the streaming response */
-  onChunk: (chunk: StreamingResponse) => void;
+  onChunk?: (chunk: StreamingResponse) => void;
   /** Callback when streaming is complete */
-  onComplete?: () => void;
+  onComplete?: (content: string) => void;
   /** Callback when an error occurs during streaming */
   onError?: (error: Error) => void;
 };
 
+interface ModelInfo {
+  provider?: string;
+  model?: string;
+}
+
 /**
- * Custom hook for streaming chat completions
- *
- * @returns A mutation object that returns an abort function when successful
+ * Enhanced hook for streaming chat completions with built-in state management
  */
-export const useStreamingChatCompletion = (): UseMutationResult<
-  () => void, // Return type is the abort function
-  Error,
-  StreamingChatCompletionParams
-> => {
-  return useMutation({
+export const useStreamingChatCompletion = () => {
+  // State
+  const [streamingContent, setStreamingContent] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+
+  // Reset state function
+  const resetStreamingState = useCallback(() => {
+    setStreamingContent("");
+    setIsStreaming(true);
+    setModelInfo(null);
+  }, []);
+
+  const mutation = useMutation({
     mutationFn: async ({
       request,
       onChunk,
       onComplete,
       onError,
     }: StreamingChatCompletionParams) => {
+      let accumulatedContent = "";
+
       try {
+        resetStreamingState();
+
         // Start the streaming process and get the abort function
         const abortFn = createStreamingChatCompletion(
           request,
-          onChunk,
-          onComplete,
+          (chunk: StreamingResponse) => {
+            // Handle model info
+            if (chunk.model && chunk.provider && !modelInfo) {
+              setModelInfo({
+                provider: chunk.provider,
+                model: chunk.model,
+              });
+            }
+
+            // Extract and accumulate content
+            const newContent = extractContentFromStreamingResponse(chunk);
+            if (newContent) {
+              accumulatedContent += newContent;
+              requestAnimationFrame(() => {
+                setStreamingContent(accumulatedContent);
+              });
+            }
+
+            // Call external onChunk if provided
+            if (onChunk) {
+              onChunk(chunk);
+            }
+          },
+          () => {
+            setIsStreaming(false);
+            if (onComplete) {
+              onComplete(accumulatedContent);
+            }
+          },
           (error) => {
-            // Handle streaming errors
+            setIsStreaming(false);
             console.error("Streaming error:", error);
             if (onError) onError(error);
           },
         );
 
-        // Return the abort function
-        return abortFn;
+        // Return the abort function and accumulated content
+        return {
+          abortFn,
+          getContent: () => accumulatedContent,
+        };
       } catch (error) {
-        // Handle setup errors
+        setIsStreaming(false);
         const formattedError =
           error instanceof Error ? error : new Error(String(error));
-
         console.error("Chat completion setup error:", formattedError);
-
         if (onError) {
           onError(formattedError);
         }
-
         throw formattedError;
       }
     },
-
-    // This handles errors from the mutation itself (not from streaming)
     onError: (error) => {
+      setIsStreaming(false);
       console.error("Chat completion mutation error:", error);
     },
   });
+
+  const abortStreaming = useCallback(() => {
+    if (mutation.data?.abortFn) {
+      mutation.data.abortFn();
+      setIsStreaming(false);
+    }
+  }, [mutation.data]);
+
+  return {
+    streamChatCompletion: mutation.mutateAsync,
+    abortStreaming,
+    isStreaming,
+    streamingContent,
+    modelInfo,
+    isPending: mutation.isPending,
+    error: mutation.error,
+    reset: resetStreamingState,
+  };
 };
