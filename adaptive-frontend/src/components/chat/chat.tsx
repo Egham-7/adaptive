@@ -7,6 +7,8 @@ import { ChatFooter } from "@/components/chat/chat-footer";
 import { Message } from "@/services/llms/types";
 import { useSendMessage } from "@/lib/hooks/conversations/use-send-message";
 import { EmptyState } from "./empty-state";
+import Header from "./header";
+import { useSidebar } from "../ui/sidebar";
 
 interface ChatProps {
   conversationId: number;
@@ -26,6 +28,8 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
     abortStreaming,
   } = useSendMessage(conversationId, apiMessages);
 
+  const { open, openMobile } = useSidebar();
+
   // Combined loading state
   const isLoading = isSendingMessage;
 
@@ -39,6 +43,7 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
 
   return (
     <>
+      {!open && !openMobile && <Header />}
       <div className="flex-1 w-full py-6 space-y-6 overflow-y-auto">
         {showEmptyState ? (
           <EmptyState onSendMessage={sendMessage} isLoading={isLoading} />
