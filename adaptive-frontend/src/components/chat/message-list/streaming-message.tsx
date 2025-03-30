@@ -18,25 +18,19 @@ const StreamingMessage = memo(({ content }: StreamingMessageProps) => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-
     // If content hasn't changed, don't restart typing
     if (contentRef.current === content) {
       return;
     }
-
     contentRef.current = content;
-
     // Calculate how much new content we have
     const newContentLength = content.length - displayedContent.length;
-
     // If we have new content, animate it
     if (newContentLength > 0) {
       setIsTyping(true);
-
       // Determine typing speed based on content length
       // Faster for longer content to keep it responsive
       const typingSpeed = Math.max(10, Math.min(50, 100 - content.length / 20));
-
       // Schedule the next character to appear
       timeoutRef.current = setTimeout(() => {
         setDisplayedContent(content.substring(0, displayedContent.length + 1));
@@ -44,7 +38,6 @@ const StreamingMessage = memo(({ content }: StreamingMessageProps) => {
     } else {
       setIsTyping(false);
     }
-
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -53,27 +46,32 @@ const StreamingMessage = memo(({ content }: StreamingMessageProps) => {
   }, [content, displayedContent]);
 
   return (
-    <div className="flex flex-col w-full max-w-[90%] rounded-2xl p-4 bg-muted">
-      <div className="flex items-start gap-3 w-full">
-        <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
-        <div className="w-full">
-          <div className="markdown-container relative">
-            <Markdown content={displayedContent} />
+    <div className="flex flex-col w-full py-4 px-2 group border-b border-border">
+      <div className="flex items-start justify-between w-full">
+        <div className="flex items-start gap-3 w-full overflow-hidden">
+          <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
+          <div className="w-full">
+            <div className="markdown-container relative">
+              <Markdown
+                content={displayedContent}
+                className="w-full break-words"
+              />
+              {isTyping && (
+                <span className="typing-cursor inline-block h-4 w-[2px] ml-[1px] align-middle bg-primary animate-cursor-blink" />
+              )}
+            </div>
             {isTyping && (
-              <span className="typing-cursor inline-block h-4 w-[2px] ml-[1px] align-middle bg-primary animate-cursor-blink" />
+              <div className="flex items-center mt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                  <span>AI is typing...</span>
+                </div>
+              </div>
             )}
           </div>
-          {isTyping && (
-            <div className="flex items-center mt-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                </span>
-                <span>AI is typing...</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
