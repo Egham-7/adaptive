@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useCreateConversation } from "@/lib/hooks/conversations/use-create-conversation";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { ModeToggle } from "./mode-toggle";
 
 export function ChatbotSidebar() {
   const { data: conversations, isLoading, error } = useConversations();
@@ -207,9 +208,7 @@ export function ChatbotSidebar() {
             <SidebarMenuButton>
               <div className="flex items-center gap-2 w-full">
                 <UserButton />
-                <div className="flex-1">
-                  <span className="font-medium">Account</span>
-                </div>
+                <ModeToggle />
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

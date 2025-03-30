@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createConversation } from "@/services/conversations";
 import { useAuth } from "@clerk/clerk-react";
+import { toast } from "sonner";
 
 export const useCreateConversation = () => {
   const queryClient = useQueryClient();
@@ -21,12 +22,16 @@ export const useCreateConversation = () => {
       return createConversation(token, title);
     },
     onSuccess: (newConversation) => {
+      toast.success("Conversation created successfully");
       queryClient.invalidateQueries({
         queryKey: ["conversation", newConversation.id],
       });
       queryClient.invalidateQueries({
         queryKey: ["conversations"],
       });
+    },
+    onError: () => {
+      toast.error("Failed to create conversation");
     },
   });
 
