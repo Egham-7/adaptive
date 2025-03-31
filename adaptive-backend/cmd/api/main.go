@@ -85,7 +85,7 @@ func main() {
 		WriteTimeout:      2 * time.Minute,
 		IdleTimeout:       5 * time.Minute,
 	})
-	err := config.Initialize("adaptive.db")
+	err := config.Initialize(os.Getenv("DB_SERVER"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))
 	if err != nil {
 		log.Fatal(err)
 	}

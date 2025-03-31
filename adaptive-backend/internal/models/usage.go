@@ -7,8 +7,8 @@ import (
 )
 
 type APIKey struct {
-	ID         uuid.UUID  `json:"id" gorm:"type:uuid;primary_key"`
-	UserID     string     `json:"user_id" gorm:"type:uuid;not null"`
+	ID         uuid.UUID  `json:"id" gorm:"type:uniqueidentifier;primary_key"`
+	UserID     string     `json:"user_id" gorm:"type:uniqueidentifier;not null"`
 	Name       string     `json:"name" gorm:"type:varchar(255);not null"`
 	KeyPrefix  string     `json:"key_prefix" gorm:"type:varchar(10);not null"`
 	KeyHash    string     `json:"key_hash" gorm:"type:varchar(255);not null"`
@@ -19,9 +19,9 @@ type APIKey struct {
 }
 
 type APIRequest struct {
-	ID           uuid.UUID `json:"id" gorm:"primaryKey;type:uuid"`
-	UserID       uuid.UUID `json:"user_id" gorm:"type:uuid;not null"`
-	APIKeyID     uuid.UUID `json:"api_key_id" gorm:"type:uuid;not null"`
+	ID           uuid.UUID `json:"id" gorm:"primaryKey;type:uniqueidentifier"`
+	UserID       uuid.UUID `json:"user_id" gorm:"type:uniqueidentifier;not null"`
+	APIKeyID     uuid.UUID `json:"api_key_id" gorm:"type:uniqueidentifier;not null"`
 	ProviderName string    `json:"provider_name" gorm:"not null"`
 	ModelName    string    `json:"model_name" gorm:"not null"`
 	RequestType  string    `json:"request_type" gorm:"not null"`
@@ -33,7 +33,7 @@ type APIRequest struct {
 }
 
 type ModelInfo struct {
-	ID                         uuid.UUID `json:"id" gorm:"primaryKey;type:uuid"`
+	ID                         uuid.UUID `json:"id" gorm:"primaryKey;type:uniqueidentifier"`
 	ProviderName               string    `json:"provider_name" gorm:"not null"`
 	ModelName                  string    `json:"model_name" gorm:"type:varchar(255);not null"`
 	IsEnabled                  bool      `json:"is_enabled" gorm:"not null;default:true"`
@@ -44,8 +44,8 @@ type ModelInfo struct {
 }
 
 type TokenUsage struct {
-	ID               uuid.UUID `json:"id" gorm:"primaryKey;type:uuid"`
-	APIRequestID     uuid.UUID `json:"api_request_id" gorm:"type:uuid;not null"`
+	ID               uuid.UUID `json:"id" gorm:"primaryKey;type:uniqueidentifier"`
+	APIRequestID     uuid.UUID `json:"api_request_id" gorm:"type:uniqueidentifier;not null"`
 	PromptTokens     int       `json:"prompt_tokens" gorm:"not null;default:0"`
 	CompletionTokens int       `json:"completion_tokens" gorm:"not null;default:0"`
 	TotalTokens      int       `json:"total_tokens" gorm:"not null;default:0"`
@@ -53,8 +53,8 @@ type TokenUsage struct {
 }
 
 type CostEntry struct {
-	ID             uuid.UUID `json:"id" gorm:"primaryKey;type:uuid"`
-	APIRequestID   uuid.UUID `json:"api_request_id" gorm:"type:uuid;not null"`
+	ID             uuid.UUID `json:"id" gorm:"primaryKey;type:uniqueidentifier"`
+	APIRequestID   uuid.UUID `json:"api_request_id" gorm:"type:uniqueidentifier;not null"`
 	PromptCost     float64   `json:"prompt_cost" gorm:"not null;default:0"`
 	CompletionCost float64   `json:"completion_cost" gorm:"not null;default:0"`
 	TotalCost      float64   `json:"total_cost" gorm:"not null;default:0"`
