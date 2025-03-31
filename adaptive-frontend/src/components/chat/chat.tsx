@@ -34,7 +34,7 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
 
   const {
     streamingContent: updatedStreamingContent,
-    mutation,
+    updateMessage,
     isStreaming: updateMessageIsStreaming,
     abortStreaming: updateMessageAbortStreaming,
     error: updateMessageError,
@@ -78,8 +78,8 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
                   conversationId={conversationId}
                   index={index}
                   messages={messages}
-                  updateMessage={mutation.mutateAsync}
-                  isUpdating={mutation.isPending}
+                  updateMessage={updateMessage.mutateAsync}
+                  isUpdating={updateMessage.isPending}
                 />
               ))}
               {isStreaming && streamingContent && (
