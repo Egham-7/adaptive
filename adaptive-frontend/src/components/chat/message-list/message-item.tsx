@@ -3,7 +3,6 @@ import { Loader2, Pencil, Save, X, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useUpdateMessage } from "@/lib/hooks/conversations/use-update-message";
 import { useDeleteMessage } from "@/lib/hooks/conversations/use-delete-message";
 import { DBMessage } from "@/services/messages/types";
 import DeleteMessageDialog from "./delete-message-dialog";
@@ -14,6 +13,14 @@ interface MessageItemProps {
   conversationId: number;
   index: number;
   messages: DBMessage[];
+  updateMessage: (params: {
+    conversationId: number;
+    messageId: number;
+    updates: { role?: string; content?: string };
+    index: number;
+    messages: DBMessage[];
+  }) => Promise<DBMessage>;
+  isUpdating: boolean;
 }
 
 // Message content display component
@@ -36,9 +43,9 @@ const MessageContent = memo(
     <div className="flex items-start justify-between w-full">
       <div className="flex items-start gap-3 w-full overflow-hidden">
         {message.role === "user" ? (
-          <User className="w-5 h-5 mt-1 shrink-0 text-primary-foreground" />
+          <User className="w-5 h-5 mt-5 shrink-0 text-primary-foreground" />
         ) : (
-          <Bot className="w-5 h-5 mt-1 shrink-0 text-muted-foreground" />
+          <Bot className="w-5 h-5 mt-5 shrink-0 text-muted-foreground" />
         )}
         <div className="overflow-hidden w-full">
           <Markdown
@@ -178,11 +185,12 @@ export const MessageItem = memo(function MessageItem({
   conversationId,
   index,
   messages,
+  updateMessage,
+  isUpdating,
 }: MessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
-  const { mutateAsync: updateMessage, isPending: isUpdating } =
-    useUpdateMessage();
+
   const { mutateAsync: deleteMessage, isPending: isDeleting } =
     useDeleteMessage();
   const hasSubsequentMessages = index < messages.length - 1;
