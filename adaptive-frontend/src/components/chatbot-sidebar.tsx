@@ -24,12 +24,15 @@ import { useState } from "react";
 import { useCreateConversation } from "@/lib/hooks/conversations/use-create-conversation";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ModeToggle } from "./mode-toggle";
+import { useTheme } from "@/context/theme-provider";
+import { dark, shadesOfPurple } from "@clerk/themes";
 
 export function ChatbotSidebar() {
   const { data: conversations, isLoading, error } = useConversations();
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const createConversationMutation = useCreateConversation();
+  const { theme } = useTheme();
 
   // Helper function to get the most recent message from a conversation
   const getLastMessage = (conversation: Conversation) => {
@@ -203,13 +206,19 @@ export function ChatbotSidebar() {
 
       <SidebarFooter>
         <SidebarSeparator />
-        <SidebarMenu>
+        <SidebarMenu className="flex-row items-center justify-between">
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <div className="flex items-center gap-2 w-full">
-                <UserButton />
-                <ModeToggle />
-              </div>
+            <SidebarMenuButton asChild>
+              <UserButton
+                appearance={{
+                  baseTheme: theme === "dark" ? dark : shadesOfPurple,
+                }}
+              />
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <ModeToggle />
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
