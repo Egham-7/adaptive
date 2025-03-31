@@ -9,6 +9,7 @@ import { useSendMessage } from "@/lib/hooks/conversations/use-send-message";
 import { EmptyState } from "./empty-state";
 import Header from "./header";
 import { useSidebar } from "../ui/sidebar";
+import { useUpdateMessage } from "@/lib/hooks/conversations/use-update-message";
 
 interface ChatProps {
   conversationId: number;
@@ -23,10 +24,26 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
   const {
     sendMessage,
     isLoading: isSendingMessage,
-    isStreaming,
-    streamingContent,
-    abortStreaming,
+    isStreaming: sendMessageIsStreaming,
+    streamingContent: sendMessageStreamingContent,
+    abortStreaming: sendMessageAbortStreaming,
   } = useSendMessage(conversationId, apiMessages);
+
+  const {
+    streamingContent: updatedStreamingContent,
+    mutation,
+    isStreaming: updateMessageIsStreaming,
+    abortStreaming: updateMessageAbortStreaming,
+  } = useUpdateMessage();
+
+  const isStreaming = sendMessageIsStreaming || updateMessageIsStreaming;
+
+  const abortStreaming = sendMessageIsStreaming
+    ? sendMessageAbortStreaming
+    : updateMessageAbortStreaming;
+
+  const streamingContent =
+    sendMessageStreamingContent || updatedStreamingContent;
 
   const { open, openMobile } = useSidebar();
 
@@ -56,10 +73,12 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
                 conversationId={conversationId}
                 index={index}
                 messages={messages}
+                updateMessage={mutation.mutateAsync}
+                isUpdating={mutation.isPending}
               />
             ))}
-            {(isStreaming || streamingContent) && (
-              <StreamingMessage content={streamingContent || ""} />
+            {isStreaming && streamingContent && (
+              <StreamingMessage content={streamingContent} />
             )}
           </>
         )}

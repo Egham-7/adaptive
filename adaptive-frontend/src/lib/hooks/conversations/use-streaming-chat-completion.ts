@@ -31,13 +31,15 @@ interface ModelInfo {
  */
 export const useStreamingChatCompletion = () => {
   // State
-  const [streamingContent, setStreamingContent] = useState("");
+  const [streamingContent, setStreamingContent] = useState<string | undefined>(
+    undefined,
+  );
   const [isStreaming, setIsStreaming] = useState(false);
   const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
 
   // Reset state function
   const resetStreamingState = useCallback(() => {
-    setStreamingContent("");
+    setStreamingContent(undefined);
     setIsStreaming(true);
     setModelInfo(null);
   }, []);
