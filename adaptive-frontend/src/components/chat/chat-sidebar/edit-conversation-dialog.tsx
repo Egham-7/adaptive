@@ -3,17 +3,14 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -40,6 +37,65 @@ const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
 });
 
+interface EditConversationFormProps {
+  conversation: Conversation;
+  onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
+  onCancel: () => void;
+}
+
+function EditConversationForm({
+  conversation,
+  onSubmit,
+  onCancel,
+}: EditConversationFormProps) {
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: conversation.title,
+    },
+  });
+
+  const handleSubmit = form.handleSubmit(onSubmit);
+  const isSubmitting = form.formState.isSubmitting;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Conversation Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter a title" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              form.reset();
+              onCancel();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button disabled={isSubmitting} type="submit" onClick={handleSubmit}>
+            {isSubmitting ? "Submitting..." : "Save changes"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
 interface EditConversationDialogProps {
   conversation: Conversation;
 }
@@ -51,14 +107,7 @@ export function EditConversationDialog({
   const updateConversationMutation = useUpdateConversation();
   const [isOpen, setIsOpen] = useState(false);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: conversation.title,
-    },
-  });
-
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       await updateConversationMutation.mutateAsync({
         id: conversation.id,
@@ -68,6 +117,10 @@ export function EditConversationDialog({
     } catch (error) {
       console.error("Failed to update conversation:", error);
     }
+  };
+
+  const handleCancel = () => {
+    setIsOpen(false);
   };
 
   const EditTrigger = (
@@ -89,48 +142,12 @@ export function EditConversationDialog({
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Conversation Title</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter a title" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="mt-4">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={form.formState.isSubmitting}
-                  >
-                    {form.formState.isSubmitting
-                      ? "Submitting..."
-                      : "Save changes"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
+            <EditConversationForm
+              conversation={conversation}
+              onSubmit={handleSubmit}
+              onCancel={handleCancel}
+            />
           </div>
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => form.reset()}
-              >
-                Cancel
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     );
@@ -146,40 +163,11 @@ export function EditConversationDialog({
             Change the title of your conversation.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Conversation Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter a title" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <DialogFooter className="mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  form.reset();
-                  setIsOpen(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Submitting..." : "Save changes"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        <EditConversationForm
+          conversation={conversation}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
       </DialogContent>
     </Dialog>
   );
