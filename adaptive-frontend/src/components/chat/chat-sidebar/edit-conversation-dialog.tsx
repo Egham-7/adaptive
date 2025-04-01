@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -35,6 +34,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 const formSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -49,6 +49,7 @@ export function EditConversationDialog({
 }: EditConversationDialogProps) {
   const isMobile = useIsMobile();
   const updateConversationMutation = useUpdateConversation();
+  const [isOpen, setIsOpen] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -63,6 +64,7 @@ export function EditConversationDialog({
         id: conversation.id,
         title: values.title,
       });
+      setIsOpen(false); // Close the dialog/drawer after successful submission
     } catch (error) {
       console.error("Failed to update conversation:", error);
     }
@@ -75,34 +77,9 @@ export function EditConversationDialog({
     </Button>
   );
 
-  const EditContent = (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Conversation Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter a title" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <div className={isMobile ? "mt-4" : "flex justify-end gap-2 mt-4"}>
-          <Button type="submit">Save changes</Button>
-        </div>
-      </form>
-    </Form>
-  );
-
   if (isMobile) {
     return (
-      <Drawer>
+      <Drawer open={isOpen} onOpenChange={setIsOpen}>
         <DrawerTrigger asChild>{EditTrigger}</DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
@@ -111,7 +88,38 @@ export function EditConversationDialog({
               Change the title of your conversation.
             </DrawerDescription>
           </DrawerHeader>
-          <div className="px-4 pb-4">{EditContent}</div>
+          <div className="px-4 pb-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Conversation Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter a title" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="mt-4">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={form.formState.isSubmitting}
+                  >
+                    {form.formState.isSubmitting
+                      ? "Submitting..."
+                      : "Save changes"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
           <DrawerFooter>
             <DrawerClose asChild>
               <Button
@@ -129,7 +137,7 @@ export function EditConversationDialog({
   }
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{EditTrigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -138,18 +146,40 @@ export function EditConversationDialog({
             Change the title of your conversation.
           </DialogDescription>
         </DialogHeader>
-        {EditContent}
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => form.reset()}
-            >
-              Cancel
-            </Button>
-          </DialogClose>
-        </DialogFooter>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Conversation Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter a title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <DialogFooter className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  form.reset();
+                  setIsOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Submitting..." : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteConversation } from "@/services/conversations";
 import { useAuth } from "@clerk/clerk-react";
+import { toast } from "sonner";
 /**
  * Hook for deleting a conversation
  *
@@ -29,6 +30,10 @@ export const useDeleteConversation = () => {
       queryClient.invalidateQueries({
         queryKey: ["conversations"],
       });
+      toast.success("Conversation deleted successfully.");
+    },
+    onError: () => {
+      toast.error("Failed to delete conversation.");
     },
   });
 };
