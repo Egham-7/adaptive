@@ -32,6 +32,7 @@ export function Chat({ conversationId, messages }: ChatProps) {
     streamingContent: sendMessageStreamingContent,
     abortStreaming: sendMessageAbortStreaming,
     error: sendMessageError,
+    isError: isSendError,
   } = useSendMessage(conversationId, apiMessages);
 
   const {
@@ -40,6 +41,7 @@ export function Chat({ conversationId, messages }: ChatProps) {
     isStreaming: updateMessageIsStreaming,
     abortStreaming: updateMessageAbortStreaming,
     error: updateMessageError,
+    isError: isUpdateError,
   } = useUpdateMessage();
 
   // Derived states
@@ -52,6 +54,7 @@ export function Chat({ conversationId, messages }: ChatProps) {
   const error = sendMessageError || updateMessageError;
   const isLoading = isSendingMessage;
   const { open, openMobile } = useSidebar();
+  const isError = isSendError || isUpdateError;
 
   // Show empty state only when there are no messages and no streaming content
   const showEmptyState =
@@ -92,7 +95,7 @@ export function Chat({ conversationId, messages }: ChatProps) {
           {isLoading && !isStreaming && !streamingContent && (
             <LoadingIndicator />
           )}
-          {error && <ErrorMessage error={error} />}
+          {isError && <ErrorMessage error={error} />}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -101,7 +104,7 @@ export function Chat({ conversationId, messages }: ChatProps) {
         sendMessage={sendMessage}
         isStreaming={isStreaming}
         abortStreaming={abortStreaming}
-        isError={Boolean(error)}
+        isError={isError}
       />
     </>
   );
@@ -119,14 +122,12 @@ function LoadingIndicator() {
 }
 
 function ErrorMessage({ error }: { error: Error | null }) {
-  if (!error) return null;
-
   return (
     <Alert variant="destructive" className="max-w-[90%] mx-auto">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>Error</AlertTitle>
       <AlertDescription>
-        {error.message || "An error occurred while processing your request."}
+        {error?.message || "An error occurred while processing your request."}
       </AlertDescription>
     </Alert>
   );
