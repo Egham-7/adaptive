@@ -10,6 +10,13 @@ import (
 	"github.com/conneroisu/groq-go"
 )
 
+// EnhancedGroqResponse extends the Groq response with additional fields
+type EnhancedGroqResponse struct {
+	*groq.ChatCompletionStreamResponse
+	Provider string `json:"provider"`
+}
+
+// GroqStreamReader implements a stream reader for Groq completions
 type GroqStreamReader struct {
 	BaseStreamReader
 	stream *groq.ChatCompletionStream
@@ -52,7 +59,6 @@ func (r *GroqStreamReader) Read(p []byte) (n int, err error) {
 			r.done = true
 			return r.Read(p) // Recursively call to handle the buffer
 		}
-
 		// Format any other error as SSE and mark as done
 		log.Printf("[%s] Error in Groq stream: %v", r.requestID, err)
 		safeErrMsg := strings.ReplaceAll(err.Error(), "\"", "\\\"")
@@ -61,12 +67,7 @@ func (r *GroqStreamReader) Read(p []byte) (n int, err error) {
 		return r.Read(p) // Recursively call to handle the buffer
 	}
 
-	type enhancedResponse struct {
-		*groq.ChatCompletionStreamResponse
-		Provider string `json:"provider"`
-	}
-
-	enhanced := enhancedResponse{
+	enhanced := EnhancedGroqResponse{
 		ChatCompletionStreamResponse: response,
 		Provider:                     "groq",
 	}

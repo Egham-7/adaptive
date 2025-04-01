@@ -10,6 +10,13 @@ import (
 	"github.com/cohesion-org/deepseek-go"
 )
 
+// EnhancedDeepSeekResponse extends the DeepSeek response with additional fields
+type EnhancedDeepSeekResponse struct {
+	deepseek.StreamChatCompletionResponse
+	Provider string `json:"provider"`
+}
+
+// DeepSeekStreamReader implements a stream reader for DeepSeek completions
 type DeepSeekStreamReader struct {
 	BaseStreamReader
 	stream deepseek.ChatCompletionStream
@@ -52,7 +59,6 @@ func (r *DeepSeekStreamReader) Read(p []byte) (n int, err error) {
 			r.done = true
 			return r.Read(p) // Recursively call to handle the buffer
 		}
-
 		// Format any other error as SSE and mark as done
 		log.Printf("[%s] Error in DeepSeek stream: %v", r.requestID, err)
 		safeErrMsg := strings.ReplaceAll(err.Error(), "\"", "\\\"")
@@ -61,12 +67,7 @@ func (r *DeepSeekStreamReader) Read(p []byte) (n int, err error) {
 		return r.Read(p) // Recursively call to handle the buffer
 	}
 
-	type enhancedResponse struct {
-		deepseek.StreamChatCompletionResponse
-		Provider string `json:"provider"`
-	}
-
-	enhanced := enhancedResponse{
+	enhanced := EnhancedDeepSeekResponse{
 		StreamChatCompletionResponse: *response,
 		Provider:                     "deepseek",
 	}

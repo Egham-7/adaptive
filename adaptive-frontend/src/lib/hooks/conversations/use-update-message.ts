@@ -68,11 +68,12 @@ export function useUpdateMessage() {
         request: {
           messages: formattedMessages,
         },
-        onComplete: async (content) => {
+        onComplete: async (content, modelInfo) => {
           // Create the message only after we have the complete content
+          const { model, provider } = modelInfo || {};
           await createMessage({
             convId: conversationId,
-            message: { role: "assistant", content },
+            message: { role: "assistant", content, provider, model },
           });
         },
         onError: (error) => {

@@ -1,12 +1,11 @@
 import { useState, useCallback, memo } from "react";
-import { Loader2, Pencil, Save, X, Bot, User } from "lucide-react";
+import { Loader2, Save, X, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useDeleteMessage } from "@/lib/hooks/conversations/use-delete-message";
 import { DBMessage } from "@/services/messages/types";
-import DeleteMessageDialog from "./delete-message-dialog";
-import Markdown from "@/components/markdown";
+import MessageContent from "./message-content";
 
 interface MessageItemProps {
   message: DBMessage;
@@ -22,87 +21,6 @@ interface MessageItemProps {
   }) => Promise<DBMessage>;
   isUpdating: boolean;
 }
-
-// Message content display component
-const MessageContent = memo(
-  ({
-    message,
-    onEdit,
-    onRetry,
-    onDelete,
-    hasSubsequentMessages,
-    isProcessing,
-  }: {
-    message: DBMessage;
-    onEdit: () => void;
-    onRetry: () => void;
-    onDelete: () => void;
-    hasSubsequentMessages: boolean;
-    isProcessing: boolean;
-  }) => (
-    <div className="flex items-start justify-between w-full">
-      <div className="flex items-start gap-3 w-full overflow-hidden">
-        {message.role === "user" ? (
-          <User className="w-5 h-5 mt-5 shrink-0 text-primary-foreground" />
-        ) : (
-          <Bot className="w-5 h-5 mt-5 shrink-0 text-muted-foreground" />
-        )}
-        <div className="overflow-hidden w-full">
-          <Markdown
-            content={message.content}
-            className={
-              message.role === "user"
-                ? "text-primary-foreground w-full break-words"
-                : "w-full break-words"
-            }
-          />
-        </div>
-      </div>
-      {message.role === "user" && (
-        <div className="flex gap-1 ml-2 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8",
-              message.role === "user"
-                ? "hover:bg-primary-foreground/10"
-                : "hover:bg-background/80",
-            )}
-            onClick={onRetry}
-            disabled={isProcessing}
-          >
-            <Loader2
-              className={cn("w-4 h-4", isProcessing && "animate-spin")}
-            />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-8 w-8",
-              message.role === "user"
-                ? "hover:bg-primary-foreground/10"
-                : "hover:bg-background/80",
-            )}
-            onClick={onEdit}
-            disabled={isProcessing}
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <DeleteMessageDialog
-            userMessage={message.role === "user"}
-            hasSubsequentMessages={hasSubsequentMessages}
-            onDelete={onDelete}
-            disabled={isProcessing}
-          />
-        </div>
-      )}
-    </div>
-  ),
-);
-
-MessageContent.displayName = "MessageContent";
 
 // Message edit form component with corrected prop types
 const MessageEditForm = memo(
@@ -190,7 +108,6 @@ export const MessageItem = memo(function MessageItem({
 }: MessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
-
   const { mutateAsync: deleteMessage, isPending: isDeleting } =
     useDeleteMessage();
   const hasSubsequentMessages = index < messages.length - 1;

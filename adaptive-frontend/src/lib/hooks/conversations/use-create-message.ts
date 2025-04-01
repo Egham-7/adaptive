@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createMessage } from "@/services/messages";
-import { Message } from "@/services/llms/types";
 import { useAuth } from "@clerk/clerk-react";
+import { BaseMessage } from "@/services/messages/types";
 
 export const useCreateMessage = () => {
   const queryClient = useQueryClient();
@@ -14,7 +14,9 @@ export const useCreateMessage = () => {
       message,
     }: {
       convId: number;
-      message: Omit<Message, "id">;
+      message: BaseMessage;
+      provider?: string;
+      model?: string;
     }) => {
       if (!isLoaded || !isSignedIn) {
         throw new Error("User is not signed in");

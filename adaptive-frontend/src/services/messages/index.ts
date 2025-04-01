@@ -1,6 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "../common";
-import { DBMessage } from "./types";
+import { BaseMessage, DBMessage } from "./types";
 import { Message } from "../llms/types";
 
 /**
@@ -35,7 +35,7 @@ export const getMessages = async (
  */
 export const createMessage = async (
   conversationId: number,
-  message: { role: string; content: string },
+  message: BaseMessage,
   authToken: string,
 ): Promise<DBMessage> => {
   const response = await axios.post<DBMessage>(
@@ -148,4 +148,11 @@ export const convertToApiMessages = (dbMessages: DBMessage[]): Message[] => {
     role: msg.role,
     content: msg.content,
   }));
+};
+
+export const convertToApiMessage = (dbMessage: BaseMessage): Message => {
+  return {
+    role: dbMessage.role,
+    content: dbMessage.content,
+  };
 };

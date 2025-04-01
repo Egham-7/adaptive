@@ -160,100 +160,139 @@ export interface ChatCompletionResponse {
   error?: string;
 }
 
-// Base interface for common attributes in streaming responses
-export interface BaseStreamingResponse {
+/**
+ * OpenAI streaming response as returned by the Go code
+ */
+export interface OpenAIStreamingResponse {
   id: string;
+  object: string;
+  created: number;
   model: string;
+  choices: Array<{
+    index: number;
+    delta: {
+      content?: string;
+      role?: string;
+      function_call?: {
+        name?: string;
+        arguments?: string;
+      };
+      tool_calls?: Array<{
+        id?: string;
+        type?: string;
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }>;
+    };
+    finish_reason: string | null;
+  }>;
   provider: string;
-  choices: {
-    index: number;
-    finish_reason: string | null;
-  }[];
 }
 
-// OpenAI-specific streaming response
-export interface OpenAIStreamingResponse extends BaseStreamingResponse {
+/**
+ * Groq streaming response as returned by the Go code
+ */
+export interface GroqStreamingResponse {
+  id: string;
   object: string;
   created: number;
-  choices: {
+  model: string;
+  choices: Array<{
     index: number;
     delta: {
       content?: string;
       role?: string;
     };
     finish_reason: string | null;
-  }[];
+  }>;
+  provider: string;
 }
 
-// Groq-specific streaming response
-export interface GroqStreamingResponse extends BaseStreamingResponse {
+/**
+ * DeepSeek streaming response as returned by the Go code
+ */
+export interface DeepSeekStreamingResponse {
+  id: string;
   object: string;
   created: number;
-  choices: {
+  model: string;
+  choices: Array<{
     index: number;
-    delta: {
+    delta?: {
       content?: string;
       role?: string;
     };
     finish_reason: string | null;
-  }[];
+  }>;
+  provider: string;
 }
 
-// DeepSeek-specific streaming response
-export interface DeepSeekStreamingResponse extends BaseStreamingResponse {
-  created: number;
-  choices: {
-    index: number;
-    text?: string;
-    message?: {
-      content?: string;
-      role?: string;
-    };
-    finish_reason: string | null;
-  }[];
+/**
+ * Error response format
+ */
+export interface ErrorResponse {
+  error: string;
 }
 
-// Union type for all supported streaming response types
+/**
+ * Union type for all supported streaming response types
+ */
 export type StreamingResponse =
   | OpenAIStreamingResponse
   | GroqStreamingResponse
-  | DeepSeekStreamingResponse;
+  | DeepSeekStreamingResponse
+  | ErrorResponse;
 
-// Type guard functions to narrow down the specific response type
+/**
+ * Type guard for error responses
+ */
+export function isErrorResponse(
+  response: StreamingResponse,
+): response is ErrorResponse {
+  return "error" in response;
+}
+
+/**
+ * Type guard functions to narrow down the specific response type
+ */
 export function isOpenAIStreamingResponse(
   response: StreamingResponse,
 ): response is OpenAIStreamingResponse {
-  return response.choices.some(
-    (choice) => "delta" in choice && !("text" in choice),
-  );
+  if (isErrorResponse(response)) return false;
+  return response.provider === "openai";
 }
 
 export function isGroqStreamingResponse(
   response: StreamingResponse,
 ): response is GroqStreamingResponse {
-  return (
-    "object" in response && response.choices.some((choice) => "delta" in choice)
-  );
+  if (isErrorResponse(response)) return false;
+  return response.provider === "groq";
 }
 
 export function isDeepSeekStreamingResponse(
   response: StreamingResponse,
 ): response is DeepSeekStreamingResponse {
-  return response.choices.some(
-    (choice) =>
-      "text" in choice ||
-      ("message" in choice && typeof choice.message === "object"),
-  );
+  if (isErrorResponse(response)) return false;
+  return response.provider === "deepseek";
 }
 
-// Helper to extract content from any streaming response type
+/**
+ * Helper to extract content from any streaming response type
+ */
 export function extractContentFromStreamingResponse(
   chunk: StreamingResponse,
 ): string {
+  if (isErrorResponse(chunk)) {
+    return "";
+  }
+
   if (isOpenAIStreamingResponse(chunk) || isGroqStreamingResponse(chunk)) {
     return chunk.choices[0]?.delta?.content || "";
   } else if (isDeepSeekStreamingResponse(chunk)) {
-    return chunk.choices[0]?.text || chunk.choices[0]?.message?.content || "";
+    return chunk.choices[0]?.delta?.content || "";
   }
+
   return "";
 }
