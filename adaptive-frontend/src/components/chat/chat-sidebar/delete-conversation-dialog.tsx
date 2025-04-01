@@ -47,7 +47,7 @@ export function DeleteConversationDialog({
 
       // Navigate to home if we're deleting the current conversation
       if (isCurrentConversation) {
-        navigate({ to: "/" });
+        navigate({ to: "/home" });
       }
     } catch (error) {
       console.error("Failed to delete conversation:", error);
