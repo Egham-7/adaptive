@@ -2,9 +2,9 @@ import { useMutation } from "@tanstack/react-query";
 import { Message } from "@/services/llms/types";
 import { useCreateMessage } from "./use-create-message";
 import {
-  ModelInfo,
   useStreamingChatCompletion,
-} from "./use-streaming-chat-completion";
+  ModelInfo,
+} from "../llms/chat-completions/use-streaming-chat-completion";
 import { CreateDBMessage } from "@/services/messages/types";
 import { convertToApiMessage } from "@/services/messages";
 

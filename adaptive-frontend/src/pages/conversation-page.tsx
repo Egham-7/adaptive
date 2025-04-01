@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { useConversationMessages } from "@/lib/hooks/conversations/use-conversation-message";
+import { useConversationMessages } from "@/hooks/conversations/use-conversation-message";
 // Components
 import { Skeleton } from "@/components/ui/skeleton";
 import { Cpu, User } from "lucide-react";

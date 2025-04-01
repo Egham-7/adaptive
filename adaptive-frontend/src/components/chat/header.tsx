@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Search, Plus } from "lucide-react";
 import {
@@ -13,9 +11,9 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { ModeToggle } from "../mode-toggle";
 import { useNavigate } from "@tanstack/react-router";
 import { SidebarTrigger } from "../ui/sidebar";
-import { useConversations } from "@/lib/hooks/conversations/use-conversations";
+import { useConversations } from "@/hooks/conversations/use-conversations";
 import { Conversation } from "@/services/conversations/types";
-import { useCreateConversation } from "@/lib/hooks/conversations/use-create-conversation";
+import { useCreateConversation } from "@/hooks/conversations/use-create-conversation";
 
 export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);

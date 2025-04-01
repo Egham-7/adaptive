@@ -6,7 +6,7 @@ import { useCreateMessage } from "./use-create-message";
 import { Message, MessageRole } from "@/services/llms/types";
 import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
-import { useStreamingChatCompletion } from "./use-streaming-chat-completion";
+import { useStreamingChatCompletion } from "../llms/chat-completions/use-streaming-chat-completion";
 
 export function useUpdateMessage() {
   const queryClient = useQueryClient();

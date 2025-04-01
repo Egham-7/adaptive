@@ -113,3 +113,19 @@ func (h *ConversationHandler) DeleteConversation(c *fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+func (h *ConversationHandler) PinConversation(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid conversation ID",
+		})
+	}
+
+	if err := h.service.PinConversation(uint(id)); err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Conversation not found",
+		})
+	}
+	return c.SendStatus(fiber.StatusNoContent)
+}
