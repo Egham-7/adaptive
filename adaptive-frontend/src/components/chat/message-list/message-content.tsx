@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Loader2, Pencil, Bot, User } from "lucide-react";
+import { Pencil, Bot, User, RefreshCw } from "lucide-react";
 import Markdown from "@/components/markdown";
 import { DBMessage } from "@/services/messages/types";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ const MessageContent = memo(
               onClick={onRetry}
               disabled={isProcessing}
             >
-              <Loader2
+              <RefreshCw
                 className={cn("w-4 h-4", isProcessing && "animate-spin")}
               />
             </Button>
