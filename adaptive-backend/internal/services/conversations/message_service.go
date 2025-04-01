@@ -20,7 +20,7 @@ func NewMessageService() *MessageService {
 }
 
 // CreateMessage adds a new message to a conversation
-func (s *MessageService) CreateMessage(conversationID uint, role, content string) (*models.DBMessage, error) {
+func (s *MessageService) CreateMessage(conversationID uint, role, content string, provider *string, model *string) (*models.DBMessage, error) {
 	// First check if the conversation exists
 	_, err := s.conversationRepo.GetByID(conversationID)
 	if err != nil {
@@ -31,6 +31,8 @@ func (s *MessageService) CreateMessage(conversationID uint, role, content string
 		ConversationID: conversationID,
 		Role:           role,
 		Content:        content,
+		Provider:       provider,
+		Model:          model,
 	}
 
 	err = s.messageRepo.Create(message)
@@ -57,7 +59,7 @@ func (s *MessageService) GetMessage(id uint) (*models.DBMessage, error) {
 }
 
 // UpdateMessage updates a message
-func (s *MessageService) UpdateMessage(id uint, role, content string) (*models.DBMessage, error) {
+func (s *MessageService) UpdateMessage(id uint, role, content string, provider *string, model *string) (*models.DBMessage, error) {
 	message, err := s.messageRepo.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -65,6 +67,8 @@ func (s *MessageService) UpdateMessage(id uint, role, content string) (*models.D
 
 	message.Role = role
 	message.Content = content
+	message.Provider = provider
+	message.Model = model
 
 	err = s.messageRepo.Update(&message)
 	if err != nil {

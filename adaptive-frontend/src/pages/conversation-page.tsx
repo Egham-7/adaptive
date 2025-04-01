@@ -4,7 +4,6 @@ import { useConversationMessages } from "@/lib/hooks/conversations/use-conversat
 import { Skeleton } from "@/components/ui/skeleton";
 import { Cpu, User } from "lucide-react";
 import Chat from "@/components/chat/chat";
-import { convertToApiMessages } from "@/services/messages";
 import { useParams } from "@tanstack/react-router";
 
 export default function ConversationPage() {
@@ -21,8 +20,6 @@ export default function ConversationPage() {
     isLoading: isLoadingMessages,
     error: messagesError,
   } = useConversationMessages(numericConversationId);
-
-  const chatCompletionMessages = convertToApiMessages(messages);
 
   // Combined loading state for UI elements
   const initialLoading = isLoadingMessages;
@@ -106,13 +103,7 @@ export default function ConversationPage() {
       return <MessageSkeleton />;
     }
 
-    return (
-      <Chat
-        conversationId={numericConversationId}
-        messages={messages}
-        apiMessages={chatCompletionMessages}
-      />
-    );
+    return <Chat conversationId={numericConversationId} messages={messages} />;
   };
 
   return (

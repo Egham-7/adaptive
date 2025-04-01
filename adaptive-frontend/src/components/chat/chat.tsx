@@ -4,7 +4,6 @@ import { MessageItem } from "./message-list/message-item";
 import StreamingMessage from "./message-list/streaming-message";
 import { Loader2, AlertCircle } from "lucide-react";
 import { ChatFooter } from "@/components/chat/chat-footer";
-import { Message } from "@/services/llms/types";
 import { useSendMessage } from "@/lib/hooks/conversations/use-send-message";
 import { EmptyState } from "./empty-state";
 import Header from "./header";
@@ -13,15 +12,18 @@ import { useUpdateMessage } from "@/lib/hooks/conversations/use-update-message";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
+import { convertToApiMessages } from "@/services/messages";
 
 interface ChatProps {
   conversationId: number;
   messages: DBMessage[];
-  apiMessages: Message[];
 }
 
-export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
+export function Chat({ conversationId, messages }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const apiMessages = convertToApiMessages(messages);
+
+  console.log("Messages: ", messages);
 
   const {
     sendMessage,
@@ -79,7 +81,7 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
                   index={index}
                   messages={messages}
                   updateMessage={updateMessage.mutateAsync}
-                  isUpdating={updateMessage.isPending}
+                  isUpdating={isStreaming}
                 />
               ))}
               {isStreaming && streamingContent && (
@@ -99,7 +101,7 @@ export function Chat({ conversationId, messages, apiMessages }: ChatProps) {
         sendMessage={sendMessage}
         isStreaming={isStreaming}
         abortStreaming={abortStreaming}
-        isError={!!error}
+        isError={Boolean(error)}
       />
     </>
   );

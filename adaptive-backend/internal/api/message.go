@@ -65,8 +65,10 @@ func (h *MessageHandler) CreateMessage(c *fiber.Ctx) error {
 	}
 
 	var request struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
+		Role     string  `json:"role"`
+		Content  string  `json:"content"`
+		Provider *string `json:"provider"`
+		Model    *string `json:"model"`
 	}
 
 	if err := c.BodyParser(&request); err != nil {
@@ -75,7 +77,7 @@ func (h *MessageHandler) CreateMessage(c *fiber.Ctx) error {
 		})
 	}
 
-	message, err := h.service.CreateMessage(uint(conversationID), request.Role, request.Content)
+	message, err := h.service.CreateMessage(uint(conversationID), request.Role, request.Content, request.Provider, request.Model)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -95,8 +97,10 @@ func (h *MessageHandler) UpdateMessage(c *fiber.Ctx) error {
 	}
 
 	var request struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
+		Role     string  `json:"role"`
+		Content  string  `json:"content"`
+		Provider *string `json:"provider"`
+		Model    *string `json:"model"`
 	}
 
 	if err := c.BodyParser(&request); err != nil {
@@ -105,7 +109,7 @@ func (h *MessageHandler) UpdateMessage(c *fiber.Ctx) error {
 		})
 	}
 
-	message, err := h.service.UpdateMessage(uint(id), request.Role, request.Content)
+	message, err := h.service.UpdateMessage(uint(id), request.Role, request.Content, request.Provider, request.Model)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Message not found",
