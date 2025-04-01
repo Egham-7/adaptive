@@ -67,3 +67,7 @@ func (s *ConversationService) UpdateConversation(id uint, title string) (*models
 func (s *ConversationService) DeleteConversation(id uint) error {
 	return s.repo.Delete(id)
 }
+
+func (s *ConversationService) PinConversation(id uint) error {
+	return s.repo.Pin(id)
+}

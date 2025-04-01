@@ -9,4 +9,5 @@ export interface Conversation {
   created_at: string;
   updated_at: string;
   messages?: DBMessage[];
+  pinned: boolean;
 }

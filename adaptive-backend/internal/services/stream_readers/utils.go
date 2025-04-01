@@ -65,11 +65,11 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string) e
 
 func writeAndFlush(w *bufio.Writer, data []byte, requestID string) error {
 	if _, err := w.Write(data); err != nil {
-		return fmt.Errorf("writing to response: %w", err)
+		return fmt.Errorf("[%s] writing to response: %w", requestID, err)
 	}
 
 	if err := w.Flush(); err != nil {
-		return fmt.Errorf("flushing data: %w", err)
+		return fmt.Errorf("[%s] flushing data: %w", requestID, err)
 	}
 
 	return nil

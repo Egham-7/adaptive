@@ -3,9 +3,9 @@ import { Loader2, Save, X, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useDeleteMessage } from "@/lib/hooks/conversations/use-delete-message";
 import { DBMessage } from "@/services/messages/types";
 import MessageContent from "./message-content";
+import { useDeleteMessage } from "@/hooks/conversations/use-delete-message";
 
 interface MessageItemProps {
   message: DBMessage;

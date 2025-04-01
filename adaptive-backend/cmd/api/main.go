@@ -57,6 +57,9 @@ func SetupRoutes(app *fiber.App) {
 	conversations.Post("/:id/messages", messageHandler.CreateMessage)
 	conversations.Delete("/:id/messages/", messageHandler.DeleteAllConversationMessages)
 
+	// Pin Message
+	conversations.Post("/:id/pin", conversationHandler.PinConversation)
+
 	// Individual message routes
 	messages := apiGroup.Group("/messages", authMiddleware)
 	messages.Get("/:id", messageHandler.GetMessage)

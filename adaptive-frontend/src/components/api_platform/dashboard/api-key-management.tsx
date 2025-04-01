@@ -65,11 +65,10 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-import { useCreateAPIKey } from "@/lib/hooks/api_keys/use-create-api-key";
-import { useUpdateAPIKey } from "@/lib/hooks/api_keys/use-update-api-key";
-import { useDeleteAPIKey } from "@/lib/hooks/api_keys/use-delete-api-key";
-import { useGetAPIKeysByUserId } from "@/lib/hooks/api_keys/use-get-api-keys-user";
+import { useCreateAPIKey } from "@/hooks/api_keys/use-create-api-key";
+import { useUpdateAPIKey } from "@/hooks/api_keys/use-update-api-key";
+import { useDeleteAPIKey } from "@/hooks/api_keys/use-delete-api-key";
+import { useGetAPIKeysByUserId } from "@/hooks/api_keys/use-get-api-keys-user";
 
 import {
   CreateAPIKeyRequest,
