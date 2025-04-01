@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -36,21 +38,17 @@ export function DeleteConversationDialog({
   const router = useRouter();
 
   const handleDelete = async () => {
-    try {
-      await deleteConversationMutation.mutateAsync(conversation.id);
-      // Navigate to home if we're deleting the current conversation
+    await deleteConversationMutation.mutateAsync(conversation.id);
+    // Navigate to home if we're deleting the current conversation
 
-      // Check if we're currently viewing the conversation that's being deleted
-      const currentRoute = router.state.location.pathname;
-      const isCurrentConversation =
-        currentRoute === `/conversations/${conversation.id}`;
+    // Check if we're currently viewing the conversation that's being deleted
+    const currentRoute = router.state.location.pathname;
+    const isCurrentConversation =
+      currentRoute === `/conversations/${conversation.id}`;
 
-      // Navigate to home if we're deleting the current conversation
-      if (isCurrentConversation) {
-        navigate({ to: "/home" });
-      }
-    } catch (error) {
-      console.error("Failed to delete conversation:", error);
+    // Navigate to home if we're deleting the current conversation
+    if (isCurrentConversation) {
+      navigate({ to: "/home" });
     }
   };
 
@@ -78,10 +76,14 @@ export function DeleteConversationDialog({
             </DrawerDescription>
           </DrawerHeader>
           <DrawerFooter>
-            <Button variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
-            <Button variant="outline">Cancel</Button>
+            <DrawerClose asChild>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete
+              </Button>
+            </DrawerClose>
+            <DrawerClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DrawerClose>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -100,10 +102,14 @@ export function DeleteConversationDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline">Cancel</Button>
-          <Button variant="destructive" onClick={handleDelete}>
-            Delete
-          </Button>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <DialogClose asChild>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogClose>
         </DialogFooter>
       </DialogContent>
     </Dialog>

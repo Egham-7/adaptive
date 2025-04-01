@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateConversation } from "@/services/conversations";
 import { useAuth } from "@clerk/clerk-react";
+import { toast } from "sonner";
 
 export const useUpdateConversation = () => {
   const queryClient = useQueryClient();
@@ -26,6 +27,10 @@ export const useUpdateConversation = () => {
       queryClient.invalidateQueries({
         queryKey: ["conversations"],
       });
+      toast.success("Conversation updated successfully.");
+    },
+    onError: () => {
+      toast.error("Failed to update conversation.");
     },
   });
 
