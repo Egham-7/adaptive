@@ -68,6 +68,8 @@ export function useSendMessage(conversationId: number, messages: Message[]) {
   const error =
     sendMessageMutation.error || createMessage.error || streamingError;
 
+  const isError = sendMessageMutation.isError || createMessage.isError;
+
   return {
     sendMessage: sendMessageMutation.mutateAsync,
     abortStreaming,
@@ -76,5 +78,6 @@ export function useSendMessage(conversationId: number, messages: Message[]) {
     streamingContent,
     modelInfo,
     error,
+    isError,
   };
 }
