@@ -22,6 +22,8 @@ type DBMessage struct {
 	ConversationID uint           `json:"conversation_id"`
 	Role           string         `json:"role"`
 	Content        string         `json:"content"`
+	Provider       *string        `json:"provider"`
+	Model          *string        `json:"model"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"index"`
