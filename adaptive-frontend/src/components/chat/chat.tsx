@@ -23,8 +23,6 @@ export function Chat({ conversationId, messages }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const apiMessages = convertToApiMessages(messages);
 
-  console.log("Messages: ", messages);
-
   const {
     sendMessage,
     isLoading: isSendingMessage,
