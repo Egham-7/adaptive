@@ -130,3 +130,25 @@ export const deleteAllMessages = async (
     },
   );
 };
+
+/**
+ * Pin a conversation
+ *
+ * @param conversationId - The conversation ID
+ * @param authToken - The authentication token
+ * @returns Promise that resolves when the conversation is pinned or unpinned
+ */
+export const pinConversation = async (
+  conversationId: number,
+  authToken: string,
+): Promise<void> => {
+  await axios.post(
+    `${API_BASE_URL}/api/conversations/${conversationId}/pin`,
+    {}, // empty request body
+    {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    },
+  );
+};

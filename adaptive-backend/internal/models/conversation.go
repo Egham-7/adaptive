@@ -14,6 +14,7 @@ type Conversation struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
 	Messages  []DBMessage    `json:"messages,omitempty" gorm:"foreignKey:ConversationID"`
+	Pinned    bool           `json:"pinned" gorm:"default:false"`
 }
 
 // DBMessage represents a message in the database
@@ -22,6 +23,8 @@ type DBMessage struct {
 	ConversationID uint           `json:"conversation_id"`
 	Role           string         `json:"role"`
 	Content        string         `json:"content"`
+	Provider       *string        `json:"provider"`
+	Model          *string        `json:"model"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `json:"deleted_at" gorm:"index"`

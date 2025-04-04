@@ -10,6 +10,12 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+// EnhancedOpenAIResponse extends the OpenAI response with additional fields
+type EnhancedOpenAIResponse struct {
+	openai.ChatCompletionStreamResponse
+	Provider string `json:"provider"`
+}
+
 // OpenAIStreamReader adapts OpenAI's streaming API to io.Reader
 type OpenAIStreamReader struct {
 	BaseStreamReader
@@ -53,7 +59,6 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 			r.done = true
 			return r.Read(p) // Recursively call to handle the buffer
 		}
-
 		// Format any other error as SSE and mark as done
 		log.Printf("[%s] Error in stream: %v", r.requestID, err)
 		safeErrMsg := strings.ReplaceAll(err.Error(), "\"", "\\\"")
@@ -62,12 +67,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 		return r.Read(p) // Recursively call to handle the buffer
 	}
 
-	type enhancedResponse struct {
-		openai.ChatCompletionStreamResponse
-		Provider string `json:"provider"`
-	}
-
-	enhanced := enhancedResponse{
+	enhanced := EnhancedOpenAIResponse{
 		ChatCompletionStreamResponse: response,
 		Provider:                     "openai",
 	}

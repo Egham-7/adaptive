@@ -49,12 +49,12 @@ export default function ContentSection() {
           <div className="relative mt-6 sm:mt-0">
             <div className="bg-linear-to-b aspect-67/34 relative rounded-2xl from-zinc-300 to-transparent p-px dark:from-zinc-700">
               <img
-                src="/exercice-dark.png"
+                src="/adaptive-api.jpeg"
                 className="hidden rounded-[15px] dark:block"
                 alt="Adaptive platform interface - dark mode"
               />
               <img
-                src="/exercice.png"
+                src="/adaptive-api-light.jpeg"
                 className="rounded-[15px] shadow dark:hidden"
                 alt="Adaptive platform interface - light mode"
               />

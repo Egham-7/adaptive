@@ -57,6 +57,9 @@ func SetupRoutes(app *fiber.App) {
 	conversations.Post("/:id/messages", messageHandler.CreateMessage)
 	conversations.Delete("/:id/messages/", messageHandler.DeleteAllConversationMessages)
 
+	// Pin Message
+	conversations.Post("/:id/pin", conversationHandler.PinConversation)
+
 	// Individual message routes
 	messages := apiGroup.Group("/messages", authMiddleware)
 	messages.Get("/:id", messageHandler.GetMessage)
@@ -85,7 +88,7 @@ func main() {
 		WriteTimeout:      2 * time.Minute,
 		IdleTimeout:       5 * time.Minute,
 	})
-	err := config.Initialize("adaptive.db")
+	err := config.Initialize(os.Getenv("DB_SERVER"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,6 +112,7 @@ func main() {
 }
 
 // setupMiddleware configures all the application middleware
+
 func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	app.Use(logger.New())
 	app.Use(recover.New())
@@ -119,5 +123,7 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
+		MaxAge:           86400, // Preflight requests can be cached for 24 hours
+		ExposeHeaders:    "Content-Length, Content-Type",
 	}))
 }

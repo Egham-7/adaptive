@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -64,11 +65,10 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-import { useCreateAPIKey } from "@/lib/hooks/api_keys/use-create-api-key";
-import { useUpdateAPIKey } from "@/lib/hooks/api_keys/use-update-api-key";
-import { useDeleteAPIKey } from "@/lib/hooks/api_keys/use-delete-api-key";
-import { useGetAPIKeysByUserId } from "@/lib/hooks/api_keys/use-get-api-keys-user";
+import { useCreateAPIKey } from "@/hooks/api_keys/use-create-api-key";
+import { useUpdateAPIKey } from "@/hooks/api_keys/use-update-api-key";
+import { useDeleteAPIKey } from "@/hooks/api_keys/use-delete-api-key";
+import { useGetAPIKeysByUserId } from "@/hooks/api_keys/use-get-api-keys-user";
 
 import {
   CreateAPIKeyRequest,
@@ -112,7 +112,7 @@ export function ApiKeyManagement() {
   });
 
   // Create a new API key
-  const onSubmit = (values: CreateApiKeyFormValues) => {
+  const onSubmit = async (values: CreateApiKeyFormValues) => {
     if (!userId) return;
 
     // Calculate expiration date if needed
@@ -143,7 +143,7 @@ export function ApiKeyManagement() {
       expires_at: expiresAt,
     };
 
-    createAPIKeyMutation.mutate(apiKeyData, {
+    await createAPIKeyMutation.mutateAsync(apiKeyData, {
       onSuccess: (response) => {
         setOpen(false);
         form.reset();
@@ -280,16 +280,18 @@ export function ApiKeyManagement() {
               <Button variant="outline">Cancel</Button>
             </DrawerClose>
           ) : (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
           )}
-          <Button type="submit" disabled={createAPIKeyMutation.isPending}>
-            {createAPIKeyMutation.isPending ? "Creating..." : "Create Key"}
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            {form.formState.isSubmitting ? "Creating..." : "Create Key"}
           </Button>
         </div>
       </form>

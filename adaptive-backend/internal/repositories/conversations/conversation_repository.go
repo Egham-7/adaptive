@@ -41,3 +41,14 @@ func (r *ConversationRepository) Update(conversation *models.Conversation) error
 func (r *ConversationRepository) Delete(id uint) error {
 	return config.DB.Delete(&models.Conversation{}, id).Error
 }
+
+func (r *ConversationRepository) Pin(id uint) error {
+	var conversation models.Conversation
+	if err := config.DB.First(&conversation, id).Error; err != nil {
+		return err
+	}
+
+	return config.DB.Model(&models.Conversation{}).
+		Where("id = ?", id).
+		Update("pinned", !conversation.Pinned).Error
+}

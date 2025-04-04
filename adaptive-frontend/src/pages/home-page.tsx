@@ -15,7 +15,7 @@ import {
   BrainCircuit,
 } from "lucide-react";
 import { useRouter } from "@tanstack/react-router";
-import { useCreateConversation } from "@/lib/hooks/conversations/use-create-conversation";
+import { useCreateConversation } from "@/hooks/conversations/use-create-conversation";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ModeToggle } from "@/components/mode-toggle";
 import { SidebarTrigger } from "@/components/ui/sidebar";

@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { CodeComparison } from "../magicui/code-comparison";
 import { Link } from "@tanstack/react-router";
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/clerk-react";
+import LanguageTerminalDemo from "./hero/terminal-demo";
+import { ArrowRight, Rocket } from "lucide-react";
 
 // Code comparison samples
 const beforeCode = `from openai import OpenAI
@@ -11,23 +13,20 @@ openai = OpenAI()
 
 async def generate_text(prompt):
     response = await openai.chat.completions.create(
-        model="gpt-4",
+        model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7
     )
     
     return response.choices[0].message.content
 `;
-
 const afterCode = `from adaptive import Adaptive
 
 adaptive = Adaptive()
 
 async def generate_text(prompt):
     response = await adaptive.chat.completions.create(
-        model="gpt-4",
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
     )
     
     return response.choices[0].message.content
@@ -80,7 +79,6 @@ export default function HeroSection() {
                       </Button>
                     </SignUpButton>
                   </SignedOut>
-
                   {/* Show direct link to app for authenticated users */}
                   <SignedIn>
                     <Button
@@ -94,7 +92,6 @@ export default function HeroSection() {
                       </Link>
                     </Button>
                   </SignedIn>
-
                   <Button
                     variant="outline"
                     size="lg"
@@ -108,7 +105,7 @@ export default function HeroSection() {
                 </div>
               </div>
             </div>
-            <div className="relative mt-16 mb-24">
+            <div className="relative mt-16 mb-12">
               <div className="relative mx-auto max-w-4xl px-6">
                 <CodeComparison
                   beforeCode={beforeCode}
@@ -118,6 +115,14 @@ export default function HeroSection() {
                   lightTheme="github-light"
                   darkTheme="github-dark"
                 />
+              </div>
+            </div>
+            <div className="relative mb-24">
+              <div className="relative mx-auto max-w-4xl px-6">
+                <h3 className="text-center text-xl font-medium mb-6">
+                  Try it in action
+                </h3>
+                <LanguageTerminalDemo language="python" />
               </div>
             </div>
           </div>

@@ -1,11 +1,9 @@
-import { ChevronDown, Loader2, Send } from "lucide-react";
+import { Loader2, Send, StopCircle, CircleDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { cn } from "@/lib/utils";
 
 // Form schema
 const formSchema = z.object({
@@ -17,17 +15,17 @@ const formSchema = z.object({
 interface MessageInputProps {
   isLoading: boolean;
   sendMessage: (message: string) => void;
-  showActions: boolean;
-  toggleActions: () => void;
   disabled?: boolean;
+  isStreaming?: boolean;
+  abortStreaming?: () => void;
 }
 
 export function MessageInput({
   isLoading,
   sendMessage,
-  showActions,
-  toggleActions,
   disabled,
+  isStreaming = false,
+  abortStreaming,
 }: MessageInputProps) {
   // Setup form with react-hook-form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,58 +42,79 @@ export function MessageInput({
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="relative">
-        <div className="p-1 border rounded-full shadow-lg bg-card">
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              onClick={toggleActions}
-              title="Toggle quick actions"
-            >
-              <ChevronDown
-                className={cn(
-                  "h-5 w-5 transition-transform",
-                  showActions ? "rotate-180" : "",
+    <div className="p-4 border-t border-muted">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="relative">
+          <div className="relative rounded-xl bg-card p-2 shadow-lg">
+            {/* Input field */}
+            <div className="flex items-center mb-4">
+              <FormField
+                control={form.control}
+                name="message"
+                render={({ field }) => (
+                  <FormItem className="flex-1 m-0">
+                    <FormControl>
+                      <textarea
+                        {...field}
+                        placeholder="Message Adaptive..."
+                        className="w-full bg-transparent text-foreground outline-none text-lg px-2 resize-none h-24 max-h-24 overflow-y-auto border-none focus:outline-none focus:ring-0"
+                        disabled={isLoading || disabled}
+                        rows={1}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (form.formState.isValid) {
+                              form.handleSubmit(onSubmit)();
+                            }
+                          }
+                        }}
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
               />
-            </Button>
-            <FormField
-              control={form.control}
-              name="message"
-              render={({ field }) => (
-                <FormItem className="flex-1 m-0">
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Message Adaptive..."
-                      className="flex-1 text-base bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
-                      disabled={isLoading || disabled}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <Button
-              type="submit"
-              variant="default"
-              size="icon"
-              className="rounded-full bg-primary text-primary-foreground"
-              disabled={isLoading || !form.formState.isValid}
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </Button>
+
+              {/* Right side icons */}
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center bg-white/10 rounded-full p-1">
+                  <div className="bg-teal-500 rounded-full p-1">
+                    <CircleDot className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="bg-teal-600 rounded-full p-1 -ml-1">
+                    <CircleDot className="h-4 w-4 text-white" />
+                  </div>
+                </div>
+
+                {isStreaming && abortStreaming ? (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="rounded-lg p-3"
+                    onClick={abortStreaming}
+                    title="Stop generating"
+                  >
+                    <StopCircle className="w-5 h-5" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    variant="default"
+                    className="rounded-lg p-3"
+                    disabled={isLoading || !form.formState.isValid}
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </form>
-    </Form>
+        </form>
+      </Form>
+    </div>
   );
 }
-
