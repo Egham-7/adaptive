@@ -96,7 +96,8 @@ jobs:
       - name: Check for security vulnerabilities
         run: |
           poetry run pip install safety
-          poetry export -f requirements.txt --without-hashes | poetry run safety check --stdin
+          poetry export -f requirements.txt --without-hashes -o requirements.txt
+          poetry run safety scan -r requirements.txt
 
   build:
     runs-on: ubuntu-latest
@@ -113,7 +114,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.13"
-
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
@@ -154,7 +154,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.13"
-
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
