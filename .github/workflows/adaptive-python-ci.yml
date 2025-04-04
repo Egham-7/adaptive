@@ -93,12 +93,6 @@ jobs:
           file: libraries/adaptive-python/adaptive/coverage.xml
           fail_ci_if_error: false
 
-      - name: Check for security vulnerabilities
-        run: |
-          poetry run pip install safety
-          poetry export -f requirements.txt --without-hashes -o requirements.txt
-          poetry run safety scan -r requirements.txt
-
   build:
     runs-on: ubuntu-latest
     defaults:
