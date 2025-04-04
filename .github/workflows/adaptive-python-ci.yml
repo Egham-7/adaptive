@@ -10,64 +10,55 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libraries/adaptive-python/adaptive
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
-
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0 # Fetch all history for proper versioning
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
           version: 1.5.1
           virtualenvs-create: true
           virtualenvs-in-project: true
-
       - name: Load cached venv
         id: cached-poetry-dependencies
         uses: actions/cache@v3
         with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
+          path: libraries/adaptive-python/adaptive/.venv
+          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('libraries/adaptive-python/adaptive/**/poetry.lock') }}
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
-
       - name: Install project
         run: poetry install --no-interaction
-
       - name: Run black
         run: |
           poetry run black --check .
-
       - name: Run ruff
         run: |
           poetry run ruff check .
-
       - name: Run mypy
         run: |
           poetry run mypy .
-
       - name: Run pytest with coverage
         run: |
           poetry run pytest --cov=./ --cov-report=xml
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: ./coverage.xml
+          file: libraries/adaptive-python/adaptive/coverage.xml
           fail_ci_if_error: false
-
       - name: Check for security vulnerabilities
         run: |
           poetry run pip install safety
@@ -75,32 +66,30 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libraries/adaptive-python/adaptive
     needs: test
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
-      - name: Set up Python 3.11
+      - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
-
+          python-version: "3.13"
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
           version: 1.5.1
-
       - name: Build package
         run: |
           poetry build
-
       - name: Store build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: dist
-          path: dist/
-
+          path: libraries/adaptive-python/adaptive/dist/
       - name: Check package metadata
         run: |
           poetry run pip install twine
@@ -108,33 +97,31 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libraries/adaptive-python/adaptive
     needs: test
     steps:
       - uses: actions/checkout@v3
-
-      - name: Set up Python 3.11
+      - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
-
+          python-version: "3.13"
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
           version: 1.5.1
-
       - name: Install dependencies
         run: |
           poetry install --no-interaction
-
       - name: Build documentation
         run: |
           if [ -d "docs" ]; then
             cd docs && poetry run make html
           fi
-
       - name: Upload documentation
         uses: actions/upload-artifact@v3
-        if: success() && hashFiles('docs/_build/html/**') != ''
+        if: success() && hashFiles('libraries/adaptive-python/adaptive/docs/_build/html/**') != ''
         with:
           name: documentation
-          path: docs/_build/html/
+          path: libraries/adaptive-python/adaptive/docs/_build/html/
