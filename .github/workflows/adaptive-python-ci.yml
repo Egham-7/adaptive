@@ -131,7 +131,7 @@ jobs:
           fi
 
       - name: Store build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: libraries/adaptive-python/adaptive/dist/
@@ -180,7 +180,7 @@ jobs:
           fi
 
       - name: Upload documentation
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: success() && hashFiles('libraries/adaptive-python/adaptive/docs/_build/html/**') != ''
         with:
           name: documentation
