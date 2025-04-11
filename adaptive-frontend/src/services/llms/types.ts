@@ -1,11 +1,7 @@
-/**
- * Represents a chat message role
- */
+/** * Represents a chat message role */
 export type MessageRole = "user" | "assistant" | "system" | "tool";
 
-/**
- * Represents a single chat message
- */
+/** * Represents a single chat message */
 export interface Message {
   role: MessageRole;
   content: string;
@@ -24,16 +20,12 @@ export interface Message {
   }>;
 }
 
-/**
- * Request payload for chat completion
- */
+/** * Request payload for chat completion */
 export interface ChatCompletionRequest {
   messages: Message[];
 }
 
-/**
- * OpenAI style response object for chat completions
- */
+/** * OpenAI style response object for chat completions */
 export interface OpenAIResponse {
   id: string;
   object: string;
@@ -71,9 +63,7 @@ export interface OpenAIResponse {
   };
 }
 
-/**
- * Anthropic style response object for chat completions
- */
+/** * Anthropic style response object for chat completions */
 export interface AnthropicResponse {
   id: string;
   type: string;
@@ -91,9 +81,7 @@ export interface AnthropicResponse {
   };
 }
 
-/**
- * Groq style response object for chat completions
- */
+/** * Groq style response object for chat completions */
 export interface GroqResponse {
   id: string;
   model: string;
@@ -113,9 +101,7 @@ export interface GroqResponse {
   };
 }
 
-/**
- * DeepSeek style response object for chat completions
- */
+/** * DeepSeek style response object for chat completions */
 export interface DeepSeekResponse {
   id: string;
   object: string;
@@ -142,27 +128,21 @@ export interface DeepSeekResponse {
   };
 }
 
-/**
- * Union type for various provider responses
- */
+/** * Union type for various provider responses */
 export type ProviderResponse =
   | OpenAIResponse
   | AnthropicResponse
   | GroqResponse
   | DeepSeekResponse;
 
-/**
- * Response from chat completion API
- */
+/** * Response from chat completion API */
 export interface ChatCompletionResponse {
   provider: string;
   response: ProviderResponse;
   error?: string;
 }
 
-/**
- * OpenAI streaming response as returned by the Go code
- */
+/** * OpenAI streaming response as returned by the Go code */
 export interface OpenAIStreamingResponse {
   id: string;
   object: string;
@@ -191,9 +171,7 @@ export interface OpenAIStreamingResponse {
   provider: string;
 }
 
-/**
- * Groq streaming response as returned by the Go code
- */
+/** * Groq streaming response as returned by the Go code */
 export interface GroqStreamingResponse {
   id: string;
   object: string;
@@ -210,9 +188,7 @@ export interface GroqStreamingResponse {
   provider: string;
 }
 
-/**
- * DeepSeek streaming response as returned by the Go code
- */
+/** * DeepSeek streaming response as returned by the Go code */
 export interface DeepSeekStreamingResponse {
   id: string;
   object: string;
@@ -229,34 +205,68 @@ export interface DeepSeekStreamingResponse {
   provider: string;
 }
 
-/**
- * Error response format
- */
+/** * Anthropic streaming response types based on their API */
+export interface AnthropicContentBlockDelta {
+  type: string;
+  text?: string;
+}
+
+export interface AnthropicMessageDelta {
+  stop_reason?: string;
+  stop_sequence?: string;
+  usage?: {
+    output_tokens: number;
+  };
+}
+
+export interface AnthropicStreamingResponse {
+  type: string;
+  message?: {
+    id: string;
+    type: string;
+    role: string;
+    content: Array<{
+      type: string;
+      text: string;
+    }>;
+    model: string;
+    stop_reason: string;
+    stop_sequence?: string;
+    usage: {
+      input_tokens: number;
+      output_tokens: number;
+    };
+  };
+  delta?: AnthropicMessageDelta | AnthropicContentBlockDelta;
+  content_block?: {
+    type: string;
+    text?: string;
+  };
+  index?: number;
+  provider: string;
+}
+
+/** * Error response format */
 export interface ErrorResponse {
   error: string;
 }
 
-/**
- * Union type for all supported streaming response types
- */
+/** * Union type for all supported streaming response types */
 export type StreamingResponse =
   | OpenAIStreamingResponse
   | GroqStreamingResponse
   | DeepSeekStreamingResponse
+  | AnthropicStreamingResponse
   | ErrorResponse;
 
-/**
- * Type guard for error responses
- */
+/** * Type guard for error responses */
 export function isErrorResponse(
   response: StreamingResponse,
 ): response is ErrorResponse {
   return "error" in response;
 }
 
-/**
- * Type guard functions to narrow down the specific response type
- */
+/** * Type guard functions to narrow down the specific response type */
 export function isOpenAIStreamingResponse(
   response: StreamingResponse,
 ): response is OpenAIStreamingResponse {
@@ -278,9 +288,14 @@ export function isDeepSeekStreamingResponse(
   return response.provider === "deepseek";
 }
 
-/**
- * Helper to extract content from any streaming response type
- */
+export function isAnthropicStreamingResponse(
+  response: StreamingResponse,
+): response is AnthropicStreamingResponse {
+  if (isErrorResponse(response)) return false;
+  return response.provider === "anthropic";
+}
+
+/** * Helper to extract content from any streaming response type */
 export function extractContentFromStreamingResponse(
   chunk: StreamingResponse,
 ): string {
@@ -292,7 +307,76 @@ export function extractContentFromStreamingResponse(
     return chunk.choices[0]?.delta?.content || "";
   } else if (isDeepSeekStreamingResponse(chunk)) {
     return chunk.choices[0]?.delta?.content || "";
+  } else if (isAnthropicStreamingResponse(chunk)) {
+    // Handle different Anthropic event types
+    if (
+      chunk.type === "content_block_delta" &&
+      typeof chunk.delta === "object" &&
+      "text" in chunk.delta
+    ) {
+      return chunk.delta.text || "";
+    } else if (
+      chunk.type === "content_block_start" &&
+      chunk.content_block &&
+      chunk.content_block.type === "text"
+    ) {
+      return chunk.content_block.text || "";
+    }
   }
 
   return "";
+}
+
+/** * Helper to determine if a streaming response indicates completion */
+export function isStreamingResponseComplete(chunk: StreamingResponse): boolean {
+  if (isErrorResponse(chunk)) {
+    return true;
+  }
+
+  if (
+    isOpenAIStreamingResponse(chunk) ||
+    isGroqStreamingResponse(chunk) ||
+    isDeepSeekStreamingResponse(chunk)
+  ) {
+    return chunk.choices[0]?.finish_reason !== null;
+  } else if (isAnthropicStreamingResponse(chunk)) {
+    return (
+      chunk.type === "message_stop" ||
+      (chunk.type === "message_delta" &&
+        typeof chunk.delta === "object" &&
+        "stop_reason" in chunk.delta &&
+        !!chunk.delta.stop_reason)
+    );
+  }
+
+  return false;
+}
+
+/** * Helper to extract model information from any streaming response type */
+export function extractModelInfoFromStreamingResponse(
+  chunk: StreamingResponse,
+): { provider: string; model: string } | undefined {
+  if (isErrorResponse(chunk)) {
+    return undefined;
+  }
+
+  if (
+    isOpenAIStreamingResponse(chunk) ||
+    isGroqStreamingResponse(chunk) ||
+    isDeepSeekStreamingResponse(chunk)
+  ) {
+    return {
+      provider: chunk.provider,
+      model: chunk.model,
+    };
+  } else if (
+    isAnthropicStreamingResponse(chunk as AnthropicStreamingResponse)
+  ) {
+    if (chunk.message?.model) {
+      return {
+        provider: chunk.provider,
+        model: chunk.message.model,
+      };
+    }
+  }
 }
