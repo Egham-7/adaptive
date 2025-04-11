@@ -5,12 +5,12 @@ import {
 } from "@/services/llms/types";
 import { createStreamingChatCompletion } from "@/services/llms";
 import { useState, useCallback, useRef } from "react";
-import { extractContentFromStreamingResponse } from "@/services/llms/types";
-import { isErrorResponse } from "@/services/llms/types";
+import {
+  extractContentFromStreamingResponse,
+  extractModelInfoFromStreamingResponse,
+} from "@/services/llms/types";
 
-/**
- * Parameters for streaming chat completion
- */
+/** * Parameters for streaming chat completion */
 export type StreamingChatCompletionParams = {
   /** The request to send to the LLM */
   request: ChatCompletionRequest;
@@ -27,9 +27,7 @@ export interface ModelInfo {
   model: string;
 }
 
-/**
- * Enhanced hook for streaming chat completions with built-in state management
- */
+/** * Enhanced hook for streaming chat completions with built-in state management */
 export const useStreamingChatCompletion = () => {
   // State
   const [streamingContent, setStreamingContent] = useState<string | undefined>(
@@ -37,7 +35,6 @@ export const useStreamingChatCompletion = () => {
   );
   const [isStreaming, setIsStreaming] = useState(false);
   const [modelInfo, setModelInfo] = useState<ModelInfo | undefined>(undefined);
-
   // Use a ref to track the latest model info for callbacks
   const modelInfoRef = useRef<ModelInfo | undefined>(undefined);
 
@@ -63,16 +60,14 @@ export const useStreamingChatCompletion = () => {
         const abortFn = createStreamingChatCompletion(
           request,
           (chunk: StreamingResponse) => {
-            // Handle model info
-            if (!isErrorResponse(chunk) && chunk.model && chunk.provider) {
-              const newModelInfo = {
-                provider: chunk.provider,
-                model: chunk.model,
-              };
+            // Handle model info using the helper function
+            const newModelInfo = extractModelInfoFromStreamingResponse(chunk);
+            if (newModelInfo) {
               // Update both state and ref
               setModelInfo(newModelInfo);
               modelInfoRef.current = newModelInfo;
             }
+
             // Extract and accumulate content
             const newContent = extractContentFromStreamingResponse(chunk);
             if (newContent) {
@@ -81,6 +76,7 @@ export const useStreamingChatCompletion = () => {
                 setStreamingContent(accumulatedContent);
               });
             }
+
             // Call external onChunk if provided
             if (onChunk) {
               onChunk(chunk);

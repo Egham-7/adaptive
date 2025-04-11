@@ -6,6 +6,7 @@ import {
   GroqResponse,
   DeepSeekResponse,
   StreamingResponse,
+  isStreamingResponseComplete,
 } from "./types";
 import { API_BASE_URL } from "../common";
 
@@ -124,18 +125,24 @@ export const createStreamingChatCompletion = (
         for (const line of lines) {
           if (!line.trim() || !line.startsWith("data: ")) continue;
 
-          const dataContent = line.substring(6); // Remove 'data: ' prefix
+          let dataContent;
+
+          try {
+            dataContent = JSON.parse(line.substring(6));
+          } catch (e) {
+            console.warn("Error parsing SSE message:", e);
+            continue;
+          }
 
           // Check for the special [DONE] message
-          if (dataContent.trim() === "[DONE]") {
-            if (onComplete) onComplete();
-            continue;
+          if (isStreamingResponseComplete(dataContent)) {
+            onComplete?.();
+            return;
           }
 
           try {
             // Parse the JSON content and pass to callback
-            const jsonData = JSON.parse(dataContent) as StreamingResponse;
-            onChunk(jsonData);
+            onChunk(dataContent);
           } catch (e) {
             console.warn("Error parsing SSE message:", e);
           }
