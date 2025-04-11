@@ -125,7 +125,14 @@ export const createStreamingChatCompletion = (
         for (const line of lines) {
           if (!line.trim() || !line.startsWith("data: ")) continue;
 
-          const dataContent = JSON.parse(line.substring(6)); // Remove 'data: ' prefix
+          let dataContent;
+
+          try {
+            dataContent = JSON.parse(line.substring(6));
+          } catch (e) {
+            console.warn("Error parsing SSE message:", e);
+            continue;
+          }
 
           // Check for the special [DONE] message
           if (isStreamingResponseComplete(dataContent)) {
