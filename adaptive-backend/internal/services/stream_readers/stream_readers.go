@@ -6,6 +6,8 @@ import (
 	"io"
 	"sync"
 
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 	"github.com/cohesion-org/deepseek-go"
 	"github.com/conneroisu/groq-go"
 	"github.com/sashabaranov/go-openai"
@@ -45,6 +47,15 @@ func GetStreamReader(resp *models.ChatCompletionResponse, provider string, reque
 			return nil, fmt.Errorf("invalid DeepSeek stream type")
 		}
 		return NewDeepSeekStreamReader(stream, requestID), nil
+
+	case "anthropic":
+		stream, ok := resp.Response.(ssestream.Stream[anthropic.MessageStreamEventUnion])
+
+		if !ok {
+			return nil, fmt.Errorf("invalid Anthropic stream type")
+		}
+		return NewAnthropicStreamReader(stream, requestID), nil
+
 	default:
 		return nil, fmt.Errorf("unsupported provider for streaming: %s", provider)
 	}
