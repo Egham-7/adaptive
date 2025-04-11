@@ -29,6 +29,13 @@ func NewLLMProvider(providerName string) (LLMProvider, error) {
 		}
 
 		return service, nil
+
+	case "anthropic":
+		service, err := NewAnthropicService()
+		if err != nil {
+			return nil, err
+		}
+		return service, nil
 	default:
 		return nil, errors.New("unsupported provider: " + providerName)
 	}
