@@ -1,5 +1,7 @@
 from typing import TypedDict, Tuple, Literal, Dict
 import numpy as np
+import numpy.typing as npt
+
 
 class DomainParametersType(TypedDict):
     Temperature: float
@@ -14,16 +16,17 @@ class ModelCapability(TypedDict):
     description: str
     complexity_range: Tuple[float, float]
     provider: Literal["GROQ", "OpenAI", "DEEPSEEK"]
+    capability_vector: npt.NDArray[np.float64]  # Specify capability_vector
 
 
-
-
-model_capabilities = {
+model_capabilities: Dict[str, ModelCapability] = {
     "gemma2-9b-it": {
         "description": "A compact 9B parameter model tailored for Italian language tasks and creative generation.",
         "complexity_range": (0.0, 0.15),
         "provider": "GROQ",
-        "capability_vector": np.array([0.92, 0.38, 0.45, 0.88]),  # [creativity, reasoning, context, complexity, domain]
+        "capability_vector": np.array(
+            [0.92, 0.38, 0.45, 0.88]
+        ),  # [creativity, reasoning, context, complexity, domain]
     },
     "llama-3.3-70b-verstile": {
         "description": "A versatile 70B parameter model capable of handling a wide range of tasks.",
@@ -41,13 +44,17 @@ model_capabilities = {
         "description": "An 8B parameter model with enhanced safety features and guardrails for sensitive applications.",
         "complexity_range": (0.0, 0.20),
         "provider": "GROQ",
-        "capability_vector": np.array([0.15, 0.68, 0.28, 0.97]),  # High domain_knowledge (safety)
+        "capability_vector": np.array(
+            [0.15, 0.68, 0.28, 0.97]
+        ),  # High domain_knowledge (safety)
     },
     "llama3-70b-8192": {
         "description": "A 70B parameter model with an extended context window (8192 tokens) for detailed analyses.",
         "complexity_range": (0.20, 0.40),
         "provider": "GROQ",
-        "capability_vector": np.array([0.58, 0.94, 0.88, 0.82]),  # Strong reasoning/context
+        "capability_vector": np.array(
+            [0.58, 0.94, 0.88, 0.82]
+        ),  # Strong reasoning/context
     },
     "llama3-8b-8192": {
         "description": "An efficient 8B parameter model featuring an extended context window for concise tasks.",
@@ -59,7 +66,9 @@ model_capabilities = {
         "description": "A multi-model ensemble comprising eight 7B models with a 32768-token context window for complex tasks.",
         "complexity_range": (0.15, 0.30),
         "provider": "GROQ",
-        "capability_vector": np.array([0.72, 0.83, 0.99, 0.68]),  # Best contextual_knowledge (32k tokens)
+        "capability_vector": np.array(
+            [0.72, 0.83, 0.99, 0.68]
+        ),  # Best contextual_knowledge (32k tokens)
     },
     "o1-mini": {
         "description": "A smaller version of the O1 model, designed for quicker and lighter tasks.",
@@ -71,8 +80,10 @@ model_capabilities = {
         "description": "A powerful general-purpose model capable of handling a wide range of tasks efficiently.",
         "complexity_range": (0.20, 1.0),
         "provider": "OpenAI",
-        "capability_vector": np.array([0.82, 0.91, 0.78, 0.85]),  # Balanced high performer
-    }
+        "capability_vector": np.array(
+            [0.82, 0.91, 0.78, 0.85]
+        ),  # Balanced high performer
+    },
 }
 
 domain_model_mapping = {
