@@ -14,6 +14,9 @@ class Adaptive:
         if not api_key:
             api_key = os.getenv("ADAPTIVE_API_KEY")
 
+        if not api_key:
+            raise ValueError("API key is required. Set it as an environment variable.")
+
         if not base_url:
             base_url = (
                 "https://backend-go.salmonwave-ec8d1f2a.eastus.azurecontainerapps.io/"
