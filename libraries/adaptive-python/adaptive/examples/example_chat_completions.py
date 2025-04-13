@@ -2,8 +2,7 @@ from adaptive.adaptive import Adaptive  # type: ignore
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
 def main():
@@ -25,8 +24,7 @@ def main():
         print(response)
 
         # Create a streaming chat completion request
-        streaming_response = adaptive.chat.completions.create(
-            messages, stream=True)
+        streaming_response = adaptive.chat.completions.create(messages, stream=True)
 
         print("\nStreaming Response:")
         for chunk in streaming_response:
