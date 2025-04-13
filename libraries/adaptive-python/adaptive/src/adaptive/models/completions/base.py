@@ -3,7 +3,7 @@ Base model classes for provider responses.
 """
 
 from pydantic import BaseModel  # type: ignore
-from completions.types import Message  # type: ignore
+from adaptive.models.completions.types import Message  # type: ignore
 
 
 class BaseUsage(BaseModel):

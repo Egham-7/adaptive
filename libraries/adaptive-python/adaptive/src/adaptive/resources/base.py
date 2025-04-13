@@ -1,7 +1,7 @@
 import requests
 from typing import Dict, Any, Optional, Union, Iterator
 import logging
-from exceptions.api import APIError  # type: ignore
+from adaptive.exceptions.api import APIError  # type: ignore
 import json
 
 

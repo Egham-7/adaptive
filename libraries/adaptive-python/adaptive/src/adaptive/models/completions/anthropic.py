@@ -4,7 +4,7 @@ Anthropic-specific response models.
 
 from typing import List, Optional
 from pydantic import BaseModel  # type: ignore
-from completions.base import BaseProviderResponse  # type: ignore
+from adaptive.models.completions.base import BaseProviderResponse  # type: ignore
 
 
 class AnthropicContentItem(BaseModel):

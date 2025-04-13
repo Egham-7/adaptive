@@ -1,4 +1,4 @@
-from resources.chat.completions.completions import Completions  # type: ignore
+from adaptive.resources.chat.completions.completions import Completions  # type: ignore
 from adaptive.resources.base import BaseAPIClient  # type: ignore
 
 

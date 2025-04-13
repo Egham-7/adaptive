@@ -3,7 +3,7 @@ Groq-specific response models.
 """
 
 from typing import List
-from completions.base import BaseUsage, BaseChoice, BaseProviderResponse  # type: ignore
+from adaptive.models.completions.base import BaseUsage, BaseChoice, BaseProviderResponse  # type: ignore
 
 
 class GroqUsage(BaseUsage):

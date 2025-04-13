@@ -4,7 +4,7 @@ DeepSeek-specific response models.
 
 from typing import List, Dict, Optional
 from pydantic import BaseModel  # type: ignore
-from completions.base import BaseUsage, BaseChoice, BaseProviderResponse  # type: ignore
+from adaptive.models.completions.base import BaseUsage, BaseChoice, BaseProviderResponse  # type: ignore
 
 
 class DeepSeekLogProbs(BaseModel):

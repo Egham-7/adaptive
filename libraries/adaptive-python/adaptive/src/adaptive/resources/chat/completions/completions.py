@@ -3,15 +3,15 @@ import requests
 
 # mypy: disable-error-code="import"
 
-from models.completions import (
+from adaptive.models.completions import (
     ChatCompletionResponse,  # type: ignore
     ChatCompletionStreamingResponse,  # type: ignore
 )
-from exceptions.api import APIError  # type: ignore
-from resources.base import BaseAPIClient  # type: ignore
+from adaptive.exceptions.api import APIError  # type: ignore
+from adaptive.resources.base import BaseAPIClient  # type: ignore
 
 # type: ignore # type: ignore # type: ignore # type: ignore
-from utils.streaming import SSEStreamHandler
+from adaptive.utils.streaming import SSEStreamHandler
 
 
 class Completions(BaseAPIClient):
@@ -144,4 +144,4 @@ class Completions(BaseAPIClient):
         # Transform each dictionary in the response to a ChatCompletionStreamingResponse object
         for chunk in response:
             # Convert each dictionary chunk to a ChatCompletionStreamingResponse object
-            yield ChatCompletionStreamingResponse(**chunk)
+            yield ChatCompletionStreamingResponse(**chunk.__dict__)
