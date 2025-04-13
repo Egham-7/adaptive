@@ -1,8 +1,12 @@
 # type: ignore
 """This module provides the types and classes for handling chat completions."""
 
-from completions.types import MessageRole, Message, ChatCompletionRequest
-from completions.completions import (
+from adaptive.models.completions.types import (
+    MessageRole,
+    Message,
+    ChatCompletionRequest,
+)
+from adaptive.models.completions.completions import (
     ChatCompletionResponse,
     ChatCompletionStreamingResponse,
 )

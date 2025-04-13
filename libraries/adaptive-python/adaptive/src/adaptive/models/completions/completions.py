@@ -3,10 +3,10 @@
 from typing import Union, Optional, Dict, Any, List, Literal
 from functools import reduce
 from pydantic import BaseModel, Field  # type: ignore
-from completions.openai import OpenAIResponse  # type: ignore
-from completions.anthropic import AnthropicResponse  # type: ignore
-from completions.groq import GroqResponse  # type: ignore
-from completions.deepseek import DeepSeekResponse  # type: ignore
+from adaptive.models.completions.openai import OpenAIResponse  # type: ignore
+from adaptive.models.completions.anthropic import AnthropicResponse  # type: ignore
+from adaptive.models.completions.groq import GroqResponse  # type: ignore
+from adaptive.models.completions.deepseek import DeepSeekResponse  # type: ignore
 
 ProviderResponse = Union[
     OpenAIResponse, AnthropicResponse, GroqResponse, DeepSeekResponse

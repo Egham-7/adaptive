@@ -1,4 +1,4 @@
-from models.completions import ChatCompletionStreamingResponse  # type: ignore
+from adaptive.models.completions import ChatCompletionStreamingResponse  # type: ignore
 from typing import Generic, Optional, TypeVar
 import json
 
