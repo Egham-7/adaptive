@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from models.domain import PromptRequest
-from services.prompt_classifier import get_prompt_classifier
+from services.prompt_classifier1 import get_prompt_classifier
 from services.domain_classifier import get_domain_classifier
 
 router = APIRouter()
