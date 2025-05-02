@@ -15,11 +15,11 @@ const navLinks = [
 
 export default function Header() {
   return (
-    <header className="sticky p-6 top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky p-6 top-0 z-50 w-full border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex gap-8 items-center">
           <Link to="/" className="flex items-center">
-            <span className="font-display text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+            <span className="font-display text-xl font-bold bg-linear-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
               Adaptive
             </span>
           </Link>
@@ -44,7 +44,7 @@ export default function Header() {
             >
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+                className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
               >
                 Go to App
               </Button>
@@ -65,7 +65,7 @@ export default function Header() {
             <SignUpButton signInForceRedirectUrl="/home">
               <Button
                 size="sm"
-                className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+                className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
               >
                 Get Started
               </Button>

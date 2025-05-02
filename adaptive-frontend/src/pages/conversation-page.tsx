@@ -181,7 +181,7 @@ export default function ConversationPage() {
           >
             {/* Avatar skeleton */}
             {!isUser && (
-              <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
+              <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary/10">
                 <Cpu className="w-4 h-4 text-primary/40" />
               </div>
             )}
@@ -215,7 +215,7 @@ export default function ConversationPage() {
 
             {/* User avatar skeleton */}
             {isUser && (
-              <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/20">
+              <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary/20">
                 <User className="w-4 h-4 text-primary/40" />
               </div>
             )}
@@ -225,7 +225,7 @@ export default function ConversationPage() {
 
       {/* Typing indicator skeleton */}
       <div className="flex items-start gap-3">
-        <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
+        <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary/10">
           <Cpu className="w-4 h-4 text-primary/40" />
         </div>
         <div className="flex items-center gap-1 p-3 rounded-2xl bg-muted/80 w-[100px]">

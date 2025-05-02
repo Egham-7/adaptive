@@ -1,88 +1,160 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 @layer base {
   :root {
-    /* Modern Light Theme */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    :root {
+      --background: oklch(0.98 0 0);
+      --foreground: oklch(0.28 0.04 260.33);
+      --card: oklch(1 0 0);
+      --card-foreground: oklch(0.28 0.04 260.33);
+      --popover: oklch(1 0 0);
+      --popover-foreground: oklch(0.28 0.04 260.33);
+      --primary: oklch(0.59 0.2 277.06);
+      --primary-foreground: oklch(1 0 0);
+      --secondary: oklch(0.93 0.01 261.82);
+      --secondary-foreground: oklch(0.37 0.03 259.73);
+      --muted: oklch(0.97 0 0);
+      --muted-foreground: oklch(0.55 0.02 264.41);
+      --accent: oklch(0.93 0.03 273.66);
+      --accent-foreground: oklch(0.37 0.03 259.73);
+      --destructive: oklch(0.64 0.21 25.39);
+      --border: oklch(0.87 0.01 261.81);
+      --input: oklch(0.87 0.01 261.81);
+      --ring: oklch(0.59 0.2 277.06);
+      --chart-1: oklch(0.59 0.2 277.06);
+      --chart-2: oklch(0.51 0.23 276.97);
+      --chart-3: oklch(0.46 0.21 277.06);
+      --chart-4: oklch(0.4 0.18 277.16);
+      --chart-5: oklch(0.36 0.14 278.65);
+      --sidebar: oklch(0.97 0 0);
+      --sidebar-foreground: oklch(0.28 0.04 260.33);
+      --sidebar-primary: oklch(0.59 0.2 277.06);
+      --sidebar-primary-foreground: oklch(1 0 0);
+      --sidebar-accent: oklch(0.93 0.03 273.66);
+      --sidebar-accent-foreground: oklch(0.37 0.03 259.73);
+      --sidebar-border: oklch(0.87 0.01 261.81);
+      --sidebar-ring: oklch(0.59 0.2 277.06);
 
-    /* Bold Primary Colors */
-    --primary: 222 89% 51%;
-    --primary-foreground: 210 40% 98%;
+      --font-sans: Inter, sans-serif;
+      --font-serif: Merriweather, serif;
+      --font-mono: JetBrains Mono, monospace;
 
-    /* Card and Surface Colors */
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+      --radius: 0.5rem;
 
-    /* Accent and Secondary */
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
+      --shadow-2xs: 0px 4px 8px -1px oklch(0 0 0 / 0.05);
+      --shadow-xs: 0px 4px 8px -1px oklch(0 0 0 / 0.05);
+      --shadow-sm: 0px 4px 8px -1px oklch(0 0 0 / 0.1),
+        0px 1px 2px -2px oklch(0 0 0 / 0.1);
+      --shadow: 0px 4px 8px -1px oklch(0 0 0 / 0.1),
+        0px 1px 2px -2px oklch(0 0 0 / 0.1);
+      --shadow-md: 0px 4px 8px -1px oklch(0 0 0 / 0.1),
+        0px 2px 4px -2px oklch(0 0 0 / 0.1);
+      --shadow-lg: 0px 4px 8px -1px oklch(0 0 0 / 0.1),
+        0px 4px 6px -2px oklch(0 0 0 / 0.1);
+      --shadow-xl: 0px 4px 8px -1px oklch(0 0 0 / 0.1),
+        0px 8px 10px -2px oklch(0 0 0 / 0.1);
+      --shadow-2xl: 0px 4px 8px -1px oklch(0 0 0 / 0.25);
+    }
 
-    /* UI Elements */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222 89% 51%;
+    .dark {
+      --background: oklch(0.21 0.04 264.04);
+      --foreground: oklch(0.93 0.01 256.71);
+      --card: oklch(0.28 0.04 260.33);
+      --card-foreground: oklch(0.93 0.01 256.71);
+      --popover: oklch(0.28 0.04 260.33);
+      --popover-foreground: oklch(0.93 0.01 256.71);
+      --primary: oklch(0.68 0.16 276.93);
+      --primary-foreground: oklch(0.21 0.04 264.04);
+      --secondary: oklch(0.34 0.03 261.83);
+      --secondary-foreground: oklch(0.87 0.01 261.81);
+      --muted: oklch(0.28 0.04 260.33);
+      --muted-foreground: oklch(0.71 0.02 261.33);
+      --accent: oklch(0.37 0.03 259.73);
+      --accent-foreground: oklch(0.87 0.01 261.81);
+      --destructive: oklch(0.64 0.21 25.39);
+      --border: oklch(0.45 0.03 257.68);
+      --input: oklch(0.45 0.03 257.68);
+      --ring: oklch(0.68 0.16 276.93);
+      --chart-1: oklch(0.68 0.16 276.93);
+      --chart-2: oklch(0.59 0.2 277.06);
+      --chart-3: oklch(0.51 0.23 276.97);
+      --chart-4: oklch(0.46 0.21 277.06);
+      --chart-5: oklch(0.4 0.18 277.16);
+      --sidebar: oklch(0.28 0.04 260.33);
+      --sidebar-foreground: oklch(0.93 0.01 256.71);
+      --sidebar-primary: oklch(0.68 0.16 276.93);
+      --sidebar-primary-foreground: oklch(0.21 0.04 264.04);
+      --sidebar-accent: oklch(0.37 0.03 259.73);
+      --sidebar-accent-foreground: oklch(0.87 0.01 261.81);
+      --sidebar-border: oklch(0.45 0.03 257.68);
+      --sidebar-ring: oklch(0.68 0.16 276.93);
 
-    /* Destructive */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+      --shadow-2xs: 0 1px 3px 0px oklch(0 0 0 / 0.05);
+      --shadow-xs: 0 1px 3px 0px oklch(0 0 0 / 0.05);
+      --shadow-sm: 0 1px 3px 0px oklch(0 0 0 / 0.1),
+        0 1px 2px -1px oklch(0 0 0 / 0.1);
+      --shadow: 0 1px 3px 0px oklch(0 0 0 / 0.1),
+        0 1px 2px -1px oklch(0 0 0 / 0.1);
+      --shadow-md: 0 1px 3px 0px oklch(0 0 0 / 0.1),
+        0 2px 4px -1px oklch(0 0 0 / 0.1);
+      --shadow-lg: 0 1px 3px 0px oklch(0 0 0 / 0.1),
+        0 4px 6px -1px oklch(0 0 0 / 0.1);
+      --shadow-xl: 0 1px 3px 0px oklch(0 0 0 / 0.1),
+        0 8px 10px -1px oklch(0 0 0 / 0.1);
+      --shadow-2xl: 0 1px 3px 0px oklch(0 0 0 / 0.25);
+    }
 
-    /* Modern Chart Colors */
-    --chart-1: 222 89% 51%; /* Bold Blue */
-    --chart-2: 156 72% 45%; /* Emerald */
-    --chart-3: 266 89% 61%; /* Vibrant Purple */
-    --chart-4: 31 95% 58%; /* Energetic Orange */
-    --chart-5: 192 85% 45%; /* Ocean Blue */
+    @theme inline {
+      --color-background: var(--background);
+      --color-foreground: var(--foreground);
+      --color-card: var(--card);
+      --color-card-foreground: var(--card-foreground);
+      --color-popover: var(--popover);
+      --color-popover-foreground: var(--popover-foreground);
+      --color-primary: var(--primary);
+      --color-primary-foreground: var(--primary-foreground);
+      --color-secondary: var(--secondary);
+      --color-secondary-foreground: var(--secondary-foreground);
+      --color-muted: var(--muted);
+      --color-muted-foreground: var(--muted-foreground);
+      --color-accent: var(--accent);
+      --color-accent-foreground: var(--accent-foreground);
+      --color-destructive: var(--destructive);
+      --color-border: var(--border);
+      --color-input: var(--input);
+      --color-ring: var(--ring);
+      --color-chart-1: var(--chart-1);
+      --color-chart-2: var(--chart-2);
+      --color-chart-3: var(--chart-3);
+      --color-chart-4: var(--chart-4);
+      --color-chart-5: var(--chart-5);
+      --color-sidebar: var(--sidebar);
+      --color-sidebar-foreground: var(--sidebar-foreground);
+      --color-sidebar-primary: var(--sidebar-primary);
+      --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+      --color-sidebar-accent: var(--sidebar-accent);
+      --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+      --color-sidebar-border: var(--sidebar-border);
+      --color-sidebar-ring: var(--sidebar-ring);
 
-    --radius: 0.75rem;
-  }
+      --font-sans: var(--font-sans);
+      --font-mono: var(--font-mono);
+      --font-serif: var(--font-serif);
 
-  .dark {
-    /* Modern Dark Theme */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+      --radius-sm: calc(var(--radius) - 4px);
+      --radius-md: calc(var(--radius) - 2px);
+      --radius-lg: var(--radius);
+      --radius-xl: calc(var(--radius) + 4px);
 
-    /* Bold Primary Colors in Dark */
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 40% 98%;
-
-    /* Card and Surface Colors */
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    /* Accent and Secondary */
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --accent: 217 32% 17%;
-    --accent-foreground: 210 40% 98%;
-
-    /* UI Elements */
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 224 76% 48%;
-
-    /* Destructive */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    /* Modern Chart Colors for Dark Mode */
-    --chart-1: 217 91% 60%; /* Bright Blue */
-    --chart-2: 156 72% 67%; /* Bright Emerald */
-    --chart-3: 266 89% 71%; /* Bright Purple */
-    --chart-4: 31 95% 68%; /* Bright Orange */
-    --chart-5: 192 85% 65%; /* Bright Ocean Blue */
+      --shadow-2xs: var(--shadow-2xs);
+      --shadow-xs: var(--shadow-xs);
+      --shadow-sm: var(--shadow-sm);
+      --shadow: var(--shadow);
+      --shadow-md: var(--shadow-md);
+      --shadow-lg: var(--shadow-lg);
+      --shadow-xl: var(--shadow-xl);
+      --shadow-2xl: var(--shadow-2xl);
+    }
   }
 }
 

@@ -117,7 +117,7 @@ function CodeBlock({ language, value, children }: CodeBlockProps) {
       </div>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded-md bg-background/80 text-muted-foreground hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary opacity-0 group-hover:opacity-100"
+        className="absolute top-2 right-2 p-1.5 rounded-md bg-background/80 text-muted-foreground hover:bg-muted transition-colors focus:outline-hidden focus:ring-2 focus:ring-primary opacity-0 group-hover:opacity-100"
         aria-label="Copy code"
       >
         {copied ? (

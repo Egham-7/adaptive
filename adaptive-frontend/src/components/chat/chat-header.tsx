@@ -44,7 +44,7 @@ export function ChatHeader({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 py-3 border-b bg-background/95 backdrop-blur-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 py-3 border-b bg-background/95 backdrop-blur-xs">
       <div className="w-full max-w-5xl px-4 mx-auto">
         <div className="flex items-center justify-between">
           {/* Logo and Heading */}

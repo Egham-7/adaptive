@@ -65,7 +65,7 @@ export function MessageInput({ isLoading, sendMessage, showActions, toggleAction
                     <Input
                       {...field}
                       placeholder="Message Adaptive..."
-                      className="flex-1 text-base bg-transparent border-none focus:outline-none focus:ring-0 placeholder:text-muted-foreground"
+                      className="flex-1 text-base bg-transparent border-none focus:outline-hidden focus:ring-0 placeholder:text-muted-foreground"
                       disabled={isLoading}
                     />
                   </FormControl>
