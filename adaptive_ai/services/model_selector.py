@@ -1,172 +1,154 @@
-from typing import Dict, Any, List, Tuple
-
+from typing import Dict, Any, List, TypedDict, Optional, cast
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 from models.llms import model_capabilities, domain_model_mapping
 from services.llm_parameters import LLMParametersFactory
+
+
+class ModelInfo(TypedDict):
+    model_name: str
+    provider: str
+    match_score: float
 
 
 class ModelSelector:
     """
     Service for selecting appropriate LLM models and parameters based on prompt analysis.
+    Now with vector similarity-based model selection.
     """
 
-    def __init__(self, prompt_classifier, domain_classifier):
-        """
-        Initialize the model selection service with required classifiers.
-
-        Args:
-            prompt_classifier: Classifier for analyzing prompt characteristics
-            domain_classifier: Classifier for determining the domain of a prompt
-        """
+    def __init__(
+        self, prompt_classifier: Any, domain_classifier: Any
+    ):  # Add proper type hints
         self.prompt_classifier = prompt_classifier
         self.domain_classifier = domain_classifier
 
     def select_model(self, prompt: str) -> Dict[str, Any]:
         """
-        Select the most appropriate model for a given prompt with optimized parameters.
-
-        Args:
-            prompt: The user's prompt text
-
-        Returns:
-            Dict containing selected model name, provider, and parameters
-
-        Raises:
-            ValueError: If the classified domain is not recognized
+        Select the most appropriate model using vector similarity matching.
         """
-        # Analyze prompt and get domain
         prompt_analysis = self._analyze_prompt(prompt)
         domain = prompt_analysis["domain"]
 
-        complexity_score = prompt_analysis["complexity_score"]
+        # Convert prompt scores to vector for matching
+        prompt_vector = np.array(
+            [
+                prompt_analysis["prompt_scores"]["creativity_scope"][0],
+                prompt_analysis["prompt_scores"]["reasoning"][0],
+                prompt_analysis["prompt_scores"]["contextual_knowledge"][0],
+                prompt_analysis["prompt_scores"]["domain_knowledge"][0],
+            ]
+        )
 
-        # Select the most appropriate model for the domain and complexity
-        model_info = self._find_suitable_model(domain, complexity_score)
-        model_name = model_info["model_name"]
-        provider_name = model_info["provider"]
+        # Find best matching model
+        model_info = self._find_suitable_model(domain, prompt_vector)
 
-        # Return complete model selection info
         return {
             "prompt_scores": prompt_analysis["prompt_scores"],
-            "selected_model": model_name,
-            "provider": provider_name,
-            "complexity:": complexity_score,
-            "domain:": domain,
-            # "parameters": parameters,
+            "selected_model": model_info["model_name"],
+            "provider": model_info["provider"],
+            "match_score": model_info["match_score"],
+            "domain": domain,
         }
 
     def get_model_parameters(self, prompt: str) -> Dict[str, Any]:
-        """
-        Get optimized parameters for the selected model based on prompt analysis.
-
-        Args:
-            prompt: The user's prompt text
-
-        Returns:
-            Dict containing model parameters and provider
-
-        Raises:
-            ValueError: If the classified domain is not recognized
-        """
-        # Analyze prompt and get domain
+        """Get optimized parameters for the selected model."""
         prompt_analysis = self._analyze_prompt(prompt)
         domain = prompt_analysis["domain"]
-        complexity_score = prompt_analysis["complexity_score"]
-        prompt_scores = prompt_analysis["prompt_scores"]
 
-        # Select the most appropriate model for the domain and complexity
-        model_info = self._find_suitable_model(domain, complexity_score)
-        model_name = model_info["model_name"]
-        provider_name = model_info["provider"]
-
-        # Get optimized parameters for the selected model
-        parameters = self._get_parameters(
-            provider_name, model_name, domain, prompt_scores
+        prompt_vector = np.array(
+            [
+                prompt_analysis["prompt_scores"]["creativity_scope"][0],
+                prompt_analysis["prompt_scores"]["reasoning"][0],
+                prompt_analysis["prompt_scores"]["contextual_knowledge"][0],
+                prompt_analysis["prompt_scores"]["domain_knowledge"][0],
+            ]
         )
 
-        return {"parameters": parameters, "provider": provider_name}
+        model_info = self._find_suitable_model(domain, prompt_vector)
+        parameters = self._get_parameters(
+            model_info["provider"],
+            model_info["model_name"],
+            domain,
+            prompt_analysis["prompt_scores"],
+        )
+
+        return {
+            "parameters": parameters,
+            "provider": model_info["provider"],
+            "match_score": model_info["match_score"],
+        }
 
     def _analyze_prompt(self, prompt: str) -> Dict[str, Any]:
-        """
-        Analyze the prompt to extract complexity scores and domain.
+        """Analyze prompt to extract scores and domain."""
+        domain_result = self.domain_classifier.classify(prompt)
+        domain = str(domain_result[0]) if domain_result else ""
 
-        Args:
-            prompt: The user's prompt text
-
-        Returns:
-            Dict with domain, complexity score, and prompt scores
-
-        Raises:
-            ValueError: If the classified domain is not recognized
-        """
-
-        # Get domain
-        domain = self.domain_classifier.classify(prompt)[0]
         if domain not in domain_model_mapping:
             raise ValueError(f"Domain '{domain}' is not recognized.")
 
-        # Get complexity analysis
         complexity = self.prompt_classifier.classify_prompt(prompt, domain)
-        complexity_score = float(complexity["prompt_complexity_score"][0])
-
-        # Extract prompt scores for parameter tuning
-        prompt_scores = {
-            "creativity_scope": complexity["creativity_scope"],
-            "reasoning": complexity["reasoning"],
-            "contextual_knowledge": complexity["contextual_knowledge"],
-            "prompt_complexity_score": complexity["prompt_complexity_score"],
-            "domain_knowledge": complexity["domain_knowledge"],
-        }
 
         return {
             "domain": domain,
-            "complexity_score": complexity_score,
-            "prompt_scores": prompt_scores,
+            "prompt_scores": {
+                "creativity_scope": cast(
+                    List[float], complexity.get("creativity_scope", [0.0])
+                ),
+                "reasoning": cast(List[float], complexity.get("reasoning", [0.0])),
+                "contextual_knowledge": cast(
+                    List[float], complexity.get("contextual_knowledge", [0.0])
+                ),
+                "domain_knowledge": cast(
+                    List[float], complexity.get("domain_knowledge", [0.0])
+                ),
+                "prompt_complexity_score": cast(
+                    List[float], complexity.get("prompt_complexity_score", [0.0])
+                ),
+            },
         }
 
     def _find_suitable_model(
-        self, domain: str, complexity_score: float
-    ) -> Dict[str, str]:
+        self,
+        domain: str,
+        prompt_vector: np.ndarray,
+        capability_weights: Optional[np.ndarray] = None,
+    ) -> ModelInfo:
         """
-        Find a suitable model that matches the domain and complexity.
-
-        Args:
-            domain: The classified domain
-            complexity_score: The prompt complexity score
-
-        Returns:
-            Dict with model_name and provider
+        Find the best model using vector similarity matching.
         """
-        suitable_models = domain_model_mapping[domain]
+        if capability_weights is None:
+            capability_weights = np.array([1.0, 1.0, 1.0, 1.0])
 
-        # Log the models being checked for the given domain
-        print(f"Domain: {domain} - Models: {suitable_models}")
+        candidate_models = domain_model_mapping.get(domain, [])
+        if not candidate_models:
+            raise ValueError(f"No models available for domain: {domain}")
 
-        # Find a model that matches the complexity score
-        for model_name in suitable_models:
-            complexity_range: Tuple[float, float] = model_capabilities[model_name][
-                "complexity_range"
-            ]
-            provider: str = model_capabilities[model_name]["provider"]
+        best_model = ""
+        best_score = -1.0
 
-            # Explicitly cast complexity range values to float to satisfy mypy
-            lower_bound = float(complexity_range[0])
-            upper_bound = float(complexity_range[1])
+        for model_name in candidate_models:
+            model_data = model_capabilities.get(model_name)
+            if not model_data:
+                continue
 
-            # Log the complexity range for debugging
-            print(
-                f"Checking model: {model_name} | Complexity Range: ({lower_bound}, {upper_bound}) | Score: {complexity_score}"
-            )
+            model_vec = model_data["capability_vector"][:4]
 
-            if lower_bound <= complexity_score <= upper_bound:
-                print(f"Selected model: {model_name} within complexity range.")
-                return {"model_name": model_name, "provider": provider}
+            similarity = cosine_similarity(
+                [prompt_vector * capability_weights], [model_vec * capability_weights]
+            )[0][0]
 
-        # If no model matches, return the first suitable model as default
-        default_model = suitable_models[0]
-        print(f"Returning default model: {default_model}")
+            if similarity > best_score:
+                best_model = model_name
+                best_score = similarity
+
+        if not best_model:
+            raise ValueError(f"No suitable model found for domain: {domain}")
+
         return {
-            "model_name": default_model,
-            "provider": model_capabilities[default_model]["provider"],
+            "model_name": best_model,
+            "provider": model_capabilities[best_model]["provider"],
+            "match_score": float(best_score),
         }
 
     def _get_parameters(
@@ -176,17 +158,6 @@ class ModelSelector:
         domain: str,
         prompt_scores: Dict[str, List[float]],
     ) -> Dict[str, Any]:
-        """
-        Get optimized parameters for a model based on provider, domain and prompt scores.
-
-        Args:
-            provider_name: Name of the provider
-            model_name: Name of the model
-            domain: The classified domain
-            prompt_scores: Dictionary of prompt analysis scores
-
-        Returns:
-            Dictionary of optimized parameters
-        """
+        """Get optimized parameters for the selected model."""
         parameters_provider = LLMParametersFactory.create(provider_name, model_name)
         return parameters_provider.adjust_parameters(domain, prompt_scores)

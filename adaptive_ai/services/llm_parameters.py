@@ -214,7 +214,7 @@ class LLMParametersFactory:
 
     @staticmethod
     def create(
-        provider: str, model_name: str
+        provider: str | None, model_name: str
     ) -> Union[OpenAIParameters, GroqParameters, DeepSeekParameters]:
         """
         Create and return an appropriate LLMProviderParameters instance based on provider.
