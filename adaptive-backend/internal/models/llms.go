@@ -4,8 +4,35 @@ import (
 	"github.com/conneroisu/groq-go/pkg/tools"
 )
 
+type StreamOption int
+
+const (
+	SSE StreamOption = iota
+	DATASTREAM
+	TEXT
+)
+
+func (s StreamOption) String() string {
+	switch s {
+	case SSE:
+		return "SSE"
+	case DATASTREAM:
+		return "DATASTREAM"
+	case TEXT:
+		return "TEXT"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+type RequestOptions struct {
+	Cascade       bool          `json:"cascade,omitempty"`
+	StreamOptions *StreamOption `json:"stream_options,omitempty"`
+}
+
 type ChatCompletionRequest struct {
-	Messages []Message `json:"messages"`
+	Messages       []Message       `json:"messages"`
+	RequestOptions *RequestOptions `json:"request_options,omitempty"`
 }
 
 type ProviderChatCompletionRequest struct {

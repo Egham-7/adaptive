@@ -3,6 +3,7 @@ package api
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
+	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/stream_readers"
 	"log"
@@ -19,9 +20,11 @@ type ChatCompletionHandler struct {
 	globalPromptModelCache *semanticcache.SemanticCache[string, string]
 	userPromptModelCache   *lru.Cache[string, *semanticcache.SemanticCache[string, string]]
 	embeddingProvider      semanticcache.EmbeddingProvider
+	metrics                *metrics.ChatMetrics
 }
 
 func NewChatCompletionHandler() *ChatCompletionHandler {
+	chatMetrics := metrics.NewChatMetrics()
 	embeddingProvider, err := semanticcache.NewOpenAIProvider(os.Getenv("OPENAI_API_KEY"), "")
 	if err != nil {
 		log.Fatalf("Failed to create embedding provider: %v", err)
@@ -42,6 +45,7 @@ func NewChatCompletionHandler() *ChatCompletionHandler {
 		globalPromptModelCache: globalCache,
 		userPromptModelCache:   userCache,
 		embeddingProvider:      embeddingProvider,
+		metrics:                chatMetrics,
 	}
 }
 
@@ -58,28 +62,39 @@ func (h *ChatCompletionHandler) getUserCache(userID string) *semanticcache.Seman
 	return newCache
 }
 
-func (h *ChatCompletionHandler) getModelFromCacheOrSelect(prompt string, userID string, requestID string) (string, error) {
+func (h *ChatCompletionHandler) getModelFromCacheOrSelect(prompt string, userID string, requestID string) (string, string, error) {
 	const threshold = 0.9
 	userCache := h.getUserCache(userID)
 
+	// User-level semantic cache
 	if userCache != nil {
 		if val, found, err := userCache.Lookup(prompt, threshold); err == nil && found {
 			log.Printf("[%s] Semantic cache hit (user)", requestID)
-			return val, nil
+			if h.metrics != nil {
+				h.metrics.CacheHits.WithLabelValues("user").Inc()
+				h.metrics.ModelSelections.WithLabelValues(val).Inc()
+			}
+			return val, "user", nil
 		}
 	}
 
+	// Global semantic cache
 	if val, found, err := h.globalPromptModelCache.Lookup(prompt, threshold); err == nil && found {
 		log.Printf("[%s] Semantic cache hit (global)", requestID)
 		if userCache != nil {
 			_ = userCache.Set(prompt, prompt, val)
 		}
-		return val, nil
+		if h.metrics != nil {
+			h.metrics.CacheHits.WithLabelValues("global").Inc()
+			h.metrics.ModelSelections.WithLabelValues(val).Inc()
+		}
+		return val, "global", nil
 	}
 
+	// Cache miss, select model
 	modelInfo, err := h.promptClassifierClient.SelectModel(prompt)
 	if err != nil {
-		return "", err
+		return "", "miss", err
 	}
 	log.Printf("[%s] Semantic cache miss - selected model %s", requestID, modelInfo.SelectedModel)
 
@@ -87,11 +102,14 @@ func (h *ChatCompletionHandler) getModelFromCacheOrSelect(prompt string, userID 
 	if userCache != nil {
 		_ = userCache.Set(prompt, prompt, modelInfo.SelectedModel)
 	}
-
-	return modelInfo.SelectedModel, nil
+	if h.metrics != nil {
+		h.metrics.ModelSelections.WithLabelValues(modelInfo.SelectedModel).Inc()
+	}
+	return modelInfo.SelectedModel, "miss", nil
 }
 
 func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
+	start := time.Now()
 	requestID := c.Get("X-Request-ID", time.Now().String())
 	apiKey := string(c.Request().Header.Peek("X-API-Key"))
 	if apiKey == "" {
@@ -100,6 +118,9 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("stream", "400").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body: " + err.Error(),
 		})
@@ -107,8 +128,14 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 
 	prompt := req.Messages[len(req.Messages)-1].Content
 
-	modelName, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
+	modelName, cacheType, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
+	if h.metrics != nil {
+		h.metrics.CacheLookups.WithLabelValues(cacheType).Inc()
+	}
 	if err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("stream", "500").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -126,11 +153,17 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 
 	provider, err := providers.NewLLMProvider(fullReq.Provider)
 	if err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("stream", "400").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	resp, err := provider.StreamChatCompletion(&fullReq)
 	if err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("stream", "500").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to stream completion: " + err.Error(),
 		})
@@ -141,10 +174,14 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
 
+	if h.metrics != nil {
+		h.metrics.RequestDuration.WithLabelValues("stream", "200").Observe(time.Since(start).Seconds())
+	}
 	return stream_readers.HandleStream(c, resp, requestID)
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
+	start := time.Now()
 	requestID := c.Get("X-Request-ID", time.Now().String())
 	apiKey := string(c.Request().Header.Peek("X-API-Key"))
 	if apiKey == "" {
@@ -153,13 +190,22 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("completion", "400").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body: " + err.Error()})
 	}
 
 	prompt := req.Messages[len(req.Messages)-1].Content
 
-	modelName, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
+	modelName, cacheType, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
+	if h.metrics != nil {
+		h.metrics.CacheLookups.WithLabelValues(cacheType).Inc()
+	}
 	if err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("completion", "500").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -176,15 +222,31 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 
 	provider, err := providers.NewLLMProvider(fullReq.Provider)
 	if err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("completion", "400").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	resp, err := provider.CreateChatCompletion(&fullReq)
 	if err != nil {
+		if h.metrics != nil {
+			h.metrics.RequestDuration.WithLabelValues("completion", "500").Observe(time.Since(start).Seconds())
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate completion: " + err.Error(),
 		})
 	}
 
+	if h.metrics != nil {
+		h.metrics.RequestDuration.WithLabelValues("completion", "200").Observe(time.Since(start).Seconds())
+	}
 	return c.JSON(resp)
+}
+
+// Example: Fiber app wiring for clarity (remove if not needed)
+func RegisterLLMRoutes(app *fiber.App) {
+	handler := NewChatCompletionHandler()
+	app.Post("/v1/chat/completions", handler.ChatCompletion)
+	app.Post("/v1/chat/completions/stream", handler.StreamChatCompletion)
 }

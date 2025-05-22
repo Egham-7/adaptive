@@ -59,6 +59,16 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - app-network
+    restart: unless-stopped
 
 networks:
   app-network:
