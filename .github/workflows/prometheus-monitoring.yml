@@ -31,7 +31,7 @@ jobs:
               uses: azure/container-apps-deploy-action@v2
               with:
                   appSourcePath: ${{ github.workspace }}/monitoring
-                  dockerfilePath: monitoring/Dockerfile # Updated this line
+                  dockerfilePath: Dockerfile
                   registryUrl: adaptiveregistry.azurecr.io
                   registryUsername: ${{ secrets.PROMETHEUSMONITORING_REGISTRY_USERNAME }}
                   registryPassword: ${{ secrets.PROMETHEUSMONITORING_REGISTRY_PASSWORD }}
