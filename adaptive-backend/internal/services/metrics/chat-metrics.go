@@ -1,0 +1,38 @@
+package metrics
+
+import (
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
+// ChatMetrics holds all Prometheus metrics related to chat completions
+type ChatMetrics struct {
+	RequestDuration *prometheus.HistogramVec
+	CacheHits       *prometheus.CounterVec
+	ModelSelections *prometheus.CounterVec
+	CacheLookups    *prometheus.CounterVec
+}
+
+// NewChatMetrics initializes and registers all chat-related Prometheus metrics
+func NewChatMetrics() *ChatMetrics {
+	return &ChatMetrics{
+		RequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name: "chat_completion_duration_seconds",
+			Help: "Duration of chat completion requests",
+		}, []string{"endpoint", "status"}),
+
+		CacheHits: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "chat_completion_cache_hits_total",
+			Help: "Number of cache hits",
+		}, []string{"cache_type"}),
+
+		ModelSelections: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "chat_completion_model_selections_total",
+			Help: "Number of times each model was selected",
+		}, []string{"model"}),
+		CacheLookups: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "chat_completion_cache_lookups_total",
+			Help: "Number of cache lookups by type (user/global/miss)",
+		}, []string{"cache_type"}),
+	}
+}
