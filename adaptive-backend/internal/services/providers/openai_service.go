@@ -196,28 +196,22 @@ func convertToolCalls(toolCalls []tools.ToolCall) []openai.ToolCall {
 
 func determineOpenAIModel(requestedModel string) string {
 	if requestedModel == "" {
-		return openai.GPT3Dot5Turbo // Default model
+		return openai.GPT4oMini // Default model
 	}
 
 	// Map of supported models - one entry per model family
 	supportedModels := map[string]bool{
 		// O1 models
-		openai.O1:        true,
-		openai.O1Mini:    true,
-		openai.O1Preview: true,
+		openai.O1:     true,
+		openai.O1Mini: true,
 
 		// O3 Models
 		openai.O3Mini: true,
 
 		// GPT-4 models
-		openai.GPT4:              true,
-		openai.GPT432K:           true,
-		openai.GPT4o:             true,
-		openai.GPT4oLatest:       true,
-		openai.GPT4oMini:         true,
-		openai.GPT4Turbo:         true,
-		openai.GPT4TurboPreview:  true,
-		openai.GPT4VisionPreview: true,
+		openai.GPT4o:     true,
+		openai.GPT4oMini: true,
+		openai.GPT4Turbo: true,
 
 		// GPT-3.5 models
 		openai.GPT3Dot5Turbo: true,
