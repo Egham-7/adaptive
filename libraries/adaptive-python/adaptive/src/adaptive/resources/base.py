@@ -8,7 +8,7 @@ import json
 class BaseAPIClient:
     """Base API client for making HTTP requests to external services."""
 
-    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 30):
+    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 60):
         """
         Initialize the base API client.
         Args:
