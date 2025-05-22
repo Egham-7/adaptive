@@ -8,7 +8,7 @@ import json
 class BaseAPIClient:
     """Base API client for making HTTP requests to external services."""
 
-    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 30):
+    def __init__(self, base_url: str, api_key: Optional[str] = None, timeout: int = 60):
         """
         Initialize the base API client.
         Args:
@@ -64,9 +64,7 @@ class BaseAPIClient:
                         yield json.loads(line)
                     except ValueError as e:
                         self.logger.warning(
-                            f"Failed to parse JSON from stream with error {e} at line: {
-                                line
-                            }"
+                            f"Failed to parse JSON from stream with error {e} at line: {line.decode('utf-8')}"
                         )
                         # Continue processing other lines even if one fails
         except requests.exceptions.HTTPError as e:
