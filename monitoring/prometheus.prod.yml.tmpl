@@ -3,9 +3,11 @@ global:
 
 scrape_configs:
   - job_name: "go-backend"
+    scheme: https
     static_configs:
-      - targets: ["${BACKEND_GO_HOST}:${BACKEND_GO_PORT}"]
+      - targets: ["${BACKEND_GO_FQDN}"]
 
   - job_name: "python-backend"
+    scheme: https
     static_configs:
-      - targets: ["${BACKEND_PYTHON_HOST}:${BACKEND_PYTHON_PORT}"]
+      - targets: ["${BACKEND_PYTHON_FQDN}"]
