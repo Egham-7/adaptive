@@ -1,0 +1,73 @@
+name: Monitoring CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "monitoring/**"
+      - "grafana/**"
+      - ".github/workflows/monitoring-cicd.yml"
+  workflow_dispatch:
+
+jobs:
+  prometheus:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.MONITORING_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.MONITORING_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.MONITORING_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push Prometheus image
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/monitoring
+          registryUrl: adaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.MONITORING_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.MONITORING_REGISTRY_PASSWORD }}
+          containerAppName: prometheus
+          resourceGroup: adaptive
+          imageToBuild: adaptiveregistry.azurecr.io/prometheus:${{ github.sha }}
+          # Expose port 9090 for Prometheus
+          targetPort: 9090
+          ingress: internal # or external if you want to access directly
+
+  grafana:
+    runs-on: ubuntu-latest
+    needs: prometheus
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.MONITORING_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.MONITORING_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.MONITORING_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push Grafana image
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/grafana
+          registryUrl: adaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.MONITORING_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.MONITORING_REGISTRY_PASSWORD }}
+          containerAppName: grafana
+          resourceGroup: adaptive
+          imageToBuild: adaptiveregistry.azurecr.io/grafana:${{ github.sha }}
+          targetPort: 3000
+          ingress: external # Expose Grafana to the internet
+          environmentVariables: |
+            GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}

@@ -163,13 +163,13 @@ func convertToGroqMessagePart(part models.ChatMessagePart) groq.ChatMessagePart 
 
 func determineGroqModel(requestedModel string) groq.ChatModel {
 	if requestedModel == "" {
-		return groq.ModelLlama3Groq70B8192ToolUsePreview // Default model
+		return groq.ModelLlama323BPreview
 	}
 
 	switch requestedModel {
-	case "llama-3.1-70b":
+	case "llama-3.1-70b-versatile":
 		return groq.ModelLlama3170BVersatile
-	case "llama-3.1-8b":
+	case "llama-3.1-8b-instant":
 		return groq.ModelLlama318BInstant
 	case "llama-guard-3-8b":
 		return groq.ChatModel(groq.ModelLlamaGuard38B)
@@ -181,17 +181,15 @@ func determineGroqModel(requestedModel string) groq.ChatModel {
 		return groq.ModelLlama3290BVisionPreview
 	case "llama-3.3-70b-specdec":
 		return groq.ModelLlama3370BSpecdec
-	case "llama-3.3-70b":
-		return groq.ModelLlama3370BVersatile
-	case "llama3-70b":
+	case "llama3-70b-8192":
 		return groq.ModelLlama370B8192
-	case "llama3-8b":
+	case "llama3-8b-8192":
 		return groq.ModelLlama38B8192
 	case "gemma-7b":
 		return groq.ModelGemma7BIt
-	case "gemma-2-9b-it", "gemma2-9b":
+	case "gemma-2-9b-it":
 		return groq.ModelGemma29BIt
 	default:
-		return groq.ModelLlama318BInstant
+		return groq.ModelLlama323BPreview // Default model
 	}
 }
