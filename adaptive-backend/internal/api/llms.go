@@ -59,17 +59,18 @@ func (h *ChatCompletionHandler) getUserCache(userID string) *semanticcache.Seman
 }
 
 func (h *ChatCompletionHandler) getModelFromCacheOrSelect(prompt string, userID string, requestID string) (string, error) {
+	const threshold = 0.9
 	userCache := h.getUserCache(userID)
 
 	if userCache != nil {
-		if val, ok := userCache.Get(prompt); ok {
-			log.Printf("[%s] Cache hit (user)", requestID)
+		if val, found, err := userCache.Lookup(prompt, threshold); err == nil && found {
+			log.Printf("[%s] Semantic cache hit (user)", requestID)
 			return val, nil
 		}
 	}
 
-	if val, ok := h.globalPromptModelCache.Get(prompt); ok {
-		log.Printf("[%s] Cache hit (global)", requestID)
+	if val, found, err := h.globalPromptModelCache.Lookup(prompt, threshold); err == nil && found {
+		log.Printf("[%s] Semantic cache hit (global)", requestID)
 		if userCache != nil {
 			_ = userCache.Set(prompt, prompt, val)
 		}
@@ -80,7 +81,7 @@ func (h *ChatCompletionHandler) getModelFromCacheOrSelect(prompt string, userID 
 	if err != nil {
 		return "", err
 	}
-	log.Printf("[%s] Cache miss - selected model %s", requestID, modelInfo.SelectedModel)
+	log.Printf("[%s] Semantic cache miss - selected model %s", requestID, modelInfo.SelectedModel)
 
 	_ = h.globalPromptModelCache.Set(prompt, prompt, modelInfo.SelectedModel)
 	if userCache != nil {
