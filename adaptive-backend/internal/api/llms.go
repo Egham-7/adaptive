@@ -6,174 +6,184 @@ import (
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/stream_readers"
 	"log"
+	"os"
 	"time"
 
+	"github.com/botirk38/semanticcache"
 	"github.com/gofiber/fiber/v2"
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 type ChatCompletionHandler struct {
 	promptClassifierClient *services.PromptClassifierClient
+	globalPromptModelCache *semanticcache.SemanticCache[string, string]
+	userPromptModelCache   *lru.Cache[string, *semanticcache.SemanticCache[string, string]]
+	embeddingProvider      semanticcache.EmbeddingProvider
 }
 
-// NewChatCompletionHandler creates a new instance of ChatCompletionHandler
 func NewChatCompletionHandler() *ChatCompletionHandler {
+	embeddingProvider, err := semanticcache.NewOpenAIProvider(os.Getenv("OPENAI_API_KEY"), "")
+	if err != nil {
+		log.Fatalf("Failed to create embedding provider: %v", err)
+	}
+
+	globalCache, err := semanticcache.NewSemanticCache[string, string](1000, embeddingProvider, nil)
+	if err != nil {
+		log.Fatalf("Failed to create global semantic cache: %v", err)
+	}
+
+	userCache, err := lru.New[string, *semanticcache.SemanticCache[string, string]](100)
+	if err != nil {
+		log.Fatalf("Failed to create user LRU cache: %v", err)
+	}
+
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
+		globalPromptModelCache: globalCache,
+		userPromptModelCache:   userCache,
+		embeddingProvider:      embeddingProvider,
 	}
 }
 
-// StreamChatCompletion handles streaming chat completion requests
+func (h *ChatCompletionHandler) getUserCache(userID string) *semanticcache.SemanticCache[string, string] {
+	if cache, ok := h.userPromptModelCache.Get(userID); ok {
+		return cache
+	}
+	newCache, err := semanticcache.NewSemanticCache[string, string](100, h.embeddingProvider, nil)
+	if err != nil {
+		log.Printf("[WARN] Failed to create user semantic cache for %s: %v", userID, err)
+		return nil
+	}
+	h.userPromptModelCache.Add(userID, newCache)
+	return newCache
+}
+
+func (h *ChatCompletionHandler) getModelFromCacheOrSelect(prompt string, userID string, requestID string) (string, error) {
+	userCache := h.getUserCache(userID)
+
+	if userCache != nil {
+		if val, ok := userCache.Get(prompt); ok {
+			log.Printf("[%s] Cache hit (user)", requestID)
+			return val, nil
+		}
+	}
+
+	if val, ok := h.globalPromptModelCache.Get(prompt); ok {
+		log.Printf("[%s] Cache hit (global)", requestID)
+		if userCache != nil {
+			_ = userCache.Set(prompt, prompt, val)
+		}
+		return val, nil
+	}
+
+	modelInfo, err := h.promptClassifierClient.SelectModel(prompt)
+	if err != nil {
+		return "", err
+	}
+	log.Printf("[%s] Cache miss - selected model %s", requestID, modelInfo.SelectedModel)
+
+	_ = h.globalPromptModelCache.Set(prompt, prompt, modelInfo.SelectedModel)
+	if userCache != nil {
+		_ = userCache.Set(prompt, prompt, modelInfo.SelectedModel)
+	}
+
+	return modelInfo.SelectedModel, nil
+}
+
 func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	requestID := c.Get("X-Request-ID", time.Now().String())
+	apiKey := string(c.Request().Header.Peek("X-API-Key"))
+	if apiKey == "" {
+		apiKey = "anonymous"
+	}
 
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Printf("[%s] Error parsing request body: %v", requestID, err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body: " + err.Error(),
 		})
 	}
 
-	log.Printf("[%s] Processing chat completion with %d messages", requestID, len(req.Messages))
+	prompt := req.Messages[len(req.Messages)-1].Content
 
-	prompt := req.Messages[len(req.Messages)-1]
-	log.Printf("[%s] Selecting model for prompt", requestID)
-
-	selected_model, err := h.promptClassifierClient.SelectModel(prompt.Content)
+	modelName, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
 	if err != nil {
-		log.Printf("[%s] Model selection failed: %v", requestID, err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	log.Printf("[%s] Selected model: %s from provider: %s", requestID, selected_model.SelectedModel, selected_model.Provider)
-
-	full_chat_completion_req := models.ProviderChatCompletionRequest{
-		Provider:         selected_model.Provider,
-		Model:            selected_model.SelectedModel,
+	fullReq := models.ProviderChatCompletionRequest{
+		Provider:         "openai",
+		Model:            modelName,
 		Messages:         req.Messages,
-		Temperature:      selected_model.Parameters.Temperature,
-		N:                selected_model.Parameters.N,
-		MaxTokens:        selected_model.Parameters.MaxTokens,
-		PresencePenalty:  selected_model.Parameters.PresencePenalty,
-		FrequencyPenalty: selected_model.Parameters.FrequencyPenalty,
+		Temperature:      0.7,
+		N:                1,
+		MaxTokens:        256,
+		PresencePenalty:  0,
+		FrequencyPenalty: 0,
 		Stream:           true,
 	}
 
-	log.Printf("[%s] Initializing LLM provider: %s", requestID, full_chat_completion_req.Provider)
-	provider, err := providers.NewLLMProvider(full_chat_completion_req.Provider)
+	provider, err := providers.NewLLMProvider(fullReq.Provider)
 	if err != nil {
-		log.Printf("[%s] Failed to initialize provider: %v", requestID, err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	log.Printf("[%s] Sending request to provider for chat completion", requestID)
-	startTime := time.Now()
-	resp, err := provider.StreamChatCompletion(&full_chat_completion_req)
-	duration := time.Since(startTime)
-
+	resp, err := provider.StreamChatCompletion(&fullReq)
 	if err != nil {
-		log.Printf("[%s] Chat completion failed after %v: %v", requestID, duration, err)
-		if resp != nil && resp.Error != "" {
-			return c.Status(fiber.StatusInternalServerError).JSON(resp)
-		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to generate completion: " + err.Error(),
+			"error": "Failed to stream completion: " + err.Error(),
 		})
 	}
 
-	log.Printf("[%s] Chat completion successful in %v", requestID, duration)
-
-	// Set appropriate headers for SSE
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
 
-	err = stream_readers.HandleStream(c, resp, requestID)
-	if err != nil {
-		log.Printf("[%s] Error handling stream: %v", requestID, err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Stream handling failed: " + err.Error(),
-		})
-	}
-
-	return nil
+	return stream_readers.HandleStream(c, resp, requestID)
 }
 
-// ChatCompletion handles non-streaming chat completion requests
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	requestID := c.Get("X-Request-ID", time.Now().String())
-	log.Printf("[%s] Received chat completion request", requestID)
+	apiKey := string(c.Request().Header.Peek("X-API-Key"))
+	if apiKey == "" {
+		apiKey = "anonymous"
+	}
 
-	// Parse request body
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
-		log.Printf("[%s] Error parsing request body: %v", requestID, err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body: " + err.Error(),
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body: " + err.Error()})
 	}
 
-	log.Printf("[%s] Processing chat completion with %d messages", requestID, len(req.Messages))
+	prompt := req.Messages[len(req.Messages)-1].Content
 
-	prompt := req.Messages[len(req.Messages)-1]
-	log.Printf("[%s] Selecting model for prompt", requestID)
-
-	selected_model, err := h.promptClassifierClient.SelectModel(prompt.Content)
+	modelName, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
 	if err != nil {
-		log.Printf("[%s] Model selection failed: %v", requestID, err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	log.Printf("[%s] Selected model: %s from provider: %s", requestID, selected_model.SelectedModel, selected_model.Provider)
-
-	full_chat_completion_req := models.ProviderChatCompletionRequest{
-		Provider:         selected_model.Provider,
-		Model:            selected_model.SelectedModel,
+	fullReq := models.ProviderChatCompletionRequest{
+		Provider:         "openai",
+		Model:            modelName,
 		Messages:         req.Messages,
-		Temperature:      selected_model.Parameters.Temperature,
-		N:                selected_model.Parameters.N,
-		MaxTokens:        selected_model.Parameters.MaxTokens,
-		PresencePenalty:  selected_model.Parameters.PresencePenalty,
-		FrequencyPenalty: selected_model.Parameters.FrequencyPenalty,
+		Temperature:      0.7,
+		N:                1,
+		MaxTokens:        256,
+		PresencePenalty:  0,
+		FrequencyPenalty: 0,
 	}
 
-	// Get the appropriate LLM provider
-	log.Printf("[%s] Initializing LLM provider: %s", requestID, full_chat_completion_req.Provider)
-	provider, err := providers.NewLLMProvider(full_chat_completion_req.Provider)
+	provider, err := providers.NewLLMProvider(fullReq.Provider)
 	if err != nil {
-		log.Printf("[%s] Failed to initialize provider: %v", requestID, err)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	// Call the provider's chat completion
-	log.Printf("[%s] Sending request to provider for chat completion", requestID)
-	startTime := time.Now()
-	resp, err := provider.CreateChatCompletion(&full_chat_completion_req)
-	duration := time.Since(startTime)
-
+	resp, err := provider.CreateChatCompletion(&fullReq)
 	if err != nil {
-		log.Printf("[%s] Chat completion failed after %v: %v", requestID, duration, err)
-		// If there's an error but we have a response with error details
-		if resp != nil && resp.Error != "" {
-			return c.Status(fiber.StatusInternalServerError).JSON(resp)
-		}
-		// Generic error
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate completion: " + err.Error(),
 		})
 	}
 
-	log.Printf("[%s] Chat completion successful in %v", requestID, duration)
-
-	// Return successful response
 	return c.JSON(resp)
 }
