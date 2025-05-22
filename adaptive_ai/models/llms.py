@@ -28,7 +28,7 @@ model_capabilities: Dict[str, ModelCapability] = {
             [0.92, 0.38, 0.45, 0.88]
         ),  # [creativity, reasoning, context, complexity, domain]
     },
-    "llama-3.3-70b-verstile": {
+    "llama-3.3-70b-versatile": {
         "description": "A versatile 70B parameter model capable of handling a wide range of tasks.",
         "complexity_range": (0.20, 0.40),
         "provider": "GROQ",
@@ -62,14 +62,6 @@ model_capabilities: Dict[str, ModelCapability] = {
         "provider": "GROQ",
         "capability_vector": np.array([0.48, 0.42, 0.65, 0.55]),  # Contextual focus
     },
-    "mixtral-8x7b-32768": {
-        "description": "A multi-model ensemble comprising eight 7B models with a 32768-token context window for complex tasks.",
-        "complexity_range": (0.15, 0.30),
-        "provider": "GROQ",
-        "capability_vector": np.array(
-            [0.72, 0.83, 0.99, 0.68]
-        ),  # Best contextual_knowledge (32k tokens)
-    },
     "o1-mini": {
         "description": "A smaller version of the O1 model, designed for quicker and lighter tasks.",
         "complexity_range": (0.20, 1.0),
@@ -87,34 +79,33 @@ model_capabilities: Dict[str, ModelCapability] = {
 }
 
 domain_model_mapping = {
-    "Adult": ["llama-3.3-70b-verstile", "llama-guard-3-8b", "o1"],
-    "Arts_and_Entertainment": ["gemma2-9b-it", "llama-3.3-70b-verstile", "o1-mini"],
+    "Adult": ["llama-3.3-70b-versatile", "llama-guard-3-8b", "o1"],
+    "Arts_and_Entertainment": ["gemma2-9b-it", "llama-3.3-70b-", "o1-mini"],
     "Autos_and_Vehicles": ["llama3-70b-8192", "llama3-8b-8192", "o1"],
     "Beauty_and_Fitness": ["llama-3.1-8b-instant", "llama-guard-3-8b", "o1-mini"],
-    "Books_and_Literature": ["llama-3.3-70b-verstile", "llama3-70b-8192", "o1"],
-    "Business_and_Industrial": ["mixtral-8x7b-32768", "llama3-8b-8192", "o1-mini"],
-    "Computers_and_Electronics": ["llama-3.1-8b-instant", "mixtral-8x7b-32768", "o1"],
-    "Finance": ["mixtral-8x7b-32768", "llama-3.3-70b-verstile", "o1-mini"],
+    "Books_and_Literature": ["llama-3.3-70b-versatile", "llama3-70b-8192", "o1"],
+    "Business_and_Industrial": ["llama3-8b-8192", "o1-mini"],
+    "Computers_and_Electronics": ["llama-3.1-8b-instant", "o1"],
+    "Finance": ["llama-3.3-70b-versatile", "o1-mini"],
     "Food_and_Drink": ["llama-3.1-8b-instant", "llama-guard-3-8b", "o1"],
     "Games": ["llama3-70b-8192", "llama-guard-3-8b", "o1-mini"],
     "Health": ["llama3-8b-8192", "llama-guard-3-8b", "o1"],
-    "Hobbies_and_Leisure": ["gemma2-9b-it", "llama-3.3-70b-verstile", "o1-mini"],
+    "Hobbies_and_Leisure": ["gemma2-9b-it", "llama-3.3-70b-versatile", "o1-mini"],
     "Home_and_Garden": ["llama-3.1-8b-instant", "llama-guard-3-8b", "o1"],
-    "Internet_and_Telecom": ["mixtral-8x7b-32768", "llama-3.1-8b-instant", "o1-mini"],
-    "Jobs_and_Education": ["llama-3.3-70b-verstile", "llama3-8b-8192", "o1"],
-    "Law_and_Government": ["llama-guard-3-8b", "mixtral-8x7b-32768", "o1-mini"],
-    "News": ["llama-3.3-70b-verstile", "llama3-70b-8192", "o1"],
+    "Internet_and_Telecom": ["llama-3.1-8b-instant", "o1-mini"],
+    "Jobs_and_Education": ["llama-3.3-70b-versatile", "llama3-8b-8192", "o1"],
+    "Law_and_Government": ["llama-guard-3-8b", "o1-mini"],
+    "News": ["llama-3.3-70b-versatile", "llama3-70b-8192", "o1"],
     "Online_Communities": ["gemma2-9b-it", "llama-3.1-8b-instant", "o1-mini"],
-    "People_and_Society": ["llama-3.3-70b-verstile", "llama3-8b-8192", "o1"],
+    "People_and_Society": ["llama-3.3-70b-versatile", "llama3-8b-8192", "o1"],
     "Pets_and_Animals": ["llama-guard-3-8b", "llama-3.1-8b-instant", "o1-mini"],
-    "Real_Estate": ["mixtral-8x7b-32768", "llama3-70b-8192", "o1"],
-    "Science": ["llama3-8b-8192", "llama-3.3-70b-verstile", "o1-mini"],
-    "Sensitive_Subjects": ["llama-guard-3-8b", "mixtral-8x7b-32768", "o1"],
-    "Shopping": ["llama-3.1-8b-instant", "mixtral-8x7b-32768", "o1-mini"],
-    "Sports": ["llama3-70b-8192", "llama-3.3-70b-verstile", "o1"],
+    "Real_Estate": ["llama3-70b-8192", "o1"],
+    "Science": ["llama3-8b-8192", "llama-3.3-70b-versatile", "o1-mini"],
+    "Sensitive_Subjects": ["llama-guard-3-8b", "o1"],
+    "Shopping": ["llama-3.1-8b-instant", "o1-mini"],
+    "Sports": ["llama3-70b-8192", "llama-3.3-70b-versatile", "o1"],
     "Travel_and_Transportation": [
         "llama-3.1-8b-instant",
-        "mixtral-8x7b-32768",
         "o1-mini",
     ],
 }
