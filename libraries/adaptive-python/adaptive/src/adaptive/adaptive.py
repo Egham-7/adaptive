@@ -30,7 +30,11 @@ class Adaptive:
             "https://backend-go.salmonwave-ec8d1f2a.eastus.azurecontainerapps.io/",
         )
 
-        if self.base_url and not self.base_url.startswith("https://") and not self.base_url.startswith("http://"):
+        if (
+            self.base_url
+            and not self.base_url.startswith("https://")
+            and not self.base_url.startswith("http://")
+        ):
             raise ValueError(
                 f"Adaptive SDK: Invalid base_url '{self.base_url}'. It must start with http:// or https://"
             )

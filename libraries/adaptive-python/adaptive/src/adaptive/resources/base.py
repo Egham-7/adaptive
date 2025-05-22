@@ -64,9 +64,7 @@ class BaseAPIClient:
                         yield json.loads(line)
                     except ValueError as e:
                         self.logger.warning(
-                            f"Failed to parse JSON from stream with error {e} at line: {
-                                line
-                            }"
+                            f"Failed to parse JSON from stream with error {e} at line: {line.decode('utf-8')}"
                         )
                         # Continue processing other lines even if one fails
         except requests.exceptions.HTTPError as e:

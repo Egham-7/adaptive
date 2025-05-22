@@ -1,4 +1,4 @@
-from adaptive.adaptive import Adaptive  
+from adaptive.adaptive import Adaptive  # type: ignore
 
 import sys
 import os
