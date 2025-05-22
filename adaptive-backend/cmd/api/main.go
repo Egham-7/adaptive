@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/ansrivas/fiberprometheus/v2"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -35,9 +37,7 @@ func SetupRoutes(app *fiber.App) {
 	chatCompletions.Post("/stream", chatCompletionHandler.StreamChatCompletion)
 
 	// API key routes
-
 	apiKeys := apiGroup.Group("/api_keys", authMiddleware)
-
 	apiKeys.Get("/:userId", apiKeyHandler.GetAllAPIKeysByUserId)
 	apiKeys.Get("/:id", apiKeyHandler.GetAPIKeyById)
 	apiKeys.Post("/", apiKeyHandler.CreateAPIKey)
@@ -88,6 +88,7 @@ func main() {
 		WriteTimeout:      2 * time.Minute,
 		IdleTimeout:       5 * time.Minute,
 	})
+
 	err := config.Initialize(os.Getenv("DB_SERVER"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))
 	if err != nil {
 		log.Fatal(err)
@@ -112,7 +113,6 @@ func main() {
 }
 
 // setupMiddleware configures all the application middleware
-
 func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	app.Use(logger.New())
 	app.Use(recover.New())
@@ -126,4 +126,8 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		MaxAge:           86400, // Preflight requests can be cached for 24 hours
 		ExposeHeaders:    "Content-Length, Content-Type",
 	}))
+
+	prometheus := fiberprometheus.New("adaptive-backend")
+	prometheus.RegisterAt(app, "/metrics")
+	app.Use(prometheus.Middleware)
 }
