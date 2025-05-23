@@ -1,0 +1,10 @@
+/*!
+ * re2js
+ * RE2JS is the JavaScript port of RE2, a regular expression engine that provides linear time matching
+ *
+ * @version v1.1.0
+ * @author Alexey Vasiliev
+ * @homepage https://github.com/le0pard/re2js#readme
+ * @repository github:le0pard/re2js
+ * @license MIT
+ */

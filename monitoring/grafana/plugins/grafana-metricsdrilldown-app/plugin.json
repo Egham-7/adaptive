@@ -1,0 +1,83 @@
+{
+    "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+    "type": "app",
+    "name": "Grafana Metrics Drilldown",
+    "id": "grafana-metricsdrilldown-app",
+    "autoEnabled": true,
+    "info": {
+        "keywords": [
+            "drilldown",
+            "metrics",
+            "app",
+            "prometheus",
+            "mimir"
+        ],
+        "description": "Quickly find related metrics with a few clicks, without needing to write PromQL queries to retrieve metrics.",
+        "author": {
+            "name": "Grafana"
+        },
+        "logos": {
+            "small": "img/logo.svg",
+            "large": "img/logo.svg"
+        },
+        "screenshots": [
+            {
+                "name": "homepage",
+                "path": "img/homepage.png"
+            },
+            {
+                "name": "metricselect",
+                "path": "img/metricselect.png"
+            },
+            {
+                "name": "breakdown",
+                "path": "img/breakdown.png"
+            }
+        ],
+        "version": "1.0.1",
+        "updated": "2025-05-06",
+        "links": [
+            {
+                "name": "GitHub",
+                "url": "https://github.com/grafana/metrics-drilldown"
+            },
+            {
+                "name": "Report a bug",
+                "url": "https://github.com/grafana/metrics-drilldown/issues/new"
+            }
+        ]
+    },
+    "includes": [
+        {
+            "type": "page",
+            "name": "Grafana Metrics Drilldown",
+            "path": "/a/grafana-metricsdrilldown-app/drilldown",
+            "action": "datasources:explore",
+            "addToNav": true,
+            "defaultNav": true
+        }
+    ],
+    "dependencies": {
+        "grafanaDependency": ">=11.6.0",
+        "plugins": []
+    },
+    "preload": true,
+    "extensions": {
+        "addedLinks": [
+            {
+                "targets": [
+                    "grafana/dashboard/panel/menu",
+                    "grafana/explore/toolbar/action"
+                ],
+                "title": "Open in Grafana Metrics Drilldown",
+                "description": "Open current query in the Grafana Metrics Drilldown view"
+            }
+        ],
+        "extensionPoints": [
+            {
+                "id": "grafana-exploremetrics-app/investigation/v1"
+            }
+        ]
+    },
+    "buildMode": "production"
+}
