@@ -6,6 +6,7 @@ scrape_configs:
     static_configs:
       - targets: ["backend-go:8080"]
 
-  - job_name: "python-backend"
+  - job_name: "adaptive-ai"
     static_configs:
       - targets: ["backend-python:8000"]
+

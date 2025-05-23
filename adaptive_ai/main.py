@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Import routers
 from api.routes.model_selection import router as model_selector_router
@@ -25,6 +26,26 @@ app.add_middleware(
 # Include routers with prefixes
 app.include_router(model_selector_router, prefix="/api/model", tags=["Model Selection"])
 app.include_router(classifier_router, prefix="/api/classify", tags=["Classification"])
+
+
+# Initialize Prometheus metrics
+@app.on_event("startup")
+async def startup():
+    # Set up Prometheus instrumentator
+    instrumentator = Instrumentator(
+        should_group_status_codes=False,
+        should_ignore_untemplated=True,
+        should_respect_env_var=True,
+        should_instrument_requests_inprogress=True,
+        excluded_handlers=[".*admin.*", "/metrics"],
+        env_var_name="ENABLE_METRICS",
+    )
+
+    # Add custom metrics
+    instrumentator.add(metrics_handlers=True)
+
+    # Expose the metrics
+    instrumentator.instrument(app).expose(app, include_in_schema=True, should_gzip=True)
 
 
 # Root endpoint

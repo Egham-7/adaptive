@@ -18,6 +18,8 @@ dependencies = [
   "ruff (>=0.9.9,<0.10.0)",
   "microsoft-python-type-stubs @ git+https://github.com/microsoft/python-type-stubs.git",
   "pytest (>=8.3.5,<9.0.0)",
+  "prometheus-client (>=0.22.0)",
+  "prometheus-fastapi-instrumentator (>=7.0.0)",
 ]
 
 
@@ -28,4 +30,3 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.group.dev.dependencies]
 pytest-cov = "^6.0.0"
 black = "^25.1.0"
-
