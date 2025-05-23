@@ -29,8 +29,6 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
 
 if __name__ == "__main__":
     server = ls.LitServer(
-        AdaptiveModelSelectionAPI(max_batch_size=8),
-        accelerator="auto",
-        num_workers=2,
+        AdaptiveModelSelectionAPI(max_batch_size=8), workers_per_device=4
     )
     server.run(port=8000)

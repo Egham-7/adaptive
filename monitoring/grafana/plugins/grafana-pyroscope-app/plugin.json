@@ -1,0 +1,81 @@
+{
+    "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+    "type": "app",
+    "name": "Grafana Profiles Drilldown",
+    "id": "grafana-pyroscope-app",
+    "autoEnabled": true,
+    "backend": false,
+    "preload": true,
+    "dependencies": {
+        "grafanaDependency": ">=11.5.0",
+        "plugins": []
+    },
+    "info": {
+        "keywords": [
+            "app",
+            "pyroscope",
+            "profiling",
+            "explore",
+            "profiles",
+            "performance",
+            "drilldown"
+        ],
+        "description": "View and analyze high-level service performance, identify problem processes for optimization, and diagnose issues to determine root causes.",
+        "author": {
+            "name": "Grafana"
+        },
+        "logos": {
+            "small": "img/logo.svg",
+            "large": "img/logo.svg"
+        },
+        "screenshots": [
+            {
+                "name": "Hero Image",
+                "path": "img/hero-image.png"
+            }
+        ],
+        "version": "1.4.1",
+        "updated": "2025-05-21",
+        "links": [
+            {
+                "name": "GitHub",
+                "url": "https://github.com/grafana/profiles-drilldown"
+            },
+            {
+                "name": "Report bug",
+                "url": "https://github.com/grafana/profiles-drilldown/issues/new"
+            }
+        ]
+    },
+    "includes": [
+        {
+            "type": "page",
+            "name": "Profiles",
+            "path": "/a/grafana-pyroscope-app/explore",
+            "action": "datasources:explore",
+            "addToNav": true,
+            "defaultNav": true
+        }
+    ],
+    "extensions": {
+        "extensionPoints": [
+            {
+                "id": "grafana-pyroscope-app/investigation/v1"
+            },
+            {
+                "id": "grafana-pyroscope-app/settings/v1"
+            }
+        ],
+        "addedLinks": [
+            {
+                "title": "Open in Grafana Profiles Drilldown",
+                "description": "Try our new queryless experience for profiles",
+                "targets": [
+                    "grafana/explore/toolbar/action",
+                    "grafana/traceview/details"
+                ]
+            }
+        ]
+    },
+    "buildMode": "production"
+}

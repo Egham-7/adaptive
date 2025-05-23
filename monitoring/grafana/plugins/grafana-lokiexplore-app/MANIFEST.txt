@@ -1,0 +1,66 @@
+
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+{
+  "manifestVersion": "2.0.0",
+  "signatureType": "grafana",
+  "signedByOrg": "grafana",
+  "signedByOrgName": "Grafana Labs",
+  "plugin": "grafana-lokiexplore-app",
+  "version": "1.0.17",
+  "time": 1747852986842,
+  "keyId": "7e4d0c6a708866e7",
+  "files": {
+    "854.js": "421be9b543902b99c85c30153ce2da0ff9822dfefae9229dd201f0e9208dc0bd",
+    "img/patterns.png": "bf100549ec168420e9a7b6d759f492a761f964d33d45a3217ba30b9827b2bece",
+    "img/grot_err.svg": "6f535973a005418084ad6218f78f2e0e92a7a06efb7e66a05a89c35be59eb154",
+    "img/logo.svg": "11ca1cf6edec87db3a9725b071f17c93c2313d9130d31d37da3458509a8ff67b",
+    "img/fields.png": "0b087967a82bb1a6026c35b03bfe2073b35c4da13972abf59bb9a4a404256727",
+    "img/drilldown-features.png": "f43cb1e498df7c4f70e10768306e52cb00bc8f24e66259a4dd91d55cf3be0948",
+    "img/grot_loki.svg": "299c18dd3db308247925207b1623c2c16f465982866b9b60b78b927a9bfa5820",
+    "img/explore-logs-features.jpeg": "18675a62a579da52f0b1cc58796eba8896c38333de4b28f0b1e67476b6f63dd6",
+    "img/grot_err_light.svg": "eb43595481ac03b7569f9909d9e093629dfbf7001f4c95c435c53a6987397662",
+    "img/service_logs.jpg": "42f41204403337358ae437a7ad052daec6f9b6f9bef7f297fd065c1e68133bf4",
+    "img/table.png": "fe2fa65a8a761feb0a93c62231644645fb60ee06c44dda3ab16dc4e432286572",
+    "649058283f564041551d.wasm": "84a1635aaca10061a9fad641983327dc9d261fb2cd3ca5ff3dd26bf3072664df",
+    "470.js.LICENSE.txt": "e25e5f78cf2b2fbbf8d4865193c9642bea9f75a1ba1323a8476a534310b26d58",
+    "546.js.map": "31070d537b1f22abb72e0547d111747e9a10b4ccb1deea07ca1484a37eedb128",
+    "82.js.map": "bff90d6dc618a59ba2ed4f0955b2d351a83d831594b5e6912be3f8f649e967be",
+    "328.js": "d2e8b1d29d42ae4314c1a7486b95d9dd6808a0258d84753c8efc06d86e4a4fca",
+    "328.js.map": "6535709e01d58b7ffd745090d6b096962e0dcd9859d2cac059075f7956fdad9c",
+    "CHANGELOG.md": "b31b8c300d67f5adec9bc308a2e839d8675210eaec07e82c0da32d49284cb98e",
+    "115.js.map": "81548a03da2ca72d6fa51ab3a8030069f04790d9f0851ed2cec23b4a744516b9",
+    "854.js.map": "2da9b6cb9484c9e5a06b3eb1b9e5fbfd3c1e7436137273d53fa4433e066edde8",
+    "919.js": "8ee49f61aa7634f0addb040853b33fab92d12ed51ef276e5643bce6c6423aafe",
+    "README.md": "860a469ddc8cb370958c5d2bb044d258fcf383e72bee36d933e72d2e727e720b",
+    "826.js.map": "c4a667442cfcbeead10f8efbc575a89aed318ad7480e60e605c6f9cdd41e1c5b",
+    "944.js": "50d0e55fc61eb78dc3137f90347bca6523c925e295b304043f6a80d87852df97",
+    "module.js.map": "9fab62b26e47a505f839c14dd2f1af4618a86103ebb895cff5a93d04144d700e",
+    "919.js.map": "9dab59db94d0aaf463408479f598ab931acceb52730ee782a219f379207f42de",
+    "LICENSE": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+    "546.js": "79ecd141f81ae989b32a4fa39498fd806fdd04c827492efe3408b921deddb7e4",
+    "3d96a93cfcb32df74eef.svg": "11ca1cf6edec87db3a9725b071f17c93c2313d9130d31d37da3458509a8ff67b",
+    "module.js": "6ddaf1a181bb9bbf93ec72a48aba2dbce028ae4518487a88a67b0009d66d1503",
+    "115.js.LICENSE.txt": "9e0cb6b0d82ee46be39b054a3f76419242945d9dbfced78bca42fd65c082e71a",
+    "plugin.json": "a0309b843049750872580907840da9ad622c3b742f62c4c564f76e9f05ccad1b",
+    "1759fd27b2c9f73dea05.wasm": "c79b8fa1bea557bdcd6b743a00e5c47aef7f71a457dcbaa63218dd4a706475b6",
+    "82.js": "faff7daac1d8d8119aaee2e30d02bd39534950726e592e23f0df8356f6d0a4d5",
+    "944.js.map": "b2a93650921f2dbe9917a3b382ba0627ae2d67d74c8d6f9a4422877a2882adff",
+    "470.js": "6b6601759960132707ae93546acd1032f6ee3c9ed214e618258a62ff52aec250",
+    "826.js": "da7ee9b2307499ba7e3f7f4fc46f7422c31b984fcda54570e7a8910009b9832d",
+    "470.js.map": "7c1f79602e5b10d8b4d89e270f6ff7ba93ecdab4b5c2871b173945501a94fcb1",
+    "115.js": "ec78120f4b95369649699bd2a91dd9ba6f8672a01297df69c99a8e0bf0e3761a"
+  }
+}
+-----BEGIN PGP SIGNATURE-----
+Version: OpenPGP.js v4.10.11
+Comment: https://openpgpjs.org
+
+wrkEARMKAAYFAmguHrsAIQkQfk0ManCIZucWIQTzOyW2kQdOhGNlcPN+TQxq
+cIhm593JAgkA16DeCBBZkt2zaypaCoofxBu38T2V4xM2xphdNv0laSzIBDGe
+eEoauVbvpQNSe21nVD8LcxR3H99fkY7oNVa+4OkCCQCpcp2tHGdH0eilDTRB
+CpSsYfzu25d6ruuGYZuuzsJhJBo+XadkTT29uy0tiTW0gOJhq+CSbGzYw/nO
+CdAFthA80Q==
+=aH0b
+-----END PGP SIGNATURE-----
