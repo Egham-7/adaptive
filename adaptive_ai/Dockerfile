@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.4.1-base-ubuntu22.04
+FROM nvidia/cuda:12.9.0-runtime-ubuntu24.04
 
 ARG PYTHON_VERSION=3.11
 
