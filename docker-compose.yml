@@ -65,7 +65,7 @@ services:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
-      - ./monitoring/prometheus.dev..yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus.dev.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     depends_on:
