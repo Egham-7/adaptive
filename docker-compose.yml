@@ -49,7 +49,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    env_file: ./adaptive_ai/.env.local
+    env_file:
+      - ./adaptive_ai/.env.local
     restart: unless-stopped
     networks:
       - app-network
@@ -59,6 +60,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -69,6 +71,22 @@ services:
     depends_on:
       - backend-python
       - backend-go
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana:/var/lib/grafana
+    depends_on:
+      - prometheus
     networks:
       - app-network
     restart: unless-stopped
