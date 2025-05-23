@@ -15,7 +15,7 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
         # Handles {"prompt": ...} or {"prompt": [...]}
         return request["prompt"]
 
-    def predict_select_model(self, prompt):
+    def predict(self, prompt):
         # This method is mapped to POST /select-model
         if isinstance(prompt, list):
             # Batched
