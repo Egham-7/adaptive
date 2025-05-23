@@ -40,10 +40,10 @@ async def startup():
         excluded_handlers=[".*admin.*", "/metrics"],
         env_var_name="ENABLE_METRICS",
     )
-    
+
     # Add custom metrics
     instrumentator.add(metrics_handlers=True)
-    
+
     # Expose the metrics
     instrumentator.instrument(app).expose(app, include_in_schema=True, should_gzip=True)
 
