@@ -127,7 +127,7 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		ExposeHeaders:    "Content-Length, Content-Type",
 	}))
 
-	prometheus := fiberprometheus.New("adaptive-backend")
-	prometheus.RegisterAt(app, "/metrics")
-	app.Use(prometheus.Middleware)
+	prometheusMiddleware := fiberprometheus.NewWithDefaultRegistry("adaptive-backend")
+	prometheusMiddleware.RegisterAt(app, "/metrics")
+	app.Use(prometheusMiddleware.Middleware)
 }
