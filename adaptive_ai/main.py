@@ -2,7 +2,7 @@ import litserve as ls  # type: ignore
 
 
 class AdaptiveModelSelectionAPI(ls.LitAPI):
-    def setup(self, device):
+    def setup(self, _device):
         from services.model_selector import ModelSelector
         from services.prompt_classifier import get_prompt_classifier
         from services.domain_classifier import get_domain_classifier
