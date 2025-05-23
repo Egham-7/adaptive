@@ -29,7 +29,7 @@ jobs:
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: grafana/monitoring/datasources
+          appSourcePath: ${{ github.workspace }}/grafana/provisioning/datasources
           dockerfilePath: Dockerfile
           registryUrl: adaptiveregistry.azurecr.io
           registryUsername: ${{ secrets.GRAFANAMONITORING_REGISTRY_USERNAME }}
