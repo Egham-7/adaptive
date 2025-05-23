@@ -12,17 +12,11 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
         )
 
     def decode_request(self, request):
-        # Expecting {"prompt": ...}
         return request["prompt"]
 
-    def predict(self, prompts):
-        # prompts will be a list if batched, or a single value if not batched
-        if isinstance(prompts, list):
-            # Batched inference (fastest)
-            return [self.model_selector.select_model(p) for p in prompts]
-        else:
-            # Single inference
-            return self.model_selector.select_model(prompts)
+    def predict(self, prompt):
+        # Single inference
+        return self.model_selector.select_model(prompt)
 
     def encode_response(self, output):
         return output
