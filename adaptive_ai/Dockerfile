@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     PATH="/app/.venv/bin:/opt/poetry/bin:$PATH"
 
-# System deps
+# Install build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
@@ -38,17 +38,16 @@ WORKDIR /app
 
 COPY --from=builder /app /app
 
-# Install runtime deps only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     libssl-dev \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 🆕 Add entrypoint.sh
+# 🆕 Copy entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create non-root user
+# Add user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser && \
     chown -R appuser:appgroup /app
 
@@ -57,5 +56,4 @@ USER appuser
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["python", "/app/main.py"]
 
