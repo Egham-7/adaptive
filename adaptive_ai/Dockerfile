@@ -1,42 +1,36 @@
 FROM python:3.12-slim
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VERSION=2.1.3 \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    PATH="/app/.venv/bin:/opt/poetry/bin:$PATH" \
+    PATH="/opt/poetry/bin:$PATH" \
     HF_HOME="/tmp/hf_cache" \
     HOME="/app"
 
-# Install system dependencies and Poetry
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        curl \
-        git \
-        bash \
-        libffi-dev \
-        libssl-dev && \
+# Install Poetry and system packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    bash \
+    libffi-dev \
+    libssl-dev && \
     curl -sSL https://install.python-poetry.org | python3 - && \
     ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Create HuggingFace cache directory (for both root and future user)
-RUN mkdir -p /app/hf_cache
-
+# Poetry setup for system site-packages
 COPY pyproject.toml poetry.lock* ./
-RUN poetry install --only main --no-root --no-interaction
+RUN poetry config virtualenvs.create false && \
+    poetry install --only main --no-root --no-interaction
 
 COPY . .
 
-# Add and use non-root user
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser && \
-    chown -R appuser:appgroup /app
+# Optional: Create non-root user
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 USER appuser
 
