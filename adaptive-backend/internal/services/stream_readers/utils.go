@@ -10,10 +10,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/valyala/fasthttp"
+	"strings" // Added for strings.TrimSpace and strings.HasPrefix
 )
 
 // handleStream manages the streaming response to the client
-func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string) error {
+func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string, streamOpt models.StreamOption) error {
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		streamReader, err := GetStreamReader(resp, resp.Provider, requestID)
 		if err != nil {
@@ -23,7 +24,7 @@ func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID s
 
 		defer closeStreamReader(streamReader, requestID)
 
-		if err := pumpStreamData(w, streamReader, requestID); err != nil {
+		if err := pumpStreamData(w, streamReader, requestID, streamOpt); err != nil {
 			sendErrorEvent(w, requestID, "Stream error", err)
 		}
 	}))
@@ -39,26 +40,50 @@ func closeStreamReader(streamReader io.ReadCloser, requestID string) {
 	log.Printf("[%s] Stream completed", requestID)
 }
 
-func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string) error {
-	buffer := make([]byte, 1024)
+func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, streamOpt models.StreamOption) error {
 	startTime := time.Now()
 
-	for {
-		n, err := streamReader.Read(buffer)
-
-		if n > 0 {
-			if err := writeAndFlush(w, buffer[:n], requestID); err != nil {
-				return err
+	if streamOpt == models.TEXT {
+		scanner := bufio.NewScanner(streamReader)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, "data: ") {
+				payload := strings.TrimSpace(strings.TrimPrefix(line, "data: "))
+				if payload == "[DONE]" {
+					continue // Skip [DONE] messages
+				}
+				if _, err := w.WriteString(payload + "\n"); err != nil {
+					return fmt.Errorf("[%s] writing text data to response: %w", requestID, err)
+				}
+				if err := w.Flush(); err != nil {
+					return fmt.Errorf("[%s] flushing text data: %w", requestID, err)
+				}
 			}
 		}
-
-		if err == io.EOF {
-			log.Printf("[%s] Stream completed after %v", requestID, time.Since(startTime))
-			return nil
+		if err := scanner.Err(); err != nil {
+			return fmt.Errorf("[%s] reading from stream with scanner: %w", requestID, err)
 		}
+		log.Printf("[%s] TEXT Stream completed after %v", requestID, time.Since(startTime))
+		return nil
+	} else { // Default to SSE or other modes
+		buffer := make([]byte, 1024)
+		for {
+			n, err := streamReader.Read(buffer)
 
-		if err != nil {
-			return fmt.Errorf("reading from stream: %w", err)
+			if n > 0 {
+				if err := writeAndFlush(w, buffer[:n], requestID); err != nil {
+					return err
+				}
+			}
+
+			if err == io.EOF {
+				log.Printf("[%s] SSE Stream completed after %v", requestID, time.Since(startTime))
+				return nil
+			}
+
+			if err != nil {
+				return fmt.Errorf("[%s] reading from stream: %w", requestID, err)
+			}
 		}
 	}
 }

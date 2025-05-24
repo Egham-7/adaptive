@@ -169,7 +169,20 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 
-	c.Set("Content-Type", "text/event-stream")
+	// Determine StreamOption
+	var streamOption models.StreamOption
+	if req.RequestOptions == nil || req.RequestOptions.StreamOptions == nil {
+		streamOption = models.SSE
+	} else {
+		streamOption = *req.RequestOptions.StreamOptions
+	}
+
+	// Set Content-Type header
+	if streamOption == models.TEXT {
+		c.Set("Content-Type", "text/plain")
+	} else {
+		c.Set("Content-Type", "text/event-stream")
+	}
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
@@ -177,7 +190,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	if h.metrics != nil {
 		h.metrics.RequestDuration.WithLabelValues("stream", "200").Observe(time.Since(start).Seconds())
 	}
-	return stream_readers.HandleStream(c, resp, requestID)
+	return stream_readers.HandleStream(c, resp, requestID, streamOption)
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
