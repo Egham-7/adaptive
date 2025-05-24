@@ -51,7 +51,7 @@ jobs:
           path: ./adaptive_ai/.venv
           key: ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
           restore-keys: |
-            ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-
+            ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
 
       - name: Install project
         run: poetry install --no-interaction --no-root
