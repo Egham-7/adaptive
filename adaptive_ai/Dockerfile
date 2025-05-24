@@ -1,4 +1,4 @@
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     PATH="/app/.venv/bin:/opt/poetry/bin:$PATH"
 
-# Install build tools
+# Build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
@@ -22,10 +22,13 @@ WORKDIR /app
 
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --only main --no-root --no-interaction
-
 COPY . .
 
-# --- Final Stage ---
+# ✅ Preload models to cache
+RUN python -c "from transformers import AutoModel; AutoModel.from_pretrained('microsoft/deberta-v3-base')" && \
+    python -c "from transformers import AutoModel; AutoModel.from_pretrained('nvidia/domain-classifier')"
+
+# --- Final stage ---
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -36,14 +39,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Copy everything, including downloaded model cache
 COPY --from=builder /app /app
+COPY --from=builder /root/.cache/huggingface /app/hf_cache
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     libssl-dev \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 🆕 Copy entrypoint
+# Entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
