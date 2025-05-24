@@ -39,16 +39,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Copy venv and app code from builder
 COPY --from=builder /app /app
 
-# Minimal system dependencies
+# ✅ Install only what’s available in Debian Bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libffi7 \
-        libssl1.1 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    libffi-dev \
+    libssl-dev \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Add non-root user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser && \
     chown -R appuser:appgroup /app
 
