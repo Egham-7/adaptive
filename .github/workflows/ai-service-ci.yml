@@ -53,9 +53,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-
 
-      - name: Use Python 3.12 for Poetry
-        run: poetry env use 3.12
-
       - name: Install project
         run: poetry install --no-interaction --no-root
 
