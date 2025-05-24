@@ -748,7 +748,7 @@ develop = false
 type = "git"
 url = "https://github.com/microsoft/python-type-stubs.git"
 reference = "HEAD"
-resolved_reference = "69869f30adcb666d446a5975dfa636c3d1c37d01"
+resolved_reference = "b7c58bda2b2b4fdd07260b80f0add129b564bb03"
 
 [[package]]
 name = "mpmath"
