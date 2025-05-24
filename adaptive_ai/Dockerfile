@@ -7,7 +7,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     PATH="/app/.venv/bin:/opt/poetry/bin:$PATH"
 
-# Build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     build-essential \
@@ -24,7 +23,7 @@ COPY pyproject.toml poetry.lock* ./
 RUN poetry install --only main --no-root --no-interaction
 COPY . .
 
-# ✅ Preload models to cache
+# Pre-download Hugging Face models
 RUN python -c "from transformers import AutoModel; AutoModel.from_pretrained('microsoft/deberta-v3-base')" && \
     python -c "from transformers import AutoModel; AutoModel.from_pretrained('nvidia/domain-classifier')"
 
@@ -39,7 +38,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Copy everything, including downloaded model cache
 COPY --from=builder /app /app
 COPY --from=builder /root/.cache/huggingface /app/hf_cache
 
@@ -48,13 +46,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Add user
+# Create app user, chown only app code (not large venv/cache)
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser && \
-    chown -R appuser:appgroup /app
+    find /app -maxdepth 1 ! -name ".venv" ! -name "hf_cache" -exec chown -R appuser:appgroup {} +
 
 USER appuser
 
