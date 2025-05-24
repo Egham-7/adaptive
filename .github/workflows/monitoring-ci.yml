@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - "**"
+      - "grafana/**"
+      - "monitoring/**"
       - ".github/workflows/monitoring-ci.yml"
   workflow_dispatch:
 
