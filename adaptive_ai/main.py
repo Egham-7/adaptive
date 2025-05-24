@@ -33,5 +33,5 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
 
 if __name__ == "__main__":
     api = AdaptiveModelSelectionAPI()
-    server = ls.LitServer(api, accelerator="auto")
+    server = ls.LitServer(api, accelerator="auto", devices="auto")
     server.run(port=8000)
