@@ -1,40 +1,54 @@
-FROM python:3.12-slim
+# --- Stage 1: Build Stage ---
+FROM python:3.12-slim as builder
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    POETRY_HOME="/opt/poetry" \
     POETRY_VERSION=2.1.3 \
+    POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
-    PATH="/app/.venv/bin:/opt/poetry/bin:$PATH" \
-    HF_HOME="/app/hf_cache" \
-    HOME="/app"
+    PATH="/app/.venv/bin:/opt/poetry/bin:$PATH"
 
-# Install system dependencies and Poetry
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
+        build-essential \
+        libffi-dev \
+        libssl-dev \
         git \
         bash \
-        libffi-dev \
-        libssl-dev && \
-    curl -sSL https://install.python-poetry.org | python3 - && \
-    ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry
 
 WORKDIR /app
 
-# Create HuggingFace cache directory (for both root and future user)
-RUN mkdir -p /app/hf_cache
-
 COPY pyproject.toml poetry.lock* ./
+
+# Install only runtime dependencies (not dev)
 RUN poetry install --only main --no-root --no-interaction
 
 COPY . .
 
-# Add and use non-root user
+# --- Stage 2: Final Stage ---
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:$PATH" \
+    HF_HOME="/app/hf_cache" \
+    HOME="/app"
+
+WORKDIR /app
+
+# Copy venv and app code from builder
+COPY --from=builder /app /app
+
+# Minimal system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libffi7 \
+        libssl1.1 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Add non-root user
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser && \
     chown -R appuser:appgroup /app
 
