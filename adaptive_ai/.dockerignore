@@ -8,6 +8,8 @@ __pycache__/
 .coverage
 htmlcov/
 .tox/
+.mpy_cache/
+.ruff_cache/
 
 # Poetry and virtual environments
 .venv/
