@@ -30,6 +30,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
+        id: python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -48,9 +49,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ./adaptive_ai/.venv
-          key: ${{ runner.os }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
+          key: ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
           restore-keys: |
-            ${{ runner.os }}-poetry-
+            ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-
+
+      - name: Use Python 3.12 for Poetry
+        run: poetry env use 3.12
 
       - name: Install project
         run: poetry install --no-interaction --no-root
