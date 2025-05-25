@@ -1,7 +1,5 @@
-# Use NVIDIA's CUDA base image with Python 3.12
-FROM nvidia/cuda:12.4.1-cudnn8-runtime-ubuntu22.04
+FROM nvidia/cuda:12.9.0-runtime-ubuntu24.04
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     POETRY_HOME="/opt/poetry" \
@@ -10,12 +8,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HF_HOME="/tmp/hf_cache" \
     HOME="/app"
 
-# Install system dependencies and Poetry
-RUN apt-get update && apt-get install -y --no-install-recommends \
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     build-essential \
     curl \
     git \
-    bash \
     libffi-dev \
     libssl-dev \
     python3.12 \
@@ -23,27 +22,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.12-dev && \
     ln -s /usr/bin/python3.12 /usr/bin/python3 && \
     curl -sSL https://install.python-poetry.org | python3 && \
-    ln -s /opt/poetry/bin/poetry /usr/local/bin/poetry && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    ln -s $POETRY_HOME/bin/poetry /usr/local/bin/poetry && \
+    apt-get purge -y curl && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /root/.cache /tmp/*
 
-# Set working directory
 WORKDIR /app
 
-# Copy and install Python dependencies
 COPY pyproject.toml poetry.lock* ./
 RUN poetry config virtualenvs.create false && \
-    poetry install --only main --no-root --no-interaction
+    poetry install --only main --no-interaction --no-ansi
 
-# Copy application code
 COPY . .
 
-# Create a non-root user
-RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+# Copy and prepare entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Create user and set permissions
+RUN addgroup --system appgroup && \
+    adduser --system --ingroup appgroup appuser && \
+    chown -R appuser:appgroup /app /entrypoint.sh
+
 USER appuser
 
-# Expose application port
 EXPOSE 8000
 
-# Set default command
-CMD ["python", "/app/main.py"]
+ENTRYPOINT ["/entrypoint.sh"]
 
