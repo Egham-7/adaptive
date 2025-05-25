@@ -57,7 +57,6 @@ WORKDIR /app
 # Copy installed Python dependencies and Poetry from builder
 COPY --from=builder /usr/local/lib/python3.12/dist-packages /usr/local/lib/python3.12/dist-packages
 COPY --from=builder /opt/poetry /opt/poetry
-COPY --from=builder /usr/local/bin/poetry /usr/local/bin/poetry
 COPY --from=builder /app /app
 
 # Entrypoint script
