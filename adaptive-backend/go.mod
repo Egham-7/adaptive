@@ -12,8 +12,8 @@ require (
 	github.com/conneroisu/groq-go v0.9.5
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/hashicorp/golang-lru/v2 v2.0.7
+	github.com/openai/openai-go v1.1.0
 	github.com/prometheus/client_golang v1.22.0
-	github.com/sashabaranov/go-openai v1.38.0
 	github.com/valyala/fasthttp v1.59.0
 	gorm.io/driver/sqlserver v1.5.4
 )
@@ -25,11 +25,10 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/microsoft/go-mssqldb v1.8.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/openai/openai-go v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	github.com/tidwall/gjson v1.14.4 // indirect
+	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
