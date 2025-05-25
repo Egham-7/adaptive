@@ -1,9 +1,6 @@
 #!/bin/sh
-# entrypoint.sh
-
-set -e # Exit immediately on error
+set -e
 
 echo "🚀 Starting the application..."
 
-# Run the app
-exec python /app/main.py
+exec poetry run python /app/main.py "$@"
