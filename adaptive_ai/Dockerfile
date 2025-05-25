@@ -20,6 +20,7 @@ RUN apt-get update && \
     python3.12 \
     python3.12-venv \
     python3.12-dev && \
+    ln -s /usr/bin/python3.12 /usr/bin/python && \
     ln -s /usr/bin/python3.12 /usr/bin/python3 && \
     curl -sSL https://install.python-poetry.org | python3 && \
     ln -s $POETRY_HOME/bin/poetry /usr/local/bin/poetry && \
@@ -27,6 +28,8 @@ RUN apt-get update && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /root/.cache /tmp/*
+
+
 
 WORKDIR /app
 
