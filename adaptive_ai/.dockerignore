@@ -1,33 +1,52 @@
-# Python cache files
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Cython build files
+*.c
+*.cpp
+*.pyd
+
+# Python interpreter
 .Python
+
+# Test & coverage
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
 .mpy_cache/
 .ruff_cache/
+.nox/
+.cache/
+cache/
+.mypy_cache/
+mypy_cache/
 
-# Poetry and virtual environments
+# Poetry & virtual environments
 .venv/
 venv/
 ENV/
+env/
 .env
 .python-version
-
-# Poetry cache and local configuration
 .poetry/
-poetry.toml
+# DO NOT ignore poetry.lock or poetry.toml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
 
 # Distribution / packaging
 dist/
 build/
 *.egg-info/
+*.eggs/
+pip-wheel-metadata/
+*.manifest
 
-# Development tools
+# Development tools & settings
 .git/
 .github/
 .gitignore
@@ -41,19 +60,48 @@ docs/
 *.md
 !README.md
 
+# System files
+.DS_Store
+Thumbs.db
+
 # Local development files
 *.log
-.DS_Store
+*.sqlite3
+.env.*
 .env.local
 .env.development
 .env.test
 .env.production
 
-# Docker files (optional, depending on your workflow)
-# Dockerfile
-# docker-compose.yml
+# Docker
+Dockerfile*
+docker-compose*.yml
 
-# Project specific
+# Project-specific, large, or temp files
 data/
 logs/
 tmp/
+hf_cache/
+*.model
+*.weights
+*.ckpt
+*.safetensors
+*.pth
+*.h5
+*.tflite
+*.onnx
+*.tar.gz
+*.zip
+*.npz
+
+# HuggingFace and other ML cache
+/tmp/hf_cache
+/app/.cache
+/app/.mypy_cache
+
+# VSCode Python-specific files
+.python/
+
+# Pyre type checker
+.pyre/
+
