@@ -30,7 +30,7 @@ type BaseStreamReader struct {
 func GetStreamReader(resp *models.ChatCompletionResponse, provider string, requestID string) (StreamReader, error) {
 	switch provider {
 	case "openai":
-		stream, ok := resp.Response.(*openai.ChatCompletionChunk)
+		stream, ok := resp.Response.(*ssestream.Stream[openai.ChatCompletionChunk])
 		if !ok {
 			return nil, fmt.Errorf("invalid OpenAI stream type")
 		}
