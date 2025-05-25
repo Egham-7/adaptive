@@ -243,10 +243,3 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 	return c.JSON(resp)
 }
-
-// Example: Fiber app wiring for clarity (remove if not needed)
-func RegisterLLMRoutes(app *fiber.App) {
-	handler := NewChatCompletionHandler()
-	app.Post("/v1/chat/completions", handler.ChatCompletion)
-	app.Post("/v1/chat/completions/stream", handler.StreamChatCompletion)
-}

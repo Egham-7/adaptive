@@ -7,24 +7,25 @@ import (
 	"log"
 	"strings"
 
-	"github.com/sashabaranov/go-openai"
+	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
+	"github.com/openai/openai-go"
 )
 
 // EnhancedOpenAIResponse extends the OpenAI response with additional fields
 type EnhancedOpenAIResponse struct {
-	openai.ChatCompletionStreamResponse
+	openai.ChatCompletionChunk
 	Provider string `json:"provider"`
 }
 
 // OpenAIStreamReader adapts OpenAI's streaming API to io.Reader
 type OpenAIStreamReader struct {
 	BaseStreamReader
-	stream *openai.ChatCompletionStream
+	stream *ssestream.Stream[openai.ChatCompletionChunk]
 	done   bool
 }
 
 // NewOpenAIStreamReader creates a new stream reader for OpenAI completions
-func NewOpenAIStreamReader(stream *openai.ChatCompletionStream, requestID string) *OpenAIStreamReader {
+func NewOpenAIStreamReader(stream *ssestream.Stream[openai.ChatCompletionChunk], requestID string) *OpenAIStreamReader {
 	return &OpenAIStreamReader{
 		BaseStreamReader: BaseStreamReader{
 			buffer:    []byte{},
@@ -50,26 +51,26 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 	}
 
 	// Get next chunk from OpenAI stream
-	response, err := r.stream.Recv()
-	if err != nil {
-		// Handle end of stream or errors
-		if strings.Contains(err.Error(), "EOF") || strings.Contains(err.Error(), "stream closed") {
-			// Send [DONE] and mark as complete
+	ok := r.stream.Next()
+	if !ok {
+		// End of stream or error
+		if r.stream.Err() == nil || strings.Contains(r.stream.Err().Error(), "EOF") {
 			r.buffer = []byte("data: [DONE]\n\n")
 			r.done = true
-			return r.Read(p) // Recursively call to handle the buffer
+			return r.Read(p)
 		}
-		// Format any other error as SSE and mark as done
-		log.Printf("[%s] Error in stream: %v", r.requestID, err)
-		safeErrMsg := strings.ReplaceAll(err.Error(), "\"", "\\\"")
+		log.Printf("[%s] Error in stream: %v", r.requestID, r.stream.Err())
+		safeErrMsg := strings.ReplaceAll(r.stream.Err().Error(), "\"", "\\\"")
 		r.buffer = fmt.Appendf(nil, "data: {\"error\": \"%s\"}\n\n", safeErrMsg)
 		r.done = true
-		return r.Read(p) // Recursively call to handle the buffer
+		return r.Read(p)
 	}
 
+	// Compose enhanced response with provider
+	chunk := r.stream.Current()
 	enhanced := EnhancedOpenAIResponse{
-		ChatCompletionStreamResponse: response,
-		Provider:                     "openai",
+		ChatCompletionChunk: chunk,
+		Provider:            "openai",
 	}
 
 	// Marshal the response to JSON
@@ -84,11 +85,12 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 	r.buffer = fmt.Appendf(nil, "data: %s\n\n", jsonData)
 
 	// Check if this is the last message
-	if len(response.Choices) > 0 && response.Choices[0].FinishReason != "" {
-		// This is the last content chunk, we'll send [DONE] on the next Read
-		r.done = true
+	for _, choice := range chunk.Choices {
+		if choice.FinishReason != "" {
+			r.done = true
+			break
+		}
 	}
-
 	// Recursively call Read to handle the newly filled buffer
 	return r.Read(p)
 }
