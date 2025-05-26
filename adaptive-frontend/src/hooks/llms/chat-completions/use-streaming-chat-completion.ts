@@ -60,6 +60,7 @@ export const useStreamingChatCompletion = () => {
         const abortFn = createStreamingChatCompletion(
           request,
           (chunk: StreamingResponse) => {
+            console.log("Received chunk:", chunk);
             // Handle model info using the helper function
             const newModelInfo = extractModelInfoFromStreamingResponse(chunk);
             if (newModelInfo) {
