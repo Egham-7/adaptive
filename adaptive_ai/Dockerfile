@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu20.04
+FROM python:3.12-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV POETRY_HOME="/opt/poetry"
@@ -8,8 +8,6 @@ ENV HF_HOME="/tmp/hf_cache"
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        software-properties-common \
-        wget \
         build-essential \
         git \
         curl \
@@ -17,16 +15,12 @@ RUN apt-get update && \
         libssl-dev \
         openssl \
         ca-certificates \
-    && add-apt-repository ppa:deadsnakes/ppa \
-    && apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3.12 \
-        python3.12-dev \
-        python3.12-venv \
-    && curl -sSL https://install.python-poetry.org | python3.12 - \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python \
-    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && curl -sSL https://install.python-poetry.org | python3 - \
+    && ln -s $POETRY_HOME/bin/poetry /usr/local/bin/poetry \
+    && apt-get purge -y curl \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
