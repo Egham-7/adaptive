@@ -50,7 +50,7 @@ COPY --from=builder /app /app
 RUN rm -rf /root/.cache /app/.cache /app/.mypy_cache /tmp/hf_cache
 
 RUN addgroup --system appgroup && \
-    adduser --system --ingroup appgroup appuser && \
+    adduser --system --ingroup appgroup --home /app appuser && \
     mkdir -p /app/hf_cache && \
     chown -R appuser:appgroup /app /app/hf_cache
 
@@ -62,3 +62,4 @@ USER appuser
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
+
