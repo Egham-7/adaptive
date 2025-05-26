@@ -160,8 +160,8 @@ export const createStreamingChatCompletion = (
       }
 
       onComplete?.();
-    } catch (error: any) {
-      if (error.name !== "AbortError" && onError) {
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError" && onError) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
     }
