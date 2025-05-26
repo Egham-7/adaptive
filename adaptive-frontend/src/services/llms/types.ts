@@ -205,6 +205,47 @@ export interface DeepSeekStreamingResponse {
   provider: string;
 }
 
+/** * Anthropic streaming response types based on their API */
+export interface AnthropicContentBlockDelta {
+  type: string;
+  text?: string;
+}
+
+export interface AnthropicMessageDelta {
+  stop_reason?: string;
+  stop_sequence?: string;
+  usage?: {
+    output_tokens: number;
+  };
+}
+
+export interface AnthropicStreamingResponse {
+  type: string;
+  message?: {
+    id: string;
+    type: string;
+    role: string;
+    content: Array<{
+      type: string;
+      text: string;
+    }>;
+    model: string;
+    stop_reason: string;
+    stop_sequence?: string;
+    usage: {
+      input_tokens: number;
+      output_tokens: number;
+    };
+  };
+  delta?: AnthropicMessageDelta | AnthropicContentBlockDelta;
+  content_block?: {
+    type: string;
+    text?: string;
+  };
+  index?: number;
+  provider: string;
+}
+
 /** * Error response format */
 export interface ErrorResponse {
   error: string;
@@ -215,6 +256,7 @@ export type StreamingResponse =
   | OpenAIStreamingResponse
   | GroqStreamingResponse
   | DeepSeekStreamingResponse
+  | AnthropicStreamingResponse
   | ErrorResponse;
 
 /** * Type guard for error responses */
@@ -224,6 +266,35 @@ export function isErrorResponse(
   return "error" in response;
 }
 
+/** * Type guard functions to narrow down the specific response type */
+export function isOpenAIStreamingResponse(
+  response: StreamingResponse,
+): response is OpenAIStreamingResponse {
+  if (isErrorResponse(response)) return false;
+  return response.provider === "openai";
+}
+
+export function isGroqStreamingResponse(
+  response: StreamingResponse,
+): response is GroqStreamingResponse {
+  if (isErrorResponse(response)) return false;
+  return response.provider === "groq";
+}
+
+export function isDeepSeekStreamingResponse(
+  response: StreamingResponse,
+): response is DeepSeekStreamingResponse {
+  if (isErrorResponse(response)) return false;
+  return response.provider === "deepseek";
+}
+
+export function isAnthropicStreamingResponse(
+  response: StreamingResponse,
+): response is AnthropicStreamingResponse {
+  if (isErrorResponse(response)) return false;
+  return response.provider === "anthropic";
+}
+
 /** * Helper to extract content from any streaming response type */
 export function extractContentFromStreamingResponse(
   chunk: StreamingResponse,
@@ -231,15 +302,28 @@ export function extractContentFromStreamingResponse(
   if (isErrorResponse(chunk)) {
     return "";
   }
-  if (
-    chunk &&
-    typeof chunk === "object" &&
-    "choices" in chunk &&
-    Array.isArray(chunk.choices) &&
-    chunk.choices[0]?.delta?.content
-  ) {
-    return chunk.choices[0].delta.content;
+
+  if (isOpenAIStreamingResponse(chunk) || isGroqStreamingResponse(chunk)) {
+    return chunk.choices[0]?.delta?.content || "";
+  } else if (isDeepSeekStreamingResponse(chunk)) {
+    return chunk.choices[0]?.delta?.content || "";
+  } else if (isAnthropicStreamingResponse(chunk)) {
+    // Handle different Anthropic event types
+    if (
+      chunk.type === "content_block_delta" &&
+      typeof chunk.delta === "object" &&
+      "text" in chunk.delta
+    ) {
+      return chunk.delta.text || "";
+    } else if (
+      chunk.type === "content_block_start" &&
+      chunk.content_block &&
+      chunk.content_block.type === "text"
+    ) {
+      return chunk.content_block.text || "";
+    }
   }
+
   return "";
 }
 
@@ -249,7 +333,23 @@ export function isStreamingResponseComplete(chunk: StreamingResponse): boolean {
     return true;
   }
 
-  return chunk.choices[0]?.finish_reason !== null;
+  if (
+    isOpenAIStreamingResponse(chunk) ||
+    isGroqStreamingResponse(chunk) ||
+    isDeepSeekStreamingResponse(chunk)
+  ) {
+    return chunk.choices[0]?.finish_reason !== null;
+  } else if (isAnthropicStreamingResponse(chunk)) {
+    return (
+      chunk.type === "message_stop" ||
+      (chunk.type === "message_delta" &&
+        typeof chunk.delta === "object" &&
+        "stop_reason" in chunk.delta &&
+        !!chunk.delta.stop_reason)
+    );
+  }
+
+  return false;
 }
 
 /** * Helper to extract model information from any streaming response type */
@@ -260,8 +360,23 @@ export function extractModelInfoFromStreamingResponse(
     return undefined;
   }
 
-  return {
-    provider: chunk.provider,
-    model: chunk.model,
-  };
+  if (
+    isOpenAIStreamingResponse(chunk) ||
+    isGroqStreamingResponse(chunk) ||
+    isDeepSeekStreamingResponse(chunk)
+  ) {
+    return {
+      provider: chunk.provider,
+      model: chunk.model,
+    };
+  } else if (
+    isAnthropicStreamingResponse(chunk as AnthropicStreamingResponse)
+  ) {
+    if (chunk.message?.model) {
+      return {
+        provider: chunk.provider,
+        model: chunk.message.model,
+      };
+    }
+  }
 }
