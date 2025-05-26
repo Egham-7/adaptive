@@ -84,13 +84,15 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 	// Format as SSE
 	r.buffer = fmt.Appendf(nil, "data: %s\n\n", jsonData)
 
-	// Check if this is the last message
+	// Only set done if ALL choices are finished
+	allDone := true
 	for _, choice := range chunk.Choices {
-		if choice.FinishReason != "" {
-			r.done = true
+		if choice.FinishReason == "" {
+			allDone = false
 			break
 		}
 	}
+	r.done = allDone
 	// Recursively call Read to handle the newly filled buffer
 	return r.Read(p)
 }
