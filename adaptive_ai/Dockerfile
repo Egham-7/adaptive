@@ -40,21 +40,20 @@ FROM python:3.12-slim
 
 ENV POETRY_HOME="/opt/poetry"
 ENV PATH="$POETRY_HOME/bin:$PATH"
+ENV HOME="/app"
+ENV HF_HOME="/app/hf_cache"
 WORKDIR /app
 
-# Copy installed site-packages and app code from builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /app /app
 
-# Remove build/test/dev artifacts (if any got copied)
 RUN rm -rf /root/.cache /app/.cache /app/.mypy_cache /tmp/hf_cache
 
-# Setup app user
 RUN addgroup --system appgroup && \
     adduser --system --ingroup appgroup appuser && \
-    chown -R appuser:appgroup /app
+    mkdir -p /app/hf_cache && \
+    chown -R appuser:appgroup /app /app/hf_cache
 
-# Copy entrypoint as root, fix permissions before switching user
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && chown appuser:appgroup /entrypoint.sh
 
@@ -63,4 +62,3 @@ USER appuser
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-
