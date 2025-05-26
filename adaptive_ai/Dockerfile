@@ -1,10 +1,12 @@
-FROM python:3.12-slim
+# -------------------
+# STAGE 1: Builder
+# -------------------
+FROM python:3.12-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV POETRY_HOME="/opt/poetry"
 ENV PATH="$POETRY_HOME/bin:$PATH"
-ENV HOME="/app"
-ENV HF_HOME="/tmp/hf_cache"
+WORKDIR /app
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -22,23 +24,39 @@ RUN apt-get update && \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-
+# Copy dependency files first for layer caching
 COPY pyproject.toml poetry.lock* ./
+
 RUN poetry config virtualenvs.create false && \
     poetry install --only main --no-root --no-interaction --no-ansi
 
+# Copy the rest of the application code
 COPY . .
 
-RUN poetry cache clear --all pypi && \
-    rm -rf /root/.cache /app/.cache /app/.mypy_cache /tmp/hf_cache
+# -------------------
+# STAGE 2: Runtime
+# -------------------
+FROM python:3.12-slim
 
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+ENV POETRY_HOME="/opt/poetry"
+ENV PATH="$POETRY_HOME/bin:$PATH"
+WORKDIR /app
 
+# Copy installed site-packages and app code from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /app /app
+
+# Remove build/test/dev artifacts (if any got copied)
+RUN rm -rf /root/.cache /app/.cache /app/.mypy_cache /tmp/hf_cache
+
+# Setup app user
 RUN addgroup --system appgroup && \
     adduser --system --ingroup appgroup appuser && \
-    chown -R appuser:appgroup /app /entrypoint.sh
+    chown -R appuser:appgroup /app
+
+# Copy entrypoint as root, fix permissions before switching user
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chown appuser:appgroup /entrypoint.sh
 
 USER appuser
 
