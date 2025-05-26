@@ -7,8 +7,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 	"github.com/openai/openai-go"
+	ssestream "github.com/openai/openai-go/packages/ssestream"
 )
 
 // EnhancedOpenAIResponse extends the OpenAI response with additional fields

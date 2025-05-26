@@ -7,10 +7,11 @@ import (
 	"sync"
 
 	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
+	anthropicssestream "github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 	"github.com/cohesion-org/deepseek-go"
 	"github.com/conneroisu/groq-go"
 	"github.com/openai/openai-go"
+	openaissestream "github.com/openai/openai-go/packages/ssestream"
 )
 
 // StreamReader is the common interface for all LLM stream readers
@@ -30,7 +31,7 @@ type BaseStreamReader struct {
 func GetStreamReader(resp *models.ChatCompletionResponse, provider string, requestID string) (StreamReader, error) {
 	switch provider {
 	case "openai":
-		stream, ok := resp.Response.(*ssestream.Stream[openai.ChatCompletionChunk])
+		stream, ok := resp.Response.(*openaissestream.Stream[openai.ChatCompletionChunk])
 		if !ok {
 			return nil, fmt.Errorf("invalid OpenAI stream type")
 		}
@@ -49,7 +50,7 @@ func GetStreamReader(resp *models.ChatCompletionResponse, provider string, reque
 		return NewDeepSeekStreamReader(stream, requestID), nil
 
 	case "anthropic":
-		stream, ok := resp.Response.(ssestream.Stream[anthropic.MessageStreamEventUnion])
+		stream, ok := resp.Response.(anthropicssestream.Stream[anthropic.MessageStreamEventUnion])
 
 		if !ok {
 			return nil, fmt.Errorf("invalid Anthropic stream type")
