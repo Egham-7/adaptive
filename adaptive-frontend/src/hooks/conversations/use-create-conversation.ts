@@ -3,13 +3,17 @@ import { createConversation } from "@/services/conversations";
 import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
 
+interface CreateConversationParams {
+  title: string;
+}
+
 export const useCreateConversation = () => {
   const queryClient = useQueryClient();
 
   const { getToken, isSignedIn, isLoaded } = useAuth();
 
   const createConversationMutation = useMutation({
-    mutationFn: async (title: string) => {
+    mutationFn: async (params: CreateConversationParams) => {
       if (!isLoaded || !isSignedIn) {
         throw new Error("User is not signed in");
       }
@@ -19,7 +23,7 @@ export const useCreateConversation = () => {
       if (!token) {
         throw new Error("User is not signed in");
       }
-      return createConversation(token, title);
+      return createConversation(token, params.title);
     },
     onSuccess: (newConversation) => {
       toast.success("Conversation created successfully");

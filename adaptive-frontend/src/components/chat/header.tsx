@@ -37,7 +37,7 @@ export default function Header() {
     const filtered = conversations.filter((conversation) =>
       conversation.title
         .toLowerCase()
-        .includes(debouncedSearchQuery.toLowerCase()),
+        .includes(debouncedSearchQuery.toLowerCase())
     );
     setFilteredConversations(filtered);
   }, [debouncedSearchQuery, conversations]);
@@ -56,7 +56,9 @@ export default function Header() {
   };
 
   const handleCreateNewChat = async () => {
-    const converation = await mutateAsync("New Conversation");
+    const converation = await mutateAsync({
+      title: "New Conversation",
+    });
 
     const conversationId = String(converation.id);
 
