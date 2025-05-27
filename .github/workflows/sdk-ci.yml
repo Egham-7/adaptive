@@ -4,13 +4,14 @@ on:
   push:
     branches: [main, master]
     tags:
-      - "v*.*.*" # for version tags
+      - "v*-py" # Python SDK release
+      - "v*-js" # JavaScript SDK release
   pull_request:
     branches: [main, master]
   workflow_dispatch:
 
 jobs:
-  # 🐍 PYTHON SDK (Test + Build + Docs + Publish)
+  # 🐍 PYTHON SDK
   python:
     name: 🐍 Adaptive Python SDK
     runs-on: ubuntu-latest
@@ -97,15 +98,12 @@ jobs:
           path: libraries/adaptive-python/adaptive/docs/_build/html/
 
       - name: Publish to PyPI
-        if: matrix.python-version == '3.13' && startsWith(github.ref, 'refs/tags/v')
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          pip install twine
-          twine upload dist/*
+        if: matrix.python-version == '3.13' && github.event_name == 'push' && endsWith(github.ref, '-py')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
 
-  # ⚙️ JS SDK (Build + Typecheck + Publish)
+  # ⚙️ JAVASCRIPT SDK
   javascript:
     name: ⚙️ Adaptive JS SDK (Bun)
     runs-on: ubuntu-latest
@@ -128,10 +126,6 @@ jobs:
       - name: Build
         run: bun run build
 
-      - name: Run Unit Tests (optional)
-        if: ${{ false }} # Set to true when ready
-        run: bun test
-
       - name: Upload JS Dist
         uses: actions/upload-artifact@v4
         with:
@@ -139,9 +133,7 @@ jobs:
           path: adaptive/libraries/adaptive-js/dist/
 
       - name: Publish to npm
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" > ~/.npmrc
-          bunx npm publish --access public
+        if: github.event_name == 'push' && endsWith(github.ref, '-js')
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
