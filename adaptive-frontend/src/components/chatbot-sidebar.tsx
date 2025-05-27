@@ -64,8 +64,9 @@ export function ChatbotSidebar() {
   };
 
   const handleCreateNewChat = async () => {
-    const newConversation =
-      await createConversationMutation.mutateAsync("New Conversation");
+    const newConversation = await createConversationMutation.mutateAsync({
+      title: "New Conversation",
+    });
     router.navigate({ to: `/conversations/${newConversation.id}` });
   };
 
@@ -105,7 +106,7 @@ export function ChatbotSidebar() {
     // Sort pinned by updated_at
     pinned.sort(
       (a, b) =>
-        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
 
     // Group unpinned by time periods
@@ -129,7 +130,7 @@ export function ChatbotSidebar() {
         today: [] as Conversation[],
         last30Days: [] as Conversation[],
         older: [] as Conversation[],
-      },
+      }
     );
   };
 
@@ -138,8 +139,8 @@ export function ChatbotSidebar() {
     (conversation) =>
       conversation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conversation.messages?.some((msg) =>
-        msg.content.toLowerCase().includes(searchQuery.toLowerCase()),
-      ),
+        msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+      )
   );
 
   const groupedConversations = groupConversations(filteredConversations);
@@ -159,7 +160,7 @@ export function ChatbotSidebar() {
             tooltip={conversation.title}
             className={cn(
               "relative group",
-              isActive && "bg-accent text-accent-foreground",
+              isActive && "bg-accent text-accent-foreground"
             )}
           >
             <div className="flex-1 overflow-hidden">
@@ -185,7 +186,7 @@ export function ChatbotSidebar() {
               className={cn(
                 "absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded p-0.5 opacity-0 transition-opacity",
                 "group-hover:opacity-100",
-                isActive && "opacity-100 bg-accent/80",
+                isActive && "opacity-100 bg-accent/80"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -200,7 +201,7 @@ export function ChatbotSidebar() {
                       size="icon"
                       className={cn(
                         "h-7 w-7",
-                        conversation.pinned && "text-primary",
+                        conversation.pinned && "text-primary"
                       )}
                       onClick={(e) => {
                         e.preventDefault();
@@ -211,7 +212,7 @@ export function ChatbotSidebar() {
                       <Pin
                         className={cn(
                           "h-4 w-4",
-                          conversation.pinned && "fill-current",
+                          conversation.pinned && "fill-current"
                         )}
                       />
                       <span className="sr-only">
@@ -238,7 +239,7 @@ export function ChatbotSidebar() {
 
   const renderConversationGroup = (
     groupConversations: Conversation[],
-    title: string,
+    title: string
   ) => {
     if (groupConversations.length === 0) return null;
     return (
@@ -322,7 +323,7 @@ export function ChatbotSidebar() {
             {renderConversationGroup(groupedConversations.today, "Today")}
             {renderConversationGroup(
               groupedConversations.last30Days,
-              "Last 30 Days",
+              "Last 30 Days"
             )}
             {renderConversationGroup(groupedConversations.older, "Older")}
           </>
