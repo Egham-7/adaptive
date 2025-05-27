@@ -3,20 +3,15 @@ name: SDK CI
 on:
   push:
     branches: [main, master]
-    tags:
-      - "v*-py" # Python SDK release
-      - "v*-js" # JavaScript SDK release
   pull_request:
     branches: [main, master]
-  workflow_dispatch:
 
 jobs:
   # 🐍 PYTHON SDK
   python:
-    name: 🐍 Adaptive Python SDK
+    name: 🧪 Python SDK – CI
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
         python-version: ["3.12", "3.13"]
     defaults:
@@ -25,36 +20,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        run: curl -sSL https://install.python-poetry.org | python3 -
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: poetry
 
       - name: Configure Poetry
         run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
           poetry config virtualenvs.create true
           poetry config virtualenvs.in-project true
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: poetry install --no-interaction
 
-      - name: Lint (Black)
-        run: poetry run black --check .
+      - name: Lint & Typecheck
+        run: |
+          poetry run black --check .
+          poetry run ruff check .
+          poetry run mypy .
 
-      - name: Lint (Ruff)
-        run: poetry run ruff check .
-
-      - name: Type Check (Mypy)
-        run: poetry run mypy .
-
-      - name: Run Tests (Pytest + Coverage)
+      - name: Run Tests
         run: poetry run pytest --cov=./ --cov-report=xml
 
       - name: Upload Coverage
@@ -63,49 +52,9 @@ jobs:
           file: libraries/adaptive-python/adaptive/coverage.xml
           fail_ci_if_error: false
 
-      - name: Build Package
-        if: matrix.python-version == '3.13'
-        run: poetry build
-
-      - name: Check Metadata
-        if: matrix.python-version == '3.13'
-        run: |
-          pip install twine
-          twine check dist/*
-
-      - name: Upload Python Dist
-        if: matrix.python-version == '3.13'
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-dist
-          path: libraries/adaptive-python/adaptive/dist/
-
-      - name: Build Docs
-        if: matrix.python-version == '3.13'
-        run: |
-          if [ -d "docs" ]; then
-            cd docs && poetry run make html
-          else
-            echo "No docs directory found"
-            ls -la
-          fi
-
-      - name: Upload Docs
-        if: matrix.python-version == '3.13'
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-docs
-          path: libraries/adaptive-python/adaptive/docs/_build/html/
-
-      - name: Publish to PyPI
-        if: matrix.python-version == '3.13' && github.event_name == 'push' && endsWith(github.ref, '-py')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
-
   # ⚙️ JAVASCRIPT SDK
   javascript:
-    name: ⚙️ Adaptive JS SDK (Bun)
+    name: 🧪 JS SDK – CI
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -113,9 +62,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v1
+      - uses: oven-sh/setup-bun@v1
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -123,17 +70,5 @@ jobs:
       - name: Typecheck
         run: bunx tsc --noEmit
 
-      - name: Build
-        run: bun run build
-
-      - name: Upload JS Dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: js-dist
-          path: adaptive/libraries/adaptive-js/dist/
-
-      - name: Publish to npm
-        if: github.event_name == 'push' && endsWith(github.ref, '-js')
-        uses: JS-DevTools/npm-publish@v3
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+      - name: Run tests
+        run: bun test
