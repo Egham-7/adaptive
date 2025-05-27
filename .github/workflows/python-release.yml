@@ -15,8 +15,6 @@ jobs:
     defaults:
       run:
         working-directory: libraries/adaptive-python/adaptive
-    permissions:
-      id-token: write # Required for trusted PyPI publishing
 
     steps:
       - uses: actions/checkout@v4
@@ -39,3 +37,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+          password: ${{ secrets.PYPI_API_TOKEN }}
