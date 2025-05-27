@@ -3,12 +3,14 @@ name: SDK CI
 on:
   push:
     branches: [main, master]
+    tags:
+      - "v*.*.*" # for version tags
   pull_request:
     branches: [main, master]
   workflow_dispatch:
 
 jobs:
-  # 🐍 PYTHON SDK (Test + Build + Docs)
+  # 🐍 PYTHON SDK (Test + Build + Docs + Publish)
   python:
     name: 🐍 Adaptive Python SDK
     runs-on: ubuntu-latest
@@ -61,7 +63,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Build Package
-        if: matrix.python-version == '3.13' # build only once
+        if: matrix.python-version == '3.13'
         run: poetry build
 
       - name: Check Metadata
@@ -94,7 +96,16 @@ jobs:
           name: python-docs
           path: libraries/adaptive-python/adaptive/docs/_build/html/
 
-  # ⚙️ JS SDK (Bun - Build + Lint + Optional Test)
+      - name: Publish to PyPI
+        if: matrix.python-version == '3.13' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          pip install twine
+          twine upload dist/*
+
+  # ⚙️ JS SDK (Build + Typecheck + Publish)
   javascript:
     name: ⚙️ Adaptive JS SDK (Bun)
     runs-on: ubuntu-latest
@@ -126,3 +137,11 @@ jobs:
         with:
           name: js-dist
           path: adaptive/libraries/adaptive-js/dist/
+
+      - name: Publish to npm
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN" > ~/.npmrc
+          bunx npm publish --access public
