@@ -109,7 +109,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: adaptive/libraries/adaptive-js
+        working-directory: libraries/adaptive-js
 
     steps:
       - uses: actions/checkout@v4
