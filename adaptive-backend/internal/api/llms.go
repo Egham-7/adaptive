@@ -6,12 +6,14 @@ import (
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/stream_readers"
+	"adaptive-backend/internal/services/usage"
 	"log"
 	"os"
 	"time"
 
 	"github.com/botirk38/semanticcache"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
@@ -21,6 +23,7 @@ type ChatCompletionHandler struct {
 	userPromptModelCache   *lru.Cache[string, *semanticcache.SemanticCache[string, string]]
 	embeddingProvider      semanticcache.EmbeddingProvider
 	metrics                *metrics.ChatMetrics
+	apiRequestService      *usage.APIRequestService
 }
 
 func NewChatCompletionHandler() *ChatCompletionHandler {
@@ -35,7 +38,7 @@ func NewChatCompletionHandler() *ChatCompletionHandler {
 		log.Fatalf("Failed to create global semantic cache: %v", err)
 	}
 
-	userCache, err := lru.New[string, *semanticcache.SemanticCache[string, string]](100)
+	userCache, err := lru.New[string, *semanticcache.SemanticCache[string, string]](1000)
 	if err != nil {
 		log.Fatalf("Failed to create user LRU cache: %v", err)
 	}
@@ -46,6 +49,7 @@ func NewChatCompletionHandler() *ChatCompletionHandler {
 		userPromptModelCache:   userCache,
 		embeddingProvider:      embeddingProvider,
 		metrics:                chatMetrics,
+		apiRequestService:      usage.NewAPIRequestService(),
 	}
 }
 
@@ -111,9 +115,9 @@ func (h *ChatCompletionHandler) getModelFromCacheOrSelect(prompt string, userID 
 func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	start := time.Now()
 	requestID := c.Get("X-Request-ID", time.Now().String())
-	apiKey := string(c.Request().Header.Peek("X-API-Key"))
-	if apiKey == "" {
-		apiKey = "anonymous"
+	apiKeyHeader := string(c.Request().Header.Peek("X-API-Key"))
+	if apiKeyHeader == "" {
+		apiKeyHeader = "anonymous"
 	}
 
 	var req models.ChatCompletionRequest
@@ -126,9 +130,32 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 
+	apiRequestID := uuid.New()
+	userID := uuid.Nil // or derive from auth/session if available
+
+	apiRequest := &models.APIRequest{
+		ID:           apiRequestID,
+		UserID:       userID,
+		APIKey:       apiKeyHeader,
+		ProviderName: "openai",
+		ModelName:    "", // to fill after model selection
+		RequestType:  "stream",
+		Status:       "pending",
+		LatencyMs:    0,
+		ErrorMessage: "",
+		RequestID:    requestID,
+		CreatedAt:    start,
+		UpdatedAt:    start,
+		Metadata:     "",
+	}
+
+	if err := h.apiRequestService.CreateAPIRequest(apiRequest); err != nil {
+		log.Printf("[WARN] Failed to create APIRequest record: %v", err)
+	}
+
 	prompt := req.Messages[len(req.Messages)-1].Content
 
-	modelName, cacheType, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
+	modelName, cacheType, err := h.getModelFromCacheOrSelect(prompt, apiKeyHeader, requestID)
 	if h.metrics != nil {
 		h.metrics.CacheLookups.WithLabelValues(cacheType).Inc()
 	}
@@ -136,8 +163,10 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("stream", "500").Observe(time.Since(start).Seconds())
 		}
+		_ = h.apiRequestService.MarkRequestFailed(requestID, err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
+	apiRequest.ModelName = modelName
 
 	fullReq := models.ProviderChatCompletionRequest{
 		Provider:         "openai",
@@ -156,6 +185,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("stream", "400").Observe(time.Since(start).Seconds())
 		}
+		_ = h.apiRequestService.MarkRequestFailed(requestID, err.Error())
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -164,6 +194,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("stream", "500").Observe(time.Since(start).Seconds())
 		}
+		_ = h.apiRequestService.MarkRequestFailed(requestID, "Failed to stream completion: "+err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to stream completion: " + err.Error(),
 		})
@@ -174,18 +205,25 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("Transfer-Encoding", "chunked")
 
+	err = stream_readers.HandleStream(c, resp, requestID)
+	latency := int(time.Since(start).Milliseconds())
+	if err != nil {
+		_ = h.apiRequestService.MarkRequestFailed(requestID, err.Error())
+	} else {
+		_ = h.apiRequestService.MarkRequestCompleted(requestID, latency)
+	}
 	if h.metrics != nil {
 		h.metrics.RequestDuration.WithLabelValues("stream", "200").Observe(time.Since(start).Seconds())
 	}
-	return stream_readers.HandleStream(c, resp, requestID)
+	return err
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	start := time.Now()
 	requestID := c.Get("X-Request-ID", time.Now().String())
-	apiKey := string(c.Request().Header.Peek("X-API-Key"))
-	if apiKey == "" {
-		apiKey = "anonymous"
+	apiKeyHeader := string(c.Request().Header.Peek("X-API-Key"))
+	if apiKeyHeader == "" {
+		apiKeyHeader = "anonymous"
 	}
 
 	var req models.ChatCompletionRequest
@@ -196,9 +234,32 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body: " + err.Error()})
 	}
 
+	apiRequestID := uuid.New()
+	userID := uuid.Nil // or derive from auth/session if available
+
+	apiRequest := &models.APIRequest{
+		ID:           apiRequestID,
+		UserID:       userID,
+		APIKey:       apiKeyHeader,
+		ProviderName: "openai",
+		ModelName:    "", // to fill after model selection
+		RequestType:  "completion",
+		Status:       "pending",
+		LatencyMs:    0,
+		ErrorMessage: "",
+		RequestID:    requestID,
+		CreatedAt:    start,
+		UpdatedAt:    start,
+		Metadata:     "",
+	}
+
+	if err := h.apiRequestService.CreateAPIRequest(apiRequest); err != nil {
+		log.Printf("[WARN] Failed to create APIRequest record: %v", err)
+	}
+
 	prompt := req.Messages[len(req.Messages)-1].Content
 
-	modelName, cacheType, err := h.getModelFromCacheOrSelect(prompt, apiKey, requestID)
+	modelName, cacheType, err := h.getModelFromCacheOrSelect(prompt, apiKeyHeader, requestID)
 	if h.metrics != nil {
 		h.metrics.CacheLookups.WithLabelValues(cacheType).Inc()
 	}
@@ -206,8 +267,10 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("completion", "500").Observe(time.Since(start).Seconds())
 		}
+		_ = h.apiRequestService.MarkRequestFailed(requestID, err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
+	apiRequest.ModelName = modelName
 
 	fullReq := models.ProviderChatCompletionRequest{
 		Provider:         "openai",
@@ -225,19 +288,23 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("completion", "400").Observe(time.Since(start).Seconds())
 		}
+		_ = h.apiRequestService.MarkRequestFailed(requestID, err.Error())
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	resp, err := provider.CreateChatCompletion(&fullReq)
+	latency := int(time.Since(start).Milliseconds())
 	if err != nil {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("completion", "500").Observe(time.Since(start).Seconds())
 		}
+		_ = h.apiRequestService.MarkRequestFailed(requestID, "Failed to generate completion: "+err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to generate completion: " + err.Error(),
 		})
 	}
 
+	_ = h.apiRequestService.MarkRequestCompleted(requestID, latency)
 	if h.metrics != nil {
 		h.metrics.RequestDuration.WithLabelValues("completion", "200").Observe(time.Since(start).Seconds())
 	}

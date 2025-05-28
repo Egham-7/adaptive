@@ -21,14 +21,16 @@ type APIKey struct {
 type APIRequest struct {
 	ID           uuid.UUID `json:"id" gorm:"primaryKey;type:uniqueidentifier"`
 	UserID       uuid.UUID `json:"user_id" gorm:"type:uniqueidentifier;not null"`
-	APIKeyID     uuid.UUID `json:"api_key_id" gorm:"type:uniqueidentifier;not null"`
+	APIKey       string    `json:"api_key_id" gorm:"type:text;not null"`
 	ProviderName string    `json:"provider_name" gorm:"not null"`
 	ModelName    string    `json:"model_name" gorm:"not null"`
 	RequestType  string    `json:"request_type" gorm:"not null"`
 	Status       string    `json:"status" gorm:"not null"`
 	LatencyMs    int       `json:"latency_ms" gorm:"not null"`
+	ErrorMessage string    `json:"error_message" gorm:"type:text;null"`
 	RequestID    string    `json:"request_id" gorm:"not null"`
 	CreatedAt    time.Time `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+	UpdatedAt    time.Time `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
 	Metadata     string    `json:"metadata" gorm:"type:text;serializer:json"`
 }
 
