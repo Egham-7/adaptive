@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
 from typing import Union, Dict, Type, cast
 
-from models.llms import domain_parameters, DomainParametersType
+from models.llms import task_type_parameters, TaskTypeParametersType
 
 
 class LLMProviderParameters(ABC):
     @abstractmethod
-    def adjust_parameters(self, domain: str, prompt_scores: dict) -> dict:
+    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
         pass
 
     @abstractmethod
@@ -24,13 +24,13 @@ class OpenAIParameters(LLMProviderParameters):
         self.max_tokens: int = 1000
         self.n: int = 1
 
-    def adjust_parameters(self, domain: str, prompt_scores: dict) -> dict:
-        if domain not in domain_parameters:
+    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
+        if task_type not in task_type_parameters:
             raise ValueError(
-                "Invalid domain. Choose from: " + ", ".join(domain_parameters.keys())
+                "Invalid task type. Choose from: " + ", ".join(task_type_parameters.keys())
             )
 
-        base = cast(DomainParametersType, domain_parameters[domain])
+        base = cast(TaskTypeParametersType, task_type_parameters[task_type])
         # Extract prompt scores
         creativity_scope = prompt_scores.get("creativity_scope", [0.5])[0]
         reasoning = prompt_scores.get("reasoning", [0.5])[0]
@@ -89,13 +89,13 @@ class GroqParameters(LLMProviderParameters):
         self.max_tokens: int = 1000
         self.n: int = 1
 
-    def adjust_parameters(self, domain: str, prompt_scores: dict) -> dict:
-        if domain not in domain_parameters:
+    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
+        if task_type not in task_type_parameters:
             raise ValueError(
-                "Invalid domain. Choose from: " + ", ".join(domain_parameters.keys())
+                "Invalid task type. Choose from: " + ", ".join(task_type_parameters.keys())
             )
 
-        base = cast(DomainParametersType, domain_parameters[domain])
+        base = cast(TaskTypeParametersType, task_type_parameters[task_type])
         # Extract prompt scores
         creativity_scope = prompt_scores.get("creativity_scope", [0.5])[0]
         reasoning = prompt_scores.get("reasoning", [0.5])[0]
@@ -154,13 +154,13 @@ class DeepSeekParameters(LLMProviderParameters):
         self.max_tokens: int = 1000
         self.n: int = 1
 
-    def adjust_parameters(self, domain: str, prompt_scores: dict) -> dict:
-        if domain not in domain_parameters:
+    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
+        if task_type not in task_type_parameters:
             raise ValueError(
-                "Invalid domain. Choose from: " + ", ".join(domain_parameters.keys())
+                "Invalid task type. Choose from: " + ", ".join(task_type_parameters.keys())
             )
 
-        base = cast(DomainParametersType, domain_parameters[domain])
+        base = cast(TaskTypeParametersType, task_type_parameters[task_type])
         # Extract prompt scores
         creativity_scope = prompt_scores.get("creativity_scope", [0.5])[0]
         reasoning = prompt_scores.get("reasoning", [0.5])[0]
