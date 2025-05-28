@@ -14,10 +14,11 @@ type APIKeyHandler struct {
 }
 
 type CreateAPIKeyRequest struct {
-	Name      string `json:"name"`
-	UserID    string `json:"user_id"`
-	Status    string `json:"status"`
-	ExpiresAt string `json:"expires_at,omitempty"`
+	Name             string  `json:"name"`
+	UserID           string  `json:"user_id"`
+	Status           string  `json:"status"`
+	ExpiresAt        string  `json:"expires_at,omitempty"`
+	StripeCustomerID *string `json:"stripe_customer_id,omitempty"` // Optional for now
 }
 
 type CreateAPIKeyResponse struct {
@@ -44,14 +45,12 @@ func NewAPIKeyHandler() *APIKeyHandler {
 // GetAllAPIKeysByUserId handles GET /api-keys/user/:userId
 func (h *APIKeyHandler) GetAllAPIKeysByUserId(c *fiber.Ctx) error {
 	userId := c.Params("userId")
-
 	apiKeys, err := h.service.GetAllAPIKeysByUserId(userId)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
-
 	return c.JSON(apiKeys)
 }
 
@@ -63,14 +62,12 @@ func (h *APIKeyHandler) GetAPIKeyById(c *fiber.Ctx) error {
 			"error": "Invalid API key ID",
 		})
 	}
-
 	apiKey, err := h.service.GetAPIKeyById(id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "API key not found",
 		})
 	}
-
 	return c.JSON(apiKey)
 }
 
@@ -83,7 +80,6 @@ func (h *APIKeyHandler) CreateAPIKey(c *fiber.Ctx) error {
 		})
 	}
 
-	// Parse expires_at if provided
 	var expiresAt *time.Time
 	if request.ExpiresAt != "" {
 		parsedTime, err := time.Parse(time.RFC3339, request.ExpiresAt)
@@ -95,13 +91,23 @@ func (h *APIKeyHandler) CreateAPIKey(c *fiber.Ctx) error {
 		expiresAt = &parsedTime
 	}
 
-	// Generate the API key
-	apiKey, fullAPIKey, err := h.service.GenerateAPIKey(request.UserID, request.Name, request.Status, expiresAt)
+	// For the first API key, there is no Stripe customer yet.
+	// Generate the API key without Stripe customer logic.
+	apiKey, fullAPIKey, err := h.service.GenerateAPIKey(
+		request.UserID,
+		request.Name,
+		request.Status,
+		expiresAt,
+		"", // Empty StripeCustomerID for now
+	)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
+
+	// TODO: After creating the API key, check if this is the first for the user.
+	// If so, create a Stripe customer and update the APIKey record with the StripeCustomerID.
 
 	return c.Status(fiber.StatusCreated).JSON(CreateAPIKeyResponse{
 		APIKey:     apiKey,
@@ -112,31 +118,24 @@ func (h *APIKeyHandler) CreateAPIKey(c *fiber.Ctx) error {
 // UpdateAPIKey handles PUT /api-keys/:id
 func (h *APIKeyHandler) UpdateAPIKey(c *fiber.Ctx) error {
 	idStr := c.Params("id")
-
-	// Convert string ID to UUID
 	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid API key ID format",
 		})
 	}
-
 	var request UpdateAPIKeyRequest
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
 	}
-
-	// First get the existing API key
 	apiKey, err := h.service.GetAPIKeyById(id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "API key not found",
 		})
 	}
-
-	// Update fields
 	apiKey.Name = request.Name
 	apiKey.Status = request.Status
 
@@ -145,7 +144,6 @@ func (h *APIKeyHandler) UpdateAPIKey(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-
 	return c.JSON(apiKey)
 }
 
@@ -157,7 +155,6 @@ func (h *APIKeyHandler) DeleteAPIKey(c *fiber.Ctx) error {
 			"error": "Invalid API key ID",
 		})
 	}
-
 	if err := h.service.DeleteAPIKey(id); err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "API key not found",
@@ -169,26 +166,21 @@ func (h *APIKeyHandler) DeleteAPIKey(c *fiber.Ctx) error {
 
 func (h *APIKeyHandler) VerifyAPIKey(c *fiber.Ctx) error {
 	apiKey := c.Request().Header.Peek("X-API-Key")
-
 	if len(apiKey) == 0 {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "API key is missing",
 		})
 	}
-
-	_, verified, error := h.service.VerifyAPIKey(string(apiKey))
-
-	if error != nil {
+	_, verified, err := h.service.VerifyAPIKey(string(apiKey))
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to verify api key",
 		})
 	}
-
 	if !verified {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid",
 		})
 	}
-
 	return nil
 }
