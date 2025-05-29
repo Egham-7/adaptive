@@ -9,7 +9,6 @@ type StreamOption int
 const (
 	SSE StreamOption = iota
 	DATASTREAM
-	TEXT
 )
 
 func (s StreamOption) String() string {
@@ -18,8 +17,6 @@ func (s StreamOption) String() string {
 		return "SSE"
 	case DATASTREAM:
 		return "DATASTREAM"
-	case TEXT:
-		return "TEXT"
 	default:
 		return "UNKNOWN"
 	}
