@@ -158,6 +158,8 @@ func determineAnthropicModel(requestedModel string) anthropic.Model {
 		anthropic.ModelClaude3OpusLatest:     true,
 		anthropic.ModelClaude3_5HaikuLatest:  true,
 		anthropic.ModelClaude3_5SonnetLatest: true,
+		anthropic.ModelClaude4Sonnet20250514: true,
+		anthropic.ModelClaude4Opus20250514:   true,
 	}
 
 	rm := anthropic.Model(requestedModel)
