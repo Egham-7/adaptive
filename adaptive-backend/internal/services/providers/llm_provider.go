@@ -21,17 +21,20 @@ func NewLLMProvider(providerName string) (LLMProvider, error) {
 			return nil, err
 		}
 		return service, nil
-
 	case "deepseek":
 		service, err := NewDeepSeekService()
 		if err != nil {
 			return nil, err
 		}
-
 		return service, nil
-
 	case "anthropic":
 		service, err := NewAnthropicService()
+		if err != nil {
+			return nil, err
+		}
+		return service, nil
+	case "gemini":
+		service, err := NewGeminiService()
 		if err != nil {
 			return nil, err
 		}
