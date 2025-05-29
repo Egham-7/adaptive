@@ -209,5 +209,5 @@ func (h *APIKeyHandler) VerifyAPIKey(c *fiber.Ctx) error {
 	if !verified {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid API key"})
 	}
-	return nil
+	return c.SendStatus(fiber.StatusOK)
 }
