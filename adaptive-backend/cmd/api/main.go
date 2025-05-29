@@ -130,4 +130,5 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	prometheus := fiberprometheus.New("adaptive-backend")
 	prometheus.RegisterAt(app, "/metrics")
 	app.Use(prometheus.Middleware)
+	app.Use(middleware.AuthMiddleware())
 }

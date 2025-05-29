@@ -14,6 +14,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/openai/openai-go v1.1.0
 	github.com/prometheus/client_golang v1.22.0
+	github.com/stripe/stripe-go/v82 v82.2.0
 	github.com/valyala/fasthttp v1.59.0
 	gorm.io/driver/sqlserver v1.5.4
 )
