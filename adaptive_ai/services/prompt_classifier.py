@@ -224,6 +224,27 @@ class PromptClassifier:
 
         return result
 
+    def classify_task_types(self, texts):
+        """
+        Classify a list of text samples into their respective task types.
+
+        Args:
+            texts (list of str): The text samples to classify.
+
+        Returns:
+            list of str: The predicted task types for each text sample.
+        """
+        # Use a default domain since we only care about task type
+        default_domain = "Computers_and_Electronics"
+        
+        results = []
+        for text in texts:
+            classification = self.classify_prompt(text, default_domain)
+            # Get the primary task type (task_type_1)
+            results.append(classification["task_type_1"][0])
+        
+        return results
+
 
 @lru_cache()
 def get_prompt_classifier():

@@ -10,10 +10,9 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
     def setup(self, device):
         from services.model_selector import ModelSelector
         from services.prompt_classifier import get_prompt_classifier
-        from services.domain_classifier import get_domain_classifier
 
         self.model_selector = ModelSelector(
-            get_prompt_classifier(), get_domain_classifier()
+            get_prompt_classifier()
         )
 
     def decode_request(self, request: PromptRequest):
