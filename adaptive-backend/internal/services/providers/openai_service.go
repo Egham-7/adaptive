@@ -114,7 +114,7 @@ func convertToOpenAIMessageParams(msgs []models.Message) ([]openai.ChatCompletio
 // Use OpenAI's official model enums; fallback to GPT-4o if unknown.
 func determineOpenAIModel(requestedModel string) string {
 	switch requestedModel {
-	case shared.ChatModelGPT4, shared.ChatModelGPT4o, shared.ChatModelGPT4_1, shared.ChatModelGPT3_5Turbo:
+	case shared.ChatModelGPT4o, shared.ChatModelGPT4_1, shared.ChatModelGPT4_1Mini, shared.ChatModelO3, shared.ChatModelO4Mini, shared.ChatModelGPT4_1Nano:
 		return requestedModel
 	default:
 		return shared.ChatModelGPT4o // default fallback

@@ -150,16 +150,8 @@ func determineDeepSeekModel(requestedModel string) string {
 
 	// Map of supported models
 	supportedModels := map[string]bool{
-		deepseek.DeepSeekChat:                        true,
-		deepseek.DeepSeekCoder:                       true,
-		deepseek.DeepSeekReasoner:                    true,
-		deepseek.AzureDeepSeekR1:                     true,
-		deepseek.OpenRouterDeepSeekR1:                true,
-		deepseek.OpenRouterDeepSeekR1DistillLlama70B: true,
-		deepseek.OpenRouterDeepSeekR1DistillLlama8B:  true,
-		deepseek.OpenRouterDeepSeekR1DistillQwen14B:  true,
-		deepseek.OpenRouterDeepSeekR1DistillQwen1_5B: true,
-		deepseek.OpenRouterDeepSeekR1DistillQwen32B:  true,
+		deepseek.DeepSeekChat:     true,
+		deepseek.DeepSeekReasoner: true,
 	}
 
 	// If the requested model is supported, use it

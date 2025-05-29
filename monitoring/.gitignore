@@ -1,0 +1,57 @@
+# Grafana specific
+/data/*
+/conf/*.conf
+/conf/*.ini
+/conf/custom.ini
+/conf/provisioning/*
+/plugins/
+/public/plugins/
+/logs/
+/data/grafana.db
+/data/sessions/
+grafana.db
+
+# Build artifacts
+/dist/
+/tmp/
+/bin/
+/coverage/
+
+# Dependencies
+/node_modules/
+/vendor/
+/go.sum
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Custom dashboards backup
+/dashboards/*.json.bak
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# SSL/TLS certificates
+*.pem
+*.crt
+*.key
+
