@@ -6,7 +6,7 @@ toolchain go1.24.3
 
 require (
 	github.com/ansrivas/fiberprometheus/v2 v2.9.1
-	github.com/anthropics/anthropic-sdk-go v0.2.0-beta.3
+	github.com/anthropics/anthropic-sdk-go v1.2.1
 	github.com/botirk38/semanticcache v0.1.1
 	github.com/clerk/clerk-sdk-go/v2 v2.2.0
 	github.com/conneroisu/groq-go v0.9.5
