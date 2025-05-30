@@ -15,6 +15,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/joho/godotenv"
+
 )
 
 // SetupRoutes configures all the application routes
@@ -69,6 +71,11 @@ func SetupRoutes(app *fiber.App) {
 }
 
 func main() {
+
+	if err := godotenv.Load(); err != nil {
+        log.Fatal("Error loading .env file")
+    }
+
 	// Check required environment variables
 	port := os.Getenv("ADDR")
 	if port == "" {
