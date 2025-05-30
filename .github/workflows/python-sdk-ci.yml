@@ -1,19 +1,21 @@
-name: Python SDK CI
+name: Python SDK
 
 on:
   push:
     branches: [main, master]
     paths:
       - "libraries/adaptive-python/**"
-      - ".github/workflows/python-sdk-ci.yml"
+      - ".github/workflows/python-sdk.yml"
+    tags:
+      - "v*-py"
   pull_request:
     branches: [main, master]
     paths:
       - "libraries/adaptive-python/**"
-      - ".github/workflows/python-sdk-ci.yml"
+      - ".github/workflows/python-sdk.yml"
 
 jobs:
-  python:
+  ci:
     name: 🧪 Python SDK – CI
     runs-on: ubuntu-latest
     strategy:
@@ -25,6 +27,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Install Poetry
         run: curl -sSL https://install.python-poetry.org | python3 -
 
@@ -56,3 +59,35 @@ jobs:
         with:
           file: libraries/adaptive-python/adaptive/coverage.xml
           fail_ci_if_error: false
+
+  release:
+    name: 🚀 Publish Python SDK
+    runs-on: ubuntu-latest
+    needs: ci
+    if: startsWith(github.ref, 'refs/tags/v') && endsWith(github.ref, '-py')
+    defaults:
+      run:
+        working-directory: libraries/adaptive-python/adaptive
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install Dependencies
+        run: poetry install --no-interaction
+
+      - name: Build Package
+        run: poetry build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: libraries/adaptive-python/adaptive/dist
+          password: ${{ secrets.PYPI_API_TOKEN }}
