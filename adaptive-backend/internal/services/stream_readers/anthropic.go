@@ -25,11 +25,11 @@ type AnthropicStreamReader struct {
 }
 
 // NewAnthropicStreamReader creates a new stream reader for Anthropic completions
-func NewAnthropicStreamReader(stream ssestream.Stream[anthropic.MessageStreamEventUnion], requestID string) *AnthropicStreamReader {
+func NewAnthropicStreamReader(stream ssestream.Stream[anthropic.MessageStreamEventUnion], RequestID string) *AnthropicStreamReader {
 	return &AnthropicStreamReader{
 		BaseStreamReader: BaseStreamReader{
-			buffer:    []byte{},
-			requestID: requestID,
+			Buffer:    []byte{},
+			RequestID: RequestID,
 		},
 		stream: stream,
 		done:   false,
@@ -38,10 +38,10 @@ func NewAnthropicStreamReader(stream ssestream.Stream[anthropic.MessageStreamEve
 
 // Read implements io.Reader interface for Anthropic streams
 func (r *AnthropicStreamReader) Read(p []byte) (n int, err error) {
-	// If we already have data in buffer, send that first
-	if len(r.buffer) > 0 {
-		n = copy(p, r.buffer)
-		r.buffer = r.buffer[n:]
+	// If we already have data in Buffer, send that first
+	if len(r.Buffer) > 0 {
+		n = copy(p, r.Buffer)
+		r.Buffer = r.Buffer[n:]
 		return n, nil
 	}
 
@@ -55,17 +55,17 @@ func (r *AnthropicStreamReader) Read(p []byte) (n int, err error) {
 		// Check if there was an error
 		if r.stream.Err() != nil {
 			// Format any error as SSE and mark as done
-			log.Printf("[%s] Error in Anthropic stream: %v", r.requestID, r.stream.Err())
+			log.Printf("[%s] Error in Anthropic stream: %v", r.RequestID, r.stream.Err())
 			safeErrMsg := strings.ReplaceAll(r.stream.Err().Error(), "\"", "\\\"")
-			r.buffer = fmt.Appendf(nil, "data: {\"error\": \"%s\"}\n\n", safeErrMsg)
+			r.Buffer = fmt.Appendf(nil, "data: {\"error\": \"%s\"}\n\n", safeErrMsg)
 			r.done = true
-			return r.Read(p) // Recursively call to handle the buffer
+			return r.Read(p) // Recursively call to handle the Buffer
 		}
 
 		// No error but no more events, send [DONE]
-		r.buffer = []byte("data: [DONE]\n\n")
+		r.Buffer = []byte("data: [DONE]\n\n")
 		r.done = true
-		return r.Read(p) // Recursively call to handle the buffer
+		return r.Read(p) // Recursively call to handle the Buffer
 	}
 
 	// Get the current event
@@ -80,13 +80,13 @@ func (r *AnthropicStreamReader) Read(p []byte) (n int, err error) {
 	// Marshal the response to JSON
 	jsonData, err := json.Marshal(enhanced)
 	if err != nil {
-		log.Printf("[%s] Error marshaling Anthropic response: %v", r.requestID, err)
-		r.buffer = []byte("data: {\"error\": \"Failed to marshal response\"}\n\n")
+		log.Printf("[%s] Error marshaling Anthropic response: %v", r.RequestID, err)
+		r.Buffer = []byte("data: {\"error\": \"Failed to marshal response\"}\n\n")
 		return r.Read(p)
 	}
 
 	// Format as SSE
-	r.buffer = fmt.Appendf(nil, "data: %s\n\n", jsonData)
+	r.Buffer = fmt.Appendf(nil, "data: %s\n\n", jsonData)
 
 	// Check if this is the last message (MessageStopEvent)
 	if _, isStop := event.AsAny().(anthropic.MessageStopEvent); isStop {
@@ -94,18 +94,18 @@ func (r *AnthropicStreamReader) Read(p []byte) (n int, err error) {
 		r.done = true
 	}
 
-	// Recursively call Read to handle the newly filled buffer
+	// Recursively call Read to handle the newly filled Buffer
 	return r.Read(p)
 }
 
 // Close implements io.Closer interface
 func (r *AnthropicStreamReader) Close() error {
 	var err error
-	r.closeLock.Do(func() {
+	r.CloseLock.Do(func() {
 		// Anthropic streams don't have an explicit Close method,
 		// but we can mark it as done to prevent further reads
 		r.done = true
-		log.Printf("[%s] Anthropic stream closed", r.requestID)
+		log.Printf("[%s] Anthropic stream closed", r.RequestID)
 	})
 	return err
 }

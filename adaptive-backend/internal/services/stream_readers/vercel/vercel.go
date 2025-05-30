@@ -44,9 +44,9 @@ func NewVercelDataStreamReader(stream io.ReadCloser, requestID string) *VercelDa
 
 // Read implements io.Reader interface for Vercel DataStream format
 func (r *VercelDataStreamReader) Read(p []byte) (n int, err error) {
-	if len(r.buffer) > 0 {
-		n = copy(p, r.buffer)
-		r.buffer = r.buffer[n:]
+	if len(r.Buffer) > 0 {
+		n = copy(p, r.Buffer)
+		r.Buffer = r.Buffer[n:]
 		return n, nil
 	}
 
@@ -59,32 +59,32 @@ func (r *VercelDataStreamReader) Read(p []byte) (n int, err error) {
 		if err == io.EOF {
 			if !r.sentFinish {
 				finishMsg := `d:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}` + "\n\n"
-				r.buffer = []byte(finishMsg)
+				r.Buffer = []byte(finishMsg)
 				r.sentFinish = true
 				return r.Read(p)
 			}
 			return 0, io.EOF
 		}
-		log.Printf("[%s] Error decoding chunk from underlying stream: %v", r.requestID, err)
+		log.Printf("[%s] Error decoding chunk from underlying stream: %v", r.RequestID, err)
 		errMsg := fmt.Sprintf(`3:"Error reading from underlying stream: %s"`+"\n\n", strings.ReplaceAll(err.Error(), `"`, `\"`))
-		r.buffer = []byte(errMsg)
+		r.Buffer = []byte(errMsg)
 		r.done = true
 		return r.Read(p)
 	}
 
 	if chunk.Error != "" {
 		errMsg := fmt.Sprintf(`3:"%s"`+"\n\n", strings.ReplaceAll(chunk.Error, `"`, `\"`))
-		r.buffer = append(r.buffer, []byte(errMsg)...)
+		r.Buffer = append(r.Buffer, []byte(errMsg)...)
 	} else if chunk.Text != "" {
 		escapedText := strings.ReplaceAll(chunk.Text, `"`, `\"`)
 		escapedText = strings.ReplaceAll(escapedText, "\n", `\n`)
 		textMsg := fmt.Sprintf(`0:"%s"`+"\n\n", escapedText)
-		r.buffer = append(r.buffer, []byte(textMsg)...)
+		r.Buffer = append(r.Buffer, []byte(textMsg)...)
 	}
 
 	if chunk.FinishReason != "" && !r.sentFinish {
 		finishMsg := fmt.Sprintf(`d:{"finishReason":"%s","usage":{"promptTokens":0,"completionTokens":0}}`+"\n\n", chunk.FinishReason)
-		r.buffer = append(r.buffer, []byte(finishMsg)...)
+		r.Buffer = append(r.Buffer, []byte(finishMsg)...)
 		r.sentFinish = true
 		r.done = true
 	}
@@ -95,13 +95,13 @@ func (r *VercelDataStreamReader) Read(p []byte) (n int, err error) {
 // Close closes the underlying stream safely
 func (r *VercelDataStreamReader) Close() error {
 	var err error
-	r.closeLock.Do(func() {
+	r.CloseLock.Do(func() {
 		if r.underlyingStream != nil {
-			log.Printf("[%s] Closing underlying stream for VercelDataStreamReader", r.requestID)
+			log.Printf("[%s] Closing underlying stream for VercelDataStreamReader", r.RequestID)
 			err = r.underlyingStream.Close()
 		}
 		r.done = true
-		log.Printf("[%s] VercelDataStreamReader closed, requestID: %s", r.requestID, r.requestID)
+		log.Printf("[%s] VercelDataStreamReader closed, requestID: %s", r.RequestID, r.RequestID)
 	})
 	return err
 }

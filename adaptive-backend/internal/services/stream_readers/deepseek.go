@@ -24,11 +24,11 @@ type DeepSeekStreamReader struct {
 }
 
 // NewDeepSeekStreamReader creates a new stream reader for DeepSeek completions
-func NewDeepSeekStreamReader(stream deepseek.ChatCompletionStream, requestID string) *DeepSeekStreamReader {
+func NewDeepSeekStreamReader(stream deepseek.ChatCompletionStream, RequestID string) *DeepSeekStreamReader {
 	return &DeepSeekStreamReader{
 		BaseStreamReader: BaseStreamReader{
-			buffer:    []byte{},
-			requestID: requestID,
+			Buffer:    []byte{},
+			RequestID: RequestID,
 		},
 		stream: stream,
 		done:   false,
@@ -37,10 +37,10 @@ func NewDeepSeekStreamReader(stream deepseek.ChatCompletionStream, requestID str
 
 // Read implements io.Reader interface for DeepSeek streams
 func (r *DeepSeekStreamReader) Read(p []byte) (n int, err error) {
-	// If we already have data in buffer, send that first
-	if len(r.buffer) > 0 {
-		n = copy(p, r.buffer)
-		r.buffer = r.buffer[n:]
+	// If we already have data in Buffer, send that first
+	if len(r.Buffer) > 0 {
+		n = copy(p, r.Buffer)
+		r.Buffer = r.Buffer[n:]
 		return n, nil
 	}
 
@@ -55,16 +55,16 @@ func (r *DeepSeekStreamReader) Read(p []byte) (n int, err error) {
 		// Handle end of stream or errors
 		if strings.Contains(err.Error(), "EOF") || strings.Contains(err.Error(), "stream closed") {
 			// Send [DONE] and mark as complete
-			r.buffer = []byte("data: [DONE]\n\n")
+			r.Buffer = []byte("data: [DONE]\n\n")
 			r.done = true
-			return r.Read(p) // Recursively call to handle the buffer
+			return r.Read(p) // Recursively call to handle the Buffer
 		}
 		// Format any other error as SSE and mark as done
-		log.Printf("[%s] Error in DeepSeek stream: %v", r.requestID, err)
+		log.Printf("[%s] Error in DeepSeek stream: %v", r.RequestID, err)
 		safeErrMsg := strings.ReplaceAll(err.Error(), "\"", "\\\"")
-		r.buffer = fmt.Appendf(nil, "data: {\"error\": \"%s\"}\n\n", safeErrMsg)
+		r.Buffer = fmt.Appendf(nil, "data: {\"error\": \"%s\"}\n\n", safeErrMsg)
 		r.done = true
-		return r.Read(p) // Recursively call to handle the buffer
+		return r.Read(p) // Recursively call to handle the Buffer
 	}
 
 	enhanced := EnhancedDeepSeekResponse{
@@ -75,13 +75,13 @@ func (r *DeepSeekStreamReader) Read(p []byte) (n int, err error) {
 	// Marshal the response to JSON
 	jsonData, err := json.Marshal(enhanced)
 	if err != nil {
-		log.Printf("[%s] Error marshaling DeepSeek response: %v", r.requestID, err)
-		r.buffer = []byte("data: {\"error\": \"Failed to marshal response\"}\n\n")
+		log.Printf("[%s] Error marshaling DeepSeek response: %v", r.RequestID, err)
+		r.Buffer = []byte("data: {\"error\": \"Failed to marshal response\"}\n\n")
 		return r.Read(p)
 	}
 
 	// Format as SSE
-	r.buffer = fmt.Appendf(nil, "data: %s\n\n", jsonData)
+	r.Buffer = fmt.Appendf(nil, "data: %s\n\n", jsonData)
 
 	// Check if this is the last message
 	if len(response.Choices) > 0 && response.Choices[0].FinishReason != "" {
@@ -89,16 +89,16 @@ func (r *DeepSeekStreamReader) Read(p []byte) (n int, err error) {
 		r.done = true
 	}
 
-	// Recursively call Read to handle the newly filled buffer
+	// Recursively call Read to handle the newly filled Buffer
 	return r.Read(p)
 }
 
 // Close implements io.Closer interface
 func (r *DeepSeekStreamReader) Close() error {
 	var err error
-	r.closeLock.Do(func() {
+	r.CloseLock.Do(func() {
 		err = r.stream.Close()
-		log.Printf("[%s] DeepSeek stream closed", r.requestID)
+		log.Printf("[%s] DeepSeek stream closed", r.RequestID)
 	})
 	return err
 }
