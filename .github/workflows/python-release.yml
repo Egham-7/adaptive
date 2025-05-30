@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "libraries/adaptive-python/**"
+      - ".github/workflows/python-release.yml"
     tags:
       - "v*-py"
 
