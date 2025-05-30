@@ -1,11 +1,11 @@
-# 🚀 Adaptive - Intelligent LLM Infrastructure
-
 <div align="center">
+
+# 🚀 Adaptive - Intelligent LLM Infrastructure
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=flat&logo=go&logoColor=white)](https://golang.org/)
-[![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/react-19-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
 [![Python](https://img.shields.io/badge/python-3670A0?style=flat&logo=python&logoColor=ffdd54)](https://python.org/)
 
 *Supercharge your LLM workloads with intelligent model selection and cost optimization*
@@ -18,7 +18,7 @@
 
 ## 🎯 What is Adaptive?
 
-Adaptive is an **AI-powered LLM infrastructure platform** that automatically selects the optimal language model for each prompt based on intelligent analysis. Instead of manually choosing between GPT-4, Claude, Gemini, or other models, Adaptive uses machine learning classifiers to:
+Adaptive is an **AI-powered LLM infrastructure platform** that automatically selects the optimal language model for each prompt based on intelligent analysis. Instead of manually choosing between GPT-4, Claude, Gemini, or other models, Adaptive uses NVIDIA-powered machine learning classifiers to:
 
 - 🧠 **Analyze prompt complexity** across multiple dimensions
 - 🎯 **Select the best model** for each specific task
@@ -70,8 +70,8 @@ response = adaptive.chat.completions.create(
 ## 🌟 Features
 
 ### 🤖 Intelligent Model Selection
-- **ML-Powered Analysis**: Advanced classifiers analyze prompts across creativity, reasoning, context, and domain knowledge
-- **Multi-Provider Support**: OpenAI, Anthropic, Google AI, Groq, DeepSeek integration
+- **NVIDIA-Powered Analysis**: Advanced NVIDIA classifiers analyze prompts across creativity, reasoning, context, and domain knowledge
+- **Multi-Provider Support**: Go service manages connections to OpenAI, Anthropic, Google AI, Groq, DeepSeek
 - **Vector Similarity Matching**: Cosine similarity algorithms match prompts to optimal models
 - **Domain-Specific Routing**: Specialized model selection for code, writing, analysis, etc.
 
@@ -90,8 +90,8 @@ response = adaptive.chat.completions.create(
 
 ### 🛠️ Developer Experience
 - **Multiple SDKs**: Python, JavaScript/TypeScript client libraries
-- **OpenAI-Compatible API**: Drop-in replacement for existing code
-- **Streaming Support**: Real-time response streaming
+- **OpenAI-Compatible API**: Go service provides drop-in replacement for existing code
+- **Streaming Support**: Real-time response streaming through Go API
 - **Conversation Management**: Full chat history and context management
 - **Rich Documentation**: Comprehensive guides and examples
 
@@ -185,20 +185,20 @@ graph TB
     Client[Client Applications] --> LB[Load Balancer]
     LB --> Frontend[React Frontend<br/>Port 3000]
     LB --> Backend[Go API Server<br/>Port 8080]
-    
+
     Frontend --> Backend
-    Backend --> AI[Python AI Service<br/>Port 8000]
+    Backend --> AI[Python AI Service<br/>NVIDIA Classifiers<br/>Port 8000]
     Backend --> DB[(SQL Server<br/>Database)]
     
-    AI --> OpenAI[OpenAI API]
-    AI --> Anthropic[Anthropic API]
-    AI --> Google[Google AI API]
-    AI --> Groq[Groq API]
-    AI --> DeepSeek[DeepSeek API]
-    
+    Backend --> OpenAI[OpenAI API]
+    Backend --> Anthropic[Anthropic API]
+    Backend --> Google[Google AI API]
+    Backend --> Groq[Groq API]
+    Backend --> DeepSeek[DeepSeek API]
+
     Backend --> Prometheus[Prometheus<br/>Port 9090]
     Prometheus --> Grafana[Grafana<br/>Port 3001]
-    
+
     style Frontend fill:#61dafb
     style Backend fill:#00add8
     style AI fill:#3776ab
@@ -209,9 +209,9 @@ graph TB
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
-| **Frontend** | React 18, TypeScript, TanStack Router | User interface and dashboard |
-| **Backend API** | Go, Fiber, GORM | Authentication, data management, API gateway |
-| **AI Service** | Python, LitServe, scikit-learn | Model selection and prompt analysis |
+| **Frontend** | React 19, TypeScript, TanStack Router | User interface and dashboard |
+| **Backend API** | Go, Fiber, GORM | Model provider integration, authentication, data management |
+| **AI Service** | Python, LitServe, NVIDIA classifiers | Model selection and prompt analysis |
 | **Database** | SQL Server | User data, conversations, analytics |
 | **Monitoring** | Prometheus, Grafana | Metrics, alerts, observability |
 | **Client SDKs** | Python, JavaScript | Easy integration libraries |
