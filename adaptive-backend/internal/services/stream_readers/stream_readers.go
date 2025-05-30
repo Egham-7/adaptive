@@ -33,30 +33,33 @@ func GetStreamReader(resp *models.ChatCompletionResponse, provider string, reque
 	case "openai":
 		stream, ok := resp.Response.(*openaissestream.Stream[openai.ChatCompletionChunk])
 		if !ok {
-			return nil, fmt.Errorf("invalid OpenAI stream type")
+			return nil, fmt.Errorf("invalid OpenAI stream type, got %T", resp.Response)
 		}
 		return NewOpenAIStreamReader(stream, requestID), nil
 	case "groq":
 		stream, ok := resp.Response.(*groq.ChatCompletionStream)
 		if !ok {
-			return nil, fmt.Errorf("invalid Groq stream type")
+			return nil, fmt.Errorf("invalid Groq stream type, got %T", resp.Response)
 		}
 		return NewGroqStreamReader(stream, requestID), nil
 	case "deepseek":
-		stream, ok := resp.Response.(deepseek.ChatCompletionStream)
+		stream, ok := resp.Response.(deepseek.ChatCompletionStream) 
 		if !ok {
-			return nil, fmt.Errorf("invalid DeepSeek stream type")
+			return nil, fmt.Errorf("invalid DeepSeek stream type, got %T", resp.Response)
 		}
 		return NewDeepSeekStreamReader(stream, requestID), nil
-
 	case "anthropic":
 		stream, ok := resp.Response.(anthropicssestream.Stream[anthropic.MessageStreamEventUnion])
-
 		if !ok {
-			return nil, fmt.Errorf("invalid Anthropic stream type")
+			return nil, fmt.Errorf("invalid Anthropic stream type, got %T", resp.Response)
 		}
 		return NewAnthropicStreamReader(stream, requestID), nil
-
+	case "vercel": 
+		processedStream, ok := resp.Response.(io.ReadCloser)
+		if !ok {
+			return nil, fmt.Errorf("invalid stream type for vercel provider: expected io.ReadCloser of InternalProviderChunk JSON objects, got %T", resp.Response)
+		}
+		return NewVercelDataStreamReader(processedStream, requestID), nil
 	default:
 		return nil, fmt.Errorf("unsupported provider for streaming: %s", provider)
 	}

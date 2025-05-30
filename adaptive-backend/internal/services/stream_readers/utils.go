@@ -13,11 +13,12 @@ import (
 )
 
 // handleStream manages the streaming response to the client
-func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string) error {
+func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string, targetStreamFormat string) error {
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		streamReader, err := GetStreamReader(resp, resp.Provider, requestID)
+		// Use targetStreamFormat here
+		streamReader, err := GetStreamReader(resp, targetStreamFormat, requestID) 
 		if err != nil {
-			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
+			sendErrorEvent(w, requestID, "Failed to create stream reader for format "+targetStreamFormat, err)
 			return
 		}
 

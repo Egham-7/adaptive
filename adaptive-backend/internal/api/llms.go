@@ -177,7 +177,55 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	if h.metrics != nil {
 		h.metrics.RequestDuration.WithLabelValues("stream", "200").Observe(time.Since(start).Seconds())
 	}
-	return stream_readers.HandleStream(c, resp, requestID)
+
+	// Determine target stream format
+	requestedFormat := c.Query("stream_format")
+	targetStreamFormat := fullReq.Provider // Default to original provider's format (e.g., "openai")
+	isVercelFormat := false
+
+	if requestedFormat == "vercel" {
+		targetStreamFormat = "vercel"
+		isVercelFormat = true
+	}
+	
+	// Note: Standard SSE headers (Content-Type, Cache-Control, Connection, Transfer-Encoding)
+	// have already been set before this block.
+
+	if isVercelFormat {
+		log.Printf("[%s] Attempting to stream in Vercel DataStream format (original provider: %s)", requestID, fullReq.Provider)
+		
+		// Convert the original provider stream (resp.Response) to a stream of InternalProviderChunk JSON objects
+		internalChunkStream, conversionErr := convertToInternalProviderChunkStream(resp.Response, fullReq.Provider, requestID)
+		if conversionErr != nil {
+			log.Printf("[%s] Error converting to InternalProviderChunk stream: %v", requestID, conversionErr)
+			// It's important to return an error here that the client can understand.
+			// Since we've already set SSE headers, sending a JSON error might be problematic for some clients
+			// if they strictly expect SSE. However, if conversion fails, streaming cannot proceed in Vercel format.
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to convert stream to Vercel format: " + conversionErr.Error(),
+			})
+		}
+
+		// Create a new ChatCompletionResponse wrapper for the VercelDataStreamReader.
+		// The VercelDataStreamReader itself expects an io.ReadCloser that yields InternalProviderChunk JSONs.
+		// The 'Provider' field in vercelResp tells GetStreamReader which *target format adapter* to use.
+		vercelResp := &models.ChatCompletionResponse{
+			Response:  internalChunkStream, // This is the io.ReadCloser of InternalProviderChunks
+			Provider:  "vercel",            // This ensures GetStreamReader selects VercelDataStreamReader
+			ModelName: resp.ModelName,      // Copy original model name
+			// Other fields from original 'resp' can be copied if needed by HandleStream or VercelDataStreamReader.
+		}
+
+		c.Set("x-vercel-ai-data-stream", "v1") // Vercel-specific header
+		// Pass "vercel" as the targetStreamFormat to HandleStream, so it uses NewVercelDataStreamReader
+		return stream_readers.HandleStream(c, vercelResp, requestID, "vercel")
+
+	} else {
+		// Default behavior: stream using the provider's native SSE format (e.g., OpenAI's)
+		log.Printf("[%s] Streaming in default format for provider: %s", requestID, fullReq.Provider)
+		// Pass the original fullReq.Provider as the targetStreamFormat for default handling
+		return stream_readers.HandleStream(c, resp, requestID, fullReq.Provider)
+	}
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
