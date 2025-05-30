@@ -5,14 +5,14 @@ on:
     branches: [main, master]
     paths:
       - "libraries/adaptive-python/**"
-      - ".github/workflows/python-sdk.yml"
+      - ".github/workflows/python-sdk-ci.yml"
     tags:
       - "v*-py"
   pull_request:
     branches: [main, master]
     paths:
       - "libraries/adaptive-python/**"
-      - ".github/workflows/python-sdk.yml"
+      - ".github/workflows/python-sdk-ci.yml"
 
 jobs:
   ci:
