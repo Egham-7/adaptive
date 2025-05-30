@@ -59,3 +59,4 @@ jobs:
         with:
           package: libraries/adaptive-js
           token: ${{ secrets.NPM_TOKEN }}
+          access: public
