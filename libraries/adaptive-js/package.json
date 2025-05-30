@@ -1,5 +1,5 @@
 {
-  "name": "@adaptive/adaptive-js",
+  "name": "@adaptive-llm/adaptive-js",
   "type": "module",
   "version": "0.0.0",
   "main": "./dist/index.cjs",
