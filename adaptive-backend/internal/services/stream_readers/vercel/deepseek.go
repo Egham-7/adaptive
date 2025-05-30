@@ -10,7 +10,7 @@ import (
 	deepseek "github.com/cohesion-org/deepseek-go"
 )
 
-// DeepSeekA          dapter adapts DeepSeek's streaming responses to Vercel's DataStream format
+// DeepSeekAdapter adapts DeepSeek's streaming responses to Vercel's DataStream format
 type DeepSeekAdapter struct {
 	stream    deepseek.ChatCompletionStream
 	requestID string
