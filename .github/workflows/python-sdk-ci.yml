@@ -1,13 +1,18 @@
-name: SDK CI
+name: Python SDK CI
 
 on:
   push:
     branches: [main, master]
+    paths:
+      - "libraries/adaptive-python/**"
+      - ".github/workflows/python-sdk-ci.yml"
   pull_request:
     branches: [main, master]
+    paths:
+      - "libraries/adaptive-python/**"
+      - ".github/workflows/python-sdk-ci.yml"
 
 jobs:
-  # 🐍 PYTHON SDK
   python:
     name: 🧪 Python SDK – CI
     runs-on: ubuntu-latest
@@ -51,24 +56,3 @@ jobs:
         with:
           file: libraries/adaptive-python/adaptive/coverage.xml
           fail_ci_if_error: false
-
-  # ⚙️ JAVASCRIPT SDK
-  javascript:
-    name: 🧪 JS SDK – CI
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: libraries/adaptive-js
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Typecheck
-        run: bunx tsc --noEmit
-
-      - name: Run tests
-        run: bun test
