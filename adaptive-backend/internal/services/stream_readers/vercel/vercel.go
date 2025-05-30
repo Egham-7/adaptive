@@ -39,50 +39,47 @@ func NewVercelDataStreamReaderFromAdapter(adapter ProviderAdapter, requestID str
 
 // Read implements io.Reader interface for Vercel DataStream format
 func (r *VercelDataStreamReader) Read(p []byte) (n int, err error) {
-	if len(r.Buffer) > 0 {
-		n = copy(p, r.Buffer)
-		r.Buffer = r.Buffer[n:]
-		return n, nil
-	}
+	for {
+		if len(r.Buffer) > 0 {
+			n = copy(p, r.Buffer)
+			r.Buffer = r.Buffer[n:]
+			return n, nil
+		}
 
-	if r.done {
-		return 0, io.EOF
-	}
+		if r.done {
+			return 0, io.EOF
+		}
 
-	chunk, err := r.adapter.NextChunk()
-	if err != nil && err != io.EOF {
-		log.Printf("[%s] Adapter error: %v", r.RequestID, err)
-		errMsg := fmt.Sprintf(`3:"Adapter error: %s"`+"\n\n", strings.ReplaceAll(err.Error(), `"`, `\"`))
-		r.Buffer = []byte(errMsg)
-		r.done = true
-		return r.Read(p)
-	}
+		chunk, err := r.adapter.NextChunk()
+		if err != nil && err != io.EOF {
+			log.Printf("[%s] Adapter error: %v", r.RequestID, err)
+			r.Buffer = fmt.Appendf(nil, `3:"Adapter error: %s"`+"\n\n", strings.ReplaceAll(err.Error(), `"`, `\"`))
+			r.done = true
+			continue
+		}
 
-	if chunk == nil {
-		return r.Read(p)
-	}
+		if chunk == nil {
+			continue
+		}
 
-	if chunk.Error != "" {
-		r.Buffer = []byte(fmt.Sprintf(`3:"%s"`+"\n\n", strings.ReplaceAll(chunk.Error, `"`, `\"`)))
-		r.done = true
-		return r.Read(p)
-	}
+		if chunk.Error != "" {
+			r.Buffer = fmt.Appendf(nil, `3:"%s"`+"\n\n", strings.ReplaceAll(chunk.Error, `"`, `\"`))
+			r.done = true
+			continue
+		}
 
-	if chunk.Text != "" {
-		escaped := strings.ReplaceAll(chunk.Text, `"`, `\"`)
-		escaped = strings.ReplaceAll(escaped, "\n", `\n`)
-		r.Buffer = []byte(fmt.Sprintf(`0:"%s"`+"\n\n", escaped))
-	}
+		if chunk.Text != "" {
+			escaped := strings.ReplaceAll(chunk.Text, `"`, `\"`)
+			escaped = strings.ReplaceAll(escaped, "\n", `\n`)
+			r.Buffer = fmt.Appendf(nil, `0:"%s"`+"\n\n", escaped)
+		}
 
-	if chunk.FinishReason != "" && !r.sentFinish {
-		r.Buffer = append(r.Buffer,
-			[]byte(fmt.Sprintf(`d:{"finishReason":"%s","usage":{"promptTokens":0,"completionTokens":0}}`+"\n\n", chunk.FinishReason))...,
-		)
-		r.sentFinish = true
-		r.done = true
+		if chunk.FinishReason != "" && !r.sentFinish {
+			r.Buffer = fmt.Appendf(r.Buffer, `d:{"finishReason":"%s","usage":{"promptTokens":0,"completionTokens":0}}`+"\n\n", chunk.FinishReason)
+			r.sentFinish = true
+			r.done = true
+		}
 	}
-
-	return r.Read(p)
 }
 
 // Close releases any underlying resources
