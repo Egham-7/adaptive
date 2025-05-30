@@ -5,7 +5,7 @@ on:
     branches: [main, master]
     paths:
       - "libraries/adaptive-js/**"
-      - ".github/workflows/javascript-sdk-ci.yml"
+      - ".github/workflows/js-sdk-ci.yml"
   pull_request:
     branches: [main, master]
     paths:
