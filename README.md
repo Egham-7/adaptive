@@ -2,7 +2,7 @@
 
 # 🚀 Adaptive - Intelligent LLM Infrastructure
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: BSL](https://img.shields.io/badge/License-BSL-red.svg)](https://mariadb.com/bsl11/)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Go](https://img.shields.io/badge/go-%2300ADD8.svg?style=flat&logo=go&logoColor=white)](https://golang.org/)
 [![React](https://img.shields.io/badge/react-19-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
@@ -511,7 +511,15 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Business Source License 1.1 - see the [LICENSE](LICENSE) file for details.
+
+**License Summary:**
+- ✅ **Free for non-commercial use** - Development, testing, and personal projects
+- ✅ **Source code available** - Full transparency and community contributions
+- ❌ **Commercial use requires license** - Contact us for enterprise licensing
+- ❌ **No reselling or redistribution** - Prevents copying for commercial gain
+
+**Need a commercial license?** Contact us at licensing@adaptive.ai for enterprise pricing.
 
 ---
 
