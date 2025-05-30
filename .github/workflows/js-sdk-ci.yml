@@ -57,4 +57,5 @@ jobs:
       - name: Publish to npm
         uses: JS-DevTools/npm-publish@v3
         with:
+          package: libraries/adaptive-js
           token: ${{ secrets.NPM_TOKEN }}
