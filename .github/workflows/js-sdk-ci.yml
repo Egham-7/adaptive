@@ -1,16 +1,16 @@
-name: JavaScript SDK CI
+name: JavaScript SDK
 
 on:
   push:
     branches: [main, master]
     paths:
       - "libraries/adaptive-js/**"
-      - ".github/workflows/js-sdk-ci.yml"
+      - ".github/workflows/javascript-sdk.yml"
   pull_request:
     branches: [main, master]
     paths:
       - "libraries/adaptive-js/**"
-      - ".github/workflows/javascript-sdk-ci.yml"
+      - ".github/workflows/javascript-sdk.yml"
 
 jobs:
   javascript:
@@ -32,3 +32,29 @@ jobs:
 
       - name: Run tests
         run: bun test
+
+  publish-js:
+    name: 🚀 Publish JavaScript SDK
+    runs-on: ubuntu-latest
+    needs: javascript
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    defaults:
+      run:
+        working-directory: libraries/adaptive-js
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Publish to npm
+        uses: JS-DevTools/npm-publish@v3
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
