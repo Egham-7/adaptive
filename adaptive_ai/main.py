@@ -6,6 +6,17 @@ class PromptRequest(BaseModel):
     prompt: str
 
 
+class ModelSelectionResponse(BaseModel):
+    selected_model: str
+    provider: str
+    match_score: float
+    task_type: str
+    difficulty: str
+    prompt_scores: dict
+    complexity_score: float
+    thresholds: dict
+
+
 class AdaptiveModelSelectionAPI(ls.LitAPI):
     def setup(self, device):
         from services.model_selector import ModelSelector
@@ -23,11 +34,10 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
             raise ValueError(f"Invalid request: {e}")
 
     def predict(self, prompt):
-
         return self.model_selector.select_model(prompt)
 
     def encode_response(self, output):
-        return output
+        return ModelSelectionResponse.model_validate(output)
 
 
 if __name__ == "__main__":

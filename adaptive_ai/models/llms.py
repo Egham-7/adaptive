@@ -90,157 +90,156 @@ model_capabilities = {
 task_type_model_mapping = {
     "Open QA": {
         "easy": {
-            #[Creativity ,Reasoning, Contextual, Domain, Constraints]
-            "vector": np.array([0.05, 0.2, 0.1,  0.5, 0.1]),
-            "model": "gpt-3.5-turbo"
+            "model": "gpt-3.5-turbo",
+            "complexity_threshold": 0.3
         },
         "medium": {
-            "vector": np.array([0.1, 0.3, 0.1, 0.7, 0.2]),
-            "model": "claude-4-turbo"
+            "model": "gpt-4-turbo",
+            "complexity_threshold": 0.4
         },
         "hard": {
-            "vector": np.array([0.25, 0.5, 0.35, 0.9, 0.4]),
-            "model": "gpt-4o"
+            "model": "gpt-4o",
+            "complexity_threshold": 0.5
         }
     },
     "Closed QA": {
         "easy": {
-            "vector": np.array([0.05, 0.2, 0.1,  0.5, 0.1]),
-            "model": "claude-3-haiku"
+            "model": "claude-3-haiku",
+            "complexity_threshold": 0.2
         },
         "medium": {
-            "vector": np.array([0.1, 0.3, 0.1, 0.7, 0.2]),
-            "model": "llama-3-70b-instruct"
+            "model": "llama-3-70b-instruct",
+            "complexity_threshold": 0.3
         },
         "hard": {
-            "vector": np.array([0.25, 0.5, 0.35, 0.9, 0.4]),
-            "model": "claude-3-opus"
+            "model": "claude-3-opus",
+            "complexity_threshold": 0.6
         }
     },
     "Summarization": {
         "easy": {
-            "vector": np.array([0.4, 0.5, 0.6, 0.4, 0.5]),
-            "model": "gpt-3.5-turbo"
+            "model": "gpt-3.5-turbo",
+            "complexity_threshold": 0.2
         },
         "medium": {
-            "vector": np.array([0.7, 0.7, 0.8, 0.7, 0.8]),
-            "model": "claude-3-sonnet"
+            "model": "claude-3-sonnet",
+            "complexity_threshold": 0.35
         },
         "hard": {
-            "vector": np.array([0.9, 0.9, 0.9, 0.9, 0.9]),
-            "model": "gpt-4o"
+            "model": "gpt-4o",
+            "complexity_threshold": 0.65
         }
     },
     "Text Generation": {
         "easy": {
-            "vector": np.array([0.5, 0.5, 0.5, 0.4, 0.5]),
-            "model": "llama-3-8b-instruct"
+            "model": "llama-3-8b-instruct",
+            "complexity_threshold": 0.15
         },
         "medium": {
-            "vector": np.array([0.7, 0.7, 0.8, 0.7, 0.8]),
-            "model": "claude-3-sonnet"
+            "model": "claude-3-sonnet",
+            "complexity_threshold": 0.3
         },
         "hard": {
-            "vector": np.array([0.9, 0.9, 0.9, 0.9, 0.9]),
-            "model": "gpt-4o"
+            "model": "gpt-4o",
+            "complexity_threshold": 0.7
         }
     },
     "Code Generation": {
         "easy": {
-            "vector": np.array([0.4, 0.5, 0.6, 0.5, 0.6]),
-            "model": "gpt-3.5-turbo"
+            "model": "gpt-3.5-turbo",
+            "complexity_threshold": 0.15
         },
         "medium": {
-            "vector": np.array([0.6, 0.7, 0.8, 0.7, 0.8]),
-            "model": "gpt-4-turbo"
+            "model": "gpt-4-turbo",
+            "complexity_threshold": 0.3
         },
         "hard": {
-            "vector": np.array([0.7, 0.8, 0.9, 0.8, 0.9]),
-            "model": "claude-3-opus"
+            "model": "claude-3-opus",
+            "complexity_threshold": 0.6
         }
     },
     "Chatbot": {
         "easy": {
-            "vector": np.array([0.5, 0.5, 0.5, 0.4, 0.5]),
-            "model": "llama-3-8b-instruct"
+            "model": "llama-3-8b-instruct",
+            "complexity_threshold": 0.2
         },
         "medium": {
-            "vector": np.array([0.6, 0.7, 0.8, 0.7, 0.8]),
-            "model": "gpt-4-turbo"
+            "model": "gpt-4-turbo",
+            "complexity_threshold": 0.3
         },
         "hard": {
-            "vector": np.array([0.7, 0.8, 0.9, 0.8, 0.9]),
-            "model": "claude-3-opus"
+            "model": "claude-3-opus",
+            "complexity_threshold": 0.6
         }
     },
     "Classification": {
         "easy": {
-            "vector": np.array([0.4, 0.5, 0.5, 0.4, 0.5]),
-            "model": "gemma-7b"
+            "model": "gemma-7b",
+            "complexity_threshold": 0.15
         },
         "medium": {
-            "vector": np.array([0.6, 0.7, 0.7, 0.6, 0.7]),
-            "model": "claude-3-haiku"
+            "model": "claude-3-haiku",
+            "complexity_threshold": 0.25
         },
         "hard": {
-            "vector": np.array([0.6, 0.7, 0.8, 0.7, 0.8]),
-            "model": "gpt-4-turbo"
+            "model": "gpt-4-turbo",
+            "complexity_threshold": 0.5
         }
     },
     "Rewrite": {
         "easy": {
-            "vector": np.array([0.4, 0.5, 0.5, 0.4, 0.5]),
-            "model": "gemma-7b"
+            "model": "gemma-7b",
+            "complexity_threshold": 0.1
         },
         "medium": {
-            "vector": np.array([0.4, 0.5, 0.6, 0.5, 0.6]),
-            "model": "gpt-3.5-turbo"
+            "model": "gpt-3.5-turbo",
+            "complexity_threshold": 0.2
         },
         "hard": {
-            "vector": np.array([0.9, 0.9, 0.9, 0.9, 0.9]),
-            "model": "gpt-4o"
+            "model": "gpt-4o",
+            "complexity_threshold": 0.6
         }
     },
     "Brainstorming": {
         "easy": {
-            "vector": np.array([0.7, 0.7, 0.7, 0.6, 0.7]),
-            "model": "llama-3-70b-instruct"
+            "model": "llama-3-70b-instruct",
+            "complexity_threshold": 0.1
         },
         "medium": {
-            "vector": np.array([0.7, 0.8, 0.9, 0.8, 0.9]),
-            "model": "claude-3-opus"
+            "model": "claude-3-opus",
+            "complexity_threshold": 0.15
         },
         "hard": {
-            "vector": np.array([0.9, 0.9, 0.9, 0.9, 0.9]),
-            "model": "gpt-4o"
+            "model": "gpt-4o",
+            "complexity_threshold": 0.5
         }
     },
     "Extraction": {
         "easy": {
-            "vector": np.array([0.5, 0.5, 0.5, 0.4, 0.5]),
-            "model": "llama-3-8b-instruct"
+            "model": "llama-3-8b-instruct",
+            "complexity_threshold": 0.1
         },
         "medium": {
-            "vector": np.array([0.4, 0.5, 0.6, 0.5, 0.6]),
-            "model": "gpt-3.5-turbo"
+            "model": "gpt-3.5-turbo",
+            "complexity_threshold": 0.3
         },
         "hard": {
-            "vector": np.array([0.7, 0.7, 0.8, 0.7, 0.8]),
-            "model": "claude-3-sonnet"
+            "model": "claude-3-sonnet",
+            "complexity_threshold": 0.6
         }
     },
     "Other": {
         "easy": {
-            "vector": np.array([0.4, 0.5, 0.5, 0.4, 0.5]),
-            "model": "gemma-7b"
+            "model": "gemma-7b",
+            "complexity_threshold": 0.2
         },
         "medium": {
-            "vector": np.array([0.6, 0.7, 0.8, 0.7, 0.8]),
-            "model": "gpt-4-turbo"
+            "model": "gpt-4-turbo",
+            "complexity_threshold": 0.4
         },
         "hard": {
-            "vector": np.array([0.7, 0.8, 0.9, 0.8, 0.9]),
-            "model": "claude-3-opus"
+            "model": "claude-3-opus",
+            "complexity_threshold": 0.7
         }
     }
 }
@@ -339,17 +338,16 @@ task_type_parameters = {
 
 # Task weights for different task types (multipliers)
 # Format: [Creativity, Reasoning, Context, Domain, Constraints]
-# All weights set to 1.0 to effectively cancel weighting
 task_weights = {
-    "Open QA":        [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Closed QA":      [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Summarization":  [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Text Generation":[1.0, 1.0, 1.0, 1.0, 1.0],
-    "Code Generation":[1.0, 1.0, 1.0, 1.0, 1.0],
-    "Chatbot":        [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Classification": [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Rewrite":        [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Brainstorming":  [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Extraction":     [1.0, 1.0, 1.0, 1.0, 1.0],
-    "Other":          [1.0, 1.0, 1.0, 1.0, 1.0],
+    "Open QA":        [0.15, 0.25, 0.30, 0.20, 0.10],  # Focus on context and reasoning
+    "Closed QA":      [0.10, 0.30, 0.25, 0.25, 0.10],  # Strong emphasis on reasoning and domain knowledge
+    "Summarization":  [0.15, 0.20, 0.35, 0.20, 0.10],  # Context is crucial for good summaries
+    "Text Generation":[0.35, 0.15, 0.20, 0.20, 0.10],  # Creativity is key for text generation
+    "Code Generation":[0.10, 0.30, 0.25, 0.1, 0.15],  # Reasoning and domain knowledge are critical
+    "Chatbot":        [0.25, 0.20, 0.25, 0.20, 0.10],  # Balanced but with some creativity
+    "Classification": [0.10, 0.30, 0.20, 0.30, 0.10],  # Strong on reasoning and domain knowledge
+    "Rewrite":        [0.20, 0.20, 0.25, 0.25, 0.10],  # Balanced across most aspects
+    "Brainstorming":  [0.40, 0.20, 0.15, 0.15, 0.10],  # Creativity is paramount
+    "Extraction":     [0.10, 0.25, 0.30, 0.25, 0.10],  # Context and reasoning are important
+    "Other":          [0.20, 0.20, 0.20, 0.20, 0.20],  # Balanced weights for unknown tasks
 }

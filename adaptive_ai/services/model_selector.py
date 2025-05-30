@@ -1,6 +1,5 @@
 from typing import Dict, Any, List, TypedDict, Optional, cast
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
 from models.llms import model_capabilities, task_type_model_mapping, task_weights, ModelCapability
 from services.llm_parameters import LLMParametersFactory
 from services.prompt_classifier import get_prompt_classifier
@@ -15,7 +14,7 @@ class ModelInfo(TypedDict):
 class ModelSelector:
     """
     Service for selecting appropriate LLM models and parameters based on prompt analysis.
-    Now with vector similarity-based model selection.
+    Uses task-specific complexity-based model selection.
     """
 
     def __init__(self, prompt_classifier: Any):
@@ -57,22 +56,10 @@ class ModelSelector:
             ),
         }
 
-        # Create prompt vector from scores
-        prompt_vector = np.array([
-            prompt_scores["creativity_scope"][0],
-            prompt_scores["reasoning"][0],
-            prompt_scores["constraint_ct"][0],
-            prompt_scores["contextual_knowledge"][0],
-            prompt_scores["domain_knowledge"][0],
-        ], dtype=np.float64)
+        # Get complexity score
+        complexity_score = classification["prompt_complexity_score"][0]
 
-        # Get task weights for the current task type
-        task_weight_vector = np.array(task_weights.get(task_type, task_weights["Other"]), dtype=np.float64)
-        
-        # Multiply prompt vector by task weights
-        weighted_prompt_vector = prompt_vector * task_weight_vector
-
-        # Get difficulty levels and their vectors for the task type
+        # Get task difficulties for the current task type
         task_difficulties = task_type_model_mapping.get(task_type, {})
         if not task_difficulties:
             return {
@@ -81,25 +68,26 @@ class ModelSelector:
                 "match_score": 0.0,
                 "task_type": task_type,
                 "prompt_scores": prompt_scores,
-                "weighted_vector": weighted_prompt_vector.tolist()
+                "complexity_score": complexity_score
             }
 
-        # Calculate similarities with each difficulty level's vector
-        difficulty_similarities = {}
-        for difficulty, info in task_difficulties.items():
-            difficulty_vector = np.array(info["vector"], dtype=np.float64)
-            distance = euclidean_distances([weighted_prompt_vector], [difficulty_vector])[0][0]
-            max_distance = np.max([
-                float(np.linalg.norm(weighted_prompt_vector)),
-                float(np.linalg.norm(difficulty_vector))
-            ])
-            similarity = 1 - (distance / max_distance) if max_distance > 0 else 1.0
-            difficulty_similarities[difficulty] = similarity
+        # Get thresholds for the current task type
+        easy_threshold = task_difficulties["easy"]["complexity_threshold"]
+        medium_threshold = task_difficulties["medium"]["complexity_threshold"]
+        hard_threshold = task_difficulties["hard"]["complexity_threshold"]
 
-        # Select the difficulty level with highest similarity
-        selected_difficulty = max(difficulty_similarities.items(), key=lambda x: x[1])[0]
+        # Select difficulty based on complexity score and task-specific thresholds
+        selected_difficulty = "medium"  # default
+        if complexity_score <= easy_threshold:
+            selected_difficulty = "easy"
+        elif complexity_score >= hard_threshold:
+            selected_difficulty = "hard"
+
         selected_model = task_difficulties[selected_difficulty]["model"]
-        match_score = difficulty_similarities[selected_difficulty]
+        
+        # Calculate match score based on how close the complexity score is to the selected threshold
+        selected_threshold = task_difficulties[selected_difficulty]["complexity_threshold"]
+        match_score = 1.0 - min(abs(complexity_score - selected_threshold), 1.0)
 
         # Ensure selected_model is a string and exists in model_capabilities
         if not isinstance(selected_model, str) or selected_model not in model_capabilities:
@@ -114,7 +102,12 @@ class ModelSelector:
             "task_type": task_type,
             "difficulty": selected_difficulty,
             "prompt_scores": prompt_scores,
-            "weighted_vector": weighted_prompt_vector.tolist()
+            "complexity_score": complexity_score,
+            "thresholds": {
+                "easy": easy_threshold,
+                "medium": medium_threshold,
+                "hard": hard_threshold
+            }
         }
 
     def get_model_parameters(
