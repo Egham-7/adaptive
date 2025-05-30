@@ -5,7 +5,7 @@ import (
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
-	"adaptive-backend/internal/services/stream_readers"
+	"adaptive-backend/internal/services/stream_readers/stream"
 	"log"
 	"os"
 	"time"
@@ -177,7 +177,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	if h.metrics != nil {
 		h.metrics.RequestDuration.WithLabelValues("stream", "200").Observe(time.Since(start).Seconds())
 	}
-	return stream_readers.HandleStream(c, resp, requestID)
+	return stream.HandleStream(c, resp, requestID, req.RequestOptions)
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
