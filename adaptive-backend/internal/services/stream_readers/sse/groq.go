@@ -1,6 +1,7 @@
-package stream_readers
+package sse
 
 import (
+	"adaptive-backend/internal/services/stream_readers"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ type EnhancedGroqResponse struct {
 
 // GroqStreamReader implements a stream reader for Groq completions
 type GroqStreamReader struct {
-	BaseStreamReader
+	stream_readers.BaseStreamReader
 	stream *groq.ChatCompletionStream
 	done   bool
 }
@@ -26,7 +27,7 @@ type GroqStreamReader struct {
 // NewGroqStreamReader creates a new stream reader for Groq completions
 func NewGroqStreamReader(stream *groq.ChatCompletionStream, RequestID string) *GroqStreamReader {
 	return &GroqStreamReader{
-		BaseStreamReader: BaseStreamReader{
+		BaseStreamReader: stream_readers.BaseStreamReader{
 			Buffer:    []byte{},
 			RequestID: RequestID,
 		},

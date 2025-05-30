@@ -1,6 +1,7 @@
-package stream_readers
+package sse
 
 import (
+	"adaptive-backend/internal/services/stream_readers"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ type EnhancedAnthropicResponse struct {
 
 // AnthropicStreamReader implements a stream reader for Anthropic completions
 type AnthropicStreamReader struct {
-	BaseStreamReader
+	stream_readers.BaseStreamReader
 	stream ssestream.Stream[anthropic.MessageStreamEventUnion]
 	done   bool
 }
@@ -27,7 +28,7 @@ type AnthropicStreamReader struct {
 // NewAnthropicStreamReader creates a new stream reader for Anthropic completions
 func NewAnthropicStreamReader(stream ssestream.Stream[anthropic.MessageStreamEventUnion], RequestID string) *AnthropicStreamReader {
 	return &AnthropicStreamReader{
-		BaseStreamReader: BaseStreamReader{
+		BaseStreamReader: stream_readers.BaseStreamReader{
 			Buffer:    []byte{},
 			RequestID: RequestID,
 		},

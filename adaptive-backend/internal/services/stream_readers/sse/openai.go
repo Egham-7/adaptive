@@ -1,6 +1,7 @@
-package stream_readers
+package sse
 
 import (
+	"adaptive-backend/internal/services/stream_readers"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ type EnhancedOpenAIResponse struct {
 
 // OpenAIStreamReader adapts OpenAI's streaming API to io.Reader
 type OpenAIStreamReader struct {
-	BaseStreamReader
+	stream_readers.BaseStreamReader
 	stream *ssestream.Stream[openai.ChatCompletionChunk]
 	done   bool
 }
@@ -27,7 +28,7 @@ type OpenAIStreamReader struct {
 // NewOpenAIStreamReader creates a new stream reader for OpenAI completions
 func NewOpenAIStreamReader(stream *ssestream.Stream[openai.ChatCompletionChunk], RequestID string) *OpenAIStreamReader {
 	return &OpenAIStreamReader{
-		BaseStreamReader: BaseStreamReader{
+		BaseStreamReader: stream_readers.BaseStreamReader{
 			Buffer:    []byte{},
 			RequestID: RequestID,
 		},

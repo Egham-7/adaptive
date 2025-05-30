@@ -1,6 +1,7 @@
-package stream_readers
+package sse
 
 import (
+	"adaptive-backend/internal/services/stream_readers"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -18,7 +19,7 @@ type EnhancedDeepSeekResponse struct {
 
 // DeepSeekStreamReader implements a stream reader for DeepSeek completions
 type DeepSeekStreamReader struct {
-	BaseStreamReader
+	stream_readers.BaseStreamReader
 	stream deepseek.ChatCompletionStream
 	done   bool
 }
@@ -26,7 +27,7 @@ type DeepSeekStreamReader struct {
 // NewDeepSeekStreamReader creates a new stream reader for DeepSeek completions
 func NewDeepSeekStreamReader(stream deepseek.ChatCompletionStream, RequestID string) *DeepSeekStreamReader {
 	return &DeepSeekStreamReader{
-		BaseStreamReader: BaseStreamReader{
+		BaseStreamReader: stream_readers.BaseStreamReader{
 			Buffer:    []byte{},
 			RequestID: RequestID,
 		},

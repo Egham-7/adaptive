@@ -1,6 +1,8 @@
 package vercel
 
-import "io"
+import (
+	"io"
+)
 
 type ProviderAdapter interface {
 	NextChunk() (*InternalProviderChunk, error)
