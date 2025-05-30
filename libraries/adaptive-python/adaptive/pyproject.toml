@@ -21,6 +21,7 @@ classifiers = [
 python = ">=3.12"
 pydantic = ">=2.11.2,<3.0.0"
 requests = ">=2.32.3,<3.0.0"
+twine = "^6.1.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = ">=1.15.0,<2.0.0"
