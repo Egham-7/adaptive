@@ -22,9 +22,9 @@ type StreamReader interface {
 
 // BaseStreamReader provides common functionality for all stream readers
 type BaseStreamReader struct {
-	buffer    []byte
-	requestID string
-	closeLock sync.Once
+	Buffer    []byte
+	RequestID string
+	CloseLock sync.Once
 }
 
 // GetStreamReader creates the appropriate stream reader based on provider type
