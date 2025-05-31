@@ -1,0 +1,79 @@
+# -------------------------
+# STAGE 1: Builder
+# -------------------------
+FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu24.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive \
+  POETRY_HOME="/opt/poetry" \
+  PATH="/opt/poetry/bin:$PATH" \
+  PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Install Python + build tools
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+  python3.12 python3.12-dev python3-pip \
+  build-essential git curl libffi-dev libssl-dev ca-certificates && \
+  curl -sSL https://install.python-poetry.org | python3.12 - && \
+  apt-get remove --purge -y curl && \
+  apt-get autoremove -y && \
+  rm -rf /var/lib/apt/lists/*
+
+# Configure system Python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1
+
+# Copy dependency files first for caching
+COPY pyproject.toml poetry.lock* ./
+
+# Use .venv for Poetry environment
+RUN poetry config virtualenvs.in-project true && \
+  poetry install --only main --no-root --no-interaction --no-ansi
+
+# Copy the full application code
+COPY . .
+
+# -------------------------
+# STAGE 2: Runtime
+# -------------------------
+FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu24.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+  PYTHONUNBUFFERED=1 \
+  POETRY_HOME="/opt/poetry" \
+  VIRTUAL_ENV="/app/.venv" \
+  PATH="/app/.venv/bin:$PATH" \
+  HOME="/app" \
+  HF_HOME="/app/hf_cache"
+
+WORKDIR /app
+
+# Install only runtime Python
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+  python3.12 libpython3.12 libpython3.12-dev && \
+  update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
+  apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user before copying
+RUN addgroup --system appgroup && \
+  adduser --system --ingroup appgroup --home /app appuser
+
+# Copy app and venv from builder
+COPY --from=builder /app /app
+COPY --from=builder /app/.venv /app/.venv
+
+# Set proper ownership
+RUN mkdir -p /app/hf_cache && \
+  chown -R appuser:appgroup /app /app/hf_cache
+
+# Add entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chown appuser:appgroup /entrypoint.sh
+
+USER appuser
+
+EXPOSE 8000
+
+ENTRYPOINT ["/entrypoint.sh"]
+
