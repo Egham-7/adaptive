@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@adaptive-llm/adaptive-js": "^0.0.1",
     "@clerk/clerk-react": "^5.22.8",
     "@clerk/themes": "^2.2.26",
     "@hookform/resolvers": "^4.1.3",
