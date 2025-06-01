@@ -10,6 +10,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 WORKDIR /app
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Install Python + build tools
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
