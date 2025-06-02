@@ -4,14 +4,18 @@ from models.llms import model_capabilities, task_type_model_mapping, ModelCapabi
 
 logger = logging.getLogger(__name__)
 
+
 class ModelInfo(TypedDict):
     model_name: str
     provider: str
     match_score: float
 
+
 class ModelSelectionError(Exception):
     """Custom exception for model selection errors"""
+
     pass
+
 
 class ModelSelector:
     """
@@ -27,14 +31,20 @@ class ModelSelector:
         """Validate that the selected model exists and is appropriate for the task"""
         if not isinstance(selected_model, str):
             raise ModelSelectionError(f"Invalid model type: {type(selected_model)}")
-        
-        if selected_model not in model_capabilities:
-            raise ModelSelectionError(f"Selected model {selected_model} not found in capabilities")
-        
-        model_info = cast(ModelCapability, model_capabilities[selected_model])
-        logger.info(f"Selected model {selected_model} ({model_info['provider']}) for task {task_type}")
 
-    def select_model(self, prompt: str, domain: str = "Computers_and_Electronics") -> Dict[str, Any]:
+        if selected_model not in model_capabilities:
+            raise ModelSelectionError(
+                f"Selected model {selected_model} not found in capabilities"
+            )
+
+        model_info = cast(ModelCapability, model_capabilities[selected_model])
+        logger.info(
+            f"Selected model {selected_model} ({model_info['provider']}) for task {task_type}"
+        )
+
+    def select_model(
+        self, prompt: str, domain: str = "Computers_and_Electronics"
+    ) -> Dict[str, Any]:
         """
         Select the most appropriate model based on prompt analysis and task type.
 
@@ -55,18 +65,30 @@ class ModelSelector:
 
             # Get complexity analysis and task type
             classification = self.prompt_classifier.classify_prompt(prompt, domain)
-            
+
             # Get task type from the classification results
-            task_type = classification["task_type_1"][0] if classification["task_type_1"] else "Other"
+            task_type = (
+                classification["task_type_1"][0]
+                if classification["task_type_1"]
+                else "Other"
+            )
             logger.info(f"Detected task type: {task_type}")
 
             # Extract scores with type safety
             prompt_scores = {
-                "creativity_scope": cast(List[float], classification.get("creativity_scope", [0.0])),
+                "creativity_scope": cast(
+                    List[float], classification.get("creativity_scope", [0.0])
+                ),
                 "reasoning": cast(List[float], classification.get("reasoning", [0.0])),
-                "constraint_ct": cast(List[float], classification.get("constraint_ct", [0.0])),
-                "contextual_knowledge": cast(List[float], classification.get("contextual_knowledge", [0.0])),
-                "domain_knowledge": cast(List[float], classification.get("domain_knowledge", [0.0])),
+                "constraint_ct": cast(
+                    List[float], classification.get("constraint_ct", [0.0])
+                ),
+                "contextual_knowledge": cast(
+                    List[float], classification.get("contextual_knowledge", [0.0])
+                ),
+                "domain_knowledge": cast(
+                    List[float], classification.get("domain_knowledge", [0.0])
+                ),
             }
 
             # Get complexity score
@@ -76,7 +98,9 @@ class ModelSelector:
             # Get task difficulties for the current task type
             task_difficulties = task_type_model_mapping.get(task_type, {})
             if not task_difficulties:
-                logger.warning(f"No model mapping found for task type: {task_type}, using default")
+                logger.warning(
+                    f"No model mapping found for task type: {task_type}, using default"
+                )
                 return {
                     "selected_model": "gpt-4-turbo",
                     "provider": "OpenAI",
@@ -85,11 +109,7 @@ class ModelSelector:
                     "difficulty": "medium",
                     "prompt_scores": prompt_scores,
                     "complexity_score": complexity_score,
-                    "thresholds": {
-                        "easy": 0.3,
-                        "medium": 0.5,
-                        "hard": 0.7
-                    }
+                    "thresholds": {"easy": 0.3, "medium": 0.5, "hard": 0.7},
                 }
 
             # Get thresholds for the current task type
@@ -106,9 +126,11 @@ class ModelSelector:
 
             selected_model = str(task_difficulties[selected_difficulty]["model"])
             self._validate_model_selection(selected_model, task_type)
-            
+
             # Calculate match score based on how close the complexity score is to the selected threshold
-            selected_threshold = task_difficulties[selected_difficulty]["complexity_threshold"]
+            selected_threshold = task_difficulties[selected_difficulty][
+                "complexity_threshold"
+            ]
             match_score = 1.0 - min(abs(complexity_score - selected_threshold), 1.0)
 
             model_info = cast(ModelCapability, model_capabilities[selected_model])
@@ -124,8 +146,8 @@ class ModelSelector:
                 "thresholds": {
                     "easy": easy_threshold,
                     "medium": medium_threshold,
-                    "hard": hard_threshold
-                }
+                    "hard": hard_threshold,
+                },
             }
 
         except Exception as e:
@@ -149,15 +171,25 @@ class ModelSelector:
         try:
             # Get complexity analysis
             default_domain = "Computers_and_Electronics"
-            classification = self.prompt_classifier.classify_prompt(prompt, default_domain)
+            classification = self.prompt_classifier.classify_prompt(
+                prompt, default_domain
+            )
 
             # Extract scores with type safety
             prompt_scores = {
-                "creativity_scope": cast(List[float], classification.get("creativity_scope", [0.0])),
+                "creativity_scope": cast(
+                    List[float], classification.get("creativity_scope", [0.0])
+                ),
                 "reasoning": cast(List[float], classification.get("reasoning", [0.0])),
-                "constraint_ct": cast(List[float], classification.get("constraint_ct", [0.0])),
-                "contextual_knowledge": cast(List[float], classification.get("contextual_knowledge", [0.0])),
-                "domain_knowledge": cast(List[float], classification.get("domain_knowledge", [0.0])),
+                "constraint_ct": cast(
+                    List[float], classification.get("constraint_ct", [0.0])
+                ),
+                "contextual_knowledge": cast(
+                    List[float], classification.get("contextual_knowledge", [0.0])
+                ),
+                "domain_knowledge": cast(
+                    List[float], classification.get("domain_knowledge", [0.0])
+                ),
             }
 
             return {

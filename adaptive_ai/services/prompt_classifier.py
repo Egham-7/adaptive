@@ -82,19 +82,66 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
     def process_logits(self, logits, domain):
         # Task type specific weights for complexity calculation
         TASK_TYPE_WEIGHTS = {
-        "Open QA": [0.2, 0.3, 0.15, 0.2, 0.15],  # Needs reasoning + some domain/contextual recall
-        "Closed QA": [0.1, 0.35, 0.2, 0.25, 0.1],  # Factual recall + precise reasoning
-        "Summarization": [0.2, 0.25, 0.25, 0.1, 0.2],  # Requires constraint (brevity), context
-        "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],  # Creativity-driven
-        "Code Generation": [0.1, 0.3, 0.2, 0.3, 0.1],  # High constraint & reasoning + domain knowledge
-        "Chatbot": [0.25, 0.25, 0.15, 0.1, 0.25],  # Creativity, reasoning, and context
-        "Classification": [0.1, 0.35, 0.25, 0.2, 0.1],  # Heavy on reasoning and constraint
-        "Rewrite": [0.2, 0.2, 0.3, 0.1, 0.2],  # Needs adherence to form (constraint) + context
-        "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],  # Mostly creativity
-        "Extraction": [0.05, 0.3, 0.3, 0.15, 0.2],  # Reasoning + strict format (constraint) + some context
-        "Other": [0.25, 0.25, 0.2, 0.15, 0.15],  # Balanced default
+            "Open QA": [
+                0.2,
+                0.3,
+                0.15,
+                0.2,
+                0.15,
+            ],  # Needs reasoning + some domain/contextual recall
+            "Closed QA": [
+                0.1,
+                0.35,
+                0.2,
+                0.25,
+                0.1,
+            ],  # Factual recall + precise reasoning
+            "Summarization": [
+                0.2,
+                0.25,
+                0.25,
+                0.1,
+                0.2,
+            ],  # Requires constraint (brevity), context
+            "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],  # Creativity-driven
+            "Code Generation": [
+                0.1,
+                0.3,
+                0.2,
+                0.3,
+                0.1,
+            ],  # High constraint & reasoning + domain knowledge
+            "Chatbot": [
+                0.25,
+                0.25,
+                0.15,
+                0.1,
+                0.25,
+            ],  # Creativity, reasoning, and context
+            "Classification": [
+                0.1,
+                0.35,
+                0.25,
+                0.2,
+                0.1,
+            ],  # Heavy on reasoning and constraint
+            "Rewrite": [
+                0.2,
+                0.2,
+                0.3,
+                0.1,
+                0.2,
+            ],  # Needs adherence to form (constraint) + context
+            "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],  # Mostly creativity
+            "Extraction": [
+                0.05,
+                0.3,
+                0.3,
+                0.15,
+                0.2,
+            ],  # Reasoning + strict format (constraint) + some context
+            "Other": [0.25, 0.25, 0.2, 0.15, 0.15],  # Balanced default
         }
-
 
         result = {}
         # Round 1: "task_type"
@@ -143,7 +190,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
         # Get the primary task type
         primary_task_type = result["task_type_1"][0]
-        
+
         # Use task-specific weights if available, otherwise use default weights
         weights = TASK_TYPE_WEIGHTS.get(primary_task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
 
@@ -223,13 +270,13 @@ class PromptClassifier:
         """
         # Use a default domain since we only care about task type
         default_domain = "Computers_and_Electronics"
-        
+
         results = []
         for text in texts:
             classification = self.classify_prompt(text, default_domain)
             # Get the primary task type (task_type_1)
             results.append(classification["task_type_1"][0])
-        
+
         return results
 
 

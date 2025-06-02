@@ -27,7 +27,8 @@ class OpenAIParameters(LLMProviderParameters):
     def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
         if task_type not in task_type_parameters:
             raise ValueError(
-                "Invalid task type. Choose from: " + ", ".join(task_type_parameters.keys())
+                "Invalid task type. Choose from: "
+                + ", ".join(task_type_parameters.keys())
             )
 
         base = cast(TaskTypeParametersType, task_type_parameters[task_type])
@@ -92,7 +93,8 @@ class GroqParameters(LLMProviderParameters):
     def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
         if task_type not in task_type_parameters:
             raise ValueError(
-                "Invalid task type. Choose from: " + ", ".join(task_type_parameters.keys())
+                "Invalid task type. Choose from: "
+                + ", ".join(task_type_parameters.keys())
             )
 
         base = cast(TaskTypeParametersType, task_type_parameters[task_type])
@@ -157,7 +159,8 @@ class DeepSeekParameters(LLMProviderParameters):
     def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
         if task_type not in task_type_parameters:
             raise ValueError(
-                "Invalid task type. Choose from: " + ", ".join(task_type_parameters.keys())
+                "Invalid task type. Choose from: "
+                + ", ".join(task_type_parameters.keys())
             )
 
         base = cast(TaskTypeParametersType, task_type_parameters[task_type])

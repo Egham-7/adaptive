@@ -7,9 +7,16 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class PromptRequest(BaseModel):
-    prompt: str = Field(..., min_length=1, max_length=4096, description="The input prompt to analyze")
-    domain: Optional[str] = Field(default="Computers_and_Electronics", description="The domain context for the prompt")
+    prompt: str = Field(
+        ..., min_length=1, max_length=4096, description="The input prompt to analyze"
+    )
+    domain: Optional[str] = Field(
+        default="Computers_and_Electronics",
+        description="The domain context for the prompt",
+    )
+
 
 class ModelSelectionResponse(BaseModel):
     selected_model: str
@@ -21,18 +28,18 @@ class ModelSelectionResponse(BaseModel):
     complexity_score: float
     thresholds: Dict[str, float]
 
+
 class ErrorResponse(BaseModel):
     error: str
     details: Optional[Dict[str, Any]] = None
+
 
 class AdaptiveModelSelectionAPI(ls.LitAPI):
     def setup(self, device):
         from services.model_selector import ModelSelector
         from services.prompt_classifier import get_prompt_classifier
 
-        self.model_selector = ModelSelector(
-            get_prompt_classifier()
-        )
+        self.model_selector = ModelSelector(get_prompt_classifier())
         logger.info("API initialized successfully")
 
     def decode_request(self, request: PromptRequest):
@@ -57,9 +64,9 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
         except ValidationError as e:
             logger.error(f"Error encoding response: {e}")
             return ErrorResponse(
-                error="Failed to encode response",
-                details={"validation_error": str(e)}
+                error="Failed to encode response", details={"validation_error": str(e)}
             )
+
 
 if __name__ == "__main__":
     api = AdaptiveModelSelectionAPI()

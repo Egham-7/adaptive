@@ -14,6 +14,7 @@ class ModelCapability(TypedDict):
     description: str
     provider: Literal["GROQ", "OpenAI", "DEEPSEEK", "Anthropic"]
 
+
 model_capabilities = {
     # OpenAI
     "gpt-4o": {
@@ -63,159 +64,60 @@ model_capabilities = {
 
 task_type_model_mapping = {
     "Open QA": {
-        "easy": {
-            "model": "gpt-3.5-turbo",
-            "complexity_threshold": 0.25
-        },
-        "medium": {
-            "model": "gpt-4-turbo",
-            "complexity_threshold": 0.35
-        },
-        "hard": {
-            "model": "gpt-4o",
-            "complexity_threshold": 0.45
-        }
+        "easy": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.25},
+        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.35},
+        "hard": {"model": "gpt-4o", "complexity_threshold": 0.45},
     },
     "Closed QA": {
-        "easy": {
-            "model": "claude-3-haiku",
-            "complexity_threshold": 0.2
-        },
-        "medium": {
-            "model": "llama-3-70b-instruct",
-            "complexity_threshold": 0.3
-        },
-        "hard": {
-            "model": "claude-3-opus",
-            "complexity_threshold": 0.6
-        }
+        "easy": {"model": "claude-3-haiku", "complexity_threshold": 0.2},
+        "medium": {"model": "llama-3-70b-instruct", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.6},
     },
     "Summarization": {
-        "easy": {
-            "model": "gpt-3.5-turbo",
-            "complexity_threshold": 0.25
-        },
-        "medium": {
-            "model": "claude-3-sonnet",
-            "complexity_threshold": 0.35
-        },
-        "hard": {
-            "model": "gpt-4o",
-            "complexity_threshold": 0.65
-        }
+        "easy": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.25},
+        "medium": {"model": "claude-3-sonnet", "complexity_threshold": 0.35},
+        "hard": {"model": "gpt-4o", "complexity_threshold": 0.65},
     },
     "Text Generation": {
-        "easy": {
-            "model": "llama-3-8b-instruct",
-            "complexity_threshold": 0.15
-        },
-        "medium": {
-            "model": "claude-3-sonnet",
-            "complexity_threshold": 0.3
-        },
-        "hard": {
-            "model": "gpt-4o",
-            "complexity_threshold": 0.7
-        }
+        "easy": {"model": "llama-3-8b-instruct", "complexity_threshold": 0.15},
+        "medium": {"model": "claude-3-sonnet", "complexity_threshold": 0.3},
+        "hard": {"model": "gpt-4o", "complexity_threshold": 0.7},
     },
     "Code Generation": {
-        "easy": {
-            "model": "gpt-3.5-turbo",
-            "complexity_threshold": 0.15
-        },
-        "medium": {
-            "model": "gpt-4-turbo",
-            "complexity_threshold": 0.3
-        },
-        "hard": {
-            "model": "claude-3-opus",
-            "complexity_threshold": 0.4
-        }
+        "easy": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.15},
+        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.4},
     },
     "Chatbot": {
-        "easy": {
-            "model": "llama-3-8b-instruct",
-            "complexity_threshold": 0.2
-        },
-        "medium": {
-            "model": "gpt-4-turbo",
-            "complexity_threshold": 0.3
-        },
-        "hard": {
-            "model": "claude-3-opus",
-            "complexity_threshold": 0.6
-        }
+        "easy": {"model": "llama-3-8b-instruct", "complexity_threshold": 0.2},
+        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.6},
     },
     "Classification": {
-        "easy": {
-            "model": "gemma-7b",
-            "complexity_threshold": 0.15
-        },
-        "medium": {
-            "model": "claude-3-haiku",
-            "complexity_threshold": 0.25
-        },
-        "hard": {
-            "model": "gpt-4-turbo",
-            "complexity_threshold": 0.5
-        }
+        "easy": {"model": "gemma-7b", "complexity_threshold": 0.15},
+        "medium": {"model": "claude-3-haiku", "complexity_threshold": 0.25},
+        "hard": {"model": "gpt-4-turbo", "complexity_threshold": 0.5},
     },
     "Rewrite": {
-        "easy": {
-            "model": "gemma-7b",
-            "complexity_threshold": 0.1
-        },  
-        "medium": {
-            "model": "gpt-3.5-turbo",
-            "complexity_threshold": 0.2
-        },
-        "hard": {
-            "model": "gpt-4o",
-            "complexity_threshold": 0.6
-        }
+        "easy": {"model": "gemma-7b", "complexity_threshold": 0.1},
+        "medium": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.2},
+        "hard": {"model": "gpt-4o", "complexity_threshold": 0.6},
     },
     "Brainstorming": {
-        "easy": {
-            "model": "llama-3-70b-instruct",
-            "complexity_threshold": 0.1
-        },
-        "medium": {
-            "model": "claude-3-opus",
-            "complexity_threshold": 0.15
-        },
-        "hard": {
-            "model": "gpt-4o",
-            "complexity_threshold": 0.5
-        }
+        "easy": {"model": "llama-3-70b-instruct", "complexity_threshold": 0.1},
+        "medium": {"model": "claude-3-opus", "complexity_threshold": 0.15},
+        "hard": {"model": "gpt-4o", "complexity_threshold": 0.5},
     },
     "Extraction": {
-        "easy": {
-            "model": "llama-3-8b-instruct",
-            "complexity_threshold": 0.1
-        },
-        "medium": {
-            "model": "gpt-3.5-turbo",
-            "complexity_threshold": 0.3
-        },
-        "hard": {
-            "model": "claude-3-sonnet",
-            "complexity_threshold": 0.6
-        }
+        "easy": {"model": "llama-3-8b-instruct", "complexity_threshold": 0.1},
+        "medium": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-3-sonnet", "complexity_threshold": 0.6},
     },
     "Other": {
-        "easy": {
-            "model": "gemma-7b",
-            "complexity_threshold": 0.2
-        },
-        "medium": {
-            "model": "gpt-4-turbo",
-            "complexity_threshold": 0.4
-        },
-        "hard": {
-            "model": "claude-3-opus",
-            "complexity_threshold": 0.7
-        }
-    }
+        "easy": {"model": "gemma-7b", "complexity_threshold": 0.2},
+        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.4},
+        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.7},
+    },
 }
 
 

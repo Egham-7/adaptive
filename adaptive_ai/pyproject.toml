@@ -12,7 +12,6 @@ dependencies = [
   "transformers==4.50.3",
   "torch==2.2.2",
   "mypy==1.15.0",
-  "black==22.1.0",
   "ruff==0.4.4",
   "safetensors==0.5.3",
   "pytest==8.3.5",
@@ -26,4 +25,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
 pytest-cov = "6.1.1"
-black = "22.1.0"
+black = "^25.1.0"
