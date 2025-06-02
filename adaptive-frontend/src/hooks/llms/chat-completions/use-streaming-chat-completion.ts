@@ -58,10 +58,10 @@ export const useStreamingChatCompletion = () => {
       try {
         resetStreamingState();
 
-        const stream = (await client.chat.completions.create(
+        const stream = (await client.chat.completions.create({
           messages,
-          true,
-        )) as AsyncIterable<ChatCompletionStreamingResponse>;
+          stream: true,
+        })) as AsyncIterable<ChatCompletionStreamingResponse>;
 
         for await (const chunk of stream) {
           console.log("Chunk received:", chunk);
