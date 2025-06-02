@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoConfig, AutoModel, AutoTokenizer
-from models.llms import task_weights  # Import task weights at the top level
+from models.llms import model_capabilities  # Import model capabilities at the top level
 
 
 class MeanPooling(nn.Module):
@@ -159,20 +159,14 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         target = "constraint_ct"
         result[target] = self.compute_results(constraint_ct_logits, target=target)
 
-        # Round 9: "prompt_complexity_score"
-        # Get task type and its weights
-        task_type = result["task_type_1"][0] if result["task_type_1"] else "Other"
-        task_specific_weights = task_weights.get(task_type, task_weights["Other"])
-        
-        # Calculate complexity score using task-specific weights
-        # The weights are in order: [Creativity, Reasoning, Context, Domain, Constraints]
+        # Calculate complexity score based on domain weights
         result["prompt_complexity_score"] = [
             round(
-                task_specific_weights[0] * creativity
-                + task_specific_weights[1] * reasoning
-                + task_specific_weights[2] * constraint
-                + task_specific_weights[3] * domain_knowledge
-                + task_specific_weights[4] * contextual_knowledge,
+                weights[0] * creativity
+                + weights[1] * reasoning
+                + weights[2] * constraint
+                + weights[3] * domain_knowledge
+                + weights[4] * contextual_knowledge,
                 5,
             )
             for creativity, reasoning, constraint, domain_knowledge, contextual_knowledge in zip(
@@ -184,31 +178,6 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             )
         ]
 
-        # Apply amplification for high vector values (>0.7)
-        amplified_scores = []
-        for i, score in enumerate(result["prompt_complexity_score"]):
-            # Get all vector values for this instance
-            vectors = [
-                result["creativity_scope"][i],
-                result["reasoning"][i],
-                result["constraint_ct"][i],
-                result["domain_knowledge"][i],
-                result["contextual_knowledge"][i]
-            ]
-            
-            # Count how many vectors exceed 0.7
-            high_vectors = sum(1 for v in vectors if v > 0.7)
-            
-            # Apply amplification based on number of high vectors
-            if high_vectors > 0:
-                # Amplify score by 20% for each high vector, up to 100% total
-                amplification = min(1.0, 0.2 * high_vectors)
-                amplified_score = score * (1 + amplification)
-                amplified_scores.append(round(amplified_score, 5))
-            else:
-                amplified_scores.append(score)
-        
-        result["prompt_complexity_score"] = amplified_scores
         return result
 
     def forward(self, batch, domain):
