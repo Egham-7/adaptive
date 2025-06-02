@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoConfig, AutoModel, AutoTokenizer
-from models.llms import model_capabilities  # Import model capabilities at the top level
 
 
 class MeanPooling(nn.Module):

@@ -18,7 +18,7 @@ all_examples = concatenate_datasets([ds['train'], ds['test'], ds['validation']])
 # Take only first 100 examples for testing
 all_examples = all_examples.select(range(100))
 
-print(f"\nProcessing first 100 examples from the dataset")
+print("\nProcessing first 100 examples from the dataset")
 
 print(f"\nTotal examples across all splits: {len(all_examples)}")
 
@@ -94,7 +94,7 @@ def process_examples(examples) -> Dict[str, Any]:
     print(f"Total failed questions: {len(failed_questions)}")
     print(f"Failed question indices: {failed_questions[:10]}...")  # Show first 10 failed indices
     
-    print(f"\nTask type distribution:")
+    print("\nTask type distribution:")
     for task_type, count in task_type_counts.items():
         print(f"{task_type}: {count}")
     

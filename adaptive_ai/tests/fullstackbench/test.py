@@ -17,7 +17,7 @@ for difficulty, count in difficulty_counts.items():
 easy_examples = [ex for ex in ds['test'] if ex['labels']['difficulty'] == 'easy']
 hard_examples = [ex for ex in ds['test'] if ex['labels']['difficulty'] == 'hard']
 
-print(f"\nTotal examples by difficulty:")
+print("\nTotal examples by difficulty:")
 print(f"Easy: {len(easy_examples)}")
 print(f"Hard: {len(hard_examples)}")
 
