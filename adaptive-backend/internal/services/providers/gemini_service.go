@@ -119,12 +119,18 @@ func convertGeminiOptions(
 			// by marshaling then unmarshaling it:
 			schemaParam := u.OfJSONSchema.JSONSchema
 			raw, err := json.Marshal(schemaParam)
-			if err == nil {
-				var gs genai.Schema
-				if err2 := json.Unmarshal(raw, &gs); err2 == nil {
-					cfg.ResponseSchema = &gs
-				}
+			if err != nil {
+				fmt.Printf("Error marshaling JSON schema: %v\n", err)
+				break
 			}
+
+			var gs genai.Schema
+			if err2 := json.Unmarshal(raw, &gs); err2 != nil {
+				fmt.Printf("Error unmarshaling JSON schema into genai.Schema: %v\n", err2)
+				break
+			}
+
+			cfg.ResponseSchema = &gs
 		}
 	}
 
