@@ -1,20 +1,17 @@
 package providers
 
 import (
-	"adaptive-backend/internal/models"
 	"errors"
 	"strings"
+
+	"adaptive-backend/internal/services/providers/openai"
+	"adaptive-backend/internal/services/providers/provider_interfaces"
 )
 
-type LLMProvider interface {
-	CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error)
-	StreamChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error)
-}
-
-func NewLLMProvider(providerName string) (LLMProvider, error) {
+func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error) {
 	switch strings.ToLower(providerName) {
 	case "openai":
-		return NewOpenAIService(), nil
+		return openai.NewOpenAIService(), nil
 	case "groq":
 		service, err := NewGroqService()
 		if err != nil {
