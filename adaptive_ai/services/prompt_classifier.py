@@ -81,38 +81,21 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             return scores
 
     def process_logits(self, logits, domain):
-        DOMAIN_WEIGHTS = {
-            "Adult": [0.50, 0.30, 0.10, 0.05, 0.03, 0.02],
-            "Arts_and_Entertainment": [0.45, 0.20, 0.10, 0.15, 0.05, 0.05],
-            "Autos_and_Vehicles": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Beauty_and_Fitness": [0.40, 0.30, 0.15, 0.05, 0.05, 0.05],
-            "Books_and_Literature": [0.50, 0.25, 0.10, 0.10, 0.03, 0.02],
-            "Business_and_Industrial": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Computers_and_Electronics": [0.20, 0.40, 0.20, 0.15, 0.05, 0.00],
-            "Finance": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-            "Food_and_Drink": [0.20, 0.20, 0.10, 0.15, 0.10, 0.25],
-            "Games": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Health": [0.10, 0.35, 0.30, 0.20, 0.05, 0.00],
-            "Hobbies_and_Leisure": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Home_and_Garden": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Internet_and_Telecom": [0.25, 0.40, 0.15, 0.10, 0.05, 0.05],
-            "Jobs_and_Education": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Law_and_Government": [0.20, 0.40, 0.20, 0.10, 0.05, 0.05],
-            "News": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Online_Communities": [0.25, 0.25, 0.15, 0.10, 0.20, 0.05],
-            "People_and_Society": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Pets_and_Animals": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Real_Estate": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Science": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-            "Sensitive_Subjects": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Shopping": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Sports": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Travel_and_Transportation": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
+        # Task type specific weights for complexity calculation
+        TASK_TYPE_WEIGHTS = {
+        "Open QA": [0.2, 0.3, 0.15, 0.2, 0.15],  # Needs reasoning + some domain/contextual recall
+        "Closed QA": [0.1, 0.35, 0.2, 0.25, 0.1],  # Factual recall + precise reasoning
+        "Summarization": [0.2, 0.25, 0.25, 0.1, 0.2],  # Requires constraint (brevity), context
+        "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],  # Creativity-driven
+        "Code Generation": [0.1, 0.3, 0.2, 0.3, 0.1],  # High constraint & reasoning + domain knowledge
+        "Chatbot": [0.25, 0.25, 0.15, 0.1, 0.25],  # Creativity, reasoning, and context
+        "Classification": [0.1, 0.35, 0.25, 0.2, 0.1],  # Heavy on reasoning and constraint
+        "Rewrite": [0.2, 0.2, 0.3, 0.1, 0.2],  # Needs adherence to form (constraint) + context
+        "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],  # Mostly creativity
+        "Extraction": [0.05, 0.3, 0.3, 0.15, 0.2],  # Reasoning + strict format (constraint) + some context
+        "Other": [0.25, 0.25, 0.2, 0.15, 0.15],  # Balanced default
         }
 
-        if domain not in DOMAIN_WEIGHTS:
-            raise ValueError(f"Unknown domain: {domain}")
-        weights = DOMAIN_WEIGHTS[domain]
 
         result = {}
         # Round 1: "task_type"
@@ -159,7 +142,13 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         target = "constraint_ct"
         result[target] = self.compute_results(constraint_ct_logits, target=target)
 
-        # Calculate complexity score based on domain weights
+        # Get the primary task type
+        primary_task_type = result["task_type_1"][0]
+        
+        # Use task-specific weights if available, otherwise use default weights
+        weights = TASK_TYPE_WEIGHTS.get(primary_task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
+
+        # Calculate complexity score using task-specific weights
         result["prompt_complexity_score"] = [
             round(
                 weights[0] * creativity

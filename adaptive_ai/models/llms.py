@@ -67,15 +67,15 @@ task_type_model_mapping = {
     "Open QA": {
         "easy": {
             "model": "gpt-3.5-turbo",
-            "complexity_threshold": 0.3
+            "complexity_threshold": 0.25
         },
         "medium": {
             "model": "gpt-4-turbo",
-            "complexity_threshold": 0.4
+            "complexity_threshold": 0.35
         },
         "hard": {
             "model": "gpt-4o",
-            "complexity_threshold": 0.5
+            "complexity_threshold": 0.45
         }
     },
     "Closed QA": {
@@ -95,7 +95,7 @@ task_type_model_mapping = {
     "Summarization": {
         "easy": {
             "model": "gpt-3.5-turbo",
-            "complexity_threshold": 0.2
+            "complexity_threshold": 0.25
         },
         "medium": {
             "model": "claude-3-sonnet",
@@ -131,7 +131,7 @@ task_type_model_mapping = {
         },
         "hard": {
             "model": "claude-3-opus",
-            "complexity_threshold": 0.6
+            "complexity_threshold": 0.4
         }
     },
     "Chatbot": {
@@ -166,7 +166,7 @@ task_type_model_mapping = {
         "easy": {
             "model": "gemma-7b",
             "complexity_threshold": 0.1
-        },
+        },  
         "medium": {
             "model": "gpt-3.5-turbo",
             "complexity_threshold": 0.2

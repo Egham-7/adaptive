@@ -1,6 +1,5 @@
 from typing import Dict, Any, List, TypedDict, Optional, cast
 import numpy as np
-from functools import lru_cache
 import logging
 from models.llms import model_capabilities, task_type_model_mapping, ModelCapability
 from services.llm_parameters import LLMParametersFactory
@@ -26,11 +25,6 @@ class ModelSelector:
     def __init__(self, prompt_classifier: Any):
         self.prompt_classifier = prompt_classifier
         logger.info("ModelSelector initialized")
-
-    @lru_cache(maxsize=1000)
-    def _get_cached_classification(self, prompt: str, domain: str) -> Dict[str, Any]:
-        """Cache classification results to avoid redundant computations"""
-        return self.prompt_classifier.classify_prompt(prompt, domain)
 
     def _validate_model_selection(self, selected_model: str, task_type: str) -> None:
         """Validate that the selected model exists and is appropriate for the task"""
@@ -62,8 +56,8 @@ class ModelSelector:
             if not prompt or not isinstance(prompt, str):
                 raise ValueError("Invalid prompt: must be a non-empty string")
 
-            # Get complexity analysis and task type using cached results
-            classification = self._get_cached_classification(prompt, domain)
+            # Get complexity analysis and task type
+            classification = self.prompt_classifier.classify_prompt(prompt, domain)
             
             # Get task type from the classification results
             task_type = classification["task_type_1"][0] if classification["task_type_1"] else "Other"
@@ -113,7 +107,7 @@ class ModelSelector:
             elif complexity_score >= hard_threshold:
                 selected_difficulty = "hard"
 
-            selected_model = task_difficulties[selected_difficulty]["model"]
+            selected_model = str(task_difficulties[selected_difficulty]["model"])
             self._validate_model_selection(selected_model, task_type)
             
             # Calculate match score based on how close the complexity score is to the selected threshold
@@ -156,9 +150,9 @@ class ModelSelector:
             ModelSelectionError: If parameter selection fails
         """
         try:
-            # Get complexity analysis using cached results
+            # Get complexity analysis
             default_domain = "Computers_and_Electronics"
-            classification = self._get_cached_classification(prompt, default_domain)
+            classification = self.prompt_classifier.classify_prompt(prompt, default_domain)
 
             # Extract scores with type safety
             prompt_scores = {
