@@ -1,5 +1,4 @@
 import { useMutation } from "@tanstack/react-query";
-import { Message } from "@/services/llms/types";
 import { useCreateMessage } from "./use-create-message";
 import {
   useStreamingChatCompletion,
@@ -7,6 +6,7 @@ import {
 } from "../llms/chat-completions/use-streaming-chat-completion";
 import { CreateDBMessage } from "@/services/messages/types";
 import { convertToApiMessage } from "@/services/messages";
+import { Message } from "@adaptive-llm/adaptive-js";
 
 export function useSendMessage(conversationId: number, messages: Message[]) {
   const createMessage = useCreateMessage();
@@ -35,7 +35,7 @@ export function useSendMessage(conversationId: number, messages: Message[]) {
 
       // Start streaming completion
       const result = await streamChatCompletion({
-        request: { messages: [...messages, chatCompletionsUserMessage] },
+        messages: [...messages, chatCompletionsUserMessage],
         onComplete: async (finalContent, modelInfo?: ModelInfo) => {
           const { provider, model } = modelInfo || {};
           if (finalContent) {

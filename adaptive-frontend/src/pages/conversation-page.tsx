@@ -42,13 +42,13 @@ export default function ConversationPage() {
           <Skeleton className="h-4 w-[90%]" />
           <Skeleton className="self-end w-12 h-3 mt-1 opacity-50" />
         </div>
-        <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/20">
+        <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary/20">
           <User className="w-4 h-4 text-primary/40" />
         </div>
       </div>
       {/* Assistant message */}
       <div className="flex items-start gap-3 justify-start mb-6">
-        <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
+        <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary/10">
           <Cpu className="w-4 h-4 text-primary/40" />
         </div>
         <div className="flex flex-col gap-1 p-3 rounded-2xl max-w-[90%] bg-muted/80 w-[320px]">
@@ -66,13 +66,13 @@ export default function ConversationPage() {
           <Skeleton className="h-4 w-[90%]" />
           <Skeleton className="self-end w-12 h-3 mt-1 opacity-50" />
         </div>
-        <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/20">
+        <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary/20">
           <User className="w-4 h-4 text-primary/40" />
         </div>
       </div>
       {/* Typing indicator */}
       <div className="flex items-start gap-3 mt-4">
-        <div className="flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-full bg-primary/10">
+        <div className="flex items-center justify-center shrink-0 w-8 h-8 rounded-full bg-primary/10">
           <Cpu className="w-4 h-4 text-primary/40" />
         </div>
         <div className="flex items-center gap-1 p-2 rounded-2xl bg-muted/80 w-[60px]">

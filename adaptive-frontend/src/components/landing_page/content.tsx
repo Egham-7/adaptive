@@ -55,7 +55,7 @@ export default function ContentSection() {
               />
               <img
                 src="/adaptive-api-light.jpeg"
-                className="rounded-[15px] shadow dark:hidden"
+                className="rounded-[15px] shadow-sm dark:hidden"
                 alt="Adaptive platform interface - light mode"
               />
             </div>

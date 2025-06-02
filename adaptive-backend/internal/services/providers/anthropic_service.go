@@ -154,10 +154,9 @@ func determineAnthropicModel(requestedModel string) anthropic.Model {
 
 	// Map of supported models
 	supportedModels := map[anthropic.Model]bool{
-		anthropic.ModelClaude3_5HaikuLatest:  true,
-		anthropic.ModelClaude3_5SonnetLatest: true,
-		anthropic.ModelClaude4Sonnet20250514: true,
-		anthropic.ModelClaude4Opus20250514:   true,
+		anthropic.ModelClaude3_5HaikuLatest: true,
+		anthropic.ModelClaudeSonnet4_0:      true,
+		anthropic.ModelClaudeOpus4_0:        true,
 	}
 
 	rm := anthropic.Model(requestedModel)

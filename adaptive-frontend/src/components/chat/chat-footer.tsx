@@ -16,7 +16,7 @@ export function ChatFooter({
   isError,
 }: ChatFooterProps) {
   return (
-    <footer className="sticky bottom-0 z-40 pt-3 pb-5 border-t bg-background/95 backdrop-blur-sm">
+    <footer className="sticky bottom-0 z-40 pt-3 pb-5 border-t bg-background/95 backdrop-blur-xs">
       <div className="w-full max-w-5xl px-4 mx-auto space-y-3">
         <MessageInput
           isLoading={isLoading}
