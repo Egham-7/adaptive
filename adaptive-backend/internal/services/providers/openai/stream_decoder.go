@@ -1,0 +1,121 @@
+package openai
+
+import (
+	"fmt"
+	"sync"
+
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/packages/ssestream"
+)
+
+// StreamDecoder implements the OpenAI stream interface for any provider
+type StreamDecoder struct {
+	chunkChan chan openai.ChatCompletionChunk
+	errorChan chan error
+	done      chan struct{}
+	closed    bool
+	mu        sync.RWMutex
+}
+
+// NewStreamDecoder creates a new stream decoder
+func NewStreamDecoder() *StreamDecoder {
+	return &StreamDecoder{
+		chunkChan: make(chan openai.ChatCompletionChunk, 10),
+		errorChan: make(chan error, 1),
+		done:      make(chan struct{}),
+	}
+}
+
+// SendChunk sends a chunk to the stream
+func (r *StreamDecoder) SendChunk(chunk openai.ChatCompletionChunk) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.closed {
+		return false
+	}
+
+	select {
+	case r.chunkChan <- chunk:
+		return true
+	case <-r.done:
+		return false
+	}
+}
+
+// SendError sends an error to the stream
+func (r *StreamDecoder) SendError(err error) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.closed {
+		return false
+	}
+
+	select {
+	case r.errorChan <- err:
+		return true
+	case <-r.done:
+		return false
+	}
+}
+
+// CloseSender closes the sender channels (call from producer goroutine)
+func (r *StreamDecoder) CloseSender() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if !r.closed {
+		close(r.chunkChan)
+		close(r.errorChan)
+	}
+}
+
+// Read implements io.Reader for StreamDecoder
+func (r *StreamDecoder) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("Read method not implemented for streaming")
+}
+
+// Next implements the Decoder interface for StreamDecoder
+func (r *StreamDecoder) Next() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.closed {
+		return false
+	}
+
+	select {
+	case _, ok := <-r.chunkChan:
+		return ok
+	case <-r.done:
+		return false
+	}
+}
+
+// Event implements the Decoder interface for StreamDecoder
+func (r *StreamDecoder) Event() ssestream.Event {
+	return ssestream.Event{}
+}
+
+// Close implements the Decoder interface for StreamDecoder
+func (r *StreamDecoder) Close() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if !r.closed {
+		r.closed = true
+		close(r.done)
+	}
+	return nil
+}
+
+// Err implements the Decoder interface for StreamDecoder
+func (r *StreamDecoder) Err() error {
+	select {
+	case err := <-r.errorChan:
+		return err
+	default:
+		return nil
+	}
+}

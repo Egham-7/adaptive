@@ -1,17 +1,22 @@
 package providers
 
 import (
-	"errors"
-	"strings"
-
+	"adaptive-backend/internal/services/providers/anthropic"
 	"adaptive-backend/internal/services/providers/openai"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"errors"
+	"strings"
 )
 
 func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error) {
 	switch strings.ToLower(providerName) {
 	case "openai":
-		return openai.NewOpenAIService(), nil
+		service, err := openai.NewOpenAIService()
+		if err != nil {
+			return nil, err
+		}
+		return service, nil
+
 	case "groq":
 		service, err := NewGroqService()
 		if err != nil {
@@ -25,7 +30,7 @@ func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error
 		}
 		return service, nil
 	case "anthropic":
-		service, err := NewAnthropicService()
+		service, err := anthropic.NewAnthropicService()
 		if err != nil {
 			return nil, err
 		}
