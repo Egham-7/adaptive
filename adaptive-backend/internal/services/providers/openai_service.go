@@ -46,6 +46,7 @@ func (s *OpenAIService) StreamChatCompletion(req *models.ProviderChatCompletionR
 		MaxTokens:        openai.Int(int64(req.MaxTokens)),
 		PresencePenalty:  openai.Float(float64(req.PresencePenalty)),
 		FrequencyPenalty: openai.Float(float64(req.FrequencyPenalty)),
+		ResponseFormat:   *req.ResponseFormat,
 	}
 
 	stream := s.client.Chat.Completions.NewStreaming(context.Background(), params)
@@ -74,6 +75,7 @@ func (s *OpenAIService) CreateChatCompletion(req *models.ProviderChatCompletionR
 		MaxTokens:        openai.Int(int64(req.MaxTokens)),
 		PresencePenalty:  openai.Float(float64(req.PresencePenalty)),
 		FrequencyPenalty: openai.Float(float64(req.FrequencyPenalty)),
+		ResponseFormat:   *req.ResponseFormat,
 	}
 	resp, err := s.client.Chat.Completions.New(context.Background(), params)
 	if err != nil {

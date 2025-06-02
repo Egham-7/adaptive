@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	deepseek "github.com/cohesion-org/deepseek-go"
+	"github.com/cohesion-org/deepseek-go"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/packages/param"
 )
 
 // DeepSeekService handles DeepSeek API interactions
@@ -51,6 +53,7 @@ func (s *DeepSeekService) StreamChatCompletion(req *models.ProviderChatCompletio
 		MaxTokens:        req.MaxTokens,
 		TopP:             req.TopP,
 		Stream:           req.Stream,
+		ResponseFormat:   convertDeepSeekResponseFormat(req.ResponseFormat),
 	}
 
 	stream, err := s.client.CreateChatCompletionStream(context.Background(), deepseekReq)
@@ -91,6 +94,7 @@ func (s *DeepSeekService) CreateChatCompletion(req *models.ProviderChatCompletio
 		FrequencyPenalty: req.FrequencyPenalty,
 		MaxTokens:        req.MaxTokens,
 		TopP:             req.TopP,
+		ResponseFormat:   convertDeepSeekResponseFormat(req.ResponseFormat),
 	}
 
 	// Call DeepSeek API
@@ -126,6 +130,24 @@ func convertToDeepSeekMessage(msg models.Message) deepseek.ChatCompletionMessage
 	}
 
 	return deepseekMsg
+}
+
+func convertDeepSeekResponseFormat(
+	u *openai.ChatCompletionNewParamsResponseFormatUnion,
+) *deepseek.ResponseFormat {
+	if u == nil {
+		return nil
+	}
+	// text?
+	if u.OfText != nil && !param.IsOmitted(u.OfText) {
+		return &deepseek.ResponseFormat{Type: "text"}
+	}
+	// json_object?
+	if u.OfJSONObject != nil && !param.IsOmitted(u.OfJSONObject) {
+		return &deepseek.ResponseFormat{Type: "json_object"}
+	}
+	// fallback to text if nothing matched
+	return &deepseek.ResponseFormat{Type: "text"}
 }
 
 // convertDeepSeekRole maps string roles to DeepSeek role types

@@ -3,12 +3,15 @@ package providers
 import (
 	"adaptive-backend/internal/models"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/openai/openai-go/packages/param"
 	"google.golang.org/genai"
 )
 
+// GeminiService handles Gemini API interactions.
 type GeminiService struct {
 	client *genai.Client
 }
@@ -19,7 +22,6 @@ func NewGeminiService() (*GeminiService, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("GOOGLE_API_KEY environment variable not set")
 	}
-
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  apiKey,
@@ -28,53 +30,103 @@ func NewGeminiService() (*GeminiService, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genai client: %w", err)
 	}
-
 	return &GeminiService{client: client}, nil
 }
 
-// CreateChatCompletion sends a chat completion request to the Gemini API.
-func (s *GeminiService) CreateChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
+// CreateChatCompletion calls Gemini’s non‐streaming API.
+func (s *GeminiService) CreateChatCompletion(
+	req *models.ProviderChatCompletionRequest,
+) (*models.ChatCompletionResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
-
 	ctx := context.Background()
 	parts := make([]*genai.Part, len(req.Messages))
 	for i, msg := range req.Messages {
 		parts[i] = &genai.Part{Text: msg.Content}
 	}
-
 	content := &genai.Content{Parts: parts}
-	resp, err := s.client.Models.GenerateContent(ctx, req.Model, []*genai.Content{content}, nil)
+
+	opts := convertGeminiOptions(req)
+
+	resp, err := s.client.Models.GenerateContent(
+		ctx,
+		req.Model,
+		[]*genai.Content{content},
+		opts,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate content: %w", err)
+		return nil, fmt.Errorf("gemini chat completion failed: %w", err)
 	}
-
-	text := resp.Text()
-
 	return &models.ChatCompletionResponse{
 		Provider: "gemini",
-		Response: text,
+		Response: resp,
 	}, nil
 }
 
-// StreamChatCompletion streams a chat completion response from the Gemini API.
-func (s *GeminiService) StreamChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
+// StreamChatCompletion calls Gemini’s streaming API.
+func (s *GeminiService) StreamChatCompletion(
+	req *models.ProviderChatCompletionRequest,
+) (*models.ChatCompletionResponse, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
-
 	ctx := context.Background()
 	parts := make([]*genai.Part, len(req.Messages))
 	for i, msg := range req.Messages {
 		parts[i] = &genai.Part{Text: msg.Content}
 	}
-
 	content := &genai.Content{Parts: parts}
-	stream := s.client.Models.GenerateContentStream(ctx, req.Model, []*genai.Content{content}, nil)
 
+	opts := convertGeminiOptions(req)
+
+	stream := s.client.Models.GenerateContentStream(
+		ctx,
+		req.Model,
+		[]*genai.Content{content},
+		opts,
+	)
 	return &models.ChatCompletionResponse{
 		Provider: "gemini",
 		Response: stream,
 	}, nil
+}
+
+// convertGeminiOptions maps your internal request into Gemini’s GenerateContentConfig.
+func convertGeminiOptions(
+	req *models.ProviderChatCompletionRequest,
+) *genai.GenerateContentConfig {
+	cfg := &genai.GenerateContentConfig{
+		Temperature:     &req.Temperature,     // *float32
+		TopP:            &req.TopP,            // *float32
+		MaxOutputTokens: int32(req.MaxTokens), // int32
+	}
+
+	// Map OpenAI-style union for response_format → Gemini fields
+	if u := req.ResponseFormat; u != nil {
+		switch {
+		case u.OfText != nil && !param.IsOmitted(u.OfText):
+			cfg.ResponseMIMEType = "text/plain"
+
+		case u.OfJSONObject != nil && !param.IsOmitted(u.OfJSONObject):
+			cfg.ResponseMIMEType = "application/json"
+
+		case u.OfJSONSchema != nil && !param.IsOmitted(u.OfJSONSchema):
+			// Set JSON output
+			cfg.ResponseMIMEType = "application/json"
+
+			// Now convert the OpenAI JSON‐Schema param into a genai.Schema
+			// by marshaling then unmarshaling it:
+			schemaParam := u.OfJSONSchema.JSONSchema
+			raw, err := json.Marshal(schemaParam)
+			if err == nil {
+				var gs genai.Schema
+				if err2 := json.Unmarshal(raw, &gs); err2 == nil {
+					cfg.ResponseSchema = &gs
+				}
+			}
+		}
+	}
+
+	return cfg
 }

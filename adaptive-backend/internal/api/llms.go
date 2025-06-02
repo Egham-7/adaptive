@@ -70,6 +70,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		PresencePenalty:  0,
 		FrequencyPenalty: 0,
 		Stream:           true,
+		ResponseFormat:   req.ResponseFormat,
 	}
 
 	provider, err := providers.NewLLMProvider(fullReq.Provider)
@@ -168,3 +169,4 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 	return c.JSON(resp)
 }
+

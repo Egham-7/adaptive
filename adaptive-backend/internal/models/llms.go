@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/conneroisu/groq-go/pkg/tools"
+	"github.com/openai/openai-go"
 )
 
 type StreamOption string
@@ -17,21 +18,23 @@ type RequestOptions struct {
 }
 
 type ChatCompletionRequest struct {
-	Messages       []Message       `json:"messages"`
-	RequestOptions *RequestOptions `json:"request_options,omitempty"`
+	Messages       []Message                                          `json:"messages"`
+	RequestOptions *RequestOptions                                    `json:"request_options,omitempty"`
+	ResponseFormat *openai.ChatCompletionNewParamsResponseFormatUnion `json:"response_format"`
 }
 
 type ProviderChatCompletionRequest struct {
-	Provider         string    `json:"provider"`
-	Model            string    `json:"model"`
-	Messages         []Message `json:"messages"`
-	Temperature      float32   `json:"maxTemperature"`
-	N                int       `json:"n"`
-	MaxTokens        int       `json:"maxTokens"`
-	TopP             float32   `json:"top_p"`
-	PresencePenalty  float32   `json:"presence_penalty"`
-	FrequencyPenalty float32   `json:"frequency_penalty"`
-	Stream           bool      `json:"stream"`
+	Provider         string                                             `json:"provider"`
+	Model            string                                             `json:"model"`
+	Messages         []Message                                          `json:"messages"`
+	Temperature      float32                                            `json:"maxTemperature"`
+	N                int                                                `json:"n"`
+	MaxTokens        int                                                `json:"maxTokens"`
+	TopP             float32                                            `json:"top_p"`
+	PresencePenalty  float32                                            `json:"presence_penalty"`
+	FrequencyPenalty float32                                            `json:"frequency_penalty"`
+	Stream           bool                                               `json:"stream"`
+	ResponseFormat   *openai.ChatCompletionNewParamsResponseFormatUnion `json:"response_format"`
 }
 
 // ChatMessagePartType is the chat message part type.

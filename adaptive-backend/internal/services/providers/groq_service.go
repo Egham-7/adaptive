@@ -3,10 +3,14 @@ package providers
 import (
 	"adaptive-backend/internal/models"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/conneroisu/groq-go"
+	"github.com/conneroisu/groq-go/pkg/schema"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/packages/param"
 )
 
 // GroqService handles Groq API interactions
@@ -27,6 +31,51 @@ func NewGroqService() (*GroqService, error) {
 	}
 
 	return &GroqService{client: client}, nil
+}
+
+// convertResponseFormat maps the OpenAI union into a *groq.ChatResponseFormat
+func convertResponseFormat(
+	u *openai.ChatCompletionNewParamsResponseFormatUnion,
+) *groq.ChatResponseFormat {
+	if u == nil {
+		return nil
+	}
+
+	// 1) Text?
+	if u.OfText != nil && !param.IsOmitted(u.OfText) {
+		return &groq.ChatResponseFormat{Type: groq.FormatText}
+	}
+
+	// 2) json_object?
+	if u.OfJSONObject != nil && !param.IsOmitted(u.OfJSONObject) {
+		return &groq.ChatResponseFormat{Type: groq.FormatJSONObject}
+	}
+
+	// 3) json_schema?
+	if u.OfJSONSchema != nil && !param.IsOmitted(u.OfJSONSchema) {
+		// a) try round‐trip via JSON
+		if b, err := json.Marshal(u.OfJSONSchema); err == nil {
+			var gf groq.ChatResponseFormat
+			if err2 := json.Unmarshal(b, &gf); err2 == nil {
+				return &gf
+			}
+		}
+		// b) fallback to manual mapping
+		p := u.OfJSONSchema
+		return &groq.ChatResponseFormat{
+			Type: groq.FormatJSONSchema,
+			JSONSchema: &groq.JSONSchema{
+				Name:        p.JSONSchema.Name,
+				Description: p.JSONSchema.Description.Value,
+				// Here we assert that the param’s Schema (type any) matches
+				// groq/pkg/schema.Schema
+				Schema: p.JSONSchema.Schema.(schema.Schema),
+				Strict: p.JSONSchema.Strict.Value,
+			},
+		}
+	}
+
+	return nil
 }
 
 func (s *GroqService) StreamChatCompletion(req *models.ProviderChatCompletionRequest) (*models.ChatCompletionResponse, error) {
@@ -91,6 +140,7 @@ func (s *GroqService) CreateChatCompletion(req *models.ProviderChatCompletionReq
 		MaxTokens:        req.MaxTokens,
 		PresencePenalty:  req.PresencePenalty,
 		FrequencyPenalty: req.FrequencyPenalty,
+		ResponseFormat:   convertResponseFormat(req.ResponseFormat),
 	}
 
 	chatCompletionsResponse, err := s.client.ChatCompletion(context.Background(), groqReq)
