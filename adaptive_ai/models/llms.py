@@ -12,111 +12,123 @@ class TaskTypeParametersType(TypedDict):
 
 class ModelCapability(TypedDict):
     description: str
-    provider: Literal["GROQ", "OpenAI", "DEEPSEEK", "Anthropic"]
+    provider: Literal["GROQ", "OpenAI", "DEEPSEEK", "Anthropic", "Google"]
 
 
 model_capabilities = {
     # OpenAI
+    "o3": {
+        "description": "OpenAI's base model optimized for general tasks.",
+        "provider": "OpenAI",
+    },
+    "o4-mini": {
+        "description": "Compact version of OpenAI's o4 model for efficient processing.",
+        "provider": "OpenAI",
+    },
+    "gpt-4.1": {
+        "description": "OpenAI's advanced GPT-4.1 model with enhanced capabilities.",
+        "provider": "OpenAI",
+    },
     "gpt-4o": {
-        "description": "OpenAI's flagship GPT-4o model with multimodal capabilities and 128K context.",
+        "description": "OpenAI's flagship GPT-4o model with multimodal capabilities.",
         "provider": "OpenAI",
     },
-    "gpt-4-turbo": {
-        "description": "High-performance GPT-4-turbo with a 128K context window.",
+    "gpt-4.1-mini": {
+        "description": "Lightweight version of GPT-4.1 for faster processing.",
         "provider": "OpenAI",
     },
-    "gpt-3.5-turbo": {
-        "description": "Mid-range GPT-3.5 model optimized for cost-effectiveness.",
+    "gpt-4.1-nano": {
+        "description": "Ultra-compact version of GPT-4.1 for minimal resource usage.",
         "provider": "OpenAI",
+    },
+    # Google (Gemini)
+    "gemini-2.0-flash": {
+        "description": "Google's high-performance Gemini 2.0 model for fast responses.",
+        "provider": "Google",
+    },
+    "gemini-2.0-flash-lite": {
+        "description": "Lightweight version of Gemini 2.0 for efficient processing.",
+        "provider": "Google",
+    },
+    # Deepseek
+    "deepseek-reasoner": {
+        "description": "Deepseek's specialized model for complex reasoning tasks.",
+        "provider": "DEEPSEEK",
+    },
+    "deepseek-chat": {
+        "description": "Deepseek's conversational model optimized for chat interactions.",
+        "provider": "DEEPSEEK",
     },
     # Anthropic
-    "claude-3-opus": {
-        "description": "Anthropic's most advanced Claude-3 Opus model with 200K context.",
+    "claude-sonnet-4-0": {
+        "description": "Anthropic's balanced Claude Sonnet model for general tasks.",
         "provider": "Anthropic",
     },
-    "claude-3-sonnet": {
-        "description": "Balanced Claude-3 Sonnet model suitable for most general-purpose tasks.",
+    "claude-3-5-haiku-latest": {
+        "description": "Latest version of Claude's lightweight Haiku model.",
         "provider": "Anthropic",
     },
-    "claude-3-haiku": {
-        "description": "Lightweight Claude-3 Haiku for fast, cost-efficient tasks (200K context).",
+    "claude-opus-4-0": {
+        "description": "Anthropic's most advanced Claude Opus model for complex tasks.",
         "provider": "Anthropic",
-    },
-    # Meta (GroqAPI)
-    "llama-3-70b-instruct": {
-        "description": "Meta's 70B parameter model capable of advanced instruction following.",
-        "provider": "GROQ",
-    },
-    "llama-3-8b-instruct": {
-        "description": "Meta's lightweight 8B model for instruct-style tasks (~8-16K context).",
-        "provider": "GROQ",
-    },
-    # Google (Gemma)
-    "gemma-7b": {
-        "description": "Google's 7B parameter open model suitable for light tasks.",
-        "provider": "GROQ",
-    },
-    "gemma-2b": {
-        "description": "Tiny model from Google optimized for ultra-lightweight use cases.",
-        "provider": "GROQ",
     },
 }
 
 task_type_model_mapping = {
     "Open QA": {
-        "easy": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.25},
-        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.35},
-        "hard": {"model": "gpt-4o", "complexity_threshold": 0.45},
+        "easy": {"model": "o3", "complexity_threshold": 0.25},
+        "medium": {"model": "gpt-4.1", "complexity_threshold": 0.35},
+        "hard": {"model": "claude-opus-4-0", "complexity_threshold": 0.45},
     },
     "Closed QA": {
-        "easy": {"model": "claude-3-haiku", "complexity_threshold": 0.2},
-        "medium": {"model": "llama-3-70b-instruct", "complexity_threshold": 0.3},
-        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.6},
+        "easy": {"model": "claude-3-5-haiku-latest", "complexity_threshold": 0.2},
+        "medium": {"model": "gpt-4.1", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-opus-4-0", "complexity_threshold": 0.6},
     },
     "Summarization": {
-        "easy": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.25},
-        "medium": {"model": "claude-3-sonnet", "complexity_threshold": 0.35},
-        "hard": {"model": "gpt-4o", "complexity_threshold": 0.65},
+        "easy": {"model": "o3", "complexity_threshold": 0.25},
+        "medium": {"model": "claude-sonnet-4-0", "complexity_threshold": 0.35},
+        "hard": {"model": "gpt-4.1", "complexity_threshold": 0.65},
     },
     "Text Generation": {
-        "easy": {"model": "llama-3-8b-instruct", "complexity_threshold": 0.15},
-        "medium": {"model": "claude-3-sonnet", "complexity_threshold": 0.3},
-        "hard": {"model": "gpt-4o", "complexity_threshold": 0.7},
+        "easy": {"model": "gemini-2.0-flash-lite", "complexity_threshold": 0.15},
+        "medium": {"model": "claude-sonnet-4-0", "complexity_threshold": 0.3},
+        "hard": {"model": "gpt-4.1", "complexity_threshold": 0.7},
     },
     "Code Generation": {
-        "easy": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.15},
-        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.3},
-        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.4},
+        "easy": {"model": "o3", "complexity_threshold": 0.15},
+        "medium": {"model": "gpt-4.1", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-opus-4-0", "complexity_threshold": 0.4},
     },
     "Chatbot": {
-        "easy": {"model": "llama-3-8b-instruct", "complexity_threshold": 0.2},
-        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.3},
-        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.6},
+        "easy": {"model": "gemini-2.0-flash-lite", "complexity_threshold": 0.2},
+        "medium": {"model": "gpt-4.1", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-opus-4-0", "complexity_threshold": 0.6},
     },
     "Classification": {
-        "easy": {"model": "gemma-7b", "complexity_threshold": 0.15},
-        "medium": {"model": "claude-3-haiku", "complexity_threshold": 0.25},
-        "hard": {"model": "gpt-4-turbo", "complexity_threshold": 0.5},
+        "easy": {"model": "o4-mini", "complexity_threshold": 0.15},
+        "medium": {"model": "claude-3-5-haiku-latest", "complexity_threshold": 0.25},
+        "hard": {"model": "gpt-4.1", "complexity_threshold": 0.5},
     },
     "Rewrite": {
-        "easy": {"model": "gemma-7b", "complexity_threshold": 0.1},
-        "medium": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.2},
-        "hard": {"model": "gpt-4o", "complexity_threshold": 0.6},
+        "easy": {"model": "o4-mini", "complexity_threshold": 0.1},
+        "medium": {"model": "o3", "complexity_threshold": 0.2},
+        "hard": {"model": "gpt-4.1", "complexity_threshold": 0.6},
     },
     "Brainstorming": {
-        "easy": {"model": "llama-3-70b-instruct", "complexity_threshold": 0.1},
-        "medium": {"model": "claude-3-opus", "complexity_threshold": 0.15},
-        "hard": {"model": "gpt-4o", "complexity_threshold": 0.5},
+        "easy": {"model": "gemini-2.0-flash", "complexity_threshold": 0.1},
+        "medium": {"model": "claude-opus-4-0", "complexity_threshold": 0.15},
+        "hard": {"model": "gpt-4.1", "complexity_threshold": 0.5},
     },
     "Extraction": {
-        "easy": {"model": "llama-3-8b-instruct", "complexity_threshold": 0.1},
-        "medium": {"model": "gpt-3.5-turbo", "complexity_threshold": 0.3},
-        "hard": {"model": "claude-3-sonnet", "complexity_threshold": 0.6},
+        "easy": {"model": "gemini-2.0-flash-lite", "complexity_threshold": 0.1},
+        "medium": {"model": "o3", "complexity_threshold": 0.3},
+        "hard": {"model": "claude-sonnet-4-0", "complexity_threshold": 0.6},
     },
     "Other": {
-        "easy": {"model": "gemma-7b", "complexity_threshold": 0.2},
-        "medium": {"model": "gpt-4-turbo", "complexity_threshold": 0.4},
-        "hard": {"model": "claude-3-opus", "complexity_threshold": 0.7},
+        "easy": {"model": "o4-mini", "complexity_threshold": 0.2},
+        "medium": {"model": "gpt-4.1", "complexity_threshold": 0.4},
+        "hard": {"model": "claude-opus-4-0", "complexity_threshold": 0.7},
     },
 }
 
