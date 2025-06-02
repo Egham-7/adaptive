@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Pencil, Bot, User, RefreshCw } from "lucide-react";
-import Markdown from "@/components/markdown";
+import { Markdown } from "@/components/markdown";
 import { DBMessage } from "@/services/messages/types";
 import { Button } from "@/components/ui/button";
 import DeleteMessageDialog from "./delete-message-dialog";
@@ -32,14 +32,7 @@ const MessageContent = memo(
             <Bot className="w-5 h-5 mt-5 shrink-0 text-muted-foreground" />
           )}
           <div className="overflow-hidden w-full">
-            <Markdown
-              content={message.content}
-              className={
-                message.role === "user"
-                  ? "text-primary-foreground w-full break-words"
-                  : "w-full break-words"
-              }
-            />
+            <Markdown>{message.content}</Markdown>
           </div>
         </div>
         {message.role === "user" && (

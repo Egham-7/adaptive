@@ -25,8 +25,8 @@ export type StreamingChatCompletionParams = {
 
 // === Adaptive Client ===
 const client = new Adaptive({
-  apiKey: process.env.VITE_ADAPTIVE_API_KEY,
-  baseUrl: process.env.VITE_API_BASE_URL,
+  apiKey: import.meta.env.VITE_ADAPTIVE_API_KEY,
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
 });
 
 // === Hook ===
