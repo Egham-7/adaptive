@@ -69,7 +69,13 @@ func convertResponseFormat(
 				Description: p.JSONSchema.Description.Value,
 				// Here we assert that the param’s Schema (type any) matches
 				// groq/pkg/schema.Schema
-				Schema: p.JSONSchema.Schema.(schema.Schema),
+				Schema: func() schema.Schema {
+					if s, ok := p.JSONSchema.Schema.(schema.Schema); ok {
+						return s
+					}
+					// Return empty schema as fallback
+					return schema.Schema{}
+				}(),
 				Strict: p.JSONSchema.Strict.Value,
 			},
 		}
