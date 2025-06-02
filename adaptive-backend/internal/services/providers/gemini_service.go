@@ -96,14 +96,9 @@ func (s *GeminiService) StreamChatCompletion(
 func convertGeminiOptions(
 	req *models.ProviderChatCompletionRequest,
 ) *genai.GenerateContentConfig {
-	if req.MaxTokens > int(^int32(0)) {
-		req.MaxTokens = int(^int32(0)) // Cap at max int32 value
-	}
-
 	cfg := &genai.GenerateContentConfig{
-		Temperature:     &req.Temperature,     // *float32
-		TopP:            &req.TopP,            // *float32
-		MaxOutputTokens: int32(req.MaxTokens), // int32
+		Temperature: &req.Temperature, // *float32
+		TopP:        &req.TopP,        // *float32
 	}
 
 	// Map OpenAI-style union for response_format → Gemini fields
