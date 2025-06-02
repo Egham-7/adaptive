@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Dict, List, Tuple, Any, Optional, Union, cast
+from typing import Dict, List, Tuple, Any, Union, cast
 import numpy as np
 import torch
 import torch.nn as nn
@@ -11,7 +11,9 @@ class MeanPooling(nn.Module):
     def __init__(self) -> None:
         super(MeanPooling, self).__init__()
 
-    def forward(self, last_hidden_state: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, last_hidden_state: torch.Tensor, attention_mask: torch.Tensor
+    ) -> torch.Tensor:
         input_mask_expanded = (
             attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
         )
@@ -33,7 +35,13 @@ class MulticlassHead(nn.Module):
 
 
 class CustomModel(nn.Module, PyTorchModelHubMixin):
-    def __init__(self, target_sizes: Dict[str, int], task_type_map: Dict[str, str], weights_map: Dict[str, List[float]], divisor_map: Dict[str, float]) -> None:
+    def __init__(
+        self,
+        target_sizes: Dict[str, int],
+        task_type_map: Dict[str, str],
+        weights_map: Dict[str, List[float]],
+        divisor_map: Dict[str, float],
+    ) -> None:
         super(CustomModel, self).__init__()
         self.backbone = AutoModel.from_pretrained("microsoft/DeBERTa-v3-base")
         self.target_sizes = target_sizes.values()
@@ -48,7 +56,9 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             self.add_module(f"head_{i}", head)
         self.pool = MeanPooling()
 
-    def compute_results(self, preds: torch.Tensor, target: str, decimal: int = 4) -> Union[Tuple[List[str], List[str], List[float]], List[float]]:
+    def compute_results(
+        self, preds: torch.Tensor, target: str, decimal: int = 4
+    ) -> Union[Tuple[List[str], List[str], List[float]], List[float]]:
         if target == "task_type":
             top2_indices = torch.topk(preds, k=2, dim=1).indices
             softmax_probs = torch.softmax(preds, dim=1)
@@ -80,7 +90,9 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                 scores = [x if x >= 0.05 else 0 for x in scores]
             return cast(List[float], scores)
 
-    def process_logits(self, logits: List[torch.Tensor], domain: str) -> Dict[str, Union[List[str], List[float], float]]:
+    def process_logits(
+        self, logits: List[torch.Tensor], domain: str
+    ) -> Dict[str, Union[List[str], List[float], float]]:
         # Task type specific weights for complexity calculation
         TASK_TYPE_WEIGHTS: Dict[str, List[float]] = {
             "Open QA": [
@@ -170,7 +182,9 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         # Round 4: "contextual_knowledge"
         contextual_knowledge_logits = logits[3]
         target = "contextual_knowledge"
-        knowledge_results = self.compute_results(contextual_knowledge_logits, target=target)
+        knowledge_results = self.compute_results(
+            contextual_knowledge_logits, target=target
+        )
         if isinstance(knowledge_results, list):
             result[target] = knowledge_results
 
@@ -206,7 +220,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         task_type_1 = result.get("task_type_1", [])
         if not isinstance(task_type_1, list) or not task_type_1:
             return result
-            
+
         primary_task_type = task_type_1[0]
         if not isinstance(primary_task_type, str):
             return result
@@ -221,7 +235,16 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         domain_knowledge = result.get("domain_knowledge", [])
         contextual_knowledge = result.get("contextual_knowledge", [])
 
-        if not all(isinstance(x, list) for x in [creativity_scope, reasoning, constraint_ct, domain_knowledge, contextual_knowledge]):
+        if not all(
+            isinstance(x, list)
+            for x in [
+                creativity_scope,
+                reasoning,
+                constraint_ct,
+                domain_knowledge,
+                contextual_knowledge,
+            ]
+        ):
             return result
 
         # Type assert that these are lists of floats
@@ -246,7 +269,9 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
         return result
 
-    def forward(self, batch: Dict[str, torch.Tensor], domain: str) -> Dict[str, Union[List[str], List[float], float]]:
+    def forward(
+        self, batch: Dict[str, torch.Tensor], domain: str
+    ) -> Dict[str, Union[List[str], List[float], float]]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
@@ -275,8 +300,6 @@ class PromptClassifier:
     def __init__(self) -> None:
         self.model = model
         self.tokenizer = tokenizer
-
-
 
     def classify_prompt(self, prompt: str, domain: str) -> Dict[str, Any]:
         encoded_texts = self.tokenizer(

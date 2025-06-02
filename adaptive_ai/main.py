@@ -58,7 +58,9 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
             logger.error(f"Error processing request: {str(e)}")
             raise
 
-    def encode_response(self, output: Dict[str, Any]) -> Union[ModelSelectionResponse, ErrorResponse]:
+    def encode_response(
+        self, output: Dict[str, Any]
+    ) -> Union[ModelSelectionResponse, ErrorResponse]:
         try:
             return ModelSelectionResponse.model_validate(output)
         except ValidationError as e:
