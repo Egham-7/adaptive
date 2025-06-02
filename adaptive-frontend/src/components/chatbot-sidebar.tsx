@@ -184,7 +184,7 @@ export function ChatbotSidebar() {
             {/* Action buttons that appear on hover */}
             <div
               className={cn(
-                "absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-background/80 backdrop-blur-sm rounded p-0.5 opacity-0 transition-opacity",
+                "absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 bg-background/80 backdrop-blur-xs rounded p-0.5 opacity-0 transition-opacity",
                 "group-hover:opacity-100",
                 isActive && "opacity-100 bg-accent/80"
               )}

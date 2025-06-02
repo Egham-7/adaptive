@@ -18,7 +18,7 @@ export function Logo() {
           className="fill-white dark:fill-zinc-900"
         />
       </svg>
-      <span className="font-display text-xl font-bold bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
+      <span className="font-display text-xl font-bold bg-linear-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent">
         Adaptive
       </span>
     </div>

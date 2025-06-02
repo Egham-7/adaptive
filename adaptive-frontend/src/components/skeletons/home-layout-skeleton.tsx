@@ -22,7 +22,7 @@ export function HomeLayoutSkeleton() {
 
       <div className="flex-1 flex flex-col px-10 w-full">
         {/* Header Skeleton */}
-        <header className="sticky top-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
+        <header className="sticky top-0 border-b bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/60 z-10">
           <div className="container flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
               <Skeleton className="h-6 w-6" />
