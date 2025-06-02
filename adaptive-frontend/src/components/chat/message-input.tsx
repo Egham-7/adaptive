@@ -57,7 +57,7 @@ export function MessageInput({
                       <textarea
                         {...field}
                         placeholder="Message Adaptive..."
-                        className="w-full bg-transparent text-foreground outline-hidden text-lg px-2 resize-none h-24 max-h-24 overflow-y-auto border-none focus:outline-hidden focus:ring-0"
+                        className="w-full bg-transparent text-foreground outline-none text-lg px-2 resize-none h-24 max-h-24 overflow-y-auto border-none focus:outline-none focus:ring-0"
                         disabled={isLoading || disabled}
                         rows={1}
                         onKeyDown={(e) => {
