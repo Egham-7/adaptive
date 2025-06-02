@@ -26,3 +26,4 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.group.dev.dependencies]
 pytest-cov = "6.1.1"
 black = "^25.1.0"
+types-requests = "^2.32.0.20250602"
