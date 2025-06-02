@@ -106,13 +106,13 @@ export function CodeComparison({
     return (
       <div className={`flex ${bgClass} whitespace-pre`}>
         <span
-          className={`select-none w-5 inline-block ${indicatorClass} flex-shrink-0`}
+          className={`select-none w-5 inline-block ${indicatorClass} shrink-0`}
         >
           {indicator}
         </span>
         {highlightedHtml ? (
           <div
-            className="font-mono text-xs [&>pre]:!bg-transparent [&>pre]:!p-0 [&>pre]:!m-0"
+            className="font-mono text-xs [&>pre]:bg-transparent! [&>pre]:p-0! [&>pre]:m-0!"
             dangerouslySetInnerHTML={{ __html: highlightedHtml }}
           />
         ) : (

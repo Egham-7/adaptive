@@ -16,7 +16,7 @@ const StreamingMessage = memo(
           <div className="markdown-container relative">
             <Markdown>{content || "AI is thinking..."}</Markdown>
             {isStreaming && (
-              <span className="typing-cursor inline-block h-4 w-[2px] ml-[1px] align-middle bg-primary animate-cursor-blink" />
+              <span className="typing-cursor inline-block h-4 w-[2px] ml-px align-middle bg-primary animate-cursor-blink" />
             )}
           </div>
           {isStreaming && (
