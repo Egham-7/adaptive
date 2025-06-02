@@ -65,9 +65,7 @@ export function useUpdateMessage() {
       }));
       // Stream the AI response
       await streamChatCompletion({
-        request: {
-          messages: formattedMessages,
-        },
+        messages: formattedMessages,
         onComplete: async (content, modelInfo) => {
           // Create the message only after we have the complete content
           const { model, provider } = modelInfo || {};

@@ -71,7 +71,7 @@ export default function HeroSection() {
                     <SignUpButton mode="modal" signInForceRedirectUrl="/home">
                       <Button
                         size="lg"
-                        className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+                        className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
                       >
                         <Rocket className="relative size-4 mr-2" />
                         <span className="text-nowrap">Get Started</span>
@@ -82,7 +82,7 @@ export default function HeroSection() {
                   <SignedIn>
                     <Button
                       size="lg"
-                      className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+                      className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
                       asChild
                     >
                       <Link to="/home">

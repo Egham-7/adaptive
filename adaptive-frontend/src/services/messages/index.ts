@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "../common";
 import { BaseMessage, DBMessage } from "./types";
-import { Message } from "../llms/types";
+import { Message } from "@adaptive-llm/adaptive-js";
 
 /**
  * Gets all messages for a conversation

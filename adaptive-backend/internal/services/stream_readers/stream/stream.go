@@ -1,7 +1,10 @@
-package stream_readers
+package stream
 
 import (
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/stream_readers"
+	"adaptive-backend/internal/services/stream_readers/sse"
+	"adaptive-backend/internal/services/stream_readers/vercel"
 	"bufio"
 	"fmt"
 	"io"
@@ -12,26 +15,36 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// handleStream manages the streaming response to the client
-func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string) error {
+// HandleStream manages the streaming response to the client
+func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string, options *models.RequestOptions) error {
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		streamReader, err := GetStreamReader(resp, resp.Provider, requestID)
+		streamReader, err := selectStreamReader(resp, requestID, options)
 		if err != nil {
 			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
 			return
 		}
-
 		defer closeStreamReader(streamReader, requestID)
 
 		if err := pumpStreamData(w, streamReader, requestID); err != nil {
 			sendErrorEvent(w, requestID, "Stream error", err)
 		}
 	}))
-
 	return nil
 }
 
-// Helper functions to make the main function cleaner
+func selectStreamReader(resp *models.ChatCompletionResponse, requestID string, opts *models.RequestOptions) (stream_readers.StreamReader, error) {
+	var streamOption *models.StreamOption
+	if opts != nil {
+		streamOption = opts.StreamOptions
+	}
+
+	if streamOption != nil && *streamOption == models.DATASTREAM {
+		return vercel.GetDataStreamReader(resp, resp.Provider, requestID)
+	}
+	return sse.GetSSEStreamReader(resp, resp.Provider, requestID)
+}
+
+// Helper functions
 func closeStreamReader(streamReader io.ReadCloser, requestID string) {
 	if err := streamReader.Close(); err != nil {
 		log.Printf("[%s] Error closing stream reader: %v", requestID, err)

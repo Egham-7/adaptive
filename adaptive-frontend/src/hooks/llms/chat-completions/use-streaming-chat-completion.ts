@@ -1,44 +1,43 @@
 import { useMutation } from "@tanstack/react-query";
-import {
-  ChatCompletionRequest,
-  StreamingResponse,
-} from "@/services/llms/types";
-import { createStreamingChatCompletion } from "@/services/llms";
 import { useState, useCallback, useRef } from "react";
 import {
-  extractContentFromStreamingResponse,
-  extractModelInfoFromStreamingResponse,
-} from "@/services/llms/types";
-
-/** * Parameters for streaming chat completion */
-export type StreamingChatCompletionParams = {
-  /** The request to send to the LLM */
-  request: ChatCompletionRequest;
-  /** Callback for each chunk of the streaming response */
-  onChunk?: (chunk: StreamingResponse) => void;
-  /** Callback when streaming is complete */
-  onComplete?: (content: string, modelInfo?: ModelInfo) => void;
-  /** Callback when an error occurs during streaming */
-  onError?: (error: Error) => void;
-};
+  Adaptive,
+  ChatCompletionStreamingResponse,
+} from "@adaptive-llm/adaptive-js";
+import { Message } from "@adaptive-llm/adaptive-js";
 
 export interface ModelInfo {
   provider: string;
   model: string;
 }
 
-/** * Enhanced hook for streaming chat completions with built-in state management */
+/** * Parameters for streaming chat completion */
+export type StreamingChatCompletionParams = {
+  /** The request to send to the LLM */
+  messages: Message[];
+  /** Callback for each chunk of the streaming response */
+  onChunk?: (chunk: ChatCompletionStreamingResponse) => void;
+  /** Callback when streaming is complete */
+  onComplete?: (content: string, modelInfo?: ModelInfo) => void;
+  /** Callback when an error occurs during streaming */
+  onError?: (error: Error) => void;
+};
+
+// === Adaptive Client ===
+const client = new Adaptive({
+  apiKey: import.meta.env.VITE_ADAPTIVE_API_KEY,
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
+});
+
+// === Hook ===
 export const useStreamingChatCompletion = () => {
-  // State
   const [streamingContent, setStreamingContent] = useState<string | undefined>(
     undefined,
   );
   const [isStreaming, setIsStreaming] = useState(false);
   const [modelInfo, setModelInfo] = useState<ModelInfo | undefined>(undefined);
-  // Use a ref to track the latest model info for callbacks
   const modelInfoRef = useRef<ModelInfo | undefined>(undefined);
 
-  // Reset state function
   const resetStreamingState = useCallback(() => {
     setStreamingContent(undefined);
     setIsStreaming(true);
@@ -48,74 +47,65 @@ export const useStreamingChatCompletion = () => {
 
   const mutation = useMutation({
     mutationFn: async ({
-      request,
+      messages,
       onChunk,
       onComplete,
       onError,
     }: StreamingChatCompletionParams) => {
       let accumulatedContent = "";
+      const abortController = new AbortController();
+
       try {
         resetStreamingState();
-        // Start the streaming process and get the abort function
-        const abortFn = createStreamingChatCompletion(
-          request,
-          (chunk: StreamingResponse) => {
-            console.log("Received chunk:", chunk);
-            // Handle model info using the helper function
-            const newModelInfo = extractModelInfoFromStreamingResponse(chunk);
-            if (newModelInfo) {
-              // Update both state and ref
-              setModelInfo(newModelInfo);
-              modelInfoRef.current = newModelInfo;
-            }
 
-            // Extract and accumulate content
-            const newContent = extractContentFromStreamingResponse(chunk);
-            if (newContent) {
-              accumulatedContent += newContent;
-              requestAnimationFrame(() => {
-                setStreamingContent(accumulatedContent);
-              });
-            }
+        const stream = (await client.chat.completions.create({
+          messages,
+          stream: true,
+        })) as AsyncIterable<ChatCompletionStreamingResponse>;
 
-            // Call external onChunk if provided
-            if (onChunk) {
-              onChunk(chunk);
-            }
-          },
-          () => {
-            setIsStreaming(false);
-            if (onComplete) {
-              // Use the ref to get the latest model info
-              onComplete(accumulatedContent, modelInfoRef.current);
-            }
-          },
-          (error) => {
-            setIsStreaming(false);
-            console.error("Streaming error:", error);
-            if (onError) onError(error);
-          },
-        );
+        for await (const chunk of stream) {
+          console.log("Chunk received:", chunk);
 
-        // Return the abort function and accumulated content
+          // Extract content
+          const delta = chunk?.choices?.[0]?.delta?.content;
+          if (delta) {
+            accumulatedContent += delta;
+            setStreamingContent((prev) => (prev ?? "") + delta);
+          }
+
+          // Extract model info if present
+          if (chunk.provider && chunk.model) {
+            const newModelInfo = {
+              provider: chunk.provider,
+              model: chunk.model,
+            };
+            setModelInfo(newModelInfo);
+            modelInfoRef.current = newModelInfo;
+          }
+
+          if (onChunk) onChunk(chunk);
+        }
+
+        setIsStreaming(false);
+        if (onComplete) {
+          onComplete(accumulatedContent, modelInfoRef.current);
+        }
+
         return {
-          abortFn,
+          abortFn: () => abortController.abort(),
           getContent: () => accumulatedContent,
         };
       } catch (error) {
         setIsStreaming(false);
-        const formattedError =
-          error instanceof Error ? error : new Error(String(error));
-        console.error("Chat completion setup error:", formattedError);
-        if (onError) {
-          onError(formattedError);
-        }
-        throw formattedError;
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error("Streaming error:", err);
+        if (onError) onError(err);
+        throw err;
       }
     },
     onError: (error) => {
       setIsStreaming(false);
-      console.error("Chat completion mutation error:", error);
+      console.error("Mutation error:", error);
     },
   });
 

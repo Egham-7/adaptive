@@ -1,5 +1,5 @@
-# Build stag# Build stage
-FROM node:lts-alpine AS build
+# Build stage
+FROM oven/bun:latest AS build
 
 # Add the build argument
 ARG VITE_CLERK_PUBLISHABLE_KEY
@@ -11,20 +11,17 @@ ENV VITE_BASE_API_URL=$VITE_BASE_API_URL
 
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 # Copy package files
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json bun.lockb* ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the application
 COPY . .
 
 # Build the application
-RUN pnpm run build
+RUN bun run build
 
 # Format Caddyfile stage
 FROM caddy:latest AS caddy-formatter
@@ -49,6 +46,4 @@ EXPOSE 3000
 
 # Explicitly start Caddy with the configuration file
 CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]
-
-
 

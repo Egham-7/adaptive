@@ -14,11 +14,15 @@ export class Completions {
     private baseUrl: string,
   ) {}
 
-  async create(
-    messages: Message[],
+  async create({
+    messages,
     stream = false,
-    params: Record<string, unknown> = {},
-  ): Promise<
+    ...params
+  }: {
+    messages: Message[];
+    stream?: boolean;
+    [key: string]: unknown; // Additional parameters can be passed
+  }): Promise<
     ChatAPIResponse | AsyncGenerator<ChatCompletionStreamingResponse>
   > {
     const payload = { messages, ...params };

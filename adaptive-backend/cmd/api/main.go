@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/stripe/stripe-go/v82"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -100,6 +101,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 
 	// Setup middleware
 	setupMiddleware(app, allowedOrigins)
