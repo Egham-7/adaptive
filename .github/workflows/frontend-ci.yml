@@ -25,37 +25,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: "23"
+          bun-version: latest # Use the latest Bun version
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: latest
-          run_install: false
-
-      - name: Cache pnpm dependencies
+      - name: Cache Bun dependencies
         uses: actions/cache@v4
         id: cache-deps
         with:
           path: |
             ./adaptive-frontend/node_modules
-            ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('./adaptive-frontend/pnpm-lock.yaml') }}
+            ~/.bun/install/cache # Bun's default cache path
+          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-frontend/bun.lockb') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-
+            ${{ runner.os }}-bun-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Generate Route Tree
-        run: pnpm run generate-routes
+        run: bun run generate-routes
 
       - name: Run tests
         id: tests
-        run: pnpm test --coverage
+        run: bun test --coverage
         continue-on-error: true
 
       - name: Upload test coverage
@@ -69,18 +63,18 @@ jobs:
 
       - name: Run ESLint
         id: lint
-        run: pnpm run lint
+        run: bun run lint
         continue-on-error: true
 
       - name: Type check
         id: typecheck
-        run: pnpm run typecheck
+        run: bun run typecheck
         continue-on-error: true
 
       - name: Build check
         id: build
         if: steps.tests.outcome == 'success' || steps.tests.outcome == 'skipped'
-        run: pnpm run build
+        run: bun run build
         continue-on-error: true
 
       - name: Upload build artifacts
