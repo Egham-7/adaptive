@@ -1,4 +1,4 @@
-import litserve as ls
+import litserve as ls  # type: ignore[import-untyped]
 from pydantic import BaseModel, ValidationError, Field
 from typing import Optional, Dict, Any, Union
 import logging
