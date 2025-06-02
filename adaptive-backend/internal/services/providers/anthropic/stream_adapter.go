@@ -114,9 +114,9 @@ func (a *AnthropicStreamAdapter) convertAnthropicEventToOpenAIChunk(event anthro
 	if contentBlockDelta := event.AsContentBlockDelta(); contentBlockDelta.Type == "content_block_delta" {
 		if contentBlockDelta.Delta.Type == "text_delta" {
 			return &openai.ChatCompletionChunk{
-				ID:     "anthropic-stream",
+				ID:     fmt.Sprintf("anthropic-stream-%d", contentBlockDelta.Index),
 				Object: "chat.completion.chunk",
-				Model:  "claude-3-5-sonnet", // Default model name
+				Model:  string(event.Message.Model),
 				Choices: []openai.ChatCompletionChunkChoice{
 					{
 						Index: 0,
@@ -150,7 +150,7 @@ func (a *AnthropicStreamAdapter) convertAnthropicEventToOpenAIChunk(event anthro
 	// Handle content block start
 	if contentBlockStart := event.AsContentBlockStart(); contentBlockStart.Type == "content_block_start" {
 		return &openai.ChatCompletionChunk{
-			ID:     "anthropic-stream",
+			ID:     fmt.Sprintf("anthropic-stream-%d", contentBlockStart.Index),
 			Object: "chat.completion.chunk",
 			Choices: []openai.ChatCompletionChunkChoice{
 				{
@@ -169,7 +169,7 @@ func (a *AnthropicStreamAdapter) convertAnthropicEventToOpenAIChunk(event anthro
 // sendFinalChunk sends the final chunk to indicate stream completion
 func (a *AnthropicStreamAdapter) sendFinalChunk() {
 	finalChunk := openai.ChatCompletionChunk{
-		ID:     "anthropic-stream",
+		ID:     fmt.Sprintf("anthropic-stream-final-%d", a.anthropicStream.Current().Index),
 		Object: "chat.completion.chunk",
 		Choices: []openai.ChatCompletionChunkChoice{
 			{
