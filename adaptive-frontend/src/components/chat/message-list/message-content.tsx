@@ -25,11 +25,11 @@ const MessageContent = memo(
   }) => (
     <div className="flex flex-col w-full">
       <div className="flex items-start justify-between w-full">
-        <div className="flex items-start gap-3 w-full overflow-hidden">
+        <div className="flex items-start gap-3 p-4 w-full overflow-hidden">
           {message.role === "user" ? (
-            <User className="w-5 h-5 mt-5 shrink-0 text-primary-foreground" />
+            <User className="w-5 h-5 shrink-0 text-primary-foreground" />
           ) : (
-            <Bot className="w-5 h-5 mt-5 shrink-0 text-muted-foreground" />
+            <Bot className="w-5 h-5  shrink-0 text-muted-foreground" />
           )}
           <div className="overflow-hidden w-full">
             <Markdown>{message.content}</Markdown>
