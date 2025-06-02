@@ -1,6 +1,6 @@
-import litserve as ls  # type: ignore
-from pydantic import BaseModel, ValidationError, Field  # type: ignore
-from typing import Optional, Dict, Any
+import litserve as ls
+from pydantic import BaseModel, ValidationError, Field
+from typing import Optional, Dict, Any, Union
 import logging
 
 # Configure logging
@@ -12,7 +12,7 @@ class PromptRequest(BaseModel):
     prompt: str = Field(
         ..., min_length=1, max_length=4096, description="The input prompt to analyze"
     )
-    domain: Optional[str] = Field(
+    domain: str = Field(
         default="Computers_and_Electronics",
         description="The domain context for the prompt",
     )
@@ -35,14 +35,14 @@ class ErrorResponse(BaseModel):
 
 
 class AdaptiveModelSelectionAPI(ls.LitAPI):
-    def setup(self, device):
+    def setup(self, device: str) -> None:
         from services.model_selector import ModelSelector
         from services.prompt_classifier import get_prompt_classifier
 
         self.model_selector = ModelSelector(get_prompt_classifier())
         logger.info("API initialized successfully")
 
-    def decode_request(self, request: PromptRequest):
+    def decode_request(self, request: Dict[str, Any]) -> PromptRequest:
         try:
             req = PromptRequest.model_validate(request)
             return req
@@ -50,7 +50,7 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
             logger.error(f"Invalid request: {e}")
             raise ValueError(f"Invalid request: {e}")
 
-    def predict(self, request: PromptRequest):
+    def predict(self, request: PromptRequest) -> Dict[str, Any]:
         try:
             logger.info(f"Processing prompt for domain: {request.domain}")
             return self.model_selector.select_model(request.prompt, request.domain)
@@ -58,7 +58,7 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
             logger.error(f"Error processing request: {str(e)}")
             raise
 
-    def encode_response(self, output):
+    def encode_response(self, output: Dict[str, Any]) -> Union[ModelSelectionResponse, ErrorResponse]:
         try:
             return ModelSelectionResponse.model_validate(output)
         except ValidationError as e:

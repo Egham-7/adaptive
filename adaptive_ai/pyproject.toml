@@ -18,6 +18,7 @@ dependencies = [
   "pytest>=8.3.5,<9.0.0",
   "litserve>=0.2.10,<0.3.0",
   "pydantic>=2.11.5,<3.0.0",
+  "types-requests>=2.31.0.20240125",
 ]
 
 [build-system]

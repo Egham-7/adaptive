@@ -15,7 +15,7 @@ class LLMProviderParameters(ABC):
 
 
 class OpenAIParameters(LLMProviderParameters):
-    def __init__(self, model: str):
+    def __init__(self, model: str) -> None:
         self.model = model
         self.temperature: float = 0.7
         self.top_p: float = 0.9
@@ -62,7 +62,7 @@ class OpenAIParameters(LLMProviderParameters):
         self._post_process_values()
         return self.get_parameters()
 
-    def _post_process_values(self):
+    def _post_process_values(self) -> None:
         self.temperature = round(self.temperature, 2)
         self.top_p = round(self.top_p, 2)
         self.presence_penalty = round(self.presence_penalty, 2)
@@ -81,7 +81,7 @@ class OpenAIParameters(LLMProviderParameters):
 
 
 class GroqParameters(LLMProviderParameters):
-    def __init__(self, model: str):
+    def __init__(self, model: str) -> None:
         self.model = model
         self.temperature: float = 0.7
         self.top_p: float = 0.9
@@ -128,7 +128,7 @@ class GroqParameters(LLMProviderParameters):
         self._post_process_values()
         return self.get_parameters()
 
-    def _post_process_values(self):
+    def _post_process_values(self) -> None:
         self.temperature = round(self.temperature, 2)
         self.top_p = round(self.top_p, 2)
         self.presence_penalty = round(self.presence_penalty, 2)
@@ -147,7 +147,7 @@ class GroqParameters(LLMProviderParameters):
 
 
 class DeepSeekParameters(LLMProviderParameters):
-    def __init__(self, model: str):
+    def __init__(self, model: str) -> None:
         self.model = model
         self.temperature: float = 0.7
         self.top_p: float = 0.9
@@ -194,7 +194,7 @@ class DeepSeekParameters(LLMProviderParameters):
         self._post_process_values()
         return self.get_parameters()
 
-    def _post_process_values(self):
+    def _post_process_values(self) -> None:
         self.temperature = round(self.temperature, 2)
         self.top_p = round(self.top_p, 2)
         self.presence_penalty = round(self.presence_penalty, 2)
@@ -245,8 +245,4 @@ class LLMParametersFactory:
                 f"Provider {provider} not supported. Choose from: {', '.join(provider_map.keys())}"
             )
 
-        # Explicitly cast the result to satisfy mypy
-        return cast(
-            Union[OpenAIParameters, GroqParameters, DeepSeekParameters],
-            provider_map[provider](model_name),
-        )
+        return provider_map[provider](model_name)

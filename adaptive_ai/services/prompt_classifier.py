@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Dict, List, Tuple, Any, Optional, Union, cast
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,10 +8,10 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 
 class MeanPooling(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super(MeanPooling, self).__init__()
 
-    def forward(self, last_hidden_state, attention_mask):
+    def forward(self, last_hidden_state: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         input_mask_expanded = (
             attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
         )
@@ -22,17 +23,17 @@ class MeanPooling(nn.Module):
 
 
 class MulticlassHead(nn.Module):
-    def __init__(self, input_size, num_classes):
+    def __init__(self, input_size: int, num_classes: int) -> None:
         super(MulticlassHead, self).__init__()
         self.fc = nn.Linear(input_size, num_classes)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc(x)
         return x
 
 
 class CustomModel(nn.Module, PyTorchModelHubMixin):
-    def __init__(self, target_sizes, task_type_map, weights_map, divisor_map):
+    def __init__(self, target_sizes: Dict[str, int], task_type_map: Dict[str, str], weights_map: Dict[str, List[float]], divisor_map: Dict[str, float]) -> None:
         super(CustomModel, self).__init__()
         self.backbone = AutoModel.from_pretrained("microsoft/DeBERTa-v3-base")
         self.target_sizes = target_sizes.values()
@@ -47,7 +48,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             self.add_module(f"head_{i}", head)
         self.pool = MeanPooling()
 
-    def compute_results(self, preds, target, decimal=4):
+    def compute_results(self, preds: torch.Tensor, target: str, decimal: int = 4) -> Union[Tuple[List[str], List[str], List[float]], List[float]]:
         if target == "task_type":
             top2_indices = torch.topk(preds, k=2, dim=1).indices
             softmax_probs = torch.softmax(preds, dim=1)
@@ -77,11 +78,11 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             scores = [round(value, decimal) for value in scores]
             if target == "number_of_few_shots":
                 scores = [x if x >= 0.05 else 0 for x in scores]
-            return scores
+            return cast(List[float], scores)
 
-    def process_logits(self, logits, domain):
+    def process_logits(self, logits: List[torch.Tensor], domain: str) -> Dict[str, Any]:
         # Task type specific weights for complexity calculation
-        TASK_TYPE_WEIGHTS = {
+        TASK_TYPE_WEIGHTS: Dict[str, List[float]] = {
             "Open QA": [
                 0.2,
                 0.3,
@@ -143,13 +144,14 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             "Other": [0.25, 0.25, 0.2, 0.15, 0.15],  # Balanced default
         }
 
-        result = {}
+        result: Dict[str, Any] = {}
         # Round 1: "task_type"
         task_type_logits = logits[0]
         task_type_results = self.compute_results(task_type_logits, target="task_type")
-        result["task_type_1"] = task_type_results[0]
-        result["task_type_2"] = task_type_results[1]
-        result["task_type_prob"] = task_type_results[2]
+        if isinstance(task_type_results, tuple):
+            result["task_type_1"] = task_type_results[0]
+            result["task_type_2"] = task_type_results[1]
+            result["task_type_prob"] = task_type_results[2]
 
         # Round 2: "creativity_scope"
         creativity_scope_logits = logits[1]
@@ -189,33 +191,49 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         result[target] = self.compute_results(constraint_ct_logits, target=target)
 
         # Get the primary task type
-        primary_task_type = result["task_type_1"][0]
+        task_type_1 = result.get("task_type_1", [])
+        if not isinstance(task_type_1, list) or not task_type_1:
+            return result
+            
+        primary_task_type = task_type_1[0]
+        if not isinstance(primary_task_type, str):
+            return result
 
         # Use task-specific weights if available, otherwise use default weights
         weights = TASK_TYPE_WEIGHTS.get(primary_task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
 
+        # Ensure all required values are lists of floats
+        creativity_scope = result.get("creativity_scope", [])
+        reasoning = result.get("reasoning", [])
+        constraint_ct = result.get("constraint_ct", [])
+        domain_knowledge = result.get("domain_knowledge", [])
+        contextual_knowledge = result.get("contextual_knowledge", [])
+
+        if not all(isinstance(x, list) for x in [creativity_scope, reasoning, constraint_ct, domain_knowledge, contextual_knowledge]):
+            return result
+
         # Calculate complexity score using task-specific weights
         result["prompt_complexity_score"] = [
             round(
-                weights[0] * creativity
-                + weights[1] * reasoning
-                + weights[2] * constraint
-                + weights[3] * domain_knowledge
-                + weights[4] * contextual_knowledge,
+                weights[0] * float(creativity)
+                + weights[1] * float(reasoning)
+                + weights[2] * float(constraint)
+                + weights[3] * float(domain_knowledge)
+                + weights[4] * float(contextual_knowledge),
                 5,
             )
             for creativity, reasoning, constraint, domain_knowledge, contextual_knowledge in zip(
-                result["creativity_scope"],
-                result["reasoning"],
-                result["constraint_ct"],
-                result["domain_knowledge"],
-                result["contextual_knowledge"],
+                creativity_scope,
+                reasoning,
+                constraint_ct,
+                domain_knowledge,
+                contextual_knowledge,
             )
         ]
 
         return result
 
-    def forward(self, batch, domain):
+    def forward(self, batch: Dict[str, torch.Tensor], domain: str) -> Dict[str, Any]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
@@ -241,45 +259,35 @@ model = CustomModel(
 
 
 class PromptClassifier:
-    def __init__(self):
+    def __init__(self) -> None:
         self.model = model
         self.tokenizer = tokenizer
 
-    def classify_prompt(self, prompt, domain):
+    def classify_prompt(self, prompt: str, domain: str) -> Dict[str, Any]:
         encoded_texts = self.tokenizer(
             [prompt],
-            return_tensors="pt",
-            add_special_tokens=True,
-            max_length=512,
-            padding="max_length",
+            padding=True,
             truncation=True,
+            max_length=512,
+            return_tensors="pt",
         )
-        result = self.model(encoded_texts, domain)
-
-        return result
-
-    def classify_task_types(self, texts):
-        """
-        Classify a list of text samples into their respective task types.
-
-        Args:
-            texts (list of str): The text samples to classify.
-
-        Returns:
-            list of str: The predicted task types for each text sample.
-        """
-        # Use a default domain since we only care about task type
-        default_domain = "Computers_and_Electronics"
-
-        results = []
-        for text in texts:
-            classification = self.classify_prompt(text, default_domain)
-            # Get the primary task type (task_type_1)
-            results.append(classification["task_type_1"][0])
-
+        with torch.no_grad():
+            results = self.model(encoded_texts, domain)
         return results
+
+    def classify_task_types(self, texts: List[str]) -> List[str]:
+        encoded_texts = self.tokenizer(
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="pt",
+        )
+        with torch.no_grad():
+            results = self.model(encoded_texts, "general")
+        return cast(List[str], results["task_type_1"])
 
 
 @lru_cache()
-def get_prompt_classifier():
+def get_prompt_classifier() -> PromptClassifier:
     return PromptClassifier()
