@@ -25,7 +25,8 @@ export type StreamingChatCompletionParams = {
 
 // === Adaptive Client ===
 const client = new Adaptive({
-  apiKey: process.env.ADAPTIVE_API_KEY || "your-api-key", // Replace in prod
+  apiKey: process.env.VITE_ADAPTIVE_API_KEY,
+  baseUrl: process.env.VITE_API_BASE_URL,
 });
 
 // === Hook ===
@@ -57,9 +58,12 @@ export const useStreamingChatCompletion = () => {
       try {
         resetStreamingState();
 
-        const stream = await client.chat.completions.create(messages, true);
+        const stream = (await client.chat.completions.create(
+          messages,
+          true,
+        )) as AsyncIterable<ChatCompletionStreamingResponse>;
 
-        for await (const chunk of stream as AsyncIterable<ChatCompletionStreamingResponse>) {
+        for await (const chunk of stream) {
           console.log("Chunk received:", chunk);
 
           // Extract content
