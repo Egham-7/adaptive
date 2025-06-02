@@ -18,14 +18,117 @@
 package services
 
 import (
-	"adaptive-backend/internal/models"
 	"log"
 	"os"
+	"sync"
 	"time"
+
+	"adaptive-backend/internal/models"
 
 	"github.com/botirk38/semanticcache"
 	lru "github.com/hashicorp/golang-lru/v2"
 )
+
+// CircuitBreakerState represents the current state of the circuit breaker
+type CircuitBreakerState int
+
+const (
+	CircuitClosed CircuitBreakerState = iota
+	CircuitOpen
+	CircuitHalfOpen
+)
+
+// CircuitBreaker implements the circuit breaker pattern for AI service calls
+type CircuitBreaker struct {
+	mu               sync.RWMutex
+	state            CircuitBreakerState
+	failureCount     int
+	successCount     int
+	lastFailureTime  time.Time
+	failureThreshold int
+	successThreshold int
+	timeout          time.Duration
+}
+
+// NewCircuitBreaker creates a new circuit breaker with default settings
+func NewCircuitBreaker() *CircuitBreaker {
+	return &CircuitBreaker{
+		state:            CircuitClosed,
+		failureThreshold: 5,                // Open after 5 consecutive failures
+		successThreshold: 3,                // Close after 3 consecutive successes in half-open
+		timeout:          30 * time.Second, // Wait 30 seconds before trying half-open
+	}
+}
+
+// CanExecute checks if a request can be executed based on circuit breaker state
+func (cb *CircuitBreaker) CanExecute() bool {
+	cb.mu.RLock()
+	defer cb.mu.RUnlock()
+
+	switch cb.state {
+	case CircuitClosed:
+		return true
+	case CircuitOpen:
+		// Check if timeout has passed to transition to half-open
+		if time.Since(cb.lastFailureTime) >= cb.timeout {
+			return true
+		}
+		return false
+	case CircuitHalfOpen:
+		return true
+	default:
+		return false
+	}
+}
+
+// RecordSuccess records a successful operation
+func (cb *CircuitBreaker) RecordSuccess() {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+
+	cb.failureCount = 0
+
+	if cb.state == CircuitHalfOpen {
+		cb.successCount++
+		if cb.successCount >= cb.successThreshold {
+			cb.state = CircuitClosed
+			cb.successCount = 0
+		}
+	}
+}
+
+// RecordFailure records a failed operation
+func (cb *CircuitBreaker) RecordFailure() {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+
+	cb.failureCount++
+	cb.lastFailureTime = time.Now()
+	cb.successCount = 0
+
+	if cb.state == CircuitClosed && cb.failureCount >= cb.failureThreshold {
+		cb.state = CircuitOpen
+	} else if cb.state == CircuitHalfOpen {
+		cb.state = CircuitOpen
+	}
+}
+
+// GetState returns the current circuit breaker state
+func (cb *CircuitBreaker) GetState() CircuitBreakerState {
+	cb.mu.RLock()
+	defer cb.mu.RUnlock()
+	return cb.state
+}
+
+// transitionToHalfOpen transitions from open to half-open state
+func (cb *CircuitBreaker) transitionToHalfOpen() {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	if cb.state == CircuitOpen && time.Since(cb.lastFailureTime) >= cb.timeout {
+		cb.state = CircuitHalfOpen
+		cb.successCount = 0
+	}
+}
 
 // PromptClassifierClient provides intelligent model selection by communicating
 // with the Python AI service and implementing sophisticated caching strategies.
@@ -34,8 +137,14 @@ import (
 //
 // Caching Strategy:
 // The client implements a two-tier semantic caching system:
-//   1. User-specific cache: Stores model selections per user for personalization
-//   2. Global cache: Shared model selections across all users for efficiency
+//  1. User-specific cache: Stores model selections per user for personalization
+//  2. Global cache: Shared model selections across all users for efficiency
+//
+// Circuit Breaker Pattern:
+// The client implements a circuit breaker to handle AI service failures gracefully:
+//   - Closed: Normal operation, all requests go through
+//   - Open: AI service is down, all requests use fallback model selection
+//   - Half-Open: Testing if AI service has recovered
 //
 // Semantic Matching:
 // The client uses OpenAI embeddings to compare prompt similarity with a
@@ -55,7 +164,7 @@ import (
 // Example usage:
 //
 //	client := NewPromptClassifierClient()
-//	model, cacheType, err := client.SelectModelWithCache(
+//	response, cacheType, err := client.SelectModelWithCache(
 //		"Write a Python function to sort a list",
 //		"user_123",
 //		"req_abc456"
@@ -65,21 +174,24 @@ import (
 //		return
 //	}
 //
-//	fmt.Printf("Selected model: %s (cache: %s)", model, cacheType)
+//	fmt.Printf("Selected model: %s (cache: %s)", response.SelectedModel, cacheType)
 type PromptClassifierClient struct {
 	// client is the underlying HTTP client for communicating with the AI service
 	client *Client
 
-	// globalPromptModelCache stores model selections across all users using semantic similarity.
+	// circuitBreaker implements the circuit breaker pattern for AI service resilience
+	circuitBreaker *CircuitBreaker
+
+	// globalPromptModelCache stores complete model selection responses across all users using semantic similarity.
 	// This cache helps reduce AI service calls for common prompt patterns and improves
-	// overall system performance. The cache maps prompt embeddings to selected model names.
-	globalPromptModelCache *semanticcache.SemanticCache[string, string]
+	// overall system performance. The cache maps prompt embeddings to full SelectModelResponse objects.
+	globalPromptModelCache *semanticcache.SemanticCache[string, models.SelectModelResponse]
 
 	// userPromptModelCache maintains separate semantic caches for each user.
 	// This allows for user-specific model preferences and personalized caching
 	// while still benefiting from semantic similarity matching. The outer LRU cache
 	// manages user cache instances to prevent unlimited memory growth.
-	userPromptModelCache *lru.Cache[string, *semanticcache.SemanticCache[string, string]]
+	userPromptModelCache *lru.Cache[string, *semanticcache.SemanticCache[string, models.SelectModelResponse]]
 
 	// embeddingProvider generates vector embeddings for semantic similarity comparison.
 	// Currently uses OpenAI's text-embedding-ada-002 model for high-quality embeddings
@@ -133,7 +245,7 @@ func NewPromptClassifierClient() *PromptClassifierClient {
 	// Create global semantic cache for cross-user model selections
 	// Size: 1000 entries - large enough for common prompt patterns
 	// Uses LRU eviction when capacity is exceeded
-	globalCache, err := semanticcache.NewSemanticCache[string, string](1000, embeddingProvider, nil)
+	globalCache, err := semanticcache.NewSemanticCache[string, models.SelectModelResponse](1000, embeddingProvider, nil)
 	if err != nil {
 		log.Fatalf("Failed to create global semantic cache: %v", err)
 	}
@@ -141,13 +253,14 @@ func NewPromptClassifierClient() *PromptClassifierClient {
 	// Create LRU cache to manage per-user semantic caches
 	// Size: 100 users - balances memory usage with user coverage
 	// Each user gets their own semantic cache for personalized caching
-	userCache, err := lru.New[string, *semanticcache.SemanticCache[string, string]](100)
+	userCache, err := lru.New[string, *semanticcache.SemanticCache[string, models.SelectModelResponse]](100)
 	if err != nil {
 		log.Fatalf("Failed to create user LRU cache: %v", err)
 	}
 
 	return &PromptClassifierClient{
 		client:                 NewClient(baseURL),
+		circuitBreaker:         NewCircuitBreaker(),
 		globalPromptModelCache: globalCache,
 		userPromptModelCache:   userCache,
 		embeddingProvider:      embeddingProvider,
@@ -168,7 +281,7 @@ func NewPromptClassifierClient() *PromptClassifierClient {
 //   - userID: Unique identifier for the user requesting cache access
 //
 // Returns:
-//   - *semanticcache.SemanticCache[string, string]: User's semantic cache instance
+//   - *semanticcache.SemanticCache[string, models.SelectModelResponse]: User's semantic cache instance
 //   - nil: If cache creation fails or userID is empty
 //
 // Memory Behavior:
@@ -179,7 +292,7 @@ func NewPromptClassifierClient() *PromptClassifierClient {
 // Thread Safety:
 // This method is thread-safe through the underlying LRU cache implementation.
 // Multiple goroutines can safely request user caches concurrently.
-func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.SemanticCache[string, string] {
+func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.SemanticCache[string, models.SelectModelResponse] {
 	// Check if user already has a cache in the LRU
 	if cache, ok := c.userPromptModelCache.Get(userID); ok {
 		return cache
@@ -187,7 +300,7 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 
 	// Create new semantic cache for this user
 	// Size: 100 entries per user - balances personalization with memory usage
-	newCache, err := semanticcache.NewSemanticCache[string, string](100, c.embeddingProvider, nil)
+	newCache, err := semanticcache.NewSemanticCache[string, models.SelectModelResponse](100, c.embeddingProvider, nil)
 	if err != nil {
 		// Log warning but don't fail - system can still use global cache
 		log.Printf("[WARN] Failed to create user semantic cache for %s: %v", userID, err)
@@ -199,9 +312,27 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 	return newCache
 }
 
+// getFallbackModel returns a fallback model selection when the AI service is unavailable
+// Always defaults to GPT-4o as a reliable fallback option
+func (c *PromptClassifierClient) getFallbackModel(prompt string) *models.SelectModelResponse {
+	selectedModel := "gpt-4o"
+	provider := "openai"
+
+	log.Printf("[FALLBACK] Using fallback model selection: %s", selectedModel)
+
+	return &models.SelectModelResponse{
+		SelectedModel: selectedModel,
+		Provider:      provider,
+	}
+}
+
 // SelectModel analyzes the given prompt and returns the optimal model selection
 // from the AI service. This method bypasses all caching and makes a direct
 // request to the Python AI service for fresh model selection analysis.
+//
+// Circuit Breaker Integration:
+// This method respects the circuit breaker state and will return fallback
+// model selection when the AI service is unavailable or circuit is open.
 //
 // The AI service analyzes prompts across multiple dimensions:
 //   - Creativity scope: How creative should the response be?
@@ -214,11 +345,11 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 //
 // Returns:
 //   - *models.SelectModelResponse: Complete model selection response including:
-//     - SelectedModel: Recommended model identifier (e.g., "gpt-4o")
-//     - Provider: LLM provider name (e.g., "openai", "anthropic")
-//     - MatchScore: Confidence score (0.0-1.0) for the selection
-//     - Domain: Detected content domain (e.g., "programming", "creative_writing")
-//     - PromptScores: Detailed analysis scores for each dimension
+//   - SelectedModel: Recommended model identifier (e.g., "gpt-4o")
+//   - Provider: LLM provider name (e.g., "openai", "anthropic")
+//   - MatchScore: Confidence score (0.0-1.0) for the selection
+//   - Domain: Detected content domain (e.g., "programming", "creative_writing")
+//   - PromptScores: Detailed analysis scores for each dimension
 //   - error: Any error encountered during AI service communication
 //
 // Error Conditions:
@@ -226,6 +357,11 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 //   - AI service unavailable or returning errors
 //   - Invalid response format from AI service
 //   - JSON parsing errors in response
+//
+// Resilience Features:
+//   - Circuit breaker protection against AI service failures
+//   - Fallback model selection when service is down
+//   - Automatic recovery detection and retry logic
 //
 // Performance Notes:
 //   - Direct AI service call with 50-second timeout
@@ -242,10 +378,30 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 //	fmt.Printf("AI recommends %s from %s (confidence: %.2f)",
 //		response.SelectedModel, response.Provider, response.MatchScore)
 func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModelResponse, error) {
+	// Check circuit breaker state
+	if !c.circuitBreaker.CanExecute() {
+		log.Printf("[CIRCUIT_BREAKER] Service unavailable, using fallback model selection")
+		return c.getFallbackModel(prompt), nil
+	}
+
+	// Transition to half-open if needed
+	if c.circuitBreaker.GetState() == CircuitOpen {
+		c.circuitBreaker.transitionToHalfOpen()
+	}
+
 	var result models.SelectModelResponse
 	err := c.client.Post("/predict", models.SelectModelRequest{Prompt: prompt}, &result, &RequestOptions{Timeout: 50 * time.Second})
+	if err != nil {
+		// Record failure and return fallback
+		c.circuitBreaker.RecordFailure()
+		log.Printf("[CIRCUIT_BREAKER] AI service call failed, using fallback: %v", err)
+		return c.getFallbackModel(prompt), nil
+	}
 
-	return &result, err
+	// Record success
+	c.circuitBreaker.RecordSuccess()
+
+	return &result, nil
 }
 
 // SelectModelWithCache performs intelligent model selection with semantic caching
@@ -268,6 +424,7 @@ func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModel
 //   - "user": Hit in user-specific cache (fastest, personalized)
 //   - "global": Hit in global cache (fast, shared across users)
 //   - "miss": No cache hit, fresh AI service call (slowest, most accurate)
+//   - "fallback": Circuit breaker open, using fallback model selection
 //
 // Parameters:
 //   - prompt: The user prompt to analyze for model selection
@@ -275,7 +432,7 @@ func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModel
 //   - requestID: Correlation ID for debugging and monitoring
 //
 // Returns:
-//   - string: Selected model identifier (e.g., "gpt-4o", "claude-3-sonnet")
+//   - *models.SelectModelResponse: Complete model selection response with all analysis details
 //   - string: Cache hit type ("user", "global", "miss")
 //   - error: Any error encountered during the process
 //
@@ -297,7 +454,7 @@ func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModel
 //
 // Example:
 //
-//	model, cacheType, err := client.SelectModelWithCache(
+//	response, cacheType, err := client.SelectModelWithCache(
 //		"Write a Python function to calculate fibonacci numbers",
 //		"user_123",
 //		"req_abc456"
@@ -308,13 +465,15 @@ func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModel
 //
 //	switch cacheType {
 //	case "user":
-//		log.Printf("Fast user cache hit: %s", model)
+//		log.Printf("Fast user cache hit: %s", response.SelectedModel)
 //	case "global":
-//		log.Printf("Global cache hit: %s", model)
+//		log.Printf("Global cache hit: %s", response.SelectedModel)
 //	case "miss":
-//		log.Printf("Fresh AI analysis selected: %s", model)
+//		log.Printf("Fresh AI analysis selected: %s", response.SelectedModel)
+//	case "fallback":
+//		log.Printf("Fallback model selected (AI service down): %s", response.SelectedModel)
 //	}
-func (c *PromptClassifierClient) SelectModelWithCache(prompt string, userID string, requestID string) (string, string, error) {
+func (c *PromptClassifierClient) SelectModelWithCache(prompt string, userID string, requestID string) (*models.SelectModelResponse, string, error) {
 	// Semantic similarity threshold for cache hits
 	// 0.9 = very high similarity required (conservative caching)
 	// Lower values increase cache hits but may reduce accuracy
@@ -329,7 +488,7 @@ func (c *PromptClassifierClient) SelectModelWithCache(prompt string, userID stri
 		if val, found, err := userCache.Lookup(prompt, threshold); err == nil && found {
 			// Cache hit in user-specific cache - fastest possible response
 			log.Printf("[%s] Semantic cache hit (user)", requestID)
-			return val, "user", nil
+			return &val, "user", nil
 		}
 	}
 
@@ -344,7 +503,7 @@ func (c *PromptClassifierClient) SelectModelWithCache(prompt string, userID stri
 			_ = userCache.Set(prompt, prompt, val)
 		}
 
-		return val, "global", nil
+		return &val, "global", nil
 	}
 
 	// Phase 3: Cache miss - must call AI service for fresh analysis
@@ -352,21 +511,30 @@ func (c *PromptClassifierClient) SelectModelWithCache(prompt string, userID stri
 	modelInfo, err := c.SelectModel(prompt)
 	if err != nil {
 		// AI service error - return error with cache miss indicator
-		return "", "miss", err
+		return nil, "miss", err
 	}
 
-	// Log cache miss with selected model for monitoring and debugging
-	log.Printf("[%s] Semantic cache miss - selected model %s", requestID, modelInfo.SelectedModel)
-
-	// Phase 4: Populate caches with new model selection
-	// Store in global cache for cross-user benefit
-	_ = c.globalPromptModelCache.Set(prompt, prompt, modelInfo.SelectedModel)
-
-	// Store in user cache for personalized future hits
-	if userCache != nil {
-		_ = userCache.Set(prompt, prompt, modelInfo.SelectedModel)
+	// Determine cache type based on circuit breaker state
+	cacheType := "miss"
+	if c.circuitBreaker.GetState() != CircuitClosed {
+		cacheType = "fallback"
+		log.Printf("[%s] Semantic cache miss - using fallback model %s (circuit: %v)", requestID, modelInfo.SelectedModel, c.circuitBreaker.GetState())
+	} else {
+		log.Printf("[%s] Semantic cache miss - selected model %s", requestID, modelInfo.SelectedModel)
 	}
 
-	// Return fresh model selection with miss indicator
-	return modelInfo.SelectedModel, "miss", nil
+	// Phase 4: Populate caches with new model selection response
+	// Only cache successful AI service responses, not fallback responses
+	if c.circuitBreaker.GetState() == CircuitClosed {
+		// Store in global cache for cross-user benefit
+		_ = c.globalPromptModelCache.Set(prompt, prompt, *modelInfo)
+
+		// Store in user cache for personalized future hits
+		if userCache != nil {
+			_ = userCache.Set(prompt, prompt, *modelInfo)
+		}
+	}
+
+	// Return fresh model selection with appropriate cache type indicator
+	return modelInfo, cacheType, nil
 }

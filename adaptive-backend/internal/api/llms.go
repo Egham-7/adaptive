@@ -1,14 +1,15 @@
 package api
 
 import (
-	"adaptive-backend/internal/models"
+	"time"
+
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/stream_readers/stream"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/openai/openai-go"
 )
 
 type ChatCompletionHandler struct {
@@ -33,7 +34,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		apiKey = "anonymous"
 	}
 
-	var req models.ChatCompletionRequest
+	var req openai.ChatCompletionNewParams
 	if err := c.BodyParser(&req); err != nil {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("stream", "400").Observe(time.Since(start).Seconds())
@@ -43,15 +44,15 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 
-	prompt := req.Messages[len(req.Messages)-1].Content
+	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
 
-	modelName, cacheType, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
+	modelInfo, cacheType, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
 	if h.metrics != nil {
 		h.metrics.CacheLookups.WithLabelValues(cacheType).Inc()
 		if cacheType == "user" || cacheType == "global" {
 			h.metrics.CacheHits.WithLabelValues(cacheType).Inc()
 		}
-		h.metrics.ModelSelections.WithLabelValues(modelName).Inc()
+		h.metrics.ModelSelections.WithLabelValues(modelInfo.SelectedModel).Inc()
 	}
 	if err != nil {
 		if h.metrics != nil {
@@ -60,20 +61,15 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	fullReq := models.ProviderChatCompletionRequest{
-		Provider:         "openai",
-		Model:            modelName,
-		Messages:         req.Messages,
-		Temperature:      0.7,
-		N:                1,
-		MaxTokens:        256,
-		PresencePenalty:  0,
-		FrequencyPenalty: 0,
-		Stream:           true,
-		ResponseFormat:   req.ResponseFormat,
-	}
+	req.Model = modelInfo.SelectedModel
+	req.Temperature = openai.Float(modelInfo.Parameters.Temperature)
+	req.N = openai.Int(modelInfo.Parameters.N)
+	req.PresencePenalty = openai.Float(modelInfo.Parameters.PresencePenalty)
+	req.MaxTokens = openai.Int(modelInfo.Parameters.MaxTokens)
+	req.FrequencyPenalty = openai.Float(modelInfo.Parameters.FrequencyPenalty)
+	req.TopP = openai.Float(modelInfo.Parameters.TopP)
 
-	provider, err := providers.NewLLMProvider(fullReq.Provider)
+	provider, err := providers.NewLLMProvider(modelInfo.Provider)
 	if err != nil {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("stream", "400").Observe(time.Since(start).Seconds())
@@ -81,7 +77,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	resp, err := provider.StreamChatCompletion(&fullReq)
+	resp, err := provider.Chat().Completions().StreamCompletion(&req)
 	if err != nil {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("stream", "500").Observe(time.Since(start).Seconds())
@@ -99,7 +95,7 @@ func (h *ChatCompletionHandler) StreamChatCompletion(c *fiber.Ctx) error {
 	if h.metrics != nil {
 		h.metrics.RequestDuration.WithLabelValues("stream", "200").Observe(time.Since(start).Seconds())
 	}
-	return stream.HandleStream(c, resp, requestID, req.RequestOptions)
+	return stream.HandleStream(c, resp, requestID)
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
@@ -110,7 +106,7 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		apiKey = "anonymous"
 	}
 
-	var req models.ChatCompletionRequest
+	var req openai.ChatCompletionNewParams
 	if err := c.BodyParser(&req); err != nil {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("completion", "400").Observe(time.Since(start).Seconds())
@@ -118,15 +114,15 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request body: " + err.Error()})
 	}
 
-	prompt := req.Messages[len(req.Messages)-1].Content
+	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
 
-	modelName, cacheType, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
+	modelInfo, cacheType, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
 	if h.metrics != nil {
 		h.metrics.CacheLookups.WithLabelValues(cacheType).Inc()
 		if cacheType == "user" || cacheType == "global" {
 			h.metrics.CacheHits.WithLabelValues(cacheType).Inc()
 		}
-		h.metrics.ModelSelections.WithLabelValues(modelName).Inc()
+		h.metrics.ModelSelections.WithLabelValues(modelInfo.SelectedModel).Inc()
 	}
 	if err != nil {
 		if h.metrics != nil {
@@ -135,26 +131,22 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	fullReq := models.ProviderChatCompletionRequest{
-		Provider:         "openai",
-		Model:            modelName,
-		Messages:         req.Messages,
-		Temperature:      0.7,
-		N:                1,
-		MaxTokens:        256,
-		PresencePenalty:  0,
-		FrequencyPenalty: 0,
-	}
-
-	provider, err := providers.NewLLMProvider(fullReq.Provider)
+	provider, err := providers.NewLLMProvider(modelInfo.Provider)
 	if err != nil {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("completion", "400").Observe(time.Since(start).Seconds())
 		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
+	req.Model = modelInfo.SelectedModel
+	req.N = openai.Int(modelInfo.Parameters.N)
+	req.Temperature = openai.Float(modelInfo.Parameters.Temperature)
+	req.PresencePenalty = openai.Float(modelInfo.Parameters.PresencePenalty)
+	req.MaxTokens = openai.Int(modelInfo.Parameters.MaxTokens)
+	req.FrequencyPenalty = openai.Float(modelInfo.Parameters.FrequencyPenalty)
+	req.TopP = openai.Float(modelInfo.Parameters.TopP)
 
-	resp, err := provider.CreateChatCompletion(&fullReq)
+	resp, err := provider.Chat().Completions().CreateCompletion(&req)
 	if err != nil {
 		if h.metrics != nil {
 			h.metrics.RequestDuration.WithLabelValues("completion", "500").Observe(time.Since(start).Seconds())
@@ -169,4 +161,3 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 	return c.JSON(resp)
 }
-
