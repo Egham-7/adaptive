@@ -1,1 +1,1 @@
-"""Test package for adaptive-ai.""" 
+"""Test package for adaptive-ai."""
