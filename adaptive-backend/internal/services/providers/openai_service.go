@@ -46,14 +46,7 @@ func (s *OpenAIService) StreamChatCompletion(req *models.ProviderChatCompletionR
 		MaxTokens:        openai.Int(int64(req.MaxTokens)),
 		PresencePenalty:  openai.Float(float64(req.PresencePenalty)),
 		FrequencyPenalty: openai.Float(float64(req.FrequencyPenalty)),
-		// ...
-		ResponseFormat:   func() openai.ChatCompletionNewParamsResponseFormatUnion {
-			if req.ResponseFormat != nil {
-				return *req.ResponseFormat
-			}
-			return openai.ChatCompletionNewParamsResponseFormatUnion{}
-		}(),
-		// ...
+		ResponseFormat:   *req.ResponseFormat,
 	}
 
 	stream := s.client.Chat.Completions.NewStreaming(context.Background(), params)
