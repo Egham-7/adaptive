@@ -1,8 +1,4 @@
-# Build stage
 FROM golang:1.24-alpine AS builder
-
-# Install build dependencies for CGO
-RUN apk add --no-cache gcc musl-dev sqlite-dev
 
 # Set working directory
 WORKDIR /app
@@ -16,14 +12,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build with CGO enabled
-RUN CGO_ENABLED=1 GOOS=linux go build -o adaptive-backend ./cmd/api
+# Build with CGO disabled
+RUN CGO_ENABLED=0 GOOS=linux go build -o adaptive-backend ./cmd/api
 
 # Runtime stage
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk --no-cache add ca-certificates sqlite-libs
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 

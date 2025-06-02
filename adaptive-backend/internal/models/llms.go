@@ -4,26 +4,12 @@ import (
 	"github.com/conneroisu/groq-go/pkg/tools"
 )
 
-type StreamOption int
+type StreamOption string
 
 const (
-	SSE StreamOption = iota
-	DATASTREAM
-	TEXT
+	SSE        StreamOption = "sse"
+	DATASTREAM StreamOption = "datastream"
 )
-
-func (s StreamOption) String() string {
-	switch s {
-	case SSE:
-		return "SSE"
-	case DATASTREAM:
-		return "DATASTREAM"
-	case TEXT:
-		return "TEXT"
-	default:
-		return "UNKNOWN"
-	}
-}
 
 type RequestOptions struct {
 	Cascade       bool          `json:"cascade,omitempty"`

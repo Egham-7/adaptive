@@ -147,20 +147,22 @@ func convertAnthropicRole(role string) anthropic.MessageParamRole {
 }
 
 // determineAnthropicModel selects the appropriate model based on request
-func determineAnthropicModel(requestedModel string) string {
+func determineAnthropicModel(requestedModel string) anthropic.Model {
 	if requestedModel == "" {
 		return anthropic.ModelClaude3_7SonnetLatest // Default model
 	}
 
 	// Map of supported models
-	supportedModels := map[string]bool{
-		anthropic.ModelClaude3_7SonnetLatest: true,
-		anthropic.ModelClaude3OpusLatest:     true,
+	supportedModels := map[anthropic.Model]bool{
+		anthropic.ModelClaude3_5HaikuLatest:  true,
+		anthropic.ModelClaude3_5SonnetLatest: true,
+		anthropic.ModelClaude4Sonnet20250514: true,
+		anthropic.ModelClaude4Opus20250514:   true,
 	}
 
-	// If the requested model is supported, use it
-	if _, ok := supportedModels[requestedModel]; ok {
-		return requestedModel
+	rm := anthropic.Model(requestedModel)
+	if _, ok := supportedModels[rm]; ok {
+		return rm
 	}
 
 	// For unknown models, fall back to default

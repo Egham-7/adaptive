@@ -1,118 +1,115 @@
-# Adaptive AI Model Selection
+# Adaptive AI Service
 
-An intelligent system for selecting the most appropriate AI model based on prompt analysis and task requirements.
+Python ML service that intelligently selects optimal LLM models based on prompt analysis.
 
 ## Features
 
-- Dynamic model selection based on prompt complexity and task type
-- Support for multiple AI providers (OpenAI, Anthropic, GROQ)
-- Domain-specific complexity analysis
-- Caching for improved performance
-- Configurable through environment variables or YAML
-- Comprehensive error handling and logging
-- Type-safe implementation
+- **Prompt Classification**: Multi-dimensional prompt analysis (creativity, reasoning, context, domain)
+- **Model Selection**: Vector similarity matching to find optimal models
+- **Domain Classification**: Specialized routing for different content domains
+- **Parameter Optimization**: Automatic tuning of model parameters
+- **High Performance**: LitServe for fast inference serving
 
-## Installation
+## Quick Start
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/adaptive.git
-cd adaptive/adaptive_ai
+# Install dependencies
+poetry install
+
+# Set environment variables
+cp .env.example .env.local
+
+# Run service
+poetry run python main.py
 ```
 
-2. Create a virtual environment and install dependencies:
+## Environment Variables
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+# Optional: for enhanced features
+OPENAI_API_KEY=sk-xxxxx
+HUGGINGFACE_TOKEN=hf_xxxxx
 ```
 
-3. Configure the application:
-   - Copy `config.yaml.example` to `config.yaml`
-   - Update the configuration as needed
-   - Set environment variables if required
+## API
 
-## Usage
+### Model Selection
 
-1. Start the API server:
-```bash
-python main.py
+**Endpoint:** `POST /predict`
+
+**Request:**
+```json
+{
+  "prompt": "Write a Python function to sort a list"
+}
 ```
 
-2. Make requests to the API:
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "What is the capital of France?", "domain": "Computers_and_Electronics"}'
+**Response:**
+```json
+{
+  "selected_model": "gpt-4o",
+  "provider": "openai",
+  "match_score": 0.94,
+  "domain": "programming",
+  "prompt_scores": {
+    "creativity_scope": [0.3],
+    "reasoning": [0.8],
+    "contextual_knowledge": [0.6],
+    "domain_knowledge": [0.9]
+  }
+}
 ```
 
-## Configuration
+## How It Works
 
-The application can be configured through:
-
-1. Environment variables:
-```bash
-export API_HOST=0.0.0.0
-export API_PORT=8000
-export DEFAULT_MODEL=gpt-4-turbo
-```
-
-2. YAML configuration file (`config.yaml`):
-```yaml
-api_host: "0.0.0.0"
-api_port: 8000
-default_model: "gpt-4-turbo"
-```
-
-## Development
-
-1. Install development dependencies:
-```bash
-pip install -r requirements-dev.txt
-```
-
-2. Run tests:
-```bash
-pytest
-```
-
-3. Run linting:
-```bash
-ruff check .
-```
-
-4. Run type checking:
-```bash
-mypy .
-```
+1. **Prompt Analysis**: Uses NVIDIA's prompt classifier to extract complexity dimensions
+2. **Domain Detection**: Classifies prompt into specialized domains (code, writing, analysis, etc.)
+3. **Vector Matching**: Cosine similarity between prompt vector and model capability vectors
+4. **Model Selection**: Returns best matching model with confidence score
 
 ## Project Structure
 
 ```
-adaptive_ai/
-├── main.py              # API entry point
-├── config.yaml          # Configuration file
-├── requirements.txt     # Production dependencies
-├── requirements-dev.txt # Development dependencies
-├── core/               # Core functionality
-│   └── config.py       # Configuration management
-├── models/             # Model definitions
-│   └── llms.py         # LLM configurations
-├── services/           # Business logic
-│   ├── model_selector.py    # Model selection logic
-│   └── prompt_classifier.py # Prompt analysis
-└── tests/              # Test suite
-    └── test_model_selector.py
+services/
+├── model_selector.py      # Main selection logic
+├── prompt_classifier.py   # Prompt complexity analysis
+├── domain_classifier.py   # Domain classification
+└── llm_parameters.py     # Parameter optimization
+
+models/
+├── llms.py               # Model definitions and capabilities
+└── domain_mappings.py    # Domain-to-model mappings
+
+core/
+└── utils.py              # Utility functions
 ```
 
-## Contributing
+## Adding New Models
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+1. Define model capabilities in `models/llms.py`:
 
-## License
+```python
+model_capabilities = {
+    "new-model": {
+        "provider": "provider-name",
+        "capability_vector": [0.8, 0.9, 0.7, 0.8],  # [creativity, reasoning, context, domain]
+        "cost_per_token": 0.00001,
+        "max_tokens": 4096
+    }
+}
+```
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+2. Update domain mappings in `models/domain_mappings.py`
+
+## Testing
+
+```bash
+poetry run pytest
+```
+
+## Docker
+
+```bash
+docker build -t adaptive-ai .
+docker run -p 8000:8000 adaptive-ai
+```
