@@ -9,10 +9,16 @@ export class Adaptive {
   public chat: Chat;
 
   constructor(config: AdaptiveClientConfig = {}) {
-    const apiKey = config.apiKey || process.env.ADAPTIVE_API_KEY;
+    const apiKey =
+      config.apiKey ||
+      (typeof process !== "undefined" && process.env?.ADAPTIVE_API_KEY) ||
+      (typeof import.meta !== "undefined" &&
+        import.meta.env?.VITE_ADAPTIVE_API_KEY);
     const baseUrl =
       config.baseUrl ||
-      process.env.ADAPTIVE_BASE_URL ||
+      (typeof process !== "undefined" && process.env?.ADAPTIVE_BASE_URL) ||
+      (typeof import.meta !== "undefined" &&
+        import.meta.env?.VITE_ADAPTIVE_BASE_URL) ||
       "https://backend-go.salmonwave-ec8d1f2a.eastus.azurecontainerapps.io";
 
     if (!apiKey) {

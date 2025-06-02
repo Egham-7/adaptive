@@ -20,7 +20,7 @@ export default function CallToAction() {
               <SignUpButton mode="modal">
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+                  className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
                 >
                   <Rocket className="relative size-4 mr-2" />
                   <span>Get Started</span>
@@ -31,7 +31,7 @@ export default function CallToAction() {
             <SignedIn>
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
+                className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
               >
                 <Rocket className="relative size-4 mr-2" />
                 <Link to="/home">Get Started</Link>
