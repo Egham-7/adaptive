@@ -11,6 +11,8 @@ export interface ModelInfo {
 export type StreamingChatCompletionParams = {
   /** The request to send to the LLM */
   messages: OpenAI.Chat.ChatCompletionMessageParam[];
+  /** The model to use for the completion */
+  model?: string;
   /** Callback for each chunk of the streaming response */
   onChunk?: (chunk: OpenAI.Chat.Completions.ChatCompletionChunk) => void;
   /** Callback when streaming is complete */
@@ -44,6 +46,7 @@ export const useStreamingChatCompletion = () => {
   const mutation = useMutation({
     mutationFn: async ({
       messages,
+      model = "gpt-3.5-turbo",
       onChunk,
       onComplete,
       onError,
@@ -54,11 +57,16 @@ export const useStreamingChatCompletion = () => {
       try {
         resetStreamingState();
 
-        const stream = await client.chat.completions.create({
-          messages,
-          stream: true,
-          model: "gpt-3.5-turbo", // Default model, can be made configurable
-        });
+        const stream = await client.chat.completions.create(
+          {
+            messages,
+            stream: true,
+            model,
+          },
+          {
+            signal: abortController.signal,
+          },
+        );
 
         for await (const chunk of stream) {
           console.log("Chunk received:", chunk);
