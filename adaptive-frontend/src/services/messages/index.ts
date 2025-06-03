@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "../common";
 import { BaseMessage, DBMessage } from "./types";
-import { Message } from "@adaptive-llm/adaptive-js";
+import OpenAI from "openai";
 
 /**
  * Gets all messages for a conversation
@@ -136,21 +136,34 @@ export const deleteMessages = async (
   });
 };
 
-/**
- * Converts database messages to the API message format used for chat completion
- *
- * @param dbMessages - Array of database messages
- * @returns Array of messages in the format expected by chat completion API
- */
-export const convertToApiMessages = (dbMessages: DBMessage[]): Message[] => {
-  return dbMessages.map((msg) => ({
-    id: msg.id,
-    role: msg.role,
-    content: msg.content,
-  }));
+export const convertToApiMessages = (
+  dbMessages: DBMessage[],
+): OpenAI.ChatCompletionMessageParam[] => {
+  return dbMessages.map((msg) => {
+    if (msg.role === "tool") {
+      return {
+        role: msg.role,
+        content: msg.content,
+        tool_call_id: "default", // You may need to store this in your DB
+      };
+    }
+    return {
+      role: msg.role,
+      content: msg.content,
+    };
+  });
 };
 
-export const convertToApiMessage = (dbMessage: BaseMessage): Message => {
+export const convertToApiMessage = (
+  dbMessage: BaseMessage,
+): OpenAI.ChatCompletionMessageParam => {
+  if (dbMessage.role === "tool") {
+    return {
+      role: dbMessage.role,
+      content: dbMessage.content,
+      tool_call_id: "default", // You may need to store this in your DB
+    };
+  }
   return {
     role: dbMessage.role,
     content: dbMessage.content,
