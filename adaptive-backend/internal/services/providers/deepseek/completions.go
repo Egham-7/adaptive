@@ -144,11 +144,52 @@ func convertToDeepSeekMessage(msg openai.ChatCompletionMessageParamUnion) deepse
 		}
 	}
 
+	if msg.OfDeveloper != nil {
+		content := extractDeveloperContent(msg.OfDeveloper.Content)
+		return deepseek.ChatCompletionMessage{
+			Role:    deepseek.ChatMessageRoleSystem, // Map developer to system
+			Content: content,
+		}
+	}
+	if msg.OfTool != nil {
+		content := extractToolContent(msg.OfTool.Content)
+		return deepseek.ChatCompletionMessage{
+			Role:    deepseek.ChatMessageRoleAssistant, // Map tool to assistant
+			Content: content,
+		}
+	}
+	if msg.OfFunction != nil {
+		// Extract content directly from the function message
+		content := ""
+		if msg.OfFunction.Content.Value != "" {
+			content = msg.OfFunction.Content.Value
+		}
+		return deepseek.ChatCompletionMessage{
+			Role:    deepseek.ChatMessageRoleAssistant, // Map function to assistant
+			Content: content,
+		}
+	}
+
 	// Default fallback
 	return deepseek.ChatCompletionMessage{
 		Role:    deepseek.ChatMessageRoleUser,
 		Content: "",
 	}
+}
+
+func extractToolContent(content openai.ChatCompletionToolMessageParamContentUnion) string {
+	if !param.IsOmitted(content.OfString) {
+		return content.OfString.Value
+	}
+	// For array content, concatenate text parts
+	if !param.IsOmitted(content.OfArrayOfContentParts) {
+		var result string
+		for _, part := range content.OfArrayOfContentParts {
+			result += part.Text
+		}
+		return result
+	}
+	return ""
 }
 
 // extractUserContent extracts string content from user message content union
