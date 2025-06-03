@@ -48,20 +48,20 @@ func (r *StreamDecoder) SendChunk(chunk openai.ChatCompletionChunk) bool {
 
 // SendError sends an error to the stream
 func (r *StreamDecoder) SendError(err error) bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+    r.mu.Lock()
+    defer r.mu.Unlock()
 
-	if r.closed {
-		return false
-	}
-	r.lastError = err
+    if r.closed {
+        return false
+    }
+    r.lastError = err
 
-	select {
-	case r.errorChan <- err:
-		return true
-	case <-r.done:
-		return false
-	}
+    select {
+    case r.errorChan <- err:
+        return true
+    case <-r.done:
+        return false
+    }
 }
 
 // CloseSender closes the sender channels (call from producer goroutine)
