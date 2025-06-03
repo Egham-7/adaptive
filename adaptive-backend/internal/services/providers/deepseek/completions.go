@@ -326,7 +326,7 @@ func serializeUserContentPart(part openai.ChatCompletionContentPartUnionParam) s
 
 // serializeAssistantContentPart serializes assistant content parts to JSON
 func serializeAssistantContentPart(part openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion) string {
-	contentMap := make(map[string]interface{})
+	contentMap := make(map[string]any)
 
 	if part.OfText != nil {
 		contentMap["type"] = "text"

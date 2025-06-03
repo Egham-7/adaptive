@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropicssestream "github.com/anthropics/anthropic-sdk-go/packages/ssestream"
@@ -169,7 +170,7 @@ func (a *AnthropicStreamAdapter) convertAnthropicEventToOpenAIChunk(event anthro
 // sendFinalChunk sends the final chunk to indicate stream completion
 func (a *AnthropicStreamAdapter) sendFinalChunk() {
 	finalChunk := openai.ChatCompletionChunk{
-		ID:     fmt.Sprintf("anthropic-stream-final-%d", a.anthropicStream.Current().Index),
+		ID:     fmt.Sprintf("anthropic-stream-final-%d", time.Now().UnixNano()),
 		Object: "chat.completion.chunk",
 		Choices: []openai.ChatCompletionChunkChoice{
 			{
@@ -227,7 +228,6 @@ func (a *AnthropicStreamAdapter) Close() error {
 
 	if !a.openaiStream.closed {
 		a.openaiStream.closed = true
-		close(a.openaiStream.done)
 	}
 
 	return a.anthropicStream.Close()
