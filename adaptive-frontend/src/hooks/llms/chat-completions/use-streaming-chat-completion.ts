@@ -21,10 +21,16 @@ export type StreamingChatCompletionParams = {
   onError?: (error: Error) => void;
 };
 
+console.log(
+  "OpenAI Client initialized with base URL:",
+  import.meta.env.VITE_API_BASE_URL,
+);
+
 // === OpenAI Client ===
 const client = new OpenAI({
-  apiKey: import.meta.env.VITE_ADAPTIVE_API_KEY,
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_BASE_API_URL,
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
 });
 
 // === Hook ===
