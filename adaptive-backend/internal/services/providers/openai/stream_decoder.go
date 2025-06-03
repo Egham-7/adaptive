@@ -17,6 +17,7 @@ type StreamDecoder struct {
 	done         chan struct{}
 	closed       bool
 	mu           sync.RWMutex
+	lastError    error
 }
 
 // NewStreamDecoder creates a new stream decoder
@@ -53,6 +54,7 @@ func (r *StreamDecoder) SendError(err error) bool {
 	if r.closed {
 		return false
 	}
+	r.lastError = err
 
 	select {
 	case r.errorChan <- err:
@@ -133,12 +135,9 @@ func (r *StreamDecoder) Close() error {
 
 // Err implements the Decoder interface for StreamDecoder
 func (r *StreamDecoder) Err() error {
-	select {
-	case err := <-r.errorChan:
-		return err
-	default:
-		return nil
-	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.lastError
 }
 
 // Chunk returns the current chunk after Next() returns true
