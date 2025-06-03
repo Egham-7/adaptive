@@ -1,6 +1,7 @@
 package openai
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -99,7 +100,23 @@ func (r *StreamDecoder) Next() bool {
 
 // Event implements the Decoder interface for StreamDecoder
 func (r *StreamDecoder) Event() ssestream.Event {
-	return ssestream.Event{}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	if r.currentChunk == nil {
+		return ssestream.Event{}
+	}
+
+	// Marshal the current chunk to JSON for the event data
+	data, err := json.Marshal(r.currentChunk)
+	if err != nil {
+		return ssestream.Event{}
+	}
+
+	return ssestream.Event{
+		Data: data,
+		Type: "completion",
+	}
 }
 
 // Close implements the Decoder interface for StreamDecoder
