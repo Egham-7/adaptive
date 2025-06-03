@@ -1,13 +1,13 @@
 package sse
 
 import (
+	"adaptive-backend/internal/services/stream_readers"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"strings"
-
-	"adaptive-backend/internal/services/stream_readers"
 
 	"github.com/openai/openai-go"
 	ssestream "github.com/openai/openai-go/packages/ssestream"
@@ -50,7 +50,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 	ok := r.stream.Next()
 	if !ok {
 		// Handle different error types appropriately
-		if r.stream.Err() == nil || strings.Contains(r.stream.Err().Error(), "EOF") {
+		if r.stream.Err() == nil || errors.Is(r.stream.Err(), io.EOF) {
 			// Normal end of stream
 			r.Buffer = []byte("data: [DONE]\n\n")
 			r.done = true
