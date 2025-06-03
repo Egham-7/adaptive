@@ -10,11 +10,12 @@ import (
 
 // StreamDecoder implements the OpenAI stream interface for any provider
 type StreamDecoder struct {
-	chunkChan chan openai.ChatCompletionChunk
-	errorChan chan error
-	done      chan struct{}
-	closed    bool
-	mu        sync.RWMutex
+	currentChunk *openai.ChatCompletionChunk // Current chunk after Next() returns true
+	chunkChan    chan openai.ChatCompletionChunk
+	errorChan    chan error
+	done         chan struct{}
+	closed       bool
+	mu           sync.RWMutex
 }
 
 // NewStreamDecoder creates a new stream decoder
@@ -78,15 +79,18 @@ func (r *StreamDecoder) Read(p []byte) (n int, err error) {
 
 // Next implements the Decoder interface for StreamDecoder
 func (r *StreamDecoder) Next() bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
 	if r.closed {
 		return false
 	}
 
 	select {
-	case _, ok := <-r.chunkChan:
+	case chunk, ok := <-r.chunkChan:
+		if ok {
+			r.currentChunk = &chunk
+		}
 		return ok
 	case <-r.done:
 		return false
@@ -118,4 +122,11 @@ func (r *StreamDecoder) Err() error {
 	default:
 		return nil
 	}
+}
+
+// Chunk returns the current chunk after Next() returns true
+func (r *StreamDecoder) Chunk() *openai.ChatCompletionChunk {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.currentChunk
 }
