@@ -32,7 +32,10 @@ func (c *GeminiCompletions) CreateCompletion(
 	}
 	content := &genai.Content{Parts: parts}
 
-	opts := convertGeminiOptions(req)
+	opts, err := convertGeminiOptions(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert gemini options: %w", err)
+	}
 
 	resp, err := c.chat.service.client.Models.GenerateContent(
 		ctx,
@@ -63,7 +66,10 @@ func (c *GeminiCompletions) StreamCompletion(
 	}
 	content := &genai.Content{Parts: parts}
 
-	opts := convertGeminiOptions(req)
+	opts, err := convertGeminiOptions(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert gemini options: %w", err)
+	}
 
 	stream := c.chat.service.client.Models.GenerateContentStream(
 		ctx,
@@ -75,6 +81,51 @@ func (c *GeminiCompletions) StreamCompletion(
 	// Create stream adapter and convert to OpenAI format
 	adapter := NewGeminiStreamAdapter(stream)
 	return adapter.ConvertToOpenAIStream()
+}
+
+// convertGeminiOptions maps your internal request into Gemini's GenerateContentConfig.
+func convertGeminiOptions(
+	req *openai.ChatCompletionNewParams,
+) (*genai.GenerateContentConfig, error) {
+	cfg := &genai.GenerateContentConfig{}
+
+	// Set temperature and topP if provided
+	if !param.IsOmitted(req.Temperature) {
+		temp := float32(req.Temperature.Value)
+		cfg.Temperature = &temp
+	}
+	if !param.IsOmitted(req.TopP) {
+		topP := float32(req.TopP.Value)
+		cfg.TopP = &topP
+	}
+
+	// Map OpenAI-style union for response_format → Gemini fields
+	u := req.ResponseFormat
+	if u.OfText != nil && !param.IsOmitted(u.OfText) {
+		cfg.ResponseMIMEType = "text/plain"
+	} else if u.OfJSONObject != nil && !param.IsOmitted(u.OfJSONObject) {
+		cfg.ResponseMIMEType = "application/json"
+	} else if u.OfJSONSchema != nil && !param.IsOmitted(u.OfJSONSchema) {
+		// Set JSON output
+		cfg.ResponseMIMEType = "application/json"
+
+		// Now convert the OpenAI JSON-Schema param into a genai.Schema
+		// by marshaling then unmarshaling it:
+		schemaParam := u.OfJSONSchema.JSONSchema
+		raw, err := json.Marshal(schemaParam)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal JSON schema: %w", err)
+		}
+
+		var gs genai.Schema
+		if err := json.Unmarshal(raw, &gs); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal JSON schema into genai.Schema: %w", err)
+		}
+
+		cfg.ResponseSchema = &gs
+	}
+
+	return cfg, nil
 }
 
 // extractMessageContent extracts string content from OpenAI message union
@@ -161,51 +212,6 @@ func extractDeveloperContent(content openai.ChatCompletionDeveloperMessageParamC
 		return result
 	}
 	return ""
-}
-
-// convertGeminiOptions maps your internal request into Gemini's GenerateContentConfig.
-func convertGeminiOptions(
-	req *openai.ChatCompletionNewParams,
-) *genai.GenerateContentConfig {
-	cfg := &genai.GenerateContentConfig{}
-
-	// Set temperature and topP if provided
-	if !param.IsOmitted(req.Temperature) {
-		temp := float32(req.Temperature.Value)
-		cfg.Temperature = &temp
-	}
-	if !param.IsOmitted(req.TopP) {
-		topP := float32(req.TopP.Value)
-		cfg.TopP = &topP
-	}
-
-	// Map OpenAI-style union for response_format → Gemini fields
-	u := req.ResponseFormat
-	if u.OfText != nil && !param.IsOmitted(u.OfText) {
-		cfg.ResponseMIMEType = "text/plain"
-	} else if u.OfJSONObject != nil && !param.IsOmitted(u.OfJSONObject) {
-		cfg.ResponseMIMEType = "application/json"
-	} else if u.OfJSONSchema != nil && !param.IsOmitted(u.OfJSONSchema) {
-		// Set JSON output
-		cfg.ResponseMIMEType = "application/json"
-
-		// Now convert the OpenAI JSON-Schema param into a genai.Schema
-		// by marshaling then unmarshaling it:
-		schemaParam := u.OfJSONSchema.JSONSchema
-		raw, err := json.Marshal(schemaParam)
-		if err != nil {
-			fmt.Printf("Error marshaling JSON schema: %v\n", err)
-		} else {
-			var gs genai.Schema
-			if err2 := json.Unmarshal(raw, &gs); err2 != nil {
-				fmt.Printf("Error unmarshaling JSON schema into genai.Schema: %v\n", err2)
-			} else {
-				cfg.ResponseSchema = &gs
-			}
-		}
-	}
-
-	return cfg
 }
 
 // convertFromGeminiResponse converts Gemini response to OpenAI format
