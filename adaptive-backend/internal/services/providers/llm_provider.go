@@ -3,6 +3,7 @@ package providers
 import (
 	"adaptive-backend/internal/services/providers/anthropic"
 	"adaptive-backend/internal/services/providers/deepseek"
+	"adaptive-backend/internal/services/providers/gemini"
 	"adaptive-backend/internal/services/providers/openai"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"errors"
@@ -18,12 +19,6 @@ func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error
 		}
 		return service, nil
 
-	case "groq":
-		service, err := NewGroqService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
 	case "deepseek":
 		service, err := deepseek.NewDeepSeekService()
 		if err != nil {
@@ -37,7 +32,7 @@ func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error
 		}
 		return service, nil
 	case "gemini":
-		service, err := NewGeminiService()
+		service, err := gemini.NewGeminiService()
 		if err != nil {
 			return nil, err
 		}
