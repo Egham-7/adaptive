@@ -221,16 +221,16 @@ func (r *OpenAIStreamReader) Event() ssestream.Event {
 
 // Close closes the adapter and underlying streams
 func (a *AnthropicStreamAdapter) Close() error {
-	a.cancel()
+    a.cancel()
 
-	a.openaiStream.mu.Lock()
-	defer a.openaiStream.mu.Unlock()
+    a.openaiStream.mu.Lock()
+    defer a.openaiStream.mu.Unlock()
 
-	if !a.openaiStream.closed {
-		a.openaiStream.closed = true
-	}
+    if !a.openaiStream.closed {
+        _ = a.openaiStream.Close()
+    }
 
-	return a.anthropicStream.Close()
+    return a.anthropicStream.Close()
 }
 
 // Close implements the Decoder interface for OpenAIStreamReader
