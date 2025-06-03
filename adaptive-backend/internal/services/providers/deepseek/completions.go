@@ -136,13 +136,6 @@ func convertToDeepSeekMessage(msg openai.ChatCompletionMessageParamUnion) deepse
 			Content: content,
 		}
 	}
-	if msg.OfDeveloper != nil {
-		content := extractDeveloperContent(msg.OfDeveloper.Content)
-		return deepseek.ChatCompletionMessage{
-			Role:    deepseek.ChatMessageRoleSystem, // Map developer to system
-			Content: content,
-		}
-	}
 
 	if msg.OfDeveloper != nil {
 		content := extractDeveloperContent(msg.OfDeveloper.Content)
