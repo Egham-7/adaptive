@@ -2,6 +2,7 @@ package deepseek
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/cohesion-org/deepseek-go"
@@ -155,12 +156,18 @@ func extractUserContent(content openai.ChatCompletionUserMessageParamContentUnio
 	if !param.IsOmitted(content.OfString) {
 		return content.OfString.Value
 	}
-	// For array content, concatenate text parts
+	// For array content, process all parts
 	if !param.IsOmitted(content.OfArrayOfContentParts) {
 		var result string
 		for _, part := range content.OfArrayOfContentParts {
 			if part.OfText != nil {
 				result += part.OfText.Text
+			} else {
+				// Serialize non-text content as JSON to preserve it
+				serialized := serializeUserContentPart(part)
+				if serialized != "" {
+					result += "[UNSUPPORTED_CONTENT: " + serialized + "]"
+				}
 			}
 		}
 		return result
@@ -173,12 +180,20 @@ func extractAssistantContent(content openai.ChatCompletionAssistantMessageParamC
 	if !param.IsOmitted(content.OfString) {
 		return content.OfString.Value
 	}
-	// For array content, concatenate text parts
+	// For array content, process all parts
 	if !param.IsOmitted(content.OfArrayOfContentParts) {
 		var result string
 		for _, part := range content.OfArrayOfContentParts {
 			if part.OfText != nil {
 				result += part.OfText.Text
+			} else if part.OfRefusal != nil {
+				result += "[REFUSAL: " + part.OfRefusal.Refusal + "]"
+			} else {
+				// Serialize unknown content as JSON to preserve it
+				serialized := serializeAssistantContentPart(part)
+				if serialized != "" {
+					result += "[UNSUPPORTED_CONTENT: " + serialized + "]"
+				}
 			}
 		}
 		return result
@@ -263,4 +278,71 @@ func convertDeepSeekResponseFormat(
 	}
 	// fallback to text if nothing matched
 	return &deepseek.ResponseFormat{Type: "text"}
+}
+
+// serializeUserContentPart serializes user content parts to JSON
+func serializeUserContentPart(part openai.ChatCompletionContentPartUnionParam) string {
+	contentMap := make(map[string]interface{})
+
+	if part.OfImageURL != nil {
+		contentMap["type"] = "image_url"
+		contentMap["image_url"] = map[string]interface{}{
+			"url": part.OfImageURL.ImageURL.URL,
+		}
+		if part.OfImageURL.ImageURL.Detail != "" {
+			contentMap["image_url"].(map[string]interface{})["detail"] = part.OfImageURL.ImageURL.Detail
+		}
+	} else if part.OfInputAudio != nil {
+		contentMap["type"] = "input_audio"
+		contentMap["input_audio"] = map[string]interface{}{
+			"data":   part.OfInputAudio.InputAudio.Data,
+			"format": part.OfInputAudio.InputAudio.Format,
+		}
+	} else if part.OfFile != nil {
+		contentMap["type"] = "file"
+		fileData := make(map[string]interface{})
+		if !param.IsOmitted(part.OfFile.File.FileID) {
+			fileData["file_id"] = part.OfFile.File.FileID.Value
+		}
+		if !param.IsOmitted(part.OfFile.File.FileData) {
+			fileData["file_data"] = part.OfFile.File.FileData.Value
+		}
+		if !param.IsOmitted(part.OfFile.File.Filename) {
+			fileData["filename"] = part.OfFile.File.Filename.Value
+		}
+		contentMap["file"] = fileData
+	} else {
+		contentMap["type"] = "unknown"
+		contentMap["raw"] = part
+	}
+
+	jsonBytes, err := json.Marshal(contentMap)
+	if err != nil {
+		return fmt.Sprintf("serialization_error: %v", err)
+	}
+
+	return string(jsonBytes)
+}
+
+// serializeAssistantContentPart serializes assistant content parts to JSON
+func serializeAssistantContentPart(part openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion) string {
+	contentMap := make(map[string]interface{})
+
+	if part.OfText != nil {
+		contentMap["type"] = "text"
+		contentMap["text"] = part.OfText.Text
+	} else if part.OfRefusal != nil {
+		contentMap["type"] = "refusal"
+		contentMap["refusal"] = part.OfRefusal.Refusal
+	} else {
+		contentMap["type"] = "unknown"
+		contentMap["raw"] = part
+	}
+
+	jsonBytes, err := json.Marshal(contentMap)
+	if err != nil {
+		return fmt.Sprintf("serialization_error: %v", err)
+	}
+
+	return string(jsonBytes)
 }
