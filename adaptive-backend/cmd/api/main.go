@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/joho/godotenv"
 	"github.com/stripe/stripe-go/v82"
 
 	"github.com/gofiber/fiber/v2"
@@ -70,6 +71,11 @@ func SetupRoutes(app *fiber.App) {
 }
 
 func main() {
+	err := godotenv.Load(".env.local")
+	if err != nil {
+		log.Println("No .env.local file found, proceeding with environment variables")
+	}
+
 	// Check required environment variables
 	port := os.Getenv("ADDR")
 	if port == "" {
@@ -90,9 +96,9 @@ func main() {
 		IdleTimeout:       5 * time.Minute,
 	})
 
-	err := config.Initialize(os.Getenv("DB_SERVER"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))
-	if err != nil {
-		log.Fatal(err)
+	db_err := config.Initialize(os.Getenv("DB_SERVER"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))
+	if db_err != nil {
+		log.Fatal(db_err)
 	}
 
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
