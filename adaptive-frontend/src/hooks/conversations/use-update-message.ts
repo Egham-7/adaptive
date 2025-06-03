@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateMessage } from "@/services/messages";
+import { convertToApiMessages, updateMessage } from "@/services/messages";
 import { DBMessage } from "@/services/messages/types";
 import { useDeleteMessages } from "./use-delete-messages";
 import { useCreateMessage } from "./use-create-message";
-import { Message, MessageRole } from "@/services/llms/types";
 import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
 import { useStreamingChatCompletion } from "../llms/chat-completions/use-streaming-chat-completion";
+import { MessageRole } from "@/services/llms/types";
 
 export function useUpdateMessage() {
   const queryClient = useQueryClient();
@@ -30,7 +30,7 @@ export function useUpdateMessage() {
     }: {
       conversationId: number;
       messageId: number;
-      updates: { role?: string; content?: string };
+      updates: { role?: MessageRole; content?: string };
       index: number;
       messages: DBMessage[];
     }) => {
@@ -59,10 +59,7 @@ export function useUpdateMessage() {
         ...messages.slice(0, index),
         { ...messages[index], ...updates },
       ];
-      const formattedMessages: Message[] = updatedMessages.map((dbMsg) => ({
-        role: dbMsg.role as MessageRole,
-        content: dbMsg.content,
-      }));
+      const formattedMessages = convertToApiMessages(updatedMessages);
       // Stream the AI response
       await streamChatCompletion({
         messages: formattedMessages,
