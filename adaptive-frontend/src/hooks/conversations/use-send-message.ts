@@ -6,9 +6,13 @@ import {
 } from "../llms/chat-completions/use-streaming-chat-completion";
 import { CreateDBMessage } from "@/services/messages/types";
 import { convertToApiMessage } from "@/services/messages";
-import { Message } from "@adaptive-llm/adaptive-js";
 
-export function useSendMessage(conversationId: number, messages: Message[]) {
+import OpenAI from "openai";
+
+export function useSendMessage(
+  conversationId: number,
+  messages: OpenAI.Chat.ChatCompletionMessageParam[],
+) {
   const createMessage = useCreateMessage();
   const {
     streamChatCompletion,

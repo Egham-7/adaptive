@@ -3,10 +3,11 @@ import { updateMessage } from "@/services/messages";
 import { DBMessage } from "@/services/messages/types";
 import { useDeleteMessages } from "./use-delete-messages";
 import { useCreateMessage } from "./use-create-message";
-import { Message, MessageRole } from "@/services/llms/types";
+import { MessageRole } from "@/services/llms/types";
 import { useAuth } from "@clerk/clerk-react";
 import { toast } from "sonner";
 import { useStreamingChatCompletion } from "../llms/chat-completions/use-streaming-chat-completion";
+import OpenAI from "openai";
 
 export function useUpdateMessage() {
   const queryClient = useQueryClient();
@@ -59,10 +60,30 @@ export function useUpdateMessage() {
         ...messages.slice(0, index),
         { ...messages[index], ...updates },
       ];
-      const formattedMessages: Message[] = updatedMessages.map((dbMsg) => ({
-        role: dbMsg.role as MessageRole,
-        content: dbMsg.content,
-      }));
+      const formattedMessages: OpenAI.Chat.ChatCompletionMessageParam[] =
+        updatedMessages.map((dbMsg) => {
+          const role = dbMsg.role as MessageRole;
+
+          switch (role) {
+            case "system":
+              return {
+                role: "system",
+                content: dbMsg.content,
+              } as OpenAI.Chat.ChatCompletionSystemMessageParam;
+            case "user":
+              return {
+                role: "user",
+                content: dbMsg.content,
+              } as OpenAI.Chat.ChatCompletionUserMessageParam;
+            case "assistant":
+              return {
+                role: "assistant",
+                content: dbMsg.content,
+              } as OpenAI.Chat.ChatCompletionAssistantMessageParam;
+            default:
+              throw new Error(`Unsupported message role: ${role}`);
+          }
+        });
       // Stream the AI response
       await streamChatCompletion({
         messages: formattedMessages,
