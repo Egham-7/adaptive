@@ -1,10 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState, useCallback, useRef } from "react";
-import {
-  Adaptive,
-  ChatCompletionStreamingResponse,
-} from "@adaptive-llm/adaptive-js";
-import { Message } from "@adaptive-llm/adaptive-js";
+import OpenAI from "openai";
 
 export interface ModelInfo {
   provider: string;
@@ -14,19 +10,19 @@ export interface ModelInfo {
 /** * Parameters for streaming chat completion */
 export type StreamingChatCompletionParams = {
   /** The request to send to the LLM */
-  messages: Message[];
+  messages: OpenAI.Chat.ChatCompletionMessageParam[];
   /** Callback for each chunk of the streaming response */
-  onChunk?: (chunk: ChatCompletionStreamingResponse) => void;
+  onChunk?: (chunk: OpenAI.Chat.Completions.ChatCompletionChunk) => void;
   /** Callback when streaming is complete */
   onComplete?: (content: string, modelInfo?: ModelInfo) => void;
   /** Callback when an error occurs during streaming */
   onError?: (error: Error) => void;
 };
 
-// === Adaptive Client ===
-const client = new Adaptive({
+// === OpenAI Client ===
+const client = new OpenAI({
   apiKey: import.meta.env.VITE_ADAPTIVE_API_KEY,
-  baseUrl: import.meta.env.VITE_API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
 // === Hook ===
@@ -58,10 +54,11 @@ export const useStreamingChatCompletion = () => {
       try {
         resetStreamingState();
 
-        const stream = (await client.chat.completions.create({
+        const stream = await client.chat.completions.create({
           messages,
           stream: true,
-        })) as AsyncIterable<ChatCompletionStreamingResponse>;
+          model: "gpt-3.5-turbo", // Default model, can be made configurable
+        });
 
         for await (const chunk of stream) {
           console.log("Chunk received:", chunk);
@@ -74,9 +71,9 @@ export const useStreamingChatCompletion = () => {
           }
 
           // Extract model info if present
-          if (chunk.provider && chunk.model) {
+          if (chunk.model) {
             const newModelInfo = {
-              provider: chunk.provider,
+              provider: "openai", // Since we're using OpenAI SDK
               model: chunk.model,
             };
             setModelInfo(newModelInfo);

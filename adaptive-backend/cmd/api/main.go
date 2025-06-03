@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/joho/godotenv"
 	"github.com/stripe/stripe-go/v82"
 
 	"github.com/gofiber/fiber/v2"
@@ -70,6 +71,11 @@ func SetupRoutes(app *fiber.App) {
 }
 
 func main() {
+	err := godotenv.Load(".env.local")
+	if err != nil {
+		log.Println("No .env.local file found, proceeding with environment variables")
+	}
+
 	// Check required environment variables
 	port := os.Getenv("ADDR")
 	if port == "" {
