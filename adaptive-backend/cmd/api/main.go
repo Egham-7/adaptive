@@ -132,7 +132,7 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		"Content-Type",
 		"Accept",
 		"Authorization",
-		"User-Agent", // Browser typically adds this, so allow it for good measure
+		"User-Agent",
 		"X-Stainless-API-Key",
 		"X-Stainless-Arch",
 		"X-Stainless-OS",
@@ -141,7 +141,6 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		"X-Stainless-Package-Version",
 		"X-Stainless-Lang",
 		"X-Stainless-Retry-Count",
-		// Add any other X-Stainless- headers you identified or anticipate
 		"X-Stainless-Read-Timeout",
 		"X-Stainless-Async",
 		"X-Stainless-Raw-Response",

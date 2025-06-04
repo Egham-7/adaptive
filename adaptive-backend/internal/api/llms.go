@@ -1,12 +1,12 @@
 package api
 
 import (
-	"time"
-
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/stream_readers/stream"
+	"adaptive-backend/internal/utils"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/openai/openai-go"
@@ -138,13 +138,14 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
+
 	req.Model = modelInfo.SelectedModel
-	req.N = openai.Int(modelInfo.Parameters.N)
-	req.Temperature = openai.Float(modelInfo.Parameters.Temperature)
-	req.PresencePenalty = openai.Float(modelInfo.Parameters.PresencePenalty)
-	req.MaxTokens = openai.Int(modelInfo.Parameters.MaxTokens)
-	req.FrequencyPenalty = openai.Float(modelInfo.Parameters.FrequencyPenalty)
-	req.TopP = openai.Float(modelInfo.Parameters.TopP)
+	req.Temperature = openai.Float(utils.EnsurePositiveFloat(modelInfo.Parameters.Temperature, 0.7))
+	req.N = openai.Int(utils.EnsurePositiveInt(modelInfo.Parameters.N, 1))
+	req.PresencePenalty = openai.Float(modelInfo.Parameters.PresencePenalty) // Can be negative, so no validation needed
+	req.MaxTokens = openai.Int(utils.EnsurePositiveInt(modelInfo.Parameters.MaxTokens, 1000))
+	req.FrequencyPenalty = openai.Float(modelInfo.Parameters.FrequencyPenalty) // Can be negative, so no validation needed
+	req.TopP = openai.Float(utils.EnsurePositiveFloat(modelInfo.Parameters.TopP, 1.0))
 
 	resp, err := provider.Chat().Completions().CreateCompletion(&req)
 	if err != nil {
