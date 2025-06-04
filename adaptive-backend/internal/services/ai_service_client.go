@@ -330,6 +330,7 @@ func (c *PromptClassifierClient) getFallbackModel() *models.SelectModelResponse 
 			N:                   openai.Int(1),
 			PresencePenalty:     openai.Float(0.0),
 			Temperature:         openai.Float(0.7),
+			Logprobs:            openai.Bool(true),
 			TopP:                openai.Float(1.0),
 			TopLogprobs:         openai.Int(0),
 		},
