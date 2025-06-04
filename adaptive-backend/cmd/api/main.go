@@ -129,7 +129,7 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	// Add CORS middleware with required environment variable
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, User-Agent, X-Stainless-*",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, User-Agent, X-Stainless-API-Key, X-Stainless-Arch, X-Stainless-OS, X-Stainless-Runtime, X-Stainless-Runtime-Version, X-Stainless-Package-Version, X-Stainless-Lang",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
 		MaxAge:           86400, // Preflight requests can be cached for 24 hours
