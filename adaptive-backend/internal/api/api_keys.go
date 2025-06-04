@@ -198,7 +198,7 @@ func (h *APIKeyHandler) DeleteAPIKey(c *fiber.Ctx) error {
 }
 
 func (h *APIKeyHandler) VerifyAPIKey(c *fiber.Ctx) error {
-	apiKey := c.Request().Header.Peek("X-API-Key")
+	apiKey := c.Request().Header.Peek("X-Stainless-API-Key")
 	if len(apiKey) == 0 {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "API key is missing"})
 	}
