@@ -18,15 +18,15 @@
 package services
 
 import (
+	"adaptive-backend/internal/models"
 	"log"
 	"os"
 	"sync"
 	"time"
 
-	"adaptive-backend/internal/models"
-
 	"github.com/botirk38/semanticcache"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/openai/openai-go"
 )
 
 // CircuitBreakerState represents the current state of the circuit breaker
@@ -314,7 +314,7 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 
 // getFallbackModel returns a fallback model selection when the AI service is unavailable
 // Always defaults to GPT-4o as a reliable fallback option
-func (c *PromptClassifierClient) getFallbackModel(prompt string) *models.SelectModelResponse {
+func (c *PromptClassifierClient) getFallbackModel() *models.SelectModelResponse {
 	selectedModel := "gpt-4o"
 	provider := "openai"
 
@@ -323,6 +323,16 @@ func (c *PromptClassifierClient) getFallbackModel(prompt string) *models.SelectM
 	return &models.SelectModelResponse{
 		SelectedModel: selectedModel,
 		Provider:      provider,
+		Parameters: openai.ChatCompletionNewParams{
+			MaxTokens:           openai.Int(4096),
+			MaxCompletionTokens: openai.Int(4096),
+			FrequencyPenalty:    openai.Float(0.0),
+			N:                   openai.Int(1),
+			PresencePenalty:     openai.Float(0.0),
+			Temperature:         openai.Float(0.7),
+			TopP:                openai.Float(1.0),
+			TopLogprobs:         openai.Int(0),
+		},
 	}
 }
 
@@ -381,7 +391,7 @@ func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModel
 	// Check circuit breaker state
 	if !c.circuitBreaker.CanExecute() {
 		log.Printf("[CIRCUIT_BREAKER] Service unavailable, using fallback model selection")
-		return c.getFallbackModel(prompt), nil
+		return c.getFallbackModel(), nil
 	}
 
 	// Transition to half-open if needed
@@ -395,7 +405,7 @@ func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModel
 		// Record failure and return fallback
 		c.circuitBreaker.RecordFailure()
 		log.Printf("[CIRCUIT_BREAKER] AI service call failed, using fallback: %v", err)
-		return c.getFallbackModel(prompt), nil
+		return c.getFallbackModel(), nil
 	}
 
 	// Record success

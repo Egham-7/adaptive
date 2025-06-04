@@ -1,5 +1,7 @@
 package models
 
+import "github.com/openai/openai-go"
+
 // PromptRequest represents the prompt request body
 type SelectModelRequest struct {
 	Prompt string `json:"prompt"`
@@ -7,9 +9,9 @@ type SelectModelRequest struct {
 
 // SelectModelResponse represents the response from the select-model endpoint
 type SelectModelResponse struct {
-	SelectedModel string           `json:"selected_model"`
-	Provider      string           `json:"provider"`
-	Parameters    OpenAIParameters `json:"parameters"`
+	SelectedModel string                         `json:"selected_model"`
+	Provider      string                         `json:"provider"`
+	Parameters    openai.ChatCompletionNewParams `json:"parameters"`
 }
 
 type OpenAIParameters struct {
