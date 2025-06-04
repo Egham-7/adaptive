@@ -21,11 +21,6 @@ export type StreamingChatCompletionParams = {
   onError?: (error: Error) => void;
 };
 
-console.log(
-  "OpenAI Client initialized with base URL:",
-  import.meta.env.BASE_API_URL,
-);
-
 // === OpenAI Client ===
 const client = new OpenAI({
   baseURL: `${import.meta.env.VITE_BASE_API_URL}/api`,
@@ -75,8 +70,6 @@ export const useStreamingChatCompletion = () => {
         );
 
         for await (const chunk of stream) {
-          console.log("Chunk received:", chunk);
-
           // Extract content
           const delta = chunk?.choices?.[0]?.delta?.content;
           if (delta) {
