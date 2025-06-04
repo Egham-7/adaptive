@@ -37,7 +37,6 @@ func SetupRoutes(app *fiber.App) {
 	chatCompletions := apiGroup.Group("/chat/completions", apiKeyMiddleware)
 
 	chatCompletions.Post("/", chatCompletionHandler.ChatCompletion)
-	chatCompletions.Post("/stream", chatCompletionHandler.StreamChatCompletion)
 
 	// API key routes
 	apiKeys := apiGroup.Group("/api_keys", authMiddleware)
