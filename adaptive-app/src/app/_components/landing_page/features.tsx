@@ -48,15 +48,15 @@ export default function FeaturesSection() {
                   src="/adaptive-chat.jpeg"
                   className="hidden dark:block"
                   alt="payments illustration dark"
-                  width={1000} // Placeholder: Adjust with actual image width
-                  height={409} // Placeholder: Adjust with actual image height (1000 * 36 / 88 ≈ 409)
+                  width={1000}
+                  height={409}
                 />
                 <Image
                   src="/adaptive-chat-light.jpeg"
                   className="dark:hidden"
                   alt="payments illustration light"
-                  width={1000} // Placeholder: Adjust with actual image width
-                  height={409} // Placeholder: Adjust with actual image height
+                  width={1000}
+                  height={409}
                 />
               </div>
             </div>
