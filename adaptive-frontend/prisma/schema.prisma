@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl  = env("SHADOW_DATABASE_URL") // Optional, for migrations
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Re-defining for clarity, though it's used as 'String' in the model
+// In your application, you'll use a TypeScript enum/literal union.
+// const MESSAGE_ROLES = { USER: 'USER', ASSISTANT: 'ASSISTANT', SYSTEM: 'SYSTEM', TOOL: 'TOOL' } as const;
+// type MessageRole = (typeof MESSAGE_ROLES)[keyof typeof MESSAGE_ROLES];
+
+model Conversation {
+  id        Int       @id @default(autoincrement()) // Or String @id @default(cuid()) if preferred for URLs
+  title     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  messages Message[] // Re-establishing the one-to-many relationship
+  pinned   Boolean   @default(false)
+
+  @@index([deletedAt])
+}
+
+model Message {
+  id      String @id @default(cuid()) // Vercel AI SDK uses string IDs for messages
+  role    String // e.g., "user", "assistant", "system", "tool" - managed in application
+  content String // Main text content of the message
+
+  // Vercel AI SDK specific fields that might need JSON serialization if complex
+  // For CoreUserMessage content (Array<TextPart | ImagePart>), CoreAssistantMessage content (Array<TextPart | ToolCallPart>),
+  // or CoreToolMessage content (Array<ToolResultPart>).
+  // Store these as JSON strings, requiring app-level stringify/parse.
+  structuredContent String? // Stores JSON string for multimodal or mixed content (e.g., [{"type": "text", "text": "Hello"}, {"type": "image", "imageUrl": "..."}])
+
+  // For ASSISTANT messages requesting tool calls:
+  // Stores the array of tool call requests.
+  toolCalls String? // Stores JSON string (e.g., "[{\"id\":\"call_abc\",\"type\":\"function\",\"function\":{\"name\":\"get_weather\",\"arguments\":\"{}\"}}]"
+
+  // For TOOL messages (responses):
+  // The ID of the specific tool call this message is a result for.
+  toolCallId String?
+
+  name String? // For 'tool' role (tool name) or other specific uses
+
+  // Provider-specific metadata (optional but useful)
+  provider String? // e.g., "openai", "anthropic"
+  model    String? // e.g., "gpt-4o-mini", "claude-3-opus"
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relationship back to Conversation
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId Int // Foreign key to Conversation
+
+  // Indexes for performance
+  @@index([deletedAt])
+  @@index([conversationId])
+  @@index([role])
+  @@index([toolCallId])
+}
