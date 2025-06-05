@@ -55,10 +55,6 @@ export async function POST(req: Request) {
           console.error(
             `Batch upsert failed for conversation ${numericConversationId}: ${batchResult.error}`,
           );
-        } else {
-          console.log(
-            `Successfully batch upserted ${batchResult.messages?.length || 0} messages for conversation ${numericConversationId}.`,
-          );
         }
       },
     });
