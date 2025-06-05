@@ -1,17 +1,25 @@
-import "./globals.css";
+import "../styles/globals.css";
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/context/theme-provider";
+import { Outfit, Roboto_Mono, Lora } from "next/font/google"; // Import all three fonts
 
-import { Geist, Geist_Mono } from "next/font/google";
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Configure Outfit for sans-serif
+const outfit = Outfit({
   subsets: ["latin"],
+  variable: "--font-sans",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Configure Roboto Mono for monospace
+const robotoMono = Roboto_Mono({
   subsets: ["latin"],
+  variable: "--font-mono",
+});
+
+// Configure Lora for serif
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
@@ -27,8 +35,9 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
+        {/* Apply all font variables to the body */}
         <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          className={`${outfit.variable} ${robotoMono.variable} ${lora.variable} bg-background`}
         >
           <ThemeProvider
             attribute="class"

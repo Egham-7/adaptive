@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider          = "sqlserver"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // Optional, for migrations
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Conversation {
+  id        Int       @id @default(autoincrement())
+  title     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  userId    String
+
+  messages Message[]
+  pinned   Boolean   @default(false)
+
+  @@index([deletedAt])
+}
+
+model Message {
+  id      String @id @default(cuid()) // AI SDK uses string IDs
+  role    String // 'system' | 'user' | 'assistant' | 'data'
+  content String // Main text content
+
+  // AI SDK Message fields
+  reasoning               String? // @deprecated in SDK but still present
+  data                    String? // JSON string for JSONValue, @deprecated in SDK but still present
+  annotations             String? // JSON string for JSONValue[]
+  toolInvocations         String? // JSON string for ToolInvocation[], @deprecated in SDK but still present
+  parts                   String? // JSON string for UI parts array
+  experimentalAttachments String? // JSON string for Attachment[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relationship back to Conversation
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId Int
+
+  // Indexes for performance
+  @@index([deletedAt])
+  @@index([conversationId])
+  @@index([role])
+}
