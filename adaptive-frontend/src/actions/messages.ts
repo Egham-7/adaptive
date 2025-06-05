@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/db";
 import { Message, Prisma } from "@prisma/client";
 
-export type MessageRole = "USER" | "ASSISTANT" | "SYSTEM" | "TOOL";
+export type MessageRole = "system" | "user" | "assistant" | "data";
 
 // --- Types for Message Actions ---
 export type CreateMessageData = {
@@ -13,19 +13,22 @@ export type CreateMessageData = {
   content: string;
   id?: string;
   createdAt?: Date | string;
-  structuredContent?: string | null;
-  toolCalls?: string | null;
-  toolCallId?: string | null;
-  name?: string | null;
-  provider?: string | null;
-  model?: string | null;
+  reasoning?: string | null;
+  data?: string | null;
+  annotations?: string | null;
+  toolInvocations?: string | null;
+  parts?: string | null;
+  experimentalAttachments?: string | null;
 };
 
 export type UpdateMessageData = {
   content?: string;
-  structuredContent?: string | null;
-  toolCalls?: string | null;
-  name?: string | null;
+  reasoning?: string | null;
+  data?: string | null;
+  annotations?: string | null;
+  toolInvocations?: string | null;
+  parts?: string | null;
+  experimentalAttachments?: string | null;
 };
 
 export type BatchUpsertMessageData = {
@@ -33,12 +36,12 @@ export type BatchUpsertMessageData = {
   role: MessageRole;
   content: string;
   createdAt?: Date | string;
-  structuredContent?: string | null;
-  toolCalls?: string | null;
-  toolCallId?: string | null;
-  name?: string | null;
-  provider?: string | null;
-  model?: string | null;
+  reasoning?: string | null;
+  data?: string | null;
+  annotations?: string | null;
+  toolInvocations?: string | null;
+  parts?: string | null;
+  experimentalAttachments?: string | null;
 };
 
 // --- Message CRUD Actions ---
@@ -58,12 +61,12 @@ export async function createMessage(data: CreateMessageData) {
     const messageDataToCreate: Prisma.MessageCreateInput = {
       role: data.role,
       content: data.content,
-      structuredContent: data.structuredContent,
-      toolCalls: data.toolCalls,
-      toolCallId: data.toolCallId,
-      name: data.name,
-      provider: data.provider,
-      model: data.model,
+      reasoning: data.reasoning,
+      data: data.data,
+      annotations: data.annotations,
+      toolInvocations: data.toolInvocations,
+      parts: data.parts,
+      experimentalAttachments: data.experimentalAttachments,
       conversation: { connect: { id: data.conversationId } },
       ...(data.createdAt && { createdAt: new Date(data.createdAt) }),
     };
@@ -127,11 +130,18 @@ export async function updateMessage(id: string, data: UpdateMessageData) {
       where: { id },
       data: {
         ...(data.content !== undefined && { content: data.content }),
-        ...(data.structuredContent !== undefined && {
-          structuredContent: data.structuredContent,
+        ...(data.reasoning !== undefined && { reasoning: data.reasoning }),
+        ...(data.data !== undefined && { data: data.data }),
+        ...(data.annotations !== undefined && {
+          annotations: data.annotations,
         }),
-        ...(data.toolCalls !== undefined && { toolCalls: data.toolCalls }),
-        ...(data.name !== undefined && { name: data.name }),
+        ...(data.toolInvocations !== undefined && {
+          toolInvocations: data.toolInvocations,
+        }),
+        ...(data.parts !== undefined && { parts: data.parts }),
+        ...(data.experimentalAttachments !== undefined && {
+          experimentalAttachments: data.experimentalAttachments,
+        }),
         updatedAt: new Date(),
       },
     });
@@ -190,12 +200,12 @@ export async function batchUpsertMessages(
     const messageToUpsert = {
       role: msgData.role,
       content: msgData.content,
-      structuredContent: msgData.structuredContent,
-      toolCalls: msgData.toolCalls,
-      toolCallId: msgData.toolCallId,
-      name: msgData.name,
-      provider: msgData.provider,
-      model: msgData.model,
+      reasoning: msgData.reasoning,
+      data: msgData.data,
+      annotations: msgData.annotations,
+      toolInvocations: msgData.toolInvocations,
+      parts: msgData.parts,
+      experimentalAttachments: msgData.experimentalAttachments,
     };
     upsertOperations.push(
       prisma.message.upsert({
