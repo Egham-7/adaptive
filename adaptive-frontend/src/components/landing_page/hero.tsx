@@ -1,35 +1,48 @@
 import { Button } from "@/components/ui/button";
 import { CodeComparison } from "../magicui/code-comparison";
-import { Link } from "@tanstack/react-router";
-import { SignedIn, SignedOut, SignUpButton } from "@clerk/clerk-react";
-import LanguageTerminalDemo from "./hero/terminal-demo";
+import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { ArrowRight, Rocket } from "lucide-react";
+import Link from "next/link";
 
-// Code comparison samples
 const beforeCode = `from openai import OpenAI
 
-openai = OpenAI()
+openai = OpenAI(
+    api_key="sk-your-api-key", 
+    base_url="https://api.openai.com/v1"
+)
 
-async def generate_text(prompt):
+async def generate_text(prompt: str) -> str:
     response = await openai.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.7
     )
-    
     return response.choices[0].message.content
 `;
-const afterCode = `from adaptive import Adaptive
 
-adaptive = Adaptive()
+const afterCode = `from openai import OpenAI
 
-async def generate_text(prompt):
-    response = await adaptive.chat.completions.create(
+openai = OpenAI(
+    api_key="sk-your-api-key", 
+    base_url="https://api.adaptive.com/v1" 
+)
+
+async def generate_text(prompt: str) -> str:
+    response = await openai.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
     )
-    
     return response.choices[0].message.content
 `;
+
+// When using these with your CodeComparison component:
+// <CodeComparison
+//   beforeCode={beforeCode}
+//   afterCode={afterCode}
+//   language="python" // Make sure to set language to "python"
+//   filename="main.py"
+//   lightTheme="github-light"
+//   darkTheme="github-dark"
+// />
 
 export default function HeroSection() {
   return (
@@ -40,7 +53,7 @@ export default function HeroSection() {
             <div className="mx-auto max-w-7xl px-6">
               <div className="max-w-3xl text-center sm:mx-auto lg:mr-auto lg:mt-0 lg:w-4/5">
                 <Link
-                  to="/"
+                  href="/"
                   className="rounded-md mx-auto flex w-fit items-center gap-2 border p-1 pr-3"
                 >
                   <span className="bg-muted rounded-sm px-2 py-1 text-xs font-medium">
@@ -85,7 +98,7 @@ export default function HeroSection() {
                       className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
                       asChild
                     >
-                      <Link to="/home">
+                      <Link href="/home">
                         <Rocket className="relative size-4 mr-2" />
                         <span className="text-nowrap">Go to Dashboard</span>
                       </Link>
@@ -114,14 +127,6 @@ export default function HeroSection() {
                   lightTheme="github-light"
                   darkTheme="github-dark"
                 />
-              </div>
-            </div>
-            <div className="relative mb-24">
-              <div className="relative mx-auto max-w-4xl px-6">
-                <h3 className="text-center text-xl font-medium mb-6">
-                  Try it in action
-                </h3>
-                <LanguageTerminalDemo language="python" />
               </div>
             </div>
           </div>

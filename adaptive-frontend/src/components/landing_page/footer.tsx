@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
 import { Logo } from "@/components/logo";
+import Link from "next/link";
 
 const links = [
   {
@@ -53,7 +53,7 @@ export default function FooterSection() {
       <div className="mx-auto max-w-5xl px-6">
         <div className="grid gap-12 md:grid-cols-5">
           <div className="md:col-span-2">
-            <Link to="/" aria-label="go home" className="block size-fit">
+            <Link href="/" aria-label="go home" className="block size-fit">
               <Logo />
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
@@ -68,7 +68,7 @@ export default function FooterSection() {
                 {link.items.map((item, index) => (
                   <Link
                     key={index}
-                    to={item.href}
+                    href={item.href}
                     className="text-muted-foreground hover:text-primary-600 block duration-150"
                   >
                     <span>{item.title}</span>

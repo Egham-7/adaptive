@@ -1,26 +1,26 @@
-import { Outlet, useRouter } from "@tanstack/react-router";
 import { ChatbotSidebar } from "@/components/chatbot-sidebar";
 import { useAuth } from "@clerk/clerk-react";
 import { HomeLayoutSkeleton } from "@/components/skeletons/home-layout-skeleton";
+import { useRouter } from "next/navigation";
 
-export function HomeLayout() {
+export function HomeLayout({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth();
 
-  const { navigate } = useRouter();
+  const { push } = useRouter();
 
   if (!isLoaded) {
     return <HomeLayoutSkeleton />;
   }
 
   if (!isSignedIn) {
-    navigate({ to: "/" });
+    push("/");
   }
 
   return (
     <div className="min-h-screen bg-background flex w-full">
       <ChatbotSidebar />
       <main className="flex-1 container px-10 pt-10 py-2 w-full overflow-hidden">
-        <Outlet />
+        {children}
       </main>
     </div>
   );

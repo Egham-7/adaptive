@@ -1,7 +1,13 @@
+"use client";
+
+import { cn } from "@/lib/utils";
+import {
+  transformerNotationDiff,
+  transformerNotationFocus,
+} from "@shikijs/transformers";
 import { FileIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useTheme } from "@/context/theme-provider";
-import { diffLines, Change } from "diff";
+import { useTheme } from "next-themes";
+import { useEffect, useState, useMemo } from "react";
 
 interface CodeComparisonProps {
   beforeCode: string;
@@ -10,6 +16,7 @@ interface CodeComparisonProps {
   filename: string;
   lightTheme: string;
   darkTheme: string;
+  highlightColor?: string;
 }
 
 export function CodeComparison({
@@ -19,200 +26,128 @@ export function CodeComparison({
   filename,
   lightTheme,
   darkTheme,
+  highlightColor = "#ff3333",
 }: CodeComparisonProps) {
-  const { theme } = useTheme();
-  const [diffResult, setDiffResult] = useState<Change[]>([]);
-  const [highlightedBeforeParts, setHighlightedBeforeParts] = useState<
-    Record<string, string>
-  >({});
-  const [highlightedAfterParts, setHighlightedAfterParts] = useState<
-    Record<string, string>
-  >({});
+  const { theme, systemTheme } = useTheme();
+  const [highlightedBefore, setHighlightedBefore] = useState("");
+  const [highlightedAfter, setHighlightedAfter] = useState("");
+  const [hasLeftFocus, setHasLeftFocus] = useState(false);
+  const [hasRightFocus, setHasRightFocus] = useState(false);
+
+  const selectedTheme = useMemo(() => {
+    const currentTheme = theme === "system" ? systemTheme : theme;
+    return currentTheme === "dark" ? darkTheme : lightTheme;
+  }, [theme, systemTheme, darkTheme, lightTheme]);
 
   useEffect(() => {
-    // Calculate diff
-    const diff = diffLines(beforeCode, afterCode);
-    setDiffResult(diff);
+    if (highlightedBefore || highlightedAfter) {
+      setHasLeftFocus(highlightedBefore.includes('class="line focused"'));
+      setHasRightFocus(highlightedAfter.includes('class="line focused"'));
+    }
+  }, [highlightedBefore, highlightedAfter]);
 
-    const selectedTheme = theme === "dark" ? darkTheme : lightTheme;
-
+  useEffect(() => {
     async function highlightCode() {
       try {
         const { codeToHtml } = await import("shiki");
+        const { transformerNotationHighlight } = await import(
+          "@shikijs/transformers"
+        );
 
-        // Highlight each part separately
-        const beforeParts: Record<string, string> = {};
-        const afterParts: Record<string, string> = {};
-
-        // Process before parts (removed and unchanged)
-        for (let i = 0; i < diff.length; i++) {
-          const part = diff[i];
-
-          if (part.removed || (!part.added && !part.removed)) {
-            const lines = part.value.split("\n").filter(Boolean);
-            for (let j = 0; j < lines.length; j++) {
-              const key = `${i}-${j}`;
-              const html = await codeToHtml(lines[j], {
-                lang: language,
-                theme: selectedTheme,
-              });
-              beforeParts[key] = html;
-            }
-          }
-
-          if (part.added || (!part.added && !part.removed)) {
-            const lines = part.value.split("\n").filter(Boolean);
-            for (let j = 0; j < lines.length; j++) {
-              const key = `${i}-${j}`;
-              const html = await codeToHtml(lines[j], {
-                lang: language,
-                theme: selectedTheme,
-              });
-              afterParts[key] = html;
-            }
-          }
-        }
-
-        setHighlightedBeforeParts(beforeParts);
-        setHighlightedAfterParts(afterParts);
+        const before = await codeToHtml(beforeCode, {
+          lang: language,
+          theme: selectedTheme,
+          transformers: [
+            transformerNotationHighlight({ matchAlgorithm: "v3" }),
+            transformerNotationDiff({ matchAlgorithm: "v3" }),
+            transformerNotationFocus({ matchAlgorithm: "v3" }),
+          ],
+        });
+        const after = await codeToHtml(afterCode, {
+          lang: language,
+          theme: selectedTheme,
+          transformers: [
+            transformerNotationHighlight({ matchAlgorithm: "v3" }),
+            transformerNotationDiff({ matchAlgorithm: "v3" }),
+            transformerNotationFocus({ matchAlgorithm: "v3" }),
+          ],
+        });
+        setHighlightedBefore(before);
+        setHighlightedAfter(after);
       } catch (error) {
         console.error("Error highlighting code:", error);
+        setHighlightedBefore(`<pre>${beforeCode}</pre>`);
+        setHighlightedAfter(`<pre>${afterCode}</pre>`);
       }
     }
-
     highlightCode();
-  }, [theme, beforeCode, afterCode, language, lightTheme, darkTheme]);
+  }, [beforeCode, afterCode, language, selectedTheme]);
 
-  const renderDiffLine = (
-    code: string,
-    isRemoved: boolean,
-    isAdded: boolean,
-    highlightedHtml: string | undefined,
-  ) => {
-    const bgClass = isRemoved
-      ? "bg-red-500/10"
-      : isAdded
-        ? "bg-green-500/10"
-        : "";
-
-    const indicatorClass = isRemoved
-      ? "text-red-500"
-      : isAdded
-        ? "text-green-500"
-        : "text-gray-400";
-
-    const indicator = isRemoved ? "-" : isAdded ? "+" : " ";
-
-    return (
-      <div className={`flex ${bgClass} whitespace-pre`}>
-        <span
-          className={`select-none w-5 inline-block ${indicatorClass} shrink-0`}
-        >
-          {indicator}
-        </span>
-        {highlightedHtml ? (
-          <div
-            className="font-mono text-xs [&>pre]:bg-transparent! [&>pre]:p-0! [&>pre]:m-0!"
-            dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-          />
-        ) : (
-          <span className="font-mono text-xs text-foreground">{code}</span>
-        )}
-      </div>
-    );
-  };
-
-  const renderDiff = (side: "before" | "after") => {
-    const highlightedParts =
-      side === "before" ? highlightedBeforeParts : highlightedAfterParts;
-
-    return (
-      <div className="h-full bg-background">
-        <div className="h-full overflow-auto p-4">
-          <div className="min-w-max">
-            {diffResult.map((part, index) => {
-              // For "before" side, show removed and unchanged parts
-              if (
-                side === "before" &&
-                (part.removed || (!part.added && !part.removed))
-              ) {
-                return (
-                  <div key={index}>
-                    {part.value
-                      .split("\n")
-                      .filter(Boolean)
-                      .map((line: string, lineIndex: number) => {
-                        const key = `${index}-${lineIndex}`;
-                        return (
-                          <div key={key}>
-                            {renderDiffLine(
-                              line,
-                              part.removed,
-                              false,
-                              highlightedParts[key],
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                );
-              }
-              // For "after" side, show added and unchanged parts
-              if (
-                side === "after" &&
-                (part.added || (!part.added && !part.removed))
-              ) {
-                return (
-                  <div key={index}>
-                    {part.value
-                      .split("\n")
-                      .filter(Boolean)
-                      .map((line: string, lineIndex: number) => {
-                        const key = `${index}-${lineIndex}`;
-                        return (
-                          <div key={key}>
-                            {renderDiffLine(
-                              line,
-                              false,
-                              part.added,
-                              highlightedParts[key],
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                );
-              }
-              return null;
-            })}
-          </div>
-        </div>
-      </div>
-    );
+  const renderCode = (code: string, highlighted: string) => {
+    if (highlighted) {
+      return (
+        <div
+          style={{ "--highlight-color": highlightColor } as React.CSSProperties}
+          className={cn(
+            "h-full w-full overflow-auto bg-background font-mono text-xs",
+            "[&>pre]:h-full [&>pre]:!w-screen [&>pre]:py-2",
+            "[&>pre>code]:!inline-block [&>pre>code]:!w-full",
+            "[&>pre>code>span]:!inline-block [&>pre>code>span]:w-full [&>pre>code>span]:px-4 [&>pre>code>span]:py-0.5",
+            "[&>pre>code>.highlighted]:inline-block [&>pre>code>.highlighted]:w-full [&>pre>code>.highlighted]:!bg-[var(--highlight-color)]",
+            "group-hover/left:[&>pre>code>:not(.focused)]:!opacity-100 group-hover/left:[&>pre>code>:not(.focused)]:!blur-none",
+            "group-hover/right:[&>pre>code>:not(.focused)]:!opacity-100 group-hover/right:[&>pre>code>:not(.focused)]:!blur-none",
+            "[&>pre>code>.add]:bg-[rgba(16,185,129,.16)] [&>pre>code>.remove]:bg-[rgba(244,63,94,.16)]",
+            "group-hover/left:[&>pre>code>:not(.focused)]:transition-all group-hover/left:[&>pre>code>:not(.focused)]:duration-300",
+            "group-hover/right:[&>pre>code>:not(.focused)]:transition-all group-hover/right:[&>pre>code>:not(.focused)]:duration-300",
+          )}
+          dangerouslySetInnerHTML={{ __html: highlighted }}
+        />
+      );
+    } else {
+      return (
+        <pre className="h-full overflow-auto break-all bg-background p-4 font-mono text-xs text-foreground">
+          {code}
+        </pre>
+      );
+    }
   };
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="relative w-full overflow-hidden rounded-md border border-border">
-        <div className="relative grid md:grid-cols-2 md:divide-x md:divide-border">
-          <div>
-            <div className="flex items-center bg-accent p-2 text-sm text-foreground">
+      <div className="group relative w-full overflow-hidden rounded-md border border-border">
+        <div className="relative grid md:grid-cols-2">
+          <div
+            className={cn(
+              "leftside group/left border-primary/20 md:border-r",
+              hasLeftFocus &&
+                "[&>div>pre>code>:not(.focused)]:!opacity-50 [&>div>pre>code>:not(.focused)]:!blur-[0.095rem]",
+              "[&>div>pre>code>:not(.focused)]:transition-all [&>div>pre>code>:not(.focused)]:duration-300",
+            )}
+          >
+            <div className="flex items-center border-b border-primary/20 bg-accent p-2 text-sm text-foreground">
               <FileIcon className="mr-2 h-4 w-4" />
               {filename}
-              <span className="ml-auto">before</span>
+              <span className="ml-auto hidden md:block">before</span>
             </div>
-            {renderDiff("before")}
+            {renderCode(beforeCode, highlightedBefore)}
           </div>
-          <div>
-            <div className="flex items-center bg-accent p-2 text-sm text-foreground">
+          <div
+            className={cn(
+              "rightside group/right border-t border-primary/20 md:border-t-0",
+              hasRightFocus &&
+                "[&>div>pre>code>:not(.focused)]:!opacity-50 [&>div>pre>code>:not(.focused)]:!blur-[0.095rem]",
+              "[&>div>pre>code>:not(.focused)]:transition-all [&>div>pre>code>:not(.focused)]:duration-300",
+            )}
+          >
+            <div className="flex items-center border-b border-primary/20 bg-accent p-2 text-sm text-foreground">
               <FileIcon className="mr-2 h-4 w-4" />
               {filename}
-              <span className="ml-auto">after</span>
+              <span className="ml-auto hidden md:block">after</span>
             </div>
-            {renderDiff("after")}
+            {renderCode(afterCode, highlightedAfter)}
           </div>
         </div>
-        <div className="absolute left-1/2 top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md bg-accent text-xs text-foreground">
+        <div className="absolute left-1/2 top-1/2 hidden h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-md border border-primary/20 bg-accent text-xs text-foreground md:flex">
           VS
         </div>
       </div>

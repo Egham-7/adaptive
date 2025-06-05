@@ -1,7 +1,7 @@
-import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Rocket } from "lucide-react";
-import { SignedOut, SignUpButton, SignedIn } from "@clerk/clerk-react";
+import Link from "next/link";
+import { SignedOut, SignUpButton, SignedIn } from "@clerk/nextjs";
 
 export default function CallToAction() {
   return (
@@ -34,7 +34,7 @@ export default function CallToAction() {
                 className="bg-linear-to-r from-primary-600 to-secondary-600 text-white hover:opacity-90 transition-opacity font-medium shadow-subtle"
               >
                 <Rocket className="relative size-4 mr-2" />
-                <Link to="/home">Get Started</Link>
+                <Link href="/home">Get Started</Link>
               </Button>
             </SignedIn>
 
@@ -44,7 +44,7 @@ export default function CallToAction() {
               variant="outline"
               className="border-primary-600 text-primary-600 hover:bg-primary-50/50 dark:border-primary-500 dark:text-primary-500 dark:hover:bg-primary-900/20"
             >
-              <Link to="/">
+              <Link href="/">
                 <span>Book Demo</span>
               </Link>
             </Button>

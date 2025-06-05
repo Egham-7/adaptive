@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { SignUpButton } from "@clerk/clerk-react";
+import Link from "next/link";
+import { SignUpButton } from "@clerk/nextjs";
 
 export default function Pricing() {
   return (
@@ -127,7 +127,7 @@ export default function Pricing() {
                 variant="outline"
                 className="mt-4 w-full border-primary-600 text-primary-600 hover:bg-primary-50/50 dark:border-primary-500 dark:text-primary-500 dark:hover:bg-primary-900/20"
               >
-                <Link to="/">Contact Sales</Link>
+                <Link href="/">Contact Sales</Link>
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">

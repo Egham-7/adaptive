@@ -3,19 +3,26 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+bun-debug.log* # Changed for Bun
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencies and Build Outputs
+node_modules/
+.next/     # Next.js build output directory
+out/       # Next.js static export directory (if used)
+coverage/  # Test coverage reports
+
+# Environment Variables
+.env       # Local environment variables
+.env.local # Local environment variables (overrides .env)
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+.vscode/
+!.vscode/extensions.json # Keep extensions.json to share recommended extensions
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,6 +30,14 @@ dist-ssr
 *.sln
 *.sw?
 
-# Vite
-.vite/
-stats.html
+# TypeScript specific generated files (often auto-generated)
+next-env.d.ts # Next.js declaration file (often in root)
+
+# Clerk configuration (can include secrets)
+/.clerk/
+
+# macOS system files (redundant, but good practice if not already in global gitignore)
+.DS_Store
+
+# Misc.
+.eslintcache # ESLint cache file

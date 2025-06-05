@@ -1,28 +1,64 @@
-import js from '@eslint/js'
-import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
-import tseslint from 'typescript-eslint'
+// eslint.config.js
+import js from "@eslint/js";
+import globals from "globals";
+import tseslint from "typescript-eslint";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+});
 
 export default tseslint.config(
-  { ignores: ['dist'] },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommended],
-    files: ['**/*.{ts,tsx}'],
+    ignores: [".next/**", "dist/**", "node_modules/**"],
+  },
+  {
+    files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.browser,
+        // ...globals.node, // Uncomment if you have server-side ESLint needs
+      },
+      parser: tseslint.parser,
+      parserOptions: {
+        project: ["./tsconfig.json"],
+        // Optionally, specify `ecmaFeatures.jsx: true` if not covered by extended configs
+      },
     },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-    },
+    extends: [
+      js.configs.recommended,
+      ...tseslint.configs.recommended,
+      // Extends Next.js core rules (includes React, React Hooks, Next.js specific rules)
+      ...compat.config({ extends: ["next"] }).map((config) => ({
+        ...config,
+        files: ["**/*.{js,jsx,ts,tsx}"], // Ensure Next.js rules apply to your files
+      })),
+      // Optional: Strict rules for Core Web Vitals
+      // ...compat.config({ extends: ['next/core-web-vitals'] }).map(config => ({
+      //   ...config,
+      //   files: ['**/*.{js,jsx,ts,tsx}'],
+      // })),
+      // Prettier integration (MUST BE LAST)
+      ...compat.config({ extends: ["prettier"] }).map((config) => ({
+        ...config,
+        files: ["**/*.{js,jsx,ts,tsx}"],
+      })),
+    ],
     rules: {
-      ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      // Custom rule overrides
+      // 'react/no-unescaped-entities': 'off',
+      // '@next/next/no-img-element': 'off',
+      // '@typescript-eslint/no-explicit-any': 'warn',
+    },
+    settings: {
+      react: {
+        version: "detect",
+      },
+      // next: {
+      //   rootDir: 'packages/my-app/', // For monorepos
+      // },
     },
   },
-)
+);

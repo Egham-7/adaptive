@@ -1,5 +1,6 @@
+"use client";
+
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   SignInButton,
@@ -16,6 +17,7 @@ import {
 import { Logo } from "../logo";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { ModeToggle } from "../mode-toggle";
+import Link from "next/link";
 
 const menuItems = [
   { name: "Features", href: "#features" },
@@ -37,7 +39,7 @@ export default function Header() {
           <div className="flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
             <div className="flex w-full justify-between lg:w-auto">
               <Link
-                to="/"
+                href="/"
                 aria-label="home"
                 className="flex items-center space-x-2"
               >
@@ -58,7 +60,7 @@ export default function Header() {
                   {menuItems.map((item, index) => (
                     <li key={index}>
                       <Link
-                        to={item.href}
+                        href={item.href}
                         className="text-muted-foreground hover:text-accent-foreground block duration-150"
                       >
                         <span>{item.name}</span>
@@ -149,10 +151,10 @@ export default function Header() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
-                        <Link to="/home">Chatbot App</Link>
+                        <Link href="/home">Chatbot App</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/api_platform">API Platform</Link>
+                        <Link href="/api_platform">API Platform</Link>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
