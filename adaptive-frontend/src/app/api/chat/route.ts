@@ -6,7 +6,10 @@ import {
   Message as SDKMessage,
 } from "ai";
 import prisma from "@/lib/db";
-import { batchUpsertMessages } from "@/actions/messages";
+import {
+  BatchUpsertMessageData,
+  batchUpsertMessages,
+} from "@/actions/messages";
 
 export const runtime = "edge";
 
@@ -44,37 +47,17 @@ export async function POST(req: Request) {
           responseMessages: response.messages,
         });
 
-        const validMessages = finalMessagesToPersistSDK.filter((sdkMsg) => {
-          if (sdkMsg.role === "data") {
-            return false;
-          }
-          if (!sdkMsg.id) {
-            console.warn(
-              "SDK Message missing ID, cannot batch upsert:",
-              sdkMsg,
-            );
-            return false;
-          }
-          return true;
-        });
-
-        if (validMessages.length > 0) {
-          const batchResult = await batchUpsertMessages(
-            numericConversationId,
-            validMessages,
+        const batchResult = await batchUpsertMessages(
+          numericConversationId,
+          finalMessagesToPersistSDK as BatchUpsertMessageData[],
+        );
+        if (!batchResult.success) {
+          console.error(
+            `Batch upsert failed for conversation ${numericConversationId}: ${batchResult.error}`,
           );
-          if (!batchResult.success) {
-            console.error(
-              `Batch upsert failed for conversation ${numericConversationId}: ${batchResult.error}`,
-            );
-          } else {
-            console.log(
-              `Successfully batch upserted ${batchResult.messages?.length || 0} messages for conversation ${numericConversationId}.`,
-            );
-          }
         } else {
           console.log(
-            `No valid messages to batch upsert for conversation ${numericConversationId}.`,
+            `Successfully batch upserted ${batchResult.messages?.length || 0} messages for conversation ${numericConversationId}.`,
           );
         }
       },
