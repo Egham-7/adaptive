@@ -34,7 +34,7 @@ export default function CallToAction() {
                 className="font-medium shadow-subtle transition-opacity hover:opacity-90 bg-primary text-primary-foreground"
               >
                 <Rocket className="relative mr-2 size-4" />
-                <Link href="/home">Get Started</Link>
+                <Link href="/chat-platform">Get Started</Link>
               </Button>
             </SignedIn>
 

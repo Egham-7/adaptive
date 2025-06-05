@@ -3,6 +3,10 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/context/theme-provider";
 import { Outfit, Roboto_Mono, Lora } from "next/font/google"; // Import all three fonts
+import { Toaster } from "sonner";
+import { HydrateClient } from "@/trpc/server";
+import { TRPCReactProvider } from "@/trpc/react";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 // Configure Outfit for sans-serif
 const outfit = Outfit({
@@ -45,8 +49,13 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <TRPCReactProvider>
+              <HydrateClient>
+                <SidebarProvider>{children}</SidebarProvider>
+              </HydrateClient>
+            </TRPCReactProvider>
           </ThemeProvider>
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>

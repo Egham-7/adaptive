@@ -112,18 +112,12 @@ export default function Header() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem>
-                        <SignUpButton
-                          mode="modal"
-                          signInForceRedirectUrl="/home"
-                        >
+                        <SignUpButton signInForceRedirectUrl="/chat-platform">
                           Chatbot App
                         </SignUpButton>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
-                        <SignUpButton
-                          mode="modal"
-                          signInForceRedirectUrl="/api-platform"
-                        >
+                        <SignUpButton signInForceRedirectUrl="/api-platform">
                           API Platform
                         </SignUpButton>
                       </DropdownMenuItem>
@@ -145,7 +139,7 @@ export default function Header() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
-                        <Link href="/home">Chatbot App</Link>
+                        <Link href="/chat-platform">Chatbot App</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/api_platform">API Platform</Link>

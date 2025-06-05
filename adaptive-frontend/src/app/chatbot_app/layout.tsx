@@ -7,6 +7,6 @@ export function HomeLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 container px-10 pt-10 py-2 w-full overflow-hidden">
         {children}
       </main>
-    </C>
+    </div>
   );
 }

@@ -1,16 +1,18 @@
 // src/server/api/routers/conversation.ts
+
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-// Import PrismaClient and Prisma namespace
-import { type PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
   createConversationSchema,
   updateConversationSchema,
   getConversationsOptionsSchema,
-} from "@/lib/chat/schema"; // Ensure this path is correct
+} from "@/lib/chat/schema";
 
 export const conversationRouter = createTRPCRouter({
+  // ... (create, getById, list, update, delete procedures remain the same) ...
+
   create: protectedProcedure
     .input(createConversationSchema)
     .mutation(async ({ ctx, input }) => {
@@ -18,7 +20,7 @@ export const conversationRouter = createTRPCRouter({
       return ctx.db.conversation.create({
         data: {
           ...input,
-          userId: userId, // Associate with the logged-in user
+          userId: userId,
           pinned: input.pinned ?? false,
         },
       });
@@ -57,14 +59,13 @@ export const conversationRouter = createTRPCRouter({
           deletedAt: null,
           ...(input?.pinned !== undefined && { pinned: input.pinned }),
         },
+        // We include the last message to display in the sidebar
         include: {
-          messages: input?.includeMessages
-            ? {
-                where: { deletedAt: null },
-                orderBy: { createdAt: "asc" },
-                take: 10, // Example: limit messages shown in list view
-              }
-            : false,
+          messages: {
+            where: { deletedAt: null },
+            orderBy: { updatedAt: "desc" },
+            take: 1,
+          },
         },
         orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
       });
@@ -76,7 +77,6 @@ export const conversationRouter = createTRPCRouter({
       const userId = ctx.clerkAuth.userId;
       const { id, ...dataToUpdate } = input;
 
-      // Verify user owns the conversation
       const existingConversation = await ctx.db.conversation.findFirst({
         where: { id: id, userId: userId, deletedAt: null },
       });
@@ -90,7 +90,7 @@ export const conversationRouter = createTRPCRouter({
       }
 
       return ctx.db.conversation.update({
-        where: { id: id }, // Unique identifier for update
+        where: { id: id },
         data: {
           ...dataToUpdate,
           updatedAt: new Date(),
@@ -103,7 +103,6 @@ export const conversationRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.clerkAuth.userId;
 
-      // Verify user owns the conversation
       const conversationToDelete = await ctx.db.conversation.findFirst({
         where: { id: input.id, userId: userId, deletedAt: null },
       });
@@ -116,8 +115,6 @@ export const conversationRouter = createTRPCRouter({
         });
       }
 
-      // Soft delete conversation and its messages in a transaction
-      // Correctly type 'prisma' using Prisma.TransactionClient
       return ctx.db.$transaction(async (prisma: Prisma.TransactionClient) => {
         const deletedConversation = await prisma.conversation.update({
           where: { id: input.id },
@@ -128,45 +125,30 @@ export const conversationRouter = createTRPCRouter({
           where: { conversationId: input.id, deletedAt: null },
           data: { deletedAt: new Date() },
         });
-        return deletedConversation; // Or a success message
+        return deletedConversation;
       });
     }),
 
-  pin: protectedProcedure
-    .input(z.object({ id: z.number() }))
+  setPinStatus: protectedProcedure
+    .input(z.object({ id: z.number(), pinned: z.boolean() }))
     .mutation(async ({ ctx, input }) => {
       const userId = ctx.clerkAuth.userId;
+      const { id, pinned } = input;
+
       const existingConversation = await ctx.db.conversation.findFirst({
-        where: { id: input.id, userId: userId, deletedAt: null },
+        where: { id, userId, deletedAt: null },
       });
+
       if (!existingConversation) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Conversation not found.",
         });
       }
-      return ctx.db.conversation.update({
-        where: { id: input.id },
-        data: { pinned: true, updatedAt: new Date() },
-      });
-    }),
 
-  unpin: protectedProcedure
-    .input(z.object({ id: z.number() }))
-    .mutation(async ({ ctx, input }) => {
-      const userId = ctx.clerkAuth.userId;
-      const existingConversation = await ctx.db.conversation.findFirst({
-        where: { id: input.id, userId: userId, deletedAt: null },
-      });
-      if (!existingConversation) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Conversation not found.",
-        });
-      }
       return ctx.db.conversation.update({
-        where: { id: input.id },
-        data: { pinned: false, updatedAt: new Date() },
+        where: { id },
+        data: { pinned, updatedAt: new Date() },
       });
     }),
 });

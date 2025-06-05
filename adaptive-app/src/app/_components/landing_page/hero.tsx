@@ -71,7 +71,7 @@ export default function HeroSection() {
                 </p>
                 <div className="mt-8 flex justify-center gap-4">
                   <SignedOut>
-                    <SignUpButton mode="modal" signInForceRedirectUrl="/home">
+                    <SignUpButton signInForceRedirectUrl="/chat-platform">
                       <Button
                         size="lg"
                         className="font-medium shadow-subtle transition-opacity hover:opacity-90 bg-primary text-primary-foreground"
@@ -87,7 +87,7 @@ export default function HeroSection() {
                       className="font-medium shadow-subtle transition-opacity hover:opacity-90 bg-primary text-primary-foreground"
                       asChild
                     >
-                      <Link href="/home">
+                      <Link href="/chat-platform">
                         <Rocket className="relative mr-2 size-4" />
                         <span className="text-nowrap">Go to Dashboard</span>
                       </Link>
