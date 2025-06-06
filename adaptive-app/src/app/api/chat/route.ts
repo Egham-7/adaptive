@@ -11,6 +11,8 @@ import { createTRPCContext } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { messageRoleSchema } from "@/lib/chat/schema";
 import z from "zod";
+import type { Message as DBMessage } from "@/types";
+import { api } from "@/trpc/server";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
@@ -24,15 +26,8 @@ export async function POST(req: Request) {
       return new Response("Invalid Conversation ID", { status: 400 });
     }
 
-    const trpcContext = await createTRPCContext({ headers: req.headers });
-    if (!trpcContext.clerkAuth.userId) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    const caller = createCaller(trpcContext);
-
     try {
-      await caller.conversations.getById({ id: numericConversationId });
+      await api.conversations.getById({ id: numericConversationId });
     } catch (error) {
       if (error instanceof TRPCError && error.code === "NOT_FOUND") {
         return new Response("Conversation not found or access denied", {
@@ -43,42 +38,43 @@ export async function POST(req: Request) {
       return new Response("Error validating conversation", { status: 500 });
     }
 
-    const previousMesssages = await caller.messages.listByConversation({
+    const previousMesssages = await api.messages.listByConversation({
       conversationId: numericConversationId,
     });
-    const transformedMessages = previousMesssages.map((dbMessage) => ({
-      id: dbMessage.id,
-      role: dbMessage.role as MessageRole,
-      content: dbMessage.content,
-      createdAt: dbMessage.createdAt,
-      reasoning: dbMessage.reasoning ?? undefined, // Convert null to undefined
-      annotations: dbMessage.annotations
-        ? JSON.parse(dbMessage.annotations)
-        : undefined,
-      parts: dbMessage.parts ? JSON.parse(dbMessage.parts) : undefined,
-      experimental_attachments: dbMessage.experimentalAttachments
-        ? JSON.parse(dbMessage.experimentalAttachments)
-        : undefined,
-    }));
+    const transformedMessages: SDKMessage[] = previousMesssages.map(
+      (dbMessage: DBMessage) => ({
+        id: dbMessage.id,
+        role: dbMessage.role as MessageRole,
+        content: dbMessage.content,
+        createdAt: dbMessage.createdAt,
+        reasoning: dbMessage.reasoning ?? undefined, // Convert null to undefined
+        annotations: dbMessage.annotations
+          ? JSON.parse(dbMessage.annotations)
+          : undefined,
+        parts: dbMessage.parts ? JSON.parse(dbMessage.parts) : undefined,
+        experimental_attachments: dbMessage.experimentalAttachments
+          ? JSON.parse(dbMessage.experimentalAttachments)
+          : undefined,
+      }),
+    );
 
     const currentMessagesFromClient = appendClientMessage({
       messages: transformedMessages,
       message,
     });
 
-    const adaptive = createOpenAI({});
+    const adaptive = createOpenAI({
+      baseURL: process.env.ADAPTIVE_API_BASE_URL,
+    });
 
     const result = streamText({
-      model: adaptive("gpt-4o-mini"), // Model will be auto selected based on the Adaptive API
+      model: adaptive(""), // Model will be auto selected based on the Adaptive API
       messages: currentMessagesFromClient,
       async onFinish({ response }) {
-        console.log("Current Messages from Client:", currentMessagesFromClient);
-        console.log("Response messages:", response.messages);
         const finalMessagesToPersistSDK: SDKMessage[] = appendResponseMessages({
           messages: currentMessagesFromClient as SDKMessage[],
           responseMessages: response.messages,
         });
-        console.log("Final messages to persist:", finalMessagesToPersistSDK);
         const finalMessagesToPersist = finalMessagesToPersistSDK.map(
           (message) => {
             const {
@@ -100,7 +96,7 @@ export async function POST(req: Request) {
           },
         );
 
-        await caller.messages.batchUpsert({
+        await api.messages.batchUpsert({
           conversationId: numericConversationId,
           messages: finalMessagesToPersist,
         });
