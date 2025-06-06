@@ -13,15 +13,18 @@ export default function ChatPlatformPage() {
     append,
     status,
     stop,
+    error, // Get the error object from the hook
+    reload, // Get the reload function for retrying
   } = useChat({
     api: "/api/chat",
   });
 
   const isLoading = status === "streaming" || status === "submitted";
+  const isError = status === "error";
 
   return (
     <Chat
-      className="h-full "
+      className="h-full"
       messages={messages}
       input={input}
       handleInputChange={handleInputChange}
@@ -34,6 +37,9 @@ export default function ChatPlatformPage() {
         "Generate a list of 5 questions for a frontend job interview.",
         "Who won the 2022 FIFA World Cup?",
       ]}
+      isError={isError}
+      error={error}
+      onRetry={reload}
     />
   );
 }

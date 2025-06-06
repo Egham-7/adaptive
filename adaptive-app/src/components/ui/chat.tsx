@@ -5,7 +5,7 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import { ArrowDown, ThumbsDown, ThumbsUp } from "lucide-react";
+import { AlertTriangle, ArrowDown, ThumbsDown, ThumbsUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
@@ -14,8 +14,8 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { MessageInput } from "@/components/ui/message-input";
 import { MessageList } from "@/components/ui/message-list";
 import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
-// Import UIMessage and other relevant types from 'ai' package
 import type { UIMessage } from "ai";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Infer specific part types from UIMessage for safety and clarity
 type MessageTextPart = Extract<UIMessage["parts"][number], { type: "text" }>;
@@ -41,8 +41,13 @@ interface ChatPropsBase {
   ) => void;
   setMessages?: (messages: UIMessage[]) => void;
   transcribeAudio?: (blob: Blob) => Promise<string>;
+  // Add new props for error handling
+  isError?: boolean;
+  error?: Error;
+  onRetry?: () => void;
 }
 
+// ... (ChatPropsWithoutSuggestions and ChatPropsWithSuggestions remain the same) ...
 interface ChatPropsWithoutSuggestions extends ChatPropsBase {
   append?: never;
   suggestions?: never;
@@ -68,7 +73,11 @@ export function Chat({
   onRateResponse,
   setMessages,
   transcribeAudio,
+  isError,
+  error,
+  onRetry,
 }: ChatProps) {
+  // ... (all existing hooks and handlers remain the same) ...
   const lastMessage = messages.at(-1);
   const isEmpty = messages.length === 0;
   const isTyping = lastMessage?.role === "user";
@@ -91,8 +100,6 @@ export function Chat({
     let needsUpdate = false;
     let updatedMessage: UIMessage = { ...lastAssistantMessage };
 
-    // Handle deprecated `toolInvocations` field directly,
-    // though preferring `parts` is recommended by AI SDK.
     if (lastAssistantMessage.toolInvocations) {
       const updatedToolInvocations = lastAssistantMessage.toolInvocations.map(
         (toolInvocation) => {
@@ -105,7 +112,7 @@ export function Chat({
                 content: "Tool execution was cancelled",
                 __cancelled: true,
               },
-            } as const; // This cast keeps the specific literal type
+            } as const;
           }
           return toolInvocation;
         },
@@ -121,7 +128,6 @@ export function Chat({
 
     if (lastAssistantMessage.parts && lastAssistantMessage.parts.length > 0) {
       const updatedParts = lastAssistantMessage.parts.map((part) => {
-        // Use type guard to safely access properties of ToolInvocationUIPart
         if (
           part.type === "tool-invocation" &&
           (part as MessageToolInvocationPart).toolInvocation &&
@@ -138,7 +144,7 @@ export function Chat({
                 __cancelled: true,
               },
             },
-          } as MessageToolInvocationPart; // Cast back to the specific part type
+          } as MessageToolInvocationPart;
         }
         return part;
       });
@@ -168,7 +174,6 @@ export function Chat({
         <>
           <div className="border-r pr-1">
             <CopyButton
-              // Safely extract text content from the parts array
               content={
                 (
                   message.parts?.find(
@@ -222,12 +227,15 @@ export function Chat({
       {messages.length > 0 ? (
         <ChatMessages messages={messages}>
           <MessageList
-            messages={messages} // Now consistently UIMessage[]
+            messages={messages}
             isTyping={isTyping}
             messageOptions={messageOptions}
           />
         </ChatMessages>
       ) : null}
+
+      {/* Render the error component when isError is true */}
+      {isError && <ChatErrorDisplay error={error} onRetry={onRetry} />}
 
       <ChatForm
         className="mt-auto"
@@ -251,11 +259,45 @@ export function Chat({
   );
 }
 
+// --- New Error Display Component ---
+function ChatErrorDisplay({
+  error,
+  onRetry,
+}: {
+  error?: Error;
+  onRetry?: () => void;
+}) {
+  if (!error) return null;
+
+  return (
+    <div className="mx-auto w-full max-w-2xl px-4 pb-4">
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          <p>{error.message || "An unexpected error occurred."}</p>
+          {onRetry && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onRetry}
+              className="mt-2"
+            >
+              Retry
+            </Button>
+          )}
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
+}
+
+// ... (ChatMessages, ChatContainer, ChatForm, and createFileList components remain the same) ...
 export function ChatMessages({
   messages,
   children,
 }: React.PropsWithChildren<{
-  messages: UIMessage[]; // Consistently use UIMessage[]
+  messages: UIMessage[];
 }>) {
   const {
     containerRef,
