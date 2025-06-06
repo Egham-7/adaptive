@@ -44,7 +44,7 @@ export function DeleteConversationDialog({
   const handleDelete = () => {
     // Check if we're currently viewing the conversation that's being deleted
     const isCurrentConversation =
-      pathname === `/conversations/${conversation.id}`;
+      pathname === `/chat-platform/chats/${conversation.id}`;
 
     deleteConversationMutation.mutate({ id: conversation.id });
 

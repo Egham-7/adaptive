@@ -1,11 +1,21 @@
 import {
   forwardRef,
   useCallback,
+  useReducer,
   useRef,
   useState,
   type ReactElement,
 } from "react";
-import { AlertTriangle, ArrowDown, ThumbsDown, ThumbsUp } from "lucide-react";
+import { useDeleteMessage } from "@/hooks/messages/use-delete-message";
+import {
+  AlertTriangle,
+  ArrowDown,
+  ThumbsDown,
+  ThumbsUp,
+  Edit3,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
@@ -14,7 +24,7 @@ import { CopyButton } from "@/components/ui/copy-button";
 import { MessageInput } from "@/components/ui/message-input";
 import { MessageList } from "@/components/ui/message-list";
 import { PromptSuggestions } from "@/components/ui/prompt-suggestions";
-import type { UIMessage } from "ai";
+import type { Message, UIMessage } from "ai";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Infer specific part types from UIMessage for safety and clarity
@@ -23,6 +33,152 @@ type MessageToolInvocationPart = Extract<
   UIMessage["parts"][number],
   { type: "tool-invocation" }
 >;
+
+type MessageAction =
+  | { type: "CANCEL_TOOL_INVOCATIONS"; messageId: string }
+  | { type: "DELETE_MESSAGE_AND_AFTER"; messageId: string }
+  | { type: "DELETE_MESSAGES_AFTER"; messageIndex: number }
+  | { type: "SET_MESSAGES"; messages: Message[] }
+  | { type: "EDIT_MESSAGE"; messageId: string; content: string }
+  | {
+      type: "RATE_MESSAGE";
+      messageId: string;
+      rating: "thumbs-up" | "thumbs-down";
+    }
+  | { type: "RETRY_MESSAGE"; messageId: string; content: string }
+  | { type: "ADD_MESSAGE"; message: Message };
+
+interface MessageState {
+  messages: Message[];
+  editingMessageId: string | null;
+  editingContent: string;
+}
+
+function messageReducer(
+  state: MessageState,
+  action: MessageAction,
+): MessageState {
+  switch (action.type) {
+    case "CANCEL_TOOL_INVOCATIONS": {
+      const messageIndex = state.messages.findIndex(
+        (m) => m.id === action.messageId,
+      );
+      if (messageIndex === -1) return state;
+
+      const message = state.messages[messageIndex] as UIMessage;
+      if (!message.parts?.length) return state;
+
+      let needsUpdate = false;
+      const updatedParts = message.parts.map((part) => {
+        if (
+          part.type === "tool-invocation" &&
+          (part as MessageToolInvocationPart).toolInvocation?.state === "call"
+        ) {
+          needsUpdate = true;
+          return {
+            ...part,
+            toolInvocation: {
+              ...(part as MessageToolInvocationPart).toolInvocation,
+              state: "result",
+              result: {
+                content: "Tool execution was cancelled",
+                __cancelled: true,
+              },
+            },
+          } as MessageToolInvocationPart;
+        }
+        return part;
+      });
+
+      if (!needsUpdate) return state;
+
+      const newMessages = [...state.messages];
+      newMessages[messageIndex] = {
+        ...message,
+        parts: updatedParts,
+      };
+
+      return {
+        ...state,
+        messages: newMessages,
+      };
+    }
+
+    case "DELETE_MESSAGE_AND_AFTER": {
+      const messageIndex = state.messages.findIndex(
+        (m) => m.id === action.messageId,
+      );
+      const newMessages =
+        messageIndex === -1
+          ? state.messages
+          : state.messages.slice(0, messageIndex);
+
+      return {
+        ...state,
+        messages: newMessages,
+        editingMessageId: null,
+        editingContent: "",
+      };
+    }
+
+    case "DELETE_MESSAGES_AFTER": {
+      return {
+        ...state,
+        messages: state.messages.slice(0, action.messageIndex),
+        editingMessageId: null,
+        editingContent: "",
+      };
+    }
+
+    case "SET_MESSAGES": {
+      return {
+        ...state,
+        messages: action.messages,
+      };
+    }
+
+    case "EDIT_MESSAGE": {
+      return {
+        ...state,
+        editingMessageId: action.messageId,
+        editingContent: action.content,
+      };
+    }
+
+    case "RATE_MESSAGE": {
+      // Note: This would typically update message metadata or trigger external API call
+      // For now, we'll just return the current state as rating is handled externally
+      return state;
+    }
+
+    case "RETRY_MESSAGE": {
+      const messageIndex = state.messages.findIndex(
+        (m) => m.id === action.messageId,
+      );
+      const newMessages =
+        messageIndex === -1
+          ? state.messages
+          : state.messages.slice(0, messageIndex);
+
+      return {
+        ...state,
+        messages: newMessages,
+        editingMessageId: null,
+        editingContent: "",
+      };
+    }
+
+    case "ADD_MESSAGE": {
+      return {
+        ...state,
+        messages: [...state.messages, action.message],
+      };
+    }
+
+    default:
+      return state;
+  }
+}
 
 interface ChatPropsBase {
   handleSubmit: (
@@ -39,15 +195,13 @@ interface ChatPropsBase {
     messageId: string,
     rating: "thumbs-up" | "thumbs-down",
   ) => void;
-  setMessages?: (messages: UIMessage[]) => void;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   transcribeAudio?: (blob: Blob) => Promise<string>;
-  // Add new props for error handling
   isError?: boolean;
   error?: Error;
   onRetry?: () => void;
 }
 
-// ... (ChatPropsWithoutSuggestions and ChatPropsWithSuggestions remain the same) ...
 interface ChatPropsWithoutSuggestions extends ChatPropsBase {
   append?: never;
   suggestions?: never;
@@ -77,141 +231,261 @@ export function Chat({
   error,
   onRetry,
 }: ChatProps) {
-  // ... (all existing hooks and handlers remain the same) ...
-  const lastMessage = messages.at(-1);
-  const isEmpty = messages.length === 0;
-  const isTyping = lastMessage?.role === "user";
+  const deleteMessageMutation = useDeleteMessage();
+  const [state, dispatch] = useReducer(messageReducer, {
+    messages,
+    editingMessageId: null,
+    editingContent: "",
+  });
 
+  // Sync external messages with internal state
   const messagesRef = useRef(messages);
-  messagesRef.current = messages;
+  if (messagesRef.current !== messages) {
+    messagesRef.current = messages;
+    dispatch({ type: "SET_MESSAGES", messages });
+  }
+
+  // Sync internal state changes back to external setMessages
+  const internalMessagesRef = useRef(state.messages);
+  if (internalMessagesRef.current !== state.messages) {
+    internalMessagesRef.current = state.messages;
+    setMessages(state.messages);
+  }
+
+  const lastMessage = state.messages.at(-1);
+  const isEmpty = state.messages.length === 0;
+  const isTyping = lastMessage?.role === "user";
 
   const handleStop = useCallback(() => {
     stop?.();
 
-    if (!setMessages) return;
-
-    const latestMessages = [...messagesRef.current];
-    const lastAssistantMessage = latestMessages.findLast(
-      (m: UIMessage) => m.role === "assistant",
+    const lastAssistantMessage = state.messages.findLast(
+      (m: Message) => m.role === "assistant",
     );
 
-    if (!lastAssistantMessage) return;
-
-    let needsUpdate = false;
-    let updatedMessage: UIMessage = { ...lastAssistantMessage };
-
-    if (lastAssistantMessage.toolInvocations) {
-      const updatedToolInvocations = lastAssistantMessage.toolInvocations.map(
-        (toolInvocation) => {
-          if (toolInvocation.state === "call") {
-            needsUpdate = true;
-            return {
-              ...toolInvocation,
-              state: "result",
-              result: {
-                content: "Tool execution was cancelled",
-                __cancelled: true,
-              },
-            } as const;
-          }
-          return toolInvocation;
-        },
-      );
-
-      if (needsUpdate) {
-        updatedMessage = {
-          ...updatedMessage,
-          toolInvocations: updatedToolInvocations,
-        };
-      }
+    if (lastAssistantMessage) {
+      dispatch({
+        type: "CANCEL_TOOL_INVOCATIONS",
+        messageId: lastAssistantMessage.id,
+      });
     }
+  }, [stop, state.messages]);
 
-    if (lastAssistantMessage.parts && lastAssistantMessage.parts.length > 0) {
-      const updatedParts = lastAssistantMessage.parts.map((part) => {
-        if (
-          part.type === "tool-invocation" &&
-          (part as MessageToolInvocationPart).toolInvocation &&
-          (part as MessageToolInvocationPart).toolInvocation.state === "call"
-        ) {
-          needsUpdate = true;
-          return {
-            ...part,
-            toolInvocation: {
-              ...(part as MessageToolInvocationPart).toolInvocation,
-              state: "result",
-              result: {
-                content: "Tool execution was cancelled",
-                __cancelled: true,
-              },
-            },
-          } as MessageToolInvocationPart;
-        }
-        return part;
+  const handleEditMessage = useCallback(
+    (messageId: string, content: string) => {
+      dispatch({
+        type: "EDIT_MESSAGE",
+        messageId,
+        content,
+      });
+    },
+    [],
+  );
+
+  const handleSaveEdit = useCallback(
+    (messageId: string) => {
+      if (!state.editingContent.trim()) return;
+
+      const messageIndex = state.messages.findIndex((m) => m.id === messageId);
+      if (messageIndex !== -1) {
+        // Delete subsequent messages from database
+        const messagesToDelete = state.messages.slice(messageIndex);
+        messagesToDelete.forEach((msg) => {
+          deleteMessageMutation.mutate({ id: msg.id });
+        });
+
+        setMessages(messages.slice(0, messageIndex));
+        append?.({
+          role: "user",
+          content: state.editingContent.trim(),
+        });
+
+        // Clear editing state
+        dispatch({ type: "EDIT_MESSAGE", messageId: "", content: "" });
+      }
+    },
+    [state.messages, state.editingContent, deleteMessageMutation, setMessages],
+  );
+
+  const handleCancelEdit = useCallback(() => {
+    dispatch({
+      type: "EDIT_MESSAGE",
+      messageId: "",
+      content: "",
+    });
+  }, []);
+
+  const handleRetryMessage = useCallback(
+    (message: UIMessage) => {
+      if (!append) return;
+
+      const messageIndex = state.messages.findIndex((m) => m.id === message.id);
+      if (messageIndex !== -1) {
+        // Delete subsequent messages from database
+        const messagesToDelete = state.messages.slice(messageIndex);
+        messagesToDelete.forEach((msg) => {
+          deleteMessageMutation.mutate({ id: msg.id });
+        });
+      }
+
+      dispatch({
+        type: "RETRY_MESSAGE",
+        messageId: message.id,
+        content: message.content,
       });
 
-      if (needsUpdate) {
-        updatedMessage = {
-          ...updatedMessage,
-          parts: updatedParts,
-        };
-      }
-    }
+      // Re-send the message
+      append({ role: "user", content: message.content });
+    },
+    [append, state.messages, deleteMessageMutation],
+  );
 
-    if (needsUpdate) {
-      const messageIndex = latestMessages.findIndex(
-        (m) => m.id === lastAssistantMessage.id,
-      );
+  const handleDeleteMessage = useCallback(
+    (messageId: string) => {
+      const messageIndex = state.messages.findIndex((m) => m.id === messageId);
       if (messageIndex !== -1) {
-        latestMessages[messageIndex] = updatedMessage;
-        setMessages(latestMessages);
+        // Delete this message and all subsequent messages from database
+        const messagesToDelete = state.messages.slice(messageIndex);
+        messagesToDelete.forEach((msg) => {
+          deleteMessageMutation.mutate({ id: msg.id });
+        });
       }
-    }
-  }, [stop, setMessages, messagesRef]);
+
+      dispatch({
+        type: "DELETE_MESSAGE_AND_AFTER",
+        messageId,
+      });
+    },
+    [state.messages, deleteMessageMutation],
+  );
+
+  const handleRateMessage = useCallback(
+    (messageId: string, rating: "thumbs-up" | "thumbs-down") => {
+      dispatch({
+        type: "RATE_MESSAGE",
+        messageId,
+        rating,
+      });
+
+      // Call external rating handler
+      onRateResponse?.(messageId, rating);
+    },
+    [onRateResponse],
+  );
 
   const messageOptions = useCallback(
-    (message: UIMessage) => ({
-      actions: onRateResponse ? (
-        <>
-          <div className="border-r pr-1">
-            <CopyButton
-              content={
-                (
-                  message.parts?.find(
-                    (p) => p.type === "text",
-                  ) as MessageTextPart
-                )?.text || ""
-              }
-              copyMessage="Copied response to clipboard!"
-            />
-          </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6"
-            onClick={() => onRateResponse(message.id, "thumbs-up")}
-          >
-            <ThumbsUp className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-6 w-6"
-            onClick={() => onRateResponse(message.id, "thumbs-down")}
-          >
-            <ThumbsDown className="h-4 w-4" />
-          </Button>
-        </>
-      ) : (
-        <CopyButton
-          content={
-            (message.parts?.find((p) => p.type === "text") as MessageTextPart)
-              ?.text || ""
-          }
-          copyMessage="Copied response to clipboard!"
-        />
-      ),
-    }),
-    [onRateResponse],
+    (message: UIMessage) => {
+      const isUserMessage = message.role === "user";
+      const canEdit = isUserMessage && !isGenerating;
+      const canRetry = isUserMessage && !isGenerating;
+      const canDelete = !isGenerating;
+
+      if (isUserMessage) {
+        return {
+          actions: (
+            <>
+              {canEdit && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => handleEditMessage(message.id, message.content)}
+                  disabled={state.editingMessageId === message.id}
+                >
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              )}
+              {canRetry && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => handleRetryMessage(message)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 text-destructive hover:text-destructive"
+                  onClick={() => handleDeleteMessage(message.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </>
+          ),
+          isEditing: state.editingMessageId === message.id,
+          editingContent: state.editingContent,
+          onEditingContentChange: (content: string) =>
+            dispatch({
+              type: "EDIT_MESSAGE",
+              messageId: state.editingMessageId || "",
+              content,
+            }),
+          onSaveEdit: () => handleSaveEdit(message.id),
+          onCancelEdit: handleCancelEdit,
+        };
+      }
+
+      // Assistant message actions
+      return {
+        actions: onRateResponse ? (
+          <>
+            <div className="border-r pr-1">
+              <CopyButton
+                content={
+                  (
+                    message.parts?.find(
+                      (p) => p.type === "text",
+                    ) as MessageTextPart
+                  )?.text || message.content
+                }
+                copyMessage="Copied response to clipboard!"
+              />
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={() => handleRateMessage(message.id, "thumbs-up")}
+            >
+              <ThumbsUp className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={() => handleRateMessage(message.id, "thumbs-down")}
+            >
+              <ThumbsDown className="h-4 w-4" />
+            </Button>
+          </>
+        ) : (
+          <CopyButton
+            content={
+              (message.parts?.find((p) => p.type === "text") as MessageTextPart)
+                ?.text || message.content
+            }
+            copyMessage="Copied response to clipboard!"
+          />
+        ),
+      };
+    },
+    [
+      onRateResponse,
+      isGenerating,
+      state.editingMessageId,
+      state.editingContent,
+      handleEditMessage,
+      handleSaveEdit,
+      handleCancelEdit,
+      handleRetryMessage,
+      handleDeleteMessage,
+      handleRateMessage,
+    ],
   );
 
   return (
@@ -224,17 +498,16 @@ export function Chat({
         />
       ) : null}
 
-      {messages.length > 0 ? (
-        <ChatMessages messages={messages}>
+      {state.messages.length > 0 ? (
+        <ChatMessages messages={state.messages as UIMessage[]}>
           <MessageList
-            messages={messages}
+            messages={state.messages as UIMessage[]}
             isTyping={isTyping}
             messageOptions={messageOptions}
           />
         </ChatMessages>
       ) : null}
 
-      {/* Render the error component when isError is true */}
       {isError && <ChatErrorDisplay error={error} onRetry={onRetry} />}
 
       <ChatForm
@@ -259,7 +532,6 @@ export function Chat({
   );
 }
 
-// --- New Error Display Component ---
 function ChatErrorDisplay({
   error,
   onRetry,
@@ -292,7 +564,6 @@ function ChatErrorDisplay({
   );
 }
 
-// ... (ChatMessages, ChatContainer, ChatForm, and createFileList components remain the same) ...
 export function ChatMessages({
   messages,
   children,
@@ -364,7 +635,7 @@ interface ChatFormProps {
 }
 
 export const ChatForm = forwardRef<HTMLFormElement, ChatFormProps>(
-  ({ children, handleSubmit, isPending, className }, ref) => {
+  ({ children, handleSubmit, className }, ref) => {
     const [files, setFiles] = useState<File[] | null>(null);
 
     const onSubmit = (event: React.FormEvent) => {

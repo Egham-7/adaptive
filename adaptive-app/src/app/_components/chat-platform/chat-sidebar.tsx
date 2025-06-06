@@ -41,7 +41,7 @@ export function ChatbotSidebar({
   };
 
   const isConversationActive = (conversationId: number) => {
-    return path === `/conversations/${conversationId}`;
+    return path === `/chat-platform/chats/${conversationId}`;
   };
 
   return (

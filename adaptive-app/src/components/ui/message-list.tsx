@@ -11,7 +11,7 @@ interface MessageListProps {
   messages: UIMessage[];
   showTimeStamps?: boolean;
   isTyping?: boolean;
-  messageOptions?:
+  messageOptions:
     | AdditionalMessageOptions
     | ((message: UIMessage) => AdditionalMessageOptions);
 }
@@ -24,7 +24,7 @@ export function MessageList({
 }: MessageListProps) {
   return (
     <div className="space-y-4 overflow-visible">
-      {messages.map((message, index) => {
+      {messages.map((message) => {
         const additionalOptions =
           typeof messageOptions === "function"
             ? messageOptions(message)
@@ -32,7 +32,7 @@ export function MessageList({
 
         return (
           <ChatMessage
-            key={index}
+            key={message.id}
             showTimeStamp={showTimeStamps}
             {...message}
             {...additionalOptions}

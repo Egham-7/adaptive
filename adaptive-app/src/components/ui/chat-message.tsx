@@ -3,9 +3,19 @@
 import React, { useMemo, useState } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { motion } from "framer-motion";
-import { Ban, ChevronRight, Code2, Loader2, Terminal } from "lucide-react";
+import {
+  Ban,
+  ChevronRight,
+  Code2,
+  Loader2,
+  Terminal,
+  Check,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Collapsible,
   CollapsibleContent,
@@ -16,20 +26,13 @@ import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 import type { UIMessage, ToolInvocation as AIToolInvocation } from "ai";
 
-// Infer specific part types from UIMessage['parts'][number]
-type MessageTextPart = Extract<UIMessage["parts"][number], { type: "text" }>;
 type MessageReasoningPart = Extract<
   UIMessage["parts"][number],
   { type: "reasoning" }
 >;
-type MessageToolInvocationPart = Extract<
-  UIMessage["parts"][number],
-  { type: "tool-invocation" }
->;
-type MessageFilePart = Extract<UIMessage["parts"][number], { type: "file" }>;
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-lg p-3 text-sm sm:max-w-[70%]",
+  "group/message relative break-words rounded-lg p-3 text-sm w-full max-w-[50%] shadow-sm transition-colors",
   {
     variants: {
       isUser: {
@@ -74,6 +77,11 @@ export interface ChatMessageProps extends UIMessage {
   showTimeStamp?: boolean;
   animation?: Animation;
   actions?: React.ReactNode;
+  isEditing?: boolean;
+  editingContent?: string;
+  onEditingContentChange?: (content: string) => void;
+  onSaveEdit?: () => void;
+  onCancelEdit?: () => void;
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -84,8 +92,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   animation = "scale",
   actions,
   experimental_attachments,
-  toolInvocations,
   parts,
+  isEditing = false,
+  editingContent = "",
+  onEditingContentChange,
+  onSaveEdit,
+  onCancelEdit,
 }) => {
   const userFiles = useMemo(() => {
     if (role === "user" && experimental_attachments) {
@@ -108,7 +120,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   }, [role, experimental_attachments]);
 
   const isUser = role === "user";
-
   const formattedTime = createdAt?.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
@@ -128,7 +139,43 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         ) : null}
 
         <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-          <MarkdownRenderer>{content}</MarkdownRenderer>
+          {isEditing ? (
+            <div className="space-y-2">
+              <Textarea
+                value={editingContent}
+                onChange={(e) => onEditingContentChange?.(e.target.value)}
+                className="min-h-[150px] resize-none border-0 bg-transparent text-primary-foreground placeholder:text-primary-foreground/70 focus-visible:ring-0"
+                placeholder="Edit your message..."
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onSaveEdit}
+                  className="h-6 px-2"
+                >
+                  <Check className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onCancelEdit}
+                  className="h-6 px-2"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <MarkdownRenderer>{content}</MarkdownRenderer>
+          )}
+
+          {actions && !isEditing ? (
+            <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+              {actions}
+            </div>
+          ) : null}
         </div>
 
         {showTimeStamp && createdAt ? (
@@ -208,7 +255,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         <div className={cn(chatBubbleVariants({ isUser, animation }))}>
           <MarkdownRenderer>{content}</MarkdownRenderer>
           {actions ? (
-            <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+            <div className="absolute -bottom-2 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
               {actions}
             </div>
           ) : null}
@@ -227,10 +274,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
         ) : null}
       </div>
     );
-  }
-
-  if (toolInvocations && toolInvocations.length > 0) {
-    return <ToolCallBlock toolInvocations={toolInvocations} />;
   }
 
   return (

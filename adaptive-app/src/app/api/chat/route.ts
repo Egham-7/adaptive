@@ -1,10 +1,10 @@
 // src/app/api/chat/route.ts
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import {
   streamText,
-  type CoreMessage,
   appendResponseMessages,
   type Message as SDKMessage,
+  appendClientMessage,
 } from "ai";
 import { createCaller } from "@/server/api/root";
 import { createTRPCContext } from "@/server/api/trpc";
@@ -16,10 +16,7 @@ type MessageRole = z.infer<typeof messageRoleSchema>;
 
 export async function POST(req: Request) {
   try {
-    const {
-      messages: currentMessagesFromClient,
-      id: conversationId,
-    }: { messages: CoreMessage[]; id: string | number } = await req.json();
+    const { message, id: conversationId } = await req.json();
 
     const numericConversationId = Number(conversationId);
 
@@ -46,25 +43,61 @@ export async function POST(req: Request) {
       return new Response("Error validating conversation", { status: 500 });
     }
 
+    const previousMesssages = await caller.messages.listByConversation({
+      conversationId: numericConversationId,
+    });
+    const transformedMessages = previousMesssages.map((dbMessage) => ({
+      id: dbMessage.id,
+      role: dbMessage.role as MessageRole,
+      content: dbMessage.content,
+      createdAt: dbMessage.createdAt,
+      reasoning: dbMessage.reasoning ?? undefined, // Convert null to undefined
+      annotations: dbMessage.annotations
+        ? JSON.parse(dbMessage.annotations)
+        : undefined,
+      parts: dbMessage.parts ? JSON.parse(dbMessage.parts) : undefined,
+      experimental_attachments: dbMessage.experimentalAttachments
+        ? JSON.parse(dbMessage.experimentalAttachments)
+        : undefined,
+    }));
+
+    const currentMessagesFromClient = appendClientMessage({
+      messages: transformedMessages,
+      message,
+    });
+
+    const adaptive = createOpenAI({});
+
     const result = streamText({
-      model: openai("gpt-4o-mini"),
+      model: adaptive("gpt-4o-mini"), // Model will be auto selected based on the Adaptive API
       messages: currentMessagesFromClient,
       async onFinish({ response }) {
+        console.log("Current Messages from Client:", currentMessagesFromClient);
+        console.log("Response messages:", response.messages);
         const finalMessagesToPersistSDK: SDKMessage[] = appendResponseMessages({
           messages: currentMessagesFromClient as SDKMessage[],
           responseMessages: response.messages,
         });
-
+        console.log("Final messages to persist:", finalMessagesToPersistSDK);
         const finalMessagesToPersist = finalMessagesToPersistSDK.map(
-          (message) => ({
-            ...message,
-            role: message.role as MessageRole,
-            conversationId: numericConversationId,
-            data: JSON.stringify(message.data) || null,
-            annotations: JSON.stringify(message.annotations) || null,
-            toolInvocations: JSON.stringify(message.toolInvocations) || null,
-            parts: JSON.stringify(message.parts) || null,
-          }),
+          (message) => {
+            const {
+              data,
+              toolInvocations,
+              experimental_attachments,
+              ...messageWithoutUnwantedProps
+            } = message;
+            return {
+              ...messageWithoutUnwantedProps,
+              role: message.role as MessageRole,
+              conversationId: numericConversationId,
+              annotations: JSON.stringify(message.annotations) || null,
+              parts: JSON.stringify(message.parts) || null,
+              experimentalAttachments: experimental_attachments
+                ? JSON.stringify(experimental_attachments)
+                : null,
+            };
+          },
         );
 
         await caller.messages.batchUpsert({

@@ -226,8 +226,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 6.7.0
-   * Query Engine version: 3cff47a7f5d65c3ea74883f1d736e41d68ce91ed
+   * Prisma Client JS version: 6.9.0
+   * Query Engine version: 81e4af48011447c3cc503a190e86995b66d2a28e
    */
   export type PrismaVersion = {
     client: string
@@ -2009,9 +2009,7 @@ export namespace Prisma {
     role: string | null
     content: string | null
     reasoning: string | null
-    data: string | null
     annotations: string | null
-    toolInvocations: string | null
     parts: string | null
     experimentalAttachments: string | null
     createdAt: Date | null
@@ -2025,9 +2023,7 @@ export namespace Prisma {
     role: string | null
     content: string | null
     reasoning: string | null
-    data: string | null
     annotations: string | null
-    toolInvocations: string | null
     parts: string | null
     experimentalAttachments: string | null
     createdAt: Date | null
@@ -2041,9 +2037,7 @@ export namespace Prisma {
     role: number
     content: number
     reasoning: number
-    data: number
     annotations: number
-    toolInvocations: number
     parts: number
     experimentalAttachments: number
     createdAt: number
@@ -2067,9 +2061,7 @@ export namespace Prisma {
     role?: true
     content?: true
     reasoning?: true
-    data?: true
     annotations?: true
-    toolInvocations?: true
     parts?: true
     experimentalAttachments?: true
     createdAt?: true
@@ -2083,9 +2075,7 @@ export namespace Prisma {
     role?: true
     content?: true
     reasoning?: true
-    data?: true
     annotations?: true
-    toolInvocations?: true
     parts?: true
     experimentalAttachments?: true
     createdAt?: true
@@ -2099,9 +2089,7 @@ export namespace Prisma {
     role?: true
     content?: true
     reasoning?: true
-    data?: true
     annotations?: true
-    toolInvocations?: true
     parts?: true
     experimentalAttachments?: true
     createdAt?: true
@@ -2202,9 +2190,7 @@ export namespace Prisma {
     role: string
     content: string
     reasoning: string | null
-    data: string | null
     annotations: string | null
-    toolInvocations: string | null
     parts: string | null
     experimentalAttachments: string | null
     createdAt: Date
@@ -2237,9 +2223,7 @@ export namespace Prisma {
     role?: boolean
     content?: boolean
     reasoning?: boolean
-    data?: boolean
     annotations?: boolean
-    toolInvocations?: boolean
     parts?: boolean
     experimentalAttachments?: boolean
     createdAt?: boolean
@@ -2256,9 +2240,7 @@ export namespace Prisma {
     role?: boolean
     content?: boolean
     reasoning?: boolean
-    data?: boolean
     annotations?: boolean
-    toolInvocations?: boolean
     parts?: boolean
     experimentalAttachments?: boolean
     createdAt?: boolean
@@ -2267,7 +2249,7 @@ export namespace Prisma {
     conversationId?: boolean
   }
 
-  export type MessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "role" | "content" | "reasoning" | "data" | "annotations" | "toolInvocations" | "parts" | "experimentalAttachments" | "createdAt" | "updatedAt" | "deletedAt" | "conversationId", ExtArgs["result"]["message"]>
+  export type MessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "role" | "content" | "reasoning" | "annotations" | "parts" | "experimentalAttachments" | "createdAt" | "updatedAt" | "deletedAt" | "conversationId", ExtArgs["result"]["message"]>
   export type MessageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     conversation?: boolean | ConversationDefaultArgs<ExtArgs>
   }
@@ -2282,9 +2264,7 @@ export namespace Prisma {
       role: string
       content: string
       reasoning: string | null
-      data: string | null
       annotations: string | null
-      toolInvocations: string | null
       parts: string | null
       experimentalAttachments: string | null
       createdAt: Date
@@ -2665,9 +2645,7 @@ export namespace Prisma {
     readonly role: FieldRef<"Message", 'String'>
     readonly content: FieldRef<"Message", 'String'>
     readonly reasoning: FieldRef<"Message", 'String'>
-    readonly data: FieldRef<"Message", 'String'>
     readonly annotations: FieldRef<"Message", 'String'>
-    readonly toolInvocations: FieldRef<"Message", 'String'>
     readonly parts: FieldRef<"Message", 'String'>
     readonly experimentalAttachments: FieldRef<"Message", 'String'>
     readonly createdAt: FieldRef<"Message", 'DateTime'>
@@ -3067,9 +3045,7 @@ export namespace Prisma {
     role: 'role',
     content: 'content',
     reasoning: 'reasoning',
-    data: 'data',
     annotations: 'annotations',
-    toolInvocations: 'toolInvocations',
     parts: 'parts',
     experimentalAttachments: 'experimentalAttachments',
     createdAt: 'createdAt',
@@ -3215,9 +3191,7 @@ export namespace Prisma {
     role?: StringFilter<"Message"> | string
     content?: StringFilter<"Message"> | string
     reasoning?: StringNullableFilter<"Message"> | string | null
-    data?: StringNullableFilter<"Message"> | string | null
     annotations?: StringNullableFilter<"Message"> | string | null
-    toolInvocations?: StringNullableFilter<"Message"> | string | null
     parts?: StringNullableFilter<"Message"> | string | null
     experimentalAttachments?: StringNullableFilter<"Message"> | string | null
     createdAt?: DateTimeFilter<"Message"> | Date | string
@@ -3232,9 +3206,7 @@ export namespace Prisma {
     role?: SortOrder
     content?: SortOrder
     reasoning?: SortOrderInput | SortOrder
-    data?: SortOrderInput | SortOrder
     annotations?: SortOrderInput | SortOrder
-    toolInvocations?: SortOrderInput | SortOrder
     parts?: SortOrderInput | SortOrder
     experimentalAttachments?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -3252,9 +3224,7 @@ export namespace Prisma {
     role?: StringFilter<"Message"> | string
     content?: StringFilter<"Message"> | string
     reasoning?: StringNullableFilter<"Message"> | string | null
-    data?: StringNullableFilter<"Message"> | string | null
     annotations?: StringNullableFilter<"Message"> | string | null
-    toolInvocations?: StringNullableFilter<"Message"> | string | null
     parts?: StringNullableFilter<"Message"> | string | null
     experimentalAttachments?: StringNullableFilter<"Message"> | string | null
     createdAt?: DateTimeFilter<"Message"> | Date | string
@@ -3269,9 +3239,7 @@ export namespace Prisma {
     role?: SortOrder
     content?: SortOrder
     reasoning?: SortOrderInput | SortOrder
-    data?: SortOrderInput | SortOrder
     annotations?: SortOrderInput | SortOrder
-    toolInvocations?: SortOrderInput | SortOrder
     parts?: SortOrderInput | SortOrder
     experimentalAttachments?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -3293,9 +3261,7 @@ export namespace Prisma {
     role?: StringWithAggregatesFilter<"Message"> | string
     content?: StringWithAggregatesFilter<"Message"> | string
     reasoning?: StringNullableWithAggregatesFilter<"Message"> | string | null
-    data?: StringNullableWithAggregatesFilter<"Message"> | string | null
     annotations?: StringNullableWithAggregatesFilter<"Message"> | string | null
-    toolInvocations?: StringNullableWithAggregatesFilter<"Message"> | string | null
     parts?: StringNullableWithAggregatesFilter<"Message"> | string | null
     experimentalAttachments?: StringNullableWithAggregatesFilter<"Message"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Message"> | Date | string
@@ -3379,9 +3345,7 @@ export namespace Prisma {
     role: string
     content: string
     reasoning?: string | null
-    data?: string | null
     annotations?: string | null
-    toolInvocations?: string | null
     parts?: string | null
     experimentalAttachments?: string | null
     createdAt?: Date | string
@@ -3395,9 +3359,7 @@ export namespace Prisma {
     role: string
     content: string
     reasoning?: string | null
-    data?: string | null
     annotations?: string | null
-    toolInvocations?: string | null
     parts?: string | null
     experimentalAttachments?: string | null
     createdAt?: Date | string
@@ -3411,9 +3373,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    data?: NullableStringFieldUpdateOperationsInput | string | null
     annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    toolInvocations?: NullableStringFieldUpdateOperationsInput | string | null
     parts?: NullableStringFieldUpdateOperationsInput | string | null
     experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -3427,9 +3387,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    data?: NullableStringFieldUpdateOperationsInput | string | null
     annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    toolInvocations?: NullableStringFieldUpdateOperationsInput | string | null
     parts?: NullableStringFieldUpdateOperationsInput | string | null
     experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -3443,9 +3401,7 @@ export namespace Prisma {
     role: string
     content: string
     reasoning?: string | null
-    data?: string | null
     annotations?: string | null
-    toolInvocations?: string | null
     parts?: string | null
     experimentalAttachments?: string | null
     createdAt?: Date | string
@@ -3459,9 +3415,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    data?: NullableStringFieldUpdateOperationsInput | string | null
     annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    toolInvocations?: NullableStringFieldUpdateOperationsInput | string | null
     parts?: NullableStringFieldUpdateOperationsInput | string | null
     experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -3474,9 +3428,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    data?: NullableStringFieldUpdateOperationsInput | string | null
     annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    toolInvocations?: NullableStringFieldUpdateOperationsInput | string | null
     parts?: NullableStringFieldUpdateOperationsInput | string | null
     experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -3683,9 +3635,7 @@ export namespace Prisma {
     role?: SortOrder
     content?: SortOrder
     reasoning?: SortOrder
-    data?: SortOrder
     annotations?: SortOrder
-    toolInvocations?: SortOrder
     parts?: SortOrder
     experimentalAttachments?: SortOrder
     createdAt?: SortOrder
@@ -3703,9 +3653,7 @@ export namespace Prisma {
     role?: SortOrder
     content?: SortOrder
     reasoning?: SortOrder
-    data?: SortOrder
     annotations?: SortOrder
-    toolInvocations?: SortOrder
     parts?: SortOrder
     experimentalAttachments?: SortOrder
     createdAt?: SortOrder
@@ -3719,9 +3667,7 @@ export namespace Prisma {
     role?: SortOrder
     content?: SortOrder
     reasoning?: SortOrder
-    data?: SortOrder
     annotations?: SortOrder
-    toolInvocations?: SortOrder
     parts?: SortOrder
     experimentalAttachments?: SortOrder
     createdAt?: SortOrder
@@ -4014,9 +3960,7 @@ export namespace Prisma {
     role: string
     content: string
     reasoning?: string | null
-    data?: string | null
     annotations?: string | null
-    toolInvocations?: string | null
     parts?: string | null
     experimentalAttachments?: string | null
     createdAt?: Date | string
@@ -4029,9 +3973,7 @@ export namespace Prisma {
     role: string
     content: string
     reasoning?: string | null
-    data?: string | null
     annotations?: string | null
-    toolInvocations?: string | null
     parts?: string | null
     experimentalAttachments?: string | null
     createdAt?: Date | string
@@ -4072,9 +4014,7 @@ export namespace Prisma {
     role?: StringFilter<"Message"> | string
     content?: StringFilter<"Message"> | string
     reasoning?: StringNullableFilter<"Message"> | string | null
-    data?: StringNullableFilter<"Message"> | string | null
     annotations?: StringNullableFilter<"Message"> | string | null
-    toolInvocations?: StringNullableFilter<"Message"> | string | null
     parts?: StringNullableFilter<"Message"> | string | null
     experimentalAttachments?: StringNullableFilter<"Message"> | string | null
     createdAt?: DateTimeFilter<"Message"> | Date | string
@@ -4142,9 +4082,7 @@ export namespace Prisma {
     role: string
     content: string
     reasoning?: string | null
-    data?: string | null
     annotations?: string | null
-    toolInvocations?: string | null
     parts?: string | null
     experimentalAttachments?: string | null
     createdAt?: Date | string
@@ -4157,9 +4095,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    data?: NullableStringFieldUpdateOperationsInput | string | null
     annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    toolInvocations?: NullableStringFieldUpdateOperationsInput | string | null
     parts?: NullableStringFieldUpdateOperationsInput | string | null
     experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -4172,9 +4108,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    data?: NullableStringFieldUpdateOperationsInput | string | null
     annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    toolInvocations?: NullableStringFieldUpdateOperationsInput | string | null
     parts?: NullableStringFieldUpdateOperationsInput | string | null
     experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -4187,9 +4121,7 @@ export namespace Prisma {
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
     reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    data?: NullableStringFieldUpdateOperationsInput | string | null
     annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    toolInvocations?: NullableStringFieldUpdateOperationsInput | string | null
     parts?: NullableStringFieldUpdateOperationsInput | string | null
     experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

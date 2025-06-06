@@ -1,6 +1,5 @@
 import { Pin } from "lucide-react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import {
@@ -30,7 +29,7 @@ export function ConversationItem({
   return (
     <SidebarMenuItem>
       <Link
-        href={`/conversations/${conversation.id}`}
+        href={`/chat-platform/chats/${conversation.id}`}
         className="w-full"
         prefetch={true}
       >
@@ -48,11 +47,6 @@ export function ConversationItem({
                 {conversation.pinned && (
                   <Pin className="h-3 w-3 inline fill-current text-primary" />
                 )}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(conversation.updatedAt), {
-                  addSuffix: true,
-                })}
               </span>
             </div>
             {lastMessage && (

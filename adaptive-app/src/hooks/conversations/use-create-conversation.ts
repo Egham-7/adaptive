@@ -10,7 +10,7 @@ export const useCreateConversation = () => {
       // Invalidate the list to refetch and show the new item
       utils.conversations.list.invalidate();
       // Navigate to the newly created chat
-      router.push(`/conversations/${newConversation.id}`);
+      router.push(`/chat-platform/chats/${newConversation.id}`);
     },
     // You could add an onError callback here to show a toast notification
   });

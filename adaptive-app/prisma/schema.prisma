@@ -29,15 +29,13 @@ model Conversation {
 model Message {
   id      String @id @default(cuid()) // AI SDK uses string IDs
   role    String // 'system' | 'user' | 'assistant' | 'data'
-  content String // Main text content
+  content String @db.NVarChar(Max) // Change to handle large content
 
   // AI SDK Message fields
-  reasoning               String? // @deprecated in SDK but still present
-  data                    String? // JSON string for JSONValue, @deprecated in SDK but still present
-  annotations             String? // JSON string for JSONValue[]
-  toolInvocations         String? // JSON string for ToolInvocation[], @deprecated in SDK but still present
-  parts                   String? // JSON string for UI parts array
-  experimentalAttachments String? // JSON string for Attachment[]
+  reasoning               String? @db.NVarChar(Max) // Also update this since it can be large
+  annotations             String? @db.NVarChar(Max) // JSON string for JSONValue[]
+  parts                   String? @db.NVarChar(Max) // JSON string for UI parts array
+  experimentalAttachments String? @db.NVarChar(Max) // JSON string for Attachment[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

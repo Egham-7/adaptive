@@ -10,18 +10,16 @@ import CallToAction from "./_components/landing_page/cta";
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <main>
-        <Header />
-        <HeroSection />
-        <FeaturesSection />
-        <ContentSection />
-        <StatsSection />
-        <TestimonialsSection />
-        <Pricing />
-        <CallToAction />
-        <Footer />
-      </main>
-    </div>
+    <>
+      <Header />
+      <HeroSection />
+      <FeaturesSection />
+      <ContentSection />
+      <StatsSection />
+      <TestimonialsSection />
+      <Pricing />
+      <CallToAction />
+      <Footer />
+    </>
   );
 }

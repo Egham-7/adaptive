@@ -51,7 +51,11 @@ export default function RootLayout({
           >
             <TRPCReactProvider>
               <HydrateClient>
-                <SidebarProvider>{children}</SidebarProvider>
+                <SidebarProvider>
+                  <div className="min-h-screen bg-background w-full">
+                    {children}
+                  </div>
+                </SidebarProvider>
               </HydrateClient>
             </TRPCReactProvider>
           </ThemeProvider>
