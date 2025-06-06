@@ -1,4 +1,3 @@
-// src/app/api/chat/route.ts
 import { createOpenAI } from "@ai-sdk/openai";
 import {
   streamText,
@@ -6,8 +5,6 @@ import {
   type Message as SDKMessage,
   appendClientMessage,
 } from "ai";
-import { createCaller } from "@/server/api/root";
-import { createTRPCContext } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { messageRoleSchema } from "@/lib/chat/schema";
 import z from "zod";
@@ -64,7 +61,7 @@ export async function POST(req: Request) {
     });
 
     const adaptive = createOpenAI({
-      baseURL: process.env.ADAPTIVE_API_BASE_URL,
+      baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/api`,
     });
 
     const result = streamText({

@@ -542,7 +542,7 @@ function ChatErrorDisplay({
   if (!error) return null;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 pb-4">
+    <div className=" w-full max-w-2xl px-4 pb-4">
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
