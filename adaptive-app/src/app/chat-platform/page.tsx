@@ -1,12 +1,39 @@
+"use client";
+
+import { useChat } from "ai/react";
+
+import { Chat } from "@/components/ui/chat";
+
 export default function ChatPlatformPage() {
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    append,
+    status,
+    stop,
+  } = useChat({
+    api: "/api/chat",
+  });
+
+  const isLoading = status === "streaming" || status === "submitted";
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <main>
-        <h1 className="text-2xl font-bold text-center mt-10">Chat Platform</h1>
-        <p className="text-center mt-4">
-          This is a placeholder for the chat platform page.
-        </p>
-      </main>
-    </div>
+    <Chat
+      className="h-full "
+      messages={messages}
+      input={input}
+      handleInputChange={handleInputChange}
+      handleSubmit={handleSubmit}
+      isGenerating={isLoading}
+      stop={stop}
+      append={append}
+      suggestions={[
+        "Generate a tasty vegan lasagna recipe for 3 people.",
+        "Generate a list of 5 questions for a frontend job interview.",
+        "Who won the 2022 FIFA World Cup?",
+      ]}
+    />
   );
 }

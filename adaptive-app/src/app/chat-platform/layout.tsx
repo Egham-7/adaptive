@@ -10,7 +10,7 @@ export default async function HomeLayout({
   return (
     <div className="min-h-screen bg-background flex w-full">
       <ChatbotSidebar initialConversations={initialConversations} />
-      <main className="flex-1 container px-10 pt-10 py-2 w-full overflow-hidden">
+      <main className="flex-1 px-10 pt-10 py-2 w-full overflow-hidden">
         {children}
       </main>
     </div>
