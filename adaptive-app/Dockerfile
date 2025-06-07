@@ -6,13 +6,19 @@ FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
 # Copy package definition files to leverage Docker layer caching
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Install dependencies using the frozen lockfile for reproducible builds
 RUN bun install --frozen-lockfile
 
+
 # Copy the rest of the application source code
 COPY . .
+
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+ENV SKIP_ENV_VALIDATION=true
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 
 # Consolidate the build steps into a single RUN command.
 # This creates a more efficient and atomic build layer.

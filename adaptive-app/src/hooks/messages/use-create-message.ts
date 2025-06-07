@@ -16,7 +16,7 @@ export const useCreateMessage = () => {
           if (!oldData) return [newMessage];
           return [...oldData, newMessage];
         },
-      a;
+      );
     },
   });
 };

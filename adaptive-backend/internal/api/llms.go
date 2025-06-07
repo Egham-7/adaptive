@@ -46,7 +46,7 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 
-	h.applyModelParameters(req, modelInfo, isStream)
+	h.applyModelParameters(req, modelInfo)
 
 	provider, err := providers.NewLLMProvider(modelInfo.Provider)
 	if err != nil {
@@ -116,7 +116,7 @@ func (h *ChatCompletionHandler) selectModel(req *openai.ChatCompletionNewParams,
 	return modelInfo, err
 }
 
-func (h *ChatCompletionHandler) applyModelParameters(req *openai.ChatCompletionNewParams, modelInfo *models.SelectModelResponse, isStream bool) {
+func (h *ChatCompletionHandler) applyModelParameters(req *openai.ChatCompletionNewParams, modelInfo *models.SelectModelResponse) {
 	req.Model = modelInfo.SelectedModel
 	req.Temperature = modelInfo.Parameters.Temperature
 	req.N = modelInfo.Parameters.N
@@ -124,13 +124,6 @@ func (h *ChatCompletionHandler) applyModelParameters(req *openai.ChatCompletionN
 	req.MaxTokens = modelInfo.Parameters.MaxTokens
 	req.FrequencyPenalty = modelInfo.Parameters.FrequencyPenalty
 	req.TopP = modelInfo.Parameters.TopP
-
-	// Additional parameters for streaming
-	if isStream {
-		req.Logprobs = modelInfo.Parameters.Logprobs
-		req.LogitBias = modelInfo.Parameters.LogitBias
-		req.TopLogprobs = modelInfo.Parameters.TopLogprobs
-	}
 }
 
 func (h *ChatCompletionHandler) getMethodType(isStream bool) string {

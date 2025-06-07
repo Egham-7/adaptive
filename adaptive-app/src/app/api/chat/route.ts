@@ -9,6 +9,7 @@ import {
   appendResponseMessages,
   streamText,
 } from "ai";
+import OpenAI from "openai";
 import type z from "zod";
 
 async function logResponseChunks(response: Response) {
@@ -38,11 +39,39 @@ async function logResponseChunks(response: Response) {
   }
 }
 
+async function testOpenAIDirectly(messages: any[]) {
+  console.log("Testing OpenAI SDK directly...");
+
+  const openai = new OpenAI({});
+
+  try {
+    const stream = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo", // This will be auto-selected by your API
+      messages: messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      stream: true,
+    });
+
+    console.log("OpenAI SDK stream created successfully");
+
+    for await (const chunk of stream) {
+      console.log("OpenAI SDK chunk:", JSON.stringify(chunk, null, 2));
+      if (chunk.choices[0]?.delta?.content) {
+        console.log("Content delta:", chunk.choices[0].delta.content);
+      }
+    }
+  } catch (error) {
+    console.error("OpenAI SDK error:", error);
+  }
+}
+
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
 export async function POST(req: Request) {
   try {
-    const { message, id: conversationId } = await req.json();
+    const { message, id: conversationId, testMode } = await req.json();
 
     const numericConversationId = Number(conversationId);
 
@@ -71,7 +100,7 @@ export async function POST(req: Request) {
         role: dbMessage.role as MessageRole,
         content: dbMessage.content,
         createdAt: dbMessage.createdAt,
-        reasoning: dbMessage.reasoning ?? undefined, // Convert null to undefined
+        reasoning: dbMessage.reasoning ?? undefined,
         annotations: dbMessage.annotations
           ? JSON.parse(dbMessage.annotations)
           : undefined,
@@ -87,12 +116,14 @@ export async function POST(req: Request) {
       message,
     });
 
+    await testOpenAIDirectly(currentMessagesFromClient);
+
     const adaptive = createOpenAI({
       baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/api`,
     });
 
     const result = streamText({
-      model: adaptive(""), // Model will be auto selected based on the Adaptive API
+      model: adaptive(""),
       messages: currentMessagesFromClient,
       async onFinish({ response }) {
         const finalMessagesToPersistSDK: SDKMessage[] = appendResponseMessages({
@@ -102,9 +133,9 @@ export async function POST(req: Request) {
         const finalMessagesToPersist = finalMessagesToPersistSDK.map(
           (message) => {
             const {
+              experimental_attachments,
               data,
               toolInvocations,
-              experimental_attachments,
               ...messageWithoutUnwantedProps
             } = message;
             return {
@@ -128,11 +159,14 @@ export async function POST(req: Request) {
     });
 
     console.log("Result: ", result);
-    const data = result.toTextStreamResponse();
+    const data = result.toDataStreamResponse({
+      sendUsage: true,
+    });
+    const dataText = result.toTextStreamResponse();
 
     console.log("Data: ", data);
 
-    const response = data.clone();
+    const response = dataText.clone();
     logResponseChunks(response);
 
     return data;
