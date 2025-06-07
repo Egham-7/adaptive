@@ -81,16 +81,16 @@ export type APIKeyStatus = APIKeyListItem["status"];
  * The core API key data without metadata like created_at, updated_at.
  */
 export type APIKeyCore = Pick<
-  APIKeyListItem,
-  "id" | "name" | "status" | "key_preview"
+	APIKeyListItem,
+	"id" | "name" | "status" | "key_preview"
 >;
 
 /**
  * API key data for forms (without server-generated fields).
  */
 export type APIKeyFormData = Pick<
-  APIKeyCreateInput,
-  "name" | "status" | "expires_at"
+	APIKeyCreateInput,
+	"name" | "status" | "expires_at"
 >;
 
 /**
