@@ -6,11 +6,11 @@ authors = [{ name = "Your Name", email = "you@example.com" }]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "numpy>=2.2.6,<3.0.0",
+  "numpy>=1.24.0,<2.0.0",
   "scikit-learn>=1.6.1,<2.0.0",
   "huggingface-hub>=0.32.0,<0.33.0",
   "transformers>=4.52.3,<5.0.0",
-  "torch>=2.7.0,<2.8.0",
+  "torch==2.2",
   "mypy>=1.15.0,<2.0.0",
   "black>=25.1.0,<26.0.0",
   "ruff>=0.11.11,<0.12.0",
@@ -25,6 +25,13 @@ dependencies = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+packages = [
+    { include = "core" },
+    { include = "models" },
+    { include = "services" }
+]
 
 [tool.poetry.group.dev.dependencies]
 pytest-cov = "^6.0.0"

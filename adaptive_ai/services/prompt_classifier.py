@@ -43,7 +43,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         divisor_map: Dict[str, float],
     ) -> None:
         super(CustomModel, self).__init__()
-        self.backbone = AutoModel.from_pretrained("microsoft/DeBERTa-v3-base")
+        self.backbone = AutoModel.from_pretrained("microsoft/DeBERTa-v3-base",  use_safetensors=True)
         self.target_sizes = target_sizes.values()
         self.task_type_map = task_type_map
         self.weights_map = weights_map
