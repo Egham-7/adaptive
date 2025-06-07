@@ -1,5 +1,2 @@
 .env.*
 .env
-
-# Cost analysis CSV files
-adaptive_ai/cost_test/cost_analysis_10k/*.csv
