@@ -5,165 +5,164 @@ import { FileIcon, X } from "lucide-react";
 import React, { useEffect } from "react";
 
 interface FilePreviewProps {
-	file: File;
-	onRemove?: () => void;
+  file: File;
+  onRemove?: () => void;
 }
 
 export const FilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
-	(props, ref) => {
-		if (props.file.type.startsWith("image/")) {
-			return <ImageFilePreview {...props} ref={ref} />;
-		}
+  (props, ref) => {
+    if (props.file.type.startsWith("image/")) {
+      return <ImageFilePreview {...props} ref={ref} />;
+    }
 
-		if (
-			props.file.type.startsWith("text/") ||
-			props.file.name.endsWith(".txt") ||
-			props.file.name.endsWith(".md")
-		) {
-			return <TextFilePreview {...props} ref={ref} />;
-		}
+    if (
+      props.file.type.startsWith("text/") ||
+      props.file.name.endsWith(".txt") ||
+      props.file.name.endsWith(".md")
+    ) {
+      return <TextFilePreview {...props} ref={ref} />;
+    }
 
-		return <GenericFilePreview {...props} ref={ref} />;
-	},
+    return <GenericFilePreview {...props} ref={ref} />;
+  },
 );
 FilePreview.displayName = "FilePreview";
 
 const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
-	({ file, onRemove }, ref) => {
-		return (
-			<motion.div
-				ref={ref}
-				className="relative flex max-w-[200px] rounded-md border p-1.5 pr-2 text-xs"
-				layout
-				initial={{ opacity: 0, y: "100%" }}
-				animate={{ opacity: 1, y: 0 }}
-				exit={{ opacity: 0, y: "100%" }}
-			>
-				<div className="flex w-full items-center space-x-2">
-					{/* eslint-disable-next-line @next/next/no-img-element */}
-const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
-	({ file, onRemove }, ref) => {
-		const [imageUrl, setImageUrl] = React.useState<string>("");
+  ({ file, onRemove }, ref) => {
+    const [imageUrl, setImageUrl] = React.useState<string>("");
 
-		useEffect(() => {
-			const url = URL.createObjectURL(file);
-			setImageUrl(url);
-			return () => URL.revokeObjectURL(url);
-		}, [file]);
+    useEffect(() => {
+      const url = URL.createObjectURL(file);
+      setImageUrl(url);
 
-		return (
-			<motion.div
-				// ... existing props
-			>
-				<div className="flex w-full items-center space-x-2">
-					<img
-						alt={`Attachment ${file.name}`}
-						className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted object-cover"
-						src={imageUrl}
-					/>
-					// ... rest of component
-					<span className="w-full truncate text-muted-foreground">
-						{file.name}
-					</span>
-				</div>
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }, [file]);
 
-				{onRemove ? (
-					<button
-						className="-right-2 -top-2 absolute flex h-4 w-4 items-center justify-center rounded-full border bg-background"
-						type="button"
-						onClick={onRemove}
-						aria-label="Remove attachment"
-					>
-						<X className="h-2.5 w-2.5" />
-					</button>
-				) : null}
-			</motion.div>
-		);
-	},
+    return (
+      <motion.div
+        ref={ref}
+        className="relative flex max-w-[200px] rounded-md border p-1.5 pr-2 text-xs"
+        layout
+        initial={{ opacity: 0, y: "100%" }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: "100%" }}
+      >
+        <div className="flex w-full items-center space-x-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            alt={`Attachment ${file.name}`}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted object-cover"
+            src={imageUrl}
+          />
+          <span className="w-full truncate text-muted-foreground">
+            {file.name}
+          </span>
+        </div>
+
+        {onRemove ? (
+          <button
+            className="-right-2 -top-2 absolute flex h-4 w-4 items-center justify-center rounded-full border bg-background"
+            type="button"
+            onClick={onRemove}
+            aria-label="Remove attachment"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+        ) : null}
+      </motion.div>
+    );
+  },
 );
+
 ImageFilePreview.displayName = "ImageFilePreview";
 
 const TextFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
-	({ file, onRemove }, ref) => {
-		const [preview, setPreview] = React.useState<string>("");
+  ({ file, onRemove }, ref) => {
+    const [preview, setPreview] = React.useState<string>("");
 
-		useEffect(() => {
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const text = e.target?.result as string;
-				setPreview(text.slice(0, 50) + (text.length > 50 ? "..." : ""));
-			};
-			reader.readAsText(file);
-		}, [file]);
+    useEffect(() => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        setPreview(text.slice(0, 50) + (text.length > 50 ? "..." : ""));
+      };
+      reader.readAsText(file);
+      reader.onerror = () => {
+        setPreview("Error reading file");
+      };
+    }, [file]);
 
-		return (
-			<motion.div
-				ref={ref}
-				className="relative flex max-w-[200px] rounded-md border p-1.5 pr-2 text-xs"
-				layout
-				initial={{ opacity: 0, y: "100%" }}
-				animate={{ opacity: 1, y: 0 }}
-				exit={{ opacity: 0, y: "100%" }}
-			>
-				<div className="flex w-full items-center space-x-2">
-					<div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted p-0.5">
-						<div className="h-full w-full overflow-hidden text-[6px] text-muted-foreground leading-none">
-							{preview || "Loading..."}
-						</div>
-					</div>
-					<span className="w-full truncate text-muted-foreground">
-						{file.name}
-					</span>
-				</div>
+    return (
+      <motion.div
+        ref={ref}
+        className="relative flex max-w-[200px] rounded-md border p-1.5 pr-2 text-xs"
+        layout
+        initial={{ opacity: 0, y: "100%" }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: "100%" }}
+      >
+        <div className="flex w-full items-center space-x-2">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted p-0.5">
+            <div className="h-full w-full overflow-hidden text-[6px] text-muted-foreground leading-none">
+              {preview || "Loading..."}
+            </div>
+          </div>
+          <span className="w-full truncate text-muted-foreground">
+            {file.name}
+          </span>
+        </div>
 
-				{onRemove ? (
-					<button
-						className="-right-2 -top-2 absolute flex h-4 w-4 items-center justify-center rounded-full border bg-background"
-						type="button"
-						onClick={onRemove}
-						aria-label="Remove attachment"
-					>
-						<X className="h-2.5 w-2.5" />
-					</button>
-				) : null}
-			</motion.div>
-		);
-	},
+        {onRemove ? (
+          <button
+            className="-right-2 -top-2 absolute flex h-4 w-4 items-center justify-center rounded-full border bg-background"
+            type="button"
+            onClick={onRemove}
+            aria-label="Remove attachment"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+        ) : null}
+      </motion.div>
+    );
+  },
 );
 TextFilePreview.displayName = "TextFilePreview";
 
 const GenericFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
-	({ file, onRemove }, ref) => {
-		return (
-			<motion.div
-				ref={ref}
-				className="relative flex max-w-[200px] rounded-md border p-1.5 pr-2 text-xs"
-				layout
-				initial={{ opacity: 0, y: "100%" }}
-				animate={{ opacity: 1, y: 0 }}
-				exit={{ opacity: 0, y: "100%" }}
-			>
-				<div className="flex w-full items-center space-x-2">
-					<div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted">
-						<FileIcon className="h-6 w-6 text-foreground" />
-					</div>
-					<span className="w-full truncate text-muted-foreground">
-						{file.name}
-					</span>
-				</div>
+  ({ file, onRemove }, ref) => {
+    return (
+      <motion.div
+        ref={ref}
+        className="relative flex max-w-[200px] rounded-md border p-1.5 pr-2 text-xs"
+        layout
+        initial={{ opacity: 0, y: "100%" }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: "100%" }}
+      >
+        <div className="flex w-full items-center space-x-2">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted">
+            <FileIcon className="h-6 w-6 text-foreground" />
+          </div>
+          <span className="w-full truncate text-muted-foreground">
+            {file.name}
+          </span>
+        </div>
 
-				{onRemove ? (
-					<button
-						className="-right-2 -top-2 absolute flex h-4 w-4 items-center justify-center rounded-full border bg-background"
-						type="button"
-						onClick={onRemove}
-						aria-label="Remove attachment"
-					>
-						<X className="h-2.5 w-2.5" />
-					</button>
-				) : null}
-			</motion.div>
-		);
-	},
+        {onRemove ? (
+          <button
+            className="-right-2 -top-2 absolute flex h-4 w-4 items-center justify-center rounded-full border bg-background"
+            type="button"
+            onClick={onRemove}
+            aria-label="Remove attachment"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+        ) : null}
+      </motion.div>
+    );
+  },
 );
 GenericFilePreview.displayName = "GenericFilePreview";
