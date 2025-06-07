@@ -15,20 +15,27 @@ import { db } from "@/server/db";
  * We will follow the Clerk documentation pattern for creating the tRPC context.
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-	// As per Clerk's tRPC documentation, await the auth() call.
-	const clerkAuthResult = await getClerkAuth();
+  // As per Clerk's tRPC documentation, await the auth() call.
+  const clerkAuthResult = await getClerkAuth();
 
-	return {
-		db, // Your existing database instance
-		clerkAuth: clerkAuthResult, // The entire auth object from Clerk
-		userId: clerkAuthResult.userId, // Convenience access to userId from the auth object
-		...opts, // Pass along other context properties like headers
-	};
+  if (!clerkAuthResult) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "User is not authenticated",
+    });
+  }
+
+  return {
+    db, // Your existing database instance
+    clerkAuth: clerkAuthResult, // The entire auth object from Clerk
+    userId: clerkAuthResult.userId, // Convenience access to userId from the auth object
+    ...opts, // Pass along other context properties like headers
+  };
 };
 
 // This type is crucial for initTRPC.
 // It infers the return type of `createTRPCContext`, including the awaited auth object.
-type Context = Awaited<ReturnType<typeof createTRPCContext>>;
+export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 
 /**
  * 2. INITIALIZATION
@@ -36,18 +43,18 @@ type Context = Awaited<ReturnType<typeof createTRPCContext>>;
  * This is where the tRPC API is initialized, connecting the context and transformer.
  */
 const t = initTRPC.context<Context>().create({
-	// Use the inferred Context type
-	transformer: superjson,
-	errorFormatter({ shape, error }) {
-		return {
-			...shape,
-			data: {
-				...shape.data,
-				zodError:
-					error.cause instanceof ZodError ? error.cause.flatten() : null,
-			},
-		};
-	},
+  // Use the inferred Context type
+  transformer: superjson,
+  errorFormatter({ shape, error }) {
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        zodError:
+          error.cause instanceof ZodError ? error.cause.flatten() : null,
+      },
+    };
+  },
 });
 
 /**
@@ -75,19 +82,19 @@ export const createTRPCRouter = t.router;
  * Middleware for timing procedure execution and adding an artificial delay in development.
  */
 const timingMiddleware = t.middleware(async ({ next, path }) => {
-	const start = Date.now();
+  const start = Date.now();
 
-	if (t._config.isDev) {
-		const waitMs = Math.floor(Math.random() * 400) + 100;
-		await new Promise((resolve) => setTimeout(resolve, waitMs));
-	}
+  if (t._config.isDev) {
+    const waitMs = Math.floor(Math.random() * 400) + 100;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
 
-	const result = await next();
+  const result = await next();
 
-	const end = Date.now();
-	console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  const end = Date.now();
+  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
 
-	return result;
+  return result;
 });
 
 /**
@@ -95,18 +102,18 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * This aligns with the Clerk documentation's approach.
  */
 const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
-	// Access userId through ctx.clerkAuth, as this is where the auth object is stored.
-	if (!ctx.clerkAuth.userId) {
-		throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
-	}
-	// If the user is authenticated, refine the context for TypeScript.
-	// This ensures that in protected procedures, ctx.clerkAuth and ctx.clerkAuth.userId are known to be present.
-	return next({
-		ctx: {
-			...ctx,
-			clerkAuth: ctx.clerkAuth, // Pass the auth object along, now known to have a userId
-		},
-	});
+  // Access userId through ctx.clerkAuth, as this is where the auth object is stored.
+  if (!ctx.clerkAuth.userId) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
+  }
+  // If the user is authenticated, refine the context for TypeScript.
+  // This ensures that in protected procedures, ctx.clerkAuth and ctx.clerkAuth.userId are known to be present.
+  return next({
+    ctx: {
+      ...ctx,
+      clerkAuth: ctx.clerkAuth, // Pass the auth object along, now known to have a userId
+    },
+  });
 });
 
 /**
@@ -125,5 +132,5 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  * a user to be authenticated. It ensures that `ctx.clerkAuth.userId` is available and non-null.
  */
 export const protectedProcedure = t.procedure
-	.use(timingMiddleware) // Apply timing first
-	.use(enforceUserIsAuthed); // Then enforce authentication
+  .use(timingMiddleware) // Apply timing first
+  .use(enforceUserIsAuthed); // Then enforce authentication
