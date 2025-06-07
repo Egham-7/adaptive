@@ -1,1 +1,0 @@
-export { Adaptive } from "./adaptive";

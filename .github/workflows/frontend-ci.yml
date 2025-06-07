@@ -4,21 +4,25 @@ on:
   push:
     branches: [main]
     paths:
-      - "adaptive-frontend/**"
+      - "adaptive-app/**"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
     branches: [main]
     paths:
-      - "adaptive-frontend/**"
+      - "adaptive-app/**"
       - ".github/workflows/frontend-ci.yml"
   workflow_dispatch:
 
 jobs:
   test-lint-typecheck:
     runs-on: ubuntu-latest
+    env:
+      SKIP_ENV_VALIDATION: true
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+
     defaults:
       run:
-        working-directory: ./adaptive-frontend
+        working-directory: ./adaptive-app
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,17 +39,26 @@ jobs:
         id: cache-deps
         with:
           path: |
-            ./adaptive-frontend/node_modules
+            ./adaptive-app/node_modules
             ~/.bun/install/cache # Bun's default cache path
-          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-frontend/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./adaptive-app/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('./adaptive-app/bun.lock') }}-${{ hashFiles('./adaptive-app/**/*.js', './adaptive-app/**/*.jsx', './adaptive-app/**/*.ts', './adaptive-app/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('./adaptive-app/bun.lock') }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Generate Route Tree
-        run: bun run generate-routes
+      - name: Generate Prisma client
+        run: bunx prisma generate
 
       - name: Run tests
         id: tests
@@ -56,14 +69,14 @@ jobs:
         if: always() && steps.tests.outcome == 'success'
         uses: codecov/codecov-action@v4
         with:
-          directory: ./adaptive-frontend/coverage
+          directory: ./adaptive-app/coverage
           flags: frontend
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Run ESLint
+      - name: Run Biome
         id: lint
-        run: bun run lint
+        run: bun run check
         continue-on-error: true
 
       - name: Type check
@@ -82,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-output
-          path: ./adaptive-frontend/dist
+          path: ./adaptive-app/.next
           retention-days: 7
 
       - name: Check for failing steps
@@ -115,7 +128,7 @@ jobs:
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: ${{ github.workspace }}/adaptive-frontend
+          appSourcePath: ${{ github.workspace }}/adaptive-app
           dockerfilePath: Dockerfile
           registryUrl: adaptiveregistry.azurecr.io
           registryUsername: ${{ secrets.FRONTEND_REGISTRY_USERNAME }}
@@ -124,5 +137,5 @@ jobs:
           resourceGroup: adaptive
           imageToBuild: adaptiveregistry.azurecr.io/frontend:${{ github.sha }}
           buildArguments: |
-            VITE_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
-            VITE_BASE_API_URL=${{  secrets.VITE_BASE_API_URL }}
+            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+            ADAPTIVE_API_BASE_URL=${{  secrets.VITE_BASE_API_URL }}

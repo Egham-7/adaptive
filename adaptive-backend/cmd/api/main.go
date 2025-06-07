@@ -23,8 +23,6 @@ import (
 // SetupRoutes configures all the application routes
 func SetupRoutes(app *fiber.App) {
 	// Create handler instances
-	conversationHandler := api.NewConversationHandler()
-	messageHandler := api.NewMessageHandler()
 	apiKeyHandler := api.NewAPIKeyHandler()
 	chatCompletionHandler := api.NewChatCompletionHandler()
 
@@ -45,29 +43,6 @@ func SetupRoutes(app *fiber.App) {
 	apiKeys.Post("/", apiKeyHandler.CreateAPIKey)
 	apiKeys.Put("/:id", apiKeyHandler.UpdateAPIKey)
 	apiKeys.Delete("/:id", apiKeyHandler.DeleteAPIKey)
-
-	// Conversation routes
-	conversations := apiGroup.Group("/conversations", authMiddleware)
-	conversations.Get("/", conversationHandler.GetAllConversations)
-	conversations.Get("/:id", conversationHandler.GetConversation)
-	conversations.Post("/", conversationHandler.CreateConversation)
-	conversations.Put("/:id", conversationHandler.UpdateConversation)
-	conversations.Delete("/:id", conversationHandler.DeleteConversation)
-
-	// Message routes related to conversations
-	conversations.Get("/:id/messages", messageHandler.GetMessagesByConversation)
-	conversations.Post("/:id/messages", messageHandler.CreateMessage)
-	conversations.Delete("/:id/messages/", messageHandler.DeleteAllConversationMessages)
-
-	// Pin Message
-	conversations.Post("/:id/pin", conversationHandler.PinConversation)
-
-	// Individual message routes
-	messages := apiGroup.Group("/messages", authMiddleware)
-	messages.Get("/:id", messageHandler.GetMessage)
-	messages.Put("/:id", messageHandler.UpdateMessage)
-	messages.Delete("/batch", messageHandler.BatchDeleteMessages)
-	messages.Delete("/:id", messageHandler.DeleteMessage)
 }
 
 func main() {

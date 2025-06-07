@@ -48,20 +48,20 @@ func (r *StreamDecoder) SendChunk(chunk openai.ChatCompletionChunk) bool {
 
 // SendError sends an error to the stream
 func (r *StreamDecoder) SendError(err error) bool {
-    r.mu.Lock()
-    defer r.mu.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-    if r.closed {
-        return false
-    }
-    r.lastError = err
+	if r.closed {
+		return false
+	}
+	r.lastError = err
 
-    select {
-    case r.errorChan <- err:
-        return true
-    case <-r.done:
-        return false
-    }
+	select {
+	case r.errorChan <- err:
+		return true
+	case <-r.done:
+		return false
+	}
 }
 
 // CloseSender closes the sender channels (call from producer goroutine)
@@ -93,8 +93,12 @@ func (r *StreamDecoder) Next() bool {
 	case chunk, ok := <-r.chunkChan:
 		if ok {
 			r.currentChunk = &chunk
+			return true
 		}
-		return ok
+		return false
+	case err := <-r.errorChan:
+		r.lastError = err
+		return false
 	case <-r.done:
 		return false
 	}
@@ -109,15 +113,16 @@ func (r *StreamDecoder) Event() ssestream.Event {
 		return ssestream.Event{}
 	}
 
-	// Marshal the current chunk to JSON for the event data
+	// Marshal the current chunk to JSON - this should be the raw OpenAI format
 	data, err := json.Marshal(r.currentChunk)
 	if err != nil {
 		return ssestream.Event{}
 	}
 
+	// Return event with empty type to match OpenAI SDK behavior
 	return ssestream.Event{
 		Data: data,
-		Type: "completion",
+		Type: "", // Empty type so it gets processed as raw OpenAI data
 	}
 }
 
