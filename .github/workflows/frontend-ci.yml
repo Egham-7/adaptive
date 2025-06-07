@@ -43,7 +43,7 @@ jobs:
             ~/.bun/install/cache # Bun's default cache path
           key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
           restore-keys: |
-            ${{ runner.os }}-bun-
+            ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
 
       - name: Cache Next.js build
         uses: actions/cache@v4
