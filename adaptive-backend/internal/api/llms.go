@@ -76,7 +76,7 @@ func (h *ChatCompletionHandler) getAPIKey(c *fiber.Ctx) string {
 }
 
 func (h *ChatCompletionHandler) parseRequest(c *fiber.Ctx) (*openai.ChatCompletionNewParams, bool, error) {
-	var reqBody map[string]interface{}
+	var reqBody map[string]any
 	if err := c.BodyParser(&reqBody); err != nil {
 		return nil, false, err
 	}
@@ -118,12 +118,6 @@ func (h *ChatCompletionHandler) selectModel(req *openai.ChatCompletionNewParams,
 
 func (h *ChatCompletionHandler) applyModelParameters(req *openai.ChatCompletionNewParams, modelInfo *models.SelectModelResponse) {
 	req.Model = modelInfo.SelectedModel
-	req.Temperature = modelInfo.Parameters.Temperature
-	req.N = modelInfo.Parameters.N
-	req.PresencePenalty = modelInfo.Parameters.PresencePenalty
-	req.MaxTokens = modelInfo.Parameters.MaxTokens
-	req.FrequencyPenalty = modelInfo.Parameters.FrequencyPenalty
-	req.TopP = modelInfo.Parameters.TopP
 }
 
 func (h *ChatCompletionHandler) getMethodType(isStream bool) string {
