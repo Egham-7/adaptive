@@ -16,6 +16,9 @@ on:
 jobs:
   test-lint-typecheck:
     runs-on: ubuntu-latest
+    env:
+      SKIP_ENV_VALIDATION: true
+
     defaults:
       run:
         working-directory: ./adaptive-app
