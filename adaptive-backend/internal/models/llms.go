@@ -22,3 +22,8 @@ type OpenAIParameters struct {
 	FrequencyPenalty float64 `json:"frequency_penalty,omitempty"`
 	N                int64   `json:"n,omitempty"`
 }
+
+type ChatCompletionRequest struct {
+	openai.ChatCompletionNewParams
+	Stream bool `json:"stream"`
+}

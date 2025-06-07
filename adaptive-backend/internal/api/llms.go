@@ -76,26 +76,12 @@ func (h *ChatCompletionHandler) getAPIKey(c *fiber.Ctx) string {
 }
 
 func (h *ChatCompletionHandler) parseRequest(c *fiber.Ctx) (*openai.ChatCompletionNewParams, bool, error) {
-	var reqBody map[string]any
-	if err := c.BodyParser(&reqBody); err != nil {
+	var req models.ChatCompletionRequest
+	if err := c.BodyParser(&req); err != nil {
 		return nil, false, err
 	}
 
-	// Check if stream is requested
-	isStream := false
-	if streamVal, exists := reqBody["stream"]; exists {
-		if streamBool, ok := streamVal.(bool); ok {
-			isStream = streamBool
-		}
-	}
-
-	// Parse the request body into ChatCompletionNewParams
-	var req openai.ChatCompletionNewParams
-	if err := c.BodyParser(&req); err != nil {
-		return nil, isStream, err
-	}
-
-	return &req, isStream, nil
+	return &req.ChatCompletionNewParams, req.Stream, nil
 }
 
 func (h *ChatCompletionHandler) selectModel(req *openai.ChatCompletionNewParams, apiKey, requestID string) (*models.SelectModelResponse, error) {
