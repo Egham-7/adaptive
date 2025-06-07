@@ -38,7 +38,7 @@ func Initialize(server, database, user, password string) error {
 	}
 
 	// Run schema migrations
-	err = DB.AutoMigrate(&models.Conversation{}, &models.DBMessage{}, &models.APIKey{})
+	err = DB.AutoMigrate(&models.APIKey{})
 	if err != nil {
 		return fmt.Errorf("schema migration failed: %v", err)
 	}
