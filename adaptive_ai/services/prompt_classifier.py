@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Dict, List, Tuple, Any, Union, cast
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,10 +8,12 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 
 class MeanPooling(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super(MeanPooling, self).__init__()
 
-    def forward(self, last_hidden_state, attention_mask):
+    def forward(
+        self, last_hidden_state: torch.Tensor, attention_mask: torch.Tensor
+    ) -> torch.Tensor:
         input_mask_expanded = (
             attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
         )
@@ -22,19 +25,27 @@ class MeanPooling(nn.Module):
 
 
 class MulticlassHead(nn.Module):
-    def __init__(self, input_size, num_classes):
+    def __init__(self, input_size: int, num_classes: int) -> None:
         super(MulticlassHead, self).__init__()
         self.fc = nn.Linear(input_size, num_classes)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.fc(x)
         return x
 
 
 class CustomModel(nn.Module, PyTorchModelHubMixin):
-    def __init__(self, target_sizes, task_type_map, weights_map, divisor_map):
+    def __init__(
+        self,
+        target_sizes: Dict[str, int],
+        task_type_map: Dict[str, str],
+        weights_map: Dict[str, List[float]],
+        divisor_map: Dict[str, float],
+    ) -> None:
         super(CustomModel, self).__init__()
-        self.backbone = AutoModel.from_pretrained("microsoft/DeBERTa-v3-base")
+        self.backbone = AutoModel.from_pretrained(
+            "microsoft/DeBERTa-v3-base", use_safetensors=True
+        )
         self.target_sizes = target_sizes.values()
         self.task_type_map = task_type_map
         self.weights_map = weights_map
@@ -47,7 +58,9 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             self.add_module(f"head_{i}", head)
         self.pool = MeanPooling()
 
-    def compute_results(self, preds, target, decimal=4):
+    def compute_results(
+        self, preds: torch.Tensor, target: str, decimal: int = 4
+    ) -> Union[Tuple[List[str], List[str], List[float]], List[float]]:
         if target == "task_type":
             top2_indices = torch.topk(preds, k=2, dim=1).indices
             softmax_probs = torch.softmax(preds, dim=1)
@@ -77,111 +90,103 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             scores = [round(value, decimal) for value in scores]
             if target == "number_of_few_shots":
                 scores = [x if x >= 0.05 else 0 for x in scores]
-            return scores
+            return cast(List[float], scores)
 
-    def process_logits(self, logits, domain):
-        DOMAIN_WEIGHTS = {
-            "Adult": [0.50, 0.30, 0.10, 0.05, 0.03, 0.02],
-            "Arts_and_Entertainment": [0.45, 0.20, 0.10, 0.15, 0.05, 0.05],
-            "Autos_and_Vehicles": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Beauty_and_Fitness": [0.40, 0.30, 0.15, 0.05, 0.05, 0.05],
-            "Books_and_Literature": [0.50, 0.25, 0.10, 0.10, 0.03, 0.02],
-            "Business_and_Industrial": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Computers_and_Electronics": [0.20, 0.40, 0.20, 0.15, 0.05, 0.00],
-            "Finance": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-            "Food_and_Drink": [0.20, 0.20, 0.10, 0.15, 0.10, 0.25],
-            "Games": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Health": [0.10, 0.35, 0.30, 0.20, 0.05, 0.00],
-            "Hobbies_and_Leisure": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Home_and_Garden": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Internet_and_Telecom": [0.25, 0.40, 0.15, 0.10, 0.05, 0.05],
-            "Jobs_and_Education": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Law_and_Government": [0.20, 0.40, 0.20, 0.10, 0.05, 0.05],
-            "News": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Online_Communities": [0.25, 0.25, 0.15, 0.10, 0.20, 0.05],
-            "People_and_Society": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Pets_and_Animals": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Real_Estate": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Science": [0.25, 0.40, 0.20, 0.10, 0.05, 0.00],
-            "Sensitive_Subjects": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-            "Shopping": [0.40, 0.30, 0.15, 0.10, 0.03, 0.02],
-            "Sports": [0.35, 0.30, 0.15, 0.10, 0.05, 0.05],
-            "Travel_and_Transportation": [0.30, 0.35, 0.15, 0.10, 0.05, 0.05],
-        }
+    def _extract_classification_results(
+        self, logits: List[torch.Tensor]
+    ) -> Dict[str, Union[List[str], List[float], float]]:
+        """Extract individual classification results from logits."""
+        result: Dict[str, Union[List[str], List[float], float]] = {}
 
-        if domain not in DOMAIN_WEIGHTS:
-            raise ValueError(f"Unknown domain: {domain}")
-        weights = DOMAIN_WEIGHTS[domain]
-
-        result = {}
-        # Round 1: "task_type"
+        # Task type classification
         task_type_logits = logits[0]
         task_type_results = self.compute_results(task_type_logits, target="task_type")
-        result["task_type_1"] = task_type_results[0]
-        result["task_type_2"] = task_type_results[1]
-        result["task_type_prob"] = task_type_results[2]
+        if isinstance(task_type_results, tuple):
+            result["task_type_1"] = task_type_results[0]
+            result["task_type_2"] = task_type_results[1]
+            result["task_type_prob"] = task_type_results[2]
 
-        # Round 2: "creativity_scope"
-        creativity_scope_logits = logits[1]
-        target = "creativity_scope"
-        result[target] = self.compute_results(creativity_scope_logits, target=target)
-
-        # Round 3: "reasoning"
-        reasoning_logits = logits[2]
-        target = "reasoning"
-        result[target] = self.compute_results(reasoning_logits, target=target)
-
-        # Round 4: "contextual_knowledge"
-        contextual_knowledge_logits = logits[3]
-        target = "contextual_knowledge"
-        result[target] = self.compute_results(
-            contextual_knowledge_logits, target=target
-        )
-
-        # Round 5: "number_of_few_shots"
-        number_of_few_shots_logits = logits[4]
-        target = "number_of_few_shots"
-        result[target] = self.compute_results(number_of_few_shots_logits, target=target)
-
-        # Round 6: "domain_knowledge"
-        domain_knowledge_logits = logits[5]
-        target = "domain_knowledge"
-        result[target] = self.compute_results(domain_knowledge_logits, target=target)
-
-        # Round 7: "no_label_reason"
-        no_label_reason_logits = logits[6]
-        target = "no_label_reason"
-        result[target] = self.compute_results(no_label_reason_logits, target=target)
-
-        # Round 8: "constraint_ct"
-        constraint_ct_logits = logits[7]
-        target = "constraint_ct"
-        result[target] = self.compute_results(constraint_ct_logits, target=target)
-
-        # Round 9: "prompt_complexity_score"
-        # Use domain-specific weights instead of fixed weights
-        result["prompt_complexity_score"] = [
-            round(
-                weights[0] * creativity
-                + weights[1] * reasoning
-                + weights[2] * constraint
-                + weights[3] * domain_knowledge
-                + weights[4] * contextual_knowledge
-                + weights[5] * few_shots,
-                5,
-            )
-            for creativity, reasoning, constraint, domain_knowledge, contextual_knowledge, few_shots in zip(
-                result["creativity_scope"],
-                result["reasoning"],
-                result["constraint_ct"],
-                result["domain_knowledge"],
-                result["contextual_knowledge"],
-                result["number_of_few_shots"],
-            )
+        # Other classifications
+        classifications = [
+            ("creativity_scope", logits[1]),
+            ("reasoning", logits[2]),
+            ("contextual_knowledge", logits[3]),
+            ("number_of_few_shots", logits[4]),
+            ("domain_knowledge", logits[5]),
+            ("no_label_reason", logits[6]),
+            ("constraint_ct", logits[7]),
         ]
+
+        for target, target_logits in classifications:
+            target_results = self.compute_results(target_logits, target=target)
+            if isinstance(target_results, list):
+                result[target] = target_results
+
         return result
 
-    def forward(self, batch, domain):
+    def _calculate_complexity_scores(
+        self,
+        results: Dict[str, Union[List[str], List[float], float]],
+        task_types: List[str],
+    ) -> List[float]:
+        """Calculate complexity scores using task-specific weights."""
+        # Task type specific weights for complexity calculation
+        TASK_TYPE_WEIGHTS: Dict[str, List[float]] = {
+            "Open QA": [0.2, 0.3, 0.15, 0.2, 0.15],
+            "Closed QA": [0.1, 0.35, 0.2, 0.25, 0.1],
+            "Summarization": [0.2, 0.25, 0.25, 0.1, 0.2],
+            "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],
+            "Code Generation": [0.1, 0.3, 0.2, 0.3, 0.1],
+            "Chatbot": [0.25, 0.25, 0.15, 0.1, 0.25],
+            "Classification": [0.1, 0.35, 0.25, 0.2, 0.1],
+            "Rewrite": [0.2, 0.2, 0.3, 0.1, 0.2],
+            "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],
+            "Extraction": [0.05, 0.3, 0.3, 0.15, 0.2],
+            "Other": [0.25, 0.25, 0.2, 0.15, 0.15],
+        }
+
+        # Get required values
+        creativity_scope = cast(List[float], results.get("creativity_scope", []))
+        reasoning = cast(List[float], results.get("reasoning", []))
+        constraint_ct = cast(List[float], results.get("constraint_ct", []))
+        domain_knowledge = cast(List[float], results.get("domain_knowledge", []))
+        contextual_knowledge = cast(
+            List[float], results.get("contextual_knowledge", [])
+        )
+
+        complexity_scores = []
+        for i, task_type in enumerate(task_types):
+            # Use task-specific weights if available, otherwise use default weights
+            weights = TASK_TYPE_WEIGHTS.get(task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
+
+            score = round(
+                weights[0] * creativity_scope[i]
+                + weights[1] * reasoning[i]
+                + weights[2] * constraint_ct[i]
+                + weights[3] * domain_knowledge[i]
+                + weights[4] * contextual_knowledge[i],
+                5,
+            )
+            complexity_scores.append(score)
+
+        return complexity_scores
+
+    def process_logits(
+        self, logits: List[torch.Tensor], domain: str
+    ) -> Dict[str, Union[List[str], List[float], float]]:
+        """Main orchestration method for processing logits and calculating complexity scores."""
+        results = self._extract_classification_results(logits)
+
+        if "task_type_1" in results:
+            task_types = cast(List[str], results["task_type_1"])
+            complexity_scores = self._calculate_complexity_scores(results, task_types)
+            results["prompt_complexity_score"] = complexity_scores
+
+        return results
+
+    def forward(
+        self, batch: Dict[str, torch.Tensor], domain: str
+    ) -> Dict[str, Union[List[str], List[float], float]]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
@@ -207,24 +212,35 @@ model = CustomModel(
 
 
 class PromptClassifier:
-    def __init__(self):
+    def __init__(self) -> None:
         self.model = model
         self.tokenizer = tokenizer
 
-    def classify_prompt(self, prompt, domain):
+    def classify_prompt(self, prompt: str, domain: str) -> Dict[str, Any]:
         encoded_texts = self.tokenizer(
             [prompt],
-            return_tensors="pt",
-            add_special_tokens=True,
-            max_length=512,
-            padding="max_length",
+            padding=True,
             truncation=True,
+            max_length=512,
+            return_tensors="pt",
         )
-        result = self.model(encoded_texts, domain)
+        with torch.no_grad():
+            results = self.model(encoded_texts, domain)
+        return cast(Dict[str, Any], results)
 
-        return result
+    def classify_task_types(self, texts: List[str]) -> List[str]:
+        encoded_texts = self.tokenizer(
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="pt",
+        )
+        with torch.no_grad():
+            results = self.model(encoded_texts, "general")
+        return cast(List[str], results["task_type_1"])
 
 
 @lru_cache()
-def get_prompt_classifier():
+def get_prompt_classifier() -> PromptClassifier:
     return PromptClassifier()

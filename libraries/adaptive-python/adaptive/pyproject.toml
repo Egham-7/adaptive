@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "adaptive-ai"
+version = "0.1.2"
+description = "Python SDK for Adaptive AI - A unified interface for multiple LLM providers"
+authors = ["Botir <attaimen40@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "adaptive", from = "src" }]
+license = "MIT"
+repository = "https://github.com/Egham-7/adaptive"
+documentation = "https://adaptive.soon.io/"
+keywords = ["ai", "llm", "chat", "completion", "openai", "anthropic", "groq"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+pydantic = ">=2.11.2,<3.0.0"
+requests = ">=2.32.3,<3.0.0"
+twine = "^6.1.0"
+
+[tool.poetry.group.dev.dependencies]
+mypy = ">=1.15.0,<2.0.0"
+ruff = ">=0.11.3,<0.12.0"
+black = ">=25.1.0,<26.0.0"
+pytest = ">=8.3.5,<9.0.0"
+pytest-cov = "^6.1.0"
+types-requests = "^2.32.0.20250515"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+lint = "ruff:main"
+

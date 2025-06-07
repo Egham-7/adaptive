@@ -1,0 +1,55 @@
+# API settings
+api_host: "0.0.0.0"
+api_port: 8000
+api_workers: 4
+
+# Model settings
+default_model: "gpt-4-turbo"
+fallback_model: "gpt-3.5-turbo"
+
+# Cache settings
+cache_size: 1000
+cache_ttl: 3600  # 1 hour
+
+# Logging settings
+log_level: "INFO"
+log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Rate limiting
+rate_limit_requests: 100
+rate_limit_period: 60  # 1 minute
+
+# Domain weights
+domain_weights:
+  Computers_and_Electronics:
+    weights: [0.20, 0.40, 0.20, 0.15, 0.05, 0.00]
+    description: "Technical and computing domain"
+  Finance:
+    weights: [0.25, 0.40, 0.20, 0.10, 0.05, 0.00]
+    description: "Financial and economic domain"
+  Science:
+    weights: [0.25, 0.40, 0.20, 0.10, 0.05, 0.00]
+    description: "Scientific and research domain"
+
+# Task configurations
+task_configs:
+  Open_QA:
+    easy:
+      model: "gpt-3.5-turbo"
+      complexity_threshold: 0.3
+    medium:
+      model: "gpt-4-turbo"
+      complexity_threshold: 0.4
+    hard:
+      model: "gpt-4o"
+      complexity_threshold: 0.5
+  Closed_QA:
+    easy:
+      model: "claude-3-haiku"
+      complexity_threshold: 0.2
+    medium:
+      model: "llama-3-70b-instruct"
+      complexity_threshold: 0.3
+    hard:
+      model: "claude-3-opus"
+      complexity_threshold: 0.6 
