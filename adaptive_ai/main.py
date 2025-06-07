@@ -1,5 +1,6 @@
 import litserve as ls  # type: ignore
-from pydantic import BaseModel, ValidationError  # type: ignore
+from pydantic import BaseModel, ValidationError
+from typing import Any, Dict
 
 
 class PromptRequest(BaseModel):
@@ -7,26 +8,23 @@ class PromptRequest(BaseModel):
 
 
 class AdaptiveModelSelectionAPI(ls.LitAPI):
-    def setup(self, device):
+    def setup(self, device: str) -> None:
         from services.model_selector import ModelSelector
         from services.prompt_classifier import get_prompt_classifier
 
-        self.model_selector = ModelSelector(
-            get_prompt_classifier()
-        )
+        self.model_selector = ModelSelector(get_prompt_classifier())
 
-    def decode_request(self, request: PromptRequest):
+    def decode_request(self, request: Dict[str, Any]) -> str:
         try:
             req = PromptRequest.model_validate(request)
             return req.prompt
         except ValidationError as e:
             raise ValueError(f"Invalid request: {e}")
 
-    def predict(self, prompt):
-
+    def predict(self, prompt: str) -> Dict[str, Any]:
         return self.model_selector.select_model(prompt)
 
-    def encode_response(self, output):
+    def encode_response(self, output: Dict[str, Any]) -> Dict[str, Any]:
         return output
 
 
