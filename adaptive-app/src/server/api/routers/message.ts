@@ -4,7 +4,6 @@ import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import type { Conversation, Message } from "prisma/generated";
 import { z } from "zod";
-import type { Context } from "@/server/api/trpc";
 
 type CreateMessageInput = z.infer<typeof createMessageSchema>;
 type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
@@ -78,60 +77,11 @@ const findMessageWithConversationAccess = (
     },
   });
 
-const createMessage = (
-  db: PrismaClient,
-  data: ReturnType<typeof createMessageData>,
-) => db.message.create({ data });
-
-const updateConversationTimestamp = (
-  db: PrismaClient,
-  conversationId: number,
-) =>
-  db.conversation.update({
-    where: { id: conversationId },
-    data: { updatedAt: new Date() },
-  });
-
 const getMessagesByConversation = (db: PrismaClient, conversationId: number) =>
   db.message.findMany({
     where: { conversationId, deletedAt: null },
     orderBy: { createdAt: "asc" },
   });
-
-const updateMessage = (
-  db: PrismaClient,
-  id: string,
-  data: ReturnType<typeof updateMessageData>,
-) => db.message.update({ where: { id }, data });
-
-const softDeleteMessage = (db: PrismaClient, id: string) =>
-  db.message.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
-
-const upsertMessage = (
-  db: PrismaClient,
-  messageData: CreateMessageInput,
-  conversationId: number,
-) => {
-  const { conversationId: _, ...dataWithoutConversationId } = messageData;
-
-  return db.message.upsert({
-    where: { id: messageData.id },
-    create: {
-      ...dataWithoutConversationId,
-      conversation: { connect: { id: conversationId } },
-    },
-    update: {
-      content: messageData.content,
-      reasoning: messageData.reasoning,
-      annotations: messageData.annotations,
-      parts: messageData.parts,
-      experimentalAttachments: messageData.experimentalAttachments,
-    },
-  });
-};
 
 // Composed operations
 const createMessageWithTimestampUpdate = async (
@@ -139,9 +89,14 @@ const createMessageWithTimestampUpdate = async (
   messageData: ReturnType<typeof createMessageData>,
   conversationId: number,
 ) => {
-  const newMessage = await createMessage(db, messageData);
-  await updateConversationTimestamp(db, conversationId);
-  return newMessage;
+  return db.$transaction(async (tx: PrismaClient) => {
+    const newMessage = await tx.message.create({ data: messageData });
+    await tx.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
+    return newMessage;
+  });
 };
 
 const updateMessageWithTimestampUpdate = async (
@@ -150,9 +105,17 @@ const updateMessageWithTimestampUpdate = async (
   updateData: ReturnType<typeof updateMessageData>,
   conversationId: number,
 ) => {
-  const updatedMessage = await updateMessage(db, messageId, updateData);
-  await updateConversationTimestamp(db, conversationId);
-  return updatedMessage;
+  return db.$transaction(async (tx: PrismaClient) => {
+    const updatedMessage = await tx.message.update({
+      where: { id: messageId },
+      data: updateData,
+    });
+    await tx.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
+    return updatedMessage;
+  });
 };
 
 const deleteMessageWithTimestampUpdate = async (
@@ -160,9 +123,17 @@ const deleteMessageWithTimestampUpdate = async (
   messageId: string,
   conversationId: number,
 ) => {
-  const deletedMessage = await softDeleteMessage(db, messageId);
-  await updateConversationTimestamp(db, conversationId);
-  return deletedMessage;
+  return db.$transaction(async (tx: PrismaClient) => {
+    const deletedMessage = await tx.message.update({
+      where: { id: messageId },
+      data: { deletedAt: new Date() },
+    });
+    await tx.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
+    return deletedMessage;
+  });
 };
 
 export const messageRouter = createTRPCRouter({
@@ -281,13 +252,36 @@ export const messageRouter = createTRPCRouter({
         return { count: 0 };
       }
 
-      const results = await Promise.all(
-        messagesData.map((messageData) =>
-          upsertMessage(ctx.db, messageData, conversationId),
-        ),
-      );
+      const results = await ctx.db.$transaction(async (tx) => {
+        const upsertResults = await Promise.all(
+          messagesData.map((messageData) => {
+            const { conversationId: _, ...dataWithoutConversationId } =
+              messageData;
+            return tx.message.upsert({
+              where: { id: messageData.id },
+              create: {
+                ...dataWithoutConversationId,
+                conversation: { connect: { id: conversationId } },
+              },
+              update: {
+                content: messageData.content,
+                reasoning: messageData.reasoning,
+                annotations: messageData.annotations,
+                parts: messageData.parts,
+                experimentalAttachments: messageData.experimentalAttachments,
+              },
+            });
+          }),
+        );
 
-      await updateConversationTimestamp(ctx.db, conversationId);
+        await tx.conversation.update({
+          where: { id: conversationId },
+          data: { updatedAt: new Date() },
+        });
+
+        return upsertResults;
+      });
+
       return { count: results.length };
     }),
 });
