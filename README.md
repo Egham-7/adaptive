@@ -50,10 +50,10 @@ const response = await client.chat.completions.create({
 ### Use Vercel AI SDK
 
 ```typescript
-import { openai } from '@ai-sdk/openai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
-const adaptive = openai({
+const adaptive = createOpenAI({
   apiKey: 'your-adaptive-api-key',
   baseURL: 'https://api.adaptive.ai/v1'
 });
@@ -83,10 +83,26 @@ docker-compose up -d
 
 ## Architecture
 
-```
-Client (OpenAI SDK) → Adaptive Backend → AI Service (Model Selection) → Provider APIs
-                                     ↓
-                     OpenAI-Compatible Response ← Response Conversion
+```mermaid
+graph TB
+    Client[Client Applications<br/>OpenAI SDK / Vercel AI SDK] --> Backend[Adaptive Backend<br/>OpenAI-Compatible API<br/>Port 8080]
+    
+    Backend --> AI[Python AI Service<br/>Model Selection<br/>Port 8000]
+    Backend --> DB[(Database<br/>Conversations & Analytics)]
+    
+    Backend --> OpenAI[OpenAI API]
+    Backend --> Anthropic[Anthropic API]
+    Backend --> Google[Google AI API]
+    Backend --> Groq[Groq API]
+    Backend --> DeepSeek[DeepSeek API]
+
+    Backend --> Prometheus[Prometheus<br/>Port 9090]
+    Prometheus --> Grafana[Grafana<br/>Port 3001]
+
+    style Client fill:#e1f5fe
+    style Backend fill:#00add8
+    style AI fill:#3776ab
+    style DB fill:#336791
 ```
 
 ## Configuration
