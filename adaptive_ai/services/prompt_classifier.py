@@ -92,10 +92,12 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                 scores = [x if x >= 0.05 else 0 for x in scores]
             return cast(List[float], scores)
 
-    def _extract_classification_results(self, logits: List[torch.Tensor]) -> Dict[str, Union[List[str], List[float]]]:
+    def _extract_classification_results(
+        self, logits: List[torch.Tensor]
+    ) -> Dict[str, Union[List[str], List[float], float]]:
         """Extract individual classification results from logits."""
-        result: Dict[str, Union[List[str], List[float]]] = {}
-        
+        result: Dict[str, Union[List[str], List[float], float]] = {}
+
         # Task type classification
         task_type_logits = logits[0]
         task_type_results = self.compute_results(task_type_logits, target="task_type")
@@ -112,7 +114,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             ("number_of_few_shots", logits[4]),
             ("domain_knowledge", logits[5]),
             ("no_label_reason", logits[6]),
-            ("constraint_ct", logits[7])
+            ("constraint_ct", logits[7]),
         ]
 
         for target, target_logits in classifications:
@@ -123,7 +125,9 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         return result
 
     def _calculate_complexity_scores(
-        self, results: Dict[str, Union[List[str], List[float]]], task_types: List[str]
+        self,
+        results: Dict[str, Union[List[str], List[float], float]],
+        task_types: List[str],
     ) -> List[float]:
         """Calculate complexity scores using task-specific weights."""
         # Task type specific weights for complexity calculation
@@ -146,20 +150,22 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         reasoning = cast(List[float], results.get("reasoning", []))
         constraint_ct = cast(List[float], results.get("constraint_ct", []))
         domain_knowledge = cast(List[float], results.get("domain_knowledge", []))
-        contextual_knowledge = cast(List[float], results.get("contextual_knowledge", []))
+        contextual_knowledge = cast(
+            List[float], results.get("contextual_knowledge", [])
+        )
 
         complexity_scores = []
         for i, task_type in enumerate(task_types):
             # Use task-specific weights if available, otherwise use default weights
             weights = TASK_TYPE_WEIGHTS.get(task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
-            
+
             score = round(
-                weights[0] * creativity_scope[i] +
-                weights[1] * reasoning[i] +
-                weights[2] * constraint_ct[i] +
-                weights[3] * domain_knowledge[i] +
-                weights[4] * contextual_knowledge[i],
-                5
+                weights[0] * creativity_scope[i]
+                + weights[1] * reasoning[i]
+                + weights[2] * constraint_ct[i]
+                + weights[3] * domain_knowledge[i]
+                + weights[4] * contextual_knowledge[i],
+                5,
             )
             complexity_scores.append(score)
 
@@ -170,12 +176,12 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
     ) -> Dict[str, Union[List[str], List[float], float]]:
         """Main orchestration method for processing logits and calculating complexity scores."""
         results = self._extract_classification_results(logits)
-        
+
         if "task_type_1" in results:
             task_types = cast(List[str], results["task_type_1"])
             complexity_scores = self._calculate_complexity_scores(results, task_types)
             results["prompt_complexity_score"] = complexity_scores
-            
+
         return results
 
     def forward(
