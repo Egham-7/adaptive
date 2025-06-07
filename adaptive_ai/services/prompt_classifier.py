@@ -92,74 +92,11 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                 scores = [x if x >= 0.05 else 0 for x in scores]
             return cast(List[float], scores)
 
-    def process_logits(
-        self, logits: List[torch.Tensor], domain: str
-    ) -> Dict[str, Union[List[str], List[float], float]]:
-        # Task type specific weights for complexity calculation
-        TASK_TYPE_WEIGHTS: Dict[str, List[float]] = {
-            "Open QA": [
-                0.2,
-                0.3,
-                0.15,
-                0.2,
-                0.15,
-            ],  # Needs reasoning + some domain/contextual recall
-            "Closed QA": [
-                0.1,
-                0.35,
-                0.2,
-                0.25,
-                0.1,
-            ],  # Factual recall + precise reasoning
-            "Summarization": [
-                0.2,
-                0.25,
-                0.25,
-                0.1,
-                0.2,
-            ],  # Requires constraint (brevity), context
-            "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],  # Creativity-driven
-            "Code Generation": [
-                0.1,
-                0.3,
-                0.2,
-                0.3,
-                0.1,
-            ],  # High constraint & reasoning + domain knowledge
-            "Chatbot": [
-                0.25,
-                0.25,
-                0.15,
-                0.1,
-                0.25,
-            ],  # Creativity, reasoning, and context
-            "Classification": [
-                0.1,
-                0.35,
-                0.25,
-                0.2,
-                0.1,
-            ],  # Heavy on reasoning and constraint
-            "Rewrite": [
-                0.2,
-                0.2,
-                0.3,
-                0.1,
-                0.2,
-            ],  # Needs adherence to form (constraint) + context
-            "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],  # Mostly creativity
-            "Extraction": [
-                0.05,
-                0.3,
-                0.3,
-                0.15,
-                0.2,
-            ],  # Reasoning + strict format (constraint) + some context
-            "Other": [0.25, 0.25, 0.2, 0.15, 0.15],  # Balanced default
-        }
-
-        result: Dict[str, Union[List[str], List[float], float]] = {}
-        # Round 1: "task_type"
+    def _extract_classification_results(self, logits: List[torch.Tensor]) -> Dict[str, Union[List[str], List[float]]]:
+        """Extract individual classification results from logits."""
+        result: Dict[str, Union[List[str], List[float]]] = {}
+        
+        # Task type classification
         task_type_logits = logits[0]
         task_type_results = self.compute_results(task_type_logits, target="task_type")
         if isinstance(task_type_results, tuple):
@@ -167,109 +104,79 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             result["task_type_2"] = task_type_results[1]
             result["task_type_prob"] = task_type_results[2]
 
-        # Round 2: "creativity_scope"
-        creativity_scope_logits = logits[1]
-        target = "creativity_scope"
-        scope_results = self.compute_results(creativity_scope_logits, target=target)
-        if isinstance(scope_results, list):
-            result[target] = scope_results
-
-        # Round 3: "reasoning"
-        reasoning_logits = logits[2]
-        target = "reasoning"
-        reasoning_results = self.compute_results(reasoning_logits, target=target)
-        if isinstance(reasoning_results, list):
-            result[target] = reasoning_results
-
-        # Round 4: "contextual_knowledge"
-        contextual_knowledge_logits = logits[3]
-        target = "contextual_knowledge"
-        knowledge_results = self.compute_results(
-            contextual_knowledge_logits, target=target
-        )
-        if isinstance(knowledge_results, list):
-            result[target] = knowledge_results
-
-        # Round 5: "number_of_few_shots"
-        number_of_few_shots_logits = logits[4]
-        target = "number_of_few_shots"
-        shots_results = self.compute_results(number_of_few_shots_logits, target=target)
-        if isinstance(shots_results, list):
-            result[target] = shots_results
-
-        # Round 6: "domain_knowledge"
-        domain_knowledge_logits = logits[5]
-        target = "domain_knowledge"
-        domain_results = self.compute_results(domain_knowledge_logits, target=target)
-        if isinstance(domain_results, list):
-            result[target] = domain_results
-
-        # Round 7: "no_label_reason"
-        no_label_reason_logits = logits[6]
-        target = "no_label_reason"
-        reason_results = self.compute_results(no_label_reason_logits, target=target)
-        if isinstance(reason_results, list):
-            result[target] = reason_results
-
-        # Round 8: "constraint_ct"
-        constraint_ct_logits = logits[7]
-        target = "constraint_ct"
-        constraint_results = self.compute_results(constraint_ct_logits, target=target)
-        if isinstance(constraint_results, list):
-            result[target] = constraint_results
-
-        # Get the primary task type
-        task_type_1 = result.get("task_type_1", [])
-        if not isinstance(task_type_1, list) or not task_type_1:
-            return result
-
-        primary_task_type = task_type_1[0]
-        if not isinstance(primary_task_type, str):
-            return result
-
-        # Use task-specific weights if available, otherwise use default weights
-        weights = TASK_TYPE_WEIGHTS.get(primary_task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
-
-        # Ensure all required values are lists of floats
-        creativity_scope = result.get("creativity_scope", [])
-        reasoning = result.get("reasoning", [])
-        constraint_ct = result.get("constraint_ct", [])
-        domain_knowledge = result.get("domain_knowledge", [])
-        contextual_knowledge = result.get("contextual_knowledge", [])
-
-        if not all(
-            isinstance(x, list)
-            for x in [
-                creativity_scope,
-                reasoning,
-                constraint_ct,
-                domain_knowledge,
-                contextual_knowledge,
-            ]
-        ):
-            return result
-
-        # Type assert that these are lists of floats
-        creativity_scope = cast(List[float], creativity_scope)
-        reasoning = cast(List[float], reasoning)
-        constraint_ct = cast(List[float], constraint_ct)
-        domain_knowledge = cast(List[float], domain_knowledge)
-        contextual_knowledge = cast(List[float], contextual_knowledge)
-
-        # Calculate complexity score using task-specific weights
-        result["prompt_complexity_score"] = [
-            round(
-                weights[0] * creativity_scope[i]
-                + weights[1] * reasoning[i]
-                + weights[2] * constraint_ct[i]
-                + weights[3] * domain_knowledge[i]
-                + weights[4] * contextual_knowledge[i],
-                5,
-            )
-            for i in range(len(creativity_scope))
+        # Other classifications
+        classifications = [
+            ("creativity_scope", logits[1]),
+            ("reasoning", logits[2]),
+            ("contextual_knowledge", logits[3]),
+            ("number_of_few_shots", logits[4]),
+            ("domain_knowledge", logits[5]),
+            ("no_label_reason", logits[6]),
+            ("constraint_ct", logits[7])
         ]
 
+        for target, target_logits in classifications:
+            target_results = self.compute_results(target_logits, target=target)
+            if isinstance(target_results, list):
+                result[target] = target_results
+
         return result
+
+    def _calculate_complexity_scores(
+        self, results: Dict[str, Union[List[str], List[float]]], task_types: List[str]
+    ) -> List[float]:
+        """Calculate complexity scores using task-specific weights."""
+        # Task type specific weights for complexity calculation
+        TASK_TYPE_WEIGHTS: Dict[str, List[float]] = {
+            "Open QA": [0.2, 0.3, 0.15, 0.2, 0.15],
+            "Closed QA": [0.1, 0.35, 0.2, 0.25, 0.1],
+            "Summarization": [0.2, 0.25, 0.25, 0.1, 0.2],
+            "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],
+            "Code Generation": [0.1, 0.3, 0.2, 0.3, 0.1],
+            "Chatbot": [0.25, 0.25, 0.15, 0.1, 0.25],
+            "Classification": [0.1, 0.35, 0.25, 0.2, 0.1],
+            "Rewrite": [0.2, 0.2, 0.3, 0.1, 0.2],
+            "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],
+            "Extraction": [0.05, 0.3, 0.3, 0.15, 0.2],
+            "Other": [0.25, 0.25, 0.2, 0.15, 0.15],
+        }
+
+        # Get required values
+        creativity_scope = cast(List[float], results.get("creativity_scope", []))
+        reasoning = cast(List[float], results.get("reasoning", []))
+        constraint_ct = cast(List[float], results.get("constraint_ct", []))
+        domain_knowledge = cast(List[float], results.get("domain_knowledge", []))
+        contextual_knowledge = cast(List[float], results.get("contextual_knowledge", []))
+
+        complexity_scores = []
+        for i, task_type in enumerate(task_types):
+            # Use task-specific weights if available, otherwise use default weights
+            weights = TASK_TYPE_WEIGHTS.get(task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
+            
+            score = round(
+                weights[0] * creativity_scope[i] +
+                weights[1] * reasoning[i] +
+                weights[2] * constraint_ct[i] +
+                weights[3] * domain_knowledge[i] +
+                weights[4] * contextual_knowledge[i],
+                5
+            )
+            complexity_scores.append(score)
+
+        return complexity_scores
+
+    def process_logits(
+        self, logits: List[torch.Tensor], domain: str
+    ) -> Dict[str, Union[List[str], List[float], float]]:
+        """Main orchestration method for processing logits and calculating complexity scores."""
+        results = self._extract_classification_results(logits)
+        
+        if "task_type_1" in results:
+            task_types = cast(List[str], results["task_type_1"])
+            complexity_scores = self._calculate_complexity_scores(results, task_types)
+            results["prompt_complexity_score"] = complexity_scores
+            
+        return results
 
     def forward(
         self, batch: Dict[str, torch.Tensor], domain: str
