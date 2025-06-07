@@ -9,44 +9,8 @@ import {
   appendResponseMessages,
   streamText,
 } from "ai";
-import OpenAI from "openai";
 import { chatRequestSchema } from "@/lib/chat/ai-sdk";
 import type { z } from "zod";
-
-async function testOpenAIDirectly(messages: SDKMessage[]) {
-  console.log("Testing OpenAI SDK directly...");
-
-  const openai = new OpenAI({
-    baseURL: process.env.ADAPTIVE_API_BASE_URL,
-  });
-
-  try {
-    // Filter out "data" role messages and map to OpenAI compatible format
-    const openAIMessages = messages
-      .filter((msg) => msg.role !== "data") // OpenAI doesn't support "data" role
-      .map((msg) => ({
-        role: msg.role as "system" | "user" | "assistant", // Explicitly type for OpenAI
-        content: msg.content,
-      }));
-
-    const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // This will be auto-selected by your API
-      messages: openAIMessages,
-      stream: true,
-    });
-
-    console.log("OpenAI SDK stream created successfully");
-
-    for await (const chunk of stream) {
-      console.log("OpenAI SDK chunk:", JSON.stringify(chunk, null, 2));
-      if (chunk.choices[0]?.delta?.content) {
-        console.log("Content delta:", chunk.choices[0].delta.content);
-      }
-    }
-  } catch (error) {
-    console.error("OpenAI SDK error:", error);
-  }
-}
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
@@ -99,8 +63,6 @@ export async function POST(req: Request) {
       messages: transformedMessages,
       message,
     });
-
-    await testOpenAIDirectly(currentMessagesFromClient);
 
     const adaptive = createOpenAI({
       baseURL: process.env.ADAPTIVE_API_BASE_URL,
