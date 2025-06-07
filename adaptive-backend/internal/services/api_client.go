@@ -6,15 +6,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"sync"
 	"time"
+
+	"adaptive-backend/internal/services/metrics"
 )
 
-// Client represents a generic API client
+// Client represents an optimized API client with connection pooling and metrics
 type Client struct {
-	BaseURL    string
-	HTTPClient *http.Client
-	Headers    map[string]string
+	BaseURL     string
+	HTTPClient  *http.Client
+	Headers     map[string]string
+	metrics     *metrics.APIClientMetrics
+	metricsOnce sync.Once
 }
 
 // RequestOptions provides options for API requests
@@ -24,20 +30,82 @@ type RequestOptions struct {
 	Timeout      time.Duration
 	Context      context.Context
 	ResponseType string // "json", "text", "binary"
+	Retries      int
+	RetryDelay   time.Duration
 }
 
-// NewClient creates a new API client
+// ClientConfig holds configuration for the API client
+type ClientConfig struct {
+	BaseURL             string
+	Timeout             time.Duration
+	MaxIdleConns        int
+	MaxIdleConnsPerHost int
+	IdleConnTimeout     time.Duration
+	DialTimeout         time.Duration
+	KeepAlive           time.Duration
+	TLSHandshakeTimeout time.Duration
+}
+
+// DefaultClientConfig returns optimized defaults for the API client
+func DefaultClientConfig(baseURL string) *ClientConfig {
+	return &ClientConfig{
+		BaseURL:             baseURL,
+		Timeout:             30 * time.Second,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+		IdleConnTimeout:     90 * time.Second,
+		DialTimeout:         10 * time.Second,
+		KeepAlive:           30 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+	}
+}
+
+// NewClient creates a new optimized API client
 func NewClient(baseURL string) *Client {
-	return &Client{
-		BaseURL: baseURL,
+	config := DefaultClientConfig(baseURL)
+	return NewClientWithConfig(config)
+}
+
+// NewClientWithConfig creates a new API client with custom configuration
+func NewClientWithConfig(config *ClientConfig) *Client {
+	// Create optimized transport with connection pooling
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   config.DialTimeout,
+			KeepAlive: config.KeepAlive,
+		}).DialContext,
+		MaxIdleConns:        config.MaxIdleConns,
+		MaxIdleConnsPerHost: config.MaxIdleConnsPerHost,
+		IdleConnTimeout:     config.IdleConnTimeout,
+		TLSHandshakeTimeout: config.TLSHandshakeTimeout,
+		ForceAttemptHTTP2:   true,
+		DisableCompression:  false,
+	}
+
+	client := &Client{
+		BaseURL: config.BaseURL,
 		HTTPClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   config.Timeout,
+			Transport: transport,
 		},
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 			"Accept":       "application/json",
+			"User-Agent":   "adaptive-backend/1.0",
 		},
 	}
+
+	// Initialize metrics
+	client.initMetrics()
+
+	return client
+}
+
+// initMetrics initializes API client metrics
+func (c *Client) initMetrics() {
+	c.metricsOnce.Do(func() {
+		c.metrics = metrics.NewAPIClientMetrics()
+	})
 }
 
 // Get performs a GET request
@@ -65,15 +133,64 @@ func (c *Client) Patch(path string, body any, result any, opts *RequestOptions) 
 	return c.doRequest(http.MethodPatch, path, body, result, opts)
 }
 
-// doRequest performs an HTTP request
+// doRequest performs an HTTP request with retries and metrics
 func (c *Client) doRequest(method, path string, body any, result any, opts *RequestOptions) error {
+	start := time.Now()
 	url := c.BaseURL + path
 
+	// Set default options
+	if opts == nil {
+		opts = &RequestOptions{}
+	}
+	if opts.Retries == 0 {
+		opts.Retries = 3
+	}
+	if opts.RetryDelay == 0 {
+		opts.RetryDelay = 1 * time.Second
+	}
+
+	var lastErr error
+	for attempt := 0; attempt <= opts.Retries; attempt++ {
+		if attempt > 0 {
+			// Record retry
+			c.metrics.RecordRetry(method, "network_error")
+			
+			// Wait before retry with exponential backoff
+			delay := time.Duration(attempt) * opts.RetryDelay
+			time.Sleep(delay)
+		}
+
+		err := c.executeRequest(method, url, body, result, opts)
+		if err == nil {
+			// Success - record metrics
+			duration := time.Since(start)
+			c.metrics.RecordRequest(method, "200", duration.Seconds())
+			return nil
+		}
+
+		lastErr = err
+
+		// Check if error is retryable
+		if !c.isRetryableError(err) {
+			break
+		}
+	}
+
+	// All retries failed - record error
+	duration := time.Since(start)
+	c.metrics.RecordRequest(method, "error", duration.Seconds())
+	c.metrics.RecordError(method, c.categorizeError(lastErr))
+
+	return fmt.Errorf("request failed after %d attempts: %w", opts.Retries+1, lastErr)
+}
+
+// executeRequest performs a single HTTP request
+func (c *Client) executeRequest(method, url string, body any, result any, opts *RequestOptions) error {
 	// Create request context
 	ctx := context.Background()
-	if opts != nil && opts.Context != nil {
+	if opts.Context != nil {
 		ctx = opts.Context
-	} else if opts != nil && opts.Timeout > 0 {
+	} else if opts.Timeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
 		defer cancel()
@@ -81,12 +198,14 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 
 	// Prepare request body
 	var reqBody io.Reader
+	var bodySize int64
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
 		if err != nil {
 			return fmt.Errorf("error marshaling request body: %w", err)
 		}
 		reqBody = bytes.NewBuffer(jsonBody)
+		bodySize = int64(len(jsonBody))
 	}
 
 	// Create request
@@ -95,26 +214,34 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 		return fmt.Errorf("error creating request: %w", err)
 	}
 
+	// Set content length for POST/PUT requests
+	if bodySize > 0 {
+		req.ContentLength = bodySize
+	}
+
 	// Set default headers
 	for k, v := range c.Headers {
 		req.Header.Set(k, v)
 	}
 
 	// Set custom headers if provided
-	if opts != nil && len(opts.Headers) > 0 {
+	if len(opts.Headers) > 0 {
 		for k, v := range opts.Headers {
 			req.Header.Set(k, v)
 		}
 	}
 
 	// Add query parameters if provided
-	if opts != nil && len(opts.QueryParams) > 0 {
+	if len(opts.QueryParams) > 0 {
 		q := req.URL.Query()
 		for k, v := range opts.QueryParams {
 			q.Add(k, v)
 		}
 		req.URL.RawQuery = q.Encode()
 	}
+
+	// Record request metrics
+	c.metrics.RecordRequestSize(bodySize)
 
 	// Execute request
 	resp, err := c.HTTPClient.Do(req)
@@ -123,49 +250,177 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 	}
 	defer resp.Body.Close()
 
+	// Record response metrics
+	c.metrics.RecordResponse(method, fmt.Sprintf("%d", resp.StatusCode))
+
 	// Check response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
+		c.metrics.RecordResponseSize(int64(len(bodyBytes)))
 		return fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	// Handle response based on expected type
+	return c.handleResponse(resp, result, opts)
+}
+
+// handleResponse processes the HTTP response based on the expected type
+func (c *Client) handleResponse(resp *http.Response, result any, opts *RequestOptions) error {
 	responseType := "json"
-	if opts != nil && opts.ResponseType != "" {
+	if opts.ResponseType != "" {
 		responseType = opts.ResponseType
 	}
 
 	switch responseType {
 	case "json":
-		if result != nil {
-			// Read the response body
-			bodyBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Errorf("error reading response body: %w", err)
-			}
-
-			// Unmarshal the response
-			if err := json.Unmarshal(bodyBytes, result); err != nil {
-				return fmt.Errorf("error unmarshaling response: %w", err)
-			}
-		}
+		return c.handleJSONResponse(resp, result)
 	case "text":
-		if stringResult, ok := result.(*string); ok {
-			bodyBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Errorf("error reading response body: %w", err)
-			}
-			*stringResult = string(bodyBytes)
-		}
+		return c.handleTextResponse(resp, result)
 	case "binary":
-		if bytesResult, ok := result.(*[]byte); ok {
-			bodyBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return fmt.Errorf("error reading response body: %w", err)
-			}
-			*bytesResult = bodyBytes
-		}
+		return c.handleBinaryResponse(resp, result)
+	default:
+		return fmt.Errorf("unsupported response type: %s", responseType)
+	}
+}
+
+// handleJSONResponse processes JSON responses
+func (c *Client) handleJSONResponse(resp *http.Response, result any) error {
+	if result == nil {
+		// Discard response body
+		_, err := io.Copy(io.Discard, resp.Body)
+		return err
+	}
+
+	// Read the response body
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response body: %w", err)
+	}
+
+	c.metrics.RecordResponseSize(int64(len(bodyBytes)))
+
+	// Unmarshal the response
+	if err := json.Unmarshal(bodyBytes, result); err != nil {
+		return fmt.Errorf("error unmarshaling response: %w", err)
 	}
 
 	return nil
+}
+
+// handleTextResponse processes text responses
+func (c *Client) handleTextResponse(resp *http.Response, result any) error {
+	stringResult, ok := result.(*string)
+	if !ok {
+		return fmt.Errorf("result must be *string for text response")
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response body: %w", err)
+	}
+
+	c.metrics.RecordResponseSize(int64(len(bodyBytes)))
+	*stringResult = string(bodyBytes)
+	return nil
+}
+
+// handleBinaryResponse processes binary responses
+func (c *Client) handleBinaryResponse(resp *http.Response, result any) error {
+	bytesResult, ok := result.(*[]byte)
+	if !ok {
+		return fmt.Errorf("result must be *[]byte for binary response")
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading response body: %w", err)
+	}
+
+	c.metrics.RecordResponseSize(int64(len(bodyBytes)))
+	*bytesResult = bodyBytes
+	return nil
+}
+
+// isRetryableError determines if an error is retryable
+func (c *Client) isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// Check for network errors
+	if netErr, ok := err.(net.Error); ok {
+		return netErr.Timeout() || netErr.Temporary()
+	}
+
+	// Check for context timeout
+	if err == context.DeadlineExceeded {
+		return true
+	}
+
+	// Check for specific HTTP status codes (5xx errors)
+	errStr := err.Error()
+	retryableStatusCodes := []string{"500", "502", "503", "504", "520", "521", "522", "523", "524"}
+	for _, code := range retryableStatusCodes {
+		if containsStatusCode(errStr, code) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// containsStatusCode checks if error message contains a specific status code
+func containsStatusCode(errStr, statusCode string) bool {
+	return fmt.Sprintf("status code %s", statusCode) == errStr ||
+		fmt.Sprintf("status %s", statusCode) == errStr
+}
+
+// categorizeError categorizes an error for metrics
+func (c *Client) categorizeError(err error) string {
+	if err == nil {
+		return "none"
+	}
+
+	if netErr, ok := err.(net.Error); ok {
+		if netErr.Timeout() {
+			return "timeout"
+		}
+		return "network"
+	}
+
+	if err == context.DeadlineExceeded {
+		return "timeout"
+	}
+
+	errStr := err.Error()
+	if containsStatusCode(errStr, "400") {
+		return "client_error"
+	}
+	if containsStatusCode(errStr, "401") || containsStatusCode(errStr, "403") {
+		return "auth_error"
+	}
+	if containsStatusCode(errStr, "404") {
+		return "not_found"
+	}
+	if containsStatusCode(errStr, "429") {
+		return "rate_limit"
+	}
+	if containsStatusCode(errStr, "500") || containsStatusCode(errStr, "502") ||
+		containsStatusCode(errStr, "503") || containsStatusCode(errStr, "504") {
+		return "server_error"
+	}
+
+	return "unknown"
+}
+
+// Close closes the underlying HTTP client
+func (c *Client) Close() {
+	if transport, ok := c.HTTPClient.Transport.(*http.Transport); ok {
+		transport.CloseIdleConnections()
+	}
+}
+
+// GetMetrics returns the client metrics (for debugging/monitoring)
+func (c *Client) GetMetrics() *metrics.APIClientMetrics {
+	return c.metrics
 }

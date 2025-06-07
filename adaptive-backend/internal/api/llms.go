@@ -68,7 +68,7 @@ func (h *ChatCompletionHandler) getRequestID(c *fiber.Ctx) string {
 }
 
 func (h *ChatCompletionHandler) getAPIKey(c *fiber.Ctx) string {
-	apiKey := string(c.Request().Header.Peek("X-API-Key"))
+	apiKey := string(c.Request().Header.Peek("X-Stainless-API-Key"))
 	if apiKey == "" {
 		return "anonymous"
 	}

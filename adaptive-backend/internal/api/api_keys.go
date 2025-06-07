@@ -4,7 +4,6 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/usage"
 	"context"
-	"encoding/json"
 	"os"
 	"time"
 
@@ -12,8 +11,6 @@ import (
 	"github.com/clerk/clerk-sdk-go/v2/user"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/stripe/stripe-go/v82"
-	"github.com/stripe/stripe-go/v82/customer"
 )
 
 type APIKeyHandler struct {
@@ -90,60 +87,17 @@ func (h *APIKeyHandler) CreateAPIKey(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User ID missing from context"})
 	}
 
-	// --- Clerk user ---
+	// Validate user exists in Clerk
 	ctx := context.Background()
 	config := &clerk.ClientConfig{}
 	config.Key = clerk.String(os.Getenv("CLERK_SECRET_KEY"))
 	userClient := user.NewClient(config)
 
-	clerkUser, err := userClient.Get(ctx, userId)
-	if err != nil || len(clerkUser.EmailAddresses) == 0 {
+	_, err := userClient.Get(ctx, userId)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to get user from Clerk: " + err.Error(),
+			"error": "Failed to validate user: " + err.Error(),
 		})
-	}
-	email := clerkUser.EmailAddresses[len(clerkUser.EmailAddresses)-1].EmailAddress
-	var name string
-	if clerkUser.Username != nil {
-		name = *clerkUser.Username
-	}
-
-	// --- Unmarshal Clerk PrivateMetadata for Stripe customer ID ---
-	var stripeCustomerID string
-	var meta map[string]any
-	if len(clerkUser.PrivateMetadata) > 0 {
-		if err := json.Unmarshal(clerkUser.PrivateMetadata, &meta); err == nil {
-			if v, ok := meta["stripe_customer_id"].(string); ok {
-				stripeCustomerID = v
-			}
-		}
-	}
-
-	// --- If no Stripe customer ID, create one and update Clerk user ---
-	if stripeCustomerID == "" {
-		stripe.Key = os.Getenv("STRIPE_API_KEY")
-		params := &stripe.CustomerParams{
-			Email: stripe.String(email),
-			Name:  stripe.String(name),
-		}
-		stripeCustomer, err := customer.New(params)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to create Stripe customer: " + err.Error(),
-			})
-		}
-		stripeCustomerID = stripeCustomer.ID
-
-		meta["stripe_customer_id"] = stripeCustomerID
-		metaJson, _ := json.Marshal(meta)
-		_, err = userClient.Update(ctx, userId, &user.UpdateParams{
-			PrivateMetadata: (*json.RawMessage)(&metaJson),
-		})
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Failed to update Clerk user with Stripe customer ID: " + err.Error(),
-			})
-		}
 	}
 
 	apiKey, fullAPIKey, err := h.service.GenerateAPIKey(
@@ -151,7 +105,6 @@ func (h *APIKeyHandler) CreateAPIKey(c *fiber.Ctx) error {
 		request.Name,
 		request.Status,
 		expiresAt,
-		stripeCustomerID,
 	)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

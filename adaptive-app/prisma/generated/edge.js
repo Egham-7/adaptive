@@ -143,7 +143,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/home/botirk/adaptive/adaptive-app/prisma/generated",
+      "value": "/Users/botirkhaltaev/Desktop/adaptive/adaptive-app/prisma/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -152,17 +152,16 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "linux-nixos",
+        "value": "darwin-arm64",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/home/botirk/adaptive/adaptive-app/prisma/schema.prisma",
+    "sourceFilePath": "/Users/botirkhaltaev/Desktop/adaptive/adaptive-app/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
-    "rootEnvPath": null,
-    "schemaEnvPath": "../../.env"
+    "rootEnvPath": null
   },
   "relativePath": "..",
   "clientVersion": "6.9.0",
@@ -171,7 +170,7 @@ const config = {
     "db"
   ],
   "activeProvider": "sqlserver",
-  "postinstall": false,
+  "postinstall": true,
   "inlineDatasources": {
     "db": {
       "url": {
