@@ -26,6 +26,7 @@ func SetupRoutes(app *fiber.App) {
 	apiKeyHandler := api.NewAPIKeyHandler()
 	chatCompletionHandler := api.NewChatCompletionHandler()
 
+	authMiddleware := middleware.AuthMiddleware()
 	apiKeyMiddleware := middleware.APIKeyMiddleware(apiKeyHandler)
 
 	// API group
@@ -34,6 +35,14 @@ func SetupRoutes(app *fiber.App) {
 	chatCompletions := apiGroup.Group("/chat/completions", apiKeyMiddleware)
 
 	chatCompletions.Post("/", chatCompletionHandler.ChatCompletion)
+
+	// API key routes
+	apiKeys := apiGroup.Group("/api_keys", authMiddleware)
+	apiKeys.Get("/:userId", apiKeyHandler.GetAllAPIKeysByUserId)
+	apiKeys.Get("/:id", apiKeyHandler.GetAPIKeyById)
+	apiKeys.Post("/", apiKeyHandler.CreateAPIKey)
+	apiKeys.Put("/:id", apiKeyHandler.UpdateAPIKey)
+	apiKeys.Delete("/:id", apiKeyHandler.DeleteAPIKey)
 }
 
 func main() {
