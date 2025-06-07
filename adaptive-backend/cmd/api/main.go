@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ansrivas/fiberprometheus/v2"
+	"github.com/joho/godotenv"
 	"github.com/stripe/stripe-go/v82"
 
 	"github.com/gofiber/fiber/v2"
@@ -35,7 +37,6 @@ func SetupRoutes(app *fiber.App) {
 	chatCompletions := apiGroup.Group("/chat/completions", apiKeyMiddleware)
 
 	chatCompletions.Post("/", chatCompletionHandler.ChatCompletion)
-	chatCompletions.Post("/stream", chatCompletionHandler.StreamChatCompletion)
 
 	// API key routes
 	apiKeys := apiGroup.Group("/api_keys", authMiddleware)
@@ -70,6 +71,11 @@ func SetupRoutes(app *fiber.App) {
 }
 
 func main() {
+	err := godotenv.Load(".env.local")
+	if err != nil {
+		log.Println("No .env.local file found, proceeding with environment variables")
+	}
+
 	// Check required environment variables
 	port := os.Getenv("ADDR")
 	if port == "" {
@@ -90,9 +96,9 @@ func main() {
 		IdleTimeout:       5 * time.Minute,
 	})
 
-	err := config.Initialize(os.Getenv("DB_SERVER"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))
-	if err != nil {
-		log.Fatal(err)
+	db_err := config.Initialize(os.Getenv("DB_SERVER"), os.Getenv("DB_NAME"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"))
+	if db_err != nil {
+		log.Fatal(db_err)
 	}
 
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
@@ -120,10 +126,35 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	app.Use(logger.New())
 	app.Use(recover.New())
 
+	allAllowedHeaders := []string{
+		"Origin",
+		"Content-Type",
+		"Accept",
+		"Authorization",
+		"User-Agent",
+		"X-Stainless-API-Key",
+		"X-Stainless-Arch",
+		"X-Stainless-OS",
+		"X-Stainless-Runtime",
+		"X-Stainless-Runtime-Version",
+		"X-Stainless-Package-Version",
+		"X-Stainless-Lang",
+		"X-Stainless-Retry-Count",
+		"X-Stainless-Read-Timeout",
+		"X-Stainless-Async",
+		"X-Stainless-Raw-Response",
+		"X-Stainless-Helper-Method",
+		"X-Stainless-Timeout",
+	}
+
+	// Join the headers into a comma-separated string, as required by rs/cors Config.AllowHeaders
+	allowedHeadersString := strings.Join(allAllowedHeaders, ", ")
+
 	// Add CORS middleware with required environment variable
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     allowedOrigins,
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowOrigins: allowedOrigins,
+		AllowHeaders: allowedHeadersString,
+
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
 		MaxAge:           86400, // Preflight requests can be cached for 24 hours

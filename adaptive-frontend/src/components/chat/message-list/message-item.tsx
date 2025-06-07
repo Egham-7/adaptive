@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { DBMessage } from "@/services/messages/types";
 import MessageContent from "./message-content";
 import { useDeleteMessage } from "@/hooks/conversations/use-delete-message";
+import { MessageRole } from "@/services/llms/types";
 
 interface MessageItemProps {
   message: DBMessage;
@@ -15,7 +16,7 @@ interface MessageItemProps {
   updateMessage: (params: {
     conversationId: number;
     messageId: number;
-    updates: { role?: string; content?: string };
+    updates: { role?: MessageRole; content?: string };
     index: number;
     messages: DBMessage[];
   }) => Promise<DBMessage>;

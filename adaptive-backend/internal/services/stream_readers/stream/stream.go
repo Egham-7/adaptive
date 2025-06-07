@@ -1,24 +1,25 @@
 package stream
 
 import (
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/stream_readers"
-	"adaptive-backend/internal/services/stream_readers/sse"
-	"adaptive-backend/internal/services/stream_readers/vercel"
 	"bufio"
 	"fmt"
 	"io"
 	"log"
 	"time"
 
+	"adaptive-backend/internal/services/stream_readers"
+	"adaptive-backend/internal/services/stream_readers/sse"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/packages/ssestream"
 	"github.com/valyala/fasthttp"
 )
 
 // HandleStream manages the streaming response to the client
-func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID string, options *models.RequestOptions) error {
+func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string) error {
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
-		streamReader, err := selectStreamReader(resp, requestID, options)
+		streamReader, err := selectStreamReader(resp, requestID)
 		if err != nil {
 			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
 			return
@@ -32,16 +33,8 @@ func HandleStream(c *fiber.Ctx, resp *models.ChatCompletionResponse, requestID s
 	return nil
 }
 
-func selectStreamReader(resp *models.ChatCompletionResponse, requestID string, opts *models.RequestOptions) (stream_readers.StreamReader, error) {
-	var streamOption *models.StreamOption
-	if opts != nil {
-		streamOption = opts.StreamOptions
-	}
-
-	if streamOption != nil && *streamOption == models.DATASTREAM {
-		return vercel.GetDataStreamReader(resp, resp.Provider, requestID)
-	}
-	return sse.GetSSEStreamReader(resp, resp.Provider, requestID)
+func selectStreamReader(resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string) (stream_readers.StreamReader, error) {
+	return sse.GetSSEStreamReader(resp, requestID)
 }
 
 // Helper functions
