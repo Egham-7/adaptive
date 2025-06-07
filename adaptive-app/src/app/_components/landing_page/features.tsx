@@ -64,8 +64,8 @@ export default function FeaturesSection() {
 				</div>
 
 				<div className="relative mx-auto grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-8 lg:grid-cols-4">
-					{features.map((feature, index) => (
-						<div key={index} className="space-y-2">
+					{features.map((feature) => (
+						<div key={feature.title} className="space-y-2">
 							<div className="flex items-center gap-2">
 								{feature.icon}
 								<h3 className="font-medium text-sm">{feature.title}</h3>

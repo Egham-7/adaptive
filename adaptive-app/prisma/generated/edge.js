@@ -171,7 +171,7 @@ const config = {
     "db"
   ],
   "activeProvider": "sqlserver",
-  "postinstall": true,
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {

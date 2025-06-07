@@ -5,7 +5,15 @@
 		"clientKind": "git",
 		"useIgnoreFile": true
 	},
-	"files": { "ignoreUnknown": false, "ignore": ["prisma/**"] },
+	"files": {
+		"ignoreUnknown": false,
+		"ignore": [
+			"prisma/**",
+			"node_modules/**",
+			".next/**",
+			"src/components/ui/**"
+		]
+	},
 	"formatter": { "enabled": true },
 	"organizeImports": { "enabled": true },
 	"linter": {

@@ -46,6 +46,7 @@ export default function Header() {
 								<Logo />
 							</Link>
 							<button
+								type="button"
 								onClick={() => setMenuState(!menuState)}
 								aria-label={menuState === true ? "Close Menu" : "Open Menu"}
 								className="-m-2.5 -mr-4 relative z-20 block cursor-pointer p-2.5 lg:hidden"
@@ -57,8 +58,8 @@ export default function Header() {
 						<div className="mb-6 in-data-[state=active]:block hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-color-shadow-color/[var(--shadow-opacity)] md:flex-nowrap lg:m-0 lg:flex lg:in-data-[state=active]:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
 							<div className="lg:pr-4">
 								<ul className="space-y-6 text-base lg:flex lg:gap-8 lg:space-y-0 lg:text-sm">
-									{menuItems.map((item, index) => (
-										<li key={index}>
+									{menuItems.map((item) => (
+										<li key={item.name}>
 											<Link
 												href={item.href}
 												className="block text-muted-foreground duration-150 hover:text-accent-foreground"

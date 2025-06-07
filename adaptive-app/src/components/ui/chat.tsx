@@ -290,9 +290,9 @@ export function Chat({
 			if (messageIndex !== -1) {
 				// Delete subsequent messages from database
 				const messagesToDelete = state.messages.slice(messageIndex);
-				messagesToDelete.forEach((msg) => {
+				for (const msg of messagesToDelete) {
 					deleteMessageMutation.mutate({ id: msg.id });
-				});
+				}
 
 				setMessages(messages.slice(0, messageIndex));
 				append?.({
@@ -304,7 +304,14 @@ export function Chat({
 				dispatch({ type: "EDIT_MESSAGE", messageId: "", content: "" });
 			}
 		},
-		[state.messages, state.editingContent, deleteMessageMutation, setMessages],
+		[
+			state.messages,
+			state.editingContent,
+			deleteMessageMutation,
+			setMessages,
+			messages,
+			append,
+		],
 	);
 
 	const handleCancelEdit = useCallback(() => {
@@ -323,9 +330,9 @@ export function Chat({
 			if (messageIndex !== -1) {
 				// Delete subsequent messages from database
 				const messagesToDelete = state.messages.slice(messageIndex);
-				messagesToDelete.forEach((msg) => {
+				for (const msg of messagesToDelete) {
 					deleteMessageMutation.mutate({ id: msg.id });
-				});
+				}
 			}
 
 			dispatch({
@@ -346,9 +353,9 @@ export function Chat({
 			if (messageIndex !== -1) {
 				// Delete this message and all subsequent messages from database
 				const messagesToDelete = state.messages.slice(messageIndex);
-				messagesToDelete.forEach((msg) => {
+				for (const msg of messagesToDelete) {
 					deleteMessageMutation.mutate({ id: msg.id });
-				});
+				}
 			}
 
 			dispatch({

@@ -1,4 +1,4 @@
-import type { RouterOutputs, RouterInputs } from "@/trpc/react";
+import type { RouterInputs, RouterOutputs } from "@/trpc/react";
 
 export type Message = RouterOutputs["messages"]["getById"];
 export type MessageCreateInput = RouterInputs["messages"]["create"];

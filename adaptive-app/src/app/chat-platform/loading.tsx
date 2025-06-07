@@ -5,7 +5,6 @@ import {
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuItem,
-	SidebarProvider,
 	SidebarRail,
 	SidebarSeparator,
 	SidebarTrigger,
@@ -47,7 +46,8 @@ export default function Loading() {
 							</div>
 							{Array.from({ length: 2 }).map((_, i) => (
 								<Skeleton
-									key={`pinned-${i}`}
+									// biome-ignore lint/suspicious/noArrayIndexKey: This is a static loading component, array index as key is acceptable here.
+									key={`pinned-${i}`} // This will now be ignored by Biome
 									className="mx-2 h-12 rounded-md"
 								/>
 							))}
@@ -57,7 +57,11 @@ export default function Loading() {
 						<div className="space-y-2">
 							<Skeleton className="mx-2 h-4 w-12" />
 							{Array.from({ length: 3 }).map((_, i) => (
-								<Skeleton key={`today-${i}`} className="mx-2 h-12 rounded-md" />
+								<Skeleton
+									// biome-ignore lint/suspicious/noArrayIndexKey: This is a static loading component, array index as key is acceptable here.
+									key={`today-${i}`} // This will now be ignored by Biome
+									className="mx-2 h-12 rounded-md"
+								/>
 							))}
 						</div>
 
@@ -66,7 +70,8 @@ export default function Loading() {
 							<Skeleton className="mx-2 h-4 w-20" />
 							{Array.from({ length: 4 }).map((_, i) => (
 								<Skeleton
-									key={`last30-${i}`}
+									// biome-ignore lint/suspicious/noArrayIndexKey: This is a static loading component, array index as key is acceptable here.
+									key={`last30-${i}`} // This will now be ignored by Biome
 									className="mx-2 h-12 rounded-md"
 								/>
 							))}

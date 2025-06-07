@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // How many pixels from the bottom of the container to enable auto-scroll
 const ACTIVATION_THRESHOLD = 50;
@@ -10,11 +10,11 @@ export function useAutoScroll(dependencies: React.DependencyList) {
 	const previousScrollTop = useRef<number | null>(null);
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
-	const scrollToBottom = () => {
+	const scrollToBottom = useCallback(() => {
 		if (containerRef.current) {
 			containerRef.current.scrollTop = containerRef.current.scrollHeight;
 		}
-	};
+	}, []);
 
 	const handleScroll = () => {
 		if (containerRef.current) {
@@ -60,8 +60,7 @@ export function useAutoScroll(dependencies: React.DependencyList) {
 		if (shouldAutoScroll) {
 			scrollToBottom();
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, dependencies);
+	}, [shouldAutoScroll, scrollToBottom, ...dependencies]);
 
 	return {
 		containerRef,

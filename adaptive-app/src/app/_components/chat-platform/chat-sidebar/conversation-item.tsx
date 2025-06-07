@@ -56,7 +56,10 @@ export function ConversationItem({
 							</p>
 						)}
 					</div>
-
+					{/* 
+            biome-ignore lint/a11y/useKeyWithClickEvents: This div's onClick is solely for event propagation control (stopping bubbling to parent Link), 
+            not for direct user interaction via mouse or keyboard. The actual interactive elements (buttons) are nested inside.
+          */}
 					<div
 						className={cn(
 							"-translate-y-1/2 absolute top-1/2 right-2 flex items-center gap-1 rounded bg-background/80 p-0.5 opacity-0 backdrop-blur-xs transition-opacity",

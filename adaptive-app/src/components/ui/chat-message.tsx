@@ -132,8 +132,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 			>
 				{userFiles && userFiles.length > 0 ? (
 					<div className="mb-1 flex flex-wrap gap-2">
-						{userFiles.map((file, index) => {
-							return <FilePreview key={index} file={file} />;
+						{userFiles.map((file) => {
+							return (
+								<FilePreview key={`${file.name}-${file.size}`} file={file} />
+							);
 						})}
 					</div>
 				) : null}
@@ -199,6 +201,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 				{parts.map((part, index) => {
 					if (part.type === "text") {
 						return (
+							// biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
 							<React.Fragment key={`text-${index}`}>
 								<div className={cn(chatBubbleVariants({ isUser, animation }))}>
 									<MarkdownRenderer>{part.text}</MarkdownRenderer>
@@ -224,11 +227,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 						);
 					}
 					if (part.type === "reasoning") {
+						// biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
 						return <ReasoningBlock key={`reasoning-${index}`} part={part} />;
 					}
 					if (part.type === "tool-invocation") {
 						return (
 							<ToolCallBlock
+								// biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
 								key={`tool-invocation-${index}`}
 								toolInvocation={part.toolInvocation}
 							/>
@@ -241,6 +246,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 							`ai-file-${index}`,
 						);
 						return file ? (
+							// biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
 							<div key={`file-${index}`} className="mb-2">
 								<FilePreview file={file} />
 							</div>
@@ -322,7 +328,10 @@ const ReasoningBlock = ({ part }: { part: MessageReasoningPart }) => {
 			>
 				<div className="flex items-center p-2">
 					<CollapsibleTrigger asChild>
-						<button className="flex items-center gap-2 text-muted-foreground text-sm hover:text-foreground">
+						<button
+							type="button"
+							className="flex items-center gap-2 text-muted-foreground text-sm hover:text-foreground"
+						>
 							<ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
 							<span>Thinking</span>
 						</button>
@@ -371,12 +380,14 @@ function ToolCallBlock({
 			{invocationsToRender.map((invocation, index) => {
 				const isCancelled =
 					invocation.state === "result" &&
-					(invocation.result as any)?.__cancelled === true;
+					(invocation.result as { __cancelled?: boolean })?.__cancelled ===
+						true;
 
 				if (isCancelled) {
 					return (
 						<div
-							key={index}
+							// biome-ignore lint/suspicious/noArrayIndexKey: Tool invocations don't have stable IDs, index is appropriate here
+							key={`cancelled-${index}`}
 							className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-muted-foreground text-sm"
 						>
 							<Ban className="h-4 w-4" />
@@ -397,7 +408,8 @@ function ToolCallBlock({
 					case "call":
 						return (
 							<div
-								key={index}
+								// biome-ignore lint/suspicious/noArrayIndexKey: Tool invocations don't have stable IDs, index is appropriate here
+								key={`call-${index}`}
 								className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-muted-foreground text-sm"
 							>
 								<Terminal className="h-4 w-4" />
@@ -416,7 +428,8 @@ function ToolCallBlock({
 					case "result":
 						return (
 							<div
-								key={index}
+								// biome-ignore lint/suspicious/noArrayIndexKey: Tool invocations don't have stable IDs, index is appropriate here
+								key={`result-${index}`}
 								className="flex flex-col gap-1.5 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
 							>
 								<div className="flex items-center gap-2 text-muted-foreground">

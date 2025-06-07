@@ -12,7 +12,7 @@ import {
 interface ConversationListProps {
 	conversations: ConversationListItem[] | undefined;
 	isLoading: boolean;
-	error: any;
+	error: Error | undefined;
 	searchQuery: string;
 	onClearSearch: () => void;
 	onPin: (id: number, isPinned: boolean) => void;
@@ -40,7 +40,14 @@ export function ConversationList({
 
 		const pinned: ConversationListItem[] = [];
 		const unpinned: ConversationListItem[] = [];
-		filtered.forEach((c) => (c.pinned ? pinned.push(c) : unpinned.push(c)));
+
+		for (const conversation of filtered) {
+			if (conversation.pinned) {
+				pinned.push(conversation);
+			} else {
+				unpinned.push(conversation);
+			}
+		}
 
 		const now = new Date();
 		const thirtyDaysAgo = subDays(now, 30);

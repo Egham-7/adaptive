@@ -35,5 +35,5 @@ export function useAutosizeTextArea({
 
 		currentRef.style.height = `${clampedToMin + borderAdjustment}px`;
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [maxHeight, ref, ...dependencies]);
+	}, [maxHeight, ref, ...dependencies, borderWidth]);
 }

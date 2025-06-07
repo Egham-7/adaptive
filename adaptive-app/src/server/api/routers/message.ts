@@ -2,28 +2,39 @@ import { createMessageSchema, updateMessageSchema } from "@/lib/chat/schema";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
+import type { Conversation, Message } from "prisma/generated";
 import { z } from "zod";
 
-// Pure functions for validation and transformation
-const validateConversationAccess = (conversation: unknown, userId: string) => {
+type CreateMessageInput = z.infer<typeof createMessageSchema>;
+type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
+
+// Pure functions for validation and transformation - using function declarations
+function validateConversationAccess(
+	conversation: Conversation | null,
+): asserts conversation is Conversation {
 	if (!conversation) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Conversation not found or you do not have access.",
 		});
 	}
-};
+}
 
-const validateMessageAccess = (message: unknown) => {
+function validateMessageAccess(
+	message: Message | null,
+): asserts message is Message {
 	if (!message) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Message not found or you do not have access.",
 		});
 	}
-};
+}
 
-const createMessageData = (input: any, conversationId: number) => ({
+const createMessageData = (
+	input: Omit<CreateMessageInput, "conversationId">,
+	conversationId: number,
+) => ({
 	...input,
 	role: input.role,
 	content: input.content,
@@ -31,7 +42,7 @@ const createMessageData = (input: any, conversationId: number) => ({
 	...(input.createdAt && { createdAt: new Date(input.createdAt) }),
 });
 
-const updateMessageData = (input: any) => ({
+const updateMessageData = (input: Omit<UpdateMessageInput, "id">) => ({
 	...input,
 	updatedAt: new Date(),
 });
@@ -41,7 +52,7 @@ const findConversationByUserAndId = (
 	db: PrismaClient,
 	conversationId: number,
 	userId: string,
-) =>
+): Promise<Conversation | null> =>
 	db.conversation.findUnique({
 		where: { id: conversationId, userId, deletedAt: null },
 	});
@@ -50,7 +61,7 @@ const findMessageWithConversationAccess = (
 	db: PrismaClient,
 	messageId: string,
 	userId: string,
-) =>
+): Promise<Message | null> =>
 	db.message.findFirst({
 		where: {
 			id: messageId,
@@ -62,31 +73,40 @@ const findMessageWithConversationAccess = (
 		},
 	});
 
-const createMessage = (db: PrismaClient, data: any) =>
-	db.message.create({ data });
+const createMessage = (
+	db: PrismaClient,
+	data: ReturnType<typeof createMessageData>,
+): Promise<Message> => db.message.create({ data });
 
 const updateConversationTimestamp = (
 	db: PrismaClient,
 	conversationId: number,
-) =>
+): Promise<Conversation> =>
 	db.conversation.update({
 		where: { id: conversationId },
 		data: { updatedAt: new Date() },
 	});
 
-const getMessagesByConversation = (db: PrismaClient, conversationId: number) =>
+const getMessagesByConversation = (
+	db: PrismaClient,
+	conversationId: number,
+): Promise<Message[]> =>
 	db.message.findMany({
 		where: { conversationId, deletedAt: null },
 		orderBy: { createdAt: "asc" },
 	});
 
-const updateMessage = (db: PrismaClient, id: string, data: any) =>
+const updateMessage = (
+	db: PrismaClient,
+	id: string,
+	data: ReturnType<typeof updateMessageData>,
+): Promise<Message> =>
 	db.message.update({
 		where: { id },
 		data,
 	});
 
-const softDeleteMessage = (db: PrismaClient, id: string) =>
+const softDeleteMessage = (db: PrismaClient, id: string): Promise<Message> =>
 	db.message.update({
 		where: { id },
 		data: { deletedAt: new Date() },
@@ -94,9 +114,9 @@ const softDeleteMessage = (db: PrismaClient, id: string) =>
 
 const upsertMessage = (
 	db: PrismaClient,
-	messageData: any,
+	messageData: CreateMessageInput,
 	conversationId: number,
-) => {
+): Promise<Message> => {
 	const { conversationId: msgConversationId, ...dataWithoutConversationId } =
 		messageData;
 
@@ -116,26 +136,42 @@ const upsertMessage = (
 	});
 };
 
+// Context type (you may need to adjust this based on your actual context type)
+interface TRPCContext {
+	db: PrismaClient;
+	clerkAuth: {
+		userId: string;
+	};
+}
+
 // Higher-order function for conversation access validation
 const withConversationAccess = <T extends { conversationId: number }>(
-	handler: (params: { ctx: any; input: T; conversation: any }) => Promise<any>,
+	handler: (params: {
+		ctx: TRPCContext;
+		input: T;
+		conversation: Conversation;
+	}) => Promise<unknown>,
 ) => {
-	return async ({ ctx, input }: { ctx: any; input: T }) => {
+	return async ({ ctx, input }: { ctx: TRPCContext; input: T }) => {
 		const conversation = await findConversationByUserAndId(
 			ctx.db,
 			input.conversationId,
 			ctx.clerkAuth.userId,
 		);
-		validateConversationAccess(conversation, ctx.clerkAuth.userId);
+		validateConversationAccess(conversation);
 		return handler({ ctx, input, conversation });
 	};
 };
 
 // Higher-order function for message access validation
 const withMessageAccess = <T extends { id: string }>(
-	handler: (params: { ctx: any; input: T; message: any }) => Promise<any>,
+	handler: (params: {
+		ctx: TRPCContext;
+		input: T;
+		message: Message;
+	}) => Promise<unknown>,
 ) => {
-	return async ({ ctx, input }: { ctx: any; input: T }) => {
+	return async ({ ctx, input }: { ctx: TRPCContext; input: T }) => {
 		const message = await findMessageWithConversationAccess(
 			ctx.db,
 			input.id,
@@ -149,9 +185,9 @@ const withMessageAccess = <T extends { id: string }>(
 // Compose database operations
 const createMessageWithTimestampUpdate = async (
 	db: PrismaClient,
-	messageData: any,
+	messageData: ReturnType<typeof createMessageData>,
 	conversationId: number,
-) => {
+): Promise<Message> => {
 	const newMessage = await createMessage(db, messageData);
 	await updateConversationTimestamp(db, conversationId);
 	return newMessage;
@@ -160,9 +196,9 @@ const createMessageWithTimestampUpdate = async (
 const updateMessageWithTimestampUpdate = async (
 	db: PrismaClient,
 	messageId: string,
-	updateData: any,
+	updateData: ReturnType<typeof updateMessageData>,
 	conversationId: number,
-) => {
+): Promise<Message> => {
 	const updatedMessage = await updateMessage(db, messageId, updateData);
 	await updateConversationTimestamp(db, conversationId);
 	return updatedMessage;
@@ -172,7 +208,7 @@ const deleteMessageWithTimestampUpdate = async (
 	db: PrismaClient,
 	messageId: string,
 	conversationId: number,
-) => {
+): Promise<Message> => {
 	const deletedMessage = await softDeleteMessage(db, messageId);
 	await updateConversationTimestamp(db, conversationId);
 	return deletedMessage;
@@ -204,7 +240,7 @@ export const messageRouter = createTRPCRouter({
 		),
 
 	getById: protectedProcedure.input(z.object({ id: z.string() })).query(
-		withMessageAccess(async ({ ctx, input, message }) => {
+		withMessageAccess(async ({ message }) => {
 			return message;
 		}),
 	),
