@@ -7,7 +7,7 @@ import type { RouterInputs, RouterOutputs } from "./index";
  * Includes the conversation details and its most recent message.
  */
 export type ConversationListItem =
-	RouterOutputs["conversations"]["list"][number];
+  RouterOutputs["conversations"]["list"][number];
 
 /**
  * The type for a single, fully-detailed conversation.
@@ -21,6 +21,7 @@ export type ConversationDetails = RouterOutputs["conversations"]["getById"];
  * The type for the input when creating a new conversation.
  */
 export type ConversationCreateInput = RouterInputs["conversations"]["create"];
+export type ConversationCreateOutput = RouterOutputs["conversations"]["create"];
 
 /**
  * The type for the input when updating a conversation's title.

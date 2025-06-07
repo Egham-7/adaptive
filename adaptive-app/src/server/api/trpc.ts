@@ -15,15 +15,7 @@ import { db } from "@/server/db";
  * We will follow the Clerk documentation pattern for creating the tRPC context.
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  // As per Clerk's tRPC documentation, await the auth() call.
   const clerkAuthResult = await getClerkAuth();
-
-  if (!clerkAuthResult) {
-    throw new TRPCError({
-      code: "UNAUTHORIZED",
-      message: "User is not authenticated",
-    });
-  }
 
   return {
     db, // Your existing database instance
