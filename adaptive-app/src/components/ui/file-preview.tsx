@@ -41,11 +41,27 @@ const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
 			>
 				<div className="flex w-full items-center space-x-2">
 					{/* eslint-disable-next-line @next/next/no-img-element */}
+const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
+	({ file, onRemove }, ref) => {
+		const [imageUrl, setImageUrl] = React.useState<string>("");
+
+		useEffect(() => {
+			const url = URL.createObjectURL(file);
+			setImageUrl(url);
+			return () => URL.revokeObjectURL(url);
+		}, [file]);
+
+		return (
+			<motion.div
+				// ... existing props
+			>
+				<div className="flex w-full items-center space-x-2">
 					<img
 						alt={`Attachment ${file.name}`}
 						className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted object-cover"
-						src={URL.createObjectURL(file)}
+						src={imageUrl}
 					/>
+					// ... rest of component
 					<span className="w-full truncate text-muted-foreground">
 						{file.name}
 					</span>
