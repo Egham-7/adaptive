@@ -8,8 +8,8 @@ import { messageRouter } from "./routers/message";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  conversations: conversationRouter,
-  messages: messageRouter,
+	conversations: conversationRouter,
+	messages: messageRouter,
 });
 
 // export type definition of API

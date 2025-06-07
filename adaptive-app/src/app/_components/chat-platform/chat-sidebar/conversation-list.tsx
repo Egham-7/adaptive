@@ -1,125 +1,125 @@
-import { useMemo } from "react";
+import type { ConversationListItem } from "@/types";
 import { isToday, subDays } from "date-fns";
 import { Pin } from "lucide-react";
+import { useMemo } from "react";
 import { ConversationGroup } from "./conversation-group";
 import {
-  ConversationListEmpty,
-  ConversationListError,
-  ConversationListLoading,
+	ConversationListEmpty,
+	ConversationListError,
+	ConversationListLoading,
 } from "./conversation-list-states";
-import type { ConversationListItem } from "@/types";
 
 interface ConversationListProps {
-  conversations: ConversationListItem[] | undefined;
-  isLoading: boolean;
-  error: any;
-  searchQuery: string;
-  onClearSearch: () => void;
-  onPin: (id: number, isPinned: boolean) => void;
-  isConversationActive: (id: number) => boolean;
+	conversations: ConversationListItem[] | undefined;
+	isLoading: boolean;
+	error: any;
+	searchQuery: string;
+	onClearSearch: () => void;
+	onPin: (id: number, isPinned: boolean) => void;
+	isConversationActive: (id: number) => boolean;
 }
 
 export function ConversationList({
-  conversations,
-  isLoading,
-  error,
-  searchQuery,
-  onClearSearch,
-  onPin,
-  isConversationActive,
+	conversations,
+	isLoading,
+	error,
+	searchQuery,
+	onClearSearch,
+	onPin,
+	isConversationActive,
 }: ConversationListProps) {
-  const groupedConversations = useMemo(() => {
-    const filtered =
-      conversations?.filter(
-        (c) =>
-          c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.messages[0]?.content
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      ) ?? [];
+	const groupedConversations = useMemo(() => {
+		const filtered =
+			conversations?.filter(
+				(c) =>
+					c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					c.messages[0]?.content
+						.toLowerCase()
+						.includes(searchQuery.toLowerCase()),
+			) ?? [];
 
-    const pinned: ConversationListItem[] = [];
-    const unpinned: ConversationListItem[] = [];
-    filtered.forEach((c) => (c.pinned ? pinned.push(c) : unpinned.push(c)));
+		const pinned: ConversationListItem[] = [];
+		const unpinned: ConversationListItem[] = [];
+		filtered.forEach((c) => (c.pinned ? pinned.push(c) : unpinned.push(c)));
 
-    const now = new Date();
-    const thirtyDaysAgo = subDays(now, 30);
+		const now = new Date();
+		const thirtyDaysAgo = subDays(now, 30);
 
-    return unpinned.reduce(
-      (groups, conversation) => {
-        const updatedAt = new Date(conversation.updatedAt);
-        if (isToday(updatedAt)) groups.today.push(conversation);
-        else if (updatedAt >= thirtyDaysAgo)
-          groups.last30Days.push(conversation);
-        else groups.older.push(conversation);
-        return groups;
-      },
-      {
-        pinned,
-        today: [] as ConversationListItem[],
-        last30Days: [] as ConversationListItem[],
-        older: [] as ConversationListItem[],
-      },
-    );
-  }, [conversations, searchQuery]);
+		return unpinned.reduce(
+			(groups, conversation) => {
+				const updatedAt = new Date(conversation.updatedAt);
+				if (isToday(updatedAt)) groups.today.push(conversation);
+				else if (updatedAt >= thirtyDaysAgo)
+					groups.last30Days.push(conversation);
+				else groups.older.push(conversation);
+				return groups;
+			},
+			{
+				pinned,
+				today: [] as ConversationListItem[],
+				last30Days: [] as ConversationListItem[],
+				older: [] as ConversationListItem[],
+			},
+		);
+	}, [conversations, searchQuery]);
 
-  if (isLoading && !conversations) {
-    return <ConversationListLoading />;
-  }
+	if (isLoading && !conversations) {
+		return <ConversationListLoading />;
+	}
 
-  if (error) {
-    return <ConversationListError error={error} />;
-  }
+	if (error) {
+		return <ConversationListError error={error} />;
+	}
 
-  const noResults =
-    !conversations ||
-    (conversations.length > 0 &&
-      groupedConversations.pinned.length === 0 &&
-      groupedConversations.today.length === 0 &&
-      groupedConversations.last30Days.length === 0 &&
-      groupedConversations.older.length === 0) ||
-    conversations.length === 0;
+	const noResults =
+		!conversations ||
+		(conversations.length > 0 &&
+			groupedConversations.pinned.length === 0 &&
+			groupedConversations.today.length === 0 &&
+			groupedConversations.last30Days.length === 0 &&
+			groupedConversations.older.length === 0) ||
+		conversations.length === 0;
 
-  if (noResults) {
-    return (
-      <ConversationListEmpty
-        searchQuery={searchQuery}
-        onClearSearch={onClearSearch}
-      />
-    );
-  }
+	if (noResults) {
+		return (
+			<ConversationListEmpty
+				searchQuery={searchQuery}
+				onClearSearch={onClearSearch}
+			/>
+		);
+	}
 
-  return (
-    <>
-      <ConversationGroup
-        title={
-          <span className="flex items-center gap-1">
-            <Pin className="h-3 w-3 fill-current" />
-            Pinned
-          </span>
-        }
-        conversations={groupedConversations.pinned}
-        onPin={onPin}
-        isConversationActive={isConversationActive}
-      />
-      <ConversationGroup
-        title="Today"
-        conversations={groupedConversations.today}
-        onPin={onPin}
-        isConversationActive={isConversationActive}
-      />
-      <ConversationGroup
-        title="Last 30 Days"
-        conversations={groupedConversations.last30Days}
-        onPin={onPin}
-        isConversationActive={isConversationActive}
-      />
-      <ConversationGroup
-        title="Older"
-        conversations={groupedConversations.older}
-        onPin={onPin}
-        isConversationActive={isConversationActive}
-      />
-    </>
-  );
+	return (
+		<>
+			<ConversationGroup
+				title={
+					<span className="flex items-center gap-1">
+						<Pin className="h-3 w-3 fill-current" />
+						Pinned
+					</span>
+				}
+				conversations={groupedConversations.pinned}
+				onPin={onPin}
+				isConversationActive={isConversationActive}
+			/>
+			<ConversationGroup
+				title="Today"
+				conversations={groupedConversations.today}
+				onPin={onPin}
+				isConversationActive={isConversationActive}
+			/>
+			<ConversationGroup
+				title="Last 30 Days"
+				conversations={groupedConversations.last30Days}
+				onPin={onPin}
+				isConversationActive={isConversationActive}
+			/>
+			<ConversationGroup
+				title="Older"
+				conversations={groupedConversations.older}
+				onPin={onPin}
+				isConversationActive={isConversationActive}
+			/>
+		</>
+	);
 }
