@@ -63,7 +63,7 @@ jobs:
 
       - name: Run ESLint
         id: lint
-        run: bun run lint
+        run: bun run check
         continue-on-error: true
 
       - name: Type check
