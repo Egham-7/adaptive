@@ -40,9 +40,18 @@ jobs:
           path: |
             ./adaptive-app/node_modules
             ~/.bun/install/cache # Bun's default cache path
-          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ./adaptive-app/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('./adaptive-app/bun.lock') }}-${{ hashFiles('./adaptive-app/**/*.js', './adaptive-app/**/*.jsx', './adaptive-app/**/*.ts', './adaptive-app/**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('./adaptive-app/bun.lock') }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
