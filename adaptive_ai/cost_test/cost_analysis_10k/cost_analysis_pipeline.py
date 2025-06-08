@@ -41,6 +41,7 @@ class CostAnalysisPipeline:
             return cast(Dict[str, Any], response.json())
         except Exception:
             return {"model": None, "provider": None, "task_type": None}
+
     def process_predictions(
         self, input_file: str = "token_counts.csv", limit: int = 10000
     ) -> None:
