@@ -54,28 +54,33 @@ func (bp *BufferPool) GetSize() int {
 
 // StreamBufferManager manages different sized buffer pools for various use cases
 type StreamBufferManager struct {
-	small       *BufferPool // 1KB buffers for small responses
-	medium      *BufferPool // 4KB buffers for typical streaming
-	large       *BufferPool // 16KB buffers for large responses
-	metrics     *metrics.StreamingMetrics
-	metricsOnce sync.Once
+	small   *BufferPool // 1KB buffers for small responses
+	medium  *BufferPool // 4KB buffers for typical streaming
+	large   *BufferPool // 16KB buffers for large responses
+	metrics *metrics.StreamingMetrics
 }
 
 // NewStreamBufferManager creates a new buffer manager with optimized pool sizes
 func NewStreamBufferManager() *StreamBufferManager {
-	manager := &StreamBufferManager{
+	return &StreamBufferManager{
 		small:  NewBufferPool(1024),  // 1KB
 		medium: NewBufferPool(4096),  // 4KB
 		large:  NewBufferPool(16384), // 16KB
 	}
+}
 
-	// Initialize metrics
-	manager.metricsOnce.Do(func() {
-		manager.metrics = metrics.NewStreamingMetrics()
-		// Update initial pool sizes
-		manager.updatePoolSizeMetrics()
-	})
-
+// NewStreamBufferManagerWithMetrics creates a new buffer manager with metrics
+func NewStreamBufferManagerWithMetrics(metrics *metrics.StreamingMetrics) *StreamBufferManager {
+	manager := &StreamBufferManager{
+		small:   NewBufferPool(1024),  // 1KB
+		medium:  NewBufferPool(4096),  // 4KB
+		large:   NewBufferPool(16384), // 16KB
+		metrics: metrics,
+	}
+	
+	// Update initial pool sizes
+	manager.updatePoolSizeMetrics()
+	
 	return manager
 }
 
@@ -175,6 +180,13 @@ func GetGlobalBufferManager() *StreamBufferManager {
 		globalBufferManager = NewStreamBufferManager()
 	})
 	return globalBufferManager
+}
+
+// SetGlobalBufferManagerMetrics sets metrics for the global buffer manager
+func SetGlobalBufferManagerMetrics(metrics *metrics.StreamingMetrics) {
+	manager := GetGlobalBufferManager()
+	manager.metrics = metrics
+	manager.updatePoolSizeMetrics()
 }
 
 // updatePoolSizeMetrics updates the Prometheus metrics for pool sizes

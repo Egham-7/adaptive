@@ -54,13 +54,18 @@ func DefaultAPIKeyCacheConfig() *APIKeyCacheConfig {
 
 // NewAPIKeyCache creates a new API key cache with the given configuration
 func NewAPIKeyCache(config *APIKeyCacheConfig) *APIKeyCache {
+	return NewAPIKeyCacheWithMetrics(config, nil)
+}
+
+// NewAPIKeyCacheWithMetrics creates a new API key cache with the given configuration and metrics
+func NewAPIKeyCacheWithMetrics(config *APIKeyCacheConfig, promMetrics *metrics.APIKeyMetrics) *APIKeyCache {
 	if config == nil {
 		config = DefaultAPIKeyCacheConfig()
 	}
 
 	cache := &APIKeyCache{
 		cacheTTL:    config.TTL,
-		promMetrics: metrics.NewAPIKeyMetrics(),
+		promMetrics: promMetrics,
 	}
 
 	// Create LRU cache with eviction callback

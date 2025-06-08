@@ -23,18 +23,20 @@ type APIKeyService struct {
 }
 
 func NewAPIKeyService() *APIKeyService {
+	promMetrics := metrics.NewAPIKeyMetrics()
 	return &APIKeyService{
 		repo:        usage.NewAPIKeyRepository(),
-		cache:       cache.NewAPIKeyCache(cache.DefaultAPIKeyCacheConfig()),
-		promMetrics: metrics.NewAPIKeyMetrics(),
+		cache:       cache.NewAPIKeyCacheWithMetrics(cache.DefaultAPIKeyCacheConfig(), promMetrics),
+		promMetrics: promMetrics,
 	}
 }
 
 func NewAPIKeyServiceWithCache(cacheConfig *cache.APIKeyCacheConfig) *APIKeyService {
+	promMetrics := metrics.NewAPIKeyMetrics()
 	service := &APIKeyService{
 		repo:        usage.NewAPIKeyRepository(),
-		cache:       cache.NewAPIKeyCache(cacheConfig),
-		promMetrics: metrics.NewAPIKeyMetrics(),
+		cache:       cache.NewAPIKeyCacheWithMetrics(cacheConfig, promMetrics),
+		promMetrics: promMetrics,
 	}
 	
 	// Start periodic cache cleanup
