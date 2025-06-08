@@ -73,24 +73,56 @@ jobs:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           SKIP_ENV_VALIDATION: true
 
+      # --- DEBUG STEP: Examine build output immediately after Next.js build ---
+      - name: Debug - List Build Output After Next.js Build
+        run: |
+          echo "Contents of adaptive-app/build after Next.js build:"
+          ls -laR ./adaptive-app/build || echo "adaptive-app/build not found or empty."
+          echo ""
+          echo "Expected standalone path: ./adaptive-app/build/standalone"
+          [ -d "./adaptive-app/build/standalone" ] && ls -laR ./adaptive-app/build/standalone || echo "standalone dir not found or empty."
+        working-directory: . # Run from the root of the checkout
+      # --- END DEBUG STEP ---
+
       - name: Prepare standalone artifact for deployment
         # This step follows the logic from the blog post to create a self-contained package.
         # Note: The blog uses 'build' as the distDir, so we use that path.
+        # REVIEW THIS STEP: If your Next.js `output: 'standalone'` already copies `static` and `public` correctly
+        # into `build/standalone`, these `mv` commands might be redundant or incorrect.
+        # The `Debug - List Build Output` step above will help confirm the structure.
         run: |
+          # Ensure target directories exist before moving (optional, mv -t handles it but good for clarity)
+          mkdir -p ./adaptive-app/build/standalone/build/static
+          mkdir -p ./adaptive-app/build/standalone/public
+
+          # Move `static` and `public` into the `standalone` directory
           mv ./adaptive-app/build/static ./adaptive-app/build/standalone/build/static
           mv ./adaptive-app/public ./adaptive-app/build/standalone/public
         working-directory: . # Run from the root to get paths right
 
       - name: Zip artifact for deployment
         # Zip ONLY the contents of the standalone directory
+        # This command creates `release.zip` inside `./adaptive-app/build/standalone`
         run: zip -r release.zip .
         working-directory: ./adaptive-app/build/standalone
+
+      # --- DEBUG STEP: Examine directories before upload ---
+      - name: Debug - List Contents Before Upload
+        run: |
+          echo "Contents of adaptive-app/build/standalone after zipping (should contain release.zip):"
+          ls -la ./adaptive-app/build/standalone/
+          echo ""
+          echo "Contents of root workspace (should NOT contain release.zip directly):"
+          ls -la .
+        working-directory: . # Run from root to check both locations
+      # --- END DEBUG STEP ---
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app-for-deploy
-          path: release.zip
+          # CORRECTED PATH: Point to the actual location of release.zip
+          path: ./adaptive-app/build/standalone/release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -108,7 +140,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app-for-deploy
-          path: .
+          path: . # This downloads release.zip to the current job's root directory
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
