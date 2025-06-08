@@ -35,7 +35,7 @@ jobs:
           path: |
             ./adaptive-app/node_modules
             ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -75,21 +75,15 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
 
-          ###### Repository/Build Configurations ######
           app_location: "adaptive-app"
           api_location: ""
-          output_location: "" # Let SWA detect the standalone output
-          # === KEY CHANGE IS HERE ===
-          # Explicitly tell Azure to use bun for the build step
-          app_build_command: "bun run build"
-          # ==========================
+          output_location: ""
+          app_build_command: "npm install -g bun && bun install --frozen-lockfile && bun run build"
         env:
-          # RUNTIME environment variables for your Next.js server
           SKIP_ENV_VALIDATION: "true"
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
           ADAPTIVE_API_BASE_URL: ${{ secrets.VITE_BASE_API_URL }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
