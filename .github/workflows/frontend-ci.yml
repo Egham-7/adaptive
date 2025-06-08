@@ -9,7 +9,7 @@ on:
       - main
     paths:
       - "adaptive-app/**"
-      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/deploy-adaptive-app.yml"
   workflow_dispatch:
 
 jobs:
@@ -73,8 +73,18 @@ jobs:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           SKIP_ENV_VALIDATION: true
 
+      - name: Prepare standalone artifact for deployment
+        # This step follows the logic from the blog post to create a self-contained package.
+        # Note: The blog uses 'build' as the distDir, so we use that path.
+        run: |
+          mv ./adaptive-app/build/static ./adaptive-app/build/standalone/build/static
+          mv ./adaptive-app/public ./adaptive-app/build/standalone/public
+        working-directory: . # Run from the root to get paths right
+
       - name: Zip artifact for deployment
-        run: zip -r release.zip ./adaptive-app
+        # Zip ONLY the contents of the standalone directory
+        run: zip -r release.zip .
+        working-directory: ./adaptive-app/build/standalone
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -116,4 +126,5 @@ jobs:
         with:
           app-name: "adaptive-app"
           slot-name: "Production"
-          package: "./adaptive-app"
+          # The package is now the root directory because the zip file contains the standalone app directly.
+          package: "."
