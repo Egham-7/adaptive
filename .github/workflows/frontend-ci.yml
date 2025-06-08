@@ -9,7 +9,7 @@ on:
       - main
     paths:
       - "adaptive-app/**"
-      - ".github/workflows/deploy-adaptive-app.yml"
+      - ".github/workflows/frontend-ci.yml"
   workflow_dispatch:
 
 jobs:
