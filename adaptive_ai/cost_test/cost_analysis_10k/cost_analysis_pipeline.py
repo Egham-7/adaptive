@@ -37,11 +37,10 @@ class CostAnalysisPipeline:
 
             url = "http://localhost:8000/predict"
             payload = {"prompt": str(prompt)}
-            response = requests.post(url, json=payload)
+            response = requests.post(url, json=payload, timeout=10)
             return cast(Dict[str, Any], response.json())
         except Exception:
             return {"model": None, "provider": None, "task_type": None}
-
     def process_predictions(
         self, input_file: str = "token_counts.csv", limit: int = 10000
     ) -> None:
