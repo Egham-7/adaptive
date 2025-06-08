@@ -9,7 +9,7 @@ on:
       - main
     paths:
       - "adaptive-app/**"
-      - ".github/workflows/frontend-ci.yml"
+      - ".github/workflows/deploy-adaptive-app.yml"
   workflow_dispatch:
 
 jobs:
@@ -74,6 +74,7 @@ jobs:
           SKIP_ENV_VALIDATION: true
 
       # --- DEBUG STEP: Examine build output immediately after Next.js build ---
+      # This step helps verify that `adaptive-app/build/standalone` contains everything needed.
       - name: Debug - List Build Output After Next.js Build
         run: |
           echo "Contents of adaptive-app/build after Next.js build:"
@@ -84,79 +85,18 @@ jobs:
         working-directory: . # Run from the root of the checkout
       # --- END DEBUG STEP ---
 
-      - name: Prepare standalone artifact for deployment
-        # This step follows the logic from the blog post to create a self-contained package.
-        # Note: The blog uses 'build' as the distDir, so we use that path.
-        # REVIEW THIS STEP: If your Next.js `output: 'standalone'` already copies `static` and `public` correctly
-        # into `build/standalone`, these `mv` commands might be redundant or incorrect.
-        # The `Debug - List Build Output` step above will help confirm the structure.
-        run: |
-          # Ensure target directories exist before moving (optional, mv -t handles it but good for clarity)
-          mkdir -p ./adaptive-app/build/standalone/build/static
-          mkdir -p ./adaptive-app/build/standalone/public
-
-          # Move `static` and `public` into the `standalone` directory
-          mv ./adaptive-app/build/static ./adaptive-app/build/standalone/build/static
-          mv ./adaptive-app/public ./adaptive-app/build/standalone/public
-        working-directory: . # Run from the root to get paths right
+      # --- REMOVED STEP ---
+      # The 'Prepare standalone artifact for deployment' step is REMOVED.
+      # With `next.config.js` having `output: "standalone"`, Next.js automatically
+      # copies the `public` directory and all necessary files into `build/standalone`.
+      # Manually moving `static` or `public` after a standalone build is typically
+      # unnecessary and can cause issues if paths are incorrect or redundant.
+      # ---
 
       - name: Zip artifact for deployment
-        # Zip ONLY the contents of the standalone directory
-        # This command creates `release.zip` inside `./adaptive-app/build/standalone`
+        # This step zips the contents of the `adaptive-app/build/standalone` directory.
+        # The `release.zip` file will be created inside `./adaptive-app/build/standalone`.
         run: zip -r release.zip .
         working-directory: ./adaptive-app/build/standalone
 
-      # --- DEBUG STEP: Examine directories before upload ---
-      - name: Debug - List Contents Before Upload
-        run: |
-          echo "Contents of adaptive-app/build/standalone after zipping (should contain release.zip):"
-          ls -la ./adaptive-app/build/standalone/
-          echo ""
-          echo "Contents of root workspace (should NOT contain release.zip directly):"
-          ls -la .
-        working-directory: . # Run from root to check both locations
-      # --- END DEBUG STEP ---
-
-      - name: Upload artifact for deployment job
-        uses: actions/upload-artifact@v4
-        with:
-          name: node-app-for-deploy
-          # CORRECTED PATH: Point to the actual location of release.zip
-          path: ./adaptive-app/build/standalone/release.zip
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: "Production"
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-
-    permissions:
-      id-token: write
-      contents: read
-
-    steps:
-      - name: Download artifact from build job
-        uses: actions/download-artifact@v4
-        with:
-          name: node-app-for-deploy
-          path: . # This downloads release.zip to the current job's root directory
-
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_838FE90E251F4F4BA3428D7B1AB5F77E }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C3C9BA1D668949CEADA375A77D743706 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_43E538959BE7419F8C1C8EE7AC05C234 }}
-
-      - name: "Deploy to Azure Web App"
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: "adaptive-app"
-          slot-name: "Production"
-          # The package is now the root directory because the zip file contains the standalone app directly.
-          package: "."
+      # --- DEBUG STEP:
