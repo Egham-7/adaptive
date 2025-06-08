@@ -1,6 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt  # type: ignore
 import requests
+import numpy as np  # Add numpy import
 from typing import Dict, List, Any, Optional, cast
 from tqdm import tqdm
 
@@ -139,7 +140,9 @@ class CostAnalysisPipeline:
 
         sorted_models = sorted(single_model_costs.items(), key=lambda x: x[1])
         model_names = [model for model, _ in sorted_models]
-        single_costs = [cost for _, cost in sorted_models]
+        single_costs = np.array(
+            [cost for _, cost in sorted_models]
+        )  # Convert to numpy array
 
         bars = ax1.bar(model_names, single_costs, color="skyblue", alpha=0.7)
         ax1.axhline(
