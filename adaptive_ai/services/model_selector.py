@@ -1,8 +1,8 @@
-from typing import Dict, Any, List, TypedDict, Optional, cast
-import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-from models.llms import model_capabilities, domain_model_mapping
-from services.llm_parameters import LLMParametersFactory
+from typing import Dict, Any, List, TypedDict, cast
+import logging
+from models.llms import model_capabilities, task_type_model_mapping, ModelCapability
+
+logger = logging.getLogger(__name__)
 
 
 class ModelInfo(TypedDict):
@@ -11,153 +11,192 @@ class ModelInfo(TypedDict):
     match_score: float
 
 
+class ModelSelectionError(Exception):
+    """Custom exception for model selection errors"""
+
+    pass
+
+
 class ModelSelector:
     """
     Service for selecting appropriate LLM models and parameters based on prompt analysis.
-    Now with vector similarity-based model selection.
+    Uses task-specific complexity-based model selection.
     """
 
-    def __init__(
-        self, prompt_classifier: Any, domain_classifier: Any
-    ):  # Add proper type hints
+    def __init__(self, prompt_classifier: Any):
         self.prompt_classifier = prompt_classifier
-        self.domain_classifier = domain_classifier
+        logger.info("ModelSelector initialized")
 
-    def select_model(self, prompt: str) -> Dict[str, Any]:
+    def _validate_model_selection(self, selected_model: str, task_type: str) -> None:
+        """Validate that the selected model exists and is appropriate for the task"""
+        if not isinstance(selected_model, str):
+            raise ModelSelectionError(f"Invalid model type: {type(selected_model)}")
+
+        if selected_model not in model_capabilities:
+            raise ModelSelectionError(
+                f"Selected model {selected_model} not found in capabilities"
+            )
+
+        model_info = cast(ModelCapability, model_capabilities[selected_model])
+        logger.info(
+            f"Selected model {selected_model} ({model_info['provider']}) for task {task_type}"
+        )
+
+    def select_model(
+        self, prompt: str, domain: str = "Computers_and_Electronics"
+    ) -> Dict[str, Any]:
         """
-        Select the most appropriate model using vector similarity matching.
+        Select the most appropriate model based on prompt analysis and task type.
+
+        Args:
+            prompt (str): The input prompt
+            domain (str): The domain context for the prompt
+
+        Returns:
+            Dict[str, Any]: Model selection results including scores and parameters
+
+        Raises:
+            ModelSelectionError: If model selection fails
+            ValueError: If input validation fails
         """
-        prompt_analysis = self._analyze_prompt(prompt)
-        domain = prompt_analysis["domain"]
+        try:
+            if not prompt or not isinstance(prompt, str):
+                raise ValueError("Invalid prompt: must be a non-empty string")
 
-        # Convert prompt scores to vector for matching
-        prompt_vector = np.array(
-            [
-                prompt_analysis["prompt_scores"]["creativity_scope"][0],
-                prompt_analysis["prompt_scores"]["reasoning"][0],
-                prompt_analysis["prompt_scores"]["contextual_knowledge"][0],
-                prompt_analysis["prompt_scores"]["domain_knowledge"][0],
-            ]
-        )
+            # Get complexity analysis and task type
+            classification = self.prompt_classifier.classify_prompt(prompt, domain)
 
-        # Find best matching model
-        model_info = self._find_suitable_model(domain, prompt_vector)
+            # Get task type from the classification results
+            task_type = (
+                classification["task_type_1"][0]
+                if classification["task_type_1"]
+                else "Other"
+            )
+            logger.info(f"Detected task type: {task_type}")
 
-        return {
-            "prompt_scores": prompt_analysis["prompt_scores"],
-            "selected_model": model_info["model_name"],
-            "provider": model_info["provider"],
-            "match_score": model_info["match_score"],
-            "domain": domain,
-        }
-
-    def get_model_parameters(self, prompt: str) -> Dict[str, Any]:
-        """Get optimized parameters for the selected model."""
-        prompt_analysis = self._analyze_prompt(prompt)
-        domain = prompt_analysis["domain"]
-
-        prompt_vector = np.array(
-            [
-                prompt_analysis["prompt_scores"]["creativity_scope"][0],
-                prompt_analysis["prompt_scores"]["reasoning"][0],
-                prompt_analysis["prompt_scores"]["contextual_knowledge"][0],
-                prompt_analysis["prompt_scores"]["domain_knowledge"][0],
-            ]
-        )
-
-        model_info = self._find_suitable_model(domain, prompt_vector)
-        parameters = self._get_parameters(
-            model_info["provider"],
-            model_info["model_name"],
-            domain,
-            prompt_analysis["prompt_scores"],
-        )
-
-        return {
-            "parameters": parameters,
-            "provider": model_info["provider"],
-            "match_score": model_info["match_score"],
-        }
-
-    def _analyze_prompt(self, prompt: str) -> Dict[str, Any]:
-        """Analyze prompt to extract scores and domain."""
-        domain_result = self.domain_classifier.classify(prompt)
-        domain = str(domain_result[0]) if domain_result else ""
-
-        if domain not in domain_model_mapping:
-            raise ValueError(f"Domain '{domain}' is not recognized.")
-
-        complexity = self.prompt_classifier.classify_prompt(prompt, domain)
-
-        return {
-            "domain": domain,
-            "prompt_scores": {
+            # Extract scores with type safety
+            prompt_scores = {
                 "creativity_scope": cast(
-                    List[float], complexity.get("creativity_scope", [0.0])
+                    List[float], classification.get("creativity_scope", [0.0])
                 ),
-                "reasoning": cast(List[float], complexity.get("reasoning", [0.0])),
+                "reasoning": cast(List[float], classification.get("reasoning", [0.0])),
+                "constraint_ct": cast(
+                    List[float], classification.get("constraint_ct", [0.0])
+                ),
                 "contextual_knowledge": cast(
-                    List[float], complexity.get("contextual_knowledge", [0.0])
+                    List[float], classification.get("contextual_knowledge", [0.0])
                 ),
                 "domain_knowledge": cast(
-                    List[float], complexity.get("domain_knowledge", [0.0])
+                    List[float], classification.get("domain_knowledge", [0.0])
                 ),
-                "prompt_complexity_score": cast(
-                    List[float], complexity.get("prompt_complexity_score", [0.0])
+            }
+
+            # Get complexity score
+            complexity_score = classification["prompt_complexity_score"][0]
+            logger.info(f"Complexity score: {complexity_score}")
+
+            # Get task difficulties for the current task type
+            task_difficulties = task_type_model_mapping.get(task_type, {})
+            if not task_difficulties:
+                logger.warning(
+                    f"No model mapping found for task type: {task_type}, using default"
+                )
+                return {
+                    "selected_model": "gpt-4.1",
+                    "provider": "OpenAI",
+                    "match_score": 0.0,
+                    "task_type": task_type,
+                    "difficulty": "medium",
+                    "prompt_scores": prompt_scores,
+                    "complexity_score": complexity_score,
+                    "thresholds": {"easy": 0.3, "medium": 0.5, "hard": 0.7},
+                }
+
+            # Get thresholds for the current task type
+            easy_threshold = task_difficulties["easy"]["complexity_threshold"]
+            medium_threshold = task_difficulties["medium"]["complexity_threshold"]
+            hard_threshold = task_difficulties["hard"]["complexity_threshold"]
+
+            # Select difficulty based on complexity score and task-specific thresholds
+            selected_difficulty = "medium"  # default
+            if complexity_score <= easy_threshold:
+                selected_difficulty = "easy"
+            elif complexity_score >= hard_threshold:
+                selected_difficulty = "hard"
+
+            selected_model = str(task_difficulties[selected_difficulty]["model"])
+            self._validate_model_selection(selected_model, task_type)
+
+            # Calculate match score based on how close the complexity score is to the selected threshold
+            selected_threshold = task_difficulties[selected_difficulty][
+                "complexity_threshold"
+            ]
+            match_score = 1.0 - min(abs(complexity_score - selected_threshold), 1.0)
+
+            model_info = cast(ModelCapability, model_capabilities[selected_model])
+
+            return {
+                "selected_model": selected_model,
+                "provider": model_info["provider"],
+                "match_score": float(match_score),
+                "task_type": task_type,
+                "difficulty": selected_difficulty,
+                "prompt_scores": prompt_scores,
+                "complexity_score": complexity_score,
+                "thresholds": {
+                    "easy": easy_threshold,
+                    "medium": medium_threshold,
+                    "hard": hard_threshold,
+                },
+            }
+
+        except Exception as e:
+            logger.error(f"Error in model selection: {str(e)}")
+            raise ModelSelectionError(f"Failed to select model: {str(e)}")
+
+    def get_model_parameters(self, prompt: str, task_type: str) -> Dict[str, Any]:
+        """
+        Get model parameters based on prompt analysis and task type.
+
+        Args:
+            prompt (str): The input prompt
+            task_type (str): The task type for the prompt
+
+        Returns:
+            Dict[str, Any]: Model parameters
+
+        Raises:
+            ModelSelectionError: If parameter selection fails
+        """
+        try:
+            # Get complexity analysis
+            default_domain = "Computers_and_Electronics"
+            classification = self.prompt_classifier.classify_prompt(
+                prompt, default_domain
+            )
+
+            # Extract scores with type safety
+            prompt_scores = {
+                "creativity_scope": cast(
+                    List[float], classification.get("creativity_scope", [0.0])
                 ),
-            },
-        }
+                "reasoning": cast(List[float], classification.get("reasoning", [0.0])),
+                "constraint_ct": cast(
+                    List[float], classification.get("constraint_ct", [0.0])
+                ),
+                "contextual_knowledge": cast(
+                    List[float], classification.get("contextual_knowledge", [0.0])
+                ),
+                "domain_knowledge": cast(
+                    List[float], classification.get("domain_knowledge", [0.0])
+                ),
+            }
 
-    def _find_suitable_model(
-        self,
-        domain: str,
-        prompt_vector: np.ndarray,
-        capability_weights: Optional[np.ndarray] = None,
-    ) -> ModelInfo:
-        """
-        Find the best model using vector similarity matching.
-        """
-        if capability_weights is None:
-            capability_weights = np.array([1.0, 1.0, 1.0, 1.0])
+            return {
+                "task_type": task_type,
+                "prompt_scores": prompt_scores,
+            }
 
-        candidate_models = domain_model_mapping.get(domain, [])
-        if not candidate_models:
-            raise ValueError(f"No models available for domain: {domain}")
-
-        best_model = ""
-        best_score = -1.0
-
-        for model_name in candidate_models:
-            model_data = model_capabilities.get(model_name)
-            if not model_data:
-                continue
-
-            model_vec = model_data["capability_vector"][:4]
-
-            similarity = cosine_similarity(
-                [prompt_vector * capability_weights], [model_vec * capability_weights]
-            )[0][0]
-
-            if similarity > best_score:
-                best_model = model_name
-                best_score = similarity
-
-        if not best_model:
-            raise ValueError(f"No suitable model found for domain: {domain}")
-
-        return {
-            "model_name": best_model,
-            "provider": model_capabilities[best_model]["provider"],
-            "match_score": float(best_score),
-        }
-
-    def _get_parameters(
-        self,
-        provider_name: str,
-        model_name: str,
-        domain: str,
-        prompt_scores: Dict[str, List[float]],
-    ) -> Dict[str, Any]:
-        """Get optimized parameters for the selected model."""
-        parameters_provider = LLMParametersFactory.create(provider_name, model_name)
-        return parameters_provider.adjust_parameters(domain, prompt_scores)
+        except Exception as e:
+            logger.error(f"Error getting model parameters: {str(e)}")
+            raise ModelSelectionError(f"Failed to get model parameters: {str(e)}")
