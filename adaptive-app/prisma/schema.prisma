@@ -2,9 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 datasource db {
-  provider          = "sqlserver"
-  url               = env("DATABASE_URL")
-  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // Optional, for migrations
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -29,13 +28,13 @@ model Conversation {
 model Message {
   id      String @id @default(cuid()) // AI SDK uses string IDs
   role    String // 'system' | 'user' | 'assistant' | 'data'
-  content String @db.NVarChar(Max) // Change to handle large content
+  content String // Removed @db.NVarChar(Max) as it's not needed for Postgres
 
-  // AI SDK Message fields
-  reasoning               String? @db.NVarChar(Max) // Also update this since it can be large
-  annotations             String? @db.NVarChar(Max) // JSON string for JSONValue[]
-  parts                   String? @db.NVarChar(Max) // JSON string for UI parts array
-  experimentalAttachments String? @db.NVarChar(Max) // JSON string for Attachment[]
+  // AI SDK Message fields converted to native JSON type
+  reasoning               Json?
+  annotations             Json?
+  parts                   Json?
+  experimentalAttachments Json?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

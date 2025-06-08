@@ -664,6 +664,10 @@ export namespace Prisma {
             args: Prisma.ConversationCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
+          createManyAndReturn: {
+            args: Prisma.ConversationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConversationPayload>[]
+          }
           delete: {
             args: Prisma.ConversationDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$ConversationPayload>
@@ -679,6 +683,10 @@ export namespace Prisma {
           updateMany: {
             args: Prisma.ConversationUpdateManyArgs<ExtArgs>
             result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ConversationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConversationPayload>[]
           }
           upsert: {
             args: Prisma.ConversationUpsertArgs<ExtArgs>
@@ -730,6 +738,10 @@ export namespace Prisma {
             args: Prisma.MessageCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
+          createManyAndReturn: {
+            args: Prisma.MessageCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MessagePayload>[]
+          }
           delete: {
             args: Prisma.MessageDeleteArgs<ExtArgs>
             result: $Utils.PayloadToResult<Prisma.$MessagePayload>
@@ -745,6 +757,10 @@ export namespace Prisma {
           updateMany: {
             args: Prisma.MessageUpdateManyArgs<ExtArgs>
             result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.MessageUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$MessagePayload>[]
           }
           upsert: {
             args: Prisma.MessageUpsertArgs<ExtArgs>
@@ -1192,7 +1208,25 @@ export namespace Prisma {
     _count?: boolean | ConversationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["conversation"]>
 
+  export type ConversationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    title?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    deletedAt?: boolean
+    userId?: boolean
+    pinned?: boolean
+  }, ExtArgs["result"]["conversation"]>
 
+  export type ConversationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    title?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    deletedAt?: boolean
+    userId?: boolean
+    pinned?: boolean
+  }, ExtArgs["result"]["conversation"]>
 
   export type ConversationSelectScalar = {
     id?: boolean
@@ -1209,6 +1243,8 @@ export namespace Prisma {
     messages?: boolean | Conversation$messagesArgs<ExtArgs>
     _count?: boolean | ConversationCountOutputTypeDefaultArgs<ExtArgs>
   }
+  export type ConversationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type ConversationIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $ConversationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Conversation"
@@ -1341,6 +1377,30 @@ export namespace Prisma {
     createMany<T extends ConversationCreateManyArgs>(args?: SelectSubset<T, ConversationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
+     * Create many Conversations and returns the data saved in the database.
+     * @param {ConversationCreateManyAndReturnArgs} args - Arguments to create many Conversations.
+     * @example
+     * // Create many Conversations
+     * const conversation = await prisma.conversation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Conversations and only return the `id`
+     * const conversationWithIdOnly = await prisma.conversation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ConversationCreateManyAndReturnArgs>(args?: SelectSubset<T, ConversationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConversationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
      * Delete a Conversation.
      * @param {ConversationDeleteArgs} args - Arguments to delete one Conversation.
      * @example
@@ -1403,6 +1463,36 @@ export namespace Prisma {
      * 
      */
     updateMany<T extends ConversationUpdateManyArgs>(args: SelectSubset<T, ConversationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Conversations and returns the data updated in the database.
+     * @param {ConversationUpdateManyAndReturnArgs} args - Arguments to update many Conversations.
+     * @example
+     * // Update many Conversations
+     * const conversation = await prisma.conversation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Conversations and only return the `id`
+     * const conversationWithIdOnly = await prisma.conversation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ConversationUpdateManyAndReturnArgs>(args: SelectSubset<T, ConversationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConversationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
      * Create or update one Conversation.
@@ -1829,6 +1919,26 @@ export namespace Prisma {
      * The data used to create many Conversations.
      */
     data: ConversationCreateManyInput | ConversationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Conversation createManyAndReturn
+   */
+  export type ConversationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Conversation
+     */
+    select?: ConversationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Conversation
+     */
+    omit?: ConversationOmit<ExtArgs> | null
+    /**
+     * The data used to create many Conversations.
+     */
+    data: ConversationCreateManyInput | ConversationCreateManyInput[]
+    skipDuplicates?: boolean
   }
 
   /**
@@ -1861,6 +1971,32 @@ export namespace Prisma {
    * Conversation updateMany
    */
   export type ConversationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Conversations.
+     */
+    data: XOR<ConversationUpdateManyMutationInput, ConversationUncheckedUpdateManyInput>
+    /**
+     * Filter which Conversations to update
+     */
+    where?: ConversationWhereInput
+    /**
+     * Limit how many Conversations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Conversation updateManyAndReturn
+   */
+  export type ConversationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Conversation
+     */
+    select?: ConversationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Conversation
+     */
+    omit?: ConversationOmit<ExtArgs> | null
     /**
      * The data used to update Conversations.
      */
@@ -2008,10 +2144,6 @@ export namespace Prisma {
     id: string | null
     role: string | null
     content: string | null
-    reasoning: string | null
-    annotations: string | null
-    parts: string | null
-    experimentalAttachments: string | null
     createdAt: Date | null
     updatedAt: Date | null
     deletedAt: Date | null
@@ -2022,10 +2154,6 @@ export namespace Prisma {
     id: string | null
     role: string | null
     content: string | null
-    reasoning: string | null
-    annotations: string | null
-    parts: string | null
-    experimentalAttachments: string | null
     createdAt: Date | null
     updatedAt: Date | null
     deletedAt: Date | null
@@ -2060,10 +2188,6 @@ export namespace Prisma {
     id?: true
     role?: true
     content?: true
-    reasoning?: true
-    annotations?: true
-    parts?: true
-    experimentalAttachments?: true
     createdAt?: true
     updatedAt?: true
     deletedAt?: true
@@ -2074,10 +2198,6 @@ export namespace Prisma {
     id?: true
     role?: true
     content?: true
-    reasoning?: true
-    annotations?: true
-    parts?: true
-    experimentalAttachments?: true
     createdAt?: true
     updatedAt?: true
     deletedAt?: true
@@ -2189,10 +2309,10 @@ export namespace Prisma {
     id: string
     role: string
     content: string
-    reasoning: string | null
-    annotations: string | null
-    parts: string | null
-    experimentalAttachments: string | null
+    reasoning: JsonValue | null
+    annotations: JsonValue | null
+    parts: JsonValue | null
+    experimentalAttachments: JsonValue | null
     createdAt: Date
     updatedAt: Date
     deletedAt: Date | null
@@ -2233,7 +2353,35 @@ export namespace Prisma {
     conversation?: boolean | ConversationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["message"]>
 
+  export type MessageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    role?: boolean
+    content?: boolean
+    reasoning?: boolean
+    annotations?: boolean
+    parts?: boolean
+    experimentalAttachments?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    deletedAt?: boolean
+    conversationId?: boolean
+    conversation?: boolean | ConversationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["message"]>
 
+  export type MessageSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    role?: boolean
+    content?: boolean
+    reasoning?: boolean
+    annotations?: boolean
+    parts?: boolean
+    experimentalAttachments?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    deletedAt?: boolean
+    conversationId?: boolean
+    conversation?: boolean | ConversationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["message"]>
 
   export type MessageSelectScalar = {
     id?: boolean
@@ -2253,6 +2401,12 @@ export namespace Prisma {
   export type MessageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     conversation?: boolean | ConversationDefaultArgs<ExtArgs>
   }
+  export type MessageIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    conversation?: boolean | ConversationDefaultArgs<ExtArgs>
+  }
+  export type MessageIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    conversation?: boolean | ConversationDefaultArgs<ExtArgs>
+  }
 
   export type $MessagePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Message"
@@ -2263,10 +2417,10 @@ export namespace Prisma {
       id: string
       role: string
       content: string
-      reasoning: string | null
-      annotations: string | null
-      parts: string | null
-      experimentalAttachments: string | null
+      reasoning: Prisma.JsonValue | null
+      annotations: Prisma.JsonValue | null
+      parts: Prisma.JsonValue | null
+      experimentalAttachments: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
       deletedAt: Date | null
@@ -2389,6 +2543,30 @@ export namespace Prisma {
     createMany<T extends MessageCreateManyArgs>(args?: SelectSubset<T, MessageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
+     * Create many Messages and returns the data saved in the database.
+     * @param {MessageCreateManyAndReturnArgs} args - Arguments to create many Messages.
+     * @example
+     * // Create many Messages
+     * const message = await prisma.message.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Messages and only return the `id`
+     * const messageWithIdOnly = await prisma.message.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends MessageCreateManyAndReturnArgs>(args?: SelectSubset<T, MessageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
      * Delete a Message.
      * @param {MessageDeleteArgs} args - Arguments to delete one Message.
      * @example
@@ -2451,6 +2629,36 @@ export namespace Prisma {
      * 
      */
     updateMany<T extends MessageUpdateManyArgs>(args: SelectSubset<T, MessageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Messages and returns the data updated in the database.
+     * @param {MessageUpdateManyAndReturnArgs} args - Arguments to update many Messages.
+     * @example
+     * // Update many Messages
+     * const message = await prisma.message.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Messages and only return the `id`
+     * const messageWithIdOnly = await prisma.message.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends MessageUpdateManyAndReturnArgs>(args: SelectSubset<T, MessageUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
 
     /**
      * Create or update one Message.
@@ -2644,10 +2852,10 @@ export namespace Prisma {
     readonly id: FieldRef<"Message", 'String'>
     readonly role: FieldRef<"Message", 'String'>
     readonly content: FieldRef<"Message", 'String'>
-    readonly reasoning: FieldRef<"Message", 'String'>
-    readonly annotations: FieldRef<"Message", 'String'>
-    readonly parts: FieldRef<"Message", 'String'>
-    readonly experimentalAttachments: FieldRef<"Message", 'String'>
+    readonly reasoning: FieldRef<"Message", 'Json'>
+    readonly annotations: FieldRef<"Message", 'Json'>
+    readonly parts: FieldRef<"Message", 'Json'>
+    readonly experimentalAttachments: FieldRef<"Message", 'Json'>
     readonly createdAt: FieldRef<"Message", 'DateTime'>
     readonly updatedAt: FieldRef<"Message", 'DateTime'>
     readonly deletedAt: FieldRef<"Message", 'DateTime'>
@@ -2881,6 +3089,30 @@ export namespace Prisma {
      * The data used to create many Messages.
      */
     data: MessageCreateManyInput | MessageCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Message createManyAndReturn
+   */
+  export type MessageCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Message
+     */
+    select?: MessageSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Message
+     */
+    omit?: MessageOmit<ExtArgs> | null
+    /**
+     * The data used to create many Messages.
+     */
+    data: MessageCreateManyInput | MessageCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MessageIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -2925,6 +3157,36 @@ export namespace Prisma {
      * Limit how many Messages to update.
      */
     limit?: number
+  }
+
+  /**
+   * Message updateManyAndReturn
+   */
+  export type MessageUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Message
+     */
+    select?: MessageSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Message
+     */
+    omit?: MessageOmit<ExtArgs> | null
+    /**
+     * The data used to update Messages.
+     */
+    data: XOR<MessageUpdateManyMutationInput, MessageUncheckedUpdateManyInput>
+    /**
+     * Filter which Messages to update
+     */
+    where?: MessageWhereInput
+    /**
+     * Limit how many Messages to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MessageIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -3020,8 +3282,7 @@ export namespace Prisma {
     ReadUncommitted: 'ReadUncommitted',
     ReadCommitted: 'ReadCommitted',
     RepeatableRead: 'RepeatableRead',
-    Serializable: 'Serializable',
-    Snapshot: 'Snapshot'
+    Serializable: 'Serializable'
   };
 
   export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
@@ -3065,12 +3326,37 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+  export const NullableJsonNullValueInput: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull
+  };
+
+  export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const QueryMode: {
+    default: 'default',
+    insensitive: 'insensitive'
+  };
+
+  export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
+
+
   export const NullsOrder: {
     first: 'first',
     last: 'last'
   };
 
   export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+  export const JsonNullValueFilter: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull,
+    AnyNull: typeof AnyNull
+  };
+
+  export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
   /**
@@ -3086,9 +3372,23 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Int[]'
+   */
+  export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
    * Reference to a field of type 'String'
    */
   export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
+    
+
+
+  /**
+   * Reference to a field of type 'String[]'
+   */
+  export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
     
 
 
@@ -3100,6 +3400,13 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'DateTime[]'
+   */
+  export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+  /**
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
@@ -3107,9 +3414,30 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'QueryMode'
+   */
+  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
   /**
    * Deep Input Types
@@ -3190,10 +3518,10 @@ export namespace Prisma {
     id?: StringFilter<"Message"> | string
     role?: StringFilter<"Message"> | string
     content?: StringFilter<"Message"> | string
-    reasoning?: StringNullableFilter<"Message"> | string | null
-    annotations?: StringNullableFilter<"Message"> | string | null
-    parts?: StringNullableFilter<"Message"> | string | null
-    experimentalAttachments?: StringNullableFilter<"Message"> | string | null
+    reasoning?: JsonNullableFilter<"Message">
+    annotations?: JsonNullableFilter<"Message">
+    parts?: JsonNullableFilter<"Message">
+    experimentalAttachments?: JsonNullableFilter<"Message">
     createdAt?: DateTimeFilter<"Message"> | Date | string
     updatedAt?: DateTimeFilter<"Message"> | Date | string
     deletedAt?: DateTimeNullableFilter<"Message"> | Date | string | null
@@ -3223,10 +3551,10 @@ export namespace Prisma {
     NOT?: MessageWhereInput | MessageWhereInput[]
     role?: StringFilter<"Message"> | string
     content?: StringFilter<"Message"> | string
-    reasoning?: StringNullableFilter<"Message"> | string | null
-    annotations?: StringNullableFilter<"Message"> | string | null
-    parts?: StringNullableFilter<"Message"> | string | null
-    experimentalAttachments?: StringNullableFilter<"Message"> | string | null
+    reasoning?: JsonNullableFilter<"Message">
+    annotations?: JsonNullableFilter<"Message">
+    parts?: JsonNullableFilter<"Message">
+    experimentalAttachments?: JsonNullableFilter<"Message">
     createdAt?: DateTimeFilter<"Message"> | Date | string
     updatedAt?: DateTimeFilter<"Message"> | Date | string
     deletedAt?: DateTimeNullableFilter<"Message"> | Date | string | null
@@ -3260,10 +3588,10 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Message"> | string
     role?: StringWithAggregatesFilter<"Message"> | string
     content?: StringWithAggregatesFilter<"Message"> | string
-    reasoning?: StringNullableWithAggregatesFilter<"Message"> | string | null
-    annotations?: StringNullableWithAggregatesFilter<"Message"> | string | null
-    parts?: StringNullableWithAggregatesFilter<"Message"> | string | null
-    experimentalAttachments?: StringNullableWithAggregatesFilter<"Message"> | string | null
+    reasoning?: JsonNullableWithAggregatesFilter<"Message">
+    annotations?: JsonNullableWithAggregatesFilter<"Message">
+    parts?: JsonNullableWithAggregatesFilter<"Message">
+    experimentalAttachments?: JsonNullableWithAggregatesFilter<"Message">
     createdAt?: DateTimeWithAggregatesFilter<"Message"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Message"> | Date | string
     deletedAt?: DateTimeNullableWithAggregatesFilter<"Message"> | Date | string | null
@@ -3313,6 +3641,7 @@ export namespace Prisma {
   }
 
   export type ConversationCreateManyInput = {
+    id?: number
     title: string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -3344,10 +3673,10 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
-    reasoning?: string | null
-    annotations?: string | null
-    parts?: string | null
-    experimentalAttachments?: string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -3358,10 +3687,10 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
-    reasoning?: string | null
-    annotations?: string | null
-    parts?: string | null
-    experimentalAttachments?: string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -3372,10 +3701,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
-    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    parts?: NullableStringFieldUpdateOperationsInput | string | null
-    experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -3386,10 +3715,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
-    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    parts?: NullableStringFieldUpdateOperationsInput | string | null
-    experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -3400,10 +3729,10 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
-    reasoning?: string | null
-    annotations?: string | null
-    parts?: string | null
-    experimentalAttachments?: string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -3414,10 +3743,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
-    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    parts?: NullableStringFieldUpdateOperationsInput | string | null
-    experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -3427,10 +3756,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
-    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    parts?: NullableStringFieldUpdateOperationsInput | string | null
-    experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -3439,8 +3768,8 @@ export namespace Prisma {
 
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[]
-    notIn?: number[]
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
     lt?: number | IntFieldRefInput<$PrismaModel>
     lte?: number | IntFieldRefInput<$PrismaModel>
     gt?: number | IntFieldRefInput<$PrismaModel>
@@ -3450,8 +3779,8 @@ export namespace Prisma {
 
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[]
-    notIn?: string[]
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
     lt?: string | StringFieldRefInput<$PrismaModel>
     lte?: string | StringFieldRefInput<$PrismaModel>
     gt?: string | StringFieldRefInput<$PrismaModel>
@@ -3459,13 +3788,14 @@ export namespace Prisma {
     contains?: string | StringFieldRefInput<$PrismaModel>
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[]
-    notIn?: Date[] | string[]
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3475,8 +3805,8 @@ export namespace Prisma {
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | null
-    notIn?: Date[] | string[] | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3544,8 +3874,8 @@ export namespace Prisma {
 
   export type IntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[]
-    notIn?: number[]
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
     lt?: number | IntFieldRefInput<$PrismaModel>
     lte?: number | IntFieldRefInput<$PrismaModel>
     gt?: number | IntFieldRefInput<$PrismaModel>
@@ -3560,8 +3890,8 @@ export namespace Prisma {
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[]
-    notIn?: string[]
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
     lt?: string | StringFieldRefInput<$PrismaModel>
     lte?: string | StringFieldRefInput<$PrismaModel>
     gt?: string | StringFieldRefInput<$PrismaModel>
@@ -3569,6 +3899,7 @@ export namespace Prisma {
     contains?: string | StringFieldRefInput<$PrismaModel>
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
     not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedStringFilter<$PrismaModel>
@@ -3577,8 +3908,8 @@ export namespace Prisma {
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[]
-    notIn?: Date[] | string[]
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3591,8 +3922,8 @@ export namespace Prisma {
 
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | null
-    notIn?: Date[] | string[] | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3610,19 +3941,28 @@ export namespace Prisma {
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
 
-  export type StringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | null
-    notIn?: string[] | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type ConversationScalarRelationFilter = {
@@ -3652,10 +3992,6 @@ export namespace Prisma {
     id?: SortOrder
     role?: SortOrder
     content?: SortOrder
-    reasoning?: SortOrder
-    annotations?: SortOrder
-    parts?: SortOrder
-    experimentalAttachments?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     deletedAt?: SortOrder
@@ -3666,10 +4002,6 @@ export namespace Prisma {
     id?: SortOrder
     role?: SortOrder
     content?: SortOrder
-    reasoning?: SortOrder
-    annotations?: SortOrder
-    parts?: SortOrder
-    experimentalAttachments?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     deletedAt?: SortOrder
@@ -3679,22 +4011,31 @@ export namespace Prisma {
   export type MessageSumOrderByAggregateInput = {
     conversationId?: SortOrder
   }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
 
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | null
-    notIn?: string[] | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
     _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
   }
 
   export type MessageCreateNestedManyWithoutConversationInput = {
@@ -3769,10 +4110,6 @@ export namespace Prisma {
     connect?: ConversationWhereUniqueInput
   }
 
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
   export type ConversationUpdateOneRequiredWithoutMessagesNestedInput = {
     create?: XOR<ConversationCreateWithoutMessagesInput, ConversationUncheckedCreateWithoutMessagesInput>
     connectOrCreate?: ConversationCreateOrConnectWithoutMessagesInput
@@ -3783,8 +4120,8 @@ export namespace Prisma {
 
   export type NestedIntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[]
-    notIn?: number[]
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
     lt?: number | IntFieldRefInput<$PrismaModel>
     lte?: number | IntFieldRefInput<$PrismaModel>
     gt?: number | IntFieldRefInput<$PrismaModel>
@@ -3794,8 +4131,8 @@ export namespace Prisma {
 
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[]
-    notIn?: string[]
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
     lt?: string | StringFieldRefInput<$PrismaModel>
     lte?: string | StringFieldRefInput<$PrismaModel>
     gt?: string | StringFieldRefInput<$PrismaModel>
@@ -3808,8 +4145,8 @@ export namespace Prisma {
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[]
-    notIn?: Date[] | string[]
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3819,8 +4156,8 @@ export namespace Prisma {
 
   export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | null
-    notIn?: Date[] | string[] | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3835,8 +4172,8 @@ export namespace Prisma {
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[]
-    notIn?: number[]
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
     lt?: number | IntFieldRefInput<$PrismaModel>
     lte?: number | IntFieldRefInput<$PrismaModel>
     gt?: number | IntFieldRefInput<$PrismaModel>
@@ -3851,8 +4188,8 @@ export namespace Prisma {
 
   export type NestedFloatFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[]
-    notIn?: number[]
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
     lt?: number | FloatFieldRefInput<$PrismaModel>
     lte?: number | FloatFieldRefInput<$PrismaModel>
     gt?: number | FloatFieldRefInput<$PrismaModel>
@@ -3862,8 +4199,8 @@ export namespace Prisma {
 
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[]
-    notIn?: string[]
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
     lt?: string | StringFieldRefInput<$PrismaModel>
     lte?: string | StringFieldRefInput<$PrismaModel>
     gt?: string | StringFieldRefInput<$PrismaModel>
@@ -3879,8 +4216,8 @@ export namespace Prisma {
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[]
-    notIn?: Date[] | string[]
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3893,8 +4230,8 @@ export namespace Prisma {
 
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | null
-    notIn?: Date[] | string[] | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -3907,8 +4244,8 @@ export namespace Prisma {
 
   export type NestedIntNullableFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | null
-    notIn?: number[] | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
     lt?: number | IntFieldRefInput<$PrismaModel>
     lte?: number | IntFieldRefInput<$PrismaModel>
     gt?: number | IntFieldRefInput<$PrismaModel>
@@ -3923,46 +4260,38 @@ export namespace Prisma {
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
   }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
 
-  export type NestedStringNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | null
-    notIn?: string[] | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableFilter<$PrismaModel> | string | null
-  }
-
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | null
-    notIn?: string[] | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type MessageCreateWithoutConversationInput = {
     id?: string
     role: string
     content: string
-    reasoning?: string | null
-    annotations?: string | null
-    parts?: string | null
-    experimentalAttachments?: string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -3972,10 +4301,10 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
-    reasoning?: string | null
-    annotations?: string | null
-    parts?: string | null
-    experimentalAttachments?: string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -3988,6 +4317,7 @@ export namespace Prisma {
 
   export type MessageCreateManyConversationInputEnvelope = {
     data: MessageCreateManyConversationInput | MessageCreateManyConversationInput[]
+    skipDuplicates?: boolean
   }
 
   export type MessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -4013,10 +4343,10 @@ export namespace Prisma {
     id?: StringFilter<"Message"> | string
     role?: StringFilter<"Message"> | string
     content?: StringFilter<"Message"> | string
-    reasoning?: StringNullableFilter<"Message"> | string | null
-    annotations?: StringNullableFilter<"Message"> | string | null
-    parts?: StringNullableFilter<"Message"> | string | null
-    experimentalAttachments?: StringNullableFilter<"Message"> | string | null
+    reasoning?: JsonNullableFilter<"Message">
+    annotations?: JsonNullableFilter<"Message">
+    parts?: JsonNullableFilter<"Message">
+    experimentalAttachments?: JsonNullableFilter<"Message">
     createdAt?: DateTimeFilter<"Message"> | Date | string
     updatedAt?: DateTimeFilter<"Message"> | Date | string
     deletedAt?: DateTimeNullableFilter<"Message"> | Date | string | null
@@ -4081,10 +4411,10 @@ export namespace Prisma {
     id?: string
     role: string
     content: string
-    reasoning?: string | null
-    annotations?: string | null
-    parts?: string | null
-    experimentalAttachments?: string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -4094,10 +4424,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
-    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    parts?: NullableStringFieldUpdateOperationsInput | string | null
-    experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -4107,10 +4437,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
-    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    parts?: NullableStringFieldUpdateOperationsInput | string | null
-    experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -4120,10 +4450,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
-    reasoning?: NullableStringFieldUpdateOperationsInput | string | null
-    annotations?: NullableStringFieldUpdateOperationsInput | string | null
-    parts?: NullableStringFieldUpdateOperationsInput | string | null
-    experimentalAttachments?: NullableStringFieldUpdateOperationsInput | string | null
+    reasoning?: NullableJsonNullValueInput | InputJsonValue
+    annotations?: NullableJsonNullValueInput | InputJsonValue
+    parts?: NullableJsonNullValueInput | InputJsonValue
+    experimentalAttachments?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
