@@ -74,7 +74,7 @@ jobs:
           app_location: "adaptive-app"
           api_location: ""
           output_location: ""
-          app_build_command: "npm install -g bun && bun install --frozen-lockfile && && bunx prisma generate && bun run build"
+          app_build_command: "npm install -g bun && bun install --frozen-lockfile && bunx prisma generate && bun run build"
         env:
           SKIP_ENV_VALIDATION: "true"
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
