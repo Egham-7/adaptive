@@ -15,8 +15,11 @@ COPY . .
 
 # Set build arguments and environment variables
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG ADAPTIVE_API_BASE_URL
+
 ENV SKIP_ENV_VALIDATION=true
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+ENV ADAPTIVE_API_BASE_URL=${ADAPTIVE_API_BASE_URL}
 
 # Generate Prisma client and build Next.js app
 RUN bunx prisma generate && bun run build
