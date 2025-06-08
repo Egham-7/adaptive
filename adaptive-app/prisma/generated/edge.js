@@ -186,6 +186,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -196,7 +197,7 @@ const config = {
   },
   "inlineSchema": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\ndatasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"./generated\"\n}\n\nmodel Conversation {\n  id        Int       @id @default(autoincrement())\n  title     String\n  createdAt DateTime  @default(now())\n  updatedAt DateTime  @updatedAt\n  deletedAt DateTime?\n  userId    String\n\n  messages Message[]\n  pinned   Boolean   @default(false)\n\n  @@index([deletedAt])\n}\n\nmodel Message {\n  id      String @id @default(cuid()) // AI SDK uses string IDs\n  role    String // 'system' | 'user' | 'assistant' | 'data'\n  content String // Removed @db.NVarChar(Max) as it's not needed for Postgres\n\n  // AI SDK Message fields converted to native JSON type\n  reasoning               Json?\n  annotations             Json?\n  parts                   Json?\n  experimentalAttachments Json?\n\n  createdAt DateTime  @default(now())\n  updatedAt DateTime  @updatedAt\n  deletedAt DateTime?\n\n  // Relationship back to Conversation\n  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)\n  conversationId Int\n\n  // Indexes for performance\n  @@index([deletedAt])\n  @@index([conversationId])\n  @@index([role])\n}\n",
   "inlineSchemaHash": "3e78fb3f034cf29a626394522e65c9dff346557b2fbb4beebce02885bec5f5da",
-  "copyEngine": false
+  "copyEngine": true
 }
 config.dirname = '/'
 
