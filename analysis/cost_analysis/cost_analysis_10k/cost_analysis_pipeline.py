@@ -1,12 +1,15 @@
+from typing import Any, cast
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt  # type: ignore
 import requests
 import numpy as np  # Add numpy import
 from typing import Dict, List, Any, Optional, cast
 from tqdm import tqdm
 
 # Configuration
-TOKEN_PRICES: Dict[str, Dict[str, float]] = {
+TOKEN_PRICES: dict[str, dict[str, float]] = {
     "o3": {"input": 10.00, "output": 40.00},
     "o4-mini": {"input": 1.1, "output": 4.40},
     "gpt-4o": {"input": 5.00, "output": 20.00},
@@ -25,12 +28,12 @@ TOKEN_PRICES: Dict[str, Dict[str, float]] = {
 
 class CostAnalysisPipeline:
     def __init__(self) -> None:
-        self.prediction_df: Optional[pd.DataFrame] = None
-        self.token_counts_df: Optional[pd.DataFrame] = None
-        self.combined_df: Optional[pd.DataFrame] = None
-        self.costs_df: Optional[pd.DataFrame] = None
+        self.prediction_df: pd.DataFrame | None = None
+        self.token_counts_df: pd.DataFrame | None = None
+        self.combined_df: pd.DataFrame | None = None
+        self.costs_df: pd.DataFrame | None = None
 
-    def get_prediction(self, prompt: str) -> Dict[str, Any]:
+    def get_prediction(self, prompt: str) -> dict[str, Any]:
         """Get model prediction for a given prompt."""
         try:
             if prompt is None or (isinstance(prompt, str) and not prompt.strip()):
@@ -39,7 +42,7 @@ class CostAnalysisPipeline:
             url = "http://localhost:8000/predict"
             payload = {"prompt": str(prompt)}
             response = requests.post(url, json=payload, timeout=10)
-            return cast(Dict[str, Any], response.json())
+            return cast(dict[str, Any], response.json())
         except Exception:
             return {"model": None, "provider": None, "task_type": None}
 
@@ -51,7 +54,7 @@ class CostAnalysisPipeline:
         self.token_counts_df = pd.read_csv(input_file).head(limit)
 
         # Get predictions for each prompt
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         print("Getting predictions for prompts...")
 
         if self.token_counts_df is not None:
@@ -173,7 +176,7 @@ class CostAnalysisPipeline:
             .sort_values(ascending=False)
         )
         bars2 = ax2.bar(
-            task_costs.index, task_costs.values, color="lightgreen", alpha=0.7
+            task_costs.index, np.array(task_costs.values), color="lightgreen", alpha=0.7
         )
 
         for bar in bars2:
