@@ -1,8 +1,6 @@
 package metrics
 
 import (
-	"sync"
-	
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -24,91 +22,77 @@ type StreamingMetrics struct {
 	MemoryUsage           prometheus.Gauge
 }
 
-var (
-	streamingMetricsInstance *StreamingMetrics
-	streamingMetricsOnce     sync.Once
-)
-
-// GetStreamingMetrics returns the singleton instance of StreamingMetrics
-func GetStreamingMetrics() *StreamingMetrics {
-	streamingMetricsOnce.Do(func() {
-		streamingMetricsInstance = &StreamingMetrics{
-			StreamDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-				Name:    "streaming_duration_seconds",
-				Help:    "Duration of streaming operations",
-				Buckets: prometheus.ExponentialBuckets(0.1, 2, 12), // 0.1s to ~400s
-			}, []string{"provider", "model", "status"}),
-
-			StreamsActive: promauto.NewGauge(prometheus.GaugeOpts{
-				Name: "streaming_active_connections",
-				Help: "Current number of active streaming connections",
-			}),
-
-			StreamsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "streaming_connections_total",
-				Help: "Total number of streaming connections",
-			}, []string{"provider", "model", "status"}),
-
-			BytesStreamed: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "streaming_bytes_total",
-				Help: "Total bytes streamed",
-			}, []string{"provider", "direction"}), // direction: "sent", "received"
-
-			StreamErrors: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "streaming_errors_total",
-				Help: "Total number of streaming errors",
-			}, []string{"error_type", "provider"}),
-
-			BufferPoolSize: promauto.NewGaugeVec(prometheus.GaugeOpts{
-				Name: "streaming_buffer_pool_size",
-				Help: "Current size of streaming buffer pools",
-			}, []string{"pool_type"}), // "small", "medium", "large"
-
-			BufferPoolHits: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "streaming_buffer_pool_hits_total",
-				Help: "Total number of buffer pool hits",
-			}, []string{"pool_type"}),
-
-			BufferPoolMisses: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "streaming_buffer_pool_misses_total",
-				Help: "Total number of buffer pool misses",
-			}, []string{"pool_type"}),
-
-			ChunkSize: promauto.NewHistogram(prometheus.HistogramOpts{
-				Name:    "streaming_chunk_size_bytes",
-				Help:    "Size of streaming chunks in bytes",
-				Buckets: prometheus.ExponentialBuckets(64, 2, 12), // 64B to 256KB
-			}),
-
-			FlushFrequency: promauto.NewHistogram(prometheus.HistogramOpts{
-				Name:    "streaming_flush_interval_seconds",
-				Help:    "Time between streaming flushes",
-				Buckets: prometheus.ExponentialBuckets(0.001, 2, 12), // 1ms to ~4s
-			}),
-
-			ConnectionDrops: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "streaming_connection_drops_total",
-				Help: "Total number of dropped streaming connections",
-			}, []string{"reason"}), // "timeout", "client_disconnect", "error"
-
-			BackpressureEvents: promauto.NewCounter(prometheus.CounterOpts{
-				Name: "streaming_backpressure_events_total",
-				Help: "Total number of backpressure events during streaming",
-			}),
-
-			MemoryUsage: promauto.NewGauge(prometheus.GaugeOpts{
-				Name: "streaming_memory_usage_bytes",
-				Help: "Current memory usage by streaming operations",
-			}),
-		}
-	})
-	return streamingMetricsInstance
-}
-
-// NewStreamingMetrics is deprecated, use GetStreamingMetrics() instead
-// Keeping for backward compatibility
+// NewStreamingMetrics initializes and registers all streaming-related Prometheus metrics
 func NewStreamingMetrics() *StreamingMetrics {
-	return GetStreamingMetrics()
+	return &StreamingMetrics{
+		StreamDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "streaming_duration_seconds",
+			Help:    "Duration of streaming operations",
+			Buckets: prometheus.ExponentialBuckets(0.1, 2, 12), // 0.1s to ~400s
+		}, []string{"provider", "model", "status"}),
+
+		StreamsActive: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "streaming_active_connections",
+			Help: "Current number of active streaming connections",
+		}),
+
+		StreamsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "streaming_connections_total",
+			Help: "Total number of streaming connections",
+		}, []string{"provider", "model", "status"}),
+
+		BytesStreamed: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "streaming_bytes_total",
+			Help: "Total bytes streamed",
+		}, []string{"provider", "direction"}), // direction: "sent", "received"
+
+		StreamErrors: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "streaming_errors_total",
+			Help: "Total number of streaming errors",
+		}, []string{"error_type", "provider"}),
+
+		BufferPoolSize: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "streaming_buffer_pool_size",
+			Help: "Current size of streaming buffer pools",
+		}, []string{"pool_type"}), // "small", "medium", "large"
+
+		BufferPoolHits: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "streaming_buffer_pool_hits_total",
+			Help: "Total number of buffer pool hits",
+		}, []string{"pool_type"}),
+
+		BufferPoolMisses: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "streaming_buffer_pool_misses_total",
+			Help: "Total number of buffer pool misses",
+		}, []string{"pool_type"}),
+
+		ChunkSize: promauto.NewHistogram(prometheus.HistogramOpts{
+			Name:    "streaming_chunk_size_bytes",
+			Help:    "Size of streaming chunks in bytes",
+			Buckets: prometheus.ExponentialBuckets(64, 2, 12), // 64B to 256KB
+		}),
+
+		FlushFrequency: promauto.NewHistogram(prometheus.HistogramOpts{
+			Name:    "streaming_flush_interval_seconds",
+			Help:    "Time between streaming flushes",
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 12), // 1ms to ~4s
+		}),
+
+		ConnectionDrops: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "streaming_connection_drops_total",
+			Help: "Total number of dropped streaming connections",
+		}, []string{"reason"}), // "timeout", "client_disconnect", "error"
+
+		BackpressureEvents: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "streaming_backpressure_events_total",
+			Help: "Total number of backpressure events during streaming",
+		}),
+
+		MemoryUsage: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "streaming_memory_usage_bytes",
+			Help: "Current memory usage by streaming operations",
+		}),
+	}
 }
 
 // RecordStreamStart records the start of a streaming operation

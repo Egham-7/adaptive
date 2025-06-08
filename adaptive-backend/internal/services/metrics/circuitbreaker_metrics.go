@@ -1,8 +1,6 @@
 package metrics
 
 import (
-	"sync"
-	
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -22,79 +20,65 @@ type CircuitBreakerMetrics struct {
 	Timeouts          *prometheus.CounterVec
 }
 
-var (
-	circuitBreakerMetricsInstance *CircuitBreakerMetrics
-	circuitBreakerMetricsOnce     sync.Once
-)
-
-// GetCircuitBreakerMetrics returns the singleton instance of CircuitBreakerMetrics
-func GetCircuitBreakerMetrics() *CircuitBreakerMetrics {
-	circuitBreakerMetricsOnce.Do(func() {
-		circuitBreakerMetricsInstance = &CircuitBreakerMetrics{
-			StateChanges: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "circuitbreaker_state_changes_total",
-				Help: "Total number of circuit breaker state changes",
-			}, []string{"service", "from_state", "to_state"}),
-
-			RequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "circuitbreaker_requests_total",
-				Help: "Total number of requests processed by circuit breaker",
-			}, []string{"service", "state", "result"}), // result: "success", "failure", "rejected"
-
-			RequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-				Name:    "circuitbreaker_request_duration_seconds",
-				Help:    "Duration of requests processed by circuit breaker",
-				Buckets: prometheus.ExponentialBuckets(0.001, 2, 15),
-			}, []string{"service", "state", "result"}),
-
-			FailureRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
-				Name: "circuitbreaker_failure_rate",
-				Help: "Current failure rate of the circuit breaker (0-1)",
-			}, []string{"service"}),
-
-			SuccessRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
-				Name: "circuitbreaker_success_rate",
-				Help: "Current success rate of the circuit breaker (0-1)",
-			}, []string{"service"}),
-
-			CurrentState: promauto.NewGaugeVec(prometheus.GaugeOpts{
-				Name: "circuitbreaker_state",
-				Help: "Current state of the circuit breaker (0=closed, 1=open, 2=half-open)",
-			}, []string{"service"}),
-
-			TimeInState: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "circuitbreaker_time_in_state_seconds_total",
-				Help: "Total time spent in each circuit breaker state",
-			}, []string{"service", "state"}),
-
-			HalfOpenAttempts: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "circuitbreaker_half_open_attempts_total",
-				Help: "Total number of requests attempted in half-open state",
-			}, []string{"service", "result"}),
-
-			TripEvents: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "circuitbreaker_trip_events_total",
-				Help: "Total number of circuit breaker trip events",
-			}, []string{"service", "reason"}), // reason: "failure_threshold", "timeout", "manual"
-
-			RecoveryEvents: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "circuitbreaker_recovery_events_total",
-				Help: "Total number of circuit breaker recovery events",
-			}, []string{"service", "from_state"}),
-
-			Timeouts: promauto.NewCounterVec(prometheus.CounterOpts{
-				Name: "circuitbreaker_timeouts_total",
-				Help: "Total number of circuit breaker timeouts",
-			}, []string{"service", "state"}),
-		}
-	})
-	return circuitBreakerMetricsInstance
-}
-
-// NewCircuitBreakerMetrics is deprecated, use GetCircuitBreakerMetrics() instead
-// Keeping for backward compatibility
+// NewCircuitBreakerMetrics initializes and registers all circuit breaker-related Prometheus metrics
 func NewCircuitBreakerMetrics() *CircuitBreakerMetrics {
-	return GetCircuitBreakerMetrics()
+	return &CircuitBreakerMetrics{
+		StateChanges: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "circuitbreaker_state_changes_total",
+			Help: "Total number of circuit breaker state changes",
+		}, []string{"service", "from_state", "to_state"}),
+
+		RequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "circuitbreaker_requests_total",
+			Help: "Total number of requests processed by circuit breaker",
+		}, []string{"service", "state", "result"}), // result: "success", "failure", "rejected"
+
+		RequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "circuitbreaker_request_duration_seconds",
+			Help:    "Duration of requests processed by circuit breaker",
+			Buckets: prometheus.ExponentialBuckets(0.001, 2, 15),
+		}, []string{"service", "state", "result"}),
+
+		FailureRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "circuitbreaker_failure_rate",
+			Help: "Current failure rate of the circuit breaker (0-1)",
+		}, []string{"service"}),
+
+		SuccessRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "circuitbreaker_success_rate",
+			Help: "Current success rate of the circuit breaker (0-1)",
+		}, []string{"service"}),
+
+		CurrentState: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "circuitbreaker_state",
+			Help: "Current state of the circuit breaker (0=closed, 1=open, 2=half-open)",
+		}, []string{"service"}),
+
+		TimeInState: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "circuitbreaker_time_in_state_seconds_total",
+			Help: "Total time spent in each circuit breaker state",
+		}, []string{"service", "state"}),
+
+		HalfOpenAttempts: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "circuitbreaker_half_open_attempts_total",
+			Help: "Total number of requests attempted in half-open state",
+		}, []string{"service", "result"}),
+
+		TripEvents: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "circuitbreaker_trip_events_total",
+			Help: "Total number of circuit breaker trip events",
+		}, []string{"service", "reason"}), // reason: "failure_threshold", "timeout", "manual"
+
+		RecoveryEvents: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "circuitbreaker_recovery_events_total",
+			Help: "Total number of circuit breaker recovery events",
+		}, []string{"service", "from_state"}),
+
+		Timeouts: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "circuitbreaker_timeouts_total",
+			Help: "Total number of circuit breaker timeouts",
+		}, []string{"service", "state"}),
+	}
 }
 
 // RecordStateChange records a circuit breaker state change
