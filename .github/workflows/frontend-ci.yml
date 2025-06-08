@@ -9,7 +9,7 @@ on:
       - main
     paths:
       - "adaptive-app/**"
-      - ".github/workflows/deploy-nextjs-app-service.yml"
+      - ".github/workflows/frontend-ci.yml"
   workflow_dispatch:
 
 jobs:
