@@ -43,10 +43,6 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: ./adaptive-app
 
-      - name: Generate Prisma client
-        run: bunx prisma generate
-        working-directory: ./adaptive-app
-
       - name: Run tests
         run: bun test --coverage
         working-directory: ./adaptive-app
@@ -78,7 +74,7 @@ jobs:
           app_location: "adaptive-app"
           api_location: ""
           output_location: ""
-          app_build_command: "npm install -g bun && bun install --frozen-lockfile && bun run build"
+          app_build_command: "npm install -g bun && bun install --frozen-lockfile && && bunx prisma generate && bun run build"
         env:
           SKIP_ENV_VALIDATION: "true"
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
