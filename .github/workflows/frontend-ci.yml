@@ -71,6 +71,7 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
           ADAPTIVE_API_BASE_URL: ${{ secrets.VITE_BASE_API_URL }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          SKIP_ENV_VALIDATION: true
 
       - name: Zip artifact for deployment
         run: zip -r release.zip ./adaptive-app
