@@ -140,8 +140,9 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"metrics": "/metrics",
-				"chat":    "/v1/chat/completions",
+				"metrics":  "/metrics",
+				"chat":     "/v1/chat/completions",
+				"api_keys": "/api/api_keys",
 			},
 		})
 	})
