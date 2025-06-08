@@ -104,6 +104,16 @@ func (h *ChatCompletionHandler) selectModel(req *openai.ChatCompletionNewParams,
 
 func (h *ChatCompletionHandler) applyModelParameters(req *openai.ChatCompletionNewParams, modelInfo *models.SelectModelResponse) {
 	req.Model = modelInfo.SelectedModel
+	req.MaxTokens = modelInfo.Parameters.MaxCompletionTokens
+	req.Temperature = modelInfo.Parameters.Temperature
+	req.TopP = modelInfo.Parameters.TopP
+	req.PresencePenalty = modelInfo.Parameters.PresencePenalty
+	req.FrequencyPenalty = modelInfo.Parameters.FrequencyPenalty
+	req.N = modelInfo.Parameters.N
+	req.TopLogprobs = modelInfo.Parameters.TopLogprobs
+	req.Logprobs = modelInfo.Parameters.Logprobs
+	req.MaxCompletionTokens = modelInfo.Parameters.MaxCompletionTokens
+	req.ReasoningEffort = modelInfo.Parameters.ReasoningEffort
 }
 
 func (h *ChatCompletionHandler) getMethodType(isStream bool) string {
