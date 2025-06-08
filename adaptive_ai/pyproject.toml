@@ -28,6 +28,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 packages = [
+    { include = "adaptive_ai" },
     { include = "core" },
     { include = "models" },
     { include = "services" }

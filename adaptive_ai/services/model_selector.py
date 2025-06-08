@@ -102,7 +102,7 @@ class ModelSelector:
                     f"No model mapping found for task type: {task_type}, using default"
                 )
                 return {
-                    "selected_model": "gpt-4-turbo",
+                    "selected_model": "gpt-4.1",
                     "provider": "OpenAI",
                     "match_score": 0.0,
                     "task_type": task_type,
