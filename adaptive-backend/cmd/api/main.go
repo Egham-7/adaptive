@@ -176,12 +176,10 @@ func main() {
 	}()
 
 	// Wait for shutdown signal
-	select {
-	case <-ctx.Done():
-		log.Println("Server shutting down...")
-		if err := app.Shutdown(); err != nil {
-			log.Printf("Server shutdown error: %v", err)
-		}
+	<-ctx.Done()
+	log.Println("Server shutting down...")
+	if err := app.Shutdown(); err != nil {
+		log.Printf("Server shutdown error: %v", err)
 	}
 }
 

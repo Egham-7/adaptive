@@ -99,11 +99,10 @@ func (a *AnthropicStreamAdapter) processAnthropicStream() {
 			// Convert and send chunk
 			chunk := a.convertAnthropicEventToOpenAIChunk(event)
 			if chunk != nil {
-				select {
-				case a.openaiStream.chunkChan <- *chunk:
-				case <-a.ctx.Done():
+				if a.ctx.Err() != nil {
 					return
 				}
+				a.openaiStream.chunkChan <- *chunk
 			}
 		}
 	}
@@ -181,9 +180,8 @@ func (a *AnthropicStreamAdapter) sendFinalChunk() {
 		},
 	}
 
-	select {
-	case a.openaiStream.chunkChan <- finalChunk:
-	case <-a.ctx.Done():
+	if a.ctx.Err() == nil {
+		a.openaiStream.chunkChan <- finalChunk
 	}
 }
 

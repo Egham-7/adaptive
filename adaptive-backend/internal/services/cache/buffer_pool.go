@@ -22,7 +22,8 @@ func NewBufferPool(size int) *BufferPool {
 	return &BufferPool{
 		pool: sync.Pool{
 			New: func() any {
-				return make([]byte, size)
+				buf := make([]byte, size)
+				return &buf
 			},
 		},
 		size: size,
@@ -31,7 +32,7 @@ func NewBufferPool(size int) *BufferPool {
 
 // Get retrieves a buffer from the pool
 func (bp *BufferPool) Get() []byte {
-	return bp.pool.Get().([]byte)
+	return *bp.pool.Get().(*[]byte)
 }
 
 // Put returns a buffer to the pool for reuse
@@ -43,7 +44,7 @@ func (bp *BufferPool) Put(buf []byte) {
 
 	// Reset the buffer length but keep capacity
 	buf = buf[:cap(buf)]
-	bp.pool.Put(buf)
+	bp.pool.Put(&buf)
 }
 
 // GetSize returns the buffer size used by this pool

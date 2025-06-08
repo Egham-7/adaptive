@@ -248,12 +248,13 @@ func RecordQueryMetrics(operation, table string, duration time.Duration, err err
 	dbMetrics.QueryDuration.WithLabelValues(operation, table).Observe(duration.Seconds())
 	
 	if err != nil {
-		errorType := "unknown"
-		if err == context.DeadlineExceeded {
+		var errorType string
+		switch err {
+		case context.DeadlineExceeded:
 			errorType = "timeout"
-		} else if err == sql.ErrNoRows {
+		case sql.ErrNoRows:
 			errorType = "not_found"
-		} else {
+		default:
 			errorType = "query_error"
 		}
 		dbMetrics.QueryErrors.WithLabelValues(operation, errorType).Inc()

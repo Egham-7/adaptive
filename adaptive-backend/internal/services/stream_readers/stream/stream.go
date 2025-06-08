@@ -46,13 +46,16 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		startTime := time.Now()
 		var totalBytes int64
-		status := "success"
+		var status string
 
 		streamReader, err := selectStreamReader(resp, requestID)
 		if err != nil {
 			status = "reader_error"
 			promStreamMetrics.RecordError("reader_creation", provider)
 			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
+			// Record completion metrics
+			duration := time.Since(startTime)
+			promStreamMetrics.RecordStreamEnd(provider, model, status, duration.Seconds(), totalBytes)
 			return
 		}
 		defer closeStreamReader(streamReader, requestID)
@@ -61,6 +64,8 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 			status = "stream_error"
 			promStreamMetrics.RecordError("streaming", provider)
 			sendErrorEvent(w, requestID, "Stream error", err)
+		} else {
+			status = "success"
 		}
 
 		// Record completion metrics
@@ -83,12 +88,13 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 
 	var totalBytes int64
 	lastFlushTime := time.Now()
-	const flushInterval = 100 * time.Millisecond // Flush every 100ms for responsiveness
 
 	for {
 		// Set read deadline to prevent hanging
 		if rc, ok := streamReader.(interface{ SetReadDeadline(time.Time) error }); ok {
-			rc.SetReadDeadline(time.Now().Add(30 * time.Second))
+			if err := rc.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
+				log.Printf("[%s] Warning: failed to set read deadline: %v", requestID, err)
+			}
 		}
 
 		n, err := streamReader.Read(buffer)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -248,7 +249,11 @@ func (c *Client) executeRequest(method, url string, body any, result any, opts *
 	if err != nil {
 		return fmt.Errorf("error executing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Error closing response body: %v", err)
+		}
+	}()
 
 	// Record response metrics
 	c.metrics.RecordResponse(method, fmt.Sprintf("%d", resp.StatusCode))
@@ -349,7 +354,7 @@ func (c *Client) isRetryableError(err error) bool {
 
 	// Check for network errors
 	if netErr, ok := err.(net.Error); ok {
-		return netErr.Timeout() || netErr.Temporary()
+		return netErr.Timeout()
 	}
 
 	// Check for context timeout

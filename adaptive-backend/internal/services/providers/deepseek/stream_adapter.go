@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	openai_provider "adaptive-backend/internal/services/providers/openai"
@@ -55,7 +56,11 @@ func (d *DeepSeekStreamAdapter) ConvertToOpenAIStream() (*ssestream.Stream[opena
 // processDeepSeekStream processes the DeepSeek stream and converts responses to OpenAI chunks
 func (d *DeepSeekStreamAdapter) processDeepSeekStream() {
 	defer d.decoder.CloseSender()
-	defer d.deepseekStream.Close()
+	defer func() {
+		if err := d.deepseekStream.Close(); err != nil {
+			log.Printf("Error closing DeepSeek stream: %v", err)
+		}
+	}()
 
 	for {
 		select {
