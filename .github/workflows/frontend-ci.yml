@@ -1,4 +1,4 @@
-name: Frontend CI/CD
+name: Frontend CI/CD (Azure Static Web Apps)
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - "adaptive-app/**"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
+    types: [opened, synchronize, reopened, closed]
     branches: [main]
     paths:
       - "adaptive-app/**"
@@ -14,27 +15,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event.action != 'closed')
     runs-on: ubuntu-latest
+    name: Build and Deploy Job
     env:
+      # Build-time environment variables for your Next.js app
+      # These are used by the `bun run build` command
       SKIP_ENV_VALIDATION: true
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
-
-    # Set the working directory for all run commands in this job
-    defaults:
-      run:
-        working-directory: ./adaptive-app
-
-    # Grant permissions for Azure OIDC login
-    permissions:
-      id-token: write
-      contents: read
+      ADAPTIVE_API_BASE_URL: ${{ secrets.VITE_BASE_API_URL }}
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -47,18 +42,21 @@ jobs:
           path: |
             ./adaptive-app/node_modules
             ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lockb') }}
           restore-keys: |
-            ${{ runner.os }}-bun-${{ hashFiles('./adaptive-app/bun.lock') }}
+            ${{ runner.os }}-bun-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+        working-directory: ./adaptive-app
 
       - name: Generate Prisma client
         run: bunx prisma generate
+        working-directory: ./adaptive-app
 
       - name: Run tests
         run: bun test --coverage
+        working-directory: ./adaptive-app
 
       - name: Upload test coverage
         uses: codecov/codecov-action@v4
@@ -70,33 +68,37 @@ jobs:
 
       - name: Run Biome (Lint & Format Check)
         run: bun run check
+        working-directory: ./adaptive-app
 
       - name: Type check
         run: bun run typecheck
+        working-directory: ./adaptive-app
 
-      - name: Azure Login
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.FRONTEND_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.FRONTEND_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.FRONTEND_AZURE_SUBSCRIPTION_ID }}
+      - name: Build Application
+        run: bun run build
+        working-directory: ./adaptive-app
 
-      - name: Build and Deploy to Azure Container Apps
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
-        uses: azure/container-apps-deploy-action@v2
+      - name: Build And Deploy to Azure Static Web Apps
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
         with:
-          appSourcePath: ${{ github.workspace }}/adaptive-app
-          dockerfilePath: Dockerfile
-          registryUrl: adaptiveregistry.azurecr.io
-          registryUsername: ${{ secrets.FRONTEND_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.FRONTEND_REGISTRY_PASSWORD }}
-          containerAppName: frontend
-          resourceGroup: adaptive
-          imageToBuild: adaptiveregistry.azurecr.io/frontend:${{ github.sha }}
-          # CRITICAL: Pass all required build arguments to your Dockerfile
-          buildArguments: |
-            NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
-            ADAPTIVE_API_BASE_URL=${{ secrets.VITE_BASE_API_URL }}
-            CLERK_SECRET_KEY=${{ secrets.CLERK_SECRET_KEY }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
+          # This is the deployment token from your SWA resource in Azure
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DELIGHTFUL_SMOKE_046A86703 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          action: "upload"
+          app_location: "./adaptive-app" # App source code path
+          api_location: "" # No separate API folder
+          # IMPORTANT: This points to the output of your `bun run build` command
+          output_location: "out"
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DELIGHTFUL_SMOKE_046A86703 }}
+          action: "close"
