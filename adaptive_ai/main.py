@@ -19,7 +19,7 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
             req = PromptRequest.model_validate(request)
             return req.prompt
         except ValidationError as e:
-            raise ValueError(f"Invalid request: {e}")
+            raise ValueError(f"Invalid request: {e}") from e
 
     def predict(self, prompt: str) -> Dict[str, Any]:
         return self.model_selector.select_model(prompt)
