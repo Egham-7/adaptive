@@ -33,8 +33,13 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	apiKey := h.getAPIKey(c)
 
 	req, err := h.parseRequest(c)
+	if err != nil {
+		h.recordError(start, "400", false)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body: " + err.Error(),
+		})
+	}
 	isStream := req.Stream
-
 	if err != nil {
 		h.recordError(start, "400", isStream)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
