@@ -91,7 +91,7 @@ task_type_model_mapping = {
         "hard": {"model": "gpt-4o", "complexity_threshold": 0.6},
     },
     "Text Generation": {
-        "easy": {"model": "gemini-2.0-flash-lite", "complexity_threshold": 0.15},
+        "easy": {"model": "gemini-2.0-flash-lite", "complexity_threshold": 0.25},
         "medium": {"model": "gpt-4.1-mini", "complexity_threshold": 0.3},
         "hard": {"model": "claude-sonnet-4-0", "complexity_threshold": 0.6},
     },

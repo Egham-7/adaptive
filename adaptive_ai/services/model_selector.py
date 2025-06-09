@@ -43,37 +43,31 @@ class ModelSelector:
         )
 
     def select_model(
-        self, prompt: str, domain: str = "Computers_and_Electronics"
-    ) -> Dict[str, Any]:
+        self, prompt: List[str]
+    ) -> List[Dict[str, Any]]:
         """
         Select the most appropriate model based on prompt analysis and task type.
 
         Args:
-            prompt (str): The input prompt
-            domain (str): The domain context for the prompt
+            prompt (List[str]): The input prompts
 
         Returns:
-            Dict[str, Any]: Model selection results including scores and parameters
+            List[Dict[str, Any]]: List of model selection results, one for each prompt
 
         Raises:
             ModelSelectionError: If model selection fails
             ValueError: If input validation fails
         """
         try:
-            if not prompt or not isinstance(prompt, str):
-                raise ValueError("Invalid prompt: must be a non-empty string")
+            if not prompt or not isinstance(prompt, list) or not all(isinstance(p, str) for p in prompt):
+                raise ValueError("Invalid prompt: must be a non-empty list of strings")
 
             # Get complexity analysis and task type
-            classification = self.prompt_classifier.classify_prompt(prompt, domain)
+            classification = self.prompt_classifier.classify_prompt(prompt)
 
-            # Get task type from the classification results
-            task_type = (
-                classification["task_type_1"][0]
-                if classification["task_type_1"]
-                else "Other"
-            )
-            logger.info(f"Detected task type: {task_type}")
-
+            # Get task types from the classification results
+            task_types = classification["task_type_1"]
+            
             # Extract scores with type safety
             prompt_scores = {
                 "creativity_scope": cast(
@@ -91,76 +85,87 @@ class ModelSelector:
                 ),
             }
 
-            # Get complexity score
-            complexity_score = classification["prompt_complexity_score"][0]
-            logger.info(f"Complexity score: {complexity_score}")
+            # Get complexity scores
+            complexity_scores = classification["prompt_complexity_score"]
+            
+            # Process each prompt
+            results = []
+            for i, (task_type, complexity_score) in enumerate(zip(task_types, complexity_scores)):
+                logger.info(f"Processing prompt {i+1}, task type: {task_type}, complexity: {complexity_score}")
 
-            # Get task difficulties for the current task type
-            task_difficulties = task_type_model_mapping.get(task_type, {})
-            if not task_difficulties:
-                logger.warning(
-                    f"No model mapping found for task type: {task_type}, using default"
-                )
-                return {
-                    "selected_model": "gpt-4.1",
-                    "provider": "OpenAI",
-                    "match_score": 0.0,
+                # Get task difficulties for the current task type
+                task_difficulties = task_type_model_mapping.get(task_type, {})
+                if not task_difficulties:
+                    logger.warning(
+                        f"No model mapping found for task type: {task_type}, using default"
+                    )
+                    results.append({
+                        "selected_model": "gpt-4.1",
+                        "provider": "OpenAI",
+                        "match_score": 0.0,
+                        "task_type": task_type,
+                        "difficulty": "medium",
+                        "prompt_scores": {
+                            k: [v[i]] for k, v in prompt_scores.items()
+                        },
+                        "complexity_score": complexity_score,
+                        "thresholds": {"easy": 0.3, "medium": 0.5, "hard": 0.7},
+                    })
+                    continue
+
+                # Get thresholds for the current task type
+                easy_threshold = task_difficulties["easy"]["complexity_threshold"]
+                medium_threshold = task_difficulties["medium"]["complexity_threshold"]
+                hard_threshold = task_difficulties["hard"]["complexity_threshold"]
+
+                # Select difficulty based on complexity score and task-specific thresholds
+                selected_difficulty = "medium"  # default
+                if complexity_score <= easy_threshold:
+                    selected_difficulty = "easy"
+                elif complexity_score >= hard_threshold:
+                    selected_difficulty = "hard"
+
+                selected_model = str(task_difficulties[selected_difficulty]["model"])
+                self._validate_model_selection(selected_model, task_type)
+
+                # Calculate match score based on how close the complexity score is to the selected threshold
+                selected_threshold = task_difficulties[selected_difficulty][
+                    "complexity_threshold"
+                ]
+                match_score = 1.0 - min(abs(complexity_score - selected_threshold), 1.0)
+
+                model_info = cast(ModelCapability, model_capabilities[selected_model])
+
+                results.append({
+                    "selected_model": selected_model,
+                    "provider": model_info["provider"],
+                    "match_score": float(match_score),
                     "task_type": task_type,
-                    "difficulty": "medium",
-                    "prompt_scores": prompt_scores,
+                    "difficulty": selected_difficulty,
+                    "prompt_scores": {
+                        k: [v[i]] for k, v in prompt_scores.items()
+                    },
                     "complexity_score": complexity_score,
-                    "thresholds": {"easy": 0.3, "medium": 0.5, "hard": 0.7},
-                }
+                    "thresholds": {
+                        "easy": easy_threshold,
+                        "medium": medium_threshold,
+                        "hard": hard_threshold,
+                    },
+                })
 
-            # Get thresholds for the current task type
-            easy_threshold = task_difficulties["easy"]["complexity_threshold"]
-            medium_threshold = task_difficulties["medium"]["complexity_threshold"]
-            hard_threshold = task_difficulties["hard"]["complexity_threshold"]
-
-            # Select difficulty based on complexity score and task-specific thresholds
-            selected_difficulty = "medium"  # default
-            if complexity_score <= easy_threshold:
-                selected_difficulty = "easy"
-            elif complexity_score >= hard_threshold:
-                selected_difficulty = "hard"
-
-            selected_model = str(task_difficulties[selected_difficulty]["model"])
-            self._validate_model_selection(selected_model, task_type)
-
-            # Calculate match score based on how close the complexity score is to the selected threshold
-            selected_threshold = task_difficulties[selected_difficulty][
-                "complexity_threshold"
-            ]
-            match_score = 1.0 - min(abs(complexity_score - selected_threshold), 1.0)
-
-            model_info = cast(ModelCapability, model_capabilities[selected_model])
-
-            return {
-                "selected_model": selected_model,
-                "provider": model_info["provider"],
-                "match_score": float(match_score),
-                "task_type": task_type,
-                "difficulty": selected_difficulty,
-                "prompt_scores": prompt_scores,
-                "complexity_score": complexity_score,
-                "thresholds": {
-                    "easy": easy_threshold,
-                    "medium": medium_threshold,
-                    "hard": hard_threshold,
-                },
-            }
+            return results
 
         except Exception as e:
             logger.error(f"Error in model selection: {str(e)}")
             raise ModelSelectionError(f"Failed to select model: {str(e)}")
 
-    def get_model_parameters(self, prompt: str, task_type: str) -> Dict[str, Any]:
+    def get_model_parameters(self, prompt: List[str], task_type: str) -> Dict[str, Any]:
         """
         Get model parameters based on prompt analysis and task type.
 
         Args:
-            prompt (str): The input prompt
-            task_type (str): The task type for the prompt
+            prompt (List[str]): The input prompts
+            task_type (str): The task type for the prompts
 
         Returns:
             Dict[str, Any]: Model parameters
@@ -170,10 +175,7 @@ class ModelSelector:
         """
         try:
             # Get complexity analysis
-            default_domain = "Computers_and_Electronics"
-            classification = self.prompt_classifier.classify_prompt(
-                prompt, default_domain
-            )
+            classification = self.prompt_classifier.classify_prompt(prompt)
 
             # Extract scores with type safety
             prompt_scores = {
