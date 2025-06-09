@@ -34,13 +34,13 @@ type ChatCompletionRequest struct {
 	// [text](https://platform.openai.com/docs/guides/text-generation),
 	// [images](https://platform.openai.com/docs/guides/vision), and
 	// [audio](https://platform.openai.com/docs/guides/audio).
-	Messages []openai.ChatCompletionMessageParamUnion `json:"messages,omitzero,required"`
+	Messages []openai.ChatCompletionMessageParamUnion `json:"messages,omitzero"`
 	// Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
 	// wide range of models with different capabilities, performance characteristics,
 	// and price points. Refer to the
 	// [model guide](https://platform.openai.com/docs/models) to browse and compare
 	// available models.
-	Model shared.ChatModel `json:"model,omitzero,required"`
+	Model shared.ChatModel `json:"model,omitzere"`
 	// Number between -2.0 and 2.0. Positive values penalize new tokens based on their
 	// existing frequency in the text so far, decreasing the model's likelihood to
 	// repeat the same line verbatim.
@@ -188,9 +188,6 @@ type ChatCompletionRequest struct {
 	// functions are present.
 	FunctionCall openai.ChatCompletionNewParamsFunctionCallUnion `json:"function_call,omitzero"`
 	// Deprecated in favor of `tools`.
-	//
-	// A list of functions the model may generate JSON inputs for.
-	Functions []openai.ChatCompletionNewParamsFunction `json:"functions,omitzero"`
 	// Static predicted output content, such as the content of a text file that is
 	// being regenerated.
 	Prediction openai.ChatCompletionPredictionContentParam `json:"prediction,omitzero"`
@@ -225,7 +222,6 @@ type ChatCompletionRequest struct {
 	WebSearchOptions openai.ChatCompletionNewParamsWebSearchOptions `json:"web_search_options,omitzero"`
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
-	any
 }
 
 func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
@@ -254,7 +250,6 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 		Stop:                r.Stop,
 		StreamOptions:       r.StreamOptions,
 		FunctionCall:        r.FunctionCall,
-		Functions:           r.Functions,
 		Prediction:          r.Prediction,
 		ResponseFormat:      r.ResponseFormat,
 		ToolChoice:          r.ToolChoice,
