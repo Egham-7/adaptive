@@ -1,6 +1,10 @@
 package main
 
 import (
+	"adaptive-backend/config"
+	"adaptive-backend/internal/api"
+	"adaptive-backend/internal/middleware"
+	"adaptive-backend/internal/services/metrics"
 	"context"
 	"fmt"
 	"log"
@@ -8,11 +12,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
-	"adaptive-backend/config"
-	"adaptive-backend/internal/api"
-	"adaptive-backend/internal/middleware"
-	"adaptive-backend/internal/services/metrics"
 
 	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/joho/godotenv"
@@ -205,7 +204,7 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		LimiterMiddleware: limiter.SlidingWindow{},
 		KeyGenerator: func(c *fiber.Ctx) string {
 			// Use API key if available, otherwise IP
-			apiKey := c.Get("X-API-Key")
+			apiKey := c.Get("X-Stainless-API-Key")
 			if apiKey != "" {
 				return apiKey
 			}
