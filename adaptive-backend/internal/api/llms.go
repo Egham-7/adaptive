@@ -147,7 +147,7 @@ func (h *ChatCompletionHandler) recordSuccess(start time.Time, isStream bool) {
 }
 
 func (h *ChatCompletionHandler) handleStreamResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *models.ChatCompletionRequest, start time.Time, requestID string) error {
-	resp, err := provider.Chat().Completions().StreamCompletion(req)
+	resp, err := provider.Chat().Completions().StreamCompletion(req.ToOpenAIParams())
 	if err != nil {
 		h.recordError(start, "500", true)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -164,7 +164,7 @@ func (h *ChatCompletionHandler) handleStreamResponse(c *fiber.Ctx, provider prov
 }
 
 func (h *ChatCompletionHandler) handleRegularResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *models.ChatCompletionRequest, start time.Time) error {
-	resp, err := provider.Chat().Completions().CreateCompletion(req)
+	resp, err := provider.Chat().Completions().CreateCompletion(req.ToOpenAIParams())
 	if err != nil {
 		h.recordError(start, "500", false)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

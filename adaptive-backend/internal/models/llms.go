@@ -227,3 +227,38 @@ type ChatCompletionRequest struct {
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 	any
 }
+
+func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
+	return &openai.ChatCompletionNewParams{
+		Messages:            r.Messages,
+		Model:               r.Model,
+		FrequencyPenalty:    r.FrequencyPenalty,
+		Logprobs:            r.Logprobs,
+		MaxCompletionTokens: r.MaxCompletionTokens,
+		MaxTokens:           r.MaxTokens,
+		N:                   r.N,
+		PresencePenalty:     r.PresencePenalty,
+		Seed:                r.Seed,
+		Store:               r.Store,
+		Temperature:         r.Temperature,
+		TopLogprobs:         r.TopLogprobs,
+		TopP:                r.TopP,
+		ParallelToolCalls:   r.ParallelToolCalls,
+		User:                r.User,
+		Audio:               r.Audio,
+		LogitBias:           r.LogitBias,
+		Metadata:            r.Metadata,
+		Modalities:          r.Modalities,
+		ReasoningEffort:     r.ReasoningEffort,
+		ServiceTier:         r.ServiceTier,
+		Stop:                r.Stop,
+		StreamOptions:       r.StreamOptions,
+		FunctionCall:        r.FunctionCall,
+		Functions:           r.Functions,
+		Prediction:          r.Prediction,
+		ResponseFormat:      r.ResponseFormat,
+		ToolChoice:          r.ToolChoice,
+		Tools:               r.Tools,
+		WebSearchOptions:    r.WebSearchOptions,
+	}
+}
