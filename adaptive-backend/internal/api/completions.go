@@ -8,6 +8,7 @@ import (
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -104,6 +105,10 @@ func (h *ChatCompletionHandler) parseRequest(c *fiber.Ctx) (*models.ChatCompleti
 }
 
 func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, apiKey, requestID string) (*models.SelectModelResponse, error) {
+	if len(req.Messages) == 0 {
+		return nil, errors.New("messages array must contain at least one element")
+	}
+
 	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
 
 	modelInfo, _, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
