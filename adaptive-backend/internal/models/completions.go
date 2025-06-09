@@ -40,7 +40,7 @@ type ChatCompletionRequest struct {
 	// and price points. Refer to the
 	// [model guide](https://platform.openai.com/docs/models) to browse and compare
 	// available models.
-	Model shared.ChatModel `json:"model,omitzere"`
+	Model shared.ChatModel `json:"model,omitzero"`
 	// Number between -2.0 and 2.0. Positive values penalize new tokens based on their
 	// existing frequency in the text so far, decreasing the model's likelihood to
 	// repeat the same line verbatim.
