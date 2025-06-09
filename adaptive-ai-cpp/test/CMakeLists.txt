@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14...3.22)
+cmake_minimum_required(VERSION 4.0) # Updated CMake version range
 
 project(GreeterTests LANGUAGES CXX)
 
@@ -15,8 +15,8 @@ include(../cmake/tools.cmake)
 
 include(../cmake/CPM.cmake)
 
-CPMAddPackage("gh:doctest/doctest@2.4.9")
-CPMAddPackage("gh:TheLartians/Format.cmake@1.7.3")
+CPMAddPackage("gh:doctest/doctest@2.4.12")
+CPMAddPackage("gh:TheLartians/Format.cmake@1.8.3")
 
 if(TEST_INSTALLED_VERSION)
   find_package(Greeter REQUIRED)
@@ -44,10 +44,6 @@ endif()
 # ---- Add GreeterTests ----
 
 enable_testing()
-
-# Note: doctest and similar testing frameworks can automatically configure CMake tests. For other
-# testing frameworks add the tests target instead: add_test(NAME ${PROJECT_NAME} COMMAND
-# ${PROJECT_NAME})
 
 include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
 doctest_discover_tests(${PROJECT_NAME})
