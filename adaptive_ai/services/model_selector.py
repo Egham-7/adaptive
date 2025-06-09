@@ -42,9 +42,7 @@ class ModelSelector:
             f"Selected model {selected_model} ({model_info['provider']}) for task {task_type}"
         )
 
-    def select_model(
-        self, prompt: List[str]
-    ) -> List[Dict[str, Any]]:
+    def select_model(self, prompt: List[str]) -> List[Dict[str, Any]]:
         """
         Select the most appropriate model based on prompt analysis and task type.
 
@@ -59,7 +57,11 @@ class ModelSelector:
             ValueError: If input validation fails
         """
         try:
-            if not prompt or not isinstance(prompt, list) or not all(isinstance(p, str) for p in prompt):
+            if (
+                not prompt
+                or not isinstance(prompt, list)
+                or not all(isinstance(p, str) for p in prompt)
+            ):
                 raise ValueError("Invalid prompt: must be a non-empty list of strings")
 
             # Get complexity analysis and task type
@@ -67,7 +69,7 @@ class ModelSelector:
 
             # Get task types from the classification results
             task_types = classification["task_type_1"]
-            
+
             # Extract scores with type safety
             prompt_scores = {
                 "creativity_scope": cast(
@@ -87,11 +89,15 @@ class ModelSelector:
 
             # Get complexity scores
             complexity_scores = classification["prompt_complexity_score"]
-            
+
             # Process each prompt
             results = []
-            for i, (task_type, complexity_score) in enumerate(zip(task_types, complexity_scores)):
-                logger.info(f"Processing prompt {i+1}, task type: {task_type}, complexity: {complexity_score}")
+            for i, (task_type, complexity_score) in enumerate(
+                zip(task_types, complexity_scores)
+            ):
+                logger.info(
+                    f"Processing prompt {i+1}, task type: {task_type}, complexity: {complexity_score}"
+                )
 
                 # Get task difficulties for the current task type
                 task_difficulties = task_type_model_mapping.get(task_type, {})
@@ -99,18 +105,20 @@ class ModelSelector:
                     logger.warning(
                         f"No model mapping found for task type: {task_type}, using default"
                     )
-                    results.append({
-                        "selected_model": "gpt-4.1",
-                        "provider": "OpenAI",
-                        "match_score": 0.0,
-                        "task_type": task_type,
-                        "difficulty": "medium",
-                        "prompt_scores": {
-                            k: [v[i]] for k, v in prompt_scores.items()
-                        },
-                        "complexity_score": complexity_score,
-                        "thresholds": {"easy": 0.3, "medium": 0.5, "hard": 0.7},
-                    })
+                    results.append(
+                        {
+                            "selected_model": "gpt-4.1",
+                            "provider": "OpenAI",
+                            "match_score": 0.0,
+                            "task_type": task_type,
+                            "difficulty": "medium",
+                            "prompt_scores": {
+                                k: [v[i]] for k, v in prompt_scores.items()
+                            },
+                            "complexity_score": complexity_score,
+                            "thresholds": {"easy": 0.3, "medium": 0.5, "hard": 0.7},
+                        }
+                    )
                     continue
 
                 # Get thresholds for the current task type
@@ -136,22 +144,22 @@ class ModelSelector:
 
                 model_info = cast(ModelCapability, model_capabilities[selected_model])
 
-                results.append({
-                    "selected_model": selected_model,
-                    "provider": model_info["provider"],
-                    "match_score": float(match_score),
-                    "task_type": task_type,
-                    "difficulty": selected_difficulty,
-                    "prompt_scores": {
-                        k: [v[i]] for k, v in prompt_scores.items()
-                    },
-                    "complexity_score": complexity_score,
-                    "thresholds": {
-                        "easy": easy_threshold,
-                        "medium": medium_threshold,
-                        "hard": hard_threshold,
-                    },
-                })
+                results.append(
+                    {
+                        "selected_model": selected_model,
+                        "provider": model_info["provider"],
+                        "match_score": float(match_score),
+                        "task_type": task_type,
+                        "difficulty": selected_difficulty,
+                        "prompt_scores": {k: [v[i]] for k, v in prompt_scores.items()},
+                        "complexity_score": complexity_score,
+                        "thresholds": {
+                            "easy": easy_threshold,
+                            "medium": medium_threshold,
+                            "hard": hard_threshold,
+                        },
+                    }
+                )
 
             return results
 
