@@ -1,6 +1,10 @@
 package stream
 
 import (
+	"adaptive-backend/internal/services/cache"
+	"adaptive-backend/internal/services/metrics"
+	"adaptive-backend/internal/services/stream_readers"
+	"adaptive-backend/internal/services/stream_readers/sse"
 	"bufio"
 	"encoding/json"
 	"fmt"
@@ -8,11 +12,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"adaptive-backend/internal/services/cache"
-	"adaptive-backend/internal/services/metrics"
-	"adaptive-backend/internal/services/stream_readers"
-	"adaptive-backend/internal/services/stream_readers/sse"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/openai/openai-go"
@@ -34,6 +33,7 @@ func initMetrics() {
 
 // HandleStream manages the streaming response to the client with optimized performance
 func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string) error {
+	log.Printf("[%s] Starting stream handling", requestID)
 	// Initialize metrics if needed
 	initMetrics()
 
@@ -177,7 +177,7 @@ func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) {
 		"error":      err.Error(),
 		"request_id": requestID,
 	}
-	
+
 	errorJSON, jsonErr := json.Marshal(errorResponse)
 	if jsonErr != nil {
 		log.Printf("[%s] Failed to marshal error JSON: %v", requestID, jsonErr)
@@ -195,5 +195,3 @@ func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) {
 		log.Printf("[%s] Failed to flush error event: %v", requestID, flushErr)
 	}
 }
-
-

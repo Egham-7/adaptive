@@ -7,10 +7,12 @@ import (
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
+	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/openai/openai-go"
+	"github.com/gofiber/fiber/v2/log"
 )
 
 type ChatCompletionHandler struct {
@@ -30,7 +32,14 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	requestID := h.getRequestID(c)
 	apiKey := h.getAPIKey(c)
 
-	req, isStream, err := h.parseRequest(c)
+	req, err := h.parseRequest(c)
+	if err != nil {
+		h.recordError(start, "400", false)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body: " + err.Error(),
+		})
+	}
+	isStream := req.Stream
 	if err != nil {
 		h.recordError(start, "400", isStream)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -45,8 +54,10 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
+	log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
 
 	h.applyModelParameters(req, modelInfo)
+	log.Infof("[%s] Applied model parameters: %+v", requestID, modelInfo.Parameters)
 
 	provider, err := providers.NewLLMProvider(modelInfo.Provider)
 	if err != nil {
@@ -56,10 +67,13 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 
+	log.Infof("[%s] Using provider: %s", requestID, modelInfo.Provider)
+
 	if isStream {
+		log.Infof("[%s] Streaming enabled", requestID)
 		return h.handleStreamResponse(c, provider, req, start, requestID)
 	}
-
+	log.Infof("[%s] Streaming disabled", requestID)
 	return h.handleRegularResponse(c, provider, req, start)
 }
 
@@ -75,34 +89,39 @@ func (h *ChatCompletionHandler) getAPIKey(c *fiber.Ctx) string {
 	return apiKey
 }
 
-func (h *ChatCompletionHandler) parseRequest(c *fiber.Ctx) (*openai.ChatCompletionNewParams, bool, error) {
+func (h *ChatCompletionHandler) parseRequest(c *fiber.Ctx) (*models.ChatCompletionRequest, error) {
+	requestID := h.getRequestID(c)
+
+	// Get and log the raw body
+	body := c.Body()
+	log.Infof("[%s] Raw request body: %s", requestID, string(body))
+
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
-		return nil, false, err
+		log.Errorf("[%s] Failed to parse request body: %v", requestID, err)
+		return nil, err
 	}
 
-	return &req.ChatCompletionNewParams, req.Stream, nil
+	// Log the parsed request
+	reqJSON, _ := json.Marshal(req)
+	log.Infof("[%s] Parsed request: %s", requestID, string(reqJSON))
+
+	return &req, nil
 }
 
-func (h *ChatCompletionHandler) selectModel(req *openai.ChatCompletionNewParams, apiKey, requestID string) (*models.SelectModelResponse, error) {
+func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, apiKey, requestID string) (*models.SelectModelResponse, error) {
+	if len(req.Messages) == 0 {
+		return nil, errors.New("messages array must contain at least one element")
+	}
+
 	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
 
-	modelInfo, cacheType, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
-
-	if h.metrics != nil {
-		h.metrics.CacheLookups.WithLabelValues(cacheType).Inc()
-		if cacheType == "user" || cacheType == "global" {
-			h.metrics.CacheHits.WithLabelValues(cacheType).Inc()
-		}
-		if err == nil {
-			h.metrics.ModelSelections.WithLabelValues(modelInfo.SelectedModel).Inc()
-		}
-	}
+	modelInfo, _, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
 
 	return modelInfo, err
 }
 
-func (h *ChatCompletionHandler) applyModelParameters(req *openai.ChatCompletionNewParams, modelInfo *models.SelectModelResponse) {
+func (h *ChatCompletionHandler) applyModelParameters(req *models.ChatCompletionRequest, modelInfo *models.SelectModelResponse) {
 	req.Model = modelInfo.SelectedModel
 	req.MaxTokens = modelInfo.Parameters.MaxCompletionTokens
 	req.Temperature = modelInfo.Parameters.Temperature
@@ -137,8 +156,8 @@ func (h *ChatCompletionHandler) recordSuccess(start time.Time, isStream bool) {
 	}
 }
 
-func (h *ChatCompletionHandler) handleStreamResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *openai.ChatCompletionNewParams, start time.Time, requestID string) error {
-	resp, err := provider.Chat().Completions().StreamCompletion(req)
+func (h *ChatCompletionHandler) handleStreamResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *models.ChatCompletionRequest, start time.Time, requestID string) error {
+	resp, err := provider.Chat().Completions().StreamCompletion(req.ToOpenAIParams())
 	if err != nil {
 		h.recordError(start, "500", true)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -149,11 +168,13 @@ func (h *ChatCompletionHandler) handleStreamResponse(c *fiber.Ctx, provider prov
 	h.setStreamHeaders(c)
 	h.recordSuccess(start, true)
 
+	log.Infof("[%s] Starting stream handling", requestID)
+
 	return stream.HandleStream(c, resp, requestID)
 }
 
-func (h *ChatCompletionHandler) handleRegularResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *openai.ChatCompletionNewParams, start time.Time) error {
-	resp, err := provider.Chat().Completions().CreateCompletion(req)
+func (h *ChatCompletionHandler) handleRegularResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *models.ChatCompletionRequest, start time.Time) error {
+	resp, err := provider.Chat().Completions().CreateCompletion(req.ToOpenAIParams())
 	if err != nil {
 		h.recordError(start, "500", false)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
