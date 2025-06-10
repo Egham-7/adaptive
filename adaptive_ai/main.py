@@ -1,33 +1,42 @@
 import litserve as ls  # type: ignore
-from pydantic import BaseModel
-from typing import Any, Dict, List
+from typing import List
 
-
-class PromptRequest(BaseModel):
-    prompt: List[str]
+from core.config import get_settings
+from services.model_selector import get_model_selector
+from models.requests import PromptRequest, ModelSelectionResponse
+from services.prompt_classifier import get_prompt_classifier
 
 
 class AdaptiveModelSelectionAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
-        from services.model_selector import ModelSelector
-        from services.prompt_classifier import get_prompt_classifier
+        self.settings = get_settings()
+        self.model_selector = get_model_selector(get_prompt_classifier())
 
-        self.model_selector = ModelSelector(get_prompt_classifier())
-
-    def decode_request(self, request: PromptRequest) -> List[str]:
+    def decode_request(self, request: PromptRequest) -> str:
         return request.prompt
 
-    def predict(self, prompt: List[str]) -> List[Dict[str, Any]]:
-        # Flatten the list if it's double-wrapped
-        if len(prompt) == 1 and isinstance(prompt[0], list):
-            prompt = prompt[0]
-        return self.model_selector.select_model(prompt)
+    def predict(self, prompts: List[str]) -> List[ModelSelectionResponse]:
+        return self.model_selector.select_model(prompts)
 
-    def encode_response(self, output: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def encode_response(self, output: ModelSelectionResponse) -> ModelSelectionResponse:
         return output
 
 
+def create_app() -> ls.LitServer:
+    """Factory function to create the LitServer app."""
+    settings = get_settings()
+    api = AdaptiveModelSelectionAPI(
+        max_batch_size=settings.max_batch_size,
+        batch_timeout=settings.batch_timeout,
+    )
+
+    return ls.LitServer(
+        api,
+        accelerator=settings.accelerator,
+        devices=settings.devices,
+    )
+
+
 if __name__ == "__main__":
-    api = AdaptiveModelSelectionAPI()
-    server = ls.LitServer(api, accelerator="auto", devices="auto")
-    server.run(port=8000)
+    app = create_app()
+    app.run(port=8000)

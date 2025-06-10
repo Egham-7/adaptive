@@ -1,213 +1,326 @@
-from typing import Dict, Any, List, TypedDict, cast
+from functools import lru_cache
+from typing import List, cast, Optional, Dict
 import logging
-from models.llms import model_capabilities, task_type_model_mapping, ModelCapability
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from models.types import (
+    VALID_TASK_TYPES,
+    TaskType,
+    ModelCapability,
+    ModelSelectionError,
+    TaskModelMapping,
+    TaskDifficultyConfig,
+    DifficultyLevel,
+)
+from models.requests import ModelSelectionResponse
+from models.config_loader import get_model_capabilities, get_task_model_mappings
+from services.prompt_classifier import PromptClassifier
+from services.llm_parameters import OpenAIParameters
 
 logger = logging.getLogger(__name__)
-
-
-class ModelInfo(TypedDict):
-    model_name: str
-    provider: str
-    match_score: float
-
-
-class ModelSelectionError(Exception):
-    """Custom exception for model selection errors"""
-
-    pass
 
 
 class ModelSelector:
     """
     Service for selecting appropriate LLM models and parameters based on prompt analysis.
-    Uses task-specific complexity-based model selection.
+    Uses task-specific complexity-based model selection with parallel processing.
     """
 
-    def __init__(self, prompt_classifier: Any):
-        self.prompt_classifier = prompt_classifier
-        logger.info("ModelSelector initialized")
+    def __init__(
+        self, prompt_classifier: PromptClassifier, max_workers: Optional[int] = None
+    ) -> None:
+        self.prompt_classifier: PromptClassifier = prompt_classifier
+        self._model_capabilities = get_model_capabilities()
+        self._task_mappings = get_task_model_mappings()
+        # Set max_workers based on CPU count if not specified
+        self.max_workers = max_workers or min(32, 4)  # Default to 4 workers
+        logger.info(f"ModelSelector initialized with max_workers={self.max_workers}")
+
+    def _validate_task_type(self, task_type: str) -> TaskType:
+        """Validate and convert string to TaskType"""
+
+        if task_type in VALID_TASK_TYPES:
+            return cast(TaskType, task_type)
+
+        logger.warning(f"Unknown task type '{task_type}', defaulting to 'Other'")
+        return "Other"
 
     def _validate_model_selection(self, selected_model: str, task_type: str) -> None:
         """Validate that the selected model exists and is appropriate for the task"""
-        if not isinstance(selected_model, str):
-            raise ModelSelectionError(f"Invalid model type: {type(selected_model)}")
 
-        if selected_model not in model_capabilities:
+        if selected_model not in self._model_capabilities:
             raise ModelSelectionError(
                 f"Selected model {selected_model} not found in capabilities"
             )
 
-        model_info = cast(ModelCapability, model_capabilities[selected_model])
+        model_info: ModelCapability = self._model_capabilities[selected_model]
         logger.info(
             f"Selected model {selected_model} ({model_info['provider']}) for task {task_type}"
         )
 
-    def select_model(self, prompt: List[str]) -> List[Dict[str, Any]]:
-        print(f"DEBUG: select_model received: {type(prompt)} = {prompt}")
+    def _extract_prompt_scores(
+        self, classification: Dict[str, List[float]]
+    ) -> Dict[str, List[float]]:
+        """Extract prompt scores in the format expected by OpenAIParameters"""
+        return {
+            "creativity_scope": classification.get("creativity_scope", [0.0]),
+            "reasoning": classification.get("reasoning", [0.0]),
+            "contextual_knowledge": classification.get("contextual_knowledge", [0.0]),
+            "prompt_complexity_score": classification.get(
+                "prompt_complexity_score", [0.0]
+            ),
+            "domain_knowledge": classification.get("domain_knowledge", [0.0]),
+        }
+
+    def _get_default_result(
+        self,
+        task_type: str,
+        prompt_scores: Dict[str, List[float]],
+        model_name: str = "gpt-4",
+    ) -> ModelSelectionResponse:
+        """Create default model selection result when no mapping is found"""
+        # Get OpenAI parameters
+        openai_params = OpenAIParameters(model=model_name)
+        openai_params.adjust_parameters(task_type, prompt_scores)
+
+        return ModelSelectionResponse(
+            selected_model="gpt-4",
+            confidence=0.5,
+            reasoning=f"Default model selection for task type: {task_type}",
+            alternatives=["gpt-3.5-turbo", "gpt-4-turbo"],
+            parameters=openai_params,
+            provider="OpenAI",
+        )
+
+    def _select_difficulty_level(
+        self, complexity_score: float, task_mapping: TaskModelMapping
+    ) -> DifficultyLevel:
+        """Select difficulty level based on complexity score and thresholds"""
+        easy_threshold = task_mapping["easy"]["complexity_threshold"]
+        hard_threshold = task_mapping["hard"]["complexity_threshold"]
+
+        if complexity_score <= easy_threshold:
+            return "easy"
+        elif complexity_score >= hard_threshold:
+            return "hard"
+        else:
+            return "medium"
+
+    def _calculate_match_score(
+        self, complexity_score: float, selected_config: TaskDifficultyConfig
+    ) -> float:
+        """Calculate match score based on complexity score and threshold"""
+        selected_threshold = selected_config["complexity_threshold"]
+        return 1.0 - min(abs(complexity_score - selected_threshold), 1.0)
+
+    def _get_alternatives(
+        self, selected_model: str, task_mapping: TaskModelMapping
+    ) -> List[str]:
+        """Get alternative models from other difficulty levels"""
+        alternatives = []
+        # Use literal keys to access TypedDict
+        for difficulty_key in ["easy", "medium", "hard"]:
+            if difficulty_key == "easy":
+                model = task_mapping["easy"]["model"]
+            elif difficulty_key == "medium":
+                model = task_mapping["medium"]["model"]
+            else:  # difficulty_key == "hard"
+                model = task_mapping["hard"]["model"]
+
+            if model != selected_model and model not in alternatives:
+                alternatives.append(model)
+        return alternatives[:2]  # Limit to 2 alternatives
+
+    def _get_openai_parameters(
+        self, model_name: str, task_type: str, prompt_scores: Dict[str, List[float]]
+    ) -> OpenAIParameters:
+        """Get OpenAI parameters object"""
+        try:
+            openai_params = OpenAIParameters(model=model_name)
+            openai_params.adjust_parameters(task_type, prompt_scores)
+            return openai_params
+        except Exception as e:
+            logger.warning(f"Failed to get OpenAI parameters: {e}, using defaults")
+            # Return default OpenAI parameters if adjustment fails
+            return OpenAIParameters(model=model_name)
+
+    def _process_single_classification(
+        self, classification: Dict[str, List[float]], prompt_index: int = 0
+    ) -> ModelSelectionResponse:
+        """Process a single classification result"""
+        try:
+            # Get and validate task type from the classification results
+            detected_task_type = (
+                classification["task_type_1"][0]
+                if classification.get("task_type_1") and classification["task_type_1"]
+                else "Other"
+            )
+            validated_task_type = self._validate_task_type(str(detected_task_type))
+            logger.debug(
+                f"Prompt {prompt_index}: Detected task type: {validated_task_type}"
+            )
+
+            # Extract scores in the format expected by OpenAIParameters
+            prompt_scores = self._extract_prompt_scores(classification)
+
+            # Get complexity score
+            complexity_score: float = classification["prompt_complexity_score"][0]
+            logger.debug(f"Prompt {prompt_index}: Complexity score: {complexity_score}")
+
+            # Get task mapping for the validated task type
+            task_mapping: Optional[TaskModelMapping] = self._task_mappings.get(
+                validated_task_type
+            )
+            if not task_mapping:
+                logger.warning(
+                    f"Prompt {prompt_index}: No model mapping found for task type: {validated_task_type}, using default"
+                )
+                return self._get_default_result(validated_task_type, prompt_scores)
+
+            # Select difficulty level
+            selected_difficulty = self._select_difficulty_level(
+                complexity_score, task_mapping
+            )
+            selected_config = task_mapping[selected_difficulty]
+
+            # Validate model selection
+            selected_model = selected_config["model"]
+            self._validate_model_selection(selected_model, validated_task_type)
+
+            # Calculate match score as confidence
+            confidence = self._calculate_match_score(complexity_score, selected_config)
+
+            # Get alternatives
+            alternatives = self._get_alternatives(selected_model, task_mapping)
+
+            # Get model info and OpenAI parameters
+            model_info = self._model_capabilities[selected_model]
+            openai_params = self._get_openai_parameters(
+                selected_model, validated_task_type, prompt_scores
+            )
+
+            # Create reasoning string
+            reasoning = (
+                f"Selected {selected_model} for {validated_task_type} task "
+                f"with complexity score {complexity_score:.3f} ({selected_difficulty} difficulty)"
+            )
+
+            return ModelSelectionResponse(
+                selected_model=selected_model,
+                confidence=confidence,
+                reasoning=reasoning,
+                alternatives=alternatives,
+                parameters=openai_params,
+                provider=model_info["provider"],
+            )
+        except Exception as e:
+            logger.error(
+                f"Error processing classification for prompt {prompt_index}: {str(e)}"
+            )
+            # Return default response for failed classifications
+            return self._get_default_result(
+                "Other",
+                {
+                    "creativity_scope": [0.5],
+                    "reasoning": [0.5],
+                    "contextual_knowledge": [0.5],
+                    "prompt_complexity_score": [0.5],
+                    "domain_knowledge": [0.5],
+                },
+            )
+
+    def select_model(self, prompts: List[str]) -> List[ModelSelectionResponse]:
         """
         Select the most appropriate model based on prompt analysis and task type.
+        Processes prompts in parallel for optimal GPU utilization.
 
         Args:
-            prompt (List[str]): The input prompts
+            prompts (List[str]): The input prompts
 
         Returns:
-            List[Dict[str, Any]]: List of model selection results, one for each prompt
+            List[ModelSelectionResponse]: Model selection results for each prompt
 
         Raises:
             ModelSelectionError: If model selection fails
             ValueError: If input validation fails
         """
         try:
-            if (
-                not prompt
-                or not isinstance(prompt, list)
-                or not all(isinstance(p, str) for p in prompt)
-            ):
-                raise ValueError("Invalid prompt: must be a non-empty list of strings")
+            # Get classifications from the prompt classifier (this should already be batched/parallelized)
+            classification_results = self.prompt_classifier.classify_prompts(prompts)
 
-            # Get complexity analysis and task type
-            classification = self.prompt_classifier.classify_prompt(prompt)
+            # Validate results
+            if not isinstance(classification_results, list):
+                raise ModelSelectionError("Expected list of classification results")
 
-            # Get task types from the classification results
-            task_types = classification["task_type_1"]
+            if not classification_results:
+                raise ModelSelectionError("No classification results returned")
 
-            # Extract scores with type safety
-            prompt_scores = {
-                "creativity_scope": cast(
-                    List[float], classification.get("creativity_scope", [0.0])
-                ),
-                "reasoning": cast(List[float], classification.get("reasoning", [0.0])),
-                "constraint_ct": cast(
-                    List[float], classification.get("constraint_ct", [0.0])
-                ),
-                "contextual_knowledge": cast(
-                    List[float], classification.get("contextual_knowledge", [0.0])
-                ),
-                "domain_knowledge": cast(
-                    List[float], classification.get("domain_knowledge", [0.0])
-                ),
-            }
-
-            # Get complexity scores
-            complexity_scores = classification["prompt_complexity_score"]
-
-            # Process each prompt
-            results = []
-            for i, (task_type, complexity_score) in enumerate(
-                zip(task_types, complexity_scores)
-            ):
-                logger.info(
-                    f"Processing prompt {i+1}, task type: {task_type}, complexity: {complexity_score}"
+            if len(classification_results) != len(prompts):
+                logger.warning(
+                    f"Mismatch: {len(prompts)} prompts but {len(classification_results)} classifications"
                 )
 
-                # Get task difficulties for the current task type
-                task_difficulties = task_type_model_mapping.get(task_type, {})
-                if not task_difficulties:
-                    logger.warning(
-                        f"No model mapping found for task type: {task_type}, using default"
-                    )
-                    results.append(
-                        {
-                            "selected_model": "gpt-4.1",
-                            "provider": "OpenAI",
-                            "match_score": 0.0,
-                            "task_type": task_type,
-                            "difficulty": "medium",
-                            "prompt_scores": {
-                                k: [v[i]] for k, v in prompt_scores.items()
+            # Process classifications in parallel using ThreadPoolExecutor
+            responses: List[ModelSelectionResponse] = []
+
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                # Submit all tasks
+                future_to_index = {
+                    executor.submit(
+                        self._process_single_classification, classification, i
+                    ): i
+                    for i, classification in enumerate(classification_results)
+                }
+
+                # Create a results dictionary to maintain order
+                results: Dict[int, ModelSelectionResponse] = {}
+
+                # Collect results as they complete
+                for future in as_completed(future_to_index):
+                    index = future_to_index[future]
+                    try:
+                        response = future.result()
+                        results[index] = response
+                    except Exception as e:
+                        logger.error(f"Error processing prompt {index}: {str(e)}")
+                        # Add default response for failed processing
+                        results[index] = self._get_default_result(
+                            "Other",
+                            {
+                                "creativity_scope": [0.5],
+                                "reasoning": [0.5],
+                                "contextual_knowledge": [0.5],
+                                "prompt_complexity_score": [0.5],
+                                "domain_knowledge": [0.5],
                             },
-                            "complexity_score": complexity_score,
-                            "thresholds": {"easy": 0.3, "medium": 0.5, "hard": 0.7},
-                        }
+                        )
+
+            # Build the final response list in the correct order
+            for i in range(len(classification_results)):
+                if i in results:
+                    responses.append(results[i])
+                else:
+                    logger.error(f"Missing response for prompt {i}, using default")
+                    responses.append(
+                        self._get_default_result(
+                            "Other",
+                            {
+                                "creativity_scope": [0.5],
+                                "reasoning": [0.5],
+                                "contextual_knowledge": [0.5],
+                                "prompt_complexity_score": [0.5],
+                                "domain_knowledge": [0.5],
+                            },
+                        )
                     )
-                    continue
 
-                # Get thresholds for the current task type
-                easy_threshold = task_difficulties["easy"]["complexity_threshold"]
-                medium_threshold = task_difficulties["medium"]["complexity_threshold"]
-                hard_threshold = task_difficulties["hard"]["complexity_threshold"]
-
-                # Select difficulty based on complexity score and task-specific thresholds
-                selected_difficulty = "medium"  # default
-                if complexity_score <= easy_threshold:
-                    selected_difficulty = "easy"
-                elif complexity_score >= hard_threshold:
-                    selected_difficulty = "hard"
-
-                selected_model = str(task_difficulties[selected_difficulty]["model"])
-                self._validate_model_selection(selected_model, task_type)
-
-                # Calculate match score based on how close the complexity score is to the selected threshold
-                selected_threshold = task_difficulties[selected_difficulty][
-                    "complexity_threshold"
-                ]
-                match_score = 1.0 - min(abs(complexity_score - selected_threshold), 1.0)
-
-                model_info = cast(ModelCapability, model_capabilities[selected_model])
-
-                results.append(
-                    {
-                        "selected_model": selected_model,
-                        "provider": model_info["provider"],
-                        "match_score": float(match_score),
-                        "task_type": task_type,
-                        "difficulty": selected_difficulty,
-                        "prompt_scores": {k: [v[i]] for k, v in prompt_scores.items()},
-                        "complexity_score": complexity_score,
-                        "thresholds": {
-                            "easy": easy_threshold,
-                            "medium": medium_threshold,
-                            "hard": hard_threshold,
-                        },
-                    }
-                )
-
-            return results
+            logger.info(f"Successfully processed {len(responses)} prompts in parallel")
+            return responses
 
         except Exception as e:
             logger.error(f"Error in model selection: {str(e)}")
-            raise ModelSelectionError(f"Failed to select model: {str(e)}")
+            raise ModelSelectionError(f"Failed to select model: {str(e)}") from e
 
-    def get_model_parameters(self, prompt: List[str], task_type: str) -> Dict[str, Any]:
-        """
-        Get model parameters based on prompt analysis and task type.
 
-        Args:
-            prompt (List[str]): The input prompts
-            task_type (str): The task type for the prompts
-
-        Returns:
-            Dict[str, Any]: Model parameters
-
-        Raises:
-            ModelSelectionError: If parameter selection fails
-        """
-        try:
-            # Get complexity analysis
-            classification = self.prompt_classifier.classify_prompt(prompt)
-
-            # Extract scores with type safety
-            prompt_scores = {
-                "creativity_scope": cast(
-                    List[float], classification.get("creativity_scope", [0.0])
-                ),
-                "reasoning": cast(List[float], classification.get("reasoning", [0.0])),
-                "constraint_ct": cast(
-                    List[float], classification.get("constraint_ct", [0.0])
-                ),
-                "contextual_knowledge": cast(
-                    List[float], classification.get("contextual_knowledge", [0.0])
-                ),
-                "domain_knowledge": cast(
-                    List[float], classification.get("domain_knowledge", [0.0])
-                ),
-            }
-
-            return {
-                "task_type": task_type,
-                "prompt_scores": prompt_scores,
-            }
-
-        except Exception as e:
-            logger.error(f"Error getting model parameters: {str(e)}")
-            raise ModelSelectionError(f"Failed to get model parameters: {str(e)}")
+@lru_cache()
+def get_model_selector(prompt_classifier: PromptClassifier) -> ModelSelector:
+    return ModelSelector(prompt_classifier)

@@ -1,43 +1,64 @@
 from abc import ABC, abstractmethod
-from typing import Union, Dict, Type, cast
+from typing import Union, Dict, cast
+from pydantic import BaseModel, Field, validator
 
-from models.llms import task_type_parameters, TaskTypeParametersType
+from models.config_loader import get_task_parameters
+from models.types import TaskTypeParametersType, TaskType
 
 
 class LLMProviderParameters(ABC):
     @abstractmethod
-    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
+    def adjust_parameters(
+        self, task_type: str, prompt_scores: Dict[str, list]
+    ) -> Dict[str, Union[float, int]]:
         pass
 
     @abstractmethod
-    def get_parameters(self) -> dict:
+    def get_parameters(self) -> Dict[str, Union[float, int]]:
         pass
 
 
-class OpenAIParameters(LLMProviderParameters):
-    def __init__(self, model: str) -> None:
-        self.model = model
-        self.temperature: float = 0.7
-        self.top_p: float = 0.9
-        self.presence_penalty: float = 0.0
-        self.frequency_penalty: float = 0.0
-        self.max_tokens: int = 1000
-        self.n: int = 1
+class OpenAIParameters(BaseModel, LLMProviderParameters):
+    model: str
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    top_p: float = Field(default=0.9, ge=0.0, le=1.0)
+    presence_penalty: float = Field(default=0.0, ge=-2.0, le=2.0)
+    frequency_penalty: float = Field(default=0.0, ge=-2.0, le=2.0)
+    max_tokens: int = Field(default=1000, ge=1, le=4096)
+    n: int = Field(default=1, ge=1, le=10)
 
-    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
+    class Config:
+        validate_assignment = True
+
+    @validator("temperature", "top_p", "presence_penalty", "frequency_penalty")
+    def round_float_values(cls, v):
+        return round(v, 2)
+
+    def adjust_parameters(
+        self, task_type: str, prompt_scores: Dict[str, list]
+    ) -> Dict[str, Union[float, int]]:
+        task_type_parameters = get_task_parameters()
+
         if task_type not in task_type_parameters:
             raise ValueError(
                 "Invalid task type. Choose from: "
                 + ", ".join(task_type_parameters.keys())
             )
 
-        base = cast(TaskTypeParametersType, task_type_parameters[task_type])
+        # Cast task_type to TaskType literal for proper indexing
+        task_type_literal: TaskType = cast(TaskType, task_type)
+        base: TaskTypeParametersType = task_type_parameters[task_type_literal]
+
         # Extract prompt scores
-        creativity_scope = prompt_scores.get("creativity_scope", [0.5])[0]
-        reasoning = prompt_scores.get("reasoning", [0.5])[0]
-        contextual_knowledge = prompt_scores.get("contextual_knowledge", [0.5])[0]
-        prompt_complexity_score = prompt_scores.get("prompt_complexity_score", [0.5])[0]
-        domain_knowledge = prompt_scores.get("domain_knowledge", [0.5])[0]
+        creativity_scope: float = prompt_scores.get("creativity_scope", [0.5])[0]
+        reasoning: float = prompt_scores.get("reasoning", [0.5])[0]
+        contextual_knowledge: float = prompt_scores.get("contextual_knowledge", [0.5])[
+            0
+        ]
+        prompt_complexity_score: float = prompt_scores.get(
+            "prompt_complexity_score", [0.5]
+        )[0]
+        domain_knowledge: float = prompt_scores.get("domain_knowledge", [0.5])[0]
 
         # Compute adjustments
         self.temperature = float(base["Temperature"] + (creativity_scope - 0.5) * 0.5)
@@ -53,23 +74,14 @@ class OpenAIParameters(LLMProviderParameters):
         )
 
         # Explicitly calculate n as an integer
-        base_n = base["N"]
-        adjustment = (prompt_complexity_score - 0.5) * 2
-        rounded_value = round(base_n + adjustment)
+        base_n: int = base["N"]
+        adjustment: float = (prompt_complexity_score - 0.5) * 2
+        rounded_value: int = round(base_n + adjustment)
         self.n = max(1, rounded_value)
 
-        # Round values for better output
-        self._post_process_values()
         return self.get_parameters()
 
-    def _post_process_values(self) -> None:
-        self.temperature = round(self.temperature, 2)
-        self.top_p = round(self.top_p, 2)
-        self.presence_penalty = round(self.presence_penalty, 2)
-        self.frequency_penalty = round(self.frequency_penalty, 2)
-        self.max_tokens = int(self.max_tokens)
-
-    def get_parameters(self) -> dict:
+    def get_parameters(self) -> Dict[str, Union[float, int]]:
         return {
             "temperature": self.temperature,
             "top_p": self.top_p,
@@ -78,171 +90,3 @@ class OpenAIParameters(LLMProviderParameters):
             "max_tokens": self.max_tokens,
             "n": self.n,
         }
-
-
-class GroqParameters(LLMProviderParameters):
-    def __init__(self, model: str) -> None:
-        self.model = model
-        self.temperature: float = 0.7
-        self.top_p: float = 0.9
-        self.presence_penalty: float = 0.0
-        self.frequency_penalty: float = 0.0
-        self.max_tokens: int = 1000
-        self.n: int = 1
-
-    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
-        if task_type not in task_type_parameters:
-            raise ValueError(
-                "Invalid task type. Choose from: "
-                + ", ".join(task_type_parameters.keys())
-            )
-
-        base = cast(TaskTypeParametersType, task_type_parameters[task_type])
-        # Extract prompt scores
-        creativity_scope = prompt_scores.get("creativity_scope", [0.5])[0]
-        reasoning = prompt_scores.get("reasoning", [0.5])[0]
-        contextual_knowledge = prompt_scores.get("contextual_knowledge", [0.5])[0]
-        prompt_complexity_score = prompt_scores.get("prompt_complexity_score", [0.5])[0]
-        domain_knowledge = prompt_scores.get("domain_knowledge", [0.5])[0]
-
-        # Compute adjustments
-        self.temperature = float(base["Temperature"] + (creativity_scope - 0.5) * 0.5)
-        self.top_p = float(base["TopP"] + (creativity_scope - 0.5) * 0.3)
-        self.presence_penalty = float(
-            base["PresencePenalty"] + (domain_knowledge - 0.5) * 0.4
-        )
-        self.frequency_penalty = float(
-            base["FrequencyPenalty"] + (reasoning - 0.5) * 0.4
-        )
-        self.max_tokens = base["MaxCompletionTokens"] + int(
-            (contextual_knowledge - 0.5) * 500
-        )
-
-        # Explicitly calculate n as an integer
-        base_n = base["N"]
-        adjustment = (prompt_complexity_score - 0.5) * 2
-        rounded_value = round(base_n + adjustment)
-        self.n = max(1, rounded_value)
-
-        # Round values for better output
-        self._post_process_values()
-        return self.get_parameters()
-
-    def _post_process_values(self) -> None:
-        self.temperature = round(self.temperature, 2)
-        self.top_p = round(self.top_p, 2)
-        self.presence_penalty = round(self.presence_penalty, 2)
-        self.frequency_penalty = round(self.frequency_penalty, 2)
-        self.max_tokens = int(self.max_tokens)
-
-    def get_parameters(self) -> dict:
-        return {
-            "temperature": self.temperature,
-            "top_p": self.top_p,
-            "presence_penalty": self.presence_penalty,
-            "frequency_penalty": self.frequency_penalty,
-            "max_tokens": self.max_tokens,
-            "n": self.n,
-        }
-
-
-class DeepSeekParameters(LLMProviderParameters):
-    def __init__(self, model: str) -> None:
-        self.model = model
-        self.temperature: float = 0.7
-        self.top_p: float = 0.9
-        self.presence_penalty: float = 0.0
-        self.frequency_penalty: float = 0.0
-        self.max_tokens: int = 1000
-        self.n: int = 1
-
-    def adjust_parameters(self, task_type: str, prompt_scores: dict) -> dict:
-        if task_type not in task_type_parameters:
-            raise ValueError(
-                "Invalid task type. Choose from: "
-                + ", ".join(task_type_parameters.keys())
-            )
-
-        base = cast(TaskTypeParametersType, task_type_parameters[task_type])
-        # Extract prompt scores
-        creativity_scope = prompt_scores.get("creativity_scope", [0.5])[0]
-        reasoning = prompt_scores.get("reasoning", [0.5])[0]
-        contextual_knowledge = prompt_scores.get("contextual_knowledge", [0.5])[0]
-        prompt_complexity_score = prompt_scores.get("prompt_complexity_score", [0.5])[0]
-        domain_knowledge = prompt_scores.get("domain_knowledge", [0.5])[0]
-
-        # Compute adjustments
-        self.temperature = float(base["Temperature"] + (creativity_scope - 0.5) * 0.5)
-        self.top_p = float(base["TopP"] + (creativity_scope - 0.5) * 0.3)
-        self.presence_penalty = float(
-            base["PresencePenalty"] + (domain_knowledge - 0.5) * 0.4
-        )
-        self.frequency_penalty = float(
-            base["FrequencyPenalty"] + (reasoning - 0.5) * 0.4
-        )
-        self.max_tokens = base["MaxCompletionTokens"] + int(
-            (contextual_knowledge - 0.5) * 500
-        )
-
-        # Explicitly calculate n as an integer
-        base_n = base["N"]
-        adjustment = (prompt_complexity_score - 0.5) * 2
-        rounded_value = round(base_n + adjustment)
-        self.n = max(1, rounded_value)
-
-        # Round values for better output
-        self._post_process_values()
-        return self.get_parameters()
-
-    def _post_process_values(self) -> None:
-        self.temperature = round(self.temperature, 2)
-        self.top_p = round(self.top_p, 2)
-        self.presence_penalty = round(self.presence_penalty, 2)
-        self.frequency_penalty = round(self.frequency_penalty, 2)
-        self.max_tokens = int(self.max_tokens)
-
-    def get_parameters(self) -> dict:
-        return {
-            "temperature": self.temperature,
-            "top_p": self.top_p,
-            "presence_penalty": self.presence_penalty,
-            "frequency_penalty": self.frequency_penalty,
-            "max_tokens": self.max_tokens,
-            "n": self.n,
-        }
-
-
-class LLMParametersFactory:
-    """Factory class for creating LLM provider parameter objects."""
-
-    @staticmethod
-    def create(
-        provider: str | None, model_name: str
-    ) -> Union[OpenAIParameters, GroqParameters, DeepSeekParameters]:
-        """
-        Create and return an appropriate LLMProviderParameters instance based on provider.
-
-        Args:
-            provider: The LLM provider name (e.g., 'OpenAI', 'GROQ', 'DeepSeek')
-            model_name: The name of the model to use
-
-        Returns:
-            An instance of a concrete LLMProviderParameters implementation
-
-        Raises:
-            ValueError: If the provider is not supported
-        """
-        provider_map: Dict[
-            str, Type[Union[OpenAIParameters, GroqParameters, DeepSeekParameters]]
-        ] = {
-            "OpenAI": OpenAIParameters,
-            "GROQ": GroqParameters,
-            "DeepSeek": DeepSeekParameters,
-        }
-
-        if provider not in provider_map:
-            raise ValueError(
-                f"Provider {provider} not supported. Choose from: {', '.join(provider_map.keys())}"
-            )
-
-        return provider_map[provider](model_name)

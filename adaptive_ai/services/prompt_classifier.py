@@ -171,22 +171,63 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
         return complexity_scores
 
+    def _extract_single_sample_results(
+        self,
+        batch_results: Dict[str, Union[List[str], List[float], float]],
+        sample_idx: int,
+    ) -> Dict[str, Union[List[str], List[float], float]]:
+        """Extract results for a single sample from batch results."""
+
+        single_result: Dict[str, Union[List[str], List[float], float]] = {}
+
+        for key, value in batch_results.items():
+            if isinstance(value, list) and len(value) > sample_idx:
+                # Extract the value for this specific sample
+                extracted_value = value[sample_idx]
+                # Ensure proper typing based on the extracted value
+                if isinstance(extracted_value, str):
+                    single_result[key] = [extracted_value]  # List[str]
+                elif isinstance(extracted_value, (int, float)):
+                    single_result[key] = [float(extracted_value)]  # List[float]
+                else:
+                    single_result[key] = [extracted_value]
+            elif isinstance(value, (int, float)):
+                # Single numeric value
+                single_result[key] = float(value)
+            else:
+                # Handle other cases (should be rare)
+                single_result[key] = value
+
+        return single_result
+
     def process_logits(
         self, logits: List[torch.Tensor]
-    ) -> Dict[str, Union[List[str], List[float], float]]:
-        """Main orchestration method for processing logits and calculating complexity scores."""
-        results = self._extract_classification_results(logits)
+    ) -> List[Dict[str, Union[List[str], List[float], float]]]:
+        """Main orchestration method for processing logits and calculating complexity scores for batched inputs."""
+        batch_size = logits[0].shape[0]
 
-        if "task_type_1" in results:
-            task_types = cast(List[str], results["task_type_1"])
-            complexity_scores = self._calculate_complexity_scores(results, task_types)
-            results["prompt_complexity_score"] = complexity_scores
+        # First, get batch-level results
+        batch_results = self._extract_classification_results(logits)
 
-        return results
+        # Calculate complexity scores for the entire batch
+        if "task_type_1" in batch_results:
+            task_types = cast(List[str], batch_results["task_type_1"])
+            complexity_scores = self._calculate_complexity_scores(
+                batch_results, task_types
+            )
+            batch_results["prompt_complexity_score"] = complexity_scores
+
+        # Now split batch results into individual sample results
+        individual_results = []
+        for i in range(batch_size):
+            single_result = self._extract_single_sample_results(batch_results, i)
+            individual_results.append(single_result)
+
+        return individual_results
 
     def forward(
         self, batch: Dict[str, torch.Tensor]
-    ) -> Dict[str, Union[List[str], List[float], float]]:
+    ) -> List[Dict[str, Union[List[str], List[float], float]]]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
@@ -199,46 +240,65 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         return self.process_logits(logits)
 
 
-config = AutoConfig.from_pretrained("nvidia/prompt-task-and-complexity-classifier")
-tokenizer = AutoTokenizer.from_pretrained(
-    "nvidia/prompt-task-and-complexity-classifier"
-)
-model = CustomModel(
-    target_sizes=config.target_sizes,
-    task_type_map=config.task_type_map,
-    weights_map=config.weights_map,
-    divisor_map=config.divisor_map,
-).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
-
-
 class PromptClassifier:
     def __init__(self) -> None:
-        self.model = model
-        self.tokenizer = tokenizer
+        self.config = AutoConfig.from_pretrained(
+            "nvidia/prompt-task-and-complexity-classifier"
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            "nvidia/prompt-task-and-complexity-classifier"
+        )
+        self.model = CustomModel(
+            target_sizes=self.config.target_sizes,
+            task_type_map=self.config.task_type_map,
+            weights_map=self.config.weights_map,
+            divisor_map=self.config.divisor_map,
+        ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
 
-    def classify_prompt(self, prompt: List[str]) -> Dict[str, Any]:
+    def classify_prompts(self, prompts: List[str]) -> List[Dict[str, Any]]:
+        """
+        Classify multiple prompts in a batch for optimal GPU utilization.
+
+        Args:
+            prompts: List of prompts to classify
+
+        Returns:
+            List of classification results, one per prompt
+        """
         encoded_texts = self.tokenizer(
-            prompt,
+            prompts,
             padding=True,
             truncation=True,
             max_length=512,
             return_tensors="pt",
         )
+
         with torch.no_grad():
             results = self.model(encoded_texts)
-        return cast(Dict[str, Any], results)
+
+        print(
+            f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
+        )
+        return results
 
     def classify_task_types(self, texts: List[str]) -> List[str]:
-        encoded_texts = self.tokenizer(
-            texts,
-            padding=True,
-            truncation=True,
-            max_length=512,
-            return_tensors="pt",
-        )
-        with torch.no_grad():
-            results = self.model(encoded_texts)
-        return cast(List[str], results["task_type_1"])
+        """
+        Extract just the task types from classification results.
+
+        Args:
+            texts: List of prompts to classify
+
+        Returns:
+            List of primary task types for each prompt
+        """
+        results = self.classify_prompts(texts)
+        task_types = []
+
+        for result in results:
+            task_type = result.get("task_type_1", ["Other"])[0]
+            task_types.append(task_type)
+
+        return task_types
 
 
 @lru_cache()
