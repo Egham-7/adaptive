@@ -216,9 +216,9 @@ class PromptClassifier:
         self.model = model
         self.tokenizer = tokenizer
 
-    def classify_prompt(self, prompt: str, domain: str) -> Dict[str, Any]:
+    def classify_prompt(self, prompts: List[str], domain: str) -> Dict[str, Any]:
         encoded_texts = self.tokenizer(
-            [prompt],
+            prompts,
             padding=True,
             truncation=True,
             max_length=512,

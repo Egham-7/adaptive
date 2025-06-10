@@ -43,7 +43,7 @@ class ModelSelector:
         )
 
     def select_model(
-        self, prompt: str, domain: str = "Computers_and_Electronics"
+        self, prompts: List[str], domain: str = "Computers_and_Electronics"
     ) -> Dict[str, Any]:
         """
         Select the most appropriate model based on prompt analysis and task type.
@@ -60,11 +60,9 @@ class ModelSelector:
             ValueError: If input validation fails
         """
         try:
-            if not prompt or not isinstance(prompt, str):
-                raise ValueError("Invalid prompt: must be a non-empty string")
 
             # Get complexity analysis and task type
-            classification = self.prompt_classifier.classify_prompt(prompt, domain)
+            classification = self.prompt_classifier.classify_prompt(prompts, domain)
 
             # Get task type from the classification results
             task_type = (
