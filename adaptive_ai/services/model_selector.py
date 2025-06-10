@@ -34,7 +34,6 @@ class ModelSelector:
 
     def _validate_task_type(self, task_type: str) -> TaskType:
         """Validate and convert string to TaskType"""
-       
 
         if task_type in VALID_TASK_TYPES:
             return cast(TaskType, task_type)
@@ -222,7 +221,7 @@ class ModelSelector:
 
         except Exception as e:
             logger.error(f"Error in model selection: {str(e)}")
-            raise ModelSelectionError(f"Failed to select model: {str(e)}")
+            raise ModelSelectionError(f"Failed to select model: {str(e)}") from e
 
     def get_model_parameters(self, prompt: str, task_type: str) -> ModelParameters:
         """
@@ -271,7 +270,9 @@ class ModelSelector:
 
         except Exception as e:
             logger.error(f"Error getting model parameters: {str(e)}")
-            raise ModelSelectionError(f"Failed to get model parameters: {str(e)}")
+            raise ModelSelectionError(
+                f"Failed to get model parameters: {str(e)}"
+            ) from e
 
 
 @lru_cache()
