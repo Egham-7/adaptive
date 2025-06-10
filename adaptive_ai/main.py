@@ -1,32 +1,40 @@
 import litserve as ls  # type: ignore
-from pydantic import BaseModel
-from typing import Any, Dict, List
+from typing import  List
 
-
-class PromptRequest(BaseModel):
-    prompt: str
+from core.config import get_settings
+from services.model_selector import get_model_selector
+from models.requests import PromptRequest, ModelSelectionResponse
 
 
 class AdaptiveModelSelectionAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
-        from services.model_selector import ModelSelector
-        from services.prompt_classifier import get_prompt_classifier
-
-        self.model_selector = ModelSelector(get_prompt_classifier())
+        self.settings = get_settings()
+        self.model_selector = get_model_selector()
 
     def decode_request(self, request: PromptRequest) -> str:
         return request.prompt
 
-    def predict(self, prompt: List[str]) -> Dict[str, Any]:
-        return self.model_selector.select_model(prompt)
+    def predict(self, prompts: List[str]) -> ModelSelectionResponse:
+        return self.model_selector.select_model(prompts)
 
-    def encode_response(self, output: Dict[str, Any]) -> Dict[str, Any]:
+    def encode_response(self, output: ModelSelectionResponse) -> ModelSelectionResponse:
         return output
 
 
-if __name__ == "__main__":
+def create_app() -> ls.LitServer:
+    """Factory function to create the LitServer app."""
+    settings = get_settings()
     api = AdaptiveModelSelectionAPI()
-    server = ls.LitServer(
-        api, accelerator="auto", devices="auto", max_batch_size=8, batch_timeout=0.05
+
+    return ls.LitServer(
+        api,
+        accelerator=settings.accelerator,
+        devices=settings.devices,
+        max_batch_size=settings.max_batch_size,
+        batch_timeout=settings.batch_timeout,
     )
-    server.run(port=8000)
+
+
+if __name__ == "__main__":
+    app = create_app()
+    app.run(port=8000)
