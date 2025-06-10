@@ -4,12 +4,13 @@ from typing import List
 from core.config import get_settings
 from services.model_selector import get_model_selector
 from models.requests import PromptRequest, ModelSelectionResponse
+from services.prompt_classifier import get_prompt_classifier
 
 
 class AdaptiveModelSelectionAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         self.settings = get_settings()
-        self.model_selector = get_model_selector()
+        self.model_selector = get_model_selector(get_prompt_classifier())
 
     def decode_request(self, request: PromptRequest) -> str:
         return request.prompt
