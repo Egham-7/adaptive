@@ -1,5 +1,5 @@
 import litserve as ls  # type: ignore
-from typing import  List
+from typing import List
 
 from core.config import get_settings
 from services.model_selector import get_model_selector

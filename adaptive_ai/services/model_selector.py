@@ -149,9 +149,7 @@ class ModelSelector:
             # Return default OpenAI parameters if adjustment fails
             return OpenAIParameters(model_name)
 
-    def select_model(
-        self, prompts: List[str], domain: str = "Computers_and_Electronics"
-    ) -> ModelSelectionResponse:
+    def select_model(self, prompts: List[str]) -> ModelSelectionResponse:
         """
         Select the most appropriate model based on prompt analysis and task type.
 
@@ -167,8 +165,7 @@ class ModelSelector:
             ValueError: If input validation fails
         """
         try:
-            # Get complexity analysis and task type
-            classification = self.prompt_classifier.classify_prompt(prompts, domain)
+            classification = self.prompt_classifier.classify_prompt(prompts)
 
             # Get and validate task type from the classification results
             detected_task_type = (
@@ -252,11 +249,7 @@ class ModelSelector:
             ModelSelectionError: If parameter selection fails
         """
         try:
-            # Get complexity analysis
-            default_domain: str = "Computers_and_Electronics"
-            classification = self.prompt_classifier.classify_prompt(
-                [prompt], default_domain
-            )
+            classification = self.prompt_classifier.classify_prompt([prompt])
 
             # Extract scores with type safety
             prompt_scores = PromptScores(
