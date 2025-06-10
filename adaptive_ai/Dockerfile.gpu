@@ -1,7 +1,7 @@
 # -------------------------
 # STAGE 1: Builder
 # -------------------------
-FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu24.04 AS builder
+FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
   POETRY_HOME="/opt/poetry" \
@@ -15,15 +15,15 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Install Python + build tools
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
-  python3.12 python3.12-dev python3-pip \
+  python3.11 python3.11-dev python3-pip \
   build-essential git curl libffi-dev libssl-dev ca-certificates && \
-  curl -sSL https://install.python-poetry.org | python3.12 - && \
+  curl -sSL https://install.python-poetry.org | python3.11 - && \
   apt-get remove --purge -y curl && \
   apt-get autoremove -y && \
   rm -rf /var/lib/apt/lists/*
 
 # Configure system Python
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
 
 # Copy dependency files first for caching
 COPY pyproject.toml poetry.lock* ./
@@ -38,7 +38,7 @@ COPY . .
 # -------------------------
 # STAGE 2: Runtime
 # -------------------------
-FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu24.04
+FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONUNBUFFERED=1 \
@@ -53,8 +53,8 @@ WORKDIR /app
 # Install only runtime Python
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
-  python3.12 libpython3.12 libpython3.12-dev && \
-  update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 && \
+  python3.11 libpython3.11 libpython3.11-dev && \
+  update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
   apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user before copying
@@ -78,4 +78,3 @@ USER appuser
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-
