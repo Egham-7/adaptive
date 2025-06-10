@@ -82,10 +82,11 @@ class ModelSelector:
         self,
         task_type: str,
         prompt_scores: Dict[str, list],
+        model_name: str = "gpt-4",
     ) -> ModelSelectionResponse:
         """Create default model selection result when no mapping is found"""
         # Get OpenAI parameters
-        openai_params = OpenAIParameters("gpt-4")
+        openai_params = OpenAIParameters(model=model_name)
         openai_params.adjust_parameters(task_type, prompt_scores)
 
         return ModelSelectionResponse(
@@ -141,13 +142,13 @@ class ModelSelector:
     ) -> OpenAIParameters:
         """Get OpenAI parameters object"""
         try:
-            openai_params = OpenAIParameters(model_name)
+            openai_params = OpenAIParameters(model=model_name)
             openai_params.adjust_parameters(task_type, prompt_scores)
             return openai_params
         except Exception as e:
             logger.warning(f"Failed to get OpenAI parameters: {e}, using defaults")
             # Return default OpenAI parameters if adjustment fails
-            return OpenAIParameters(model_name)
+            return OpenAIParameters(model=model_name)
 
     def select_model(self, prompts: List[str]) -> ModelSelectionResponse:
         """

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Union, Dict, cast
+from pydantic import BaseModel, Field, validator
 
 from models.config_loader import get_task_parameters
 from models.types import TaskTypeParametersType, TaskType
@@ -17,23 +18,21 @@ class LLMProviderParameters(ABC):
         pass
 
 
-class OpenAIParameters(LLMProviderParameters):
+class OpenAIParameters(BaseModel, LLMProviderParameters):
     model: str
-    temperature: float
-    top_p: float
-    presence_penalty: float
-    frequency_penalty: float
-    max_tokens: int
-    n: int
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    top_p: float = Field(default=0.9, ge=0.0, le=1.0)
+    presence_penalty: float = Field(default=0.0, ge=-2.0, le=2.0)
+    frequency_penalty: float = Field(default=0.0, ge=-2.0, le=2.0)
+    max_tokens: int = Field(default=1000, ge=1, le=4096)
+    n: int = Field(default=1, ge=1, le=10)
 
-    def __init__(self, model: str) -> None:
-        self.model = model
-        self.temperature = 0.7
-        self.top_p = 0.9
-        self.presence_penalty = 0.0
-        self.frequency_penalty = 0.0
-        self.max_tokens = 1000
-        self.n = 1
+    class Config:
+        validate_assignment = True
+
+    @validator("temperature", "top_p", "presence_penalty", "frequency_penalty")
+    def round_float_values(cls, v):
+        return round(v, 2)
 
     def adjust_parameters(
         self, task_type: str, prompt_scores: Dict[str, list]
@@ -80,16 +79,7 @@ class OpenAIParameters(LLMProviderParameters):
         rounded_value: int = round(base_n + adjustment)
         self.n = max(1, rounded_value)
 
-        # Round values for better output
-        self._post_process_values()
         return self.get_parameters()
-
-    def _post_process_values(self) -> None:
-        self.temperature = round(self.temperature, 2)
-        self.top_p = round(self.top_p, 2)
-        self.presence_penalty = round(self.presence_penalty, 2)
-        self.frequency_penalty = round(self.frequency_penalty, 2)
-        self.max_tokens = int(self.max_tokens)
 
     def get_parameters(self) -> Dict[str, Union[float, int]]:
         return {
