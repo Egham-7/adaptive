@@ -1,13 +1,12 @@
 from functools import lru_cache
 from typing import List, cast, Optional, Dict
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from models.types import (
     VALID_TASK_TYPES,
     TaskType,
     ModelCapability,
     ModelSelectionError,
-    PromptScores,
-    ModelParameters,
     TaskModelMapping,
     TaskDifficultyConfig,
     DifficultyLevel,
@@ -23,14 +22,18 @@ logger = logging.getLogger(__name__)
 class ModelSelector:
     """
     Service for selecting appropriate LLM models and parameters based on prompt analysis.
-    Uses task-specific complexity-based model selection.
+    Uses task-specific complexity-based model selection with parallel processing.
     """
 
-    def __init__(self, prompt_classifier: PromptClassifier) -> None:
+    def __init__(
+        self, prompt_classifier: PromptClassifier, max_workers: Optional[int] = None
+    ) -> None:
         self.prompt_classifier: PromptClassifier = prompt_classifier
         self._model_capabilities = get_model_capabilities()
         self._task_mappings = get_task_model_mappings()
-        logger.info("ModelSelector initialized")
+        # Set max_workers based on CPU count if not specified
+        self.max_workers = max_workers or min(32, 4)  # Default to 4 workers
+        logger.info(f"ModelSelector initialized with max_workers={self.max_workers}")
 
     def _validate_task_type(self, task_type: str) -> TaskType:
         """Validate and convert string to TaskType"""
@@ -54,7 +57,9 @@ class ModelSelector:
             f"Selected model {selected_model} ({model_info['provider']}) for task {task_type}"
         )
 
-    def _extract_prompt_scores(self, classification: dict) -> Dict[str, list]:
+    def _extract_prompt_scores(
+        self, classification: Dict[str, List[float]]
+    ) -> Dict[str, List[float]]:
         """Extract prompt scores in the format expected by OpenAIParameters"""
         return {
             "creativity_scope": classification.get("creativity_scope", [0.0]),
@@ -69,7 +74,7 @@ class ModelSelector:
     def _get_default_result(
         self,
         task_type: str,
-        prompt_scores: Dict[str, list],
+        prompt_scores: Dict[str, List[float]],
         model_name: str = "gpt-4",
     ) -> ModelSelectionResponse:
         """Create default model selection result when no mapping is found"""
@@ -126,7 +131,7 @@ class ModelSelector:
         return alternatives[:2]  # Limit to 2 alternatives
 
     def _get_openai_parameters(
-        self, model_name: str, task_type: str, prompt_scores: Dict[str, list]
+        self, model_name: str, task_type: str, prompt_scores: Dict[str, List[float]]
     ) -> OpenAIParameters:
         """Get OpenAI parameters object"""
         try:
@@ -138,39 +143,28 @@ class ModelSelector:
             # Return default OpenAI parameters if adjustment fails
             return OpenAIParameters(model=model_name)
 
-    def select_model(self, prompts: List[str]) -> ModelSelectionResponse:
-        """
-        Select the most appropriate model based on prompt analysis and task type.
-
-        Args:
-            prompts (List[str]): The input prompts
-            domain (str): The domain context for the prompt
-
-        Returns:
-            ModelSelectionResult: Model selection results including scores and parameters
-
-        Raises:
-            ModelSelectionError: If model selection fails
-            ValueError: If input validation fails
-        """
+    def _process_single_classification(
+        self, classification: Dict[str, List[float]], prompt_index: int = 0
+    ) -> ModelSelectionResponse:
+        """Process a single classification result"""
         try:
-            classification = self.prompt_classifier.classify_prompt(prompts)
-
             # Get and validate task type from the classification results
             detected_task_type = (
                 classification["task_type_1"][0]
-                if classification["task_type_1"]
+                if classification.get("task_type_1") and classification["task_type_1"]
                 else "Other"
             )
-            validated_task_type = self._validate_task_type(detected_task_type)
-            logger.info(f"Detected task type: {validated_task_type}")
+            validated_task_type = self._validate_task_type(str(detected_task_type))
+            logger.debug(
+                f"Prompt {prompt_index}: Detected task type: {validated_task_type}"
+            )
 
             # Extract scores in the format expected by OpenAIParameters
             prompt_scores = self._extract_prompt_scores(classification)
 
             # Get complexity score
             complexity_score: float = classification["prompt_complexity_score"][0]
-            logger.info(f"Complexity score: {complexity_score}")
+            logger.debug(f"Prompt {prompt_index}: Complexity score: {complexity_score}")
 
             # Get task mapping for the validated task type
             task_mapping: Optional[TaskModelMapping] = self._task_mappings.get(
@@ -178,7 +172,7 @@ class ModelSelector:
             )
             if not task_mapping:
                 logger.warning(
-                    f"No model mapping found for task type: {validated_task_type}, using default"
+                    f"Prompt {prompt_index}: No model mapping found for task type: {validated_task_type}, using default"
                 )
                 return self._get_default_result(validated_task_type, prompt_scores)
 
@@ -218,61 +212,113 @@ class ModelSelector:
                 parameters=openai_params,
                 provider=model_info["provider"],
             )
+        except Exception as e:
+            logger.error(
+                f"Error processing classification for prompt {prompt_index}: {str(e)}"
+            )
+            # Return default response for failed classifications
+            return self._get_default_result(
+                "Other",
+                {
+                    "creativity_scope": [0.5],
+                    "reasoning": [0.5],
+                    "contextual_knowledge": [0.5],
+                    "prompt_complexity_score": [0.5],
+                    "domain_knowledge": [0.5],
+                },
+            )
+
+    def select_model(self, prompts: List[str]) -> List[ModelSelectionResponse]:
+        """
+        Select the most appropriate model based on prompt analysis and task type.
+        Processes prompts in parallel for optimal GPU utilization.
+
+        Args:
+            prompts (List[str]): The input prompts
+
+        Returns:
+            List[ModelSelectionResponse]: Model selection results for each prompt
+
+        Raises:
+            ModelSelectionError: If model selection fails
+            ValueError: If input validation fails
+        """
+        try:
+            # Get classifications from the prompt classifier (this should already be batched/parallelized)
+            classification_results = self.prompt_classifier.classify_prompts(prompts)
+
+            # Validate results
+            if not isinstance(classification_results, list):
+                raise ModelSelectionError("Expected list of classification results")
+
+            if not classification_results:
+                raise ModelSelectionError("No classification results returned")
+
+            if len(classification_results) != len(prompts):
+                logger.warning(
+                    f"Mismatch: {len(prompts)} prompts but {len(classification_results)} classifications"
+                )
+
+            # Process classifications in parallel using ThreadPoolExecutor
+            responses: List[ModelSelectionResponse] = []
+
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                # Submit all tasks
+                future_to_index = {
+                    executor.submit(
+                        self._process_single_classification, classification, i
+                    ): i
+                    for i, classification in enumerate(classification_results)
+                }
+
+                # Create a results dictionary to maintain order
+                results: Dict[int, ModelSelectionResponse] = {}
+
+                # Collect results as they complete
+                for future in as_completed(future_to_index):
+                    index = future_to_index[future]
+                    try:
+                        response = future.result()
+                        results[index] = response
+                    except Exception as e:
+                        logger.error(f"Error processing prompt {index}: {str(e)}")
+                        # Add default response for failed processing
+                        results[index] = self._get_default_result(
+                            "Other",
+                            {
+                                "creativity_scope": [0.5],
+                                "reasoning": [0.5],
+                                "contextual_knowledge": [0.5],
+                                "prompt_complexity_score": [0.5],
+                                "domain_knowledge": [0.5],
+                            },
+                        )
+
+            # Build the final response list in the correct order
+            for i in range(len(classification_results)):
+                if i in results:
+                    responses.append(results[i])
+                else:
+                    logger.error(f"Missing response for prompt {i}, using default")
+                    responses.append(
+                        self._get_default_result(
+                            "Other",
+                            {
+                                "creativity_scope": [0.5],
+                                "reasoning": [0.5],
+                                "contextual_knowledge": [0.5],
+                                "prompt_complexity_score": [0.5],
+                                "domain_knowledge": [0.5],
+                            },
+                        )
+                    )
+
+            logger.info(f"Successfully processed {len(responses)} prompts in parallel")
+            return responses
 
         except Exception as e:
             logger.error(f"Error in model selection: {str(e)}")
             raise ModelSelectionError(f"Failed to select model: {str(e)}") from e
-
-    def get_model_parameters(self, prompt: str, task_type: str) -> ModelParameters:
-        """
-        Get model parameters based on prompt analysis and task type.
-
-        Args:
-            prompt (str): The input prompt
-            task_type (str): The task type for the prompt
-
-        Returns:
-            ModelParameters: Model parameters
-
-        Raises:
-            ModelSelectionError: If parameter selection fails
-        """
-        try:
-            classification = self.prompt_classifier.classify_prompt([prompt])
-
-            # Extract scores with type safety
-            prompt_scores = PromptScores(
-                {
-                    "creativity_scope": cast(
-                        List[float], classification.get("creativity_scope", [0.0])
-                    ),
-                    "reasoning": cast(
-                        List[float], classification.get("reasoning", [0.0])
-                    ),
-                    "constraint_ct": cast(
-                        List[float], classification.get("constraint_ct", [0.0])
-                    ),
-                    "contextual_knowledge": cast(
-                        List[float], classification.get("contextual_knowledge", [0.0])
-                    ),
-                    "domain_knowledge": cast(
-                        List[float], classification.get("domain_knowledge", [0.0])
-                    ),
-                }
-            )
-
-            return ModelParameters(
-                {
-                    "task_type": task_type,
-                    "prompt_scores": prompt_scores,
-                }
-            )
-
-        except Exception as e:
-            logger.error(f"Error getting model parameters: {str(e)}")
-            raise ModelSelectionError(
-                f"Failed to get model parameters: {str(e)}"
-            ) from e
 
 
 @lru_cache()

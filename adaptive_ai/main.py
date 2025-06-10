@@ -15,7 +15,7 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
     def decode_request(self, request: PromptRequest) -> str:
         return request.prompt
 
-    def predict(self, prompts: List[str]) -> ModelSelectionResponse:
+    def predict(self, prompts: List[str]) -> List[ModelSelectionResponse]:
         return self.model_selector.select_model(prompts)
 
     def encode_response(self, output: ModelSelectionResponse) -> ModelSelectionResponse:
@@ -25,14 +25,15 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
 def create_app() -> ls.LitServer:
     """Factory function to create the LitServer app."""
     settings = get_settings()
-    api = AdaptiveModelSelectionAPI()
+    api = AdaptiveModelSelectionAPI(
+        max_batch_size=settings.max_batch_size,
+        batch_timeout=settings.batch_timeout,
+    )
 
     return ls.LitServer(
         api,
         accelerator=settings.accelerator,
         devices=settings.devices,
-        max_batch_size=settings.max_batch_size,
-        batch_timeout=settings.batch_timeout,
     )
 
 

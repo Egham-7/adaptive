@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     model_selection_threshold: float = 0.7
 
     # Model configuration file path
-    model_config_path: str = "models/config.yaml"
+    model_config_path: str = "config.yaml"
 
     # Logging
     log_level: str = "INFO"
@@ -40,26 +40,22 @@ class Settings(BaseSettings):
         if os.path.isabs(self.model_config_path):
             return self.model_config_path
 
-        # Get the project root directory (assuming this file is in adaptive_ai/core/)
-        project_root = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-        return os.path.join(project_root, "adaptive_ai", self.model_config_path)
-
-    @lru_cache(maxsize=1)
-    def load_model_config(self) -> Dict[str, Any]:
-        """Load the model configuration YAML file (cached)"""
-        config_path = self.get_model_config_path()
-
-        try:
-            with open(config_path, "r", encoding="utf-8") as file:
-                return yaml.safe_load(file)
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                f"Model configuration file not found: {config_path}"
+        # In Docker container, we're in /app directory
+        # Check if we're in a Docker container or local development
+        if os.path.exists("/app"):
+            # Docker environment - config should be in /app
+            return os.path.join("/app", self.model_config_path)
+        else:
+            # Local development - get project root
+            project_root = os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             )
-        except yaml.YAMLError as e:
-            raise ValueError(f"Error parsing model configuration YAML: {e}")
+            return os.path.join(project_root, "adaptive_ai", self.model_config_path)
+
+    def load_model_config(self) -> Dict[str, Any]:
+        """Load the model configuration YAML file"""
+        config_path = self.get_model_config_path()
+        return _load_model_config(config_path)
 
     def get_model_capabilities(self) -> Dict[str, Any]:
         """Get model capabilities from configuration"""
@@ -80,3 +76,15 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+@lru_cache(maxsize=1)
+def _load_model_config(config_path: str) -> Dict[str, Any]:
+    """Load the model configuration YAML file (cached)"""
+    try:
+        with open(config_path, "r", encoding="utf-8") as file:
+            return yaml.safe_load(file)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Model configuration file not found: {config_path}")
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing model configuration YAML: {e}")
