@@ -101,3 +101,18 @@ class ModelSelectionError(Exception):
     """Custom exception for model selection errors"""
 
     pass
+
+
+VALID_TASK_TYPES: List[TaskType] = [
+    "Open QA",
+    "Closed QA",
+    "Summarization",
+    "Text Generation",
+    "Code Generation",
+    "Chatbot",
+    "Classification",
+    "Rewrite",
+    "Brainstorming",
+    "Extraction",
+    "Other",
+]

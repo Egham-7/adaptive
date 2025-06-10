@@ -4,7 +4,7 @@ Uses the core settings system for configuration management.
 """
 
 from typing import Dict, Any, cast
-from .types import ModelCapability, TaskType, TaskModelMapping, TaskTypeParametersType
+from .types import VALID_TASK_TYPES, ModelCapability, TaskType, TaskModelMapping, TaskTypeParametersType
 from core.config import get_settings
 
 
@@ -83,19 +83,7 @@ def get_task_parameters() -> Dict[TaskType, TaskTypeParametersType]:
     # Validate and cast parameters
     validated_parameters: Dict[TaskType, TaskTypeParametersType] = {}
     for task_type, params in parameters.items():
-        if task_type in [
-            "Open QA",
-            "Closed QA",
-            "Summarization",
-            "Text Generation",
-            "Code Generation",
-            "Chatbot",
-            "Classification",
-            "Rewrite",
-            "Brainstorming",
-            "Extraction",
-            "Other",
-        ]:
+        if task_type in VALID_TASK_TYPES:
             validated_parameters[cast(TaskType, task_type)] = cast(
                 TaskTypeParametersType,
                 {
