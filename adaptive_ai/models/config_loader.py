@@ -4,7 +4,13 @@ Uses the core settings system for configuration management.
 """
 
 from typing import Dict, Any, cast
-from .types import VALID_TASK_TYPES, ModelCapability, TaskType, TaskModelMapping, TaskTypeParametersType
+from .types import (
+    VALID_TASK_TYPES,
+    ModelCapability,
+    TaskType,
+    TaskModelMapping,
+    TaskTypeParametersType,
+)
 from core.config import get_settings
 
 
