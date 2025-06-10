@@ -2,6 +2,7 @@ from functools import lru_cache
 from typing import List, cast, Optional, Dict
 import logging
 from models.types import (
+    VALID_TASK_TYPES,
     TaskType,
     ModelCapability,
     ModelSelectionError,
@@ -33,21 +34,9 @@ class ModelSelector:
 
     def _validate_task_type(self, task_type: str) -> TaskType:
         """Validate and convert string to TaskType"""
-        valid_task_types: List[TaskType] = [
-            "Open QA",
-            "Closed QA",
-            "Summarization",
-            "Text Generation",
-            "Code Generation",
-            "Chatbot",
-            "Classification",
-            "Rewrite",
-            "Brainstorming",
-            "Extraction",
-            "Other",
-        ]
+       
 
-        if task_type in valid_task_types:
+        if task_type in VALID_TASK_TYPES:
             return cast(TaskType, task_type)
 
         logger.warning(f"Unknown task type '{task_type}', defaulting to 'Other'")
