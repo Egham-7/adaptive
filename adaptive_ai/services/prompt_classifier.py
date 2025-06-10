@@ -172,7 +172,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         return complexity_scores
 
     def process_logits(
-        self, logits: List[torch.Tensor], domain: str
+        self, logits: List[torch.Tensor]
     ) -> Dict[str, Union[List[str], List[float], float]]:
         """Main orchestration method for processing logits and calculating complexity scores."""
         results = self._extract_classification_results(logits)
@@ -185,7 +185,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         return results
 
     def forward(
-        self, batch: Dict[str, torch.Tensor], domain: str
+        self, batch: Dict[str, torch.Tensor]
     ) -> Dict[str, Union[List[str], List[float], float]]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
@@ -196,7 +196,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             self.heads[k](mean_pooled_representation)
             for k in range(len(self.target_sizes))
         ]
-        return self.process_logits(logits, domain)
+        return self.process_logits(logits)
 
 
 config = AutoConfig.from_pretrained("nvidia/prompt-task-and-complexity-classifier")
@@ -216,16 +216,16 @@ class PromptClassifier:
         self.model = model
         self.tokenizer = tokenizer
 
-    def classify_prompt(self, prompts: List[str], domain: str) -> Dict[str, Any]:
+    def classify_prompt(self, prompt: List[str]) -> Dict[str, Any]:
         encoded_texts = self.tokenizer(
-            prompts,
+            prompt,
             padding=True,
             truncation=True,
             max_length=512,
             return_tensors="pt",
         )
         with torch.no_grad():
-            results = self.model(encoded_texts, domain)
+            results = self.model(encoded_texts)
         return cast(Dict[str, Any], results)
 
     def classify_task_types(self, texts: List[str]) -> List[str]:
@@ -237,7 +237,7 @@ class PromptClassifier:
             return_tensors="pt",
         )
         with torch.no_grad():
-            results = self.model(encoded_texts, "general")
+            results = self.model(encoded_texts)
         return cast(List[str], results["task_type_1"])
 
 
