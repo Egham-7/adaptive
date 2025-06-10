@@ -113,7 +113,7 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive_ai
-          dockerfilePath: ${{ github.workspace }}/adaptive_ai/Dockerfile.gpu
+          dockerfilePath: Dockerfile.gpu
           registryUrl: adaptiveregistry.azurecr.io
           registryUsername: ${{ secrets.ADAPTIVEAI_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.ADAPTIVEAI_REGISTRY_PASSWORD }}
