@@ -1,32 +1,34 @@
-[project]
+[tool.poetry]
 name = "adaptive-ai"
 version = "0.1.0"
 description = ""
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-  "numpy>=1.24.0,<2.0.0",
-  "scikit-learn>=1.6.1,<2.0.0",
-  "huggingface-hub>=0.32.0,<0.33.0",
-  "transformers>=4.52.3,<5.0.0",
-  "torch==2.2",
-  "mypy>=1.15.0,<2.0.0",
-  "black>=25.1.0,<26.0.0",
-  "ruff>=0.11.11,<0.12.0",
-  "microsoft-python-type-stubs @ git+https://github.com/microsoft/python-type-stubs.git",
-  "pytest>=8.3.5,<9.0.0",
-  "litserve>=0.2.10,<0.3.0",
-  "pydantic>=2.11.5,<3.0.0",
-  "requests>=2.31.0,<3.0.0",
-  "pandas>=2.0.0,<3.0.0",
-  "tqdm>=4.65.0,<5.0.0",
-  "matplotlib>=3.7.0,<4.0.0",
-  "types-requests>=2.31.0,<3.0.0",
-  "pandas-stubs>=2.0.0,<3.0.0",
-  "types-tqdm>=4.65.0,<5.0.0",
-  "psutil (>=7.0.0,<8.0.0)"
-]
+
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+numpy = ">=1.24.0,<2.0.0"
+scikit-learn = ">=1.6.1,<2.0.0"
+huggingface-hub = ">=0.32.0,<0.33.0"
+transformers = ">=4.52.3,<5.0.0"
+torch = "2.2"
+mypy = ">=1.15.0,<2.0.0"
+black = ">=25.1.0,<26.0.0"
+ruff = ">=0.11.11,<0.12.0"
+microsoft-python-type-stubs = { git = "https://github.com/microsoft/python-type-stubs.git" }
+pytest = ">=8.3.5,<9.0.0"
+litserve = ">=0.2.10,<0.3.0"
+pydantic = ">=2.11.5,<3.0.0"
+requests = ">=2.31.0,<3.0.0"
+pandas = ">=2.0.0,<3.0.0"
+tqdm = ">=4.65.0,<5.0.0"
+matplotlib = ">=3.7.0,<4.0.0"
+types-requests = ">=2.31.0,<3.0.0"
+pandas-stubs = ">=2.0.0,<3.0.0"
+types-tqdm = ">=4.65.0,<5.0.0"
+psutil = ">=7.0.0,<8.0.0"
+types-psutil = ">=7.0.0.20250601,<8.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
