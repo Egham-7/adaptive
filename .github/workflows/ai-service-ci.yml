@@ -31,7 +31,7 @@ jobs:
         id: python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.11"
           cache: "pip"
 
       - name: Install Poetry
@@ -91,10 +91,9 @@ jobs:
             exit 1
           fi
 
-  deploy:
+  deploy-adaptive-ai:
     runs-on: ubuntu-latest
     needs: [test-lint-typecheck]
-    # Only deploy on push to main, not on PRs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     permissions:
       id-token: write
@@ -103,22 +102,21 @@ jobs:
       - name: Checkout to the branch
         uses: actions/checkout@v4
 
-      - name: Azure Login
+      - name: Azure Login for Adaptive AI
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.BACKENDPYTHON_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.BACKENDPYTHON_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.BACKENDPYTHON_AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.ADAPTIVEAI_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.ADAPTIVEAI_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.ADAPTIVEAI_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and push container image to registry
+      - name: Build and push adaptive-ai container with GPU support
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive_ai
+          dockerfilePath: ${{ github.workspace }}/adaptive_ai/Dockerfile.gpu
           registryUrl: adaptiveregistry.azurecr.io
-          registryUsername: ${{ secrets.BACKENDPYTHON_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.BACKENDPYTHON_REGISTRY_PASSWORD }}
-          containerAppName: backend-python
+          registryUsername: ${{ secrets.ADAPTIVEAI_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.ADAPTIVEAI_REGISTRY_PASSWORD }}
+          containerAppName: adaptive-ai
           resourceGroup: adaptive
-          imageToBuild: adaptiveregistry.azurecr.io/backend-python:${{ github.sha }}
-          environmentVariables: |
-            ENVIRONMENT=production
+          imageToBuild: adaptiveregistry.azurecr.io/adaptive-ai:${{ github.sha }}
