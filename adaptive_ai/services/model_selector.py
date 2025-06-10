@@ -43,6 +43,7 @@ class ModelSelector:
         )
 
     def select_model(self, prompt: List[str]) -> List[Dict[str, Any]]:
+        print(f"DEBUG: select_model received: {type(prompt)} = {prompt}")
         """
         Select the most appropriate model based on prompt analysis and task type.
 
