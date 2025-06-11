@@ -40,27 +40,6 @@ func NewProviderChatCompletionHandler(provider string) *ChatCompletionHandler {
 	}
 }
 
-// Provider-specific helper functions for easier handler creation
-func NewOpenAIChatCompletionHandler() *ChatCompletionHandler {
-	return NewProviderChatCompletionHandler("openai")
-}
-
-func NewAnthropicChatCompletionHandler() *ChatCompletionHandler {
-	return NewProviderChatCompletionHandler("anthropic")
-}
-
-func NewGroqChatCompletionHandler() *ChatCompletionHandler {
-	return NewProviderChatCompletionHandler("groq")
-}
-
-func NewDeepSeekChatCompletionHandler() *ChatCompletionHandler {
-	return NewProviderChatCompletionHandler("deepseek")
-}
-
-func NewGeminiChatCompletionHandler() *ChatCompletionHandler {
-	return NewProviderChatCompletionHandler("gemini")
-}
-
 // GetProviderConstraint returns the provider constraint for this handler
 func (h *ChatCompletionHandler) GetProviderConstraint() *string {
 	return h.providerConstraint
@@ -92,6 +71,9 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	} else {
 		log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
 	}
+
+	// Record model selection metric
+	h.recordModelSelection(modelInfo.SelectedModel)
 
 	h.applyModelParameters(req, modelInfo)
 	log.Infof("[%s] Applied model parameters: %+v", requestID, modelInfo.Parameters)
@@ -158,7 +140,17 @@ func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, a
 		Provider: h.providerConstraint,
 	}
 
-	modelInfo, _, err := h.promptClassifierClient.SelectModelWithCache(selectReq, apiKey, requestID)
+	modelInfo, cacheType, err := h.promptClassifierClient.SelectModelWithCache(selectReq, apiKey, requestID)
+	if err != nil {
+		log.Errorf("[%s] Model selection error: %v", requestID, err)
+		return nil, err
+	}
+
+	// Record cache metrics
+	if cacheType == "user" || cacheType == "global" {
+		h.recordCacheHit(cacheType)
+	}
+	h.recordCacheLookup("model_selection")
 
 	return modelInfo, err
 }
@@ -184,13 +176,17 @@ func (h *ChatCompletionHandler) getMethodType(isStream bool) string {
 	return "completion"
 }
 
+func (h *ChatCompletionHandler) getProviderName() string {
+	if h.providerConstraint != nil {
+		return *h.providerConstraint
+	}
+	return "unknown"
+}
+
 func (h *ChatCompletionHandler) recordError(start time.Time, statusCode string, isStream bool) {
 	if h.metrics != nil {
 		methodType := h.getMethodType(isStream)
-		provider := "unknown"
-		if h.providerConstraint != nil {
-			provider = *h.providerConstraint
-		}
+		provider := h.getProviderName()
 		h.metrics.RequestDuration.WithLabelValues(methodType, statusCode, provider).Observe(time.Since(start).Seconds())
 	}
 }
@@ -198,11 +194,22 @@ func (h *ChatCompletionHandler) recordError(start time.Time, statusCode string, 
 func (h *ChatCompletionHandler) recordSuccess(start time.Time, isStream bool) {
 	if h.metrics != nil {
 		methodType := h.getMethodType(isStream)
-		provider := "unknown"
-		if h.providerConstraint != nil {
-			provider = *h.providerConstraint
-		}
+		provider := h.getProviderName()
 		h.metrics.RequestDuration.WithLabelValues(methodType, "200", provider).Observe(time.Since(start).Seconds())
+	}
+}
+
+func (h *ChatCompletionHandler) recordCacheHit(cacheType string) {
+	if h.metrics != nil {
+		provider := h.getProviderName()
+		h.metrics.CacheHits.WithLabelValues(cacheType, provider).Inc()
+	}
+}
+
+func (h *ChatCompletionHandler) recordModelSelection(model string) {
+	if h.metrics != nil {
+		provider := h.getProviderName()
+		h.metrics.ModelSelections.WithLabelValues(model, provider).Inc()
 	}
 }
 
