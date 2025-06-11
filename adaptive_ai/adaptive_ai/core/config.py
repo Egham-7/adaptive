@@ -176,29 +176,23 @@ class Settings(BaseSettings):
                 # Log warning but don't fail - fall back to defaults
                 print(f"Warning: Could not load config file {config_path}: {e}")
 
-    def _merge_yaml_config(self, yaml_config: Dict[str, Any]) -> None:
+    def _merge_yaml_config(self, yaml_config: dict[str, Any]) -> None:
         """Merge YAML configuration into settings."""
-        if "app" in yaml_config:
-            self.app = AppConfig(**yaml_config["app"])
-        if "server" in yaml_config:
-            self.server = ServerConfig(**yaml_config["server"])
-        if "litserve" in yaml_config:
-            self.litserve = LitServeConfig(**yaml_config["litserve"])
-        if "model_selection" in yaml_config:
-            self.model_selection = ModelSelectionConfig(
-                **yaml_config["model_selection"]
-            )
-        if "logging" in yaml_config:
-            self.logging = LoggingConfig(**yaml_config["logging"])
-        if "cache" in yaml_config:
-            self.cache = CacheConfig(**yaml_config["cache"])
-        if "metrics" in yaml_config:
-            self.metrics = MetricsConfig(**yaml_config["metrics"])
-        if "security" in yaml_config:
-            self.security = SecurityConfig(**yaml_config["security"])
-        if "health" in yaml_config:
-            self.health = HealthConfig(**yaml_config["health"])
+        config_mapping = {
+            "app": (AppConfig, "app"),
+            "server": (ServerConfig, "server"),
+            "litserve": (LitServeConfig, "litserve"),
+            "model_selection": (ModelSelectionConfig, "model_selection"),
+            "logging": (LoggingConfig, "logging"),
+            "cache": (CacheConfig, "cache"),
+            "metrics": (MetricsConfig, "metrics"),
+            "security": (SecurityConfig, "security"),
+            "health": (HealthConfig, "health"),
+        }
 
+        for key, (config_class, attr_name) in config_mapping.items():
+            if key in yaml_config:
+                setattr(self, attr_name, config_class(**yaml_config[key]))
     def get_config_file_path(self) -> Optional[Path]:
         """Get the path to the configuration file."""
         if os.path.isabs(self.config_file):
