@@ -274,7 +274,10 @@ class PromptClassifier:
         )
 
         with torch.no_grad():
-            results = self.model(encoded_texts)
+            raw_results = self.model(encoded_texts)
+
+        # tell MyPy this is indeed List[Dict[str,Any]]
+        results = cast(List[Dict[str, Any]], raw_results)
 
         print(
             f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"

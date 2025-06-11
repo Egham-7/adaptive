@@ -47,10 +47,16 @@ class ModelSelector:
                 {
                     "description": str(capability.get("description", "")),
                     "provider": str(capability.get("provider", "Unknown")),
-                    "cost_per_1k_tokens": float(capability.get("cost_per_1k_tokens", 0.0)),
+                    "cost_per_1k_tokens": float(
+                        capability.get("cost_per_1k_tokens", 0.0)
+                    ),
                     "max_tokens": int(capability.get("max_tokens", 4096)),
-                    "supports_streaming": bool(capability.get("supports_streaming", False)),
-                    "supports_function_calling": bool(capability.get("supports_function_calling", False)),
+                    "supports_streaming": bool(
+                        capability.get("supports_streaming", False)
+                    ),
+                    "supports_function_calling": bool(
+                        capability.get("supports_function_calling", False)
+                    ),
                     "supports_vision": bool(capability.get("supports_vision", False)),
                 },
             )
@@ -68,15 +74,21 @@ class ModelSelector:
                     {
                         "easy": {
                             "model": str(mapping["easy"]["model"]),
-                            "complexity_threshold": float(mapping["easy"]["complexity_threshold"]),
+                            "complexity_threshold": float(
+                                mapping["easy"]["complexity_threshold"]
+                            ),
                         },
                         "medium": {
                             "model": str(mapping["medium"]["model"]),
-                            "complexity_threshold": float(mapping["medium"]["complexity_threshold"]),
+                            "complexity_threshold": float(
+                                mapping["medium"]["complexity_threshold"]
+                            ),
                         },
                         "hard": {
                             "model": str(mapping["hard"]["model"]),
-                            "complexity_threshold": float(mapping["hard"]["complexity_threshold"]),
+                            "complexity_threshold": float(
+                                mapping["hard"]["complexity_threshold"]
+                            ),
                         },
                     },
                 )

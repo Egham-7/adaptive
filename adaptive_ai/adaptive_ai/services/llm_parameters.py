@@ -1,24 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import Union, Dict, cast
+from typing import Dict, List, Union, cast
+
 from pydantic import BaseModel, Field, validator
 
 from adaptive_ai.core.config import get_settings
 from adaptive_ai.models.types import TaskTypeParametersType, TaskType
 
 
-class LLMProviderParameters(ABC):
-    @abstractmethod
-    def adjust_parameters(
-        self, task_type: str, prompt_scores: Dict[str, list]
-    ) -> Dict[str, Union[float, int]]:
-        pass
-
-    @abstractmethod
-    def get_parameters(self) -> Dict[str, Union[float, int]]:
-        pass
-
-
-class OpenAIParameters(BaseModel, LLMProviderParameters):
+class OpenAIParameters(BaseModel):
     model: str
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     top_p: float = Field(default=0.9, ge=0.0, le=1.0)
@@ -31,54 +19,44 @@ class OpenAIParameters(BaseModel, LLMProviderParameters):
         validate_assignment = True
 
     @validator("temperature", "top_p", "presence_penalty", "frequency_penalty")
-    def round_float_values(cls, v):
+    def _round_floats(cls, v: float) -> float:
         return round(v, 2)
 
     def adjust_parameters(
-        self, task_type: str, prompt_scores: Dict[str, list]
+        self,
+        task_type: str,
+        prompt_scores: Dict[str, List[float]],
     ) -> Dict[str, Union[float, int]]:
         settings = get_settings()
-        task_type_parameters = settings.get_task_parameters()
+        task_params = settings.get_task_parameters()
 
-        if task_type not in task_type_parameters:
+        if task_type not in task_params:
             raise ValueError(
-                "Invalid task type. Choose from: "
-                + ", ".join(task_type_parameters.keys())
+                "Invalid task type. Choose from: " + ", ".join(task_params.keys())
             )
 
-        # Cast task_type to TaskType literal for proper indexing
-        task_type_literal: TaskType = cast(TaskType, task_type)
-        base: TaskTypeParametersType = task_type_parameters[task_type_literal]
+        tt = cast(TaskType, task_type)
+        base: TaskTypeParametersType = task_params[tt]
 
-        # Extract prompt scores
-        creativity_scope: float = prompt_scores.get("creativity_scope", [0.5])[0]
-        reasoning: float = prompt_scores.get("reasoning", [0.5])[0]
-        contextual_knowledge: float = prompt_scores.get("contextual_knowledge", [0.5])[
-            0
-        ]
-        prompt_complexity_score: float = prompt_scores.get(
-            "prompt_complexity_score", [0.5]
-        )[0]
-        domain_knowledge: float = prompt_scores.get("domain_knowledge", [0.5])[0]
+        creativity_scope = prompt_scores.get("creativity_scope", [0.5])[0]
+        reasoning = prompt_scores.get("reasoning", [0.5])[0]
+        contextual_knowledge = prompt_scores.get("contextual_knowledge", [0.5])[0]
+        prompt_complexity_score = prompt_scores.get("prompt_complexity_score", [0.5])[0]
+        domain_knowledge = prompt_scores.get("domain_knowledge", [0.5])[0]
 
-        # Compute adjustments
-        self.temperature = float(base["temperature"] + (creativity_scope - 0.5) * 0.5)
-        self.top_p = float(base["top_p"] + (creativity_scope - 0.5) * 0.3)
-        self.presence_penalty = float(
+        self.temperature = base["temperature"] + (creativity_scope - 0.5) * 0.5
+        self.top_p = base["top_p"] + (creativity_scope - 0.5) * 0.3
+        self.presence_penalty = (
             base["presence_penalty"] + (domain_knowledge - 0.5) * 0.4
         )
-        self.frequency_penalty = float(
-            base["frequency_penalty"] + (reasoning - 0.5) * 0.4
-        )
+        self.frequency_penalty = base["frequency_penalty"] + (reasoning - 0.5) * 0.4
         self.max_tokens = base["max_completion_tokens"] + int(
             (contextual_knowledge - 0.5) * 500
         )
 
-        # Explicitly calculate n as an integer
-        base_n: int = base["n"]
-        adjustment: float = (prompt_complexity_score - 0.5) * 2
-        rounded_value: int = round(base_n + adjustment)
-        self.n = max(1, rounded_value)
+        base_n = base["n"]
+        adjustment = (prompt_complexity_score - 0.5) * 2
+        self.n = max(1, round(base_n + adjustment))
 
         return self.get_parameters()
 
@@ -94,22 +72,16 @@ class OpenAIParameters(BaseModel, LLMProviderParameters):
 
 
 class LLMParameterService:
-    """Service for managing LLM parameters across different providers."""
+    """Always uses OpenAIParameters under the hood."""
 
-    def __init__(self):
-        self.providers = {
-            "openai": OpenAIParameters
-        }
+    def __init__(self) -> None:
+        self._provider = OpenAIParameters
 
-    def get_parameters(self, provider: str, model: str, task_type: str, prompt_scores: Dict[str, list]) -> Dict[str, Union[float, int]]:
-        """Get adjusted parameters for a specific provider and model."""
-        if provider.lower() not in self.providers:
-            raise ValueError(f"Unsupported provider: {provider}")
-
-        parameter_class = self.providers[provider.lower()]
-        parameters = parameter_class(model=model)
-        return parameters.adjust_parameters(task_type, prompt_scores)
-
-    def add_provider(self, name: str, parameter_class):
-        """Add a new provider parameter class."""
-        self.providers[name.lower()] = parameter_class
+    def get_parameters(
+        self,
+        model: str,
+        task_type: str,
+        prompt_scores: Dict[str, List[float]],
+    ) -> Dict[str, Union[float, int]]:
+        params = self._provider(model=model)
+        return params.adjust_parameters(task_type, prompt_scores)

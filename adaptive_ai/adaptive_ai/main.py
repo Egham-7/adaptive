@@ -1,4 +1,4 @@
-import litserve as ls  # type: ignore
+import litserve as ls
 from typing import List
 
 from adaptive_ai.core.config import get_settings
@@ -42,9 +42,7 @@ def main() -> None:
     settings = get_settings()
     app = create_app()
     app.run(
-        generate_client_file=False,
-        host=settings.server.host,
-        port=settings.server.port
+        generate_client_file=False, host=settings.server.host, port=settings.server.port
     )
 
 

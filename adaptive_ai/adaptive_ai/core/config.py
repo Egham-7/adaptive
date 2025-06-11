@@ -1,14 +1,16 @@
 import os
 import yaml
 from pathlib import Path
+from functools import lru_cache
+from typing import Any, Dict, Optional, List, cast
+
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
-from functools import lru_cache
-from typing import Dict, Any, Optional, List
 
 
 class AppConfig(BaseModel):
     """Application-level configuration."""
+
     name: str = "adaptive-ai"
     version: str = "0.1.0"
     description: str = "Intelligent LLM Infrastructure with Smart Model Selection"
@@ -18,6 +20,7 @@ class AppConfig(BaseModel):
 
 class ServerConfig(BaseModel):
     """Server configuration."""
+
     host: str = "0.0.0.0"
     port: int = 8000
     workers: int = 1
@@ -28,6 +31,7 @@ class ServerConfig(BaseModel):
 
 class LitServeConfig(BaseModel):
     """LitServe configuration."""
+
     accelerator: str = "auto"
     devices: str = "auto"
     max_batch_size: int = 8
@@ -38,6 +42,7 @@ class LitServeConfig(BaseModel):
 
 class ModelSelectionConfig(BaseModel):
     """Model selection configuration."""
+
     default_model: str = "gpt-3.5-turbo"
     threshold: float = 0.7
     fallback_model: str = "gpt-3.5-turbo"
@@ -47,6 +52,7 @@ class ModelSelectionConfig(BaseModel):
 
 class LoggingConfig(BaseModel):
     """Logging configuration."""
+
     level: str = "INFO"
     format: str = "json"
     file: Optional[str] = None
@@ -56,6 +62,7 @@ class LoggingConfig(BaseModel):
 
 class RedisConfig(BaseModel):
     """Redis configuration."""
+
     host: str = "localhost"
     port: int = 6379
     db: int = 0
@@ -64,6 +71,7 @@ class RedisConfig(BaseModel):
 
 class CacheConfig(BaseModel):
     """Cache configuration."""
+
     enabled: bool = True
     backend: str = "memory"
     ttl: int = 3600
@@ -73,12 +81,14 @@ class CacheConfig(BaseModel):
 
 class PrometheusConfig(BaseModel):
     """Prometheus configuration."""
+
     enabled: bool = True
     port: int = 9090
 
 
 class MetricsConfig(BaseModel):
     """Metrics configuration."""
+
     enabled: bool = True
     endpoint: str = "/metrics"
     include_model_metrics: bool = True
@@ -88,6 +98,7 @@ class MetricsConfig(BaseModel):
 
 class RateLimitingConfig(BaseModel):
     """Rate limiting configuration."""
+
     enabled: bool = True
     requests_per_minute: int = 60
     burst_size: int = 10
@@ -95,6 +106,7 @@ class RateLimitingConfig(BaseModel):
 
 class CorsConfig(BaseModel):
     """CORS configuration."""
+
     enabled: bool = True
     origins: List[str] = ["*"]
     methods: List[str] = ["GET", "POST", "OPTIONS"]
@@ -103,6 +115,7 @@ class CorsConfig(BaseModel):
 
 class SecurityConfig(BaseModel):
     """Security configuration."""
+
     api_key_required: bool = False
     rate_limiting: RateLimitingConfig = RateLimitingConfig()
     cors: CorsConfig = CorsConfig()
@@ -110,6 +123,7 @@ class SecurityConfig(BaseModel):
 
 class HealthConfig(BaseModel):
     """Health check configuration."""
+
     endpoint: str = "/health"
     check_models: bool = True
     check_dependencies: bool = True
@@ -118,10 +132,10 @@ class HealthConfig(BaseModel):
 
 class ProviderConfig(BaseModel):
     """Provider API configuration."""
+
     base_url: str
     timeout: int = 30
     max_retries: int = 3
-
 
 
 class Settings(BaseSettings):
@@ -139,15 +153,14 @@ class Settings(BaseSettings):
     health: HealthConfig = HealthConfig()
 
     # File paths
-    config_file: str = Field(default="config/config.yaml", env="ADAPTIVE_AI_CONFIG_FILE")
-
+    config_file: str = Field("config/config.yaml")
 
     class Config:
         env_file = ".env"
         env_prefix = "ADAPTIVE_AI_"
         case_sensitive = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         # Load configuration from YAML file
         self._load_yaml_config()
@@ -172,7 +185,9 @@ class Settings(BaseSettings):
         if "litserve" in yaml_config:
             self.litserve = LitServeConfig(**yaml_config["litserve"])
         if "model_selection" in yaml_config:
-            self.model_selection = ModelSelectionConfig(**yaml_config["model_selection"])
+            self.model_selection = ModelSelectionConfig(
+                **yaml_config["model_selection"]
+            )
         if "logging" in yaml_config:
             self.logging = LoggingConfig(**yaml_config["logging"])
         if "cache" in yaml_config:
@@ -184,8 +199,6 @@ class Settings(BaseSettings):
         if "health" in yaml_config:
             self.health = HealthConfig(**yaml_config["health"])
 
-
-
     def get_config_file_path(self) -> Optional[Path]:
         """Get the path to the configuration file."""
         if os.path.isabs(self.config_file):
@@ -193,13 +206,12 @@ class Settings(BaseSettings):
 
         # Check if we're in a Docker container
         if os.path.exists("/app"):
-            # Docker environment - config should be in /app
             config_path = Path("/app") / self.config_file
             if config_path.exists():
                 return config_path
 
         # Local development - get project root
-        current_dir = Path(__file__).parent.parent.parent  # Go up from adaptive_ai/core/
+        current_dir = Path(__file__).parent.parent.parent
         config_path = current_dir / self.config_file
         if config_path.exists():
             return config_path
@@ -221,17 +233,17 @@ class Settings(BaseSettings):
     def get_model_capabilities(self) -> Dict[str, Any]:
         """Get model capabilities from configuration."""
         config = self.load_model_config()
-        return config.get("model_capabilities", {})
+        return cast(Dict[str, Any], config.get("model_capabilities", {}))
 
     def get_task_model_mappings(self) -> Dict[str, Any]:
         """Get task to model mappings from configuration."""
         config = self.load_model_config()
-        return config.get("task_model_mappings", {})
+        return cast(Dict[str, Any], config.get("task_model_mappings", {}))
 
     def get_task_parameters(self) -> Dict[str, Any]:
         """Get task parameters from configuration."""
         config = self.load_model_config()
-        return config.get("task_parameters", {})
+        return cast(Dict[str, Any], config.get("task_parameters", {}))
 
 
 @lru_cache()

@@ -15,5 +15,5 @@ __all__ = [
     "PromptClassifier",
     "get_prompt_classifier",
     "OpenAIParameters",
-    "LLMParameterService"
+    "LLMParameterService",
 ]

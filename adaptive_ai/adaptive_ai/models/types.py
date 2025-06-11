@@ -145,11 +145,7 @@ VALID_PROVIDERS: List[ProviderType] = [
     "OpenAI",
     "DEEPSEEK",
     "Anthropic",
-    "Google"
+    "Google",
 ]
 
-VALID_DIFFICULTY_LEVELS: List[DifficultyLevel] = [
-    "easy",
-    "medium",
-    "hard"
-]
+VALID_DIFFICULTY_LEVELS: List[DifficultyLevel] = ["easy", "medium", "hard"]
