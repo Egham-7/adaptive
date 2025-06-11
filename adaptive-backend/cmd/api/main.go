@@ -31,13 +31,6 @@ func SetupRoutes(app *fiber.App) {
 	apiKeyHandler := api.NewAPIKeyHandler()
 	chatCompletionHandler := api.NewChatCompletionHandler()
 
-	// Create provider-specific handlers
-	openaiHandler := api.NewOpenAIChatCompletionHandler()
-	anthropicHandler := api.NewAnthropicChatCompletionHandler()
-	groqHandler := api.NewGroqChatCompletionHandler()
-	deepseekHandler := api.NewDeepSeekChatCompletionHandler()
-	geminiHandler := api.NewGeminiChatCompletionHandler()
-
 	authMiddleware := middleware.AuthMiddleware()
 	apiKeyMiddleware := middleware.APIKeyMiddleware(apiKeyHandler)
 
@@ -45,13 +38,12 @@ func SetupRoutes(app *fiber.App) {
 	v1Group := app.Group("/v1")
 	v1Group.Post("/chat/completions", apiKeyMiddleware, chatCompletionHandler.ChatCompletion)
 
-	// Provider-specific routes
-	v1Group.Post("/openai/chat/completions", apiKeyMiddleware, openaiHandler.ChatCompletion)
-	v1Group.Post("/anthropic/chat/completions", apiKeyMiddleware, anthropicHandler.ChatCompletion)
-	v1Group.Post("/groq/chat/completions", apiKeyMiddleware, groqHandler.ChatCompletion)
-	v1Group.Post("/deepseek/chat/completions", apiKeyMiddleware, deepseekHandler.ChatCompletion)
-	v1Group.Post("/gemini/chat/completions", apiKeyMiddleware, geminiHandler.ChatCompletion)
-
+	// Provider-specific routes using factory loop
+	providers := []string{"openai", "anthropic", "groq", "deepseek", "gemini"}
+	for _, provider := range providers {
+		providerHandler := api.NewProviderChatCompletionHandler(provider)
+		v1Group.Post(fmt.Sprintf("/%s/chat/completions", provider), apiKeyMiddleware, providerHandler.ChatCompletion)
+	}
 	// API group for internal management
 	apiGroup := app.Group("/api")
 
