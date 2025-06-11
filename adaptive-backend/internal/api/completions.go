@@ -18,7 +18,7 @@ import (
 type ChatCompletionHandler struct {
 	promptClassifierClient *services.PromptClassifierClient
 	metrics                *metrics.ChatMetrics
-	providerConstraint     *string // nil for all providers, specific provider name for constraint
+	providerConstraint     string
 }
 
 // Shared metrics instance to avoid duplicate registration
@@ -28,7 +28,7 @@ func NewChatCompletionHandler() *ChatCompletionHandler {
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
 		metrics:                sharedMetrics,
-		providerConstraint:     nil, // No provider constraint for main endpoint
+		providerConstraint:     "", // No provider constraint for main endpoint
 	}
 }
 
@@ -36,13 +36,8 @@ func NewProviderChatCompletionHandler(provider string) *ChatCompletionHandler {
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
 		metrics:                sharedMetrics,
-		providerConstraint:     &provider,
+		providerConstraint:     provider,
 	}
-}
-
-// GetProviderConstraint returns the provider constraint for this handler
-func (h *ChatCompletionHandler) GetProviderConstraint() *string {
-	return h.providerConstraint
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
@@ -66,8 +61,8 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	if h.providerConstraint != nil {
-		log.Infof("[%s] Selected model: %s (%s)", requestID, modelInfo.SelectedModel, *h.providerConstraint)
+	if h.providerConstraint != "" {
+		log.Infof("[%s] Selected model: %s (%s)", requestID, modelInfo.SelectedModel, h.providerConstraint)
 	} else {
 		log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
 	}
@@ -176,8 +171,8 @@ func (h *ChatCompletionHandler) getMethodType(isStream bool) string {
 }
 
 func (h *ChatCompletionHandler) getProviderName() string {
-	if h.providerConstraint != nil {
-		return *h.providerConstraint
+	if h.providerConstraint != "" {
+		return h.providerConstraint
 	}
 	return "unknown"
 }

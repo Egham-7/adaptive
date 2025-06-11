@@ -7,8 +7,8 @@ import (
 )
 
 type SelectModelRequest struct {
-	Prompt   string  `json:"prompt"`
-	Provider *string `json:"provider,omitempty"`
+	Prompt   string `json:"prompt"`
+	Provider string `json:"provider,omitempty"`
 }
 
 // SelectModelResponse represents the response from the select-model endpoint
