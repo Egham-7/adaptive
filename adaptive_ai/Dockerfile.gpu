@@ -1,38 +1,47 @@
 # -------------------------
 # STAGE 1: Builder
 # -------------------------
-FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04 AS builder
+FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive \
   POETRY_HOME="/opt/poetry" \
   PATH="/opt/poetry/bin:$PATH" \
-  PYTHONUNBUFFERED=1
+  PYTHONUNBUFFERED=1 \
+  PIP_NO_CACHE_DIR=1 \
+  PIP_DISABLE_PIP_VERSION_CHECK=1
 
 WORKDIR /app
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Install Python + build tools
+# Install build dependencies in single layer
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
-  python3.11 python3.11-dev python3-pip \
-  build-essential git curl libffi-dev libssl-dev ca-certificates && \
+  python3.11 \
+  python3.11-dev \
+  python3-pip \
+  build-essential \
+  git \
+  curl \
+  ca-certificates \
+  libopenblas-dev \
+  liblapack-dev \
+  gfortran && \
   curl -sSL https://install.python-poetry.org | python3.11 - && \
-  apt-get remove --purge -y curl && \
-  apt-get autoremove -y && \
-  rm -rf /var/lib/apt/lists/*
+  update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Configure system Python
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
-
-# Copy dependency files first for caching
+# Copy dependency files for layer caching
 COPY pyproject.toml poetry.lock* ./
 
-# Use .venv for Poetry environment
+# Install only production dependencies
 RUN poetry config virtualenvs.in-project true && \
-  poetry install --only main --no-root --no-interaction --no-ansi
+  poetry config virtualenvs.create true && \
+  poetry config cache-dir /tmp/poetry-cache && \
+  poetry install --only=main --no-root --no-interaction --no-ansi && \
+  rm -rf /tmp/poetry-cache
 
-# Copy the full application code
+# Copy source code
 COPY . .
 
 # -------------------------
@@ -42,37 +51,49 @@ FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONUNBUFFERED=1 \
-  POETRY_HOME="/opt/poetry" \
-  VIRTUAL_ENV="/app/.venv" \
+  PYTHONDONTWRITEBYTECODE=1 \
   PATH="/app/.venv/bin:$PATH" \
+  VIRTUAL_ENV="/app/.venv" \
   HOME="/app" \
-  HF_HOME="/tmp/hf_cache"
+  HF_HOME="/tmp/hf_cache" \
+  TORCH_HOME="/tmp/torch_cache" \
+  OPENBLAS_NUM_THREADS=1 \
+  OMP_NUM_THREADS=1
 
 WORKDIR /app
 
-# Install only runtime Python
+# Install minimal runtime dependencies including math libraries
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
-  python3.11 libpython3.11 libpython3.11-dev && \
+  python3.11 \
+  libpython3.11 \
+  bash \
+  ca-certificates \
+  libopenblas0 \
+  liblapack3 \
+  libgfortran5 && \
   update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
-  apt-get clean && rm -rf /var/lib/apt/lists/*
+  addgroup --system --gid 1000 appgroup && \
+  adduser --system --uid 1000 --gid 1000 --home /app appuser && \
+  mkdir -p /tmp/hf_cache /tmp/torch_cache && \
+  chown -R appuser:appgroup /tmp/hf_cache /tmp/torch_cache && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
-# Create non-root user before copying
-RUN addgroup --system appgroup && \
-  adduser --system --ingroup appgroup --home /app appuser
 
-# Copy app and venv from builder
-COPY --from=builder /app /app
-COPY --from=builder /app/.venv /app/.venv
+# Copy files with proper ownership from the start
+COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appgroup /app/adaptive_ai /app/adaptive_ai
+COPY --from=builder --chown=appuser:appgroup /app/*.py /app/
+COPY --from=builder --chown=appuser:appgroup /app/*.yaml /app/
+COPY --from=builder --chown=appuser:appgroup /app/pyproject.toml /app/
+COPY --chown=appuser:appgroup entrypoint.sh /entrypoint.sh
 
-# Remove any cached models and set proper ownership
-RUN rm -rf /app/hf_cache && \
-  mkdir -p /tmp/hf_cache && \
-  chown -R appuser:appgroup /app /tmp/hf_cache
+# Ensure all permissions are correct and make writable directories
+RUN chown -R appuser:appgroup /app && \
+  chmod -R 755 /app && \
+  chmod +x /entrypoint.sh
 
-# Add entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && chown appuser:appgroup /entrypoint.sh
 
 USER appuser
 

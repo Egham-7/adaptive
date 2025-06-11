@@ -42,9 +42,9 @@ class Settings(BaseSettings):
 
         # In Docker container, we're in /app directory
         # Check if we're in a Docker container or local development
-        if os.path.exists("/app"):
+        if os.path.exists("/app/adaptive_ai"):
             # Docker environment - config should be in /app
-            return os.path.join("/app", self.model_config_path)
+            return os.path.join("/app/adaptive_ai", self.model_config_path)
         else:
             # Local development - get project root
             project_root = os.path.dirname(

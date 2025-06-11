@@ -3,4 +3,5 @@ set -e
 
 echo "🚀 Starting the application..."
 
-exec python /app/main.py
+cd /app
+exec python adaptive_ai/main.py "$@"
