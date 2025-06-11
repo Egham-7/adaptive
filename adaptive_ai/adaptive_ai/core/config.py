@@ -193,6 +193,7 @@ class Settings(BaseSettings):
         for key, (config_class, attr_name) in config_mapping.items():
             if key in yaml_config:
                 setattr(self, attr_name, config_class(**yaml_config[key]))
+
     def get_config_file_path(self) -> Optional[Path]:
         """Get the path to the configuration file."""
         if os.path.isabs(self.config_file):
