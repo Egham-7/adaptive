@@ -31,12 +31,12 @@ ComplexityLevel = DifficultyLevel  # Alias for backward compatibility
 class TaskTypeParametersType(TypedDict):
     """Parameters for model configuration by task type"""
 
-    Temperature: float
-    TopP: float
-    PresencePenalty: float
-    FrequencyPenalty: float
-    MaxCompletionTokens: int
-    N: int
+    temperature: float
+    top_p: float
+    presence_penalty: float
+    frequency_penalty: float
+    max_completion_tokens: int
+    n: int
 
 
 class ModelCapability(TypedDict):
