@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/botirk38/semanticcache"
-	"github.com/hashicorp/golang-lru/v2"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/openai/openai-go"
 )
 
@@ -116,13 +116,13 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 	return newCache
 }
 
-func (c *PromptClassifierClient) getFallbackModel(provider *string) *models.SelectModelResponse {
+func (c *PromptClassifierClient) getFallbackModel(provider string) *models.SelectModelResponse {
 	var selectedModel string
 	var fallbackProvider string
 
-	if provider != nil {
+	if provider != "" {
 		// Provider-specific fallbacks
-		switch *provider {
+		switch provider {
 		case "openai":
 			selectedModel = "gpt-4o"
 			fallbackProvider = "openai"
@@ -192,8 +192,8 @@ func (c *PromptClassifierClient) SelectModelWithCache(req models.SelectModelRequ
 
 	// Create cache key that includes provider constraint
 	cacheKey := req.Prompt
-	if req.Provider != nil {
-		cacheKey = fmt.Sprintf("%s:provider:%s", req.Prompt, *req.Provider)
+	if req.Provider != "" {
+		cacheKey = fmt.Sprintf("%s:provider:%s", req.Prompt, req.Provider)
 	}
 
 	// Check user-specific cache
@@ -227,8 +227,8 @@ func (c *PromptClassifierClient) SelectModelWithCache(req models.SelectModelRequ
 		log.Printf("[%s] Cache miss - using fallback model %s (circuit: %v)", requestID, modelInfo.SelectedModel, c.circuitBreaker.GetState())
 	} else {
 		providerText := "all providers"
-		if req.Provider != nil {
-			providerText = *req.Provider
+		if req.Provider != "" {
+			providerText = req.Provider
 		}
 		log.Printf("[%s] Cache miss - selected model %s from %s", requestID, modelInfo.SelectedModel, providerText)
 	}
@@ -265,3 +265,4 @@ func (c *PromptClassifierClient) startCacheMaintenance() {
 func (c *PromptClassifierClient) performCacheMaintenance() {
 	log.Printf("Cache maintenance completed")
 }
+
