@@ -1,97 +1,40 @@
-# STAGE 1: Base Image
-# Use the specific version tag you require for consistency and compatibility.
-FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04 AS base
+FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04
 
-# Set non-interactive frontend to avoid prompts during package installation.
-ENV DEBIAN_FRONTEND=noninteractive
-# Set Python version as an ENV variable for easy updates.
-ENV PYTHON_VERSION=3.11
-# Prevent Python from writing .pyc files.
-ENV PYTHONDONTWRITEBYTECODE=1
-# Ensure Python output is sent straight to the terminal (useful for logs).
-ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive \
+  PYTHONUNBUFFERED=1 \
+  PYTHONDONTWRITEBYTECODE=1 \
+  PATH="/root/.local/bin:$PATH"
 
-# Install Python and essential build tools.
-# Use --no-install-recommends to keep the image lean.
+WORKDIR /app
+
+# Install Python and pip
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
-  software-properties-common \
-  build-essential \
-  curl \
-  git \
-  && add-apt-repository ppa:deadsnakes/ppa \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends \
-  python${PYTHON_VERSION} \
-  python${PYTHON_VERSION}-dev \
-  python${PYTHON_VERSION}-venv \
-  # Clean up apt cache to reduce image size.
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
+  python3.11 \
+  python3-pip \
+  curl && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
 
-# Make python3.11 the default python.
-RUN ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python3 && \
-  ln -sf /usr/bin/python${PYTHON_VERSION} /usr/bin/python
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3.11 -
+ENV PATH="/root/.local/bin:$PATH"
 
-# --- STAGE 2: Dependency Builder ---
-FROM base AS builder
-
-# Set Poetry version and add it to PATH.
-ENV POETRY_VERSION=1.8.2
-ENV POETRY_HOME="/opt/poetry"
-ENV PATH="$POETRY_HOME/bin:$PATH"
-
-# Install Poetry.
-RUN curl -sSL https://install.python-poetry.org | python3 - --version $POETRY_VERSION
-
-# Set the working directory.
-WORKDIR /app
-
-# Configure Poetry to create the venv inside the project directory.
-RUN poetry config virtualenvs.in-project true
-
-# Copy only dependency files to leverage Docker's layer cache.
-# This layer only rebuilds if pyproject.toml or poetry.lock changes.
+# Copy dependency files
 COPY pyproject.toml poetry.lock* ./
 
-# Install dependencies without installing the project itself and without dev dependencies.
-RUN poetry install --no-interaction --no-ansi --no-root --only main
+# Install dependencies
+RUN poetry config virtualenvs.create false && \
+  poetry install --only=main --no-root --no-interaction --no-ansi
 
 
-# --- STAGE 3: Final Runtime Image ---
-FROM base AS final
-
-WORKDIR /app
-
-# Set environment variables for runtime.
-ENV HOME="/app"
-ENV HF_HOME="/app/hf_cache"
-# Activate the virtual environment by adding its bin to the PATH.
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH="/app"
-ENV ADAPTIVE_AI_CONFIG_FILE="/app/config/config.yaml"
-ENV NVIDIA_VISIBLE_DEVICES=all
-ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
-
-# Copy the virtual environment and application code from the builder stage.
-COPY --from=builder /app/.venv ./.venv
+# Copy application
 COPY . .
 
-# Create a non-root user and group for security.
-# Use --no-create-home and chown separately for a massive speed improvement.
-RUN addgroup --system appgroup && \
-  adduser --system --ingroup appgroup --no-create-home --disabled-password appuser && \
-  mkdir -p /app/hf_cache && \
-  chown -R appuser:appgroup /app
+# Copy and set up entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Make entrypoint executable.
-RUN chmod +x /app/entrypoint.sh
-
-# Switch to the non-root user.
-USER appuser
-
-# Expose the application port.
 EXPOSE 8000
 
-# Set the entrypoint script to run on container start.
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
