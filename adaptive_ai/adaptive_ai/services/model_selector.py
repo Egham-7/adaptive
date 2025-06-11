@@ -32,9 +32,15 @@ class ModelSelector:
         self._settings = get_settings()
         self._model_capabilities = self._get_model_capabilities()
         self._task_mappings = self._get_task_model_mappings()
-        # Set max_workers based on CPU count if not specified
-        self.max_workers = max_workers or min(32, 4)  # Default to 4 workers
-        logger.info(f"ModelSelector initialized with max_workers={self.max_workers}")
+# --- at the top of adaptive_ai/adaptive_ai/services/model_selector.py ---
+import os
+...
+
+# --- inside ModelSelector.__init__() around line 35 ---
+    # Set max_workers based on CPU count if not specified
+    cpu_cnt = os.cpu_count() or 1
+    self.max_workers = max_workers or min(32, cpu_cnt)
+    logger.info(f"ModelSelector initialized with max_workers={self.max_workers}")
 
     def _get_model_capabilities(self) -> Dict[str, ModelCapability]:
         """Get all model capabilities from config"""
