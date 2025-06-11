@@ -2,7 +2,7 @@ from functools import lru_cache
 from typing import List, cast, Optional, Dict
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from models.types import (
+from adaptive_ai.models.types import (
     VALID_TASK_TYPES,
     TaskType,
     ModelCapability,
@@ -11,10 +11,10 @@ from models.types import (
     TaskDifficultyConfig,
     DifficultyLevel,
 )
-from models.requests import ModelSelectionResponse
-from models.config_loader import get_model_capabilities, get_task_model_mappings
-from services.prompt_classifier import PromptClassifier
-from services.llm_parameters import OpenAIParameters
+from adaptive_ai.models.requests import ModelSelectionResponse
+from adaptive_ai.core.config import get_settings
+from adaptive_ai.services.prompt_classifier import PromptClassifier
+from adaptive_ai.services.llm_parameters import OpenAIParameters
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,58 @@ class ModelSelector:
         self, prompt_classifier: PromptClassifier, max_workers: Optional[int] = None
     ) -> None:
         self.prompt_classifier: PromptClassifier = prompt_classifier
-        self._model_capabilities = get_model_capabilities()
-        self._task_mappings = get_task_model_mappings()
+        self._settings = get_settings()
+        self._model_capabilities = self._get_model_capabilities()
+        self._task_mappings = self._get_task_model_mappings()
         # Set max_workers based on CPU count if not specified
         self.max_workers = max_workers or min(32, 4)  # Default to 4 workers
         logger.info(f"ModelSelector initialized with max_workers={self.max_workers}")
+
+    def _get_model_capabilities(self) -> Dict[str, ModelCapability]:
+        """Get all model capabilities from config"""
+        capabilities = self._settings.get_model_capabilities()
+        validated_capabilities: Dict[str, ModelCapability] = {}
+
+        for model_name, capability in capabilities.items():
+            validated_capabilities[model_name] = cast(
+                ModelCapability,
+                {
+                    "description": str(capability.get("description", "")),
+                    "provider": str(capability.get("provider", "Unknown")),
+                    "cost_per_1k_tokens": float(capability.get("cost_per_1k_tokens", 0.0)),
+                    "max_tokens": int(capability.get("max_tokens", 4096)),
+                    "supports_streaming": bool(capability.get("supports_streaming", False)),
+                    "supports_function_calling": bool(capability.get("supports_function_calling", False)),
+                    "supports_vision": bool(capability.get("supports_vision", False)),
+                },
+            )
+        return validated_capabilities
+
+    def _get_task_model_mappings(self) -> Dict[TaskType, TaskModelMapping]:
+        """Get task to model mappings from config"""
+        mappings = self._settings.get_task_model_mappings()
+        validated_mappings: Dict[TaskType, TaskModelMapping] = {}
+
+        for task_type, mapping in mappings.items():
+            if task_type in VALID_TASK_TYPES:
+                validated_mappings[cast(TaskType, task_type)] = cast(
+                    TaskModelMapping,
+                    {
+                        "easy": {
+                            "model": str(mapping["easy"]["model"]),
+                            "complexity_threshold": float(mapping["easy"]["complexity_threshold"]),
+                        },
+                        "medium": {
+                            "model": str(mapping["medium"]["model"]),
+                            "complexity_threshold": float(mapping["medium"]["complexity_threshold"]),
+                        },
+                        "hard": {
+                            "model": str(mapping["hard"]["model"]),
+                            "complexity_threshold": float(mapping["hard"]["complexity_threshold"]),
+                        },
+                    },
+                )
+        return validated_mappings
 
     def _validate_task_type(self, task_type: str) -> TaskType:
         """Validate and convert string to TaskType"""

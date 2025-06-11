@@ -6,6 +6,7 @@ from typing import TypedDict, Literal, List
 
 # Provider Types
 ProviderType = Literal["GROQ", "OpenAI", "DEEPSEEK", "Anthropic", "Google"]
+ModelProvider = ProviderType  # Alias for backward compatibility
 
 # Task Types
 TaskType = Literal[
@@ -22,8 +23,9 @@ TaskType = Literal[
     "Other",
 ]
 
-# Difficulty Levels
+# Difficulty/Complexity Levels
 DifficultyLevel = Literal["easy", "medium", "hard"]
+ComplexityLevel = DifficultyLevel  # Alias for backward compatibility
 
 
 class TaskTypeParametersType(TypedDict):
@@ -42,6 +44,11 @@ class ModelCapability(TypedDict):
 
     description: str
     provider: ProviderType
+    cost_per_1k_tokens: float
+    max_tokens: int
+    supports_streaming: bool
+    supports_function_calling: bool
+    supports_vision: bool
 
 
 class ModelInfo(TypedDict):
@@ -103,6 +110,22 @@ class ModelSelectionError(Exception):
     pass
 
 
+class ConfigurationError(Exception):
+    """Custom exception for configuration errors"""
+
+    pass
+
+
+class ProviderError(Exception):
+    """Custom exception for provider-related errors"""
+
+    pass
+
+
+# =============================================================================
+# CONSTANTS
+# =============================================================================
+
 VALID_TASK_TYPES: List[TaskType] = [
     "Open QA",
     "Closed QA",
@@ -115,4 +138,18 @@ VALID_TASK_TYPES: List[TaskType] = [
     "Brainstorming",
     "Extraction",
     "Other",
+]
+
+VALID_PROVIDERS: List[ProviderType] = [
+    "GROQ",
+    "OpenAI",
+    "DEEPSEEK",
+    "Anthropic",
+    "Google"
+]
+
+VALID_DIFFICULTY_LEVELS: List[DifficultyLevel] = [
+    "easy",
+    "medium",
+    "hard"
 ]

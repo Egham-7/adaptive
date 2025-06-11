@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Union, Dict, cast
 from pydantic import BaseModel, Field, validator
 
-from models.config_loader import get_task_parameters
-from models.types import TaskTypeParametersType, TaskType
+from adaptive_ai.core.config import get_settings
+from adaptive_ai.models.types import TaskTypeParametersType, TaskType
 
 
 class LLMProviderParameters(ABC):
@@ -37,7 +37,8 @@ class OpenAIParameters(BaseModel, LLMProviderParameters):
     def adjust_parameters(
         self, task_type: str, prompt_scores: Dict[str, list]
     ) -> Dict[str, Union[float, int]]:
-        task_type_parameters = get_task_parameters()
+        settings = get_settings()
+        task_type_parameters = settings.get_task_parameters()
 
         if task_type not in task_type_parameters:
             raise ValueError(
@@ -90,3 +91,25 @@ class OpenAIParameters(BaseModel, LLMProviderParameters):
             "max_tokens": self.max_tokens,
             "n": self.n,
         }
+
+
+class LLMParameterService:
+    """Service for managing LLM parameters across different providers."""
+
+    def __init__(self):
+        self.providers = {
+            "openai": OpenAIParameters
+        }
+
+    def get_parameters(self, provider: str, model: str, task_type: str, prompt_scores: Dict[str, list]) -> Dict[str, Union[float, int]]:
+        """Get adjusted parameters for a specific provider and model."""
+        if provider.lower() not in self.providers:
+            raise ValueError(f"Unsupported provider: {provider}")
+
+        parameter_class = self.providers[provider.lower()]
+        parameters = parameter_class(model=model)
+        return parameters.adjust_parameters(task_type, prompt_scores)
+
+    def add_provider(self, name: str, parameter_class):
+        """Add a new provider parameter class."""
+        self.providers[name.lower()] = parameter_class
