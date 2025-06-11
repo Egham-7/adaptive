@@ -150,7 +150,6 @@ func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, a
 	if cacheType == "user" || cacheType == "global" {
 		h.recordCacheHit(cacheType)
 	}
-	h.recordCacheLookup("model_selection")
 
 	return modelInfo, err
 }
