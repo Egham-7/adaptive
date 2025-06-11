@@ -19,7 +19,7 @@ func NewChatMetrics() *ChatMetrics {
 		RequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name: "chat_completion_duration_seconds",
 			Help: "Duration of chat completion requests",
-		}, []string{"endpoint", "status", "provider"}),
+		}, []string{"method_type", "status", "provider"}),
 
 		CacheHits: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "chat_completion_cache_hits_total",
