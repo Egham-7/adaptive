@@ -62,20 +62,20 @@ class OpenAIParameters(BaseModel, LLMProviderParameters):
         domain_knowledge: float = prompt_scores.get("domain_knowledge", [0.5])[0]
 
         # Compute adjustments
-        self.temperature = float(base["Temperature"] + (creativity_scope - 0.5) * 0.5)
-        self.top_p = float(base["TopP"] + (creativity_scope - 0.5) * 0.3)
+        self.temperature = float(base["temperature"] + (creativity_scope - 0.5) * 0.5)
+        self.top_p = float(base["top_p"] + (creativity_scope - 0.5) * 0.3)
         self.presence_penalty = float(
-            base["PresencePenalty"] + (domain_knowledge - 0.5) * 0.4
+            base["presence_penalty"] + (domain_knowledge - 0.5) * 0.4
         )
         self.frequency_penalty = float(
-            base["FrequencyPenalty"] + (reasoning - 0.5) * 0.4
+            base["frequency_penalty"] + (reasoning - 0.5) * 0.4
         )
-        self.max_tokens = base["MaxCompletionTokens"] + int(
+        self.max_tokens = base["max_completion_tokens"] + int(
             (contextual_knowledge - 0.5) * 500
         )
 
         # Explicitly calculate n as an integer
-        base_n: int = base["N"]
+        base_n: int = base["n"]
         adjustment: float = (prompt_complexity_score - 0.5) * 2
         rounded_value: int = round(base_n + adjustment)
         self.n = max(1, rounded_value)

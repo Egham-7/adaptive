@@ -183,10 +183,6 @@ class Settings(BaseSettings):
             self.security = SecurityConfig(**yaml_config["security"])
         if "health" in yaml_config:
             self.health = HealthConfig(**yaml_config["health"])
-        if "providers" in yaml_config:
-            self.providers = ProvidersConfig(**yaml_config["providers"])
-        if "features" in yaml_config:
-            self.features = FeaturesConfig(**yaml_config["features"])
 
 
 
