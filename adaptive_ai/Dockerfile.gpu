@@ -1,110 +1,39 @@
-# -------------------------
-# STAGE 1: Builder
-# -------------------------
-FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04 AS builder
-
-ENV DEBIAN_FRONTEND=noninteractive \
-  POETRY_HOME="/opt/poetry" \
-  PATH="/opt/poetry/bin:$PATH" \
-  PYTHONUNBUFFERED=1 \
-  PIP_NO_CACHE_DIR=1 \
-  PIP_DISABLE_PIP_VERSION_CHECK=1
-
-WORKDIR /app
-
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
-# Install build dependencies in single layer
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends \
-  python3.11 \
-  python3.11-dev \
-  python3-pip \
-  build-essential \
-  git \
-  curl \
-  ca-certificates \
-  libopenblas-dev \
-  liblapack-dev \
-  gfortran && \
-  curl -sSL https://install.python-poetry.org | python3.11 - && \
-  update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
-
-# Copy dependency files for layer caching
-COPY pyproject.toml poetry.lock* ./
-
-# Install only production dependencies with optimizations
-RUN poetry config virtualenvs.in-project true && \
-  poetry config virtualenvs.create true && \
-  poetry config cache-dir /tmp/poetry-cache && \
-  poetry install --only=main --no-root --no-interaction --no-ansi && \
-  # Clean up package caches and unnecessary files
-  find /app/.venv -name "*.pyc" -delete && \
-  find /app/.venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
-  find /app/.venv -name "*.pyo" -delete && \
-  find /app/.venv -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
-  find /app/.venv -name "test" -type d -exec rm -rf {} + 2>/dev/null || true && \
-  rm -rf /tmp/poetry-cache /root/.cache
-
-# Copy source code
-COPY . .
-
-# -------------------------
-# STAGE 2: Runtime
-# -------------------------
 FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONUNBUFFERED=1 \
   PYTHONDONTWRITEBYTECODE=1 \
-  PATH="/app/.venv/bin:$PATH" \
-  VIRTUAL_ENV="/app/.venv" \
-  HOME="/app" \
-  HF_HOME="/tmp/hf_cache" \
-  TORCH_HOME="/tmp/torch_cache" \
-  OPENBLAS_NUM_THREADS=1 \
-  OMP_NUM_THREADS=1
+  PATH="/root/.local/bin:$PATH"
 
 WORKDIR /app
 
-# Install minimal runtime dependencies including math libraries
+# Install Python and pip
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
   python3.11 \
-  libpython3.11 \
-  bash \
-  ca-certificates \
-  libopenblas0 \
-  liblapack3 \
-  libgfortran5 && \
-  update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
-  addgroup --system --gid 1000 appgroup && \
-  adduser --system --uid 1000 --gid 1000 --home /app appuser && \
-  mkdir -p /tmp/hf_cache /tmp/torch_cache && \
-  chown -R appuser:appgroup /tmp/hf_cache /tmp/torch_cache && \
+  python3-pip \
+  curl && \
   apt-get clean && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
+  rm -rf /var/lib/apt/lists/*
 
-# Copy virtual environment first (largest layer)
-COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3.11 -
+ENV PATH="/root/.local/bin:$PATH"
 
-# Copy application files
-COPY --from=builder --chown=appuser:appgroup /app/adaptive_ai /app/adaptive_ai
-COPY --from=builder --chown=appuser:appgroup /app/*.py /app/
-COPY --from=builder --chown=appuser:appgroup /app/*.yaml /app/
-COPY --from=builder --chown=appuser:appgroup /app/pyproject.toml /app/
-COPY --chown=appuser:appgroup entrypoint.sh /entrypoint.sh
+# Copy dependency files
+COPY pyproject.toml poetry.lock* ./
 
-# Set permissions for app directory and entrypoint
-RUN chown -R appuser:appgroup /app && \
-  chmod -R 755 /app && \
-  chmod +x /entrypoint.sh
+# Install dependencies
+RUN poetry config virtualenvs.create false && \
+  poetry install --only=main --no-interaction --no-ansi
 
-USER appuser
+# Copy application
+COPY . .
+
+# Copy and set up entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-
