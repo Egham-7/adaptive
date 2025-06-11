@@ -1,8 +1,8 @@
 import os
 import yaml
-from pathlib import Path
 from functools import lru_cache
-from typing import Any, Dict, Optional, List, cast
+from pathlib import Path
+from typing import Any, Optional, cast
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
@@ -21,7 +21,7 @@ class AppConfig(BaseModel):
 class ServerConfig(BaseModel):
     """Server configuration."""
 
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 8000
     workers: int = 1
     timeout: int = 30
@@ -55,7 +55,7 @@ class LoggingConfig(BaseModel):
 
     level: str = "INFO"
     format: str = "json"
-    file: Optional[str] = None
+    file: str | None = None
     max_file_size: str = "10MB"
     backup_count: int = 5
 
@@ -66,7 +66,7 @@ class RedisConfig(BaseModel):
     host: str = "localhost"
     port: int = 6379
     db: int = 0
-    password: Optional[str] = None
+    password: str | None = None
 
 
 class CacheConfig(BaseModel):
@@ -108,9 +108,9 @@ class CorsConfig(BaseModel):
     """CORS configuration."""
 
     enabled: bool = True
-    origins: List[str] = ["*"]
-    methods: List[str] = ["GET", "POST", "OPTIONS"]
-    headers: List[str] = ["*"]
+    origins: list[str] = ["*"]
+    methods: list[str] = ["GET", "POST", "OPTIONS"]
+    headers: list[str] = ["*"]
 
 
 class SecurityConfig(BaseModel):
@@ -194,7 +194,7 @@ class Settings(BaseSettings):
             if key in yaml_config:
                 setattr(self, attr_name, config_class(**yaml_config[key]))
 
-    def get_config_file_path(self) -> Optional[Path]:
+    def get_config_file_path(self) -> Path | None:
         """Get the path to the configuration file."""
         if os.path.isabs(self.config_file):
             return Path(self.config_file)
@@ -218,42 +218,42 @@ class Settings(BaseSettings):
 
         return None
 
-    def load_model_config(self) -> Dict[str, Any]:
+    def load_model_config(self) -> dict[str, Any]:
         """Load the complete model configuration from YAML file."""
         config_path = self.get_config_file_path()
         if config_path and config_path.exists():
             return _load_yaml_config(str(config_path))
         return {}
 
-    def get_model_capabilities(self) -> Dict[str, Any]:
+    def get_model_capabilities(self) -> dict[str, Any]:
         """Get model capabilities from configuration."""
         config = self.load_model_config()
-        return cast(Dict[str, Any], config.get("model_capabilities", {}))
+        return cast(dict[str, Any], config.get("model_capabilities", {}))
 
-    def get_task_model_mappings(self) -> Dict[str, Any]:
+    def get_task_model_mappings(self) -> dict[str, Any]:
         """Get task to model mappings from configuration."""
         config = self.load_model_config()
-        return cast(Dict[str, Any], config.get("task_model_mappings", {}))
+        return cast(dict[str, Any], config.get("task_model_mappings", {}))
 
-    def get_task_parameters(self) -> Dict[str, Any]:
+    def get_task_parameters(self) -> dict[str, Any]:
         """Get task parameters from configuration."""
         config = self.load_model_config()
-        return cast(Dict[str, Any], config.get("task_parameters", {}))
+        return cast(dict[str, Any], config.get("task_parameters", {}))
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
 
 
 @lru_cache(maxsize=1)
-def _load_yaml_config(config_path: str) -> Dict[str, Any]:
+def _load_yaml_config(config_path: str) -> dict[str, Any]:
     """Load the configuration YAML file (cached)."""
     try:
-        with open(config_path, "r", encoding="utf-8") as file:
+        with open(config_path, encoding="utf-8") as file:
             return yaml.safe_load(file) or {}
     except FileNotFoundError:
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+        raise FileNotFoundError(f"Configuration file not found: {config_path}") from None
     except yaml.YAMLError as e:
-        raise ValueError(f"Error parsing configuration YAML: {e}")
+        raise ValueError(f"Error parsing configuration YAML: {e}") from e

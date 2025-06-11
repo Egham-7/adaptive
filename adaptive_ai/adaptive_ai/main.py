@@ -1,5 +1,4 @@
 import litserve as ls
-from typing import List
 
 from adaptive_ai.core.config import get_settings
 from adaptive_ai.services.model_selector import get_model_selector
@@ -15,7 +14,7 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
     def decode_request(self, request: PromptRequest) -> str:
         return request.prompt
 
-    def predict(self, prompts: List[str]) -> List[ModelSelectionResponse]:
+    def predict(self, prompts: list[str]) -> list[ModelSelectionResponse]:
         return self.model_selector.select_model(prompts)
 
     def encode_response(self, output: ModelSelectionResponse) -> ModelSelectionResponse:

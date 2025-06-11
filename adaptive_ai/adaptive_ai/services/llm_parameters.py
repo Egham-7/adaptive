@@ -1,9 +1,9 @@
-from typing import Dict, List, Union, cast
+from typing import Union, cast
 
 from pydantic import BaseModel, Field, validator
 
 from adaptive_ai.core.config import get_settings
-from adaptive_ai.models.types import TaskTypeParametersType, TaskType
+from adaptive_ai.models.types import TaskType, TaskTypeParametersType
 
 
 class OpenAIParameters(BaseModel):
@@ -19,14 +19,14 @@ class OpenAIParameters(BaseModel):
         validate_assignment = True
 
     @validator("temperature", "top_p", "presence_penalty", "frequency_penalty")
-    def _round_floats(cls, v: float) -> float:
+    def _round_floats(cls, self, v: float) -> float:
         return round(v, 2)
 
     def adjust_parameters(
         self,
         task_type: str,
-        prompt_scores: Dict[str, List[float]],
-    ) -> Dict[str, Union[float, int]]:
+        prompt_scores: dict[str, list[float]],
+    ) -> dict[str, Union[float, int]]:
         settings = get_settings()
         task_params = settings.get_task_parameters()
 
@@ -60,7 +60,7 @@ class OpenAIParameters(BaseModel):
 
         return self.get_parameters()
 
-    def get_parameters(self) -> Dict[str, Union[float, int]]:
+    def get_parameters(self) -> dict[str, Union[float, int]]:
         return {
             "temperature": self.temperature,
             "top_p": self.top_p,
@@ -81,7 +81,7 @@ class LLMParameterService:
         self,
         model: str,
         task_type: str,
-        prompt_scores: Dict[str, List[float]],
-    ) -> Dict[str, Union[float, int]]:
+        prompt_scores: dict[str, list[float]],
+    ) -> dict[str, Union[float, int]]:
         params = self._provider(model=model)
         return params.adjust_parameters(task_type, prompt_scores)
