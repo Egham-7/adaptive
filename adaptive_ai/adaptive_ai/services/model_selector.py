@@ -1,7 +1,7 @@
-import logging
-import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
+import logging
+import os
 from typing import cast
 
 from adaptive_ai.core.config import get_settings
@@ -274,7 +274,7 @@ class ModelSelector:
             )
         except Exception as e:
             logger.error(
-                f"Error processing classification for prompt {prompt_index}: {str(e)}"
+                f"Error processing classification for prompt {prompt_index}: {e!s}"
             )
             # Return default response for failed classifications
             return self._get_default_result(

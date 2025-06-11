@@ -1,12 +1,11 @@
-import os
 from functools import lru_cache
+import os
 from pathlib import Path
 from typing import Any, cast
 
-import yaml
-
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
+import yaml
 
 
 class AppConfig(BaseModel):
@@ -255,6 +254,8 @@ def _load_yaml_config(config_path: str) -> dict[str, Any]:
         with open(config_path, encoding="utf-8") as file:
             return yaml.safe_load(file) or {}
     except FileNotFoundError:
-        raise FileNotFoundError(f"Configuration file not found: {config_path}") from None
+        raise FileNotFoundError(
+            f"Configuration file not found: {config_path}"
+        ) from None
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing configuration YAML: {e}") from e

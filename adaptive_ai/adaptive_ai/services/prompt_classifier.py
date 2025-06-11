@@ -1,10 +1,10 @@
 from functools import lru_cache
 from typing import Any, cast
 
+from huggingface_hub import PyTorchModelHubMixin
 import numpy as np
 import torch
 import torch.nn as nn
-from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 
@@ -95,7 +95,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def _extract_classification_results(
         self, logits: list[torch.Tensor]
-    ) -> dict[str, Union[list[str], list[float], float]]:
+    ) -> dict[str, list[str] | list[float] | float]:
         """Extract individual classification results from logits."""
         result: dict[str, list[str] | list[float] | float] = {}
 
@@ -182,17 +182,17 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         single_result: dict[str, list[str] | list[float] | float] = {}
 
         for key, value in batch_results.items():
-            if isinstance(value, (list, tuple)) and len(value) > sample_idx:
+            if isinstance(value, list | tuple) and len(value) > sample_idx:
                 # Extract the value for this specific sample
                 extracted_value = value[sample_idx]
                 # Ensure proper typing based on the extracted value
                 if isinstance(extracted_value, str):
                     single_result[key] = [extracted_value]  # List[str]
-                elif isinstance(extracted_value, (int, float)):
+                elif isinstance(extracted_value, int | float):
                     single_result[key] = [float(extracted_value)]  # List[float]
                 else:
                     single_result[key] = [extracted_value]
-            elif isinstance(value, (int, float)):
+            elif isinstance(value, int | float):
                 # Single numeric value
                 single_result[key] = float(value)
             else:

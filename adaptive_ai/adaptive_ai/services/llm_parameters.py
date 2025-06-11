@@ -1,4 +1,4 @@
-from typing import Union, cast
+from typing import cast
 
 from pydantic import BaseModel, Field, validator
 
@@ -19,7 +19,7 @@ class OpenAIParameters(BaseModel):
         validate_assignment = True
 
     @validator("temperature", "top_p", "presence_penalty", "frequency_penalty")
-    def _round_floats(cls, v: float) -> float:
+    def _round_floats(self, v: float) -> float:
         return round(v, 2)
 
     def adjust_parameters(
