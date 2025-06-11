@@ -1,20 +1,22 @@
-from functools import lru_cache
-from typing import List, cast, Optional, Dict
-import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from models.types import (
+from functools import lru_cache
+import logging
+import os
+from typing import cast
+
+from adaptive_ai.core.config import get_settings
+from adaptive_ai.models.requests import ModelSelectionResponse
+from adaptive_ai.models.types import (
     VALID_TASK_TYPES,
-    TaskType,
+    DifficultyLevel,
     ModelCapability,
     ModelSelectionError,
-    TaskModelMapping,
     TaskDifficultyConfig,
-    DifficultyLevel,
+    TaskModelMapping,
+    TaskType,
 )
-from models.requests import ModelSelectionResponse
-from models.config_loader import get_model_capabilities, get_task_model_mappings
-from services.prompt_classifier import PromptClassifier
-from services.llm_parameters import OpenAIParameters
+from adaptive_ai.services.llm_parameters import OpenAIParameters
+from adaptive_ai.services.prompt_classifier import PromptClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +28,72 @@ class ModelSelector:
     """
 
     def __init__(
-        self, prompt_classifier: PromptClassifier, max_workers: Optional[int] = None
+        self, prompt_classifier: PromptClassifier, max_workers: int | None = None
     ) -> None:
         self.prompt_classifier: PromptClassifier = prompt_classifier
-        self._model_capabilities = get_model_capabilities()
-        self._task_mappings = get_task_model_mappings()
-        # Set max_workers based on CPU count if not specified
-        self.max_workers = max_workers or min(32, 4)  # Default to 4 workers
-        logger.info(f"ModelSelector initialized with max_workers={self.max_workers}")
+        self._settings = get_settings()
+        self._model_capabilities = self._get_model_capabilities()
+        self._task_mappings = self._get_task_model_mappings()
+        cpu_cnt = os.cpu_count() or 1
+        self.max_workers = max_workers or min(32, cpu_cnt)
+
+    def _get_model_capabilities(self) -> dict[str, ModelCapability]:
+        """Get all model capabilities from config"""
+        capabilities = self._settings.get_model_capabilities()
+        validated_capabilities: dict[str, ModelCapability] = {}
+
+        for model_name, capability in capabilities.items():
+            validated_capabilities[model_name] = cast(
+                ModelCapability,
+                {
+                    "description": str(capability.get("description", "")),
+                    "provider": str(capability.get("provider", "Unknown")),
+                    "cost_per_1k_tokens": float(
+                        capability.get("cost_per_1k_tokens", 0.0)
+                    ),
+                    "max_tokens": int(capability.get("max_tokens", 4096)),
+                    "supports_streaming": bool(
+                        capability.get("supports_streaming", False)
+                    ),
+                    "supports_function_calling": bool(
+                        capability.get("supports_function_calling", False)
+                    ),
+                    "supports_vision": bool(capability.get("supports_vision", False)),
+                },
+            )
+        return validated_capabilities
+
+    def _get_task_model_mappings(self) -> dict[TaskType, TaskModelMapping]:
+        """Get task to model mappings from config"""
+        mappings = self._settings.get_task_model_mappings()
+        validated_mappings: dict[TaskType, TaskModelMapping] = {}
+
+        for task_type, mapping in mappings.items():
+            if task_type in VALID_TASK_TYPES:
+                validated_mappings[cast(TaskType, task_type)] = cast(
+                    TaskModelMapping,
+                    {
+                        "easy": {
+                            "model": str(mapping["easy"]["model"]),
+                            "complexity_threshold": float(
+                                mapping["easy"]["complexity_threshold"]
+                            ),
+                        },
+                        "medium": {
+                            "model": str(mapping["medium"]["model"]),
+                            "complexity_threshold": float(
+                                mapping["medium"]["complexity_threshold"]
+                            ),
+                        },
+                        "hard": {
+                            "model": str(mapping["hard"]["model"]),
+                            "complexity_threshold": float(
+                                mapping["hard"]["complexity_threshold"]
+                            ),
+                        },
+                    },
+                )
+        return validated_mappings
 
     def _validate_task_type(self, task_type: str) -> TaskType:
         """Validate and convert string to TaskType"""
@@ -58,8 +118,8 @@ class ModelSelector:
         )
 
     def _extract_prompt_scores(
-        self, classification: Dict[str, List[float]]
-    ) -> Dict[str, List[float]]:
+        self, classification: dict[str, list[float]]
+    ) -> dict[str, list[float]]:
         """Extract prompt scores in the format expected by OpenAIParameters"""
         return {
             "creativity_scope": classification.get("creativity_scope", [0.0]),
@@ -74,7 +134,7 @@ class ModelSelector:
     def _get_default_result(
         self,
         task_type: str,
-        prompt_scores: Dict[str, List[float]],
+        prompt_scores: dict[str, list[float]],
         model_name: str = "gpt-4",
     ) -> ModelSelectionResponse:
         """Create default model selection result when no mapping is found"""
@@ -114,7 +174,7 @@ class ModelSelector:
 
     def _get_alternatives(
         self, selected_model: str, task_mapping: TaskModelMapping
-    ) -> List[str]:
+    ) -> list[str]:
         """Get alternative models from other difficulty levels"""
         alternatives = []
         # Use literal keys to access TypedDict
@@ -131,7 +191,7 @@ class ModelSelector:
         return alternatives[:2]  # Limit to 2 alternatives
 
     def _get_openai_parameters(
-        self, model_name: str, task_type: str, prompt_scores: Dict[str, List[float]]
+        self, model_name: str, task_type: str, prompt_scores: dict[str, list[float]]
     ) -> OpenAIParameters:
         """Get OpenAI parameters object"""
         try:
@@ -144,7 +204,7 @@ class ModelSelector:
             return OpenAIParameters(model=model_name)
 
     def _process_single_classification(
-        self, classification: Dict[str, List[float]], prompt_index: int = 0
+        self, classification: dict[str, list[float]], prompt_index: int = 0
     ) -> ModelSelectionResponse:
         """Process a single classification result"""
         try:
@@ -167,7 +227,7 @@ class ModelSelector:
             logger.debug(f"Prompt {prompt_index}: Complexity score: {complexity_score}")
 
             # Get task mapping for the validated task type
-            task_mapping: Optional[TaskModelMapping] = self._task_mappings.get(
+            task_mapping: TaskModelMapping | None = self._task_mappings.get(
                 validated_task_type
             )
             if not task_mapping:
@@ -214,7 +274,7 @@ class ModelSelector:
             )
         except Exception as e:
             logger.error(
-                f"Error processing classification for prompt {prompt_index}: {str(e)}"
+                f"Error processing classification for prompt {prompt_index}: {e!s}"
             )
             # Return default response for failed classifications
             return self._get_default_result(
@@ -228,7 +288,7 @@ class ModelSelector:
                 },
             )
 
-    def select_model(self, prompts: List[str]) -> List[ModelSelectionResponse]:
+    def select_model(self, prompts: list[str]) -> list[ModelSelectionResponse]:
         """
         Select the most appropriate model based on prompt analysis and task type.
         Processes prompts in parallel for optimal GPU utilization.
@@ -260,7 +320,7 @@ class ModelSelector:
                 )
 
             # Process classifications in parallel using ThreadPoolExecutor
-            responses: List[ModelSelectionResponse] = []
+            responses: list[ModelSelectionResponse] = []
 
             with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                 # Submit all tasks
@@ -272,7 +332,7 @@ class ModelSelector:
                 }
 
                 # Create a results dictionary to maintain order
-                results: Dict[int, ModelSelectionResponse] = {}
+                results: dict[int, ModelSelectionResponse] = {}
 
                 # Collect results as they complete
                 for future in as_completed(future_to_index):
@@ -281,7 +341,7 @@ class ModelSelector:
                         response = future.result()
                         results[index] = response
                     except Exception as e:
-                        logger.error(f"Error processing prompt {index}: {str(e)}")
+                        logger.error(f"Error processing prompt {index}: {e}")
                         # Add default response for failed processing
                         results[index] = self._get_default_result(
                             "Other",
@@ -317,10 +377,10 @@ class ModelSelector:
             return responses
 
         except Exception as e:
-            logger.error(f"Error in model selection: {str(e)}")
-            raise ModelSelectionError(f"Failed to select model: {str(e)}") from e
+            logger.error(f"Error in model selection: {e}")
+            raise ModelSelectionError(f"Failed to select model: {e}") from e
 
 
-@lru_cache()
+@lru_cache
 def get_model_selector(prompt_classifier: PromptClassifier) -> ModelSelector:
     return ModelSelector(prompt_classifier)

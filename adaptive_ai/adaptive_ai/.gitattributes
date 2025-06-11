@@ -1,3 +1,0 @@
-*.dylib filter=lfs diff=lfs merge=lfs -text
-*/vocab/vectors filter=lfs diff=lfs merge=lfs -text
-*/transformer/model filter=lfs diff=lfs merge=lfs -text

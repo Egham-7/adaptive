@@ -1,15 +1,16 @@
 from functools import lru_cache
-from typing import Dict, List, Tuple, Any, Union, cast
+from typing import Any, cast
+
+from huggingface_hub import PyTorchModelHubMixin
 import numpy as np
 import torch
 import torch.nn as nn
-from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 
 class MeanPooling(nn.Module):
     def __init__(self) -> None:
-        super(MeanPooling, self).__init__()
+        super().__init__()
 
     def forward(
         self, last_hidden_state: torch.Tensor, attention_mask: torch.Tensor
@@ -26,7 +27,7 @@ class MeanPooling(nn.Module):
 
 class MulticlassHead(nn.Module):
     def __init__(self, input_size: int, num_classes: int) -> None:
-        super(MulticlassHead, self).__init__()
+        super().__init__()
         self.fc = nn.Linear(input_size, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -37,12 +38,12 @@ class MulticlassHead(nn.Module):
 class CustomModel(nn.Module, PyTorchModelHubMixin):
     def __init__(
         self,
-        target_sizes: Dict[str, int],
-        task_type_map: Dict[str, str],
-        weights_map: Dict[str, List[float]],
-        divisor_map: Dict[str, float],
+        target_sizes: dict[str, int],
+        task_type_map: dict[str, str],
+        weights_map: dict[str, list[float]],
+        divisor_map: dict[str, float],
     ) -> None:
-        super(CustomModel, self).__init__()
+        super().__init__()
         self.backbone = AutoModel.from_pretrained(
             "microsoft/DeBERTa-v3-base", use_safetensors=True
         )
@@ -60,7 +61,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def compute_results(
         self, preds: torch.Tensor, target: str, decimal: int = 4
-    ) -> Union[Tuple[List[str], List[str], List[float]], List[float]]:
+    ) -> tuple[list[str], list[str], list[float]] | list[float]:
         if target == "task_type":
             top2_indices = torch.topk(preds, k=2, dim=1).indices
             softmax_probs = torch.softmax(preds, dim=1)
@@ -90,13 +91,13 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             scores = [round(value, decimal) for value in scores]
             if target == "number_of_few_shots":
                 scores = [x if x >= 0.05 else 0 for x in scores]
-            return cast(List[float], scores)
+            return cast(list[float], scores)
 
     def _extract_classification_results(
-        self, logits: List[torch.Tensor]
-    ) -> Dict[str, Union[List[str], List[float], float]]:
+        self, logits: list[torch.Tensor]
+    ) -> dict[str, list[str] | list[float] | float]:
         """Extract individual classification results from logits."""
-        result: Dict[str, Union[List[str], List[float], float]] = {}
+        result: dict[str, list[str] | list[float] | float] = {}
 
         # Task type classification
         task_type_logits = logits[0]
@@ -126,12 +127,12 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def _calculate_complexity_scores(
         self,
-        results: Dict[str, Union[List[str], List[float], float]],
-        task_types: List[str],
-    ) -> List[float]:
+        results: dict[str, list[str] | list[float] | float],
+        task_types: list[str],
+    ) -> list[float]:
         """Calculate complexity scores using task-specific weights."""
         # Task type specific weights for complexity calculation
-        TASK_TYPE_WEIGHTS: Dict[str, List[float]] = {
+        task_type_weights: dict[str, list[float]] = {
             "Open QA": [0.2, 0.3, 0.15, 0.2, 0.15],
             "Closed QA": [0.1, 0.35, 0.2, 0.25, 0.1],
             "Summarization": [0.2, 0.25, 0.25, 0.1, 0.2],
@@ -146,18 +147,18 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         }
 
         # Get required values
-        creativity_scope = cast(List[float], results.get("creativity_scope", []))
-        reasoning = cast(List[float], results.get("reasoning", []))
-        constraint_ct = cast(List[float], results.get("constraint_ct", []))
-        domain_knowledge = cast(List[float], results.get("domain_knowledge", []))
+        creativity_scope = cast(list[float], results.get("creativity_scope", []))
+        reasoning = cast(list[float], results.get("reasoning", []))
+        constraint_ct = cast(list[float], results.get("constraint_ct", []))
+        domain_knowledge = cast(list[float], results.get("domain_knowledge", []))
         contextual_knowledge = cast(
-            List[float], results.get("contextual_knowledge", [])
+            list[float], results.get("contextual_knowledge", [])
         )
 
         complexity_scores = []
         for i, task_type in enumerate(task_types):
             # Use task-specific weights if available, otherwise use default weights
-            weights = TASK_TYPE_WEIGHTS.get(task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
+            weights = task_type_weights.get(task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
 
             score = round(
                 weights[0] * creativity_scope[i]
@@ -173,25 +174,25 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def _extract_single_sample_results(
         self,
-        batch_results: Dict[str, Union[List[str], List[float], float]],
+        batch_results: dict[str, list[str] | list[float] | float],
         sample_idx: int,
-    ) -> Dict[str, Union[List[str], List[float], float]]:
+    ) -> dict[str, list[str] | list[float] | float]:
         """Extract results for a single sample from batch results."""
 
-        single_result: Dict[str, Union[List[str], List[float], float]] = {}
+        single_result: dict[str, list[str] | list[float] | float] = {}
 
         for key, value in batch_results.items():
-            if isinstance(value, list) and len(value) > sample_idx:
+            if isinstance(value, list | tuple) and len(value) > sample_idx:
                 # Extract the value for this specific sample
                 extracted_value = value[sample_idx]
                 # Ensure proper typing based on the extracted value
                 if isinstance(extracted_value, str):
                     single_result[key] = [extracted_value]  # List[str]
-                elif isinstance(extracted_value, (int, float)):
+                elif isinstance(extracted_value, int | float):
                     single_result[key] = [float(extracted_value)]  # List[float]
                 else:
                     single_result[key] = [extracted_value]
-            elif isinstance(value, (int, float)):
+            elif isinstance(value, int | float):
                 # Single numeric value
                 single_result[key] = float(value)
             else:
@@ -201,8 +202,8 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         return single_result
 
     def process_logits(
-        self, logits: List[torch.Tensor]
-    ) -> List[Dict[str, Union[List[str], List[float], float]]]:
+        self, logits: list[torch.Tensor]
+    ) -> list[dict[str, list[str] | list[float] | float]]:
         """Main orchestration method for processing logits and calculating complexity scores for batched inputs."""
         batch_size = logits[0].shape[0]
 
@@ -211,7 +212,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
         # Calculate complexity scores for the entire batch
         if "task_type_1" in batch_results:
-            task_types = cast(List[str], batch_results["task_type_1"])
+            task_types = cast(list[str], batch_results["task_type_1"])
             complexity_scores = self._calculate_complexity_scores(
                 batch_results, task_types
             )
@@ -226,8 +227,8 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         return individual_results
 
     def forward(
-        self, batch: Dict[str, torch.Tensor]
-    ) -> List[Dict[str, Union[List[str], List[float], float]]]:
+        self, batch: dict[str, torch.Tensor]
+    ) -> list[dict[str, list[str] | list[float] | float]]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
@@ -255,7 +256,7 @@ class PromptClassifier:
             divisor_map=self.config.divisor_map,
         ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
 
-    def classify_prompts(self, prompts: List[str]) -> List[Dict[str, Any]]:
+    def classify_prompts(self, prompts: list[str]) -> list[dict[str, Any]]:
         """
         Classify multiple prompts in a batch for optimal GPU utilization.
 
@@ -274,14 +275,17 @@ class PromptClassifier:
         )
 
         with torch.no_grad():
-            results = self.model(encoded_texts)
+            raw_results = self.model(encoded_texts)
+
+        # tell MyPy this is indeed list[dict[str,Any]]
+        results = cast(list[dict[str, Any]], raw_results)
 
         print(
             f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
         )
         return results
 
-    def classify_task_types(self, texts: List[str]) -> List[str]:
+    def classify_task_types(self, texts: list[str]) -> list[str]:
         """
         Extract just the task types from classification results.
 
@@ -301,6 +305,6 @@ class PromptClassifier:
         return task_types
 
 
-@lru_cache()
+@lru_cache
 def get_prompt_classifier() -> PromptClassifier:
     return PromptClassifier()

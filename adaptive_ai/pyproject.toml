@@ -1,39 +1,181 @@
-[project]
+[tool.poetry]
 name = "adaptive-ai"
 version = "0.1.0"
-description = ""
-authors = [{ name = "Your Name", email = "you@example.com" }]
+description = "Intelligent LLM Infrastructure with Smart Model Selection"
+authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-requires-python = ">=3.10"
-dependencies = [
-  "numpy>=1.24.0,<2.0.0",
-  "scikit-learn>=1.6.1,<2.0.0",
-  "huggingface-hub>=0.32.0,<0.33.0",
-  "transformers>=4.52.3,<5.0.0",
-  "torch==2.2",
-  "mypy>=1.15.0,<2.0.0",
-  "black>=25.1.0,<26.0.0",
-  "ruff>=0.11.11,<0.12.0",
-  "microsoft-python-type-stubs @ git+https://github.com/microsoft/python-type-stubs.git",
-  "pytest>=8.3.5,<9.0.0",
-  "litserve>=0.2.10,<0.3.0",
-  "pydantic>=2.11.5,<3.0.0",
-  "requests>=2.31.0,<3.0.0",
-  "pandas>=2.0.0,<3.0.0",
-  "tqdm>=4.65.0,<5.0.0",
-  "matplotlib>=3.7.0,<4.0.0",
-  "types-requests>=2.31.0,<3.0.0",
-  "pandas-stubs>=2.0.0,<3.0.0",
-  "types-tqdm>=4.65.0,<5.0.0",
-  "pyyaml (>=6.0.2,<7.0.0)",
-  "pydantic-settings (>=2.9.1,<3.0.0)",
-  "types-pyyaml>=6.0.2,<7.0.0",
+license = "MIT"
+homepage = "https://github.com/your-org/adaptive-ai"
+repository = "https://github.com/your-org/adaptive-ai"
+documentation = "https://docs.adaptive-ai.com"
+keywords = ["llm", "ai", "model-selection", "machine-learning", "adaptive"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
 ]
+packages = [{ include = "adaptive_ai" }]
 
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^1.24.0"
+scikit-learn = "^1.6.1"
+huggingface-hub = "^0.32.0"
+transformers = "^4.52.3"
+torch = "2.2.*"
+litserve = "^0.2.10"
+pydantic = "^2.11.5"
+pydantic-settings = "^2.9.1"
+requests = "^2.31.0"
+pandas = "^2.0.0"
+tqdm = "^4.65.0"
+matplotlib = "^3.7.0"
+pyyaml = "^6.0.2"
 
 [tool.poetry.group.dev.dependencies]
-pytest-cov = "^6.0.0"
+mypy = "^1.15.0"
 black = "^25.1.0"
+ruff = "^0.11.11"
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+pytest-asyncio = "^0.23.0"
+types-requests = "^2.31.0"
+pandas-stubs = "^2.0.0"
+types-tqdm = "^4.65.0"
+types-pyyaml = "^6.0.2"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.5"
+pytest-cov = "^6.0.0"
+pytest-asyncio = "^0.23.0"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.5.0"
+mkdocs-material = "^9.0.0"
+
+[tool.poetry.scripts]
+adaptive-ai = "adaptive_ai.main:main"
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/your-org/adaptive-ai/issues"
+"Changelog" = "https://github.com/your-org/adaptive-ai/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "UP",  # pyupgrade
+  "N",   # pep8-naming
+  "S",   # flake8-bandit
+  "T20", # flake8-print
+  "RUF", # ruff-specific rules
+]
+ignore = [
+  "E501", # line too long, handled by black
+  "B008", # do not perform function calls in argument defaults
+  "C901", # too complex
+  "S101", # use of assert
+  "T201", # print statements (allowed for now)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101", "S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["adaptive_ai"]
+force-sort-within-sections = true
+
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+show_error_codes = true
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = [
+  "litserve.*",
+  "torch.*",
+  "transformers.*",
+  "huggingface_hub.*",
+  "sklearn.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config --cov=adaptive_ai --cov-report=term-missing --cov-report=xml"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "integration: marks tests as integration tests",
+  "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["adaptive_ai"]
+omit = ["*/tests/*", "*/test_*", "*/__pycache__/*", "*/.*"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
+]

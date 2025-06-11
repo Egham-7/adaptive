@@ -1,0 +1,437 @@
+# =============================================================================
+# ADAPTIVE AI APPLICATION CONFIGURATION
+# =============================================================================
+
+# =============================================================================
+# APPLICATION SETTINGS
+# =============================================================================
+app:
+    name: "adaptive-ai"
+    version: "0.1.0"
+    description: "Intelligent LLM Infrastructure with Smart Model Selection"
+    environment: "development" # development, staging, production
+    debug: false
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+server:
+    host: "0.0.0.0"
+    port: 8000
+    workers: 1
+    timeout: 30
+    max_requests: 1000
+    max_requests_jitter: 50
+
+# =============================================================================
+# LITSERVE CONFIGURATION
+# =============================================================================
+litserve:
+    accelerator: "auto" # auto, cpu, gpu, cuda, mps
+    devices: "auto" # auto, 1, 2, etc.
+    max_batch_size: 8
+    batch_timeout: 0.05
+    workers: 1
+    timeout: 30.0
+
+# =============================================================================
+# MODEL SELECTION CONFIGURATION
+# =============================================================================
+model_selection:
+    default_model: "gpt-3.5-turbo"
+    threshold: 0.7
+    fallback_model: "gpt-3.5-turbo"
+    cache_embeddings: true
+    cache_ttl: 3600 # seconds
+
+# =============================================================================
+# LOGGING CONFIGURATION
+# =============================================================================
+logging:
+    level: "INFO" # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    format: "json" # json, text
+    file: null # null for stdout, or path to log file
+    max_file_size: "10MB"
+    backup_count: 5
+
+# =============================================================================
+# CACHING CONFIGURATION
+# =============================================================================
+cache:
+    enabled: true
+    backend: "memory" # memory, redis
+    ttl: 3600 # seconds
+    max_size: 1000 # maximum number of cached items
+
+    # Redis configuration (if backend is redis)
+    redis:
+        host: "localhost"
+        port: 6379
+        db: 0
+        password: null
+
+# =============================================================================
+# METRICS AND MONITORING
+# =============================================================================
+metrics:
+    enabled: true
+    endpoint: "/metrics"
+    include_model_metrics: true
+    include_performance_metrics: true
+    prometheus:
+        enabled: true
+        port: 9090
+
+# =============================================================================
+# SECURITY CONFIGURATION
+# =============================================================================
+security:
+    api_key_required: false
+    rate_limiting:
+        enabled: true
+        requests_per_minute: 60
+        burst_size: 10
+    cors:
+        enabled: true
+        origins: ["*"]
+        methods: ["GET", "POST", "OPTIONS"]
+        headers: ["*"]
+
+# =============================================================================
+# HEALTH CHECK CONFIGURATION
+# =============================================================================
+health:
+    endpoint: "/health"
+    check_models: true
+    check_dependencies: true
+    timeout: 5.0
+
+# =============================================================================
+# MODEL CAPABILITIES REGISTRY
+# =============================================================================
+model_capabilities:
+    # OpenAI Models
+    o3:
+        description: "OpenAI's base model optimized for general tasks."
+        provider: "OpenAI"
+        cost_per_1k_tokens: 0.002
+        max_tokens: 8192
+        supports_streaming: true
+        supports_function_calling: true
+
+    o4-mini:
+        description: "Compact version of OpenAI's o4 model for efficient processing."
+        provider: "OpenAI"
+        cost_per_1k_tokens: 0.001
+        max_tokens: 4096
+        supports_streaming: true
+        supports_function_calling: true
+
+    gpt-4.1:
+        description: "OpenAI's advanced GPT-4.1 model with enhanced capabilities."
+        provider: "OpenAI"
+        cost_per_1k_tokens: 0.03
+        max_tokens: 8192
+        supports_streaming: true
+        supports_function_calling: true
+
+    gpt-4o:
+        description: "OpenAI's flagship GPT-4o model with multimodal capabilities."
+        provider: "OpenAI"
+        cost_per_1k_tokens: 0.03
+        max_tokens: 8192
+        supports_streaming: true
+        supports_function_calling: true
+        supports_vision: true
+
+    gpt-4.1-mini:
+        description: "Lightweight version of GPT-4.1 for faster processing."
+        provider: "OpenAI"
+        cost_per_1k_tokens: 0.005
+        max_tokens: 4096
+        supports_streaming: true
+        supports_function_calling: true
+
+    gpt-4.1-nano:
+        description: "Ultra-compact version of GPT-4.1 for minimal resource usage."
+        provider: "OpenAI"
+        cost_per_1k_tokens: 0.0005
+        max_tokens: 2048
+        supports_streaming: true
+        supports_function_calling: false
+
+    # Google Models
+    gemini-2.0-flash:
+        description: "Google's high-performance Gemini 2.0 model for fast responses."
+        provider: "Google"
+        cost_per_1k_tokens: 0.001
+        max_tokens: 8192
+        supports_streaming: true
+        supports_function_calling: true
+
+    gemini-2.0-flash-lite:
+        description: "Lightweight version of Gemini 2.0 for efficient processing."
+        provider: "Google"
+        cost_per_1k_tokens: 0.0005
+        max_tokens: 4096
+        supports_streaming: true
+        supports_function_calling: false
+
+    # Deepseek Models
+    deepseek-reasoner:
+        description: "Deepseek's specialized model for complex reasoning tasks."
+        provider: "DEEPSEEK"
+        cost_per_1k_tokens: 0.001
+        max_tokens: 8192
+        supports_streaming: true
+        supports_function_calling: true
+
+    deepseek-chat:
+        description: "Deepseek's conversational model optimized for chat interactions."
+        provider: "DEEPSEEK"
+        cost_per_1k_tokens: 0.0005
+        max_tokens: 4096
+        supports_streaming: true
+        supports_function_calling: false
+
+    # Anthropic Models
+    claude-sonnet-4-0:
+        description: "Anthropic's balanced Claude Sonnet model for general tasks."
+        provider: "Anthropic"
+        cost_per_1k_tokens: 0.015
+        max_tokens: 8192
+        supports_streaming: true
+        supports_function_calling: true
+
+    claude-3-5-haiku-latest:
+        description: "Latest version of Claude's lightweight Haiku model."
+        provider: "Anthropic"
+        cost_per_1k_tokens: 0.0025
+        max_tokens: 4096
+        supports_streaming: true
+        supports_function_calling: false
+
+    claude-opus-4-0:
+        description: "Anthropic's most advanced Claude Opus model for complex tasks."
+        provider: "Anthropic"
+        cost_per_1k_tokens: 0.075
+        max_tokens: 8192
+        supports_streaming: true
+        supports_function_calling: true
+
+# =============================================================================
+# TASK-TO-MODEL MAPPING CONFIGURATION
+# =============================================================================
+task_model_mappings:
+    "Open QA":
+        easy:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.3
+        medium:
+            model: "gpt-4.1-mini"
+            complexity_threshold: 0.35
+        hard:
+            model: "claude-opus-4-0"
+            complexity_threshold: 0.45
+
+    "Closed QA":
+        easy:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.25
+        medium:
+            model: "gpt-4.1-mini"
+            complexity_threshold: 0.3
+        hard:
+            model: "gpt-4.1"
+            complexity_threshold: 0.5
+
+    "Summarization":
+        easy:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.25
+        medium:
+            model: "gemini-2.0-flash-lite"
+            complexity_threshold: 0.35
+        hard:
+            model: "gpt-4o"
+            complexity_threshold: 0.6
+
+    "Text Generation":
+        easy:
+            model: "gemini-2.0-flash-lite"
+            complexity_threshold: 0.15
+        medium:
+            model: "gpt-4.1-mini"
+            complexity_threshold: 0.3
+        hard:
+            model: "claude-sonnet-4-0"
+            complexity_threshold: 0.6
+
+    "Code Generation":
+        easy:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.2
+        medium:
+            model: "claude-sonnet-4-0"
+            complexity_threshold: 0.3
+        hard:
+            model: "claude-opus-4-0"
+            complexity_threshold: 0.6
+
+    "Chatbot":
+        easy:
+            model: "gemini-2.0-flash-lite"
+            complexity_threshold: 0.2
+        medium:
+            model: "deepseek-chat"
+            complexity_threshold: 0.3
+        hard:
+            model: "gemini-2.0-flash"
+            complexity_threshold: 0.6
+
+    "Classification":
+        easy:
+            model: "gemini-2.0-flash"
+            complexity_threshold: 0.15
+        medium:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.25
+        hard:
+            model: "gpt-4.1-mini"
+            complexity_threshold: 0.5
+
+    "Rewrite":
+        easy:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.15
+        medium:
+            model: "gpt-4.1-mini"
+            complexity_threshold: 0.2
+        hard:
+            model: "gpt-4.1"
+            complexity_threshold: 0.65
+
+    "Brainstorming":
+        easy:
+            model: "deepseek-reasoner"
+            complexity_threshold: 0.15
+        medium:
+            model: "o4-mini"
+            complexity_threshold: 0.15
+        hard:
+            model: "o3"
+            complexity_threshold: 0.6
+
+    "Extraction":
+        easy:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.15
+        medium:
+            model: "deepseek-chat"
+            complexity_threshold: 0.3
+        hard:
+            model: "o4-mini"
+            complexity_threshold: 0.6
+
+    "Other":
+        easy:
+            model: "gpt-4.1-nano"
+            complexity_threshold: 0.2
+        medium:
+            model: "gpt-4.1-mini"
+            complexity_threshold: 0.4
+        hard:
+            model: "o4-mini"
+            complexity_threshold: 0.7
+
+# =============================================================================
+# TASK PARAMETER CONFIGURATIONS
+# =============================================================================
+task_parameters:
+    "Open QA":
+        temperature: 0.3
+        top_p: 0.7
+        presence_penalty: 0.3
+        frequency_penalty: 0.3
+        max_completion_tokens: 800
+        n: 1
+
+    "Closed QA":
+        temperature: 0.2
+        top_p: 0.6
+        presence_penalty: 0.2
+        frequency_penalty: 0.2
+        max_completion_tokens: 600
+        n: 1
+
+    "Summarization":
+        temperature: 0.4
+        top_p: 0.8
+        presence_penalty: 0.4
+        frequency_penalty: 0.3
+        max_completion_tokens: 1000
+        n: 1
+
+    "Text Generation":
+        temperature: 0.7
+        top_p: 0.9
+        presence_penalty: 0.5
+        frequency_penalty: 0.4
+        max_completion_tokens: 1200
+        n: 1
+
+    "Code Generation":
+        temperature: 0.2
+        top_p: 0.6
+        presence_penalty: 0.2
+        frequency_penalty: 0.2
+        max_completion_tokens: 1500
+        n: 1
+
+    "Chatbot":
+        temperature: 0.7
+        top_p: 0.9
+        presence_penalty: 0.6
+        frequency_penalty: 0.5
+        max_completion_tokens: 1000
+        n: 1
+
+    "Classification":
+        temperature: 0.2
+        top_p: 0.6
+        presence_penalty: 0.2
+        frequency_penalty: 0.2
+        max_completion_tokens: 500
+        n: 1
+
+    "Rewrite":
+        temperature: 0.5
+        top_p: 0.8
+        presence_penalty: 0.4
+        frequency_penalty: 0.3
+        max_completion_tokens: 1000
+        n: 1
+
+    "Brainstorming":
+        temperature: 0.8
+        top_p: 0.95
+        presence_penalty: 0.8
+        frequency_penalty: 0.7
+        max_completion_tokens: 1500
+        n: 2
+
+    "Extraction":
+        temperature: 0.3
+        top_p: 0.7
+        presence_penalty: 0.3
+        frequency_penalty: 0.3
+        max_completion_tokens: 800
+        n: 1
+
+    "Other":
+        temperature: 0.5
+        top_p: 0.8
+        presence_penalty: 0.4
+        frequency_penalty: 0.3
+        max_completion_tokens: 1000
+        n: 1

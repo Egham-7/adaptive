@@ -1,39 +1,17 @@
 """
-Model definitions and configurations for the adaptive AI system.
+Models module for Adaptive AI.
+
+This module contains data models, request/response schemas,
+and type definitions used throughout the application.
 """
 
-# Export all types
-from .types import (
-    ProviderType,
-    TaskType,
-    DifficultyLevel,
-    TaskTypeParametersType,
-    ModelCapability,
-    ModelInfo,
-    PromptScores,
-    DifficultyThresholds,
-    TaskDifficultyConfig,
-    TaskModelMapping,
-    ModelParameters,
-    ModelSelectionError,
-)
-
-from .requests import ModelSelectionResponse
-
+from .requests import PromptRequest, ModelSelectionResponse
+from .types import TaskType, ComplexityLevel, ModelProvider
 
 __all__ = [
-    # Types
-    "ProviderType",
-    "TaskType",
-    "DifficultyLevel",
-    "TaskTypeParametersType",
-    "ModelCapability",
-    "ModelInfo",
-    "PromptScores",
-    "DifficultyThresholds",
-    "TaskDifficultyConfig",
-    "TaskModelMapping",
-    "ModelParameters",
-    "ModelSelectionError",
+    "PromptRequest",
     "ModelSelectionResponse",
+    "TaskType",
+    "ComplexityLevel",
+    "ModelProvider",
 ]
