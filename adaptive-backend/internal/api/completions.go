@@ -1,16 +1,15 @@
 package api
 
 import (
-	"encoding/json"
-	"errors"
-	"time"
-
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
+	"encoding/json"
+	"errors"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -22,10 +21,13 @@ type ChatCompletionHandler struct {
 	providerConstraint     *string // nil for all providers, specific provider name for constraint
 }
 
+// Shared metrics instance to avoid duplicate registration
+var sharedMetrics = metrics.NewChatMetrics()
+
 func NewChatCompletionHandler() *ChatCompletionHandler {
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
-		metrics:                metrics.NewChatMetrics(),
+		metrics:                sharedMetrics,
 		providerConstraint:     nil, // No provider constraint for main endpoint
 	}
 }
@@ -33,7 +35,7 @@ func NewChatCompletionHandler() *ChatCompletionHandler {
 func NewProviderChatCompletionHandler(provider string) *ChatCompletionHandler {
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
-		metrics:                metrics.NewChatMetrics(),
+		metrics:                sharedMetrics,
 		providerConstraint:     &provider,
 	}
 }
@@ -77,12 +79,6 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 	isStream := req.Stream
-	if err != nil {
-		h.recordError(start, "400", isStream)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body: " + err.Error(),
-		})
-	}
 
 	modelInfo, err := h.selectModel(req, apiKey, requestID)
 	if err != nil {
@@ -191,14 +187,22 @@ func (h *ChatCompletionHandler) getMethodType(isStream bool) string {
 func (h *ChatCompletionHandler) recordError(start time.Time, statusCode string, isStream bool) {
 	if h.metrics != nil {
 		methodType := h.getMethodType(isStream)
-		h.metrics.RequestDuration.WithLabelValues(methodType, statusCode).Observe(time.Since(start).Seconds())
+		provider := "unknown"
+		if h.providerConstraint != nil {
+			provider = *h.providerConstraint
+		}
+		h.metrics.RequestDuration.WithLabelValues(methodType, statusCode, provider).Observe(time.Since(start).Seconds())
 	}
 }
 
 func (h *ChatCompletionHandler) recordSuccess(start time.Time, isStream bool) {
 	if h.metrics != nil {
 		methodType := h.getMethodType(isStream)
-		h.metrics.RequestDuration.WithLabelValues(methodType, "200").Observe(time.Since(start).Seconds())
+		provider := "unknown"
+		if h.providerConstraint != nil {
+			provider = *h.providerConstraint
+		}
+		h.metrics.RequestDuration.WithLabelValues(methodType, "200", provider).Observe(time.Since(start).Seconds())
 	}
 }
 
