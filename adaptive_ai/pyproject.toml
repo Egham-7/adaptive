@@ -15,7 +15,6 @@ classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Software Development :: Libraries :: Python Modules",
@@ -24,18 +23,18 @@ classifiers = [
 packages = [{ include = "adaptive_ai" }]
 
 [tool.poetry.dependencies]
-python = "^3.11"
-numpy = "^1.24.0"
-scikit-learn = "^1.6.1"
+python = "^3.12"
+numpy = ">=1.24.0,<3.0.0"
+scikit-learn = "^1.7.0"
 huggingface-hub = "^0.32.0"
-transformers = "^4.52.3"
-torch = "2.2.*"
+transformers = "^4.52.4"
+torch = "^2.7.1"
 litserve = "^0.2.10"
 pydantic = "^2.11.5"
 pydantic-settings = "^2.9.1"
 requests = "^2.31.0"
-pandas = "^2.0.0"
-tqdm = "^4.65.0"
+pandas = "^2.3.0"
+tqdm = "^4.67.1"
 matplotlib = "^3.7.0"
 pyyaml = "^6.0.2"
 
@@ -44,16 +43,16 @@ mypy = "^1.15.0"
 black = "^25.1.0"
 ruff = "^0.11.11"
 pytest = "^8.3.5"
-pytest-cov = "^6.0.0"
+pytest-cov = "^6.1.1"
 pytest-asyncio = "^0.23.0"
-types-requests = "^2.31.0"
+types-requests = "^2.32.0.20250611"
 pandas-stubs = "^2.0.0"
-types-tqdm = "^4.65.0"
-types-pyyaml = "^6.0.2"
+types-tqdm = "^4.67.0.20250516"
+types-pyyaml = "^6.0.12.20250516"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.5"
-pytest-cov = "^6.0.0"
+pytest-cov = "^6.1.1"
 pytest-asyncio = "^0.23.0"
 
 [tool.poetry.group.docs.dependencies]
@@ -73,11 +72,10 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
-  # directories
   \.eggs
   | \.git
   | \.hg
@@ -89,32 +87,13 @@ extend-exclude = '''
 )/
 '''
 
-
 [tool.ruff]
-target-version = "py311"
+target-version = "py312"
 line-length = 88
 
 [tool.ruff.lint]
-select = [
-  "E",   # pycodestyle errors
-  "W",   # pycodestyle warnings
-  "F",   # pyflakes
-  "I",   # isort
-  "B",   # flake8-bugbear
-  "C4",  # flake8-comprehensions
-  "UP",  # pyupgrade
-  "N",   # pep8-naming
-  "S",   # flake8-bandit
-  "T20", # flake8-print
-  "RUF", # ruff-specific rules
-]
-ignore = [
-  "E501", # line too long, handled by black
-  "B008", # do not perform function calls in argument defaults
-  "C901", # too complex
-  "S101", # use of assert
-  "T201", # print statements (allowed for now)
-]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "N", "S", "T20", "RUF"]
+ignore = ["E501", "B008", "C901", "S101", "T201"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
@@ -124,9 +103,8 @@ ignore = [
 known-first-party = ["adaptive_ai"]
 force-sort-within-sections = true
 
-
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true

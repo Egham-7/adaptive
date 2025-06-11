@@ -15,7 +15,7 @@ from adaptive_ai.models.types import (
     TaskModelMapping,
     TaskType,
 )
-from adaptive_ai.services.llm_parameters import OpenAIParameters
+from adaptive_ai.models.parameters import OpenAIParameters
 from adaptive_ai.services.prompt_classifier import PromptClassifier
 
 logger = logging.getLogger(__name__)

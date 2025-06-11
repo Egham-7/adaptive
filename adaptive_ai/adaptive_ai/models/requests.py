@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Any, Dict, Optional, List
-from adaptive_ai.services.llm_parameters import OpenAIParameters
+
+from adaptive_ai.models.parameters import OpenAIParameters
 
 
 class PromptRequest(BaseModel):

@@ -7,6 +7,7 @@ and type definitions used throughout the application.
 
 from .requests import PromptRequest, ModelSelectionResponse
 from .types import TaskType, ComplexityLevel, ModelProvider
+from .parameters import OpenAIParameters
 
 __all__ = [
     "PromptRequest",
@@ -14,4 +15,5 @@ __all__ = [
     "TaskType",
     "ComplexityLevel",
     "ModelProvider",
+    "OpenAIParameters",
 ]
