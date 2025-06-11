@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/botirk38/semanticcache"
-	lru "github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/openai/openai-go"
 )
 
