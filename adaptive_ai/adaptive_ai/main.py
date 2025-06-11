@@ -1,8 +1,8 @@
 import litserve as ls
 
 from adaptive_ai.core.config import get_settings
+from adaptive_ai.models.requests import ModelSelectionResponse, PromptRequest
 from adaptive_ai.services.model_selector import get_model_selector
-from adaptive_ai.models.requests import PromptRequest, ModelSelectionResponse
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 
 

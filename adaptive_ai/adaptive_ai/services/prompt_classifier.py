@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -97,7 +97,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         self, logits: list[torch.Tensor]
     ) -> dict[str, Union[list[str], list[float], float]]:
         """Extract individual classification results from logits."""
-        result: dict[str, Union[list[str], list[float], float]] = {}
+        result: dict[str, list[str] | list[float] | float] = {}
 
         # Task type classification
         task_type_logits = logits[0]
@@ -127,7 +127,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def _calculate_complexity_scores(
         self,
-        results: dict[str, Union[list[str], list[float], float]],
+        results: dict[str, list[str] | list[float] | float],
         task_types: list[str],
     ) -> list[float]:
         """Calculate complexity scores using task-specific weights."""
@@ -174,15 +174,15 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def _extract_single_sample_results(
         self,
-        batch_results: dict[str, Union[list[str], list[float], float]],
+        batch_results: dict[str, list[str] | list[float] | float],
         sample_idx: int,
-    ) -> dict[str, Union[list[str], list[float], float]]:
+    ) -> dict[str, list[str] | list[float] | float]:
         """Extract results for a single sample from batch results."""
 
-        single_result: dict[str, Union[list[str], list[float], float]] = {}
+        single_result: dict[str, list[str] | list[float] | float] = {}
 
         for key, value in batch_results.items():
-            if isinstance(value, list | tuple) and len(value) > sample_idx:
+            if isinstance(value, (list, tuple)) and len(value) > sample_idx:
                 # Extract the value for this specific sample
                 extracted_value = value[sample_idx]
                 # Ensure proper typing based on the extracted value
@@ -192,7 +192,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                     single_result[key] = [float(extracted_value)]  # List[float]
                 else:
                     single_result[key] = [extracted_value]
-            elif isinstance(value, int | float):
+            elif isinstance(value, (int, float)):
                 # Single numeric value
                 single_result[key] = float(value)
             else:
@@ -203,7 +203,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def process_logits(
         self, logits: list[torch.Tensor]
-    ) -> list[dict[str, Union[list[str], list[float], float]]]:
+    ) -> list[dict[str, list[str] | list[float] | float]]:
         """Main orchestration method for processing logits and calculating complexity scores for batched inputs."""
         batch_size = logits[0].shape[0]
 
@@ -228,7 +228,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def forward(
         self, batch: dict[str, torch.Tensor]
-    ) -> list[dict[str, Union[list[str], list[float], float]]]:
+    ) -> list[dict[str, list[str] | list[float] | float]]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)

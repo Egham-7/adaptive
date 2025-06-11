@@ -341,7 +341,7 @@ class ModelSelector:
                         response = future.result()
                         results[index] = response
                     except Exception as e:
-                        logger.error(f"Error processing prompt {index}: {str(e)}")
+                        logger.error(f"Error processing prompt {index}: {e}")
                         # Add default response for failed processing
                         results[index] = self._get_default_result(
                             "Other",
@@ -377,8 +377,8 @@ class ModelSelector:
             return responses
 
         except Exception as e:
-            logger.error(f"Error in model selection: {e!s}")
-            raise ModelSelectionError(f"Failed to select model: {e!s}") from e
+            logger.error(f"Error in model selection: {e}")
+            raise ModelSelectionError(f"Failed to select model: {e}") from e
 
 
 @lru_cache

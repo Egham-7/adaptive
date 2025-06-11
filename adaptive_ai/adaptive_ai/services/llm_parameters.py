@@ -19,14 +19,14 @@ class OpenAIParameters(BaseModel):
         validate_assignment = True
 
     @validator("temperature", "top_p", "presence_penalty", "frequency_penalty")
-    def _round_floats(cls, self, v: float) -> float:
+    def _round_floats(cls, v: float) -> float:
         return round(v, 2)
 
     def adjust_parameters(
         self,
         task_type: str,
         prompt_scores: dict[str, list[float]],
-    ) -> dict[str, Union[float, int]]:
+    ) -> dict[str, float | int]:
         settings = get_settings()
         task_params = settings.get_task_parameters()
 
@@ -60,7 +60,7 @@ class OpenAIParameters(BaseModel):
 
         return self.get_parameters()
 
-    def get_parameters(self) -> dict[str, Union[float, int]]:
+    def get_parameters(self) -> dict[str, float | int]:
         return {
             "temperature": self.temperature,
             "top_p": self.top_p,
@@ -82,6 +82,6 @@ class LLMParameterService:
         model: str,
         task_type: str,
         prompt_scores: dict[str, list[float]],
-    ) -> dict[str, Union[float, int]]:
+    ) -> dict[str, float | int]:
         params = self._provider(model=model)
         return params.adjust_parameters(task_type, prompt_scores)

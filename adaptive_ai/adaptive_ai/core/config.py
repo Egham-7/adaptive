@@ -1,8 +1,9 @@
 import os
-import yaml
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
+
+import yaml
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
