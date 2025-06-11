@@ -18,12 +18,25 @@ import (
 type ChatCompletionHandler struct {
 	promptClassifierClient *services.PromptClassifierClient
 	metrics                *metrics.ChatMetrics
+	providerConstraint     string
 }
+
+// Shared metrics instance to avoid duplicate registration
+var sharedMetrics = metrics.NewChatMetrics()
 
 func NewChatCompletionHandler() *ChatCompletionHandler {
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
-		metrics:                metrics.NewChatMetrics(),
+		metrics:                sharedMetrics,
+		providerConstraint:     "", // No provider constraint for main endpoint
+	}
+}
+
+func NewProviderChatCompletionHandler(provider string) *ChatCompletionHandler {
+	return &ChatCompletionHandler{
+		promptClassifierClient: services.NewPromptClassifierClient(),
+		metrics:                sharedMetrics,
+		providerConstraint:     provider,
 	}
 }
 
@@ -40,12 +53,6 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		})
 	}
 	isStream := req.Stream
-	if err != nil {
-		h.recordError(start, "400", isStream)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body: " + err.Error(),
-		})
-	}
 
 	modelInfo, err := h.selectModel(req, apiKey, requestID)
 	if err != nil {
@@ -54,7 +61,14 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
+	if h.providerConstraint != "" {
+		log.Infof("[%s] Selected model: %s (%s)", requestID, modelInfo.SelectedModel, h.providerConstraint)
+	} else {
+		log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
+	}
+
+	// Record model selection metric
+	h.recordModelSelection(modelInfo.SelectedModel)
 
 	h.applyModelParameters(req, modelInfo)
 	log.Infof("[%s] Applied model parameters: %+v", requestID, modelInfo.Parameters)
@@ -116,7 +130,21 @@ func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, a
 
 	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
 
-	modelInfo, _, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
+	selectReq := models.SelectModelRequest{
+		Prompt:   prompt,
+		Provider: h.providerConstraint,
+	}
+
+	modelInfo, cacheType, err := h.promptClassifierClient.SelectModelWithCache(selectReq, apiKey, requestID)
+	if err != nil {
+		log.Errorf("[%s] Model selection error: %v", requestID, err)
+		return nil, err
+	}
+
+	// Record cache metrics
+	if cacheType == "user" || cacheType == "global" {
+		h.recordCacheHit(cacheType)
+	}
 
 	return modelInfo, err
 }
@@ -142,17 +170,40 @@ func (h *ChatCompletionHandler) getMethodType(isStream bool) string {
 	return "completion"
 }
 
+func (h *ChatCompletionHandler) getProviderName() string {
+	if h.providerConstraint != "" {
+		return h.providerConstraint
+	}
+	return "unknown"
+}
+
 func (h *ChatCompletionHandler) recordError(start time.Time, statusCode string, isStream bool) {
 	if h.metrics != nil {
 		methodType := h.getMethodType(isStream)
-		h.metrics.RequestDuration.WithLabelValues(methodType, statusCode).Observe(time.Since(start).Seconds())
+		provider := h.getProviderName()
+		h.metrics.RequestDuration.WithLabelValues(methodType, statusCode, provider).Observe(time.Since(start).Seconds())
 	}
 }
 
 func (h *ChatCompletionHandler) recordSuccess(start time.Time, isStream bool) {
 	if h.metrics != nil {
 		methodType := h.getMethodType(isStream)
-		h.metrics.RequestDuration.WithLabelValues(methodType, "200").Observe(time.Since(start).Seconds())
+		provider := h.getProviderName()
+		h.metrics.RequestDuration.WithLabelValues(methodType, "200", provider).Observe(time.Since(start).Seconds())
+	}
+}
+
+func (h *ChatCompletionHandler) recordCacheHit(cacheType string) {
+	if h.metrics != nil {
+		provider := h.getProviderName()
+		h.metrics.CacheHits.WithLabelValues(cacheType, provider).Inc()
+	}
+}
+
+func (h *ChatCompletionHandler) recordModelSelection(model string) {
+	if h.metrics != nil {
+		provider := h.getProviderName()
+		h.metrics.ModelSelections.WithLabelValues(model, provider).Inc()
 	}
 }
 

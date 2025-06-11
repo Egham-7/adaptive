@@ -38,6 +38,12 @@ func SetupRoutes(app *fiber.App) {
 	v1Group := app.Group("/v1")
 	v1Group.Post("/chat/completions", apiKeyMiddleware, chatCompletionHandler.ChatCompletion)
 
+	// Provider-specific routes using factory loop
+	providers := []string{"openai", "anthropic", "groq", "deepseek", "gemini"}
+	for _, provider := range providers {
+		providerHandler := api.NewProviderChatCompletionHandler(provider)
+		v1Group.Post(fmt.Sprintf("/%s/chat/completions", provider), apiKeyMiddleware, providerHandler.ChatCompletion)
+	}
 	// API group for internal management
 	apiGroup := app.Group("/api")
 
@@ -139,9 +145,14 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"metrics":  "/metrics",
-				"chat":     "/v1/chat/completions",
-				"api_keys": "/api/api_keys",
+				"metrics":   "/metrics",
+				"chat":      "/v1/chat/completions",
+				"openai":    "/v1/openai/chat/completions",
+				"anthropic": "/v1/anthropic/chat/completions",
+				"groq":      "/v1/groq/chat/completions",
+				"deepseek":  "/v1/deepseek/chat/completions",
+				"gemini":    "/v1/gemini/chat/completions",
+				"api_keys":  "/api/api_keys",
 			},
 		})
 	})
