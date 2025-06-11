@@ -1,0 +1,67 @@
+# Byte‐compiled / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+__pypackages__/
+
+# Poetry virtualenv
+.venv/
+venv/
+ENV/
+env/
+
+# Env‐files
+.env
+.env.*
+
+# IDEs/editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Test & coverage
+.pytest_cache/
+.nox/
+.coverage
+htmlcov/
+
+# Type checking / linters
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+
+# Formatter
+.black/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Caches
+.cache/
+
+# Model checkpoints & weights
+*.pt
+*.pth
+*.ckpt
+data/
+models/
+hf_cache/
