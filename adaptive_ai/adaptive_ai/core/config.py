@@ -169,12 +169,8 @@ class Settings(BaseSettings):
         """Load configuration from YAML file."""
         config_path = self.get_config_file_path()
         if config_path and config_path.exists():
-            try:
-                yaml_config = _load_yaml_config(str(config_path))
-                self._merge_yaml_config(yaml_config)
-            except Exception as e:
-                # Log warning but don't fail - fall back to defaults
-                print(f"Warning: Could not load config file {config_path}: {e}")
+            yaml_config = _load_yaml_config(str(config_path))
+            self._merge_yaml_config(yaml_config)
 
     def _merge_yaml_config(self, yaml_config: dict[str, Any]) -> None:
         """Merge YAML configuration into settings."""
