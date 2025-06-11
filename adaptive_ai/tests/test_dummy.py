@@ -1,3 +1,3 @@
-def test_dummy():
+def test_dummy() -> None:
     """Dummy test to make CI pass."""
     assert True
