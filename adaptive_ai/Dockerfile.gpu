@@ -29,17 +29,24 @@ RUN apt-get update && \
   gfortran && \
   curl -sSL https://install.python-poetry.org | python3.11 - && \
   update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
 # Copy dependency files for layer caching
 COPY pyproject.toml poetry.lock* ./
 
-# Install only production dependencies
+# Install only production dependencies with optimizations
 RUN poetry config virtualenvs.in-project true && \
   poetry config virtualenvs.create true && \
   poetry config cache-dir /tmp/poetry-cache && \
   poetry install --only=main --no-root --no-interaction --no-ansi && \
-  rm -rf /tmp/poetry-cache
+  # Clean up package caches and unnecessary files
+  find /app/.venv -name "*.pyc" -delete && \
+  find /app/.venv -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true && \
+  find /app/.venv -name "*.pyo" -delete && \
+  find /app/.venv -name "tests" -type d -exec rm -rf {} + 2>/dev/null || true && \
+  find /app/.venv -name "test" -type d -exec rm -rf {} + 2>/dev/null || true && \
+  rm -rf /tmp/poetry-cache /root/.cache
 
 # Copy source code
 COPY . .
@@ -80,20 +87,20 @@ RUN apt-get update && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/*
 
-
-# Copy files with proper ownership from the start
+# Copy virtual environment first (largest layer)
 COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
+
+# Copy application files
 COPY --from=builder --chown=appuser:appgroup /app/adaptive_ai /app/adaptive_ai
 COPY --from=builder --chown=appuser:appgroup /app/*.py /app/
 COPY --from=builder --chown=appuser:appgroup /app/*.yaml /app/
 COPY --from=builder --chown=appuser:appgroup /app/pyproject.toml /app/
 COPY --chown=appuser:appgroup entrypoint.sh /entrypoint.sh
 
-# Ensure all permissions are correct and make writable directories
+# Set permissions for app directory and entrypoint
 RUN chown -R appuser:appgroup /app && \
   chmod -R 755 /app && \
   chmod +x /entrypoint.sh
-
 
 USER appuser
 
