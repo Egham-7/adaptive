@@ -30,12 +30,20 @@ go run cmd/api/main.go
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="your-adaptive-api-key",
+    api_key="your-api-key",
     base_url="http://localhost:8080/v1"
 )
 
+# Route across all providers
 response = client.chat.completions.create(
-    model="adaptive",  # Adaptive selects the best model
+    model="adaptive",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+# Use only OpenAI models
+client.base_url = "http://localhost:8080/v1/openai"
+response = client.chat.completions.create(
+    model="adaptive",
     messages=[{"role": "user", "content": "Hello!"}]
 )
 ```
@@ -43,14 +51,16 @@ response = client.chat.completions.create(
 ```javascript
 import OpenAI from 'openai';
 
+// Route across all providers
 const client = new OpenAI({
-  apiKey: 'your-adaptive-api-key',
+  apiKey: 'your-api-key',
   baseURL: 'http://localhost:8080/v1'
 });
 
-const response = await client.chat.completions.create({
-  model: 'adaptive',
-  messages: [{ role: 'user', content: 'Hello!' }]
+// Use only Anthropic models
+const anthropicClient = new OpenAI({
+  apiKey: 'your-api-key', 
+  baseURL: 'http://localhost:8080/v1/anthropic'
 });
 ```
 
@@ -78,8 +88,15 @@ ADDR=:8080
 ## API Endpoints
 
 ### OpenAI-Compatible
-- `POST /v1/chat/completions` - Chat completions (with streaming)
+- `POST /v1/chat/completions` - Chat completions (with streaming) - Routes across all providers
 - `GET /v1/models` - List available models
+
+### Provider-Specific
+- `POST /v1/openai/chat/completions` - OpenAI-only chat completions
+- `POST /v1/anthropic/chat/completions` - Anthropic-only chat completions  
+- `POST /v1/groq/chat/completions` - Groq-only chat completions
+- `POST /v1/deepseek/chat/completions` - DeepSeek-only chat completions
+- `POST /v1/gemini/chat/completions` - Gemini-only chat completions
 
 ### Management
 - `GET /api/conversations` - List conversations
@@ -90,10 +107,19 @@ ADDR=:8080
 ## How It Works
 
 1. Receives OpenAI-compatible request
-2. Sends prompt to AI service for model selection
+2. Sends prompt to AI service for model selection (optionally constrained by provider)
 3. Routes request to selected provider
 4. Converts response to OpenAI format
-5. Returns unified response with Adaptive metadata
+5. Returns unified response
+
+### Main Endpoint (`/v1/chat/completions`)
+- Routes across **all providers** for optimal model selection
+- AI service chooses best model from OpenAI, Anthropic, Groq, DeepSeek, Gemini
+
+### Provider Endpoints (`/v1/{provider}/chat/completions`)
+- Routes only within **specific provider** models
+- Same interface, constrained model selection
+- Useful for staying within provider ecosystems
 
 ## Project Structure
 

@@ -3,6 +3,7 @@ package services
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -115,15 +116,42 @@ func (c *PromptClassifierClient) getUserCache(userID string) *semanticcache.Sema
 	return newCache
 }
 
-func (c *PromptClassifierClient) getFallbackModel() *models.SelectModelResponse {
-	selectedModel := "gpt-4o"
-	provider := "openai"
+func (c *PromptClassifierClient) getFallbackModel(provider *string) *models.SelectModelResponse {
+	var selectedModel string
+	var fallbackProvider string
 
-	log.Printf("[FALLBACK] Using fallback model selection: %s", selectedModel)
+	if provider != nil {
+		// Provider-specific fallbacks
+		switch *provider {
+		case "openai":
+			selectedModel = "gpt-4o"
+			fallbackProvider = "openai"
+		case "anthropic":
+			selectedModel = "claude-3-5-sonnet-20241022"
+			fallbackProvider = "anthropic"
+		case "groq":
+			selectedModel = "llama-3.2-3b-preview"
+			fallbackProvider = "groq"
+		case "deepseek":
+			selectedModel = "deepseek-chat"
+			fallbackProvider = "deepseek"
+		case "gemini":
+			selectedModel = "gemini-pro"
+			fallbackProvider = "gemini"
+		default:
+			selectedModel = "gpt-4o"
+			fallbackProvider = "openai"
+		}
+		log.Printf("[FALLBACK] Using fallback model: %s from %s", selectedModel, fallbackProvider)
+	} else {
+		selectedModel = "gpt-4o"
+		fallbackProvider = "openai"
+		log.Printf("[FALLBACK] Using fallback model: %s", selectedModel)
+	}
 
 	return &models.SelectModelResponse{
 		SelectedModel: selectedModel,
-		Provider:      provider,
+		Provider:      fallbackProvider,
 		Parameters: openai.ChatCompletionNewParams{
 			MaxTokens:        openai.Int(4096),
 			Temperature:      openai.Float(0.7),
@@ -134,22 +162,22 @@ func (c *PromptClassifierClient) getFallbackModel() *models.SelectModelResponse 
 	}
 }
 
-func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModelResponse, error) {
+func (c *PromptClassifierClient) SelectModel(req models.SelectModelRequest) (*models.SelectModelResponse, error) {
 	start := time.Now()
 
 	if !c.circuitBreaker.CanExecute() {
-		log.Printf("[CIRCUIT_BREAKER] Service unavailable, using fallback model selection")
+		log.Printf("[CIRCUIT_BREAKER] Service unavailable, using fallback")
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
-		return c.getFallbackModel(), nil
+		return c.getFallbackModel(req.Provider), nil
 	}
 
 	var result models.SelectModelResponse
-	err := c.client.Post("/predict", models.SelectModelRequest{Prompt: prompt}, &result, &RequestOptions{Timeout: 50 * time.Second})
+	err := c.client.Post("/predict", req, &result, &RequestOptions{Timeout: 50 * time.Second})
 	if err != nil {
 		c.circuitBreaker.RecordFailure()
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
 		log.Printf("[CIRCUIT_BREAKER] AI service call failed, using fallback: %v", err)
-		return c.getFallbackModel(), nil
+		return c.getFallbackModel(req.Provider), nil
 	}
 
 	c.circuitBreaker.RecordSuccess()
@@ -158,31 +186,37 @@ func (c *PromptClassifierClient) SelectModel(prompt string) (*models.SelectModel
 	return &result, nil
 }
 
-func (c *PromptClassifierClient) SelectModelWithCache(prompt string, userID string, requestID string) (*models.SelectModelResponse, string, error) {
+func (c *PromptClassifierClient) SelectModelWithCache(req models.SelectModelRequest, userID string, requestID string) (*models.SelectModelResponse, string, error) {
 	threshold := c.config.SemanticThreshold
 	userCache := c.getUserCache(userID)
 
+	// Create cache key that includes provider constraint
+	cacheKey := req.Prompt
+	if req.Provider != nil {
+		cacheKey = fmt.Sprintf("%s:provider:%s", req.Prompt, *req.Provider)
+	}
+
 	// Check user-specific cache
 	if userCache != nil {
-		if val, found, err := userCache.Lookup(prompt, float32(threshold)); err == nil && found {
+		if val, found, err := userCache.Lookup(cacheKey, float32(threshold)); err == nil && found {
 			log.Printf("[%s] Semantic cache hit (user)", requestID)
 			return &val, "user", nil
 		}
 	}
 
 	// Check global cache
-	if val, found, err := c.globalPromptModelCache.Lookup(prompt, float32(threshold)); err == nil && found {
+	if val, found, err := c.globalPromptModelCache.Lookup(cacheKey, float32(threshold)); err == nil && found {
 		log.Printf("[%s] Semantic cache hit (global)", requestID)
 
 		if userCache != nil {
-			_ = userCache.Set(prompt, prompt, val)
+			_ = userCache.Set(cacheKey, cacheKey, val)
 		}
 
 		return &val, "global", nil
 	}
 
 	// Cache miss - call AI service
-	modelInfo, err := c.SelectModel(prompt)
+	modelInfo, err := c.SelectModel(req)
 	if err != nil {
 		return nil, "miss", err
 	}
@@ -190,19 +224,23 @@ func (c *PromptClassifierClient) SelectModelWithCache(prompt string, userID stri
 	cacheType := "miss"
 	if c.circuitBreaker.GetState() != circuitbreaker.Closed {
 		cacheType = "fallback"
-		log.Printf("[%s] Semantic cache miss - using fallback model %s (circuit: %v)", requestID, modelInfo.SelectedModel, c.circuitBreaker.GetState())
+		log.Printf("[%s] Cache miss - using fallback model %s (circuit: %v)", requestID, modelInfo.SelectedModel, c.circuitBreaker.GetState())
 	} else {
-		log.Printf("[%s] Semantic cache miss - selected model %s", requestID, modelInfo.SelectedModel)
+		providerText := "all providers"
+		if req.Provider != nil {
+			providerText = *req.Provider
+		}
+		log.Printf("[%s] Cache miss - selected model %s from %s", requestID, modelInfo.SelectedModel, providerText)
 	}
 
 	// Cache the result if circuit breaker is closed
 	if c.circuitBreaker.GetState() == circuitbreaker.Closed {
-		if err := c.globalPromptModelCache.Set(prompt, prompt, *modelInfo); err != nil {
+		if err := c.globalPromptModelCache.Set(cacheKey, cacheKey, *modelInfo); err != nil {
 			log.Printf("[%s] Failed to cache in global cache: %v", requestID, err)
 		}
 
 		if userCache != nil {
-			if err := userCache.Set(prompt, prompt, *modelInfo); err != nil {
+			if err := userCache.Set(cacheKey, cacheKey, *modelInfo); err != nil {
 				log.Printf("[%s] Failed to cache in user cache: %v", requestID, err)
 			}
 		}

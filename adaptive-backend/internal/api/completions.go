@@ -1,15 +1,16 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"time"
+
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
-	"encoding/json"
-	"errors"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
@@ -18,13 +19,49 @@ import (
 type ChatCompletionHandler struct {
 	promptClassifierClient *services.PromptClassifierClient
 	metrics                *metrics.ChatMetrics
+	providerConstraint     *string // nil for all providers, specific provider name for constraint
 }
 
 func NewChatCompletionHandler() *ChatCompletionHandler {
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
 		metrics:                metrics.NewChatMetrics(),
+		providerConstraint:     nil, // No provider constraint for main endpoint
 	}
+}
+
+func NewProviderChatCompletionHandler(provider string) *ChatCompletionHandler {
+	return &ChatCompletionHandler{
+		promptClassifierClient: services.NewPromptClassifierClient(),
+		metrics:                metrics.NewChatMetrics(),
+		providerConstraint:     &provider,
+	}
+}
+
+// Provider-specific helper functions for easier handler creation
+func NewOpenAIChatCompletionHandler() *ChatCompletionHandler {
+	return NewProviderChatCompletionHandler("openai")
+}
+
+func NewAnthropicChatCompletionHandler() *ChatCompletionHandler {
+	return NewProviderChatCompletionHandler("anthropic")
+}
+
+func NewGroqChatCompletionHandler() *ChatCompletionHandler {
+	return NewProviderChatCompletionHandler("groq")
+}
+
+func NewDeepSeekChatCompletionHandler() *ChatCompletionHandler {
+	return NewProviderChatCompletionHandler("deepseek")
+}
+
+func NewGeminiChatCompletionHandler() *ChatCompletionHandler {
+	return NewProviderChatCompletionHandler("gemini")
+}
+
+// GetProviderConstraint returns the provider constraint for this handler
+func (h *ChatCompletionHandler) GetProviderConstraint() *string {
+	return h.providerConstraint
 }
 
 func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
@@ -54,7 +91,11 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
+	if h.providerConstraint != nil {
+		log.Infof("[%s] Selected model: %s (%s)", requestID, modelInfo.SelectedModel, *h.providerConstraint)
+	} else {
+		log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
+	}
 
 	h.applyModelParameters(req, modelInfo)
 	log.Infof("[%s] Applied model parameters: %+v", requestID, modelInfo.Parameters)
@@ -116,7 +157,12 @@ func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, a
 
 	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
 
-	modelInfo, _, err := h.promptClassifierClient.SelectModelWithCache(prompt, apiKey, requestID)
+	selectReq := models.SelectModelRequest{
+		Prompt:   prompt,
+		Provider: h.providerConstraint,
+	}
+
+	modelInfo, _, err := h.promptClassifierClient.SelectModelWithCache(selectReq, apiKey, requestID)
 
 	return modelInfo, err
 }

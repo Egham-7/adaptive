@@ -31,12 +31,26 @@ func SetupRoutes(app *fiber.App) {
 	apiKeyHandler := api.NewAPIKeyHandler()
 	chatCompletionHandler := api.NewChatCompletionHandler()
 
+	// Create provider-specific handlers
+	openaiHandler := api.NewOpenAIChatCompletionHandler()
+	anthropicHandler := api.NewAnthropicChatCompletionHandler()
+	groqHandler := api.NewGroqChatCompletionHandler()
+	deepseekHandler := api.NewDeepSeekChatCompletionHandler()
+	geminiHandler := api.NewGeminiChatCompletionHandler()
+
 	authMiddleware := middleware.AuthMiddleware()
 	apiKeyMiddleware := middleware.APIKeyMiddleware(apiKeyHandler)
 
 	// OpenAI-compatible API routes
 	v1Group := app.Group("/v1")
 	v1Group.Post("/chat/completions", apiKeyMiddleware, chatCompletionHandler.ChatCompletion)
+
+	// Provider-specific routes
+	v1Group.Post("/openai/chat/completions", apiKeyMiddleware, openaiHandler.ChatCompletion)
+	v1Group.Post("/anthropic/chat/completions", apiKeyMiddleware, anthropicHandler.ChatCompletion)
+	v1Group.Post("/groq/chat/completions", apiKeyMiddleware, groqHandler.ChatCompletion)
+	v1Group.Post("/deepseek/chat/completions", apiKeyMiddleware, deepseekHandler.ChatCompletion)
+	v1Group.Post("/gemini/chat/completions", apiKeyMiddleware, geminiHandler.ChatCompletion)
 
 	// API group for internal management
 	apiGroup := app.Group("/api")
@@ -139,9 +153,14 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"metrics":  "/metrics",
-				"chat":     "/v1/chat/completions",
-				"api_keys": "/api/api_keys",
+				"metrics":   "/metrics",
+				"chat":      "/v1/chat/completions",
+				"openai":    "/v1/openai/chat/completions",
+				"anthropic": "/v1/anthropic/chat/completions",
+				"groq":      "/v1/groq/chat/completions",
+				"deepseek":  "/v1/deepseek/chat/completions",
+				"gemini":    "/v1/gemini/chat/completions",
+				"api_keys":  "/api/api_keys",
 			},
 		})
 	})

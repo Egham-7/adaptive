@@ -6,9 +6,9 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
-// PromptRequest represents the prompt request body
 type SelectModelRequest struct {
-	Prompt string `json:"prompt"`
+	Prompt   string  `json:"prompt"`
+	Provider *string `json:"provider,omitempty"`
 }
 
 // SelectModelResponse represents the response from the select-model endpoint
