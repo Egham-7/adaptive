@@ -46,11 +46,12 @@ class Settings(BaseSettings):
             # Docker environment - config should be in /app
             return os.path.join("/app/adaptive_ai", self.model_config_path)
         else:
-            # Local development - get project root
-            project_root = os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            )
-            return os.path.join(project_root, "adaptive_ai", self.model_config_path)
+
+            # Local development - get project root and look in adaptive_ai subdir
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            # Go up from core/ to adaptive_ai/ then look for config
+            adaptive_ai_root = os.path.dirname(current_dir)
+            return os.path.join(adaptive_ai_root, self.model_config_path)
 
     def load_model_config(self) -> Dict[str, Any]:
         """Load the model configuration YAML file"""
