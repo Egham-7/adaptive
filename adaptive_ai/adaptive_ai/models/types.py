@@ -1,4 +1,4 @@
-from typing import TypedDict, Literal, List
+from typing import Literal, TypedDict
 
 # =============================================================================
 # TYPE DEFINITIONS
@@ -62,11 +62,11 @@ class ModelInfo(TypedDict):
 class PromptScores(TypedDict):
     """Type definition for prompt analysis scores"""
 
-    creativity_scope: List[float]
-    reasoning: List[float]
-    constraint_ct: List[float]
-    contextual_knowledge: List[float]
-    domain_knowledge: List[float]
+    creativity_scope: list[float]
+    reasoning: list[float]
+    constraint_ct: list[float]
+    contextual_knowledge: list[float]
+    domain_knowledge: list[float]
 
 
 class DifficultyThresholds(TypedDict):
@@ -126,7 +126,7 @@ class ProviderError(Exception):
 # CONSTANTS
 # =============================================================================
 
-VALID_TASK_TYPES: List[TaskType] = [
+VALID_TASK_TYPES: list[TaskType] = [
     "Open QA",
     "Closed QA",
     "Summarization",
@@ -140,7 +140,7 @@ VALID_TASK_TYPES: List[TaskType] = [
     "Other",
 ]
 
-VALID_PROVIDERS: List[ProviderType] = [
+VALID_PROVIDERS: list[ProviderType] = [
     "GROQ",
     "OpenAI",
     "DEEPSEEK",
@@ -148,4 +148,4 @@ VALID_PROVIDERS: List[ProviderType] = [
     "Google",
 ]
 
-VALID_DIFFICULTY_LEVELS: List[DifficultyLevel] = ["easy", "medium", "hard"]
+VALID_DIFFICULTY_LEVELS: list[DifficultyLevel] = ["easy", "medium", "hard"]
