@@ -101,56 +101,6 @@ model_capabilities = {
 
 2. Update domain mappings in `models/domain_mappings.py`
 
-## Model Quantization (ONNX)
-
-This section describes how to convert the internal prompt classifier model to ONNX format and quantize it for potentially faster inference and reduced model size. The service can then be configured to use this quantized ONNX model.
-
-### Generating a Quantized ONNX Model
-
-The `scripts/quantize_model.py` script is provided to export the `CustomModel` (used for prompt classification) to the ONNX format and then apply dynamic quantization.
-
-**Prerequisites:**
-
-- A Python environment with all project dependencies installed. Ensure you have run:
-  ```bash
-  poetry install
-  ```
-- For GPU-accelerated quantization and ONNX runtime, ensure you have the necessary CUDA toolkit installed and that `optimum[onnxruntime-gpu]` is included in your dependencies. If it's not part of the default install (check `pyproject.toml`), you might need to install it via an extras group if defined, or add it to the main dependencies:
-  ```bash
-  # Example if 'onnxruntime-gpu' was an extra group (not currently the case)
-  # poetry install --extras "onnxruntime-gpu"
-  # Or, ensure optimum = {extras = ["onnxruntime-gpu"], version = "..."} is in pyproject.toml
-  ```
-  Currently, `optimum = {extras = ["onnxruntime-gpu"], version = "^1.19.0"}` should be in the main dependencies in `pyproject.toml` for GPU support.
-
-**Script Usage:**
-
-The script `scripts/quantize_model.py` accepts the following command-line arguments:
-
-- `model_id_or_path`: (Required) Hugging Face model ID (e.g., "nvidia/prompt-task-and-complexity-classifier") or a path to a local directory from which to load the `AutoConfig` for the model. This config provides parameters like `target_sizes` and default maps for the `CustomModel`.
-- `--onnx_output_path`: (Required) Output path for the exported (non-quantized) ONNX model (e.g., `models/prompt_classifier.onnx`).
-- `--quantized_output_path`: (Required) Output path for the quantized ONNX model (e.g., `models/prompt_classifier.quant.onnx`).
-- `--task_type_map_json PATH`: (Optional) Path to a JSON file containing the `task_type_map`. If provided, this will override the map loaded from the config.
-- `--weights_map_json PATH`: (Optional) Path to a JSON file for the `weights_map`. Overrides the config version.
-- `--divisor_map_json PATH`: (Optional) Path to a JSON file for the `divisor_map`. Overrides the config version.
-- `--batch_size INT`: (Optional) Batch size to use for dummy inputs during ONNX export. Default is 1.
-- `--seq_length INT`: (Optional) Sequence length for dummy inputs during ONNX export. Default is 128.
-
-**Example Command:**
-
-```bash
-python scripts/quantize_model.py \
-  "nvidia/prompt-task-and-complexity-classifier" \
-  --onnx_output_path "models/prompt_classifier.onnx" \
-  --quantized_output_path "models/prompt_classifier.quant.onnx"
-```
-
-This command will:
-1. Load the configuration from "nvidia/prompt-task-and-complexity-classifier".
-2. Instantiate the `CustomModel` (which internally uses "microsoft/DeBERTa-v3-base" as its backbone).
-3. Export this `CustomModel` to `models/prompt_classifier.onnx`.
-4. Apply dynamic quantization (QDQ, QInt8) to the ONNX model and save it to `models/prompt_classifier.quant.onnx`.
-
 ## Testing
 
 ```bash
