@@ -230,7 +230,7 @@ def main() -> None:
             input_names=input_names,
             output_names=output_names,
             dynamic_axes=dynamic_axes,
-            opset_version=11,
+            opset_version=17,
             export_params=True,
             do_constant_folding=True,
         )
