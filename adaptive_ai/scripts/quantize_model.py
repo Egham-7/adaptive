@@ -111,6 +111,13 @@ def main() -> None:
         help="Path to a JSON file for divisor_map (overrides config). Example: '{\"task1\": 2.0}'.",
     )
     parser.add_argument(
+        "--checkpoint_path",
+        type=str,
+        default=None,
+        help="Path to the finetuned CustomModel checkpoint directory or file. "
+        "If not provided, the model will be initialized with random weights.",
+    )
+    parser.add_argument(
         "--batch_size",
         type=int,
         default=1,
@@ -191,10 +198,22 @@ def main() -> None:
             weights_map=weights_map,
             divisor_map=divisor_map,
         )
-        # The from_pretrained here is from PyTorchModelHubMixin, for loading the whole CustomModel's weights
-        # if they were saved that way. For a fresh export based on backbone, this might not be needed,
-        # or it should point to where CustomModel's full state (if any) is stored.
-        # Assuming we rely on the backbone being loaded by CustomModel's __init__ and want to export that.
+
+        # Load pretrained weights if checkpoint path is provided
+        if args.checkpoint_path:
+            logger.info(f"Loading pretrained weights from: {args.checkpoint_path}")
+            custom_model = CustomModel.from_pretrained(
+                args.checkpoint_path,
+                target_sizes=target_sizes,
+                task_type_map=task_type_map,
+                weights_map=weights_map,
+                divisor_map=divisor_map,
+            )
+        else:
+            logger.warning(
+                "No checkpoint path provided. Using model with random weights."
+            )
+
         custom_model.eval()
     except Exception as e:
         logger.error(f"Failed to initialize CustomModel: {e}")
