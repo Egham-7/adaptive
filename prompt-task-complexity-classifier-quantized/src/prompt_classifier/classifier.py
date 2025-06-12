@@ -68,9 +68,7 @@ class QuantizedPromptClassifier:
         self.tokenizer = AutoTokenizer.from_pretrained(str(self.model_path))
 
         # Extract configuration values (already validated by AutoConfig)
-        self.target_names: list[str] = list(
-            self.config.target_sizes.keys()
-        )  # Ensure order is maintained
+        self.target_names: list[str] = list(self.config.target_sizes.keys())
         self.task_type_map: dict[str, str] = self.config.task_type_map
         self.weights_map: dict[str, list[float]] = self.config.weights_map
         self.divisor_map: dict[str, float] = self.config.divisor_map
@@ -78,6 +76,23 @@ class QuantizedPromptClassifier:
         # Initialize ONNX Runtime session
         self.session = ort.InferenceSession(str(self._onnx_model_file))
         self._input_names: list[str] = [inp.name for inp in self.session.get_inputs()]
+
+        # --- FIX ---
+        # The ONNX model does not have named outputs, so we must define the
+        # order of the classification heads manually. This order is inferred
+        # by matching the shape of the model's outputs to the `target_sizes`
+        # in the config. If the model is ever re-exported with a different
+        # head order, this list must be updated.
+        self.ordered_output_names: list[str] = [
+            "task_type",  # Logits shape (1, 12)
+            "creativity_scope",  # Logits shape (1, 3)
+            "constraint_ct",  # Logits shape (1, 2) - Assumed order
+            "contextual_knowledge",  # Logits shape (1, 2) - Assumed order
+            "number_of_few_shots",  # Logits shape (1, 6)
+            "domain_knowledge",  # Logits shape (1, 4)
+            "no_label_reason",  # Logits shape (1, 1)
+            "reasoning",  # Logits shape (1, 2) - Assumed order
+        ]
 
         # Task-specific complexity weights (as provided by the original model)
         self.task_type_weights: dict[str, list[float]] = {
@@ -108,8 +123,6 @@ class QuantizedPromptClassifier:
         Returns:
             Initialized QuantizedPromptClassifier instance.
         """
-        # Hugging Face Hub paths are typically directories for local loading
-        # The __init__ handles both string and Path
         return cls(model_path=model_path)
 
     def tokenize_texts(self, texts: list[str]) -> dict[str, NPInt64Array]:
@@ -124,7 +137,11 @@ class QuantizedPromptClassifier:
             as numpy arrays of type int64.
         """
         inputs = self.tokenizer(
-            texts, padding=True, truncation=True, max_length=512, return_tensors="np"
+            texts,
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="np",
         )
         return {
             "input_ids": inputs["input_ids"].astype(np.int64),
@@ -143,11 +160,9 @@ class QuantizedPromptClassifier:
             A list of numpy arrays, where each array corresponds to the
             raw logits output from one of the classification heads.
         """
-        # Filter inputs to only include what the ONNX model expects
         input_feed = {
             name: inputs[name] for name in self._input_names if name in inputs
         }
-        # ONNX Runtime's run method is typed to return List[Any], so we cast it
         outputs = self.session.run(None, input_feed)
         return cast(list[NPFloatArray], outputs)
 
@@ -171,8 +186,7 @@ class QuantizedPromptClassifier:
             - List of secondary task type strings (or "NA").
             - List of primary task type probabilities.
         """
-        # Get top 2 predictions (indices and probabilities)
-        top2_indices = np.argsort(preds, axis=1)[:, -2:][:, ::-1]  # Descending
+        top2_indices = np.argsort(preds, axis=1)[:, -2:][:, ::-1]
         softmax_probs = self._softmax(preds)
         top2_probs = np.take_along_axis(softmax_probs, top2_indices, axis=1)
 
@@ -187,7 +201,6 @@ class QuantizedPromptClassifier:
             primary_string = self.task_type_map[str(primary_idx)]
             secondary_string = self.task_type_map[str(secondary_idx)]
 
-            # Filter low confidence second predictions
             if secondary_prob < 0.1:
                 secondary_string = "NA"
 
@@ -214,17 +227,14 @@ class QuantizedPromptClassifier:
         preds_softmax = self._softmax(preds)
         weights = np.array(self.weights_map[target])
 
-        # Ensure weights are 2D if needed for broadcasting (e.g., (1, N) for (B, N))
         if weights.ndim == 1:
             weights = weights.reshape(1, -1)
 
-        # Perform element-wise multiplication and sum
         weighted_sum = np.sum(preds_softmax * weights, axis=1)
         scores_arr = weighted_sum / self.divisor_map[target]
         scores = [round(float(score), decimal) for score in scores_arr]
 
         if target == "number_of_few_shots":
-            # Apply custom threshold for few-shot scores
             scores = [max(0.0, x) if x >= 0.05 else 0.0 for x in scores]
         return scores
 
@@ -244,12 +254,21 @@ class QuantizedPromptClassifier:
         """
         batch_results: dict[str, list[Any]] = {}
 
-        # The order of logits_list directly corresponds to the order of target_names
-        # defined in the CustomModel's __init__ (which comes from config.target_sizes)
-        for i, target_name in enumerate(self.target_names):
-            current_logits = logits_list[i]
+        # Create a mapping from the hardcoded output name to its logit array.
+        # This correctly associates each logit tensor with its meaningful name.
+        logits_map = dict(zip(self.ordered_output_names, logits_list, strict=False))
+
+        # Iterate through the target names from the config to process them.
+        for target_name in self.target_names:
+            current_logits = logits_map.get(target_name)
+            if current_logits is None:
+                print(
+                    f"Warning: Logits for '{target_name}' not found in model outputs. Skipping."
+                )
+                continue
 
             if target_name == "task_type":
+                print("Processing task_type logits")
                 task_type_1, task_type_2, task_type_prob = (
                     self._compute_task_type_results(current_logits)
                 )
@@ -257,6 +276,7 @@ class QuantizedPromptClassifier:
                 batch_results["task_type_2"] = task_type_2
                 batch_results["task_type_prob"] = task_type_prob
             else:
+                print(f"Processing {target_name} logits")
                 batch_results[target_name] = self._compute_score_results(
                     current_logits, target_name
                 )
@@ -276,11 +296,8 @@ class QuantizedPromptClassifier:
         if not prompts:
             return []
 
-        # Tokenize and run inference
         inputs = self.tokenize_texts(prompts)
         logits_list = self.run_inference(inputs)
-
-        # Post-process logits into structured batch results
         batch_results = self._post_process_logits(logits_list)
 
         # Calculate overall complexity scores using task-specific weights
@@ -288,7 +305,7 @@ class QuantizedPromptClassifier:
         for i, task_type in enumerate(batch_results["task_type_1"]):
             weights = self.task_type_weights.get(
                 task_type, [0.25, 0.25, 0.2, 0.15, 0.15]
-            )  # Default weights if task_type not found
+            )
 
             score = round(
                 weights[0] * batch_results["creativity_scope"][i]
@@ -308,9 +325,6 @@ class QuantizedPromptClassifier:
             for key, values in batch_results.items():
                 if isinstance(values, list) and len(values) > i:
                     sample_result[key] = values[i]
-                else:
-                    # Should not happen if all results are batched lists
-                    sample_result[key] = values
             individual_results.append(sample_result)
 
         return individual_results

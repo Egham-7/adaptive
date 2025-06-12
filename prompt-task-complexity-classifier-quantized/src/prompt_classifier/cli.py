@@ -61,7 +61,7 @@ def main() -> None:
     classify_parser.add_argument(
         "--model-path",
         type=str,
-        default="./",
+        default="./quantized_model",
         help="Path to the quantized model directory",
     )
     classify_parser.add_argument(
@@ -143,8 +143,6 @@ def cmd_quantize(args: argparse.Namespace) -> None:
     """Handle quantize command."""
     from .scripts.quantization import main as quantize_main
 
-    print("🚀 Starting quantization process...")
-
     # Create output directory
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -153,14 +151,8 @@ def cmd_quantize(args: argparse.Namespace) -> None:
     sys.argv = [
         "quantization.py",
         args.model_id,
-        "--onnx_output_path",
-        str(output_dir / "model.onnx"),
-        "--quantized_output_path",
-        str(output_dir / "model_quantized.onnx"),
-        "--batch_size",
-        str(args.batch_size),
-        "--seq_length",
-        str(args.seq_length),
+        "--output_dir",
+        str(output_dir),
     ]
 
     try:
