@@ -1,0 +1,189 @@
+[tool.poetry]
+name = "prompt-task-complexity-classifier-quantized"
+version = "0.1.0"
+description = "Quantized ONNX version of NVIDIA's prompt task and complexity classifier for fast CPU inference"
+authors = ["Adaptive AI Team <team@adaptive-ai.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/adaptive-ai/prompt-task-complexity-classifier-quantized"
+repository = "https://github.com/adaptive-ai/prompt-task-complexity-classifier-quantized"
+documentation = "https://huggingface.co/nvidia/prompt-task-and-complexity-classifier"
+keywords = ["onnx", "quantized", "nlp", "prompt-classification", "task-classification", "complexity-analysis", "transformers"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Linguistic",
+    "Typing :: Typed",
+]
+packages = [
+    { include = "prompt_classifier", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+torch = "^2.4.0"
+transformers = "^4.41.0"
+numpy = "^1.26.0"
+onnxruntime = "^1.18.0"
+optimum = "^1.20.0"
+huggingface-hub = "^0.23.0"
+requests = "^2.32.0"
+tqdm = "^4.66.0"
+onnx = "^1.18.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+pytest-cov = "^5.0.0"
+black = "^24.4.0"
+ruff = "^0.4.0"
+mypy = "^1.10.0"
+types-requests = "^2.32.0.20240602"
+types-tqdm = "^4.66.0.20240106"
+
+[tool.poetry.group.quantization.dependencies]
+# Additional dependencies for running quantization
+# These are only needed if you want to run the quantization process
+
+[tool.poetry.scripts]
+prompt-classifier = "prompt_classifier.cli:main"
+quantize-model = "prompt_classifier.scripts.quantization:main"
+test-quantized = "prompt_classifier.testing:main"
+upload-model = "prompt_classifier.scripts.upload:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | \.pytest_cache
+)/
+'''
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "S",   # flake8-bandit
+    "T20", # flake8-print
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "S101",  # use of assert
+    "T201",  # print found
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101", "S105", "S106", "T201"]
+"src/prompt_classifier/scripts/*" = ["T201"]
+
+[tool.ruff.isort]
+known-first-party = ["prompt_classifier"]
+force-sort-within-sections = true
+
+[tool.mypy]
+python_version = "3.13"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+show_error_codes = true
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = [
+    "torch.*",
+    "transformers.*",
+    "huggingface_hub.*",
+    "optimum.*",
+    "onnxruntime.*",
+    "sklearn.*",
+    "matplotlib.*",
+    "pandas.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config --cov=prompt_classifier --cov-report=term-missing --cov-report=xml"
+testpaths = ["tests", "src/tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "quantization: marks tests that require quantization dependencies",
+]
+
+[tool.coverage.run]
+source = ["src/prompt_classifier"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/.*",
+    "*/scripts/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/adaptive-ai/prompt-task-complexity-classifier-quantized/issues"
+"Documentation" = "https://huggingface.co/nvidia/prompt-task-and-complexity-classifier"
+"Original Model" = "https://huggingface.co/nvidia/prompt-task-and-complexity-classifier"
