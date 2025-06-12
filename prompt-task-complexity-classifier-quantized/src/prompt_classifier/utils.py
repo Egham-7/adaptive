@@ -57,7 +57,7 @@ def validate_model_files(model_path: str | Path) -> list[str]:
         "tokenizer.json",
         "tokenizer_config.json",
         "special_tokens_map.json",
-        "vocab.txt",
+        "spm.model",
     ]
 
     missing_files: list[str] = []
@@ -215,7 +215,7 @@ def create_model_summary(model_path: str | Path) -> dict[str, Any]:
         "tokenizer.json",
         "tokenizer_config.json",
         "special_tokens_map.json",
-        "vocab.txt",
+        "spm.model",
     ]
     summary["files_present"] = [f for f in all_files if f not in missing_files]
 

@@ -48,23 +48,23 @@ pipeline_tag: text-classification
 
 # Quantized ONNX model for {repo_id}
 
-This repository contains the quantized ONNX version of the \
+This repository contains the quantized ONNX version of the \\
 [{original_model}](https://huggingface.co/{original_model}) model.
 
 ## Model Description
 
-This is a multi-headed model which classifies English text prompts across task \
-types and complexity dimensions. This version has been quantized to `INT8` \
-using dynamic quantization with the [🤗 Optimum](https://github.com/huggingface/optimum) \
+This is a multi-headed model which classifies English text prompts across task \\
+types and complexity dimensions. This version has been quantized to `INT8` \\
+using dynamic quantization with the [🤗 Optimum](https://github.com/huggingface/optimum) \\
 library, resulting in a smaller footprint and faster CPU inference.
 
-For more details on the model architecture, tasks, and complexity dimensions, \
-please refer to the [original model card]\
+For more details on the model architecture, tasks, and complexity dimensions, \\
+please refer to the [original model card]\\
 (https://huggingface.co/{original_model}).
 
 ## How to Use
 
-You can use this model directly with `optimum.onnxruntime` for accelerated \
+You can use this model directly with `optimum.onnxruntime` for accelerated \\
 inference.
 
 First, install the required libraries:
@@ -111,7 +111,17 @@ def _prepare_upload_folder(source_dir: Path, upload_dir: Path, repo_id: str) -> 
 
     logger.info(f"Preparing files for upload in temporary directory: {upload_dir}")
 
-    # 1. Copy essential files
+    # 1. Check for mandatory files first
+    mandatory_files = ["model_quantized.onnx", "config.json"]
+    for filename in mandatory_files:
+        source_file = source_dir / filename
+        if not source_file.exists():
+            raise FileNotFoundError(
+                f"Mandatory file '{filename}' not found in {source_dir}. "
+                "Cannot proceed with upload."
+            )
+
+    # 2. Copy essential files
     files_to_copy = [
         "model_quantized.onnx",
         "config.json",
@@ -125,9 +135,12 @@ def _prepare_upload_folder(source_dir: Path, upload_dir: Path, repo_id: str) -> 
         if source_file.exists():
             shutil.copy2(source_file, upload_dir / filename)
         else:
+            if filename in mandatory_files:
+                # This should not happen due to earlier check, but safety net
+                raise FileNotFoundError(f"Mandatory file '{filename}' missing")
             logger.warning(f"⚠️ Optional file not found, skipping: {filename}")
 
-    # 2. Create or copy README.md
+    # 3. Create or copy README.md
     source_readme = source_dir / "README.md"
     if source_readme.exists():
         shutil.copy2(source_readme, upload_dir / "README.md")
@@ -138,13 +151,13 @@ def _prepare_upload_folder(source_dir: Path, upload_dir: Path, repo_id: str) -> 
         readme_content = _create_model_card_template(repo_id, original_model)
         (upload_dir / "README.md").write_text(readme_content)
 
-    # 3. Create .gitattributes for LFS
+    # 4. Create .gitattributes for LFS
     git_attributes_path = upload_dir / ".gitattributes"
     git_attributes_content = "*.onnx filter=lfs diff=lfs merge=lfs -text\n"
     git_attributes_path.write_text(git_attributes_content)
     logger.info("✅ Created .gitattributes for ONNX LFS handling")
 
-    # 4. Update config.json with ONNX-specific info
+    # 5. Update config.json with ONNX-specific info
     try:
         config_path = upload_dir / "config.json"
         with config_path.open("r+") as f:
@@ -182,6 +195,12 @@ def main() -> None:
         help="Repository ID on the Hub (e.g., 'username/model-name')",
     )
     parser.add_argument(
+        "--model-path",
+        type=str,
+        default="./quantized_model_output",
+        help="Path to directory containing quantized model files",
+    )
+    parser.add_argument(
         "--private", action="store_true", help="Make the repository private"
     )
     parser.add_argument(
@@ -194,8 +213,8 @@ def main() -> None:
 
     logger.info(f"🚀 Starting upload process for repository: {args.repo_id}")
 
-    # Correctly set the source_directory to where the quantized model is outputted
-    source_directory: Path = Path("./quantized_model_output")
+    # Use the model path from CLI argument
+    source_directory: Path = Path(args.model_path)
     upload_directory: Path = source_directory / "upload_temp"
 
     # Basic validation

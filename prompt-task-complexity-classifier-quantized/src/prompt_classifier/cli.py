@@ -2,7 +2,7 @@
 """
 Command Line Interface for the Prompt Task Complexity Classifier - Quantized
 
-This module provides CLI commands for quantization, testing, and uploading
+This module provides CLI commands for quantization, and uploading
 the quantized model.
 """
 
@@ -51,23 +51,6 @@ def main() -> None:
         type=int,
         default=128,
         help="Sequence length for ONNX export",
-    )
-
-    # Test command
-    test_parser = subparsers.add_parser(
-        "test", help="Test the quantized model with example prompts"
-    )
-    test_parser.add_argument(
-        "--model-path",
-        type=str,
-        default="./",
-        help="Path to the quantized model directory",
-    )
-    test_parser.add_argument(
-        "--benchmark", action="store_true", help="Run performance benchmarks"
-    )
-    test_parser.add_argument(
-        "--validate", action="store_true", help="Validate model outputs"
     )
 
     # Classify command
