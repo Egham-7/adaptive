@@ -43,6 +43,8 @@ model_selection:
     fallback_model: "gpt-3.5-turbo"
     cache_embeddings: true
     cache_ttl: 3600 # seconds
+    use_quantized_onnx: false # Set to true to use the ONNX model for prompt classification
+    onnx_model_path: "models/quantized_prompt_classifier.onnx" # Path to the quantized ONNX model
 
 # =============================================================================
 # LOGGING CONFIGURATION

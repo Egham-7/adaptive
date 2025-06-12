@@ -1,11 +1,19 @@
 from functools import lru_cache
 from typing import Any, cast
+from pathlib import Path
 
 from huggingface_hub import PyTorchModelHubMixin
+from adaptive_ai.core.config import get_settings # Added for settings access
+
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.onnx
+import onnxruntime # Added for ONNX inference
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+# optimum imports are for quantization function, not directly used by PromptClassifier runtime
+from optimum.onnxruntime import ORTQuantizer
+from optimum.onnxruntime.configuration import QuantizationConfig, QuantFormat, QuantType
 
 
 class MeanPooling(nn.Module):
@@ -227,34 +235,131 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         return individual_results
 
     def forward(
-        self, batch: dict[str, torch.Tensor]
-    ) -> list[dict[str, list[str] | list[float] | float]]:
+        self,
+        batch: dict[str, torch.Tensor],
+        export_mode: bool = False,
+    ) -> list[dict[str, list[str] | list[float] | float]] | tuple[torch.Tensor, ...]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
         last_hidden_state = outputs.last_hidden_state
         mean_pooled_representation = self.pool(last_hidden_state, attention_mask)
-        logits = [
+        logits = tuple(
             self.heads[k](mean_pooled_representation)
             for k in range(len(self.target_sizes))
-        ]
-        return self.process_logits(logits)
+        )
+        if export_mode:
+            return logits
+        return self.process_logits(list(logits))
+
+    def export_to_onnx(self, file_path: str, dummy_input_ids: torch.Tensor, dummy_attention_mask: torch.Tensor) -> None:
+        """
+        Exports the model to ONNX format.
+
+        Args:
+            file_path: The path to save the ONNX model.
+            dummy_input_ids: A dummy input tensor for input_ids.
+            dummy_attention_mask: A dummy input tensor for attention_mask.
+        """
+        self.eval()  # Set the model to evaluation mode
+
+        dummy_input = {"input_ids": dummy_input_ids, "attention_mask": dummy_attention_mask}
+
+        input_names = ["input_ids", "attention_mask"]
+        output_names = [f"output_{i}" for i in range(len(self.target_sizes))]
+
+        dynamic_axes = {
+            "input_ids": {0: "batch_size", 1: "sequence_length"},
+            "attention_mask": {0: "batch_size", 1: "sequence_length"},
+        }
+        for name in output_names:
+            dynamic_axes[name] = {0: "batch_size"}
+
+        # Ensure the model's forward method is called with export_mode=True
+        # We need to wrap the model or ensure the arguments are passed correctly
+        # to torch.onnx.export
+
+        # Temporarily modify the forward signature for export, if necessary,
+        # or use a wrapper. For now, let's assume direct call works with a helper.
+
+        original_forward = self.forward
+
+        # Define a wrapper for the forward method to be used by torch.onnx.export
+        def forward_for_export(input_ids_export, attention_mask_export):
+            return self.forward({"input_ids": input_ids_export, "attention_mask": attention_mask_export}, export_mode=True)
+
+        # Replace the model's forward method with the wrapper
+        self.forward = forward_for_export
+
+        torch.onnx.export(
+            self,  # model being run
+            (dummy_input_ids, dummy_attention_mask),  # model input (or a tuple for multiple inputs)
+            file_path,  # where to save the model (can be a file or file-like object)
+            export_params=True,  # store the trained parameter weights inside the model file
+            opset_version=11,  # the ONNX version to export the model to
+            do_constant_folding=True,  # whether to execute constant folding for optimization
+            input_names=input_names,  # the model's input names
+            output_names=output_names,  # the model's output names
+            dynamic_axes=dynamic_axes,  # variable length axes
+        )
+
+        # Restore the original forward method
+        self.forward = original_forward
+
+        print(f"Model exported to {file_path}")
 
 
 class PromptClassifier:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        use_quantized_onnx: bool = False,
+        onnx_model_path: str | Path | None = None,
+    ) -> None:
         self.config = AutoConfig.from_pretrained(
             "nvidia/prompt-task-and-complexity-classifier"
         )
         self.tokenizer = AutoTokenizer.from_pretrained(
             "nvidia/prompt-task-and-complexity-classifier"
         )
+        # CustomModel instance is always needed for config and processing logic
         self.model = CustomModel(
             target_sizes=self.config.target_sizes,
             task_type_map=self.config.task_type_map,
             weights_map=self.config.weights_map,
             divisor_map=self.config.divisor_map,
         ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
+
+        self.use_quantized_onnx = use_quantized_onnx
+        self.onnx_model_path = onnx_model_path
+        self.onnx_session: onnxruntime.InferenceSession | None = None
+        self.onnx_input_names: list[str] | None = None
+        self.onnx_output_names: list[str] | None = None
+
+        if self.use_quantized_onnx:
+            if self.onnx_model_path is None:
+                raise ValueError(
+                    "onnx_model_path must be provided if use_quantized_onnx is True."
+                )
+            try:
+                self.onnx_session = onnxruntime.InferenceSession(
+                    str(self.onnx_model_path), providers=onnxruntime.get_available_providers()
+                )
+                self.onnx_input_names = [
+                    inp.name for inp in self.onnx_session.get_inputs()
+                ]
+                self.onnx_output_names = [
+                    out.name for out in self.onnx_session.get_outputs()
+                ]
+                print(f"ONNX Runtime session initialized for {self.onnx_model_path}")
+                print(f"ONNX Input names: {self.onnx_input_names}")
+                print(f"ONNX Output names: {self.onnx_output_names}")
+            except Exception as e:
+                print(f"Error initializing ONNX session: {e}. Falling back to PyTorch model.")
+                self.onnx_session = None
+
+        # Ensure model is in eval mode for PyTorch path
+        self.model.eval()
+
 
     def classify_prompts(self, prompts: list[str]) -> list[dict[str, Any]]:
         """
@@ -271,17 +376,42 @@ class PromptClassifier:
             padding=True,
             truncation=True,
             max_length=512,
-            return_tensors="pt",
+            return_tensors="pt", # For PyTorch path, ONNX will use .cpu().numpy()
         )
 
-        with torch.no_grad():
-            raw_results = self.model(encoded_texts)
+        if self.onnx_session and self.onnx_input_names and self.onnx_output_names:
+            print("Classifying prompts using ONNX Runtime.")
+            input_ids_np = encoded_texts["input_ids"].cpu().numpy()
+            attention_mask_np = encoded_texts["attention_mask"].cpu().numpy()
+
+            # Ensure input names match what the model expects.
+            # Common practice is 'input_ids' and 'attention_mask'.
+            # If self.onnx_input_names are different, this needs adjustment or ensure export uses these names.
+            # Assuming the first input is input_ids and second is attention_mask from export
+            input_feed = {
+                self.onnx_input_names[0]: input_ids_np,
+                self.onnx_input_names[1]: attention_mask_np,
+            }
+
+            onnx_outputs_np = self.onnx_session.run(self.onnx_output_names, input_feed)
+
+            # Convert numpy arrays back to torch tensors for process_logits
+            # process_logits expects a list of tensors
+            onnx_outputs_torch = [torch.from_numpy(arr) for arr in onnx_outputs_np]
+
+            # Use the process_logits method from the CustomModel instance
+            # This method handles all the post-processing logic.
+            raw_results = self.model.process_logits(onnx_outputs_torch)
+        else:
+            print("Classifying prompts using PyTorch model.")
+            with torch.no_grad():
+                raw_results = self.model(encoded_texts)
 
         # tell MyPy this is indeed list[dict[str,Any]]
         results = cast(list[dict[str, Any]], raw_results)
 
         print(
-            f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
+            f"Batch classification complete: {len(results)} results for {len(prompts)} prompts (method: {'ONNX' if self.onnx_session else 'PyTorch'})"
         )
         return results
 
@@ -307,4 +437,66 @@ class PromptClassifier:
 
 @lru_cache
 def get_prompt_classifier() -> PromptClassifier:
-    return PromptClassifier()
+    settings = get_settings()
+    return PromptClassifier(
+        use_quantized_onnx=settings.model_selection.use_quantized_onnx,
+        onnx_model_path=settings.model_selection.onnx_model_path,
+    )
+
+
+def quantize_onnx_model(
+    onnx_model_path: str | Path,
+    quantized_model_output_path: str | Path,
+) -> None:
+    """
+    Quantizes an ONNX model using Optimum ONNX Runtime.
+
+    Args:
+        onnx_model_path: Path to the input ONNX model.
+        quantized_model_output_path: Path to save the quantized ONNX model.
+    """
+    print(f"Loading ONNX model from: {onnx_model_path}")
+    onnx_model_path = Path(onnx_model_path)
+    quantized_model_output_path = Path(quantized_model_output_path)
+
+    if not onnx_model_path.exists():
+        print(f"Error: ONNX model not found at {onnx_model_path}")
+        raise FileNotFoundError(f"ONNX model not found at {onnx_model_path}")
+
+    # Create the quantizer
+    quantizer = ORTQuantizer.from_pretrained(onnx_model_path.parent, file_name=onnx_model_path.name)
+
+    # Define the quantization configuration for dynamic quantization
+    # Using QInt8 for activations and weights, with QDQ format
+    qconfig = QuantizationConfig(
+        quant_format=QuantFormat.QDQ,  # QDQ format for quantization
+        activation_type=QuantType.QInt8,  # Quantize activations to QInt8
+        weight_type=QuantType.QInt8,      # Quantize weights to QInt8
+        is_static=False,  # Dynamic quantization
+        # For dynamic quantization, per_channel is often not applicable or needed
+        # operators_to_quantize=['MatMul', 'Add'] # Optionally specify operators
+    )
+
+    print(f"Starting quantization for {onnx_model_path}...")
+
+    # Delete the target file if it exists from a previous run to avoid issues with ORTQuantizer
+    if quantized_model_output_path.exists():
+        quantized_model_output_path.unlink()
+
+    quantizer.quantize(
+        save_dir=quantized_model_output_path.parent,
+        quantization_config=qconfig,
+        file_name=quantized_model_output_path.name # This should specify the final file name
+    )
+
+    if quantized_model_output_path.exists():
+        print(f"Successfully quantized model saved to: {quantized_model_output_path}")
+    else:
+        # Fallback check if the name was auto-generated with _quantized suffix
+        # e.g. if onnx_model_path is dir/model.onnx, quantized_model_output_path is dir/qmodel.onnx
+        # quantizer might save to dir/model_quantized.onnx
+        # This part is tricky with Optimum's API, let's assume file_name works as specified.
+        # If not, manual renaming would be needed post-quantization.
+        # For now, we trust `file_name` parameter.
+        print(f"Warning: Quantized model may not have been saved to the exact path: {quantized_model_output_path}")
+        print(f"Please check in {quantized_model_output_path.parent} for a file with a '_quantized' suffix if the expected file is missing.")
