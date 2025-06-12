@@ -1665,7 +1665,10 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=1.26.0", markers = "python_version >= \"3.12\""}
+numpy = [
+    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
+]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
 tzdata = ">=2022.7"
@@ -2675,6 +2678,7 @@ description = "Easily download, build, install, upgrade, and uninstall Python pa
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
+markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\" or python_version >= \"3.12\""
 files = [
     {file = "setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922"},
     {file = "setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c"},
@@ -3373,5 +3377,5 @@ files = [
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.12"
-content-hash = "2819602e34ed6d3993479f6630f5143e580ecea69e22123b2a3e0eb77365def3"
+python-versions = ">=3.11,<=4.0"
+content-hash = "3b5997030c77ff227a6098d0aa0c6867736c6408c8f55053a7d287bc3417a0d7"
