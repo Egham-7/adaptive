@@ -10,7 +10,6 @@ require (
 	github.com/botirk38/semanticcache v0.1.1
 	github.com/clerk/clerk-sdk-go/v2 v2.2.0
 	github.com/gofiber/fiber/v2 v2.52.6
-	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/openai/openai-go v1.1.0
 	github.com/prometheus/client_golang v1.22.0
