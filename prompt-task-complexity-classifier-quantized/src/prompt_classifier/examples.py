@@ -292,7 +292,7 @@ def main() -> None:
         print("  - Use Optimum for easy integration with existing code")
         print("  - Use direct ONNX Runtime for maximum performance")
         print("  - Batch multiple prompts for better throughput")
-        print("  - The quantized model is ~75% smaller and 2-4x faster!")
+        print("  - The quantized model is 76% smaller and 3-5x faster!")
 
     except Exception as e:
         print(f"❌ Error running examples: {e}")

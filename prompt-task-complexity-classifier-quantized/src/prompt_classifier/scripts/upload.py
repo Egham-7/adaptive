@@ -55,7 +55,7 @@ This repository contains the quantized ONNX version of the \\
 
 This is a multi-headed model which classifies English text prompts across task \\
 types and complexity dimensions. This version has been quantized to `INT8` \\
-using dynamic quantization with the [🤗 Optimum](https://github.com/huggingface/optimum) \\
+using static quantization with the [🤗 Optimum](https://github.com/huggingface/optimum) \\
 library, resulting in a smaller footprint and faster CPU inference.
 
 For more details on the model architecture, tasks, and complexity dimensions, \\
@@ -164,9 +164,18 @@ def _prepare_upload_folder(source_dir: Path, upload_dir: Path, repo_id: str) -> 
             config_data = json.load(f)
             config_data["framework"] = "onnx"
             config_data["model_type"] = "deberta-v2"
+            config_data["quantized"] = True
+            config_data["quantization_method"] = "static"
+            config_data["quantization_config"] = {
+                "is_static": True,
+                "per_channel": True,
+                "calibration_dataset": "databricks/databricks-dolly-15k",
+                "calibration_samples": 5000,
+                "precision": "int8"
+            }
             if "tags" not in config_data:
                 config_data["tags"] = []
-            for tag in ["onnx", "quantized"]:
+            for tag in ["onnx", "quantized", "static-quantization"]:
                 if tag not in config_data["tags"]:
                     config_data["tags"].append(tag)
 

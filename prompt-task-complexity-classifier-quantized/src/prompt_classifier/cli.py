@@ -29,7 +29,7 @@ def main() -> None:
 
     # Quantize command
     quantize_parser = subparsers.add_parser(
-        "quantize", help="Quantize the original model to ONNX format"
+        "quantize", help="Quantize the original model to ONNX format using static quantization"
     )
     quantize_parser.add_argument(
         "--model-id",
@@ -51,6 +51,12 @@ def main() -> None:
         type=int,
         default=128,
         help="Sequence length for ONNX export",
+    )
+    quantize_parser.add_argument(
+        "--num-calibration-samples",
+        type=int,
+        default=5000,
+        help="Number of samples to use for static quantization calibration",
     )
 
     # Classify command
@@ -153,6 +159,8 @@ def cmd_quantize(args: argparse.Namespace) -> None:
         args.model_id,
         "--output_dir",
         str(output_dir),
+        "--num_calibration_samples",
+        str(args.num_calibration_samples),
     ]
 
     try:

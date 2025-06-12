@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "prompt-task-complexity-classifier-quantized"
 version = "0.1.0"
-description = "Quantized ONNX version of NVIDIA's prompt task and complexity classifier for fast CPU inference"
+description = "Statically quantized ONNX version of NVIDIA's prompt task and complexity classifier for fast CPU inference"
 authors = ["Adaptive AI Team <team@adaptive-ai.com>"]
 license = "Apache-2.0"
 readme = "README.md"
