@@ -1,9 +1,10 @@
 import argparse
 import json
+import logging  # For logging
 from pathlib import Path
 import sys
+
 import torch
-import logging  # For logging
 
 # Add project root to sys.path for direct script execution
 # Assumes the script is in adaptive_ai/scripts/
@@ -12,15 +13,17 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 try:
-    from transformers import AutoConfig
     from optimum.onnxruntime import ORTQuantizer  # type: ignore[import-not-found]
-    from optimum.onnxruntime.configuration import QuantizationConfig, QuantFormat, QuantType  # type: ignore[import-not-found]
+    from optimum.onnxruntime.configuration import (  # type: ignore[import-not-found]
+        QuantFormat,
+        QuantizationConfig,
+        QuantType,
+    )
+    from transformers import AutoConfig
 
     # Import necessary components from the adaptive_ai services
     from adaptive_ai.services.prompt_classifier import (
         CustomModel,
-        MeanPooling,
-        MulticlassHead,
     )
 except ImportError as e:
     # This basic logger will be used if module-level logger setup fails or before it.
@@ -157,19 +160,19 @@ def main() -> None:
             logger.info(
                 f"Overriding task_type_map with contents from: {args.task_type_map_json}"
             )
-            with open(args.task_type_map_json, "r") as f:
+            with open(args.task_type_map_json) as f:
                 task_type_map = json.load(f)
         if args.weights_map_json:
             logger.info(
                 f"Overriding weights_map with contents from: {args.weights_map_json}"
             )
-            with open(args.weights_map_json, "r") as f:
+            with open(args.weights_map_json) as f:
                 weights_map = json.load(f)
         if args.divisor_map_json:
             logger.info(
                 f"Overriding divisor_map with contents from: {args.divisor_map_json}"
             )
-            with open(args.divisor_map_json, "r") as f:
+            with open(args.divisor_map_json) as f:
                 divisor_map = json.load(f)
     except FileNotFoundError as e:
         logger.error(f"Error loading JSON map override: {e}")
