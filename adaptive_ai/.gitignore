@@ -63,5 +63,4 @@ Thumbs.db
 *.pth
 *.ckpt
 data/
-models/
 hf_cache/

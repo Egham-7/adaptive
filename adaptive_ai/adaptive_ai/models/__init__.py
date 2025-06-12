@@ -5,13 +5,15 @@ This module contains data models, request/response schemas,
 and type definitions used throughout the application.
 """
 
-from .requests import PromptRequest, ModelSelectionResponse
-from .types import TaskType, ComplexityLevel, ModelProvider
+from .parameters import OpenAIParameters
+from .requests import ModelSelectionResponse, PromptRequest
+from .types import ComplexityLevel, ModelProvider, TaskType
 
 __all__ = [
-    "PromptRequest",
-    "ModelSelectionResponse",
-    "TaskType",
     "ComplexityLevel",
     "ModelProvider",
+    "ModelSelectionResponse",
+    "OpenAIParameters",
+    "PromptRequest",
+    "TaskType",
 ]

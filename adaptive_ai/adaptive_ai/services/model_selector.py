@@ -5,6 +5,7 @@ import os
 from typing import cast
 
 from adaptive_ai.core.config import get_settings
+from adaptive_ai.models.parameters import OpenAIParameters
 from adaptive_ai.models.requests import ModelSelectionResponse
 from adaptive_ai.models.types import (
     VALID_TASK_TYPES,
@@ -15,7 +16,6 @@ from adaptive_ai.models.types import (
     TaskModelMapping,
     TaskType,
 )
-from adaptive_ai.services.llm_parameters import OpenAIParameters
 from adaptive_ai.services.prompt_classifier import PromptClassifier
 
 logger = logging.getLogger(__name__)
