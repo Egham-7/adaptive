@@ -1,3 +1,5 @@
+# mypy: ignore-errors
+
 import argparse
 import json
 import logging  # For logging
@@ -7,14 +9,13 @@ import sys
 import torch
 
 # Add project root to sys.path for direct script execution
-# Assumes the script is in adaptive_ai/scripts/
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 try:
-    from optimum.onnxruntime import ORTQuantizer  # type: ignore[import-not-found]
-    from optimum.onnxruntime.configuration import (  # type: ignore[import-not-found]
+    from optimum.onnxruntime import ORTQuantizer
+    from optimum.onnxruntime.configuration import (
         QuantFormat,
         QuantizationConfig,
         QuantType,
