@@ -194,18 +194,17 @@ Thumbs.db
 
 # Project-specific ignores
 
-# Model files (if not using Git LFS)
-# *.onnx
-# *.bin
-# *.safetensors
-# *.pkl
-# *.h5
-# *.tflite
-# *.tar.gz
-# *.ot
-# *.arrow
-# *.ftz
-# *.joblib
+ *.onnx
+*.bin
+ *.safetensors
+ *.pkl
+ *.h5
+ *.tflite
+ *.tar.gz
+ *.ot
+ *.arrow
+*.ftz
+ *.joblib
 
 # Temporary model artifacts
 temp_quantization_artifacts/
