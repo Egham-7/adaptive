@@ -197,7 +197,7 @@ def main() -> None:
     parser.add_argument(
         "--model-path",
         type=str,
-        default="./quantized_model_output",
+        default="./quantized_model",
         help="Path to directory containing quantized model files",
     )
     parser.add_argument(
