@@ -11,10 +11,19 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
         self.settings = get_settings()
         self.model_selector = get_model_selector(get_prompt_classifier())
 
-    def decode_request(self, request: PromptRequest) -> str:
-        return request.prompt
+    def decode_request(self, request: PromptRequest) -> PromptRequest:
+        return request
 
-    def predict(self, prompts: list[str]) -> list[ModelSelectionResponse]:
+    def predict(self, requests: list[PromptRequest]) -> list[ModelSelectionResponse]:
+        # Extract prompts and cost bias
+        prompts = [req.prompt for req in requests]
+        # Use the cost bias from the first request if available, otherwise use default
+        cost_bias = requests[0].cost_bias if requests else 0.5
+
+        # Update cost bias
+        self.settings.model_selection.cost_bias = cost_bias
+
+        # Process all prompts with the same cost bias
         return self.model_selector.select_model(prompts)
 
     def encode_response(self, output: ModelSelectionResponse) -> ModelSelectionResponse:
