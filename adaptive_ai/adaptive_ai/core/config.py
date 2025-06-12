@@ -48,8 +48,6 @@ class ModelSelectionConfig(BaseModel):
     fallback_model: str = "gpt-3.5-turbo"
     cache_embeddings: bool = True
     cache_ttl: int = 3600
-    use_quantized_onnx: bool = False
-    onnx_model_path: str | None = None
 
 
 class LoggingConfig(BaseModel):
