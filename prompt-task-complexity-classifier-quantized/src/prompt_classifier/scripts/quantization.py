@@ -9,17 +9,17 @@ This script implements a robust pipeline for custom models:
 """
 import argparse
 import logging
+from pathlib import Path
 import shutil
 import sys
 import traceback
-from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Any, cast
 
-import numpy as np
-import onnxruntime as ort
-import torch
-import torch.nn as nn
 from huggingface_hub import PyTorchModelHubMixin
+import numpy as np
+import torch
+from torch import Tensor
+import torch.nn as nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 # Setup logging
@@ -31,14 +31,12 @@ logger = logging.getLogger(__name__)
 
 # --- PyTorch Model Definition (from the official model card) ---
 class MeanPooling(nn.Module):
-    def __init__(self):
-        super(MeanPooling, self).__init__()
+    def __init__(self) -> None:
+        super().__init__()
 
-    def forward(self, last_hidden_state, attention_mask):
+    def forward(self, last_hidden_state: Tensor, attention_mask: Tensor) -> Tensor:
         input_mask_expanded = (
-            attention_mask.unsqueeze(-1)
-            .expand(last_hidden_state.size())
-            .float()
+            attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
         )
         sum_embeddings = torch.sum(last_hidden_state * input_mask_expanded, 1)
         sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
@@ -46,23 +44,29 @@ class MeanPooling(nn.Module):
 
 
 class MulticlassHead(nn.Module):
-    def __init__(self, input_size, num_classes):
-        super(MulticlassHead, self).__init__()
+    def __init__(self, input_size: int, num_classes: int) -> None:
+        super().__init__()
         self.fc = nn.Linear(input_size, num_classes)
 
-    def forward(self, x):
-        return self.fc(x)
+    def forward(self, x: Tensor) -> Tensor:
+        return cast(Tensor, self.fc(x))
 
 
 class CustomModel(nn.Module, PyTorchModelHubMixin):
-    def __init__(self, target_sizes, task_type_map, weights_map, divisor_map):
-        super(CustomModel, self).__init__()
+    def __init__(
+        self,
+        target_sizes: dict[str, int],
+        task_type_map: dict[str, str],
+        weights_map: dict[str, list[float]],
+        divisor_map: dict[str, float],
+    ) -> None:
+        super().__init__()
         self.backbone = AutoModel.from_pretrained("microsoft/DeBERTa-v3-base")
-        self.target_names = list(target_sizes.keys())
-        self.target_sizes_values = target_sizes.values()
-        self.task_type_map = task_type_map
-        self.weights_map = weights_map
-        self.divisor_map = divisor_map
+        self.target_names: list[str] = list(target_sizes.keys())
+        self.target_sizes_values: list[int] = list(target_sizes.values())
+        self.task_type_map: dict[str, str] = task_type_map
+        self.weights_map: dict[str, list[float]] = weights_map
+        self.divisor_map: dict[str, float] = divisor_map
 
         self.heads = nn.ModuleList(
             [
@@ -73,26 +77,22 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         self.pool = MeanPooling()
 
     def forward(
-        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
-    ) -> Dict[str, List]:
+        self, input_ids: Tensor, attention_mask: Tensor
+    ) -> dict[str, list[Any]]:
         logits_tuple = self.forward_for_onnx(input_ids, attention_mask)
         return self._process_logits(logits_tuple)
 
     def forward_for_onnx(
-        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
-    ) -> Tuple[torch.Tensor, ...]:
+        self, input_ids: Tensor, attention_mask: Tensor
+    ) -> tuple[Tensor, ...]:
         """A forward pass that returns a tuple of tensors, suitable for ONNX export."""
-        outputs = self.backbone(
-            input_ids=input_ids, attention_mask=attention_mask
-        )
+        outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
         pooled_output = self.pool(outputs.last_hidden_state, attention_mask)
         return tuple(head(pooled_output) for head in self.heads)
 
-    def _process_logits(
-        self, logits_tuple: Tuple[torch.Tensor, ...]
-    ) -> Dict[str, List]:
+    def _process_logits(self, logits_tuple: tuple[Tensor, ...]) -> dict[str, list[Any]]:
         """Applies post-processing to the raw logits to get the final scores."""
-        result = {}
+        result: dict[str, list[Any]] = {}
         for i, target in enumerate(self.target_names):
             preds = logits_tuple[i]
             if target == "task_type":
@@ -105,12 +105,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
         result["prompt_complexity_score"] = [
             round(
-                0.35 * c
-                + 0.25 * r
-                + 0.15 * con
-                + 0.15 * dk
-                + 0.05 * ck
-                + 0.05 * fs,
+                0.35 * c + 0.25 * r + 0.15 * con + 0.15 * dk + 0.05 * ck + 0.05 * fs,
                 5,
             )
             for c, r, con, dk, ck, fs in zip(
@@ -120,24 +115,31 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                 result["domain_knowledge"],
                 result["contextual_knowledge"],
                 result["number_of_few_shots"],
+                strict=False,
             )
         ]
         return result
 
-    def _compute_task_type(self, preds):
+    def _compute_task_type(
+        self, preds: Tensor | np.ndarray[Any, np.dtype[np.float_]]
+    ) -> tuple[list[str], list[str], list[float]]:
         if isinstance(preds, np.ndarray):
             preds = torch.from_numpy(preds)
         top2_indices = torch.topk(preds, k=2, dim=1).indices
         softmax_probs = torch.softmax(preds, dim=1)
         top2_probs = softmax_probs.gather(1, top2_indices)
-        top2 = top2_indices.detach().cpu().tolist()
-        top2_prob = top2_probs.detach().cpu().tolist()
-        top2_strings = [
-            [self.task_type_map[str(idx)] for idx in sample] for sample in top2
-        ]
-        top2_prob_rounded = [
+        top2: list[list[int]] = top2_indices.detach().cpu().tolist()
+        top2_prob: list[list[float]] = top2_probs.detach().cpu().tolist()
+
+        # Explicitly declare the type for top2_prob_rounded
+        top2_prob_rounded: list[list[float]] = [
             [round(v, 3) for v in sublist] for sublist in top2_prob
         ]
+
+        top2_strings: list[list[str]] = [
+            [self.task_type_map[str(idx)] for idx in sample] for sample in top2
+        ]
+
         for i, sublist in enumerate(top2_prob_rounded):
             if sublist[1] < 0.1:
                 top2_strings[i][1] = "NA"
@@ -147,41 +149,44 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             [p[0] for p in top2_prob_rounded],
         )
 
-    def _compute_score(self, preds, target, decimal=4):
+    def _compute_score(
+        self,
+        preds: Tensor | np.ndarray[Any, np.dtype[np.float_]],
+        target: str,
+        decimal: int = 4,
+    ) -> list[float]:
         if isinstance(preds, np.ndarray):
             preds = torch.from_numpy(preds)
-        preds = torch.softmax(preds, dim=1)
-        weights = np.array(self.weights_map[target])
-        weighted_sum = np.sum(
-            np.array(preds.detach().cpu()) * weights, axis=1
+        preds_softmax = torch.softmax(preds, dim=1)
+        weights: np.ndarray[Any, np.dtype[np.float_]] = np.array(
+            self.weights_map[target]
         )
-        scores = weighted_sum / self.divisor_map[target]
-        scores = [round(v, decimal) for v in scores]
+        weighted_sum = np.sum(preds_softmax.detach().cpu().numpy() * weights, axis=1)
+        scores_arr: np.ndarray[Any, np.dtype[np.float_]] = (
+            weighted_sum / self.divisor_map[target]
+        )
+        scores: list[float] = [round(float(v), decimal) for v in scores_arr]
         if target == "number_of_few_shots":
-            scores = [x if x >= 0.05 else 0 for x in scores]
+            scores = [x if x >= 0.05 else 0.0 for x in scores]
         return scores
 
 
 class OnnxExportWrapper(nn.Module):
     """A wrapper to direct the ONNX exporter to the correct forward method."""
 
-    def __init__(self, model: CustomModel):
+    def __init__(self, model: CustomModel) -> None:
         super().__init__()
         self.model = model
 
-    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor):
+    def forward(self, input_ids: Tensor, attention_mask: Tensor) -> tuple[Tensor, ...]:
         return self.model.forward_for_onnx(input_ids, attention_mask)
 
 
 # --- Quantization and Inference Logic ---
-def quantize_model(
-    model_id: str, output_dir: Path
-) -> Tuple[Path, Path]:
+def quantize_model(model_id: str, output_dir: Path) -> tuple[Path, Path]:
     """Exports the custom model to ONNX and then quantizes it using Optimum."""
     from optimum.onnxruntime import ORTQuantizer
-    from optimum.onnxruntime.configuration import (
-        AutoQuantizationConfig,
-    )
+    from optimum.onnxruntime.configuration import AutoQuantizationConfig
 
     onnx_dir = output_dir / "onnx_export"
     quantized_dir = output_dir / "quantized_model"
@@ -192,12 +197,15 @@ def quantize_model(
     config = AutoConfig.from_pretrained(model_id)
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
-    model = CustomModel(
-        target_sizes=config.target_sizes,
-        task_type_map=config.task_type_map,
-        weights_map=config.weights_map,
-        divisor_map=config.divisor_map,
-    ).from_pretrained(model_id)
+    # We cast here because mypy doesn't know about custom config attributes
+    model: CustomModel = CustomModel(
+        target_sizes=cast(dict[str, int], config.target_sizes),
+        task_type_map=cast(dict[str, str], config.task_type_map),
+        weights_map=cast(dict[str, list[float]], config.weights_map),
+        divisor_map=cast(dict[str, float], config.divisor_map),
+    ).from_pretrained(
+        model_id
+    )  # type: ignore
     model.eval()
 
     logger.info("Step 2: Manually exporting model to ONNX via a wrapper...")
@@ -231,30 +239,25 @@ def quantize_model(
 
     logger.info("Step 3: Quantizing ONNX model with Optimum...")
     quantizer = ORTQuantizer.from_pretrained(str(onnx_dir))
-    qconfig = AutoQuantizationConfig.avx512_vnni(
-        is_static=False, per_channel=True
-    )
+    qconfig = AutoQuantizationConfig.avx512_vnni(is_static=False, per_channel=True)
 
     try:
         quantizer.quantize(save_dir=quantized_dir, quantization_config=qconfig)
     except Exception as e:
         logger.warning(f"AVX512 quantization failed: {e}. Trying ARM64...")
-        qconfig = AutoQuantizationConfig.arm64(
-            is_static=False, per_channel=False
-        )
+        qconfig = AutoQuantizationConfig.arm64(is_static=False, per_channel=False)
         quantizer.quantize(save_dir=quantized_dir, quantization_config=qconfig)
 
     quantized_path = quantized_dir / "model_quantized.onnx"
     if not quantized_path.exists():
-        raise FileNotFoundError(
-            f"Quantized model not found at {quantized_path}"
-        )
+        raise FileNotFoundError(f"Quantized model not found at {quantized_path}")
 
     logger.info(f"✅ Quantized model created at: {quantized_path}")
     return onnx_path, quantized_path
 
 
-def main():
+def main() -> None:
+    """Main entry point for the quantization script."""
     parser = argparse.ArgumentParser(
         description="Quantize the prompt task complexity classifier model.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -302,9 +305,7 @@ def main():
         logger.info("🎉 QUANTIZATION COMPLETE 🎉")
         logger.info(f"Original ONNX model size: {original_size:.2f} MB")
         logger.info(f"Quantized model size: {quantized_size:.2f} MB")
-        logger.info(
-            f"Compression Ratio: {original_size / quantized_size:.1f}x"
-        )
+        logger.info(f"Compression Ratio: {original_size / quantized_size:.1f}x")
         logger.info(f"Final model saved to: {args.output_dir}")
         logger.info("=" * 50)
 

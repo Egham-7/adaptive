@@ -88,6 +88,8 @@ extend-exclude = '''
 [tool.ruff]
 target-version = "py313"
 line-length = 88
+
+[tool.ruff.lint]
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -109,12 +111,12 @@ ignore = [
     "T201",  # print found
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/*" = ["S101", "S105", "S106", "T201"]
 "src/prompt_classifier/scripts/*" = ["T201"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["prompt_classifier"]
 force-sort-within-sections = true
 

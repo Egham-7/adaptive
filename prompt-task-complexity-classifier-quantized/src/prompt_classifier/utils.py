@@ -7,10 +7,14 @@ file validation, and other common operations.
 
 import json
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Union
+from typing import TYPE_CHECKING, Any, cast
+
+# This is a forward reference to prevent circular imports during type checking
+if TYPE_CHECKING:
+    from .classifier import QuantizedPromptClassifier
 
 
-def load_model_config(model_path: Union[str, Path]) -> Dict[str, Any]:
+def load_model_config(model_path: str | Path) -> dict[str, Any]:
     """
     Load model configuration from config.json file.
 
@@ -29,13 +33,13 @@ def load_model_config(model_path: Union[str, Path]) -> Dict[str, Any]:
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
-    with open(config_path, "r", encoding="utf-8") as f:
+    with open(config_path, encoding="utf-8") as f:
         config = json.load(f)
 
-    return config
+    return cast(dict[str, Any], config)
 
 
-def validate_model_files(model_path: Union[str, Path]) -> List[str]:
+def validate_model_files(model_path: str | Path) -> list[str]:
     """
     Validate that all required model files are present.
 
@@ -53,10 +57,10 @@ def validate_model_files(model_path: Union[str, Path]) -> List[str]:
         "tokenizer.json",
         "tokenizer_config.json",
         "special_tokens_map.json",
-        "vocab.txt"
+        "vocab.txt",
     ]
 
-    missing_files = []
+    missing_files: list[str] = []
     for file_name in required_files:
         if not (model_path / file_name).exists():
             missing_files.append(file_name)
@@ -64,7 +68,7 @@ def validate_model_files(model_path: Union[str, Path]) -> List[str]:
     return missing_files
 
 
-def get_file_size(file_path: Union[str, Path]) -> str:
+def get_file_size(file_path: str | Path) -> str:
     """
     Get human-readable file size.
 
@@ -79,17 +83,20 @@ def get_file_size(file_path: Union[str, Path]) -> str:
     if not file_path.exists():
         return "N/A"
 
-    size_bytes = file_path.stat().st_size
+    size_bytes: float = float(file_path.stat().st_size)
 
-    for unit in ['B', 'KB', 'MB', 'GB']:
+    for unit in ["B", "KB", "MB", "GB"]:
         if size_bytes < 1024:
+            # For Bytes, don't show a decimal point
+            if unit == "B":
+                return f"{int(size_bytes)} {unit}"
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024
 
     return f"{size_bytes:.1f} TB"
 
 
-def validate_config_structure(config: Dict[str, Any]) -> bool:
+def validate_config_structure(config: dict[str, Any]) -> bool:
     """
     Validate that config has required fields for the classifier.
 
@@ -103,7 +110,7 @@ def validate_config_structure(config: Dict[str, Any]) -> bool:
         "target_sizes",
         "task_type_map",
         "weights_map",
-        "divisor_map"
+        "divisor_map",
     ]
 
     for field in required_fields:
@@ -115,9 +122,14 @@ def validate_config_structure(config: Dict[str, Any]) -> bool:
         return False
 
     expected_targets = [
-        "task_type", "creativity_scope", "reasoning",
-        "contextual_knowledge", "number_of_few_shots",
-        "domain_knowledge", "no_label_reason", "constraint_ct"
+        "task_type",
+        "creativity_scope",
+        "reasoning",
+        "contextual_knowledge",
+        "number_of_few_shots",
+        "domain_knowledge",
+        "no_label_reason",
+        "constraint_ct",
     ]
 
     for target in expected_targets:
@@ -127,30 +139,30 @@ def validate_config_structure(config: Dict[str, Any]) -> bool:
     return True
 
 
-def format_results_for_display(results: Dict[str, Any]) -> str:
+def format_results_for_display(results: dict[str, Any]) -> str:
     """
     Format classification results for human-readable display.
 
     Args:
-        results: Classification results from the model
+        results: Classification results from the model for a single prompt.
 
     Returns:
         Formatted string representation
     """
-    output_lines = []
+    output_lines: list[str] = []
 
     # Task type
     if "task_type_1" in results:
-        task_type = results["task_type_1"][0]
-        confidence = results.get("task_type_prob", [0])[0]
+        task_type = results["task_type_1"]
+        confidence = results.get("task_type_prob", 0.0)
         output_lines.append(f"Task Type: {task_type} (confidence: {confidence:.3f})")
 
-        if "task_type_2" in results and results["task_type_2"][0] != "NA":
-            output_lines.append(f"Secondary Task: {results['task_type_2'][0]}")
+        if "task_type_2" in results and results["task_type_2"] != "NA":
+            output_lines.append(f"Secondary Task: {results['task_type_2']}")
 
     # Complexity score
     if "prompt_complexity_score" in results:
-        complexity = results["prompt_complexity_score"][0]
+        complexity = results["prompt_complexity_score"]
         output_lines.append(f"Complexity Score: {complexity:.3f}")
 
     # Individual dimensions
@@ -160,18 +172,19 @@ def format_results_for_display(results: Dict[str, Any]) -> str:
         ("Context Knowledge", "contextual_knowledge"),
         ("Domain Knowledge", "domain_knowledge"),
         ("Few-shot Learning", "number_of_few_shots"),
-        ("Constraints", "constraint_ct")
+        ("Constraints", "constraint_ct"),
     ]
 
+    output_lines.append("-" * 20)
     for display_name, key in dimensions:
         if key in results:
-            value = results[key][0]
-            output_lines.append(f"{display_name}: {value:.3f}")
+            value = results[key]
+            output_lines.append(f"{display_name:<20}: {value:.3f}")
 
     return "\n".join(output_lines)
 
 
-def create_model_summary(model_path: Union[str, Path]) -> Dict[str, Any]:
+def create_model_summary(model_path: str | Path) -> dict[str, Any]:
     """
     Create a summary of model information.
 
@@ -183,13 +196,13 @@ def create_model_summary(model_path: Union[str, Path]) -> Dict[str, Any]:
     """
     model_path = Path(model_path)
 
-    summary = {
-        "model_path": str(model_path),
+    summary: dict[str, Any] = {
+        "model_path": str(model_path.resolve()),
         "files_present": [],
         "files_missing": [],
         "model_size": "N/A",
         "config_valid": False,
-        "total_parameters": "N/A"
+        "total_parameters": "N/A",
     }
 
     # Check files
@@ -197,8 +210,12 @@ def create_model_summary(model_path: Union[str, Path]) -> Dict[str, Any]:
     summary["files_missing"] = missing_files
 
     all_files = [
-        "model_quantized.onnx", "config.json", "tokenizer.json",
-        "tokenizer_config.json", "special_tokens_map.json", "vocab.txt"
+        "model_quantized.onnx",
+        "config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "special_tokens_map.json",
+        "vocab.txt",
     ]
     summary["files_present"] = [f for f in all_files if f not in missing_files]
 
@@ -212,7 +229,7 @@ def create_model_summary(model_path: Union[str, Path]) -> Dict[str, Any]:
         config = load_model_config(model_path)
         summary["config_valid"] = validate_config_structure(config)
 
-        if "target_sizes" in config:
+        if "target_sizes" in config and isinstance(config["target_sizes"], dict):
             total_outputs = sum(config["target_sizes"].values())
             summary["total_parameters"] = f"{total_outputs} output dimensions"
 
@@ -233,16 +250,16 @@ def setup_logging(level: str = "INFO") -> None:
 
     logging.basicConfig(
         level=getattr(logging, level.upper()),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
 
 def benchmark_inference_speed(
-    classifier,
-    test_prompts: List[str],
+    classifier: "QuantizedPromptClassifier",
+    test_prompts: list[str],
     num_runs: int = 5,
-    warmup_runs: int = 2
-) -> Dict[str, float]:
+    warmup_runs: int = 2,
+) -> dict[str, float]:
     """
     Benchmark inference speed of the classifier.
 
@@ -256,6 +273,7 @@ def benchmark_inference_speed(
         Dictionary with timing statistics
     """
     import time
+
     import numpy as np
 
     # Warmup
@@ -263,20 +281,21 @@ def benchmark_inference_speed(
         classifier.classify_prompts(test_prompts)
 
     # Benchmark
-    times = []
+    times: list[float] = []
     for _ in range(num_runs):
         start_time = time.time()
         classifier.classify_prompts(test_prompts)
         end_time = time.time()
         times.append(end_time - start_time)
 
-    times = np.array(times)
+    times_arr = np.array(times)
+    mean_time = float(np.mean(times_arr))
 
     return {
-        "mean_time": float(np.mean(times)),
-        "std_time": float(np.std(times)),
-        "min_time": float(np.min(times)),
-        "max_time": float(np.max(times)),
-        "throughput": len(test_prompts) / np.mean(times),
-        "avg_per_prompt": np.mean(times) / len(test_prompts)
+        "mean_time": mean_time,
+        "std_time": float(np.std(times_arr)),
+        "min_time": float(np.min(times_arr)),
+        "max_time": float(np.max(times_arr)),
+        "throughput": len(test_prompts) / mean_time,
+        "avg_per_prompt": mean_time / len(test_prompts),
     }
