@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import sys
 import torch
-import logging # For logging
+import logging  # For logging
 
 # Add project root to sys.path for direct script execution
 # Assumes the script is in adaptive_ai/scripts/
@@ -13,19 +13,29 @@ if str(PROJECT_ROOT) not in sys.path:
 
 try:
     from transformers import AutoConfig
-    from optimum.onnxruntime import ORTQuantizer
-    from optimum.onnxruntime.configuration import QuantizationConfig, QuantFormat, QuantType
+    from optimum.onnxruntime import ORTQuantizer  # type: ignore[import-not-found]
+    from optimum.onnxruntime.configuration import QuantizationConfig, QuantFormat, QuantType  # type: ignore[import-not-found]
+
     # Import necessary components from the adaptive_ai services
-    from adaptive_ai.services.prompt_classifier import CustomModel, MeanPooling, MulticlassHead
+    from adaptive_ai.services.prompt_classifier import (
+        CustomModel,
+        MeanPooling,
+        MulticlassHead,
+    )
 except ImportError as e:
     # This basic logger will be used if module-level logger setup fails or before it.
-    print(f"CRITICAL: Failed to import necessary libraries: {e}. "
-          "Please ensure all dependencies (transformers, optimum, onnxruntime) are installed "
-          "and that the adaptive_ai package is correctly in PYTHONPATH or installed.", file=sys.stderr)
+    print(
+        f"CRITICAL: Failed to import necessary libraries: {e}. "
+        "Please ensure all dependencies (transformers, optimum, onnxruntime) are installed "
+        "and that the adaptive_ai package is correctly in PYTHONPATH or installed.",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 # Setup basic logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -34,34 +44,37 @@ class CustomModelExportWrapper(torch.nn.Module):
     A wrapper around CustomModel to provide a forward method suitable for ONNX export,
     which directly returns a tuple of logit tensors.
     """
+
     def __init__(self, custom_model_instance: CustomModel):
         super().__init__()
         self.model = custom_model_instance
         # Ensure the wrapped model is in evaluation mode
         self.model.eval()
 
-    def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> tuple[torch.Tensor, ...]:
+    def forward(
+        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+    ) -> tuple[torch.Tensor, ...]:
         # Directly use the components of CustomModel to get raw logits
-        outputs = self.model.backbone(input_ids=input_ids, attention_mask=attention_mask)
+        outputs = self.model.backbone(
+            input_ids=input_ids, attention_mask=attention_mask
+        )
         last_hidden_state = outputs.last_hidden_state
         mean_pooled_representation = self.model.pool(last_hidden_state, attention_mask)
         # Assuming self.model.heads is a list or nn.ModuleList of head modules
-        logits = tuple(
-            head(mean_pooled_representation) for head in self.model.heads
-        )
+        logits = tuple(head(mean_pooled_representation) for head in self.model.heads)
         return logits
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Export a CustomModel to ONNX and quantize it.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "model_id_or_path",
         type=str,
         help="Hugging Face model ID or path to local model directory for config loading "
-             "(e.g., 'nvidia/prompt-task-and-complexity-classifier').",
+        "(e.g., 'nvidia/prompt-task-and-complexity-classifier').",
     )
     parser.add_argument(
         "--onnx_output_path",
@@ -79,7 +92,7 @@ def main():
         "--task_type_map_json",
         type=str,
         default=None,
-        help="Path to a JSON file for task_type_map (overrides config). Example: '{\"0\": \"TypeA\"}'.",
+        help='Path to a JSON file for task_type_map (overrides config). Example: \'{"0": "TypeA"}\'.',
     )
     parser.add_argument(
         "--weights_map_json",
@@ -128,25 +141,35 @@ def main():
         sys.exit(1)
 
     # Extract necessary parameters from config or use sensible defaults if not found
-    target_sizes = getattr(hf_config, "target_sizes", {"task_type": 8, "creativity_scope": 5}) # Example default
+    target_sizes = getattr(
+        hf_config, "target_sizes", {"task_type": 8, "creativity_scope": 5}
+    )  # Example default
     task_type_map = getattr(hf_config, "task_type_map", {"0": "DefaultType"})
     weights_map = getattr(hf_config, "weights_map", {"default_category": [1.0]})
     divisor_map = getattr(hf_config, "divisor_map", {"default_category": 1.0})
-    vocab_size = getattr(hf_config, "vocab_size", 30522) # Default for many BERT-like models
+    vocab_size = getattr(
+        hf_config, "vocab_size", 30522
+    )  # Default for many BERT-like models
 
     # Override maps if JSON file paths are provided
     try:
         if args.task_type_map_json:
-            logger.info(f"Overriding task_type_map with contents from: {args.task_type_map_json}")
-            with open(args.task_type_map_json, 'r') as f:
+            logger.info(
+                f"Overriding task_type_map with contents from: {args.task_type_map_json}"
+            )
+            with open(args.task_type_map_json, "r") as f:
                 task_type_map = json.load(f)
         if args.weights_map_json:
-            logger.info(f"Overriding weights_map with contents from: {args.weights_map_json}")
-            with open(args.weights_map_json, 'r') as f:
+            logger.info(
+                f"Overriding weights_map with contents from: {args.weights_map_json}"
+            )
+            with open(args.weights_map_json, "r") as f:
                 weights_map = json.load(f)
         if args.divisor_map_json:
-            logger.info(f"Overriding divisor_map with contents from: {args.divisor_map_json}")
-            with open(args.divisor_map_json, 'r') as f:
+            logger.info(
+                f"Overriding divisor_map with contents from: {args.divisor_map_json}"
+            )
+            with open(args.divisor_map_json, "r") as f:
                 divisor_map = json.load(f)
     except FileNotFoundError as e:
         logger.error(f"Error loading JSON map override: {e}")
@@ -177,15 +200,21 @@ def main():
     logger.info(f"Starting ONNX export to: {args.onnx_output_path}")
     export_model_wrapper = CustomModelExportWrapper(custom_model)
 
-    dummy_input_ids = torch.randint(0, vocab_size, (args.batch_size, args.seq_length), dtype=torch.long)
-    dummy_attention_mask = torch.ones((args.batch_size, args.seq_length), dtype=torch.long)
+    dummy_input_ids = torch.randint(
+        0, vocab_size, (args.batch_size, args.seq_length), dtype=torch.long
+    )
+    dummy_attention_mask = torch.ones(
+        (args.batch_size, args.seq_length), dtype=torch.long
+    )
     dummy_inputs_tuple = (dummy_input_ids, dummy_attention_mask)
 
     input_names = ["input_ids", "attention_mask"]
     # Deriving output names based on the number of heads/target_sizes
     output_names = [f"output_{i}" for i in range(len(custom_model.heads))]
 
-    dynamic_axes = {name: {0: "batch_size", 1: "sequence_length"} for name in input_names}
+    dynamic_axes = {
+        name: {0: "batch_size", 1: "sequence_length"} for name in input_names
+    }
     for name in output_names:
         dynamic_axes[name] = {0: "batch_size"}
 
@@ -207,9 +236,13 @@ def main():
         sys.exit(1)
 
     # --- Quantization ---
-    logger.info(f"Starting ONNX quantization. Input: {args.onnx_output_path}, Output: {args.quantized_output_path}")
+    logger.info(
+        f"Starting ONNX quantization. Input: {args.onnx_output_path}, Output: {args.quantized_output_path}"
+    )
     try:
-        quantizer = ORTQuantizer.from_pretrained(str(onnx_output_path.parent), file_name=onnx_output_path.name)
+        quantizer = ORTQuantizer.from_pretrained(
+            str(onnx_output_path.parent), file_name=onnx_output_path.name
+        )
 
         quantization_config = QuantizationConfig(
             quant_format=QuantFormat.QDQ,
@@ -220,7 +253,9 @@ def main():
 
         # Delete target file if it exists to prevent ORTQuantizer error/warning on overwrite
         if quantized_output_path.exists():
-            logger.info(f"Pre-existing quantized model found at {quantized_output_path}, deleting it.")
+            logger.info(
+                f"Pre-existing quantized model found at {quantized_output_path}, deleting it."
+            )
             quantized_output_path.unlink()
 
         quantizer.quantize(
@@ -228,7 +263,9 @@ def main():
             file_name=quantized_output_path.name,
             quantization_config=quantization_config,
         )
-        logger.info(f"Quantized ONNX model saved successfully to {args.quantized_output_path}")
+        logger.info(
+            f"Quantized ONNX model saved successfully to {args.quantized_output_path}"
+        )
     except Exception as e:
         logger.error(f"ONNX quantization failed: {e}", exc_info=True)
         sys.exit(1)
@@ -238,4 +275,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
