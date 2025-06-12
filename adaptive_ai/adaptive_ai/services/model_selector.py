@@ -1,8 +1,9 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
 import logging
+import math
 import os
-from typing import cast
+from typing import TypedDict, cast
 
 from adaptive_ai.core.config import get_settings
 from adaptive_ai.models.parameters import OpenAIParameters
@@ -19,6 +20,11 @@ from adaptive_ai.models.types import (
 from adaptive_ai.services.prompt_classifier import PromptClassifier
 
 logger = logging.getLogger(__name__)
+
+
+class ModelEconomics(TypedDict, total=False):
+    cost: float
+    threshold: float
 
 
 class ModelSelector:
@@ -151,6 +157,42 @@ class ModelSelector:
             provider="OpenAI",
         )
 
+    def _adjust_difficulty_for_cost_bias(
+        self,
+        difficulty: DifficultyLevel,
+        complexity_score: float,
+        task_mapping: TaskModelMapping,
+    ) -> DifficultyLevel:
+        """Adjust difficulty with sigmoid-scaled cost bias."""
+        cost_bias = self._settings.model_selection.cost_bias
+
+        # Neutral bias shortcut
+        if math.isclose(cost_bias, 0.5, abs_tol=0.01):
+            return difficulty
+
+        # Calculate sigmoid-scaled adjustment
+        def sigmoid(x: float) -> float:
+            return 1 / (1 + math.exp(-x))
+
+        # Convert cost bias (-1 to 1) to sigmoid-scaled adjustment
+        bias_strength = 2 * (cost_bias - 0.5)  # [-1, 1] range
+        normalized_strength = (
+            3 * bias_strength
+        )  # More pronounced curve (adjust multiplier as needed)
+        adjustment = (
+            sigmoid(normalized_strength) - 0.5
+        ) * 0.4  # Scales to [-0.2, 0.2] range
+
+        # Apply non-linear adjustment
+        adjusted_score = complexity_score + adjustment
+
+        # Select difficulty using original threshold logic
+        if adjusted_score <= task_mapping["easy"]["complexity_threshold"]:
+            return "easy"
+        elif adjusted_score >= task_mapping["hard"]["complexity_threshold"]:
+            return "hard"
+        return "medium"
+
     def _select_difficulty_level(
         self, complexity_score: float, task_mapping: TaskModelMapping
     ) -> DifficultyLevel:
@@ -158,12 +200,19 @@ class ModelSelector:
         easy_threshold = task_mapping["easy"]["complexity_threshold"]
         hard_threshold = task_mapping["hard"]["complexity_threshold"]
 
+        # Initial difficulty selection
+        initial_difficulty: DifficultyLevel
         if complexity_score <= easy_threshold:
-            return "easy"
+            initial_difficulty = "easy"
         elif complexity_score >= hard_threshold:
-            return "hard"
+            initial_difficulty = "hard"
         else:
-            return "medium"
+            initial_difficulty = "medium"
+
+        # Adjust difficulty based on cost bias
+        return self._adjust_difficulty_for_cost_bias(
+            initial_difficulty, complexity_score, task_mapping
+        )
 
     def _calculate_match_score(
         self, complexity_score: float, selected_config: TaskDifficultyConfig

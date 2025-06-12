@@ -48,6 +48,7 @@ class ModelSelectionConfig(BaseModel):
     fallback_model: str = "gpt-3.5-turbo"
     cache_embeddings: bool = True
     cache_ttl: int = 3600
+    cost_bias: float = 0.5  # Default to 0.5 (no bias), range 0.0-1.0
 
 
 class LoggingConfig(BaseModel):
