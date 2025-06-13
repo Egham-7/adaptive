@@ -1,3 +1,4 @@
+// internal/services/metrics/circuitbreaker_metrics.go
 package metrics
 
 import (
@@ -7,78 +8,101 @@ import (
 
 // CircuitBreakerMetrics holds all Prometheus metrics related to circuit breaker operations
 type CircuitBreakerMetrics struct {
-	StateChanges      *prometheus.CounterVec
-	RequestsTotal     *prometheus.CounterVec
-	RequestDuration   *prometheus.HistogramVec
-	FailureRate       *prometheus.GaugeVec
-	SuccessRate       *prometheus.GaugeVec
-	CurrentState      *prometheus.GaugeVec
-	TimeInState       *prometheus.CounterVec
-	HalfOpenAttempts  *prometheus.CounterVec
-	TripEvents        *prometheus.CounterVec
-	RecoveryEvents    *prometheus.CounterVec
-	Timeouts          *prometheus.CounterVec
+	StateChanges     *prometheus.CounterVec
+	RequestsTotal    *prometheus.CounterVec
+	RequestDuration  *prometheus.HistogramVec
+	FailureRate      *prometheus.GaugeVec
+	SuccessRate      *prometheus.GaugeVec
+	CurrentState     *prometheus.GaugeVec
+	TimeInState      *prometheus.CounterVec
+	HalfOpenAttempts *prometheus.CounterVec
+	TripEvents       *prometheus.CounterVec
+	RecoveryEvents   *prometheus.CounterVec
+	Timeouts         *prometheus.CounterVec
 }
 
-// NewCircuitBreakerMetrics initializes and registers all circuit breaker-related Prometheus metrics
+// Declare global (package-level) variables for Prometheus metrics.
+// promauto.New*Vec functions will automatically register these with the default Prometheus registry
+// when this package is initialized. This ensures they are registered only once.
+var (
+	promStateChanges = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "circuitbreaker_state_changes_total",
+		Help: "Total number of circuit breaker state changes",
+	}, []string{"service", "from_state", "to_state"})
+
+	promRequestsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "circuitbreaker_requests_total",
+		Help: "Total number of requests processed by circuit breaker",
+	}, []string{"service", "state", "result"}) // result: "success", "failure", "rejected"
+
+	promRequestDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "circuitbreaker_request_duration_seconds",
+		Help:    "Duration of requests processed by circuit breaker",
+		Buckets: prometheus.ExponentialBuckets(0.001, 2, 15),
+	}, []string{"service", "state", "result"})
+
+	promFailureRate = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "circuitbreaker_failure_rate",
+		Help: "Current failure rate of the circuit breaker (0-1)",
+	}, []string{"service"})
+
+	promSuccessRate = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "circuitbreaker_success_rate",
+		Help: "Current success rate of the circuit breaker (0-1)",
+	}, []string{"service"})
+
+	promCurrentState = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "circuitbreaker_state",
+		Help: "Current state of the circuit breaker (0=closed, 1=open, 2=half-open)",
+	}, []string{"service"})
+
+	// CounterVec for TimeInState, as it accumulates total time
+	promTimeInState = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "circuitbreaker_time_in_state_seconds_total",
+		Help: "Total time spent in each circuit breaker state",
+	}, []string{"service", "state"})
+
+	promHalfOpenAttempts = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "circuitbreaker_half_open_attempts_total",
+		Help: "Total number of requests attempted in half-open state",
+	}, []string{"service", "result"})
+
+	promTripEvents = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "circuitbreaker_trip_events_total",
+		Help: "Total number of circuit breaker trip events",
+	}, []string{"service", "reason"}) // reason: "failure_threshold", "timeout", "manual"
+
+	promRecoveryEvents = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "circuitbreaker_recovery_events_total",
+		Help: "Total number of circuit breaker recovery events",
+	}, []string{"service", "from_state"})
+
+	promTimeouts = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "circuitbreaker_timeouts_total",
+		Help: "Total number of circuit breaker timeouts",
+	}, []string{"service", "state"})
+)
+
+// sharedCircuitBreakerMetrics is a singleton instance of CircuitBreakerMetrics.
+// It holds references to the globally registered Prometheus collectors.
+var sharedCircuitBreakerMetrics = &CircuitBreakerMetrics{
+	StateChanges:     promStateChanges,
+	RequestsTotal:    promRequestsTotal,
+	RequestDuration:  promRequestDuration,
+	FailureRate:      promFailureRate,
+	SuccessRate:      promSuccessRate,
+	CurrentState:     promCurrentState,
+	TimeInState:      promTimeInState,
+	HalfOpenAttempts: promHalfOpenAttempts,
+	TripEvents:       promTripEvents,
+	RecoveryEvents:   promRecoveryEvents,
+	Timeouts:         promTimeouts,
+}
+
+// NewCircuitBreakerMetrics returns the singleton instance of CircuitBreakerMetrics.
+// This function will always return the same set of already-registered metrics.
 func NewCircuitBreakerMetrics() *CircuitBreakerMetrics {
-	return &CircuitBreakerMetrics{
-		StateChanges: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "circuitbreaker_state_changes_total",
-			Help: "Total number of circuit breaker state changes",
-		}, []string{"service", "from_state", "to_state"}),
-
-		RequestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "circuitbreaker_requests_total",
-			Help: "Total number of requests processed by circuit breaker",
-		}, []string{"service", "state", "result"}), // result: "success", "failure", "rejected"
-
-		RequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "circuitbreaker_request_duration_seconds",
-			Help:    "Duration of requests processed by circuit breaker",
-			Buckets: prometheus.ExponentialBuckets(0.001, 2, 15),
-		}, []string{"service", "state", "result"}),
-
-		FailureRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "circuitbreaker_failure_rate",
-			Help: "Current failure rate of the circuit breaker (0-1)",
-		}, []string{"service"}),
-
-		SuccessRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "circuitbreaker_success_rate",
-			Help: "Current success rate of the circuit breaker (0-1)",
-		}, []string{"service"}),
-
-		CurrentState: promauto.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "circuitbreaker_state",
-			Help: "Current state of the circuit breaker (0=closed, 1=open, 2=half-open)",
-		}, []string{"service"}),
-
-		TimeInState: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "circuitbreaker_time_in_state_seconds_total",
-			Help: "Total time spent in each circuit breaker state",
-		}, []string{"service", "state"}),
-
-		HalfOpenAttempts: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "circuitbreaker_half_open_attempts_total",
-			Help: "Total number of requests attempted in half-open state",
-		}, []string{"service", "result"}),
-
-		TripEvents: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "circuitbreaker_trip_events_total",
-			Help: "Total number of circuit breaker trip events",
-		}, []string{"service", "reason"}), // reason: "failure_threshold", "timeout", "manual"
-
-		RecoveryEvents: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "circuitbreaker_recovery_events_total",
-			Help: "Total number of circuit breaker recovery events",
-		}, []string{"service", "from_state"}),
-
-		Timeouts: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "circuitbreaker_timeouts_total",
-			Help: "Total number of circuit breaker timeouts",
-		}, []string{"service", "state"}),
-	}
+	return sharedCircuitBreakerMetrics
 }
 
 // RecordStateChange records a circuit breaker state change
@@ -109,6 +133,9 @@ func (m *CircuitBreakerMetrics) UpdateCurrentState(service string, state int) {
 
 // RecordTimeInState records time spent in a particular state
 func (m *CircuitBreakerMetrics) RecordTimeInState(service, state string, duration float64) {
+	// Note: As a CounterVec, this accumulates duration. If you want instantaneous time
+	// or average, you might need a different metric type (e.g., Histogram, Gauge).
+	// For total time spent, CounterVec is fine.
 	m.TimeInState.WithLabelValues(service, state).Add(duration)
 }
 
@@ -131,3 +158,4 @@ func (m *CircuitBreakerMetrics) RecordRecoveryEvent(service, fromState string) {
 func (m *CircuitBreakerMetrics) RecordTimeout(service, state string) {
 	m.Timeouts.WithLabelValues(service, state).Inc()
 }
+
