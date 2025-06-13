@@ -15,7 +15,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/daulet/tokenizers"
+	"github.com/sugarme/tokenizer"
+	"github.com/sugarme/tokenizer/pretrained"
 	"github.com/yalue/onnxruntime_go"
 )
 
@@ -30,7 +31,6 @@ var orderedOutputNames = []string{
 	"reasoning",
 }
 
-// MAPPED: Task-specific weights for the final complexity score calculation.
 var taskTypeWeights = map[string][]float32{
 	"Open QA":         {0.2, 0.3, 0.15, 0.2, 0.15},
 	"Closed QA":       {0.1, 0.35, 0.2, 0.25, 0.1},
@@ -45,24 +45,20 @@ var taskTypeWeights = map[string][]float32{
 	"Other":           {0.25, 0.25, 0.2, 0.15, 0.15},
 }
 
-// PromptClassifierService provides local ONNX-based prompt classification
 type PromptClassifierService struct {
-	config models.PromptClassifierConfig
-	// FIXED: The session type from the provided library is DynamicAdvancedSession.
+	config      models.PromptClassifierConfig
 	session     *onnxruntime_go.DynamicAdvancedSession
 	modelConfig *models.ModelConfig
-	tokenizer   *tokenizers.Tokenizer
+	tokenizer   *tokenizer.Tokenizer
 	mu          sync.RWMutex
 	initialized bool
 	logger      *log.Logger
 
-	// Store the retrieved input and output names for the session.
 	inputNames      []string
 	onnxOutputNames []string
 	targetNames     []string
 }
 
-// NewPromptClassifierService creates a new local ONNX-based prompt classifier service
 func NewPromptClassifierService(
 	config models.PromptClassifierConfig,
 	logger *log.Logger,
@@ -94,7 +90,6 @@ func NewPromptClassifierService(
 	return service, nil
 }
 
-// downloadModelFile and downloadModel are unchanged...
 func (pcs *PromptClassifierService) downloadModelFile(
 	filename,
 	localPath string,
@@ -158,7 +153,7 @@ func (pcs *PromptClassifierService) downloadModel() error {
 		if err := pcs.downloadModelFile(file, localPath); err != nil {
 			if file == "model_quantized.onnx" || file == "config.json" ||
 				file == "tokenizer.json" {
-				return err // Critical files
+				return err
 			}
 			pcs.logger.Printf(
 				"Warning: failed to download optional file %s: %v",
@@ -217,7 +212,6 @@ func (pcs *PromptClassifierService) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to load model config: %w", err)
 	}
 
-	// FIXED: The library requires a global initialization.
 	if !onnxruntime_go.IsInitialized() {
 		err := onnxruntime_go.InitializeEnvironment()
 		if err != nil {
@@ -227,7 +221,6 @@ func (pcs *PromptClassifierService) Initialize(ctx context.Context) error {
 
 	modelPath := filepath.Join(pcs.config.ModelPath, "model_quantized.onnx")
 
-	// FIXED: Get input/output info before creating the session.
 	inputs, outputs, err := onnxruntime_go.GetInputOutputInfo(modelPath)
 	if err != nil {
 		return fmt.Errorf("failed to get model input/output info: %w", err)
@@ -246,7 +239,7 @@ func (pcs *PromptClassifierService) Initialize(ctx context.Context) error {
 	}
 
 	tokenizerPath := filepath.Join(pcs.config.ModelPath, "tokenizer.json")
-	tk, err := tokenizers.FromFile(tokenizerPath)
+	tk, err := pretrained.FromFile(tokenizerPath)
 	if err != nil {
 		session.Destroy()
 		return fmt.Errorf("failed to load tokenizer: %w", err)
@@ -301,7 +294,6 @@ func (pcs *PromptClassifierService) ClassifyPrompt(
 	return result, nil
 }
 
-// classifyWithRetry is unchanged...
 func (pcs *PromptClassifierService) classifyWithRetry(
 	ctx context.Context,
 	prompt string,
@@ -336,24 +328,23 @@ func (pcs *PromptClassifierService) classifyWithRetry(
 	)
 }
 
-// performLocalClassification contains the main fixes for inference.
 func (pcs *PromptClassifierService) performLocalClassification(
 	prompt string,
 ) (*models.PromptClassificationResult, error) {
-	// 1. Tokenize
-	encoding := pcs.tokenizer.EncodeWithOptions(
-		prompt,
-		true,
-		tokenizers.WithReturnAttentionMask(),
-	)
-	inputIDs := make([]int64, len(encoding.IDs))
-	for i, v := range encoding.IDs {
+	encoding, err := pcs.tokenizer.EncodeSingle(prompt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode text: %w", err)
+	}
+
+	inputIDs := make([]int64, len(encoding.Ids))
+	for i, v := range encoding.Ids {
 		inputIDs[i] = int64(v)
 	}
 	attentionMask := make([]int64, len(encoding.AttentionMask))
 	for i, v := range encoding.AttentionMask {
 		attentionMask[i] = int64(v)
 	}
+
 	inputShape := onnxruntime_go.NewShape(1, int64(len(inputIDs)))
 
 	inputTensor, err := onnxruntime_go.NewTensor(inputShape, inputIDs)
@@ -398,7 +389,6 @@ func (pcs *PromptClassifierService) performLocalClassification(
 		weights[3]*batchResults["domain_knowledge"].(float32) +
 		weights[4]*batchResults["contextual_knowledge"].(float32)
 
-	// 5. Assemble the final result struct
 	finalResult := &models.PromptClassificationResult{
 		TaskType1:             taskType,
 		TaskType2:             batchResults["task_type_2"].(string),
@@ -416,7 +406,6 @@ func (pcs *PromptClassifierService) performLocalClassification(
 	return finalResult, nil
 }
 
-// postProcessLogits contains the fix for GetData().
 func (pcs *PromptClassifierService) postProcessLogits(
 	outputs []onnxruntime_go.Value,
 ) (map[string]any, error) {
@@ -431,13 +420,10 @@ func (pcs *PromptClassifierService) postProcessLogits(
 				len(outputs),
 			)
 		}
-		// FIXED: First, type-assert the Value interface to a concrete Tensor type.
 		tensor, ok := outputs[i].(*onnxruntime_go.Tensor[float32])
 		if !ok {
-			// This can happen if the model output type is not float32.
 			return nil, fmt.Errorf("output tensor %d (%s) is not a float32 tensor", i, name)
 		}
-		// FIXED: Then, call GetData() without a type assertion.
 		logits := tensor.GetData()
 		logitsMap[name] = logits
 	}
@@ -465,7 +451,6 @@ func (pcs *PromptClassifierService) postProcessLogits(
 	return results, nil
 }
 
-// computeTaskTypeResults is unchanged...
 func (pcs *PromptClassifierService) computeTaskTypeResults(
 	preds []float32,
 ) (string, string, float32) {
@@ -488,7 +473,6 @@ func (pcs *PromptClassifierService) computeTaskTypeResults(
 	return primaryString, secondaryString, primaryProb
 }
 
-// computeScoreResults is unchanged...
 func (pcs *PromptClassifierService) computeScoreResults(
 	preds []float32,
 	target string,
@@ -510,7 +494,6 @@ func (pcs *PromptClassifierService) computeScoreResults(
 	return score
 }
 
-// GetHealth and Shutdown are unchanged...
 func (pcs *PromptClassifierService) GetHealth(
 	ctx context.Context,
 ) *models.HealthStatus {
@@ -553,21 +536,11 @@ func (pcs *PromptClassifierService) Shutdown() error {
 		pcs.session.Destroy()
 		pcs.session = nil
 	}
-	if pcs.tokenizer != nil {
-		pcs.tokenizer.Close()
-		pcs.tokenizer = nil
-	}
-	// The provided library source implies a global environment.
-	// Depending on application structure, you might call DestroyEnvironment() here
-	// or when the entire application exits.
-	// onnxruntime_go.DestroyEnvironment()
+	pcs.tokenizer = nil
 	pcs.initialized = false
 	return nil
 }
 
-// --- Utility Functions ---
-
-// argTopK is unchanged...
 func argTopK(slice []float32, k int) []int {
 	type pair struct {
 		index int
@@ -587,7 +560,6 @@ func argTopK(slice []float32, k int) []int {
 	return indices
 }
 
-// softmax is unchanged...
 func softmax(logits []float32) []float32 {
 	if len(logits) == 0 {
 		return []float32{}
