@@ -212,6 +212,10 @@ func (pcs *PromptClassifierService) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to load model config: %w", err)
 	}
 
+	sharedLibPath := filepath.Join(".", "build", "lib", "libonnxruntime.so") // This assumes current dir is project root
+	pcs.logger.Printf("Setting ONNX Runtime shared library path to: %s", sharedLibPath)
+	onnxruntime_go.SetSharedLibraryPath(sharedLibPath)
+
 	if !onnxruntime_go.IsInitialized() {
 		err := onnxruntime_go.InitializeEnvironment()
 		if err != nil {
