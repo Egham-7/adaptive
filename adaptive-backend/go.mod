@@ -9,11 +9,13 @@ require (
 	github.com/anthropics/anthropic-sdk-go v1.2.1
 	github.com/botirk38/semanticcache v0.1.1
 	github.com/clerk/clerk-sdk-go/v2 v2.2.0
+	github.com/daulet/tokenizers v1.20.2
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/openai/openai-go v1.1.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/valyala/fasthttp v1.59.0
+	github.com/yalue/onnxruntime_go v1.11.0
 	google.golang.org/genai v1.7.0
 	gorm.io/driver/sqlserver v1.5.4
 )

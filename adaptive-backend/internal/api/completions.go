@@ -2,21 +2,33 @@ package api
 
 import (
 	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services"
+	"adaptive-backend/internal/services/adaptive_ai"
+	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"os"
 	"time"
 
+	"github.com/botirk38/semanticcache"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/log"
+	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/openai/openai-go"
 )
 
 type ChatCompletionHandler struct {
-	promptClassifierClient *services.PromptClassifierClient
+	promptClassifier       *adaptive_ai.PromptClassifierService
+	modelSelector          *adaptive_ai.ModelSelectorService
+	circuitBreaker         *circuitbreaker.CircuitBreaker
+	globalPromptModelCache *semanticcache.SemanticCache[string, models.SelectModelResponse]
+	userPromptModelCache   *lru.Cache[string, *semanticcache.SemanticCache[string, models.SelectModelResponse]]
+	embeddingProvider      semanticcache.EmbeddingProvider
 	metrics                *metrics.ChatMetrics
 	providerConstraint     string
 }
@@ -25,18 +37,71 @@ type ChatCompletionHandler struct {
 var sharedMetrics = metrics.NewChatMetrics()
 
 func NewChatCompletionHandler() *ChatCompletionHandler {
-	return &ChatCompletionHandler{
-		promptClassifierClient: services.NewPromptClassifierClient(),
-		metrics:                sharedMetrics,
-		providerConstraint:     "", // No provider constraint for main endpoint
-	}
+	return createChatCompletionHandler("")
 }
 
 func NewProviderChatCompletionHandler(provider string) *ChatCompletionHandler {
+	return createChatCompletionHandler(provider)
+}
+
+func createChatCompletionHandler(providerConstraint string) *ChatCompletionHandler {
+	// Create prompt classifier config
+	classifierConfig := models.PromptClassifierConfig{
+		ModelID:      "botirk/tiny-prompt-task-complexity-classifier",
+		ModelPath:    "./models/prompt_classifier",
+		Timeout:      30 * time.Second,
+		MaxRetries:   3,
+		MaxSeqLength: 512,
+	}
+
+	// Create prompt classifier service
+	promptClassifier, err := adaptive_ai.NewPromptClassifierService(classifierConfig, nil)
+	if err != nil {
+		log.Fatalf("Failed to create prompt classifier service: %v", err)
+	}
+
+	// Create model selector service
+	modelSelector := adaptive_ai.NewModelSelectorService(promptClassifier, nil)
+
+	// Create embedding provider for semantic cache
+	embeddingProvider, err := semanticcache.NewOpenAIProvider(os.Getenv("OPENAI_API_KEY"), "")
+	if err != nil {
+		log.Fatalf("Failed to create embedding provider: %v", err)
+	}
+
+	// Create global semantic cache
+	globalCache, err := semanticcache.NewSemanticCache[string, models.SelectModelResponse](
+		2000, // cache size
+		embeddingProvider,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to create global semantic cache: %v", err)
+	}
+
+	// Create user cache pool
+	userCache, err := lru.New[string, *semanticcache.SemanticCache[string, models.SelectModelResponse]](200)
+	if err != nil {
+		log.Fatalf("Failed to create user LRU cache: %v", err)
+	}
+
+	// Create circuit breaker
+	circuitBreaker := circuitbreaker.NewWithConfig(circuitbreaker.Config{
+		FailureThreshold: 3,
+		SuccessThreshold: 2,
+		Timeout:          20 * time.Second,
+		ResetAfter:       2 * time.Minute,
+	})
+
 	return &ChatCompletionHandler{
-		promptClassifierClient: services.NewPromptClassifierClient(),
+		promptClassifier:       promptClassifier,
+		modelSelector:          modelSelector,
+		circuitBreaker:         circuitBreaker,
+		globalPromptModelCache: globalCache,
+		userPromptModelCache:   userCache,
+		embeddingProvider:      embeddingProvider,
 		metrics:                sharedMetrics,
-		providerConstraint:     provider,
+		providerConstraint:     providerConstraint,
 	}
 }
 
@@ -135,7 +200,7 @@ func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, a
 		Provider: h.providerConstraint,
 	}
 
-	modelInfo, cacheType, err := h.promptClassifierClient.SelectModelWithCache(selectReq, apiKey, requestID)
+	modelInfo, cacheType, err := h.selectModelWithCache(selectReq, apiKey, requestID)
 	if err != nil {
 		log.Errorf("[%s] Model selection error: %v", requestID, err)
 		return nil, err
@@ -147,6 +212,139 @@ func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, a
 	}
 
 	return modelInfo, err
+}
+
+func (h *ChatCompletionHandler) selectModelWithCache(req models.SelectModelRequest, userID string, requestID string) (*models.SelectModelResponse, string, error) {
+	threshold := float32(0.85)
+	userCache := h.getUserCache(userID)
+
+	// Create cache key that includes provider constraint
+	cacheKey := req.Prompt
+	if req.Provider != "" {
+		cacheKey = fmt.Sprintf("%s:provider:%s", req.Prompt, req.Provider)
+	}
+
+	// Check user-specific cache
+	if userCache != nil {
+		if val, found, err := userCache.Lookup(cacheKey, threshold); err == nil && found {
+			log.Infof("[%s] Semantic cache hit (user)", requestID)
+			return &val, "user", nil
+		}
+	}
+
+	// Check global cache
+	if val, found, err := h.globalPromptModelCache.Lookup(cacheKey, threshold); err == nil && found {
+		log.Infof("[%s] Semantic cache hit (global)", requestID)
+
+		if userCache != nil {
+			_ = userCache.Set(cacheKey, cacheKey, val)
+		}
+
+		return &val, "global", nil
+	}
+
+	// Cache miss - use local model selection
+	start := time.Now()
+
+	if !h.circuitBreaker.CanExecute() {
+		h.circuitBreaker.RecordRequestDuration(time.Since(start), false)
+		log.Infof("[%s] Circuit breaker open, using fallback", requestID)
+		return h.getFallbackModel(req.Provider), "fallback", nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	modelInfo, err := h.modelSelector.SelectModel(ctx, req)
+	if err != nil {
+		h.circuitBreaker.RecordFailure()
+		h.circuitBreaker.RecordRequestDuration(time.Since(start), false)
+		log.Errorf("[%s] Local model selection failed, using fallback: %v", requestID, err)
+		return h.getFallbackModel(req.Provider), "fallback", nil
+	}
+
+	h.circuitBreaker.RecordSuccess()
+	h.circuitBreaker.RecordRequestDuration(time.Since(start), true)
+
+	log.Infof("[%s] Cache miss - selected model %s from %s", requestID, modelInfo.SelectedModel, modelInfo.Provider)
+
+	// Cache the result
+	if err := h.globalPromptModelCache.Set(cacheKey, cacheKey, *modelInfo); err != nil {
+		log.Errorf("[%s] Failed to cache in global cache: %v", requestID, err)
+	}
+
+	if userCache != nil {
+		if err := userCache.Set(cacheKey, cacheKey, *modelInfo); err != nil {
+			log.Errorf("[%s] Failed to cache in user cache: %v", requestID, err)
+		}
+	}
+
+	return modelInfo, "miss", nil
+}
+
+func (h *ChatCompletionHandler) getUserCache(userID string) *semanticcache.SemanticCache[string, models.SelectModelResponse] {
+	if cache, ok := h.userPromptModelCache.Get(userID); ok {
+		return cache
+	}
+
+	newCache, err := semanticcache.NewSemanticCache[string, models.SelectModelResponse](
+		150, // user cache size
+		h.embeddingProvider,
+		nil,
+	)
+	if err != nil {
+		log.Errorf("Warning: Failed to create user cache for %s: %v", userID, err)
+		return nil
+	}
+
+	h.userPromptModelCache.Add(userID, newCache)
+	return newCache
+}
+
+func (h *ChatCompletionHandler) getFallbackModel(provider string) *models.SelectModelResponse {
+	var selectedModel string
+	var fallbackProvider string
+
+	if provider != "" {
+		// Provider-specific fallbacks
+		switch provider {
+		case "openai":
+			selectedModel = "gpt-4o"
+			fallbackProvider = "openai"
+		case "anthropic":
+			selectedModel = "claude-3-5-sonnet-20241022"
+			fallbackProvider = "anthropic"
+		case "groq":
+			selectedModel = "llama-3.2-3b-preview"
+			fallbackProvider = "groq"
+		case "deepseek":
+			selectedModel = "deepseek-chat"
+			fallbackProvider = "deepseek"
+		case "gemini":
+			selectedModel = "gemini-pro"
+			fallbackProvider = "gemini"
+		default:
+			selectedModel = "gpt-4o"
+			fallbackProvider = "openai"
+		}
+	} else {
+		selectedModel = "gpt-4o"
+		fallbackProvider = "openai"
+	}
+
+	return &models.SelectModelResponse{
+		SelectedModel: selectedModel,
+		Provider:      fallbackProvider,
+		Parameters: openai.ChatCompletionNewParams{
+			Model:            selectedModel,
+			MaxTokens:        openai.Int(4096),
+			Temperature:      openai.Float(0.7),
+			TopP:             openai.Float(1.0),
+			FrequencyPenalty: openai.Float(0.0),
+			PresencePenalty:  openai.Float(0.0),
+			N:                openai.Int(1),
+		},
+	}
 }
 
 func (h *ChatCompletionHandler) applyModelParameters(req *models.ChatCompletionRequest, modelInfo *models.SelectModelResponse) {
