@@ -2,14 +2,16 @@ name: Backend CI/CD
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "adaptive-backend/**"
       - "go.mod"
       - "go.sum"
       - ".github/workflows/backend-ci.yml"
   pull_request:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "adaptive-backend/**"
       - "go.mod"
@@ -89,7 +91,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: [build-test-lint, security-scan]
-    # Only deploy on push to main, not on PRs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     permissions:
       id-token: write
@@ -101,17 +102,20 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.BACKENDGO_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.BACKENDGO_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.BACKENDGO_AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.BACKEND_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.BACKEND_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.BACKEND_AZURE_SUBSCRIPTION_ID }}
 
       - name: Build and push container image to registry
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive-backend
-          registryUrl: adaptiveregistry.azurecr.io
-          registryUsername: ${{ secrets.BACKENDGO_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.BACKENDGO_REGISTRY_PASSWORD }}
-          containerAppName: backend-go
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: llmadaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.BACKEND_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.BACKEND_REGISTRY_PASSWORD }}
+          containerAppName: backend
           resourceGroup: adaptive
-          imageToBuild: adaptiveregistry.azurecr.io/backend-go:${{ github.sha }}
+          imageToBuild: llmadaptiveregistry.azurecr.io/backend:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
