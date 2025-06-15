@@ -1,122 +1,126 @@
 name: AI Service CI/CD
 
 on:
-    push:
-        branches: [main]
-        paths:
-            - "adaptive_ai/**"
-            - ".github/workflows/ai-service-ci.yml"
-    pull_request:
-        branches: [main]
-        paths:
-            - "adaptive_ai/**"
-            - "poetry.lock"
-            - "pyproject.toml"
-            - ".github/workflows/ai-service-ci.yml"
-    workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "adaptive_ai/**"
+      - ".github/workflows/ai-service-ci.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "adaptive_ai/**"
+      - "poetry.lock"
+      - "pyproject.toml"
+      - ".github/workflows/ai-service-ci.yml"
+  workflow_dispatch:
 
 jobs:
-    test-lint-typecheck:
-        runs-on: ubuntu-latest
-        defaults:
-            run:
-                working-directory: ./adaptive_ai
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
+  test-lint-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./adaptive_ai
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-            - name: Set up Python
-              id: python
-              uses: actions/setup-python@v5
-              with:
-                  python-version: "3.11"
-                  cache: "pip"
+      - name: Set up Python
+        id: python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-            - name: Install Poetry
-              uses: snok/install-poetry@v1
-              with:
-                  version: latest
-                  virtualenvs-create: true
-                  virtualenvs-in-project: true
-                  installer-parallel: true
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
 
-            - name: Cache Poetry dependencies
-              id: cache-deps
-              uses: actions/cache@v4
-              with:
-                  path: ./adaptive_ai/.venv
-                  key: ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
+      - name: Cache Poetry dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: ./adaptive_ai/.venv
+          key: ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ steps.python.outputs.python-version }}-poetry-${{ hashFiles('./adaptive_ai/poetry.lock') }}
 
-            - name: Install project
-              run: poetry install --no-interaction --no-root
+      - name: Install project
+        run: poetry install --no-interaction --no-root
 
-            - name: Run tests with coverage
-              id: tests
-              run: poetry run pytest --cov=. --cov-report=xml
-              continue-on-error: true
+      - name: Run tests with coverage
+        id: tests
+        run: poetry run pytest --cov=. --cov-report=xml
+        continue-on-error: true
 
-            - name: Upload test coverage
-              if: always() && steps.tests.outcome == 'success'
-              uses: codecov/codecov-action@v4
-              with:
-                  file: ./adaptive_ai/coverage.xml
-                  flags: backend-python
-                  fail_ci_if_error: false
-                  token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload test coverage
+        if: always() && steps.tests.outcome == 'success'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./adaptive_ai/coverage.xml
+          flags: backend-python
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
-            - name: Run type checking
-              id: typecheck
-              run: poetry run mypy .
-              continue-on-error: true
+      - name: Run type checking
+        id: typecheck
+        run: poetry run mypy .
+        continue-on-error: true
 
-            - name: Run linting with Ruff
-              id: ruff
-              run: poetry run ruff check . --output-format=github
-              continue-on-error: true
+      - name: Run linting with Ruff
+        id: ruff
+        run: poetry run ruff check . --output-format=github
+        continue-on-error: true
 
-            - name: Run code formatting check with Black
-              id: black
-              run: poetry run black . --check --diff
-              continue-on-error: true
+      - name: Run code formatting check with Black
+        id: black
+        run: poetry run black . --check --diff
+        continue-on-error: true
 
-            - name: Check for failing steps
-              if: always()
-              run: |
-                  if [[ "${{ steps.tests.outcome }}" == "failure" || "${{ steps.typecheck.outcome }}" == "failure" || "${{ steps.ruff.outcome }}" == "failure" || "${{ steps.black.outcome }}" == "failure" ]]; then
-                    echo "One or more checks failed!"
-                    exit 1
-                  fi
+      - name: Check for failing steps
+        if: always()
+        run: |
+          if [[ "${{ steps.tests.outcome }}" == "failure" || "${{ steps.typecheck.outcome }}" == "failure" || "${{ steps.ruff.outcome }}" == "failure" || "${{ steps.black.outcome }}" == "failure" ]]; then
+            echo "One or more checks failed!"
+            exit 1
+          fi
 
-    deploy-adaptive-ai:
-        runs-on: ubuntu-latest
-        needs: [test-lint-typecheck]
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        permissions:
-            id-token: write
-            contents: read
-        steps:
-            - name: Checkout to the branch
-              uses: actions/checkout@v4
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test-lint-typecheck]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v4
 
-            - name: Azure Login for Adaptive AI
-              uses: azure/login@v1
-              with:
-                  client-id: ${{ secrets.ADAPTIVEAI_AZURE_CLIENT_ID }}
-                  tenant-id: ${{ secrets.ADAPTIVEAI_AZURE_TENANT_ID }}
-                  subscription-id: ${{ secrets.ADAPTIVEAI_AZURE_SUBSCRIPTION_ID }}
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_SUBSCRIPTION_ID }}
 
-            - name: Build and push adaptive-ai container with GPU support
-              uses: azure/container-apps-deploy-action@v2
-              with:
-                  appSourcePath: ${{ github.workspace }}/adaptive_ai
-                  dockerfilePath: Dockerfile.gpu
-                  registryUrl: adaptiveregistry.azurecr.io
-                  registryUsername: ${{ secrets.ADAPTIVEAI_REGISTRY_USERNAME }}
-                  registryPassword: ${{ secrets.ADAPTIVEAI_REGISTRY_PASSWORD }}
-                  containerAppName: adaptive-ai
-                  resourceGroup: adaptive
-                  imageToBuild: adaptiveregistry.azurecr.io/adaptive-ai:${{ github.sha }}
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/adaptive_ai
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: llmadaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_PASSWORD }}
+          containerAppName: prompt-classifier
+          resourceGroup: adaptive
+          imageToBuild: llmadaptiveregistry.azurecr.io/prompt-classifier:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
