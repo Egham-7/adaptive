@@ -1,0 +1,6 @@
+aiohttp>=3.9.0
+pandas>=2.0.0
+tqdm>=4.66.0
+types-aiohttp>=3.9.0
+types-pandas>=2.0.0
+types-tqdm>=4.66.0 

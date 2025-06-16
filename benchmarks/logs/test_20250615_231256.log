@@ -1,0 +1,4 @@
+2025-06-15 23:12:56,978 - INFO - Environment variables loaded
+2025-06-15 23:12:56,980 - INFO - Processing row with model: 
+2025-06-15 23:13:09,541 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:13:09,548 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 302

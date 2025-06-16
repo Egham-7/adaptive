@@ -1,0 +1,34 @@
+2025-06-15 23:26:50,514 - INFO - Environment variables loaded
+2025-06-15 23:26:50,517 - INFO - Processing row with model: 
+2025-06-15 23:26:50,577 - INFO - Environment variables loaded
+2025-06-15 23:26:50,593 - INFO - Environment variables loaded
+2025-06-15 23:26:50,594 - INFO - Environment variables loaded
+2025-06-15 23:26:50,611 - INFO - Environment variables loaded
+2025-06-15 23:26:50,614 - INFO - Environment variables loaded
+2025-06-15 23:26:50,617 - INFO - Environment variables loaded
+2025-06-15 23:26:50,618 - INFO - Environment variables loaded
+2025-06-15 23:26:50,619 - INFO - Environment variables loaded
+2025-06-15 23:26:50,620 - INFO - Environment variables loaded
+2025-06-15 23:26:50,621 - INFO - Environment variables loaded
+2025-06-15 23:26:50,628 - INFO - Environment variables loaded
+2025-06-15 23:26:53,674 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:26:53,682 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 283
+2025-06-15 23:26:53,682 - INFO - Model: gpt-4.1-nano-2025-04-14
+2025-06-15 23:26:53,682 - INFO - Response Content:
+Identity protection services can help safeguard you against identity theft in several important ways:
+
+1. **Credit Monitoring:** They continuously monitor your credit reports from major bureaus (Experian, TransUnion, Equifax) for any suspicious or unauthorized activity, such as new accounts or inquiries that you did not authorize.
+
+2. **Fraud Alerts:** These services can help you set up fraud alerts on your credit files, which notify potential creditors to verify your identity before extending credit.
+
+3. **Identity Theft Insurance:** Many services include insurance coverage that can help cover costs associated with restoring your identity if it is stolen, such as legal fees and lost wages.
+
+4. **Dark Web Monitoring:** They scan the dark web for your personal information (like Social Security numbers, email addresses, or passwords) that may have been compromised and sold online.
+
+5. **Secure Identity Vault:** Some services offer a secure digital vault to store sensitive information safely, reducing the risk of theft from unsecured storage.
+
+6. **Alerts and Notifications:** You receive real-time alerts about suspicious activity or changes to your credit profile, allowing you to act quickly to prevent further damage.
+
+7. **Identity Restoration Assistance:** If your identity is compromised, these services often provide dedicated support to help you recover your identity efficiently.
+
+By providing proactive monitoring, alerts, and support, identity protection services help detect potential threats early and reduce the risk of long-term damage from identity theft.

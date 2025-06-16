@@ -1,0 +1,14 @@
+2025-06-15 23:19:50,946 - INFO - Environment variables loaded
+2025-06-15 23:19:50,949 - INFO - Environment variables loaded
+2025-06-15 23:19:50,950 - INFO - Processing row with model: 
+2025-06-15 23:19:50,951 - INFO - Environment variables loaded
+2025-06-15 23:19:50,956 - INFO - Environment variables loaded
+2025-06-15 23:19:50,956 - INFO - Environment variables loaded
+2025-06-15 23:19:50,959 - INFO - Environment variables loaded
+2025-06-15 23:19:50,976 - INFO - Environment variables loaded
+2025-06-15 23:19:50,987 - INFO - Environment variables loaded
+2025-06-15 23:19:50,997 - INFO - Environment variables loaded
+2025-06-15 23:19:53,871 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:19:53,877 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 299
+2025-06-15 23:19:53,878 - INFO - Adaptive Response:
+ChatCompletionMessage(content="Identity protection services can help safeguard you against identity theft in several important ways:\n\n1. **Credit Monitoring:** They continuously monitor your credit reports from major bureaus (Experian, Equifax, TransUnion) for any suspicious or unauthorized activity, such as new accounts or inquiries that you didn't authorize.\n\n2. **Fraud Alerts:** Many services can place fraud alerts on your credit files, making it harder for identity thieves to open new accounts in your name without verification.\n\n3. **Identity Theft Insurance:** Some plans include insurance coverage that can help cover costs associated with restoring your identity if it is stolen, such as legal fees, lost wages, or expenses related to correcting your credit report.\n\n4. **Dark Web Monitoring:** They scan the dark web for your personal information (like Social Security numbers, email addresses, or passwords) that may have been compromised and sold by cybercriminals.\n\n5. **Password Management and Alerts:** Some services offer tools to help you create strong, unique passwords and alert you if your passwords are found in data breaches.\n\n6. **Secure Identity Restoration Assistance:** If your identity is compromised, these services often provide dedicated support to help you resolve issues quickly and efficiently.\n\n7. **Educational Resources:** They often provide tips and guidance on how to protect your personal information and recognize signs of identity theft.\n\nBy providing proactive monitoring, alerts, and support, identity protection services can significantly reduce your risk of falling victim to identity theft and help you respond swiftly if your information is compromised.", refusal='', role='assistant', annotations=[], audio=ChatCompletionAudio(id='', data='', expires_at=0, transcript=''), function_call=FunctionCall(arguments='', name=''), tool_calls=None)

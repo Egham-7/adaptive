@@ -1,0 +1,117 @@
+2025-06-15 23:17:40,970 - INFO - Environment variables loaded
+2025-06-15 23:17:40,973 - INFO - Processing row with model: 
+2025-06-15 23:17:40,995 - INFO - Environment variables loaded
+2025-06-15 23:17:40,998 - INFO - Processing row with model: 
+2025-06-15 23:17:43,811 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:17:43,818 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 305
+2025-06-15 23:17:43,818 - INFO - Adaptive Response:
+Identity protection services can help safeguard you against identity theft in several important ways:
+
+1. **Credit Monitoring:** They continuously monitor your credit reports from major bureaus for any suspicious or unauthorized activity, such as new accounts opened in your name or changes to your existing accounts.
+
+2. **Fraud Alerts:** Many services can place fraud alerts on your credit files, which notify potential lenders to verify your identity before extending credit, adding an extra layer of security.
+
+3. **Identity Theft Insurance:** Some plans include insurance coverage that can help cover costs associated with restoring your identity if it is stolen, such as legal fees, lost wages, or expenses related to correcting your credit report.
+
+4. **Dark Web Monitoring:** They scan the dark web for your personal information, such as Social Security numbers, email addresses, or passwords, alerting you if your data appears in malicious marketplaces.
+
+5. **Password Management and Alerts:** Some services offer tools to help you create strong, unique passwords and alert you if your passwords are compromised or reused across sites.
+
+6. **Identity Restoration Assistance:** If your identity is stolen, these services often provide dedicated support to help you recover your identity, including working with credit bureaus, financial institutions, and law enforcement.
+
+7. **Educational Resources:** They often provide tips and resources on how to protect your personal information and recognize signs of identity theft.
+
+By proactively monitoring your personal information and providing rapid response support, identity protection services can significantly reduce the risk of identity theft and help mitigate its impact if it occurs.
+2025-06-15 23:18:01,191 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:18:01,198 - INFO - Successfully processed row. Input tokens: 62, Output tokens: 1145
+2025-06-15 23:18:01,198 - INFO - Adaptive Response:
+Certainly! The U.S. employs a variety of sanctions regimes to achieve its foreign policy and national security objectives. Beyond the selective sanctions targeting specific individuals and entities (often referred to as "targeted" or "smart" sanctions), the U.S. also implements **comprehensive sanctions** and **sectoral sanctions**, among others. Below is a detailed explanation of these types:
+
+---
+
+### 1. **Selective (Targeted) Sanctions**
+
+- **Definition:** These sanctions focus on specific individuals, entities, vessels, or organizations that are deemed responsible for undesirable activities such as terrorism, proliferation of weapons of mass destruction, human rights abuses, or corruption.
+- **Mechanism:** The Office of Foreign Assets Control (OFAC) maintains lists such as the Specially Designated Nationals (SDN) list. U.S. persons are generally prohibited from dealing with these listed parties.
+- **Purpose:** Minimize humanitarian impact by targeting only culpable actors rather than entire countries or sectors.
+
+---
+
+### 2. **Comprehensive Sanctions**
+
+- **Definition:** Comprehensive sanctions are broad-based restrictions that apply to an entire country or territory. They prohibit virtually all trade, investment, and financial transactions with the sanctioned country.
+- **Scope:** These sanctions typically block all property and interests in property of the government of the sanctioned country within U.S. jurisdiction and prohibit U.S. persons from engaging in most transactions with that country.
+- **Examples:**
+  - **Cuba:** For decades, the U.S. has maintained comprehensive sanctions against Cuba, restricting almost all trade and financial dealings.
+  - **North Korea:** Comprehensive sanctions prohibit nearly all commercial activity with North Korea.
+  - **Iran:** While some sanctions have been eased or modified over time, comprehensive sanctions have historically restricted broad economic engagement.
+- **Impact:**
+  - Prohibits imports and exports.
+  - Blocks financial transactions.
+  - Restricts travel-related services.
+  - Often includes exceptions for humanitarian aid or certain informational materials.
+- **Purpose:** To isolate the targeted country economically and politically to pressure changes in behavior or policies.
+
+---
+
+### 3. **Sectoral Sanctions**
+
+- **Definition:** Sectoral sanctions target specific sectors of a country’s economy rather than the entire economy or specific individuals/entities. These are designed to restrict access to certain types of financing, technology, or services critical to key industries.
+- **Mechanism:** Instead of blocking all transactions, sectoral sanctions limit particular types of dealings—such as debt issuance, equity investments, or provision of certain goods and services—in designated sectors.
+- **Commonly Targeted Sectors:**
+  - Energy (oil and gas exploration, production)
+  - Financial services (banking, capital markets)
+  - Defense (arms manufacturing)
+  - Mining and metals
+- **Examples:**
+  - **Russia:** Since 2014, the U.S. has imposed sectoral sanctions on Russia targeting its energy, finance, and defense sectors in response to actions in Ukraine and Crimea. These include prohibitions on new debt or equity issuance by major Russian banks and energy companies.
+  - **Venezuela:** Sectoral sanctions have targeted Venezuela’s oil sector and state-owned oil company PDVSA.
+- **Impact:**
+  - Limits access to Western capital markets.
+  - Restricts technology transfers critical for sector development.
+  - Prevents certain types of business relationships with key companies in the sector.
+- **Purpose:** To weaken strategic sectors that support objectionable government policies without imposing a full embargo on the country.
+
+---
+
+### 4. **Other Types of U.S. Sanctions**
+
+While your question focuses on comprehensive and sectoral sanctions, it is useful to briefly mention other sanction types:
+
+- **Secondary Sanctions:**
+  - Target non-U.S. persons who engage in certain transactions with sanctioned parties or sectors.
+  - Designed to extend the reach of U.S. sanctions globally by threatening exclusion from the U.S. financial system.
+  
+- **Embargoes:**
+  - A form of comprehensive sanction that bans trade entirely with a country or entity.
+
+- **Arms Embargoes:**
+  - Prohibit the export or transfer of weapons and military-related technology.
+
+- **Travel Bans:**
+  - Prohibit entry into the U.S. for designated individuals.
+
+---
+
+### Summary Table
+
+| Sanction Type       | Scope                         | Target                          | Examples                      | Key Features                                  |
+|---------------------|-------------------------------|--------------------------------|------------------------------|-----------------------------------------------|
+| Selective/Targeted  | Specific individuals/entities | Terrorists, corrupt officials   | SDN List designations         | Focused restrictions; minimize collateral damage |
+| Comprehensive       | Entire country/territory       | Governments                    | Cuba, North Korea             | Broad trade & financial prohibitions          |
+| Sectoral            | Specific economic sectors      | Key industries (energy, finance)| Russia (energy & finance)     | Limits on financing, technology transfer       |
+| Secondary           | Non-U.S. persons globally      | Foreign entities dealing with sanctioned parties | Iran-related secondary sanctions | Extends reach beyond U.S. borders              |
+
+---
+
+### Conclusion
+
+The U.S. uses a layered approach to sanctions enforcement:
+
+- **Selective sanctions** allow precise targeting of bad actors.
+- **Comprehensive sanctions** impose broad economic isolation on entire countries.
+- **Sectoral sanctions** strategically restrict critical parts of an economy without full embargoes.
+
+This flexibility enables policymakers to calibrate pressure according to geopolitical goals while attempting to mitigate unintended humanitarian consequences.
+
+If you need more information on any specific sanction program or legal framework (e.g., IEEPA, NEA), feel free to ask!

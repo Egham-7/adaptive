@@ -1,0 +1,48 @@
+2025-06-15 23:11:26,383 - INFO - Environment variables loaded
+2025-06-15 23:11:26,384 - INFO - Environment variables loaded
+2025-06-15 23:11:26,386 - INFO - Processing row with model: 
+2025-06-15 23:11:26,388 - INFO - Processing row with model: 
+2025-06-15 23:11:26,388 - ERROR - Error processing row: the JSON object must be str, bytes or bytearray, not list
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 55, in process_single_row
+    conversation = json.loads(row['conversation'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/.pyenv/versions/3.12.10/lib/python3.12/json/__init__.py", line 339, in loads
+    raise TypeError(f'the JSON object must be str, bytes or bytearray, '
+TypeError: the JSON object must be str, bytes or bytearray, not list
+2025-06-15 23:11:26,386 - ERROR - Error processing row: the JSON object must be str, bytes or bytearray, not list
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 55, in process_single_row
+    conversation = json.loads(row['conversation'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/.pyenv/versions/3.12.10/lib/python3.12/json/__init__.py", line 339, in loads
+    raise TypeError(f'the JSON object must be str, bytes or bytearray, '
+TypeError: the JSON object must be str, bytes or bytearray, not list
+2025-06-15 23:11:26,389 - INFO - Environment variables loaded
+2025-06-15 23:11:26,389 - INFO - Processing row with model: 
+2025-06-15 23:11:26,390 - INFO - Processing row with model: 
+2025-06-15 23:11:26,390 - ERROR - Error processing row: the JSON object must be str, bytes or bytearray, not list
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 55, in process_single_row
+    conversation = json.loads(row['conversation'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/.pyenv/versions/3.12.10/lib/python3.12/json/__init__.py", line 339, in loads
+    raise TypeError(f'the JSON object must be str, bytes or bytearray, '
+TypeError: the JSON object must be str, bytes or bytearray, not list
+2025-06-15 23:11:26,390 - ERROR - Error processing row: the JSON object must be str, bytes or bytearray, not list
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 55, in process_single_row
+    conversation = json.loads(row['conversation'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/.pyenv/versions/3.12.10/lib/python3.12/json/__init__.py", line 339, in loads
+    raise TypeError(f'the JSON object must be str, bytes or bytearray, '
+TypeError: the JSON object must be str, bytes or bytearray, not list
+2025-06-15 23:11:26,391 - INFO - Processing row with model: 
+2025-06-15 23:11:26,391 - ERROR - Error processing row: the JSON object must be str, bytes or bytearray, not list
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 55, in process_single_row
+    conversation = json.loads(row['conversation'])
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/.pyenv/versions/3.12.10/lib/python3.12/json/__init__.py", line 339, in loads
+    raise TypeError(f'the JSON object must be str, bytes or bytearray, '
+TypeError: the JSON object must be str, bytes or bytearray, not list

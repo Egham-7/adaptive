@@ -1,0 +1,12 @@
+2025-06-15 23:37:19,246 - INFO - Environment variables loaded
+2025-06-15 23:37:19,247 - INFO - Starting main execution
+2025-06-15 23:37:19,247 - INFO - Starting CSV processing and API calls
+2025-06-15 23:37:19,247 - INFO - Loading dataset from Hugging Face
+2025-06-15 23:37:21,721 - INFO - Loaded 1 rows from dataset
+2025-06-15 23:37:21,721 - INFO - Filtering for English prompts
+2025-06-15 23:37:22,094 - INFO - Found 1 English prompts
+2025-06-15 23:37:22,096 - INFO - Using 12 processes for parallel processing
+2025-06-15 23:37:22,096 - INFO - Starting parallel processing
+2025-06-15 23:37:28,288 - INFO - Successfully processed 1 out of 1 rows
+2025-06-15 23:37:28,293 - INFO - Results saved to ./LmSys_analysis_results/lmsys_adaptive_result.csv
+2025-06-15 23:37:28,319 - INFO - Main execution completed successfully

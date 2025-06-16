@@ -1,0 +1,47 @@
+2025-06-15 23:14:36,845 - INFO - Environment variables loaded
+2025-06-15 23:14:36,849 - INFO - Processing row with model: 
+2025-06-15 23:14:36,860 - INFO - Environment variables loaded
+2025-06-15 23:14:36,863 - INFO - Environment variables loaded
+2025-06-15 23:14:36,864 - INFO - Processing row with model: 
+2025-06-15 23:14:36,867 - INFO - Processing row with model: 
+2025-06-15 23:14:36,868 - INFO - Environment variables loaded
+2025-06-15 23:14:36,869 - INFO - Environment variables loaded
+2025-06-15 23:14:36,871 - INFO - Processing row with model: 
+2025-06-15 23:14:36,871 - INFO - Environment variables loaded
+2025-06-15 23:14:36,872 - INFO - Processing row with model: 
+2025-06-15 23:14:36,885 - INFO - Environment variables loaded
+2025-06-15 23:14:36,931 - INFO - Environment variables loaded
+2025-06-15 23:14:36,944 - INFO - Environment variables loaded
+2025-06-15 23:14:36,946 - INFO - Environment variables loaded
+2025-06-15 23:14:36,946 - INFO - Environment variables loaded
+2025-06-15 23:14:36,956 - INFO - Environment variables loaded
+2025-06-15 23:14:38,317 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+2025-06-15 23:14:38,318 - INFO - Retrying request to /chat/completions in 0.480378 seconds
+2025-06-15 23:14:39,720 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:14:39,726 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 285
+2025-06-15 23:14:39,826 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+2025-06-15 23:14:39,827 - INFO - Retrying request to /chat/completions in 0.942928 seconds
+2025-06-15 23:14:40,242 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:14:40,249 - INFO - Successfully processed row. Input tokens: 50, Output tokens: 321
+2025-06-15 23:14:41,747 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+2025-06-15 23:14:41,748 - ERROR - Error processing row: Error code: 500 - {'error': 'Failed to generate completion: deepseek chat completion failed: HTTP 402: Insufficient account balance \n{"error":{"message":"Insufficient Balance","type":"unknown_error","param":null,"code":"invalid_request_error"}}'}
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 85, in process_single_row
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py", line 287, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py", line 925, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py", line 1037, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.InternalServerError: Error code: 500 - {'error': 'Failed to generate completion: deepseek chat completion failed: HTTP 402: Insufficient account balance \n{"error":{"message":"Insufficient Balance","type":"unknown_error","param":null,"code":"invalid_request_error"}}'}
+2025-06-15 23:14:43,448 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:14:43,455 - INFO - Successfully processed row. Input tokens: 50, Output tokens: 266
+2025-06-15 23:14:58,339 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:14:58,347 - INFO - Successfully processed row. Input tokens: 62, Output tokens: 1123

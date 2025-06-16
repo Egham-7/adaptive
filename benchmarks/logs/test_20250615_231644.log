@@ -1,0 +1,27 @@
+2025-06-15 23:16:44,071 - INFO - Environment variables loaded
+2025-06-15 23:16:44,075 - INFO - Processing row with model: 
+2025-06-15 23:16:44,082 - INFO - Environment variables loaded
+2025-06-15 23:16:44,085 - INFO - Environment variables loaded
+2025-06-15 23:16:44,086 - INFO - Environment variables loaded
+2025-06-15 23:16:44,086 - INFO - Processing row with model: 
+2025-06-15 23:16:44,089 - INFO - Processing row with model: 
+2025-06-15 23:16:44,090 - INFO - Processing row with model: 
+2025-06-15 23:16:44,134 - INFO - Environment variables loaded
+2025-06-15 23:16:44,138 - INFO - Processing row with model: 
+2025-06-15 23:16:44,142 - INFO - Environment variables loaded
+2025-06-15 23:16:44,147 - INFO - Environment variables loaded
+2025-06-15 23:16:44,163 - INFO - Environment variables loaded
+2025-06-15 23:16:44,168 - INFO - Environment variables loaded
+2025-06-15 23:16:44,171 - INFO - Environment variables loaded
+2025-06-15 23:16:44,199 - INFO - Environment variables loaded
+2025-06-15 23:16:44,217 - INFO - Environment variables loaded
+2025-06-15 23:16:46,930 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:16:46,954 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 277
+2025-06-15 23:16:47,348 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:16:47,355 - INFO - Successfully processed row. Input tokens: 50, Output tokens: 289
+2025-06-15 23:16:49,440 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:16:49,447 - INFO - Successfully processed row. Input tokens: 50, Output tokens: 268
+2025-06-15 23:17:02,705 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:17:02,713 - INFO - Successfully processed row. Input tokens: 87, Output tokens: 397
+2025-06-15 23:17:05,527 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:17:05,534 - INFO - Successfully processed row. Input tokens: 62, Output tokens: 1053

@@ -1,0 +1,58 @@
+2025-06-15 23:35:24,516 - INFO - Environment variables loaded
+2025-06-15 23:35:24,516 - INFO - Starting main execution
+2025-06-15 23:35:24,516 - INFO - Starting CSV processing and API calls
+2025-06-15 23:35:24,516 - INFO - Loading dataset from Hugging Face
+2025-06-15 23:35:26,845 - INFO - Loaded 2 rows from dataset
+2025-06-15 23:35:26,845 - INFO - Filtering for English prompts
+2025-06-15 23:35:26,846 - ERROR - Error in process_csv_and_make_api_calls: 0
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 134, in process_csv_and_make_api_calls
+    df['is_english'] = df['conversation'].apply(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 4935, in apply
+    ).apply()
+      ^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/apply.py", line 1422, in apply
+    return self.apply_standard()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/apply.py", line 1502, in apply_standard
+    mapped = obj._map_values(
+             ^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/base.py", line 925, in _map_values
+    return algorithms.map_array(arr, mapper, na_action=na_action, convert=convert)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/algorithms.py", line 1743, in map_array
+    return lib.map_infer(values, mapper, convert=convert)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/lib.pyx", line 2999, in pandas._libs.lib.map_infer
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 135, in <lambda>
+    lambda x: is_english_text(x[0]['content']) if x and len(x) > 0 and isinstance(x[0], dict) and 'content' in x[0] else False
+                                                                                  ~^^^
+KeyError: 0
+2025-06-15 23:35:26,852 - ERROR - Main execution failed: 0
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 196, in main
+    process_csv_and_make_api_calls()
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 134, in process_csv_and_make_api_calls
+    df['is_english'] = df['conversation'].apply(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 4935, in apply
+    ).apply()
+      ^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/apply.py", line 1422, in apply
+    return self.apply_standard()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/apply.py", line 1502, in apply_standard
+    mapped = obj._map_values(
+             ^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/base.py", line 925, in _map_values
+    return algorithms.map_array(arr, mapper, na_action=na_action, convert=convert)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/algorithms.py", line 1743, in map_array
+    return lib.map_infer(values, mapper, convert=convert)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/lib.pyx", line 2999, in pandas._libs.lib.map_infer
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 135, in <lambda>
+    lambda x: is_english_text(x[0]['content']) if x and len(x) > 0 and isinstance(x[0], dict) and 'content' in x[0] else False
+                                                                                  ~^^^
+KeyError: 0

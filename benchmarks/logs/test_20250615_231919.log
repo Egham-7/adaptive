@@ -1,0 +1,44 @@
+2025-06-15 23:19:19,433 - INFO - Environment variables loaded
+2025-06-15 23:19:19,437 - INFO - Processing row with model: 
+2025-06-15 23:19:19,459 - INFO - Environment variables loaded
+2025-06-15 23:19:19,463 - INFO - Processing row with model: 
+2025-06-15 23:19:19,465 - INFO - Environment variables loaded
+2025-06-15 23:19:19,469 - INFO - Processing row with model: 
+2025-06-15 23:19:19,472 - INFO - Environment variables loaded
+2025-06-15 23:19:19,480 - INFO - Processing row with model: 
+2025-06-15 23:19:19,487 - INFO - Environment variables loaded
+2025-06-15 23:19:19,490 - INFO - Environment variables loaded
+2025-06-15 23:19:19,492 - INFO - Processing row with model: 
+2025-06-15 23:19:19,502 - INFO - Environment variables loaded
+2025-06-15 23:19:19,518 - INFO - Environment variables loaded
+2025-06-15 23:19:19,525 - INFO - Environment variables loaded
+2025-06-15 23:19:19,540 - INFO - Environment variables loaded
+2025-06-15 23:19:19,558 - INFO - Environment variables loaded
+2025-06-15 23:19:19,575 - INFO - Environment variables loaded
+2025-06-15 23:19:21,902 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:19:21,909 - ERROR - Error processing row: 'ChatCompletionMessage' object has no attribute 'model'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 90, in process_single_row
+    result = response.choices[0].message.model
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pydantic/main.py", line 991, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'ChatCompletionMessage' object has no attribute 'model'
+2025-06-15 23:19:22,393 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:19:22,400 - ERROR - Error processing row: 'ChatCompletionMessage' object has no attribute 'model'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 90, in process_single_row
+    result = response.choices[0].message.model
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pydantic/main.py", line 991, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'ChatCompletionMessage' object has no attribute 'model'
+2025-06-15 23:19:25,328 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:19:25,336 - ERROR - Error processing row: 'ChatCompletionMessage' object has no attribute 'model'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 90, in process_single_row
+    result = response.choices[0].message.model
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pydantic/main.py", line 991, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'ChatCompletionMessage' object has no attribute 'model'

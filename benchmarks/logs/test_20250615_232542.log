@@ -1,0 +1,17 @@
+2025-06-15 23:25:42,227 - INFO - Environment variables loaded
+2025-06-15 23:25:42,230 - INFO - Processing row with model: 
+2025-06-15 23:25:42,238 - INFO - Environment variables loaded
+2025-06-15 23:25:42,257 - INFO - Environment variables loaded
+2025-06-15 23:25:42,266 - INFO - Environment variables loaded
+2025-06-15 23:25:42,266 - INFO - Environment variables loaded
+2025-06-15 23:25:42,270 - INFO - Environment variables loaded
+2025-06-15 23:25:42,309 - INFO - Environment variables loaded
+2025-06-15 23:25:42,328 - INFO - Environment variables loaded
+2025-06-15 23:25:42,331 - INFO - Environment variables loaded
+2025-06-15 23:25:42,336 - INFO - Environment variables loaded
+2025-06-15 23:25:42,341 - INFO - Environment variables loaded
+2025-06-15 23:25:42,351 - INFO - Environment variables loaded
+2025-06-15 23:25:44,986 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:25:44,993 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 299
+2025-06-15 23:25:44,993 - INFO - Adaptive Response:
+gpt-4.1-nano-2025-04-14

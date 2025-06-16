@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "adaptive"
+version = "0.1.0"
+description = "Adaptive AI tools and benchmarks"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+numpy = "<2.0.0"  # Required for compatibility
+pandas = "^2.0.0"
+matplotlib = "^3.7.0"
+tqdm = "^4.65.0"
+transformers = "^4.30.0"
+optimum = {extras = ["onnxruntime"], version = "^1.8.0"}
+onnxruntime = "^1.15.0"
+seaborn = "^0.12.0"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.5.0"
+types-pandas = "^2.0.0"
+types-tqdm = "^4.65.0"
+types-seaborn = "^0.12.0"
+
+[tool.poetry.group.openai.dependencies]
+openai = "^1.86.0"
+python-dotenv = "^1.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true 

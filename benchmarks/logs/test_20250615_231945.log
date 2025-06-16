@@ -1,0 +1,10 @@
+2025-06-15 23:19:45,953 - INFO - Environment variables loaded
+2025-06-15 23:19:45,953 - INFO - Starting main execution
+2025-06-15 23:19:45,953 - INFO - Starting CSV processing and API calls
+2025-06-15 23:19:45,953 - INFO - Loading dataset from Hugging Face
+2025-06-15 23:19:48,030 - INFO - Loaded 1 rows from dataset
+2025-06-15 23:19:48,031 - INFO - Using 12 processes for parallel processing
+2025-06-15 23:19:48,032 - INFO - Starting parallel processing
+2025-06-15 23:19:53,962 - INFO - Successfully processed 1 out of 1 rows
+2025-06-15 23:19:53,966 - INFO - Results saved to ./LmSys_analysis_results/lmsys_adaptive_result.csv
+2025-06-15 23:19:53,999 - INFO - Main execution completed successfully

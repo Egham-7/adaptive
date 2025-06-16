@@ -1,0 +1,32 @@
+2025-06-15 23:29:59,962 - INFO - Environment variables loaded
+2025-06-15 23:29:59,965 - INFO - Environment variables loaded
+2025-06-15 23:29:59,966 - INFO - Processing row with model: 
+2025-06-15 23:29:59,967 - INFO - Environment variables loaded
+2025-06-15 23:29:59,969 - INFO - Environment variables loaded
+2025-06-15 23:29:59,972 - INFO - Environment variables loaded
+2025-06-15 23:29:59,974 - INFO - Environment variables loaded
+2025-06-15 23:29:59,977 - INFO - Environment variables loaded
+2025-06-15 23:29:59,991 - INFO - Environment variables loaded
+2025-06-15 23:29:59,997 - INFO - Environment variables loaded
+2025-06-15 23:29:59,999 - INFO - Environment variables loaded
+2025-06-15 23:30:03,317 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:30:03,325 - INFO - Successfully processed row. Input tokens: 28, Output tokens: 289
+2025-06-15 23:30:03,325 - INFO - Model: gpt-4.1-nano-2025-04-14
+2025-06-15 23:30:03,325 - INFO - Response Content:
+Identity protection services can help safeguard you against identity theft in several important ways:
+
+1. **Credit Monitoring:** They continuously monitor your credit reports from major bureaus (Equifax, Experian, TransUnion) for any suspicious or unauthorized activity, such as new accounts or inquiries that you did not authorize.
+
+2. **Fraud Alerts:** Many services can help you place fraud alerts on your credit files, which notify potential lenders to verify your identity before extending credit.
+
+3. **Identity Theft Insurance:** Some plans include insurance coverage that can help cover costs associated with restoring your identity if it is stolen, such as legal fees or lost wages.
+
+4. **Dark Web Monitoring:** They scan the dark web for your personal information (like Social Security numbers, email addresses, or passwords) to alert you if your data appears in malicious marketplaces.
+
+5. **Password Management and Alerts:** They often provide tools or alerts for weak or compromised passwords, encouraging stronger security practices.
+
+6. **Identity Restoration Assistance:** If your identity is compromised, these services typically offer dedicated support to help you recover your identity, including working with credit bureaus and financial institutions.
+
+7. **Secure Data Storage:** Some services offer secure storage for sensitive information like Social Security numbers, birth certificates, or passports, reducing the risk of theft.
+
+By providing proactive monitoring, alerts, and support, identity protection services help detect potential threats early and assist in responding quickly to minimize damage from identity theft.

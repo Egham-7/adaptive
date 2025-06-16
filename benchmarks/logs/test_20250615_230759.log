@@ -1,0 +1,142 @@
+2025-06-15 23:07:59,922 - INFO - Environment variables loaded
+2025-06-15 23:07:59,926 - INFO - Processing row with model: 
+2025-06-15 23:07:59,939 - INFO - Environment variables loaded
+2025-06-15 23:07:59,943 - INFO - Processing row with model: 
+2025-06-15 23:07:59,944 - INFO - Environment variables loaded
+2025-06-15 23:07:59,948 - INFO - Processing row with model: 
+2025-06-15 23:07:59,953 - INFO - Environment variables loaded
+2025-06-15 23:07:59,955 - INFO - Environment variables loaded
+2025-06-15 23:07:59,957 - INFO - Environment variables loaded
+2025-06-15 23:07:59,957 - INFO - Processing row with model: 
+2025-06-15 23:07:59,960 - INFO - Processing row with model: 
+2025-06-15 23:07:59,950 - ERROR - Error processing row: 'input_prompt'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'input_prompt'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 57, in process_single_row
+    logger.debug(f"Sending API request for prompt: {row['input_prompt'][:100]}...")
+                                                    ~~~^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1130, in __getitem__
+    return self._get_value(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1246, in _get_value
+    loc = self.index.get_loc(label)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
+    raise KeyError(key) from err
+KeyError: 'input_prompt'
+2025-06-15 23:07:59,968 - ERROR - Error processing row: 'input_prompt'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'input_prompt'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 57, in process_single_row
+    logger.debug(f"Sending API request for prompt: {row['input_prompt'][:100]}...")
+                                                    ~~~^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1130, in __getitem__
+    return self._get_value(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1246, in _get_value
+    loc = self.index.get_loc(label)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
+    raise KeyError(key) from err
+KeyError: 'input_prompt'
+2025-06-15 23:07:59,976 - ERROR - Error processing row: 'input_prompt'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'input_prompt'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 57, in process_single_row
+    logger.debug(f"Sending API request for prompt: {row['input_prompt'][:100]}...")
+                                                    ~~~^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1130, in __getitem__
+    return self._get_value(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1246, in _get_value
+    loc = self.index.get_loc(label)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
+    raise KeyError(key) from err
+KeyError: 'input_prompt'
+2025-06-15 23:07:59,982 - ERROR - Error processing row: 'input_prompt'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'input_prompt'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 57, in process_single_row
+    logger.debug(f"Sending API request for prompt: {row['input_prompt'][:100]}...")
+                                                    ~~~^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1130, in __getitem__
+    return self._get_value(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1246, in _get_value
+    loc = self.index.get_loc(label)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
+    raise KeyError(key) from err
+KeyError: 'input_prompt'
+2025-06-15 23:07:59,988 - ERROR - Error processing row: 'input_prompt'
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7088, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7096, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'input_prompt'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 57, in process_single_row
+    logger.debug(f"Sending API request for prompt: {row['input_prompt'][:100]}...")
+                                                    ~~~^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1130, in __getitem__
+    return self._get_value(key)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/series.py", line 1246, in _get_value
+    loc = self.index.get_loc(label)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/pandas/core/indexes/base.py", line 3819, in get_loc
+    raise KeyError(key) from err
+KeyError: 'input_prompt'
+2025-06-15 23:07:59,998 - INFO - Environment variables loaded

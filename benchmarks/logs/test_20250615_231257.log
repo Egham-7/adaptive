@@ -1,0 +1,43 @@
+2025-06-15 23:12:57,011 - INFO - Environment variables loaded
+2025-06-15 23:12:57,014 - INFO - Processing row with model: 
+2025-06-15 23:12:57,014 - INFO - Environment variables loaded
+2025-06-15 23:12:57,019 - INFO - Processing row with model: 
+2025-06-15 23:12:57,020 - INFO - Environment variables loaded
+2025-06-15 23:12:57,024 - INFO - Processing row with model: 
+2025-06-15 23:12:57,045 - INFO - Environment variables loaded
+2025-06-15 23:12:57,051 - INFO - Processing row with model: 
+2025-06-15 23:12:57,065 - INFO - Environment variables loaded
+2025-06-15 23:12:57,084 - INFO - Environment variables loaded
+2025-06-15 23:12:57,087 - INFO - Environment variables loaded
+2025-06-15 23:12:57,111 - INFO - Environment variables loaded
+2025-06-15 23:12:57,111 - INFO - Environment variables loaded
+2025-06-15 23:12:57,115 - INFO - Environment variables loaded
+2025-06-15 23:12:57,117 - INFO - Environment variables loaded
+2025-06-15 23:13:08,037 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+2025-06-15 23:13:08,039 - INFO - Retrying request to /chat/completions in 0.466442 seconds
+2025-06-15 23:13:09,427 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+2025-06-15 23:13:09,427 - INFO - Retrying request to /chat/completions in 0.790304 seconds
+2025-06-15 23:13:09,938 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:13:09,945 - INFO - Successfully processed row. Input tokens: 50, Output tokens: 316
+2025-06-15 23:13:11,115 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 500 Internal Server Error"
+2025-06-15 23:13:11,116 - ERROR - Error processing row: Error code: 500 - {'error': 'Failed to generate completion: deepseek chat completion failed: HTTP 402: Insufficient account balance \n{"error":{"message":"Insufficient Balance","type":"unknown_error","param":null,"code":"invalid_request_error"}}'}
+Traceback (most recent call last):
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/real_testing/test.py", line 85, in process_single_row
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/_utils/_utils.py", line 287, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/resources/chat/completions/completions.py", line 925, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/attaimen/gitrepos/adaptive/benchmarks/.venv/lib/python3.12/site-packages/openai/_base_client.py", line 1037, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.InternalServerError: Error code: 500 - {'error': 'Failed to generate completion: deepseek chat completion failed: HTTP 402: Insufficient account balance \n{"error":{"message":"Insufficient Balance","type":"unknown_error","param":null,"code":"invalid_request_error"}}'}
+2025-06-15 23:13:12,486 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:13:12,494 - INFO - Successfully processed row. Input tokens: 50, Output tokens: 268
+2025-06-15 23:13:23,859 - INFO - HTTP Request: POST https://backend.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/v1/chat/completions "HTTP/1.1 200 OK"
+2025-06-15 23:13:23,867 - INFO - Successfully processed row. Input tokens: 62, Output tokens: 1178

@@ -1,0 +1,7 @@
+2025-06-15 23:30:41,780 - INFO - Environment variables loaded
+2025-06-15 23:30:41,781 - INFO - Starting main execution
+2025-06-15 23:30:41,781 - INFO - Starting CSV processing and API calls
+2025-06-15 23:30:41,781 - INFO - Loading dataset from Hugging Face
+2025-06-15 23:30:44,236 - INFO - Loaded 500 rows from dataset
+2025-06-15 23:30:44,238 - INFO - Using 12 processes for parallel processing
+2025-06-15 23:30:44,238 - INFO - Starting parallel processing
