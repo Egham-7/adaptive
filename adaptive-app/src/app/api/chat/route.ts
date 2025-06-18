@@ -1,0 +1,128 @@
+import { chatRequestSchema } from "@/lib/chat/ai-sdk";
+import type { messageRoleSchema } from "@/lib/chat/schema";
+import { api } from "@/trpc/server";
+import type { Message as DBMessage } from "@/types";
+import { createOpenAI } from "@ai-sdk/openai";
+import { TRPCError } from "@trpc/server";
+import {
+  type Message as SDKMessage,
+  appendClientMessage,
+  appendResponseMessages,
+  streamText,
+} from "ai";
+import type { z } from "zod";
+import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
+import { isUserSubscribed } from "@/lib/stripe/subscription-utils";
+import { auth } from "@clerk/nextjs/server";
+import { db } from "@/server/db";
+
+type MessageRole = z.infer<typeof messageRoleSchema>;
+
+export async function POST(req: Request) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    const body = await req.json();
+    const validatedInput = chatRequestSchema.parse(body);
+    const { message, id: conversationId } = validatedInput;
+
+    const numericConversationId = Number(conversationId);
+
+    if (Number.isNaN(numericConversationId) || numericConversationId <= 0) {
+      return new Response("Invalid Conversation ID", { status: 400 });
+    }
+
+    try {
+      await api.conversations.getById({ id: numericConversationId });
+    } catch (error) {
+      if (error instanceof TRPCError && error.code === "NOT_FOUND") {
+        return new Response("Conversation not found or access denied", {
+          status: 404,
+        });
+      }
+      console.error("Error validating conversation via tRPC:", error);
+      return new Response("Error validating conversation", { status: 500 });
+    }
+
+    // Check if user is subscribed
+    const isSubscribed = await isUserSubscribed(db, userId);
+
+    // If not subscribed, check daily limit before processing
+    if (!isSubscribed) {
+      const hasReachedLimit = await hasReachedDailyLimit(db, userId);
+      if (hasReachedLimit) {
+        return new Response(
+          JSON.stringify({
+            error: "Daily message limit reached. Please upgrade to continue.",
+          }),
+          {
+            status: 403,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    const previousMessages = (await api.messages.listByConversation({
+      conversationId: numericConversationId,
+    })) as DBMessage[];
+
+    const currentMessagesFromClient = appendClientMessage({
+      messages: previousMessages as unknown as SDKMessage[],
+      message,
+    });
+
+    const adaptive = createOpenAI({
+      baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+    });
+
+    const result = streamText({
+      model: adaptive(""),
+      messages: currentMessagesFromClient,
+      async onFinish({ response }) {
+        const finalMessagesToPersistSDK: SDKMessage[] = appendResponseMessages({
+          messages: currentMessagesFromClient as SDKMessage[],
+          responseMessages: response.messages,
+        });
+        const finalMessagesToPersist = finalMessagesToPersistSDK.map(
+          (message: SDKMessage) => {
+            const {
+              experimental_attachments,
+              // Remove deprecated properties
+              ...messageWithoutUnwantedProps
+            } = message;
+            return {
+              ...messageWithoutUnwantedProps,
+              role: message.role as MessageRole,
+              conversationId: numericConversationId,
+              annotations: message.annotations ?? null,
+              parts: message.parts ?? null,
+              experimentalAttachments: experimental_attachments ?? null,
+            };
+          }
+        );
+
+        await api.messages.batchUpsert({
+          conversationId: numericConversationId,
+          messages: finalMessagesToPersist,
+        });
+      },
+    });
+
+    const data = result.toDataStreamResponse({});
+
+    return data;
+  } catch (error) {
+    console.error("Error in chat API:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
