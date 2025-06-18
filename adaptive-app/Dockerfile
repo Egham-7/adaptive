@@ -25,7 +25,8 @@ RUN bunx prisma generate \
   && bun run build
 
 # Stage 1: production runner on Debian slim
-FROM debian:bullseye-slim AS runner
+FROM oven/bun:latest AS runner
+
 WORKDIR /app
 
 # install runtime deps (openssl + CA bundle)
