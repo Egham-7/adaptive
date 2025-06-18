@@ -118,5 +118,5 @@ jobs:
           imageToBuild: llmadaptiveregistry.azurecr.io/frontend:${{ github.sha }}
           buildArguments: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
-            CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+            CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
             STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
