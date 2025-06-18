@@ -2,9 +2,9 @@
 FROM oven/bun:latest AS builder
 WORKDIR /app
 
-# install OpenSSL so Prisma can generate engines against the right libssl
+# install OpenSSL and CA certificates
 RUN apt-get update -y \
-  && apt-get install -y openssl 
+  && apt-get install -y openssl ca-certificates 
 
 # install deps & generate Prisma client
 COPY package.json bun.lock ./
@@ -31,7 +31,7 @@ WORKDIR /app
 
 # install runtime deps (openssl + CA bundle)
 RUN apt-get update -y \
-  && apt-get install -y openssl
+  && apt-get install -y openssl ca-certificates 
 
 # copy Next.js standalone build & Prisma engines
 COPY --from=builder /app/.next/standalone ./
