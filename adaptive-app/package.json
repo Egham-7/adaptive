@@ -8,7 +8,7 @@
     "check": "biome check .",
     "check:unsafe": "biome check --write --unsafe .",
     "check:write": "biome check --write .",
-    "db:generate": "prisma migrate dev",
+    "db:generate": "bunx prisma migrate dev",
     "db:migrate": "bunx prisma migrate deploy",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
