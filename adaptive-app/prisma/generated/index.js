@@ -35,12 +35,12 @@ exports.Prisma = Prisma
 exports.$Enums = {}
 
 /**
- * Prisma Client JS version: 6.10.1
- * Query Engine version: 9b628578b3b7cae625e8c927178f15a170e74a9c
+ * Prisma Client JS version: 6.10.0
+ * Query Engine version: aee10d5a411e4360c6d3445ce4810ca65adbf3e8
  */
 Prisma.prismaVersion = {
-  client: "6.10.1",
-  engine: "9b628578b3b7cae625e8c927178f15a170e74a9c"
+  client: "6.10.0",
+  engine: "aee10d5a411e4360c6d3445ce4810ca65adbf3e8"
 }
 
 Prisma.PrismaClientKnownRequestError = PrismaClientKnownRequestError;
@@ -208,12 +208,13 @@ const config = {
     "schemaEnvPath": "../../.env"
   },
   "relativePath": "..",
-  "clientVersion": "6.10.1",
-  "engineVersion": "9b628578b3b7cae625e8c927178f15a170e74a9c",
+  "clientVersion": "6.10.0",
+  "engineVersion": "aee10d5a411e4360c6d3445ce4810ca65adbf3e8",
   "datasourceNames": [
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": true,
   "inlineDatasources": {
     "db": {
       "url": {
@@ -224,7 +225,7 @@ const config = {
   },
   "inlineSchema": "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n\ngenerator client {\n  provider = \"prisma-client-js\"\n  output   = \"./generated\"\n}\n\nmodel ApiKey {\n  id         String    @id @default(uuid())\n  userId     String\n  name       String\n  keyPrefix  String\n  keyHash    String\n  status     String\n  createdAt  DateTime  @default(now())\n  updatedAt  DateTime  @updatedAt\n  expiresAt  DateTime?\n  lastUsedAt DateTime?\n\n  @@unique([keyPrefix, keyHash])\n}\n\nmodel Conversation {\n  id        Int       @id @default(autoincrement())\n  title     String\n  createdAt DateTime  @default(now())\n  updatedAt DateTime  @updatedAt\n  deletedAt DateTime?\n  userId    String\n\n  messages Message[]\n  pinned   Boolean   @default(false)\n\n  @@index([deletedAt])\n}\n\nmodel Message {\n  id      String @id @default(cuid())\n  role    String\n  content String\n\n  reasoning               Json?\n  annotations             Json?\n  parts                   Json?\n  experimentalAttachments Json?\n\n  createdAt DateTime  @default(now())\n  updatedAt DateTime  @updatedAt\n  deletedAt DateTime?\n\n  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)\n  conversationId Int\n\n  @@index([deletedAt])\n  @@index([conversationId])\n  @@index([role])\n}\n\nmodel Subscription {\n  id                   String    @id @default(cuid())\n  userId               String    @unique\n  stripeCustomerId     String?   @unique\n  stripePriceId        String?\n  stripeSubscriptionId String?   @unique\n  status               String // 'active' | 'canceled' | 'past_due' | 'unpaid'\n  currentPeriodEnd     DateTime?\n  createdAt            DateTime  @default(now())\n  updatedAt            DateTime  @updatedAt\n\n  @@index([userId])\n  @@index([status])\n}\n",
   "inlineSchemaHash": "38f17f29e8b97194c6453bf7d107351e4c06cb090e481fc237b776fdb0103adf",
-  "copyEngine": false
+  "copyEngine": true
 }
 
 const fs = require('fs')
@@ -261,3 +262,9 @@ const PrismaClient = getPrismaClient(config)
 exports.PrismaClient = PrismaClient
 Object.assign(exports, Prisma)
 
+// file annotations for bundling tools to include these files
+path.join(__dirname, "libquery_engine-darwin-arm64.dylib.node");
+path.join(process.cwd(), "prisma/generated/libquery_engine-darwin-arm64.dylib.node")
+// file annotations for bundling tools to include these files
+path.join(__dirname, "schema.prisma");
+path.join(process.cwd(), "prisma/generated/schema.prisma")
