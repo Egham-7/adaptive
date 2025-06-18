@@ -94,7 +94,7 @@ jobs:
               run: go mod download
 
             - name: Install Gosec
-              run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+              run: go install github.com/securego/gosec/v2/cmd/gosec@latest
 
             - name: Run Gosec
               run: gosec -exclude-dir=vendor -exclude-dir=testdata ./...
