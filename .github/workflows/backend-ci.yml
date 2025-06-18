@@ -5,15 +5,11 @@ on:
         branches: [main]
         paths:
             - "adaptive-backend/**"
-            - "adaptive-backend/go.mod"
-            - "adaptive-backend/go.sum"
             - ".github/workflows/backend-ci.yml"
     pull_request:
         branches: [main]
         paths:
             - "adaptive-backend/**"
-            - "adaptive-backend/go.mod"
-            - "adaptive-backend/go.sum"
             - ".github/workflows/backend-ci.yml"
     workflow_dispatch:
 
