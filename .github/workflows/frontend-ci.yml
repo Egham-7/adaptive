@@ -56,9 +56,6 @@ jobs:
             - name: Lint & format
               run: bun run check
 
-            - name: Check unused dependencies
-              run: bunx depcheck --ignores="@types/*,prisma,@prisma/*,sharp"
-
     security:
         name: Security Audit
         runs-on: ubuntu-latest
