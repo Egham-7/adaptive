@@ -12,6 +12,6 @@ class LLMParameterService:
         model: str,
         task_type: str,
         prompt_scores: dict[str, list[float]],
-    ) -> dict[str, float | int]:
+    ) -> dict[str, float | int | str]:
         params = self._provider(model=model)
         return params.adjust_parameters(task_type, prompt_scores)
