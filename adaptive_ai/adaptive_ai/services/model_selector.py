@@ -5,10 +5,23 @@ import math
 import os
 from typing import TypedDict, cast
 
+import tiktoken
+
 from adaptive_ai.core.config import get_settings
+from adaptive_ai.models.orchestrator import (
+    MinionDetails,
+    MinionOrchestratorResponse,
+    MinionsProtocolDetails,
+    MinionsProtocolOrchestratorResponse,
+    OrchestratorResponse,
+    RemoteLLM,
+    StandardLLMDetails,
+    StandardLLMOrchestratorResponse,
+)
 from adaptive_ai.models.parameters import OpenAIParameters
 from adaptive_ai.models.requests import ModelSelectionResponse
 from adaptive_ai.models.types import (
+    VALID_PROVIDERS,
     VALID_TASK_TYPES,
     DifficultyLevel,
     ModelCapability,
@@ -40,6 +53,7 @@ class ModelSelector:
         self._settings = get_settings()
         self._model_capabilities = self._get_model_capabilities()
         self._task_mappings = self._get_task_model_mappings()
+        self._remote_llm_map = self._get_remote_llm_map()
         cpu_cnt = os.cpu_count() or 1
         self.max_workers = max_workers or min(32, cpu_cnt)
 
@@ -100,6 +114,40 @@ class ModelSelector:
                     },
                 )
         return validated_mappings
+
+    def _get_remote_llm_map(self) -> dict[str, dict[str, str]]:
+        """Get the remote LLM map from config settings (config.yaml)."""
+        remote_llm_map = getattr(self._settings, "remote_llm_map", None)
+        # Ensure the config value is the correct type
+        if isinstance(remote_llm_map, dict):
+            valid_map: dict[str, dict[str, str]] = {}
+            for k, v in remote_llm_map.items():
+                if isinstance(v, dict) and "provider" in v and "model" in v:
+                    provider = str(v["provider"])
+                    model = str(v["model"])
+                    valid_map[str(k)] = {"provider": provider, "model": model}
+            if valid_map:
+                return valid_map
+        # Fallback: try to build from task_model_mappings if not present
+        task_model_mappings = getattr(self._settings, "get_task_model_mappings", None)
+        if callable(task_model_mappings):
+            mappings = task_model_mappings()
+            result: dict[str, dict[str, str]] = {}
+            for task_type, mapping in mappings.items():
+                model_name = mapping["hard"]["model"]
+                model_cap = self._model_capabilities.get(model_name)
+                if (
+                    model_cap is not None
+                    and "provider" in model_cap
+                    and model_cap["provider"] in VALID_PROVIDERS
+                ):
+                    provider = model_cap["provider"]
+                else:
+                    provider = "Anthropic"
+                result[str(task_type)] = {"provider": provider, "model": model_name}
+            return result
+        # If all else fails, return a default
+        return {"Other": {"provider": "Anthropic", "model": "claude-sonnet-4-0"}}
 
     def _validate_task_type(self, task_type: str) -> TaskType:
         """Validate and convert string to TaskType"""
@@ -355,7 +403,7 @@ class ModelSelector:
         try:
             # Get classifications from the prompt classifier (this should already be batched/parallelized)
             classification_results = self.prompt_classifier.classify_prompts(prompts)
-
+            print(classification_results)
             # Validate results
             if not isinstance(classification_results, list):
                 raise ModelSelectionError("Expected list of classification results")
@@ -429,7 +477,74 @@ class ModelSelector:
             logger.error(f"Error in model selection: {e}")
             raise ModelSelectionError(f"Failed to select model: {e}") from e
 
+    def select_orchestrator_route(self, prompt: str) -> OrchestratorResponse:
+        """
+        Route the prompt to the appropriate protocol based on complexity and window size.
+        - If prompt is 'easy' and complexity < 0.3, select minion.
+        - If prompt is 'large' (window size > 2048 tokens), select minions_protocol.
+        - Otherwise, select standard_llm.
+        """
+        # Classify prompt
+        classification = self.prompt_classifier.classify_prompts([prompt])[0]
+        task_type = classification.get("task_type_1", ["Other"])[0]
+        complexity_score = classification.get("prompt_complexity_score", [0.5])[0]
+        # For window size, use a simple token count (split by whitespace as a proxy)
+        token_count = count_tokens(prompt)
+        large_window_threshold = 2  # You can adjust this as needed
+        min_window_threshold = 4
+        # Minion: easy and low complexity
+        if token_count < min_window_threshold or complexity_score < 0.3:
+            logger.info(
+                f"Routing prompt to MINION protocol (task_type={task_type}, complexity={complexity_score})"
+            )
+            return MinionOrchestratorResponse(
+                protocol="minion", minion_data=MinionDetails(task_type=task_type)
+            )
+        # Minions Protocol: large prompt
+        elif token_count > large_window_threshold:
+            logger.info(
+                f"Routing prompt to MINIONS_PROTOCOL (task_type={task_type}, token_count={token_count})"
+            )
+            remote_llm_info = self._remote_llm_map.get(task_type)
+            if remote_llm_info is None:
+                remote_llm_info = self._remote_llm_map.get("Other")
+                if remote_llm_info is None:
+                    remote_llm_info = {
+                        "provider": "Anthropic",
+                        "model": "claude-sonnet-4-0",
+                    }
+            return MinionsProtocolOrchestratorResponse(
+                protocol="minions_protocol",
+                minions_protocol_data=MinionsProtocolDetails(
+                    task_type=task_type,
+                    remote_llm=RemoteLLM(
+                        provider=remote_llm_info["provider"],
+                        model=remote_llm_info["model"],
+                    ),
+                ),
+            )
+        # Standard LLM: default
+        else:
+            logger.info(
+                f"Routing prompt to STANDARD_LLM (task_type={task_type}, complexity={complexity_score}, token_count={token_count})"
+            )
+            selection = self.select_model([prompt])[0]
+            return StandardLLMOrchestratorResponse(
+                protocol="standard_llm",
+                standard_llm_data=StandardLLMDetails(
+                    provider=str(selection.provider), model=selection.selected_model
+                ),
+                selected_model=selection.selected_model,
+                confidence=selection.confidence,
+                parameters=selection.parameters,
+            )
+
 
 @lru_cache
 def get_model_selector(prompt_classifier: PromptClassifier) -> ModelSelector:
     return ModelSelector(prompt_classifier)
+
+
+def count_tokens(prompt: str, model_name: str = "gpt-3.5-turbo") -> int:
+    encoding = tiktoken.encoding_for_model(model_name)
+    return len(encoding.encode(prompt))
