@@ -1,9 +1,7 @@
 package main
 
 import (
-	"adaptive-backend/config"
 	"adaptive-backend/internal/api"
-	"adaptive-backend/internal/middleware"
 	"adaptive-backend/internal/services/metrics"
 	"context"
 	"fmt"
@@ -28,32 +26,18 @@ import (
 // SetupRoutes configures all the application routes
 func SetupRoutes(app *fiber.App) {
 	// Create handler instances
-	apiKeyHandler := api.NewAPIKeyHandler()
 	chatCompletionHandler := api.NewChatCompletionHandler()
-
-	authMiddleware := middleware.AuthMiddleware()
-	apiKeyMiddleware := middleware.APIKeyMiddleware(apiKeyHandler)
 
 	// OpenAI-compatible API routes
 	v1Group := app.Group("/v1")
-	v1Group.Post("/chat/completions", apiKeyMiddleware, chatCompletionHandler.ChatCompletion)
+	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 
 	// Provider-specific routes using factory loop
 	providers := []string{"openai", "anthropic", "groq", "deepseek", "gemini"}
 	for _, provider := range providers {
 		providerHandler := api.NewProviderChatCompletionHandler(provider)
-		v1Group.Post(fmt.Sprintf("/%s/chat/completions", provider), apiKeyMiddleware, providerHandler.ChatCompletion)
+		v1Group.Post(fmt.Sprintf("/%s/chat/completions", provider), providerHandler.ChatCompletion)
 	}
-	// API group for internal management
-	apiGroup := app.Group("/api")
-
-	// API key routes
-	apiKeys := apiGroup.Group("/api_keys", authMiddleware)
-	apiKeys.Get("/:userId", apiKeyHandler.GetAllAPIKeysByUserId)
-	apiKeys.Get("/:id", apiKeyHandler.GetAPIKeyById)
-	apiKeys.Post("/", apiKeyHandler.CreateAPIKey)
-	apiKeys.Put("/:id", apiKeyHandler.UpdateAPIKey)
-	apiKeys.Delete("/:id", apiKeyHandler.DeleteAPIKey)
 }
 
 func main() {
@@ -110,26 +94,6 @@ func main() {
 			})
 		},
 	})
-
-	// Initialize database with optimized configuration
-	dbConfig := config.DefaultDatabaseConfig()
-	if isProd {
-		// Production optimizations
-		dbConfig.MaxOpenConns = 50
-		dbConfig.MaxIdleConns = 20
-		dbConfig.ConnMaxLifetime = 10 * time.Minute
-	}
-
-	db_err := config.InitializeWithConfig(
-		os.Getenv("DB_SERVER"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		dbConfig,
-	)
-	if db_err != nil {
-		log.Fatal(db_err)
-	}
 
 	// Setup middleware
 	setupMiddleware(app, allowedOrigins)
