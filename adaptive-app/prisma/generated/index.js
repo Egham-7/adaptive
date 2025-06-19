@@ -186,7 +186,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/botirkhaltaev/Desktop/adaptive/adaptive-app/prisma/generated",
+      "value": "/Users/kendricklwinschool/repos/adaptive/adaptive-app/prisma/generated",
       "fromEnvVar": null
     },
     "config": {
@@ -200,7 +200,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/botirkhaltaev/Desktop/adaptive/adaptive-app/prisma/schema.prisma",
+    "sourceFilePath": "/Users/kendricklwinschool/repos/adaptive/adaptive-app/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

@@ -10,22 +10,23 @@ import PaymentNotificationWrapper from "./_components/landing_page/payment-notif
 import Pricing from "./_components/landing_page/pricing";
 import StatsSection from "./_components/landing_page/stats-section";
 import TestimonialsSection from "./_components/landing_page/testimonials-section";
+import { BackgroundPaths } from "./_components/landing_page/background-paths";
 
 export default function LandingPage() {
-	return (
-		<Suspense>
-			<PaymentNotificationWrapper>
-				<Header />
-				<HeroSection />
-				<ChatbotPricing />
-				<Pricing />
-				<FeaturesSection />
-				<ContentSection />
-				<StatsSection />
-				<TestimonialsSection />
-				<CallToAction />
-				<Footer />
-			</PaymentNotificationWrapper>
-		</Suspense>
-	);
+  return (
+    <Suspense>
+      <PaymentNotificationWrapper>
+        <Header />
+        <HeroSection />
+        <ChatbotPricing />
+        <Pricing />
+        <FeaturesSection />
+        <ContentSection />
+        <StatsSection />
+        <TestimonialsSection />
+        <CallToAction />
+        <Footer />
+      </PaymentNotificationWrapper>
+    </Suspense>
+  );
 }
