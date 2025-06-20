@@ -12,9 +12,8 @@ import (
 
 // OpenAIService handles OpenAI API interactions
 type OpenAIService struct {
-	client  *openai.Client
-	chat    *chat.OpenAIChat
-	baseUrl *string
+	client *openai.Client
+	chat   *chat.OpenAIChat
 }
 
 // NewOpenAIService creates a new OpenAI service using the official SDK
