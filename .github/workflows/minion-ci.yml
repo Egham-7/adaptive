@@ -1,4 +1,4 @@
-name: Trigger auto deployment for minion-open-qa
+name: Minion CI
 
 # When this action will be executed
 on:
