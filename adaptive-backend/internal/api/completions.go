@@ -32,15 +32,15 @@ func NewChatCompletionHandler() *ChatCompletionHandler {
 
 	minionRegistry.RegisterMinion("Open QA", os.Getenv("OPEN_QA_MINION_URL"))
 	minionRegistry.RegisterMinion("Closed QA", os.Getenv("CLOSED_QA_MINION_URL"))
-	minionRegistry.RegisterMinion("Summarization", os.Getenv("SUMMARIZATION_MINION_URL"))
-	minionRegistry.RegisterMinion("Text Generation", os.Getenv("TEXT_GENERATION_MINION_URL"))
+	minionRegistry.RegisterMinion("Summarization", os.Getenv("OPEN_QA_MINION_URL"))
+	minionRegistry.RegisterMinion("Text Generation", os.Getenv("OPEN_QA_MINION_URL"))
 	minionRegistry.RegisterMinion("Classification", os.Getenv("CLASSIFICATION_MINION_URL"))
 	minionRegistry.RegisterMinion("Code Generation", os.Getenv("CODE_GENERATION_MINION_URL"))
 	minionRegistry.RegisterMinion("Chatbot", os.Getenv("CHATBOT_MINION_URL"))
 	minionRegistry.RegisterMinion("Rewrite", os.Getenv("REWRITE_MINION_URL"))
 	minionRegistry.RegisterMinion("Brainstorming", os.Getenv("BRAINSTORMING_MINION_URL"))
 	minionRegistry.RegisterMinion("Extraction, or Summarization", os.Getenv("EXTRACTION_MINION_URL"))
-	minionRegistry.RegisterMinion("Other", os.Getenv("OTHER_MINION_URL"))
+	minionRegistry.RegisterMinion("Other", os.Getenv("CHATBOT_MINION_URL"))
 
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
