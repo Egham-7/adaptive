@@ -23,9 +23,8 @@ func NewOpenAIService(baseUrl *string) (*OpenAIService, error) {
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
 	}
-	client := openai.NewClient(
-		option.WithAPIKey(apiKey),
-	var client *openai.Client
+	var client openai.Client
+
 	if baseUrl != nil {
 		client = openai.NewClient(
 			option.WithAPIKey(apiKey),
@@ -36,7 +35,6 @@ func NewOpenAIService(baseUrl *string) (*OpenAIService, error) {
 			option.WithAPIKey(apiKey),
 		)
 	}
-	)
 
 	chatService := chat.NewOpenAIChat(&client)
 
