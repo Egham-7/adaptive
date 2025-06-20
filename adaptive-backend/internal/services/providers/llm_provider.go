@@ -39,23 +39,27 @@ func NewLLMProvider(providerName string, taskType *string, minionRegistry *minio
 		}
 		return service, nil
 
-	case "minion":
+case "minion":
 
-		if taskType == nil {
-			return nil, errors.New("task type must be provided for minion provider")
-		}
+    if minionRegistry == nil {
+        return nil, errors.New("minion registry must be provided for minion provider")
+    }
 
-		baseURL, found := minionRegistry.GetMinionURL(*taskType)
+    if taskType == nil {
+        return nil, errors.New("task type must be provided for minion provider")
+    }
 
-		if !found {
-			return nil, errors.New("minion not found for task type: " + *taskType)
-		}
+    baseURL, found := minionRegistry.GetMinionURL(*taskType)
 
-		service, err := openai.NewOpenAIService(&baseURL)
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
+    if !found {
+        return nil, errors.New("minion not found for task type: " + *taskType)
+    }
+
+    service, err := openai.NewOpenAIService(&baseURL)
+    if err != nil {
+        return nil, err
+    }
+    return service, nil
 
 	default:
 		return nil, errors.New("unsupported provider: " + providerName)
