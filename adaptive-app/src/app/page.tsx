@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { BackgroundPaths } from "./_components/landing_page/background-paths";
 import ChatbotPricing from "./_components/landing_page/chatbot-pricing";
 import ContentSection from "./_components/landing_page/content";
 import CallToAction from "./_components/landing_page/cta";
