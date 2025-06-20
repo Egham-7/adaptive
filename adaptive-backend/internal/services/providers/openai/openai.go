@@ -25,7 +25,17 @@ func NewOpenAIService(baseUrl *string) (*OpenAIService, error) {
 	}
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
-		option.WithBaseURL(*baseUrl),
+	var client *openai.Client
+	if baseUrl != nil {
+		client = openai.NewClient(
+			option.WithAPIKey(apiKey),
+			option.WithBaseURL(*baseUrl),
+		)
+	} else {
+		client = openai.NewClient(
+			option.WithAPIKey(apiKey),
+		)
+	}
 	)
 
 	chatService := chat.NewOpenAIChat(&client)
