@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Intelligent LLM Infrastructure with Smart Model Selection"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-packages = [{include = "adaptive_ai"}]  
+packages = [
+    {include = "core"},
+    {include = "models"}, 
+    {include = "services"}
+] 
 license = "MIT"
 
 homepage = "https://github.com/your-org/adaptive-ai"
