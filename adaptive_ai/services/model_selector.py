@@ -489,7 +489,7 @@ class ModelSelector:
         complexity_score = classification.get("prompt_complexity_score", [0.5])[0]
         # For window size, use a simple token count (split by whitespace as a proxy)
         token_count = count_tokens(prompt)
-        large_window_threshold =  2048  # You can adjust this as needed
+        large_window_threshold = 2048  # You can adjust this as needed
         min_window_threshold = 4
         # Minion: easy and low complexity
         if token_count < min_window_threshold or complexity_score < 0.3:
