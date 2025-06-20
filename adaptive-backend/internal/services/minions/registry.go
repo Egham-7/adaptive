@@ -3,6 +3,8 @@ package minions
 import (
 	"maps"
 	"sync"
+
+	"github.com/gofiber/fiber/v2/log"
 )
 
 type MinionRegistry struct {
@@ -17,6 +19,11 @@ func NewMinionRegistry(capacity int) *MinionRegistry {
 }
 
 func (mr *MinionRegistry) RegisterMinion(minionType, url string) {
+	if minionType == "" || url == "" {
+		log.Errorf("minionType and url cannot be empty: minionType=%s, url=%s", minionType, url)
+		return
+	}
+
 	mr.mu.Lock()
 	defer mr.mu.Unlock()
 	mr.minions[minionType] = url
