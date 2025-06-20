@@ -12,18 +12,20 @@ import (
 
 // OpenAIService handles OpenAI API interactions
 type OpenAIService struct {
-	client *openai.Client
-	chat   *chat.OpenAIChat
+	client  *openai.Client
+	chat    *chat.OpenAIChat
+	baseUrl *string
 }
 
 // NewOpenAIService creates a new OpenAI service using the official SDK
-func NewOpenAIService() (*OpenAIService, error) {
+func NewOpenAIService(baseUrl *string) (*OpenAIService, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
 	}
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
+		option.WithBaseURL(*baseUrl),
 	)
 
 	chatService := chat.NewOpenAIChat(&client)

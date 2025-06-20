@@ -4,11 +4,13 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/metrics"
+	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
 	"encoding/json"
 	"errors"
+	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -19,16 +21,32 @@ type ChatCompletionHandler struct {
 	promptClassifierClient *services.PromptClassifierClient
 	metrics                *metrics.ChatMetrics
 	providerConstraint     string
+	minionRegistry         *minions.MinionRegistry
 }
 
 // Shared metrics instance to avoid duplicate registration
 var sharedMetrics = metrics.NewChatMetrics()
 
 func NewChatCompletionHandler() *ChatCompletionHandler {
+	minionRegistry := minions.NewMinionRegistry(11)
+
+	minionRegistry.RegisterMinion("Open QA", os.Getenv("OPEN_QA_MINION_URL"))
+	minionRegistry.RegisterMinion("Closed QA", os.Getenv("CLOSED_QA_MINION_URL"))
+	minionRegistry.RegisterMinion("Summarization", os.Getenv("SUMMARIZATION_MINION_URL"))
+	minionRegistry.RegisterMinion("Text Generation", os.Getenv("TEXT_GENERATION_MINION_URL"))
+	minionRegistry.RegisterMinion("Classification", os.Getenv("CLASSIFICATION_MINION_URL"))
+	minionRegistry.RegisterMinion("Code Generation", os.Getenv("CODE_GENERATION_MINION_URL"))
+	minionRegistry.RegisterMinion("Chatbot", os.Getenv("CHATBOT_MINION_URL"))
+	minionRegistry.RegisterMinion("Rewrite", os.Getenv("REWRITE_MINION_URL"))
+	minionRegistry.RegisterMinion("Brainstorming", os.Getenv("BRAINSTORMING_MINION_URL"))
+	minionRegistry.RegisterMinion("Extraction, or Summarization", os.Getenv("EXTRACTION_MINION_URL"))
+	minionRegistry.RegisterMinion("Other", os.Getenv("OTHER_MINION_URL"))
+
 	return &ChatCompletionHandler{
 		promptClassifierClient: services.NewPromptClassifierClient(),
 		metrics:                sharedMetrics,
 		providerConstraint:     "", // No provider constraint for main endpoint
+		minionRegistry:         minionRegistry,
 	}
 }
 
@@ -73,7 +91,7 @@ func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	h.applyModelParameters(req, modelInfo)
 	log.Infof("[%s] Applied model parameters: %+v", requestID, modelInfo.Parameters)
 
-	provider, err := providers.NewLLMProvider(modelInfo.Provider)
+	provider, err := providers.NewLLMProvider(modelInfo.Provider, nil, h.minionRegistry)
 	if err != nil {
 		h.recordError(start, "400", isStream)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
