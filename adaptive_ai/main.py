@@ -1,7 +1,8 @@
 import litserve as ls
 
 from adaptive_ai.core.config import get_settings
-from adaptive_ai.models.requests import ModelSelectionResponse, PromptRequest
+from adaptive_ai.models.orchestrator import OrchestratorResponse
+from adaptive_ai.models.requests import PromptRequest
 from adaptive_ai.services.model_selector import get_model_selector
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 
@@ -14,19 +15,15 @@ class AdaptiveModelSelectionAPI(ls.LitAPI):
     def decode_request(self, request: PromptRequest) -> PromptRequest:
         return request
 
-    def predict(self, requests: list[PromptRequest]) -> list[ModelSelectionResponse]:
-        # Extract prompts and cost bias
+    def predict(self, requests: list[PromptRequest]) -> list[OrchestratorResponse]:
         prompts = [req.prompt for req in requests]
-        # Use the cost bias from the first request if available, otherwise use default
-        cost_bias = requests[0].cost_bias if requests else 0.5
+        responses = []
+        for prompt in prompts:
+            response = self.model_selector.select_orchestrator_route(prompt)
+            responses.append(response)
+        return responses
 
-        # Update cost bias
-        self.settings.model_selection.cost_bias = cost_bias
-
-        # Process all prompts with the same cost bias
-        return self.model_selector.select_model(prompts)
-
-    def encode_response(self, output: ModelSelectionResponse) -> ModelSelectionResponse:
+    def encode_response(self, output: OrchestratorResponse) -> OrchestratorResponse:
         return output
 
 
