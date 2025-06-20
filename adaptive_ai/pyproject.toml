@@ -134,18 +134,7 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-ra -q --strict-markers --strict-config --cov=adaptive_ai --cov-report=term-missing --cov-report=xml"
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-markers = [
-  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-  "integration: marks tests as integration tests",
-  "unit: marks tests as unit tests",
-]
+
 
 [tool.coverage.run]
 source = ["adaptive_ai"]
