@@ -37,9 +37,7 @@
 .gitignore
 .gitattributes
 
-# Docker files (optional, depending on your build strategy)
-# Dockerfile
-# docker-compose.yml
+
 
 # Documentation
 README.md

@@ -1,263 +1,197 @@
 package api
 
 import (
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services"
-	"adaptive-backend/internal/services/metrics"
-	"adaptive-backend/internal/services/minions"
-	"adaptive-backend/internal/services/providers"
-	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"adaptive-backend/internal/services/stream_readers/stream"
-	"encoding/json"
-	"errors"
 	"os"
 	"time"
 
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/chat/completions"
+	"adaptive-backend/internal/services/metrics"
+	"adaptive-backend/internal/services/minions"
+	"adaptive-backend/internal/services/model_selection"
+	"adaptive-backend/internal/services/providers/provider_interfaces"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
+	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-type ChatCompletionHandler struct {
-	promptClassifierClient *services.PromptClassifierClient
-	metrics                *metrics.ChatMetrics
-	providerConstraint     string
-	minionRegistry         *minions.MinionRegistry
+// CompletionHandler handles chat completion requests with clean separation of concerns
+type CompletionHandler struct {
+	// Core services
+	requestService       *completions.RequestService
+	responseService      *completions.ResponseService
+	parameterService     *completions.ParameterService
+	orchestrationService *completions.OrchestrationService
+	metricsService       *completions.MetricsService
+
+	// Configuration
+	providerConstraint string
 }
 
-// Shared metrics instance to avoid duplicate registration
-var sharedMetrics = metrics.NewChatMetrics()
-
-func NewChatCompletionHandler() *ChatCompletionHandler {
+// NewCompletionHandler creates a new completion handler with all required services
+func NewCompletionHandler() *CompletionHandler {
+	// Initialize minion registry
 	minionRegistry := minions.NewMinionRegistry(11)
+	registerMinions(minionRegistry)
 
-	minionRegistry.RegisterMinion("Open QA", os.Getenv("OPEN_QA_MINION_URL"))
-	minionRegistry.RegisterMinion("Closed QA", os.Getenv("CLOSED_QA_MINION_URL"))
-	minionRegistry.RegisterMinion("Summarization", os.Getenv("OPEN_QA_MINION_URL"))
-	minionRegistry.RegisterMinion("Text Generation", os.Getenv("OPEN_QA_MINION_URL"))
-	minionRegistry.RegisterMinion("Classification", os.Getenv("CLASSIFICATION_MINION_URL"))
-	minionRegistry.RegisterMinion("Code Generation", os.Getenv("CODE_GENERATION_MINION_URL"))
-	minionRegistry.RegisterMinion("Chatbot", os.Getenv("CHATBOT_MINION_URL"))
-	minionRegistry.RegisterMinion("Rewrite", os.Getenv("REWRITE_MINION_URL"))
-	minionRegistry.RegisterMinion("Brainstorming", os.Getenv("BRAINSTORMING_MINION_URL"))
-	minionRegistry.RegisterMinion("Extraction, or Summarization", os.Getenv("EXTRACTION_MINION_URL"))
-	minionRegistry.RegisterMinion("Other", os.Getenv("CHATBOT_MINION_URL"))
+	// Initialize model selector
+	modelSelector, err := model_selection.NewModelSelector()
+	if err != nil {
+		fiberlog.Fatalf("failed to initialize ModelSelector: %v", err)
+	}
 
-	return &ChatCompletionHandler{
-		promptClassifierClient: services.NewPromptClassifierClient(),
-		metrics:                sharedMetrics,
-		providerConstraint:     "", // No provider constraint for main endpoint
-		minionRegistry:         minionRegistry,
+	// Initialize metrics
+	chatMetrics := metrics.NewChatMetrics()
+
+	// Initialize services
+	requestService := completions.NewRequestService()
+	responseService := completions.NewResponseService()
+	parameterService := completions.NewParameterService()
+	orchestrationService := completions.NewOrchestrationService(modelSelector, minionRegistry)
+	metricsService := completions.NewMetricsService(chatMetrics)
+
+	return &CompletionHandler{
+		requestService:       requestService,
+		responseService:      responseService,
+		parameterService:     parameterService,
+		orchestrationService: orchestrationService,
+		metricsService:       metricsService,
+		providerConstraint:   "",
 	}
 }
 
-func NewProviderChatCompletionHandler(provider string) *ChatCompletionHandler {
-	return &ChatCompletionHandler{
-		promptClassifierClient: services.NewPromptClassifierClient(),
-		metrics:                sharedMetrics,
-		providerConstraint:     provider,
-	}
-}
-
-func (h *ChatCompletionHandler) ChatCompletion(c *fiber.Ctx) error {
+// ChatCompletion handles the main chat completion endpoint
+func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	start := time.Now()
-	requestID := h.getRequestID(c)
-	apiKey := h.getAPIKey(c)
+	requestID := h.requestService.GetRequestID(c)
+	apiKey := h.requestService.GetAPIKey(c)
 
-	req, err := h.parseRequest(c)
+	fiberlog.Infof("[%s] Starting chat completion request", requestID)
+
+	// Parse and validate request
+	req, err := h.requestService.ParseChatCompletionRequest(c)
 	if err != nil {
-		h.recordError(start, "400", false)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body: " + err.Error(),
-		})
+		h.metricsService.RecordError(start, "400", req != nil && req.Stream, requestID, "unknown")
+		return h.responseService.HandleBadRequest(c, "Invalid request: "+err.Error(), requestID)
 	}
+
 	isStream := req.Stream
+	h.metricsService.RecordRequestStart(requestID, isStream)
 
-	modelInfo, err := h.selectModel(req, apiKey, requestID)
+	// Orchestrate model selection and provider configuration
+	orchestratorResult, err := h.orchestrationService.SelectAndConfigureProvider(req, apiKey, requestID)
 	if err != nil {
-		h.recordError(start, "500", isStream)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	if h.providerConstraint != "" {
-		log.Infof("[%s] Selected model: %s (%s)", requestID, modelInfo.SelectedModel, h.providerConstraint)
-	} else {
-		log.Infof("[%s] Selected model: %s", requestID, modelInfo.SelectedModel)
+		h.metricsService.RecordError(start, "500", isStream, requestID, "unknown")
+		return h.responseService.HandleInternalError(c, err.Error(), requestID)
 	}
 
-	// Record model selection metric
-	h.recordModelSelection(modelInfo.SelectedModel)
-
-	h.applyModelParameters(req, modelInfo)
-	log.Infof("[%s] Applied model parameters: %+v", requestID, modelInfo.Parameters)
-
-	provider, err := providers.NewLLMProvider(modelInfo.Provider, nil, h.minionRegistry)
-	if err != nil {
-		h.recordError(start, "400", isStream)
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+	// Record cache metrics if applicable
+	if orchestratorResult.CacheType == "user" || orchestratorResult.CacheType == "global" {
+		h.metricsService.RecordCacheHit(orchestratorResult.CacheType, requestID, orchestratorResult.ProviderName)
 	}
 
-	log.Infof("[%s] Using provider: %s", requestID, modelInfo.Provider)
+	// Record model selection
+	h.metricsService.RecordModelSelection(orchestratorResult.ModelName, requestID, orchestratorResult.ProviderName)
 
+	// Log protocol and model information
+	fiberlog.Infof("[%s] Protocol: %s, Model: %s",
+		requestID, orchestratorResult.ProtocolType, orchestratorResult.ModelName)
+
+	// Apply parameters based on protocol type
+	if err := h.applyParametersFromOrchestrator(req, orchestratorResult.Parameters, requestID); err != nil {
+		h.metricsService.RecordError(start, "500", isStream, requestID, orchestratorResult.ProviderName)
+		return h.responseService.HandleInternalError(c, "Parameter application failed: "+err.Error(), requestID)
+	}
+
+	// Handle response based on streaming preference
 	if isStream {
-		log.Infof("[%s] Streaming enabled", requestID)
-		return h.handleStreamResponse(c, provider, req, start, requestID)
+		return h.handleStreamingResponse(c, orchestratorResult.Provider, orchestratorResult.ProviderName, req, start, requestID)
 	}
-	log.Infof("[%s] Streaming disabled", requestID)
-	return h.handleRegularResponse(c, provider, req, start)
+	return h.handleRegularResponse(c, orchestratorResult.Provider, orchestratorResult.ProviderName, req, start, requestID)
 }
 
-func (h *ChatCompletionHandler) getRequestID(c *fiber.Ctx) string {
-	return c.Get("X-Request-ID", time.Now().String())
+// applyParametersFromOrchestrator applies parameters from the orchestrator result
+func (h *CompletionHandler) applyParametersFromOrchestrator(
+	req *models.ChatCompletionRequest,
+	autoParameters models.OpenAIParameters,
+	requestID string,
+) error {
+	return h.parameterService.ApplyModelParameters(req, autoParameters, requestID)
 }
 
-func (h *ChatCompletionHandler) getAPIKey(c *fiber.Ctx) string {
-	apiKey := string(c.Request().Header.Peek("X-Stainless-API-Key"))
-	if apiKey == "" {
-		return "anonymous"
-	}
-	return apiKey
-}
+func (h *CompletionHandler) handleStreamingResponse(
+	c *fiber.Ctx,
+	provider provider_interfaces.LLMProvider,
+	providerName string,
+	req *models.ChatCompletionRequest,
+	start time.Time,
+	requestID string,
+) error {
+	fiberlog.Infof("[%s] Processing streaming response", requestID)
 
-func (h *ChatCompletionHandler) parseRequest(c *fiber.Ctx) (*models.ChatCompletionRequest, error) {
-	requestID := h.getRequestID(c)
-
-	// Get and log the raw body
-	body := c.Body()
-	log.Infof("[%s] Raw request body: %s", requestID, string(body))
-
-	var req models.ChatCompletionRequest
-	if err := c.BodyParser(&req); err != nil {
-		log.Errorf("[%s] Failed to parse request body: %v", requestID, err)
-		return nil, err
-	}
-
-	// Log the parsed request
-	reqJSON, _ := json.Marshal(req)
-	log.Infof("[%s] Parsed request: %s", requestID, string(reqJSON))
-
-	return &req, nil
-}
-
-func (h *ChatCompletionHandler) selectModel(req *models.ChatCompletionRequest, apiKey, requestID string) (*models.SelectModelResponse, error) {
-	if len(req.Messages) == 0 {
-		return nil, errors.New("messages array must contain at least one element")
-	}
-
-	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
-
-	selectReq := models.SelectModelRequest{
-		Prompt:   prompt,
-		Provider: h.providerConstraint,
-	}
-
-	modelInfo, cacheType, err := h.promptClassifierClient.SelectModelWithCache(selectReq, apiKey, requestID)
+	err := h.responseService.HandleStreamResponse(c, provider, req, requestID)
 	if err != nil {
-		log.Errorf("[%s] Model selection error: %v", requestID, err)
-		return nil, err
+		h.metricsService.RecordError(start, "500", true, requestID, providerName)
+		return err
 	}
 
-	// Record cache metrics
-	if cacheType == "user" || cacheType == "global" {
-		h.recordCacheHit(cacheType)
-	}
-
-	return modelInfo, err
+	h.metricsService.RecordSuccess(start, true, requestID, providerName)
+	return nil
 }
 
-func (h *ChatCompletionHandler) applyModelParameters(req *models.ChatCompletionRequest, modelInfo *models.SelectModelResponse) {
-	req.Model = modelInfo.SelectedModel
-	req.MaxTokens = modelInfo.Parameters.MaxCompletionTokens
-	req.Temperature = modelInfo.Parameters.Temperature
-	req.TopP = modelInfo.Parameters.TopP
-	req.PresencePenalty = modelInfo.Parameters.PresencePenalty
-	req.FrequencyPenalty = modelInfo.Parameters.FrequencyPenalty
-	req.N = modelInfo.Parameters.N
-	req.TopLogprobs = modelInfo.Parameters.TopLogprobs
-	req.Logprobs = modelInfo.Parameters.Logprobs
-	req.MaxCompletionTokens = modelInfo.Parameters.MaxCompletionTokens
-	req.ReasoningEffort = modelInfo.Parameters.ReasoningEffort
-}
+func (h *CompletionHandler) handleRegularResponse(
+	c *fiber.Ctx,
+	provider provider_interfaces.LLMProvider,
+	providerName string,
+	req *models.ChatCompletionRequest,
+	start time.Time,
+	requestID string,
+) error {
+	fiberlog.Infof("[%s] Processing regular response", requestID)
 
-func (h *ChatCompletionHandler) getMethodType(isStream bool) string {
-	if isStream {
-		return "stream"
-	}
-	return "completion"
-}
-
-func (h *ChatCompletionHandler) getProviderName() string {
-	if h.providerConstraint != "" {
-		return h.providerConstraint
-	}
-	return "unknown"
-}
-
-func (h *ChatCompletionHandler) recordError(start time.Time, statusCode string, isStream bool) {
-	if h.metrics != nil {
-		methodType := h.getMethodType(isStream)
-		provider := h.getProviderName()
-		h.metrics.RequestDuration.WithLabelValues(methodType, statusCode, provider).Observe(time.Since(start).Seconds())
-	}
-}
-
-func (h *ChatCompletionHandler) recordSuccess(start time.Time, isStream bool) {
-	if h.metrics != nil {
-		methodType := h.getMethodType(isStream)
-		provider := h.getProviderName()
-		h.metrics.RequestDuration.WithLabelValues(methodType, "200", provider).Observe(time.Since(start).Seconds())
-	}
-}
-
-func (h *ChatCompletionHandler) recordCacheHit(cacheType string) {
-	if h.metrics != nil {
-		provider := h.getProviderName()
-		h.metrics.CacheHits.WithLabelValues(cacheType, provider).Inc()
-	}
-}
-
-func (h *ChatCompletionHandler) recordModelSelection(model string) {
-	if h.metrics != nil {
-		provider := h.getProviderName()
-		h.metrics.ModelSelections.WithLabelValues(model, provider).Inc()
-	}
-}
-
-func (h *ChatCompletionHandler) handleStreamResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *models.ChatCompletionRequest, start time.Time, requestID string) error {
-	resp, err := provider.Chat().Completions().StreamCompletion(req.ToOpenAIParams())
+	err := h.responseService.HandleRegularResponse(c, provider, req, requestID)
 	if err != nil {
-		h.recordError(start, "500", true)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to stream completion: " + err.Error(),
-		})
+		h.metricsService.RecordError(start, "500", false, requestID, providerName)
+		return err
 	}
 
-	h.setStreamHeaders(c)
-	h.recordSuccess(start, true)
-
-	log.Infof("[%s] Starting stream handling", requestID)
-
-	return stream.HandleStream(c, resp, requestID)
+	h.metricsService.RecordSuccess(start, false, requestID, providerName)
+	return nil
 }
 
-func (h *ChatCompletionHandler) handleRegularResponse(c *fiber.Ctx, provider provider_interfaces.LLMProvider, req *models.ChatCompletionRequest, start time.Time) error {
-	resp, err := provider.Chat().Completions().CreateCompletion(req.ToOpenAIParams())
-	if err != nil {
-		h.recordError(start, "500", false)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to generate completion: " + err.Error(),
-		})
+// registerMinions configures all available minions in the registry
+func registerMinions(registry *minions.MinionRegistry) {
+	registry.RegisterMinion("Open QA", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
+	registry.RegisterMinion("Closed QA", getEnvOrDefault("CLOSED_QA_MINION_URL", ""))
+	registry.RegisterMinion("Summarization", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
+	registry.RegisterMinion("Text Generation", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
+	registry.RegisterMinion("Classification", getEnvOrDefault("CLASSIFICATION_MINION_URL", ""))
+	registry.RegisterMinion("Code Generation", getEnvOrDefault("CODE_GENERATION_MINION_URL", ""))
+	registry.RegisterMinion("Chatbot", getEnvOrDefault("CHATBOT_MINION_URL", ""))
+	registry.RegisterMinion("Rewrite", getEnvOrDefault("REWRITE_MINION_URL", ""))
+	registry.RegisterMinion("Brainstorming", getEnvOrDefault("BRAINSTORMING_MINION_URL", ""))
+	registry.RegisterMinion("Extraction", getEnvOrDefault("EXTRACTION_MINION_URL", ""))
+	registry.RegisterMinion("Other", getEnvOrDefault("CHATBOT_MINION_URL", ""))
+}
+
+// getEnvOrDefault returns environment variable value or default if not set
+func getEnvOrDefault(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
+		return value
 	}
-
-	h.recordSuccess(start, false)
-	return c.JSON(resp)
+	return defaultValue
 }
 
-func (h *ChatCompletionHandler) setStreamHeaders(c *fiber.Ctx) {
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Transfer-Encoding", "chunked")
+// GetMetrics returns the metrics service for external access (e.g., health checks)
+func (h *CompletionHandler) GetMetrics() *completions.MetricsService {
+	return h.metricsService
+}
+
+// Health performs a health check on all services
+func (h *CompletionHandler) Health() error {
+	if err := h.orchestrationService.ValidateOrchestrationContext(); err != nil {
+		return err
+	}
+	// Add other health checks as needed
+	return nil
 }

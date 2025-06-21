@@ -49,7 +49,6 @@ logs/
 
 # Model artifacts & caches
 data/
-models/
 *.pt
 *.pth
 *.ckpt

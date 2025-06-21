@@ -1,8 +1,6 @@
 package main
 
 import (
-	"adaptive-backend/internal/api"
-	"adaptive-backend/internal/services/metrics"
 	"context"
 	"fmt"
 	"log"
@@ -10,6 +8,9 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"adaptive-backend/internal/api"
+	"adaptive-backend/internal/services/metrics"
 
 	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/joho/godotenv"
@@ -26,18 +27,11 @@ import (
 // SetupRoutes configures all the application routes
 func SetupRoutes(app *fiber.App) {
 	// Create handler instances
-	chatCompletionHandler := api.NewChatCompletionHandler()
+	chatCompletionHandler := api.NewCompletionHandler()
 
 	// OpenAI-compatible API routes
 	v1Group := app.Group("/v1")
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
-
-	// Provider-specific routes using factory loop
-	providers := []string{"openai", "anthropic", "groq", "deepseek", "gemini"}
-	for _, provider := range providers {
-		providerHandler := api.NewProviderChatCompletionHandler(provider)
-		v1Group.Post(fmt.Sprintf("/%s/chat/completions", provider), providerHandler.ChatCompletion)
-	}
 }
 
 func main() {
