@@ -34,13 +34,11 @@ type ModelSelector struct {
 	embeddingProvider    semanticcache.EmbeddingProvider
 	semanticThreshold    float32
 	defaultUserCacheSize int
-	costBiasFactor       float64
 }
 
 func NewModelSelector(
 	semanticThreshold float32,
 	userCacheSize int,
-	costBiasFactor float64,
 ) (*ModelSelector, error) {
 	if semanticThreshold <= 0 {
 		semanticThreshold = defaultSemanticThreshold
@@ -48,10 +46,6 @@ func NewModelSelector(
 	if userCacheSize <= 0 {
 		userCacheSize = defaultUserCacheSize
 	}
-	if costBiasFactor <= 0 {
-		costBiasFactor = defaultCostBiasFactor
-	}
-
 	cfg, err := GetDefaultConfig()
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
@@ -88,7 +82,6 @@ func NewModelSelector(
 		embeddingProvider:    embProv,
 		semanticThreshold:    semanticThreshold,
 		defaultUserCacheSize: userCacheSize,
-		costBiasFactor:       costBiasFactor,
 	}, nil
 }
 
@@ -97,6 +90,10 @@ func (ms *ModelSelector) SelectModelWithCache(
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) (*models.OrchestratorResponse, string, error) {
+	if req.CostBias <= 0 {
+		req.CostBias = defaultCostBiasFactor
+	}
+
 	cl, err := ms.classifier.Classify(req)
 	if err != nil {
 		return nil, "error", err
@@ -110,7 +107,7 @@ func (ms *ModelSelector) SelectModelWithCache(
 			slices.Contains(req.ProviderConstraint, "minion")) {
 
 		tt := ms.validateTaskType(cl.TaskType1)
-		alts := ms.generateMinionAlternatives(cl, circuitBreakers)
+		alts := ms.generateMinionAlternatives(cl, circuitBreakers, req.CostBias)
 		alts = ms.filterByProviderConstraint(alts, req.ProviderConstraint)
 
 		resp := &models.OrchestratorResponse{
@@ -141,7 +138,7 @@ func (ms *ModelSelector) SelectModelWithCache(
 	}
 
 	// Cache miss -> standard LLM
-	stdResp, err := ms.selectStandard(cl, req.ProviderConstraint, circuitBreakers)
+	stdResp, err := ms.selectStandard(cl, req.ProviderConstraint, circuitBreakers, req.CostBias)
 	if err != nil {
 		return nil, "miss", err
 	}
@@ -157,6 +154,7 @@ func (ms *ModelSelector) selectStandard(
 	cl models.ClassificationResult,
 	providerConstraint []string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+	costBiasFactor float32,
 ) (*models.OrchestratorResponse, error) {
 	tt := ms.validateTaskType(cl.TaskType1)
 	cx := ms.extractComplexityScore(cl)
@@ -169,7 +167,7 @@ func (ms *ModelSelector) selectStandard(
 		modelName = defaultModelFor(cx)
 		threshold = 0.5
 	} else {
-		adj := ms.adjustComplexityForCostBias(cx, mapping)
+		adj := ms.adjustComplexityForCostBias(cx, mapping, costBiasFactor)
 		level := ms.selectDifficultyLevel(adj, mapping)
 		cfg := difficultyConfig(mapping, level)
 		modelName = cfg.Model
@@ -293,13 +291,14 @@ func (ms *ModelSelector) extractComplexityScore(
 func (ms *ModelSelector) adjustComplexityForCostBias(
 	complexity float64,
 	m models.TaskModelMapping,
+	costBiasFactor float32,
 ) float64 {
 	eCost := ms.getModelCost(m.Easy.Model)
 	hCost := ms.getModelCost(m.Hard.Model)
 	if spread := hCost - eCost; spread <= 0 {
 		return complexity
 	}
-	bias := ms.sigmoid((complexity-0.5)*ms.costBiasFactor) * 0.1
+	bias := ms.sigmoid((complexity-0.5)*float64(costBiasFactor)) * 0.1
 	adj := complexity + bias
 	switch {
 	case adj < 0:
@@ -453,6 +452,7 @@ func (ms *ModelSelector) generateStandardLLMAlternatives(
 func (ms *ModelSelector) generateMinionAlternatives(
 	cl models.ClassificationResult,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+	costBiasFactor float32,
 ) []models.Alternative {
 	cx := ms.extractComplexityScore(cl)
 	tt := ms.validateTaskType(cl.TaskType1)
@@ -467,7 +467,7 @@ func (ms *ModelSelector) generateMinionAlternatives(
 	}
 
 	if mapping, ok := ms.config.GetTaskModelMapping(tt); ok {
-		adj := ms.adjustComplexityForCostBias(cx, mapping)
+		adj := ms.adjustComplexityForCostBias(cx, mapping, costBiasFactor)
 		level := ms.selectDifficultyLevel(adj, mapping)
 		cfg := difficultyConfig(mapping, level)
 
