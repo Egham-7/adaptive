@@ -218,6 +218,10 @@ func (ms *ModelSelector) selectStandard(
 		provider = alts[0].Provider
 		modelName = alts[0].Model
 		alts = alts[1:]
+	} else if len(providerConstraint) > 0 &&
+		!slices.Contains(providerConstraint, provider) &&
+		len(alts) == 0 {
+		return nil, fmt.Errorf("no available providers match the specified constraints")
 	}
 
 	return &models.OrchestratorResponse{
