@@ -4,11 +4,9 @@ version = "0.1.0"
 description = "Intelligent LLM Infrastructure with Smart Model Selection"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-packages = [
-    {include = "core"},
-    {include = "models"}, 
-    {include = "services"}
-] 
+
+
+packages = [{ include = "adaptive_ai" }]
 license = "MIT"
 
 homepage = "https://github.com/your-org/adaptive-ai"
@@ -53,7 +51,6 @@ types-requests = "^2.32.0.20250611"
 pandas-stubs = "^2.0.0"
 types-tqdm = "^4.67.0.20250516"
 types-pyyaml = "^6.0.12.20250516"
-
 
 
 [tool.poetry.group.docs.dependencies]
@@ -129,9 +126,6 @@ module = [
 ignore_missing_imports = true
 
 
-
-
-
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",
@@ -145,3 +139,4 @@ exclude_lines = [
   "class .*\\bProtocol\\):",
   "@(abc\\.)?abstractmethod",
 ]
+

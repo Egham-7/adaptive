@@ -2,9 +2,9 @@ from typing import Any
 
 import litserve as ls
 
-from core.config import get_settings
-from models.requests import PromptRequest
-from services.prompt_classifier import get_prompt_classifier
+from adaptive_ai.core.config import get_settings
+from adaptive_ai.models.requests import PromptRequest
+from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 
 
 class PromptClassificationAPI(ls.LitAPI):
