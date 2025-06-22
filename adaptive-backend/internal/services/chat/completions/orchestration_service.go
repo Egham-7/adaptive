@@ -1,15 +1,14 @@
 package completions
 
 import (
-	"context"
-	"fmt"
-
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/model_selection"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"context"
+	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
@@ -60,7 +59,8 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 
 	// Create model selection request
 	selectReq := models.ModelSelectionRequest{
-		Prompt: prompt,
+		Prompt:             prompt,
+		ProviderConstraint: req.ProviderConstraint,
 	}
 
 	// Call model selector to determine protocol and configuration

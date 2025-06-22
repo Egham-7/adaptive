@@ -1,9 +1,8 @@
 package models
 
 import (
-	"time"
-
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"time"
 
 	"github.com/openai/openai-go"
 )
@@ -100,8 +99,10 @@ type ModelSelectionConfig struct {
 
 // ModelSelectionRequest represents a request for model selection
 type ModelSelectionRequest struct {
-	Prompt string `json:"prompt"`
-	UserID string `json:"user_id,omitempty"` // For caching purposes
+	Prompt             string   `json:"prompt"`
+	UserID             string   `json:"user_id,omitempty"`             // For caching purposes
+	ProviderConstraint []string `json:"provider_constraint,omitempty"` // Optional provider constraint
+	CostBias           float32  `json:"cost_bias,omitempty"`           // Optional cost bias for model selection
 }
 
 // PromptScores represents extracted scores from classification
