@@ -45,14 +45,14 @@ export default function FeaturesSection() {
 								<div className="-inset-17 absolute z-1 bg-[radial-gradient(at_75%_25%,transparent_75%,var(--color-background))]" />
 
 								<Image
-									src="/adaptive-chat.jpeg"
+									src="/adaptive-chat.png"
 									className="hidden dark:block"
 									alt="payments illustration dark"
 									width={1000}
 									height={409}
 								/>
 								<Image
-									src="/adaptive-chat-light.jpeg"
+									src="/adaptive-chat-light.png"
 									className="dark:hidden"
 									alt="payments illustration light"
 									width={1000}

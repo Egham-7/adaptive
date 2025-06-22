@@ -1,141 +1,77 @@
 services:
-    frontend:
-        build:
-            context: ./adaptive-frontend
-            dockerfile: Dockerfile
-            args:
-                - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
-                - VITE_BASE_API_URL=${VITE_BASE_API_URL}
-        env_file:
-            - ./adaptive-frontend/.env.local
-        ports:
-            - "3000:3000"
-        depends_on:
-            - backend-go
-            - backend-python
-        restart: unless-stopped
-        networks:
-            - app-network
-        healthcheck:
-            test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 20s
+  frontend:
+    build:
+      context: ./adaptive-app
+      dockerfile: Dockerfile
+      args:
+        - CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
+        - DATABASE_URL=${DATABASE_URL}
+        - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
 
-    backend-go:
-        build:
-            context: ./adaptive-backend
-            dockerfile: Dockerfile
-        ports:
-            - "8080:8080"
-        depends_on:
-            - backend-python
-        env_file:
-            - ./adaptive-backend/.env.local
-        restart: unless-stopped
-        networks:
-            - app-network
-        healthcheck:
-            test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
-            interval: 20s
-            timeout: 5s
-            retries: 3
-            start_period: 10s
+    env_file:
+      - ./adaptive-app/.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-go
+      - backend-python
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
-    backend-python:
-        build:
-            context: ./adaptive_ai
-            dockerfile: Dockerfile
-        ports:
-            - "8000:8000"
-        environment:
-            - ADAPTIVE_AI_CONFIG_FILE=/app/config/config.yaml
-            - ADAPTIVE_AI_ENVIRONMENT=production
-            - ADAPTIVE_AI_LOG_LEVEL=INFO
-        env_file:
-            - ./adaptive_ai/.env.local
-        restart: unless-stopped
-        networks:
-            - app-network
-        volumes:
-            - ./adaptive_ai/config:/app/config:ro
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-            interval: 20s
-            timeout: 5s
-            retries: 3
-            start_period: 15s
+  backend-go:
+    build:
+      context: ./adaptive-backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend-python
+    env_file:
+      - ./adaptive-backend/.env.local
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
-    backend-python-gpu:
-        build:
-            context: ./adaptive_ai
-            dockerfile: Dockerfile.gpu
-        ports:
-            - "8001:8000"
-        environment:
-            - ADAPTIVE_AI_CONFIG_FILE=/app/config/config.yaml
-            - ADAPTIVE_AI_ENVIRONMENT=production
-            - ADAPTIVE_AI_LOG_LEVEL=INFO
-            - ADAPTIVE_AI_ACCELERATOR=gpu
-            - NVIDIA_VISIBLE_DEVICES=all
-        env_file:
-            - ./adaptive_ai/.env.local
-        restart: unless-stopped
-        networks:
-            - app-network
-        volumes:
-            - ./adaptive_ai/config:/app/config:ro
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - driver: nvidia
-                          count: 1
-                          capabilities: [gpu]
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-            interval: 20s
-            timeout: 5s
-            retries: 3
-            start_period: 30s
-        profiles:
-            - gpu
-
-    prometheus:
-        image: prom/prometheus:latest
-        container_name: prometheus
-        volumes:
-            - ./monitoring/prometheus.dev.yml:/etc/prometheus/prometheus.yml
-        ports:
-            - "9090:9090"
-        depends_on:
-            - backend-python
-            - backend-go
-        networks:
-            - app-network
-        restart: unless-stopped
-
-    grafana:
-        image: grafana/grafana:latest
-        container_name: grafana
-        ports:
-            - "3001:3000"
-        environment:
-            - GF_SECURITY_ADMIN_PASSWORD=admin
-            - GF_USERS_ALLOW_SIGN_UP=false
-        volumes:
-            - ./monitoring/grafana:/var/lib/grafana
-        depends_on:
-            - prometheus
-        networks:
-            - app-network
-        restart: unless-stopped
+  backend-python:
+    build:
+      context: ./adaptive_ai
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - ADAPTIVE_AI_ENVIRONMENT=production
+      - ADAPTIVE_AI_LOG_LEVEL=INFO
+    env_file:
+      - ./adaptive_ai/.env.local
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - ./adaptive_ai/config:/app/config:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 networks:
-    app-network:
-        driver: bridge
+  app-network:
+    driver: bridge
 
 volumes:
-    caddy_data:
-    caddy_config:
+  caddy_data:
+  caddy_config:
