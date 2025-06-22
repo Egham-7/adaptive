@@ -1,0 +1,567 @@
+package model_selection
+
+import (
+	"fmt"
+	"log"
+	"math"
+	"os"
+
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/circuitbreaker"
+
+	"github.com/botirk38/semanticcache"
+	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/packages/param"
+)
+
+const (
+	defaultGlobalCacheSize    = 2000
+	defaultUserCachePoolSize  = 200
+	defaultUserCacheSize      = 150
+	minionComplexityThreshold = 0.2
+	minionPromptLength        = 30
+	defaultCostBiasFactor     = 0.15
+)
+
+// defaultSemanticThreshold is a variable so we can take its address if needed.
+var defaultSemanticThreshold float32 = 0.85
+
+// ModelSelector returns either a standard‐LLM or minion orchestrator response.
+type ModelSelector struct {
+	config               *Config
+	classifier           *PromptClassifierClient
+	globalCache          *semanticcache.SemanticCache[string, models.OrchestratorResponse]
+	userCachePool        *lru.Cache[string, *semanticcache.SemanticCache[string, models.OrchestratorResponse]]
+	embeddingProvider    semanticcache.EmbeddingProvider
+	semanticThreshold    float32
+	defaultUserCacheSize int
+	costBiasFactor       float64
+}
+
+// NewModelSelector constructs the selector, loading config and caches.
+// If any of the numeric parameters are zero or negative, the default
+// values will be used.
+func NewModelSelector(
+	semanticThreshold float32,
+	userCacheSize int,
+	costBiasFactor float64,
+) (*ModelSelector, error) {
+	if semanticThreshold <= 0 {
+		semanticThreshold = defaultSemanticThreshold
+	}
+	if userCacheSize <= 0 {
+		userCacheSize = defaultUserCacheSize
+	}
+	if costBiasFactor <= 0 {
+		costBiasFactor = defaultCostBiasFactor
+	}
+
+	cfg, err := GetDefaultConfig()
+	if err != nil {
+		return nil, fmt.Errorf("load config: %w", err)
+	}
+	classifier := NewPromptClassifierClient()
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	embProv, err := semanticcache.NewOpenAIProvider(apiKey, "")
+	if err != nil {
+		return nil, fmt.Errorf("init embedding provider: %w", err)
+	}
+	globalCache, err := semanticcache.NewSemanticCache[string, models.OrchestratorResponse](
+		defaultGlobalCacheSize, embProv, nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("global cache: %w", err)
+	}
+	userPool, err := lru.New[string, *semanticcache.SemanticCache[string, models.OrchestratorResponse]](
+		defaultUserCachePoolSize,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("user cache pool: %w", err)
+	}
+
+	return &ModelSelector{
+		config:               cfg,
+		classifier:           classifier,
+		globalCache:          globalCache,
+		userCachePool:        userPool,
+		embeddingProvider:    embProv,
+		semanticThreshold:    semanticThreshold,
+		defaultUserCacheSize: userCacheSize,
+		costBiasFactor:       costBiasFactor,
+	}, nil
+}
+
+// SelectModelWithCache returns a OrchestratorResponse
+// plus cache tier ("user","global","miss","minion").
+func (ms *ModelSelector) SelectModelWithCache(
+	req models.ModelSelectionRequest,
+	userID, requestID string,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) (*models.OrchestratorResponse, string, error) {
+	// classify prompt
+	cl, err := ms.classifier.Classify(req)
+	if err != nil {
+		return nil, "error", err
+	}
+	// branch to minion on low complexity or short prompt
+	cx := ms.extractComplexityScore(cl)
+	if cx < minionComplexityThreshold || len(req.Prompt) < minionPromptLength {
+		tt := ms.validateTaskType(cl.TaskType1)
+
+		// Check if minion provider is healthy before routing to minion
+		if ms.isProviderHealthy("minion", circuitBreakers) {
+			// Generate alternatives for minion (including standard LLM fallback)
+			alternatives := ms.generateMinionAlternatives(cl, circuitBreakers)
+
+			resp := &models.OrchestratorResponse{
+				Protocol:     models.ProtocolMinion,
+				TaskType:     string(tt),
+				Parameters:   ms.generateParameters(tt),
+				Alternatives: alternatives,
+			}
+			log.Printf("[%s] routed to minion: task=%s cx=%.2f len=%d",
+				requestID, tt, cx, len(req.Prompt))
+			return resp, "minion", nil
+		}
+
+		// Minion provider unhealthy, fall back to standard LLM
+		log.Printf("[%s] minion provider unhealthy, falling back to standard LLM", requestID)
+	}
+
+	// standard‐LLM path: semantic cache
+	key := req.Prompt
+	uc := ms.getUserCache(userID)
+	if uc != nil {
+		if val, found, _ := uc.Lookup(key, ms.semanticThreshold); found {
+			log.Printf("[%s] cache hit (user)", requestID)
+			return &val, "user", nil
+		}
+	}
+	if val, found, _ := ms.globalCache.Lookup(key, ms.semanticThreshold); found {
+		log.Printf("[%s] cache hit (global)", requestID)
+		if uc != nil {
+			_ = uc.Set(key, key, val)
+		}
+		return &val, "global", nil
+	}
+
+	// cache miss → full standard selection
+	stdResp, err := ms.selectStandard(cl, circuitBreakers)
+	if err != nil {
+		return nil, "miss", err
+	}
+	log.Printf("[%s] cache miss → standard_llm %s", requestID, stdResp.Model)
+
+	_ = ms.globalCache.Set(key, key, *stdResp)
+	if uc != nil {
+		_ = uc.Set(key, key, *stdResp)
+	}
+	return stdResp, "miss", nil
+}
+
+// selectStandard runs the pure model selection and wraps into OrchestratorResponse.
+func (ms *ModelSelector) selectStandard(
+	cl models.ClassificationResult,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) (*models.OrchestratorResponse, error) {
+	tt := ms.validateTaskType(cl.TaskType1)
+	cx := ms.extractComplexityScore(cl)
+	mapping, ok := ms.config.GetTaskModelMapping(tt)
+	var modelName string
+	var threshold float64
+
+	if !ok {
+		// default fallback model
+		modelName = defaultModelFor(cx)
+		threshold = 0.5
+	} else {
+		adj := ms.adjustComplexityForCostBias(cx, mapping)
+		d := ms.selectDifficultyLevel(adj, mapping)
+		cfg := difficultyConfig(mapping, d)
+		modelName = cfg.Model
+		threshold = cfg.ComplexityThreshold
+	}
+
+	cap, ok := ms.config.GetModelCapability(modelName)
+	if !ok {
+		cap = ms.getDefaultCapability(modelName)
+	}
+
+	// Check if primary provider is healthy, if not find alternative from same task mapping
+	providerName := string(cap.Provider)
+	if !ms.isProviderHealthy(providerName, circuitBreakers) {
+		log.Printf("Primary provider %s is unhealthy, selecting alternative as primary", providerName)
+
+		// Try to find a healthy alternative from the same task mapping
+		if ok {
+			configs := []models.DifficultyConfig{mapping.Easy, mapping.Medium, mapping.Hard}
+			for _, cfg := range configs {
+				if cfg.Model != modelName {
+					if altCap, found := ms.config.GetModelCapability(cfg.Model); found {
+						if ms.isProviderHealthy(string(altCap.Provider), circuitBreakers) {
+							modelName = cfg.Model
+							cap = altCap
+							providerName = string(altCap.Provider)
+							threshold = cfg.ComplexityThreshold
+							log.Printf("Selected healthy alternative as primary: %s (%s)", modelName, providerName)
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	params := ms.generateParameters(tt)
+	conf := ms.calculateConfidence(cx, threshold)
+
+	// Generate alternatives for standard LLM
+	alternatives := ms.generateStandardLLMAlternatives(cl, modelName, circuitBreakers)
+
+	return &models.OrchestratorResponse{
+		Protocol:     models.ProtocolStandardLLM,
+		Provider:     providerName,
+		Model:        modelName,
+		Confidence:   conf,
+		Parameters:   params,
+		Alternatives: alternatives,
+	}, nil
+}
+
+func (ms *ModelSelector) getUserCache(
+	userID string,
+) *semanticcache.SemanticCache[string, models.OrchestratorResponse] {
+	if cache, ok := ms.userCachePool.Get(userID); ok {
+		return cache
+	}
+	newC, err := semanticcache.NewSemanticCache[string, models.OrchestratorResponse](
+		ms.defaultUserCacheSize, ms.embeddingProvider, nil,
+	)
+	if err != nil {
+		log.Printf("user cache init failed for %s: %v", userID, err)
+		return nil
+	}
+	ms.userCachePool.Add(userID, newC)
+	return newC
+}
+
+// --- helpers ---
+
+func (ms *ModelSelector) validateTaskType(types []string) models.TaskType {
+	if len(types) == 0 {
+		return models.TaskOther
+	}
+	if models.IsValidTaskType(types[0]) {
+		return models.TaskType(types[0])
+	}
+	return models.TaskOther
+}
+
+func (ms *ModelSelector) extractComplexityScore(
+	cl models.ClassificationResult,
+) float64 {
+	if len(cl.PromptComplexityScore) > 0 {
+		return cl.PromptComplexityScore[0]
+	}
+	return 0.5
+}
+
+func (ms *ModelSelector) adjustComplexityForCostBias(
+	complexity float64,
+	m models.TaskModelMapping,
+) float64 {
+	eCost := ms.getModelCost(m.Easy.Model)
+	hCost := ms.getModelCost(m.Hard.Model)
+	spread := hCost - eCost
+	if spread <= 0 {
+		return complexity
+	}
+	bias := ms.sigmoid((complexity - 0.5) * ms.costBiasFactor)
+	adj := complexity + bias*0.1
+	if adj < 0 {
+		return 0
+	}
+	if adj > 1 {
+		return 1
+	}
+	return adj
+}
+
+func (ms *ModelSelector) sigmoid(x float64) float64 {
+	return 1.0 / (1.0 + math.Exp(-x))
+}
+
+func (ms *ModelSelector) getModelCost(name string) float64 {
+	if cap, ok := ms.config.GetModelCapability(name); ok {
+		return cap.CostPer1kTokens
+	}
+	return 0.01
+}
+
+func (ms *ModelSelector) selectDifficultyLevel(
+	complexity float64,
+	m models.TaskModelMapping,
+) models.DifficultyLevel {
+	switch {
+	case complexity <= m.Easy.ComplexityThreshold:
+		return models.DifficultyEasy
+	case complexity <= m.Medium.ComplexityThreshold:
+		return models.DifficultyMedium
+	default:
+		return models.DifficultyHard
+	}
+}
+
+func (ms *ModelSelector) generateParameters(
+	taskType models.TaskType,
+) openai.ChatCompletionNewParams {
+	tp, ok := ms.config.GetTaskParameters(taskType)
+	if !ok {
+		tp = ms.getDefaultTaskParameters()
+	}
+	return openai.ChatCompletionNewParams{
+		Temperature:      param.Opt[float64]{Value: tp.Temperature},
+		TopP:             param.Opt[float64]{Value: tp.TopP},
+		PresencePenalty:  param.Opt[float64]{Value: tp.PresencePenalty},
+		FrequencyPenalty: param.Opt[float64]{Value: tp.FrequencyPenalty},
+		MaxTokens:        param.Opt[int64]{Value: int64(tp.MaxCompletionTokens)},
+		N:                param.Opt[int64]{Value: int64(tp.N)},
+	}
+}
+
+func (ms *ModelSelector) calculateConfidence(
+	complexity, threshold float64,
+) float64 {
+	d := math.Abs(complexity - threshold)
+	conf := 1.0 - d
+	switch {
+	case conf < 0.1:
+		return 0.1
+	case conf > 1:
+		return 1.0
+	default:
+		return conf
+	}
+}
+
+// defaultModelFor picks a simple fallback model by complexity.
+func defaultModelFor(cx float64) string {
+	switch {
+	case cx <= 0.3:
+		return "gpt-4.1-nano"
+	case cx <= 0.6:
+		return "gpt-4.1-mini"
+	default:
+		return "gpt-4o"
+	}
+}
+
+// difficultyConfig returns the config for a given difficulty.
+func difficultyConfig(
+	m models.TaskModelMapping,
+	d models.DifficultyLevel,
+) models.DifficultyConfig {
+	switch d {
+	case models.DifficultyEasy:
+		return m.Easy
+	case models.DifficultyMedium:
+		return m.Medium
+	default:
+		return m.Hard
+	}
+}
+
+func (ms *ModelSelector) getDefaultTaskParameters() models.TaskParameters {
+	return models.TaskParameters{
+		Temperature:         0.7,
+		TopP:                0.9,
+		PresencePenalty:     0.0,
+		FrequencyPenalty:    0.0,
+		MaxCompletionTokens: 1000,
+		N:                   1,
+	}
+}
+
+// getDefaultCapability returns a placeholder capability.
+func (ms *ModelSelector) getDefaultCapability(
+	modelName string,
+) models.ModelCapability {
+	return models.ModelCapability{
+		Description:             fmt.Sprintf("Default capability for %s", modelName),
+		Provider:                models.ProviderOpenAI,
+		CostPer1kTokens:         0.002,
+		MaxTokens:               4096,
+		SupportsStreaming:       true,
+		SupportsFunctionCalling: false,
+		SupportsVision:          false,
+	}
+}
+
+// generateStandardLLMAlternatives creates alternative model options for standard LLM responses
+func (ms *ModelSelector) generateStandardLLMAlternatives(
+	cl models.ClassificationResult,
+	primaryModel string,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) []models.Alternative {
+	var alternatives []models.Alternative
+	tt := ms.validateTaskType(cl.TaskType1)
+
+	mapping, ok := ms.config.GetTaskModelMapping(tt)
+	if !ok {
+		return ms.filterHealthyAlternatives(ms.getDefaultAlternatives(primaryModel), circuitBreakers)
+	}
+
+	// Add alternatives from same task mapping
+	configs := []models.DifficultyConfig{mapping.Easy, mapping.Medium, mapping.Hard}
+	for _, cfg := range configs {
+		if cfg.Model != primaryModel {
+			if cap, ok := ms.config.GetModelCapability(cfg.Model); ok {
+				alternatives = append(alternatives, models.Alternative{
+					Provider: string(cap.Provider),
+					Model:    cfg.Model,
+				})
+			}
+		}
+	}
+
+	// Filter based on circuit breaker states and limit results
+	alternatives = ms.filterHealthyAlternatives(alternatives, circuitBreakers)
+	if len(alternatives) > 3 {
+		alternatives = alternatives[:3]
+	}
+	return alternatives
+}
+
+// generateMinionAlternatives creates alternative options for minion responses
+func (ms *ModelSelector) generateMinionAlternatives(
+	cl models.ClassificationResult,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) []models.Alternative {
+	var alternatives []models.Alternative
+	cx := ms.extractComplexityScore(cl)
+	tt := ms.validateTaskType(cl.TaskType1)
+
+	for _, minion := range ms.getAlternativeMinionTasks(tt) {
+		alternatives = append(alternatives, models.Alternative{
+			Provider: "minion",
+			Model:    string(minion),
+		})
+	}
+
+	mapping, ok := ms.config.GetTaskModelMapping(tt)
+	var fbModel, fbProvider string
+	if ok {
+		adj := ms.adjustComplexityForCostBias(cx, mapping)
+		d := ms.selectDifficultyLevel(adj, mapping)
+		cfg := difficultyConfig(mapping, d)
+		fbModel = cfg.Model
+		if cap, found := ms.config.GetModelCapability(fbModel); found {
+			fbProvider = string(cap.Provider)
+		} else {
+			fbProvider = "OpenAI"
+		}
+	} else {
+		fbModel = defaultModelFor(cx)
+		fbProvider = "OpenAI"
+	}
+	alternatives = append(alternatives, models.Alternative{
+		Provider: fbProvider,
+		Model:    fbModel,
+	})
+
+	// Filter based on circuit breaker states
+	alternatives = ms.filterHealthyAlternatives(alternatives, circuitBreakers)
+
+	if len(alternatives) > 3 {
+		alternatives = alternatives[:3]
+	}
+	return alternatives
+}
+
+// getDefaultAlternatives provides default alternatives based on complexity
+func (ms *ModelSelector) getDefaultAlternatives(
+	excludeModel string,
+) []models.Alternative {
+	var alternatives []models.Alternative
+	defaults := []string{"gpt-4o", "gpt-4.1-mini", "gpt-4.1-nano"}
+	for _, m := range defaults {
+		if m != excludeModel {
+			alternatives = append(alternatives, models.Alternative{
+				Provider: "OpenAI",
+				Model:    m,
+			})
+		}
+	}
+	return alternatives
+}
+
+// isProviderHealthy checks if a provider is healthy based on circuit breaker state
+func (ms *ModelSelector) isProviderHealthy(
+	providerName string,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) bool {
+	// If no circuit breaker info, assume healthy
+	if circuitBreakers == nil {
+		return true
+	}
+
+	cb, exists := circuitBreakers[providerName]
+	if !exists {
+		// No circuit breaker exists, assume healthy
+		return true
+	}
+
+	state := cb.GetState()
+	// Only Open state is considered unhealthy
+	// Closed and HalfOpen are acceptable as they can handle requests
+	return state != circuitbreaker.Open
+}
+
+// filterHealthyAlternatives filters alternatives based on circuit breaker states
+func (ms *ModelSelector) filterHealthyAlternatives(
+	alternatives []models.Alternative,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) []models.Alternative {
+	if circuitBreakers == nil {
+		return alternatives
+	}
+
+	var healthy []models.Alternative
+	for _, alt := range alternatives {
+		if ms.isProviderHealthy(alt.Provider, circuitBreakers) {
+			healthy = append(healthy, alt)
+		} else {
+			log.Printf("Filtering out provider %s (model: %s) due to open circuit breaker", alt.Provider, alt.Model)
+		}
+	}
+	return healthy
+}
+
+// getAlternativeMinionTasks returns alternative minion task types based on the primary task type
+func (ms *ModelSelector) getAlternativeMinionTasks(primaryTask models.TaskType) []models.TaskType {
+	switch primaryTask {
+	case models.TaskCodeGeneration:
+		return []models.TaskType{models.TaskTextGeneration, models.TaskRewrite, models.TaskOther}
+	case models.TaskOpenQA:
+		return []models.TaskType{models.TaskClosedQA, models.TaskChatbot, models.TaskOther}
+	case models.TaskClosedQA:
+		return []models.TaskType{models.TaskOpenQA, models.TaskChatbot, models.TaskOther}
+	case models.TaskSummarization:
+		return []models.TaskType{models.TaskExtraction, models.TaskRewrite, models.TaskOther}
+	case models.TaskTextGeneration:
+		return []models.TaskType{models.TaskCodeGeneration, models.TaskBrainstorming, models.TaskOther}
+	case models.TaskClassification:
+		return []models.TaskType{models.TaskExtraction, models.TaskOther}
+	case models.TaskRewrite:
+		return []models.TaskType{models.TaskTextGeneration, models.TaskSummarization, models.TaskOther}
+	case models.TaskBrainstorming:
+		return []models.TaskType{models.TaskTextGeneration, models.TaskChatbot, models.TaskOther}
+	case models.TaskExtraction:
+		return []models.TaskType{models.TaskClassification, models.TaskSummarization, models.TaskOther}
+	case models.TaskChatbot:
+		return []models.TaskType{models.TaskOpenQA, models.TaskBrainstorming, models.TaskOther}
+	default:
+		return []models.TaskType{models.TaskChatbot, models.TaskTextGeneration, models.TaskOther}
+	}
+}

@@ -1,7 +1,7 @@
 from functools import lru_cache
 import os
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
@@ -40,17 +40,6 @@ class LitServeConfig(BaseModel):
     timeout: float = 30.0
 
 
-class ModelSelectionConfig(BaseModel):
-    """Model selection configuration."""
-
-    default_model: str = "gpt-3.5-turbo"
-    threshold: float = 0.7
-    fallback_model: str = "gpt-3.5-turbo"
-    cache_embeddings: bool = True
-    cache_ttl: int = 3600
-    cost_bias: float = 0.5  # Default to 0.5 (no bias), range 0.0-1.0
-
-
 class LoggingConfig(BaseModel):
     """Logging configuration."""
 
@@ -59,25 +48,6 @@ class LoggingConfig(BaseModel):
     file: str | None = None
     max_file_size: str = "10MB"
     backup_count: int = 5
-
-
-class RedisConfig(BaseModel):
-    """Redis configuration."""
-
-    host: str = "localhost"
-    port: int = 6379
-    db: int = 0
-    password: str | None = None
-
-
-class CacheConfig(BaseModel):
-    """Cache configuration."""
-
-    enabled: bool = True
-    backend: str = "memory"
-    ttl: int = 3600
-    max_size: int = 1000
-    redis: RedisConfig = RedisConfig()
 
 
 class PrometheusConfig(BaseModel):
@@ -131,14 +101,6 @@ class HealthConfig(BaseModel):
     timeout: float = 5.0
 
 
-class ProviderConfig(BaseModel):
-    """Provider API configuration."""
-
-    base_url: str
-    timeout: int = 30
-    max_retries: int = 3
-
-
 class Settings(BaseSettings):
     """Main application settings."""
 
@@ -146,9 +108,7 @@ class Settings(BaseSettings):
     app: AppConfig = AppConfig()
     server: ServerConfig = ServerConfig()
     litserve: LitServeConfig = LitServeConfig()
-    model_selection: ModelSelectionConfig = ModelSelectionConfig()
     logging: LoggingConfig = LoggingConfig()
-    cache: CacheConfig = CacheConfig()
     metrics: MetricsConfig = MetricsConfig()
     security: SecurityConfig = SecurityConfig()
     health: HealthConfig = HealthConfig()
@@ -179,9 +139,7 @@ class Settings(BaseSettings):
             "app": (AppConfig, "app"),
             "server": (ServerConfig, "server"),
             "litserve": (LitServeConfig, "litserve"),
-            "model_selection": (ModelSelectionConfig, "model_selection"),
             "logging": (LoggingConfig, "logging"),
-            "cache": (CacheConfig, "cache"),
             "metrics": (MetricsConfig, "metrics"),
             "security": (SecurityConfig, "security"),
             "health": (HealthConfig, "health"),
@@ -221,21 +179,6 @@ class Settings(BaseSettings):
         if config_path and config_path.exists():
             return _load_yaml_config(str(config_path))
         return {}
-
-    def get_model_capabilities(self) -> dict[str, Any]:
-        """Get model capabilities from configuration."""
-        config = self.load_model_config()
-        return cast(dict[str, Any], config.get("model_capabilities", {}))
-
-    def get_task_model_mappings(self) -> dict[str, Any]:
-        """Get task to model mappings from configuration."""
-        config = self.load_model_config()
-        return cast(dict[str, Any], config.get("task_model_mappings", {}))
-
-    def get_task_parameters(self) -> dict[str, Any]:
-        """Get task parameters from configuration."""
-        config = self.load_model_config()
-        return cast(dict[str, Any], config.get("task_parameters", {}))
 
 
 @lru_cache

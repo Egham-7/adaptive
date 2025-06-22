@@ -14,6 +14,7 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	github.com/valyala/fasthttp v1.59.0
 	google.golang.org/genai v1.7.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

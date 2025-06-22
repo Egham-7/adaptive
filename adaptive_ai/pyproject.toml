@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Intelligent LLM Infrastructure with Smart Model Selection"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
+packages = [{ include = "adaptive_ai" }]
 license = "MIT"
+
 homepage = "https://github.com/your-org/adaptive-ai"
 repository = "https://github.com/your-org/adaptive-ai"
 documentation = "https://docs.adaptive-ai.com"
@@ -20,15 +22,15 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
 ]
-packages = [{ include = "adaptive_ai" }]
+
 
 [tool.poetry.dependencies]
 python = ">=3.11,<=4.0"
-numpy = ">=1.24.0,<3.0.0"
+numpy = "^1.26"
 scikit-learn = "^1.7.0"
 huggingface-hub = "^0.32.0"
 transformers = "^4.52.4"
-torch = "^2.7"
+torch = "2.2"
 litserve = "^0.2.10"
 pydantic = "^2.11.5"
 pydantic-settings = "^2.9.1"
@@ -37,23 +39,19 @@ pandas = "^2.3.0"
 tqdm = "^4.67.1"
 matplotlib = "^3.7.0"
 pyyaml = "^6.0.2"
+tiktoken = "^0.9.0"
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.15.0"
 black = "^25.1.0"
 ruff = "^0.11.11"
-pytest = "^8.3.5"
-pytest-cov = "^6.1.1"
-pytest-asyncio = "^0.23.0"
 types-requests = "^2.32.0.20250611"
 pandas-stubs = "^2.0.0"
 types-tqdm = "^4.67.0.20250516"
 types-pyyaml = "^6.0.12.20250516"
 
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^6.1.1"
-pytest-asyncio = "^0.23.0"
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = "^1.5.0"
@@ -127,22 +125,6 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-ra -q --strict-markers --strict-config --cov=adaptive_ai --cov-report=term-missing --cov-report=xml"
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-markers = [
-  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-  "integration: marks tests as integration tests",
-  "unit: marks tests as unit tests",
-]
-
-[tool.coverage.run]
-source = ["adaptive_ai"]
-omit = ["*/tests/*", "*/test_*", "*/__pycache__/*", "*/.*"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -157,3 +139,4 @@ exclude_lines = [
   "class .*\\bProtocol\\):",
   "@(abc\\.)?abstractmethod",
 ]
+
