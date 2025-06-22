@@ -96,7 +96,9 @@ func (ms *ModelSelector) SelectModelWithCache(
 	}
 	key := req.Prompt
 	if uc := ms.getUserCache(userID); uc != nil {
-		if val, found, _ := uc.Lookup(key, ms.semanticThreshold); found {
+		if val, found, err := uc.Lookup(key, ms.semanticThreshold); err != nil {
+			log.Printf("[%s] user cache lookup error: %v", requestID, err)
+		} else if found {
 			log.Printf("[%s] cache hit user", requestID)
 			return val, "user", nil
 		}
