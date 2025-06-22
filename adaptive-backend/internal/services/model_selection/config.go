@@ -215,11 +215,6 @@ func (cl *ConfigLoader) GetConfigPath() string {
 var (
 	defaultConfigLoader *ConfigLoader
 	configLoaderOnce    sync.Once
-)
-
-var (
-	defaultConfigLoader *ConfigLoader
-	configLoaderOnce    sync.Once
 	configLoaderErr     error
 )
 
