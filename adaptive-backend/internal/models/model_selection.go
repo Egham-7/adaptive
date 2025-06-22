@@ -137,6 +137,7 @@ type StandardLLMOrchestratorResponse struct {
 	StandardLLMData StandardLLMDetails `json:"standard_llm_data"`
 	Confidence      float64            `json:"confidence"`
 	Parameters      OpenAIParameters   `json:"parameters"`
+	Alternatives    []string           `json:"alternatives,omitempty"` // Optional field for alternative models
 }
 
 // MinionOrchestratorResponse is returned when protocol="minion".

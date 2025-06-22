@@ -1,11 +1,11 @@
 package model_selection
 
 import (
+	"adaptive-backend/internal/models"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
-
-	"adaptive-backend/internal/models"
 
 	"gopkg.in/yaml.v3"
 )
@@ -220,7 +220,14 @@ var (
 // GetDefaultConfig returns the default configuration instance
 func GetDefaultConfig() (*Config, error) {
 	configLoaderOnce.Do(func() {
-		defaultConfigLoader = NewConfigLoader(os.Getenv("MODEL_SELECTION_CONFIG_PATH"))
+		const configFileName = "model_selection_config.yaml"
+		cwd, err := os.Getwd()
+		if err != nil {
+			return
+		}
+		configPath := filepath.Join(cwd, "internal", "config", configFileName)
+
+		defaultConfigLoader = NewConfigLoader(configPath)
 	})
 	return defaultConfigLoader.GetConfig()
 }

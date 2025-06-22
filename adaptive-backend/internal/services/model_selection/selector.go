@@ -1,13 +1,13 @@
 package model_selection
 
 import (
+	"adaptive-backend/internal/models"
 	"fmt"
 	"log"
 	"math"
 	"os"
+	"slices"
 	"strings"
-
-	"adaptive-backend/internal/models"
 
 	"github.com/botirk38/semanticcache"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -16,12 +16,13 @@ import (
 )
 
 const (
-	defaultGlobalCacheSize    = 2000
-	defaultUserCachePoolSize  = 200
-	defaultUserCacheSize      = 150
-	defaultSemanticThreshold  = 0.85
-	minionComplexityThreshold = 0.2
-	minionPromptLength        = 30
+	defaultGlobalCacheSize     = 2000
+	defaultUserCachePoolSize   = 200
+	defaultUserCacheSize       = 150
+	defaultSemanticThreshold   = 0.85
+	minionComplexityThreshold  = 0.3  // same as Python
+	minionPromptTokenThreshold = 4    // tokens, not chars
+	largeWindowTokenThreshold  = 2048 // (optional minions_protocol)
 )
 
 // ModelSelector returns either a standard‐LLM or minion orchestrator response.
@@ -70,7 +71,7 @@ func NewModelSelector() (*ModelSelector, error) {
 		semanticThreshold:    defaultSemanticThreshold,
 		defaultUserCacheSize: defaultUserCacheSize,
 		costBiasEnabled:      true,
-		costBiasFactor:       0.15,
+		costBiasFactor:       0.15, // unused now that we read from cfg
 	}, nil
 }
 
@@ -85,16 +86,18 @@ func (ms *ModelSelector) SelectModelWithCache(
 	if err != nil {
 		return nil, "error", err
 	}
+
 	// branch to minion on low complexity or short prompt
 	cx := ms.extractComplexityScore(cl)
-	if cx < minionComplexityThreshold || len(req.Prompt) < minionPromptLength {
+	tok := countTokens(req.Prompt)
+	if cx < minionComplexityThreshold || tok < minionPromptTokenThreshold {
 		tt := ms.validateTaskType(cl.TaskType1)
 		resp := models.MinionOrchestratorResponse{
 			Protocol:   models.ProtocolMinion,
 			MinionData: models.MinionDetails{TaskType: string(tt)},
 		}
-		log.Printf("[%s] routed to minion: task=%s cx=%.2f len=%d",
-			requestID, tt, cx, len(req.Prompt))
+		log.Printf("[%s] routed to minion: task=%s cx=%.2f tokens=%d",
+			requestID, tt, cx, tok)
 		return resp, "minion", nil
 	}
 
@@ -120,7 +123,8 @@ func (ms *ModelSelector) SelectModelWithCache(
 	if err != nil {
 		return nil, "miss", err
 	}
-	log.Printf("[%s] cache miss → standard_llm %s", requestID, stdResp.StandardLLMData.Model)
+	log.Printf("[%s] cache miss → standard_llm %s",
+		requestID, stdResp.StandardLLMData.Model)
 
 	_ = ms.globalCache.Set(key, key, *stdResp)
 	if uc != nil {
@@ -129,22 +133,29 @@ func (ms *ModelSelector) SelectModelWithCache(
 	return *stdResp, "miss", nil
 }
 
+func countTokens(prompt string) int {
+	// very simple whitespace tokenizer
+	return len(strings.Fields(prompt))
+}
+
 // selectStandard runs the pure model selection and wraps into StandardLLMOrchestratorResponse.
 func (ms *ModelSelector) selectStandard(
 	cl models.ClassificationResult,
 ) (*models.StandardLLMOrchestratorResponse, error) {
 	tt := ms.validateTaskType(cl.TaskType1)
 	cx := ms.extractComplexityScore(cl)
-	mapping, ok := ms.config.GetTaskModelMapping(tt)
-	var modelName string
-	var threshold float64
 
+	mapping, ok := ms.config.GetTaskModelMapping(tt)
+	var (
+		modelName string
+		threshold float64
+	)
 	if !ok {
-		// default fallback model
+		// default fallback
 		modelName = defaultModelFor(cx)
 		threshold = 0.5
 	} else {
-		adj := ms.adjustComplexityForCostBias(cx, mapping)
+		adj := ms.adjustComplexityForCostBias(cx)
 		d := ms.selectDifficultyLevel(adj, mapping)
 		cfg := difficultyConfig(mapping, d)
 		modelName = cfg.Model
@@ -156,35 +167,20 @@ func (ms *ModelSelector) selectStandard(
 		cap = ms.getDefaultCapability(modelName)
 	}
 
-	params := ms.generateParameters(tt)
+	params := ms.generateParameters(tt, cl)
 	conf := ms.calculateConfidence(cx, threshold)
+	alts := ms.getAlternatives(mapping, modelName)
 
 	return &models.StandardLLMOrchestratorResponse{
 		Protocol:        models.ProtocolStandardLLM,
 		StandardLLMData: models.StandardLLMDetails{Provider: string(cap.Provider), Model: modelName},
 		Confidence:      conf,
 		Parameters:      params,
+		Alternatives:    alts,
 	}, nil
 }
 
-func (ms *ModelSelector) getUserCache(
-	userID string,
-) *semanticcache.SemanticCache[string, models.StandardLLMOrchestratorResponse] {
-	if cache, ok := ms.userCachePool.Get(userID); ok {
-		return cache
-	}
-	newC, err := semanticcache.NewSemanticCache[string, models.StandardLLMOrchestratorResponse](
-		ms.defaultUserCacheSize, ms.embeddingProvider, nil,
-	)
-	if err != nil {
-		log.Printf("user cache init failed for %s: %v", userID, err)
-		return nil
-	}
-	ms.userCachePool.Add(userID, newC)
-	return newC
-}
-
-// --- helpers ---
+// --- helpers --------------------------------------------------------------
 
 func (ms *ModelSelector) validateTaskType(types []string) models.TaskType {
 	if len(types) == 0 {
@@ -205,39 +201,66 @@ func (ms *ModelSelector) extractComplexityScore(
 	return 0.5
 }
 
-func (ms *ModelSelector) adjustComplexityForCostBias(
-	complexity float64,
-	m models.TaskModelMapping,
-) float64 {
-	if !ms.costBiasEnabled {
-		return complexity
+func extractOrDefault(xs []float64) float64 {
+	if len(xs) > 0 {
+		return xs[0]
 	}
-	eCost := ms.getModelCost(m.Easy.Model)
-	hCost := ms.getModelCost(m.Hard.Model)
-	spread := hCost - eCost
-	if spread <= 0 {
-		return complexity
-	}
-	bias := ms.sigmoid((complexity - 0.5) * ms.costBiasFactor)
-	adj := complexity + bias*0.1
-	if adj < 0 {
-		return 0
-	}
-	if adj > 1 {
-		return 1
-	}
-	return adj
+	return 0.5
 }
 
-func (ms *ModelSelector) sigmoid(x float64) float64 {
+func (ms *ModelSelector) generateParameters(
+	tt models.TaskType,
+	cl models.ClassificationResult,
+) openai.ChatCompletionNewParams {
+	tp, ok := ms.config.GetTaskParameters(tt)
+	if !ok {
+		tp = ms.getDefaultTaskParameters()
+	}
+	cs := extractOrDefault(cl.CreativityScope)
+	rs := extractOrDefault(cl.Reasoning)
+	dk := extractOrDefault(cl.DomainKnowledge)
+	ck := extractOrDefault(cl.ContextualKnowledge)
+
+	// simple heuristic tweaks:
+	temp := tp.Temperature*(1-rs*0.3) + cs*0.1
+	topP := tp.TopP*(1-dk*0.2) + ck*0.05
+
+	return openai.ChatCompletionNewParams{
+		Temperature:      param.Opt[float64]{Value: temp},
+		TopP:             param.Opt[float64]{Value: topP},
+		PresencePenalty:  param.Opt[float64]{Value: tp.PresencePenalty},
+		FrequencyPenalty: param.Opt[float64]{Value: tp.FrequencyPenalty},
+		MaxTokens:        param.Opt[int64]{Value: int64(tp.MaxCompletionTokens)},
+		N:                param.Opt[int64]{Value: int64(tp.N)},
+	}
+}
+
+func (ms *ModelSelector) adjustComplexityForCostBias(
+	complexity float64,
+) float64 {
+	bias := ms.costBiasFactor
+	if math.Abs(bias-0.5) < 1e-2 {
+		return complexity
+	}
+	strength := 2 * (bias - 0.5) // -> [-1,1]
+	norm := 3 * strength         // amplify
+	adj := complexity + (sigmoid(norm)-0.5)*0.4
+	return clamp01(adj)
+}
+
+func sigmoid(x float64) float64 {
 	return 1.0 / (1.0 + math.Exp(-x))
 }
 
-func (ms *ModelSelector) getModelCost(name string) float64 {
-	if cap, ok := ms.config.GetModelCapability(name); ok {
-		return cap.CostPer1kTokens
+func clamp01(x float64) float64 {
+	switch {
+	case x < 0:
+		return 0
+	case x > 1:
+		return 1
+	default:
+		return x
 	}
-	return 0.01
 }
 
 func (ms *ModelSelector) selectDifficultyLevel(
@@ -254,38 +277,6 @@ func (ms *ModelSelector) selectDifficultyLevel(
 	}
 }
 
-func (ms *ModelSelector) applyProviderConstraint(
-	provider string,
-) (string, error) {
-	var cands []string
-	for name, cap := range ms.config.ModelCapabilities {
-		if strings.EqualFold(string(cap.Provider), provider) {
-			cands = append(cands, name)
-		}
-	}
-	if len(cands) == 0 {
-		return "", fmt.Errorf("no models for provider %s", provider)
-	}
-	return cands[0], nil
-}
-
-func (ms *ModelSelector) generateParameters(
-	taskType models.TaskType,
-) openai.ChatCompletionNewParams {
-	tp, ok := ms.config.GetTaskParameters(taskType)
-	if !ok {
-		tp = ms.getDefaultTaskParameters()
-	}
-	return openai.ChatCompletionNewParams{
-		Temperature:      param.Opt[float64]{Value: tp.Temperature},
-		TopP:             param.Opt[float64]{Value: tp.TopP},
-		PresencePenalty:  param.Opt[float64]{Value: tp.PresencePenalty},
-		FrequencyPenalty: param.Opt[float64]{Value: tp.FrequencyPenalty},
-		MaxTokens:        param.Opt[int64]{Value: int64(tp.MaxCompletionTokens)},
-		N:                param.Opt[int64]{Value: int64(tp.N)},
-	}
-}
-
 func (ms *ModelSelector) calculateConfidence(
 	complexity, threshold float64,
 ) float64 {
@@ -294,14 +285,13 @@ func (ms *ModelSelector) calculateConfidence(
 	switch {
 	case conf < 0.1:
 		return 0.1
-	case conf > 1:
+	case conf > 1.0:
 		return 1.0
 	default:
 		return conf
 	}
 }
 
-// defaultModelFor picks a simple fallback model by complexity.
 func defaultModelFor(cx float64) string {
 	switch {
 	case cx <= 0.3:
@@ -313,7 +303,6 @@ func defaultModelFor(cx float64) string {
 	}
 }
 
-// difficultyConfig returns the config for a given difficulty.
 func difficultyConfig(
 	m models.TaskModelMapping,
 	d models.DifficultyLevel,
@@ -328,6 +317,41 @@ func difficultyConfig(
 	}
 }
 
+func (ms *ModelSelector) getAlternatives(
+	m models.TaskModelMapping,
+	selected string,
+) []string {
+	out := []string{}
+	for _, cfg := range []models.DifficultyConfig{m.Easy, m.Medium, m.Hard} {
+		if cfg.Model != selected && !slices.Contains(out, cfg.Model) {
+			out = append(out, cfg.Model)
+		}
+	}
+	if len(out) > 2 {
+		return out[:2]
+	}
+	return out
+}
+
+// getUserCache, getDefaultTaskParameters, getDefaultCapability unchanged.
+
+func (ms *ModelSelector) getUserCache(
+	userID string,
+) *semanticcache.SemanticCache[string, models.StandardLLMOrchestratorResponse] {
+	if cache, ok := ms.userCachePool.Get(userID); ok {
+		return cache
+	}
+	newC, err := semanticcache.NewSemanticCache[string, models.StandardLLMOrchestratorResponse](
+		ms.defaultUserCacheSize, ms.embeddingProvider, nil,
+	)
+	if err != nil {
+		log.Printf("user cache init failed for %s: %v", userID, err)
+		return nil
+	}
+	ms.userCachePool.Add(userID, newC)
+	return newC
+}
+
 func (ms *ModelSelector) getDefaultTaskParameters() models.TaskParameters {
 	return models.TaskParameters{
 		Temperature:         0.7,
@@ -339,7 +363,6 @@ func (ms *ModelSelector) getDefaultTaskParameters() models.TaskParameters {
 	}
 }
 
-// getDefaultCapability returns a placeholder capability.
 func (ms *ModelSelector) getDefaultCapability(
 	modelName string,
 ) models.ModelCapability {
