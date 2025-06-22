@@ -5,7 +5,6 @@ import (
 	"log"
 	"math"
 	"os"
-	"strings"
 
 	"adaptive-backend/internal/models"
 
@@ -89,9 +88,14 @@ func (ms *ModelSelector) SelectModelWithCache(
 	cx := ms.extractComplexityScore(cl)
 	if cx < minionComplexityThreshold || len(req.Prompt) < minionPromptLength {
 		tt := ms.validateTaskType(cl.TaskType1)
+
+		// Generate alternatives for minion (including standard LLM fallback)
+		alternatives := ms.generateMinionAlternatives(cl)
+
 		resp := models.MinionOrchestratorResponse{
-			Protocol:   models.ProtocolMinion,
-			MinionData: models.MinionDetails{TaskType: string(tt)},
+			Protocol:     models.ProtocolMinion,
+			MinionData:   models.MinionDetails{TaskType: string(tt)},
+			Alternatives: alternatives,
 		}
 		log.Printf("[%s] routed to minion: task=%s cx=%.2f len=%d",
 			requestID, tt, cx, len(req.Prompt))
@@ -159,11 +163,15 @@ func (ms *ModelSelector) selectStandard(
 	params := ms.generateParameters(tt)
 	conf := ms.calculateConfidence(cx, threshold)
 
+	// Generate alternatives for standard LLM
+	alternatives := ms.generateStandardLLMAlternatives(cl, modelName)
+
 	return &models.StandardLLMOrchestratorResponse{
 		Protocol:        models.ProtocolStandardLLM,
 		StandardLLMData: models.StandardLLMDetails{Provider: string(cap.Provider), Model: modelName},
 		Confidence:      conf,
 		Parameters:      params,
+		Alternatives:    alternatives,
 	}, nil
 }
 
@@ -254,21 +262,6 @@ func (ms *ModelSelector) selectDifficultyLevel(
 	}
 }
 
-func (ms *ModelSelector) applyProviderConstraint(
-	provider string,
-) (string, error) {
-	var cands []string
-	for name, cap := range ms.config.ModelCapabilities {
-		if strings.EqualFold(string(cap.Provider), provider) {
-			cands = append(cands, name)
-		}
-	}
-	if len(cands) == 0 {
-		return "", fmt.Errorf("no models for provider %s", provider)
-	}
-	return cands[0], nil
-}
-
 func (ms *ModelSelector) generateParameters(
 	taskType models.TaskType,
 ) openai.ChatCompletionNewParams {
@@ -352,4 +345,175 @@ func (ms *ModelSelector) getDefaultCapability(
 		SupportsFunctionCalling: false,
 		SupportsVision:          false,
 	}
+}
+
+// generateStandardLLMAlternatives creates alternative model options for standard LLM responses
+func (ms *ModelSelector) generateStandardLLMAlternatives(
+	cl models.ClassificationResult,
+	primaryModel string,
+) []models.Alternative {
+	var alternatives []models.Alternative
+	tt := ms.validateTaskType(cl.TaskType1)
+
+	// Get task mapping for generating alternatives
+	mapping, ok := ms.config.GetTaskModelMapping(tt)
+	if !ok {
+		// Use default alternatives based on complexity
+		return ms.getDefaultAlternatives(primaryModel)
+	}
+
+	// Add different difficulty level models as alternatives
+	configs := []models.DifficultyConfig{mapping.Easy, mapping.Medium, mapping.Hard}
+
+	for _, config := range configs {
+		if config.Model != primaryModel {
+			if cap, ok := ms.config.GetModelCapability(config.Model); ok {
+				alternatives = append(alternatives, models.Alternative{
+					Provider: string(cap.Provider),
+					Model:    config.Model,
+				})
+			}
+		}
+	}
+
+	// Add cross-provider alternatives
+	alternatives = append(alternatives, ms.getCrossProviderAlternatives(primaryModel)...)
+
+	// Limit to 3 alternatives to avoid excessive fallback attempts
+	if len(alternatives) > 3 {
+		alternatives = alternatives[:3]
+	}
+
+	return alternatives
+}
+
+// generateMinionAlternatives creates alternative options for minion responses
+func (ms *ModelSelector) generateMinionAlternatives(
+	cl models.ClassificationResult,
+) []models.Alternative {
+	var alternatives []models.Alternative
+	cx := ms.extractComplexityScore(cl)
+	tt := ms.validateTaskType(cl.TaskType1)
+
+	// Add other minion task types as alternatives
+	alternativeMinions := ms.getAlternativeMinionTasks(tt)
+	for _, minionTask := range alternativeMinions {
+		alternatives = append(alternatives, models.Alternative{
+			Provider: "minion",
+			Model:    string(minionTask),
+		})
+	}
+
+	// Add standard LLM fallback as last resort
+	mapping, ok := ms.config.GetTaskModelMapping(tt)
+	var fallbackModel string
+	var fallbackProvider string
+
+	if ok {
+		adj := ms.adjustComplexityForCostBias(cx, mapping)
+		d := ms.selectDifficultyLevel(adj, mapping)
+		cfg := difficultyConfig(mapping, d)
+		fallbackModel = cfg.Model
+
+		if cap, ok := ms.config.GetModelCapability(fallbackModel); ok {
+			fallbackProvider = string(cap.Provider)
+		} else {
+			fallbackProvider = "OpenAI"
+		}
+	} else {
+		fallbackModel = defaultModelFor(cx)
+		fallbackProvider = "OpenAI"
+	}
+
+	// Add standard LLM fallback
+	alternatives = append(alternatives, models.Alternative{
+		Provider: fallbackProvider,
+		Model:    fallbackModel,
+	})
+
+	// Limit alternatives
+	if len(alternatives) > 3 {
+		alternatives = alternatives[:3]
+	}
+
+	return alternatives
+}
+
+// getDefaultAlternatives provides default alternatives based on complexity
+func (ms *ModelSelector) getDefaultAlternatives(
+	excludeModel string,
+) []models.Alternative {
+	var alternatives []models.Alternative
+
+	// Define default model tiers
+	defaultModels := []string{"gpt-4o", "gpt-4.1-mini", "gpt-4.1-nano"}
+
+	for _, model := range defaultModels {
+		if model != excludeModel {
+			alternatives = append(alternatives, models.Alternative{
+				Provider: "OpenAI",
+				Model:    model,
+			})
+		}
+	}
+
+	return alternatives
+}
+
+// getCrossProviderAlternatives provides alternatives from different providers
+func (ms *ModelSelector) getCrossProviderAlternatives(
+	excludeModel string,
+) []models.Alternative {
+	var alternatives []models.Alternative
+
+	// Cross-provider alternatives
+	crossProviderModels := map[string]string{
+		"claude-3-sonnet": "Anthropic",
+		"gemini-pro":      "Google",
+		"llama-3-70b":     "GROQ",
+	}
+
+	for model, provider := range crossProviderModels {
+		if model != excludeModel {
+			alternatives = append(alternatives, models.Alternative{
+				Provider: provider,
+				Model:    model,
+			})
+		}
+	}
+
+	return alternatives
+}
+
+// getAlternativeMinionTasks returns alternative minion task types based on the primary task type
+func (ms *ModelSelector) getAlternativeMinionTasks(primaryTask models.TaskType) []models.TaskType {
+	var alternatives []models.TaskType
+
+	// Define task type alternatives based on similarity/compatibility
+	switch primaryTask {
+	case models.TaskCodeGeneration:
+		alternatives = []models.TaskType{models.TaskTextGeneration, models.TaskRewrite, models.TaskOther}
+	case models.TaskOpenQA:
+		alternatives = []models.TaskType{models.TaskClosedQA, models.TaskChatbot, models.TaskOther}
+	case models.TaskClosedQA:
+		alternatives = []models.TaskType{models.TaskOpenQA, models.TaskChatbot, models.TaskOther}
+	case models.TaskSummarization:
+		alternatives = []models.TaskType{models.TaskExtraction, models.TaskRewrite, models.TaskOther}
+	case models.TaskTextGeneration:
+		alternatives = []models.TaskType{models.TaskCodeGeneration, models.TaskBrainstorming, models.TaskOther}
+	case models.TaskClassification:
+		alternatives = []models.TaskType{models.TaskExtraction, models.TaskOther}
+	case models.TaskRewrite:
+		alternatives = []models.TaskType{models.TaskTextGeneration, models.TaskSummarization, models.TaskOther}
+	case models.TaskBrainstorming:
+		alternatives = []models.TaskType{models.TaskTextGeneration, models.TaskChatbot, models.TaskOther}
+	case models.TaskExtraction:
+		alternatives = []models.TaskType{models.TaskClassification, models.TaskSummarization, models.TaskOther}
+	case models.TaskChatbot:
+		alternatives = []models.TaskType{models.TaskOpenQA, models.TaskBrainstorming, models.TaskOther}
+	default:
+		alternatives = []models.TaskType{models.TaskChatbot, models.TaskTextGeneration, models.TaskOther}
+	}
+
+	return alternatives
 }

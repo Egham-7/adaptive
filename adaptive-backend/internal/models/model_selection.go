@@ -107,6 +107,12 @@ type PromptScores struct {
 	DomainKnowledge       []float64 `json:"domain_knowledge"`
 }
 
+// Alternative represents an alternative model/provider combination for fallback
+type Alternative struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+}
+
 // StandardLLMDetails carries the provider+model for standard LLM calls.
 type StandardLLMDetails struct {
 	Provider string `json:"provider"`
@@ -137,18 +143,21 @@ type StandardLLMOrchestratorResponse struct {
 	StandardLLMData StandardLLMDetails `json:"standard_llm_data"`
 	Confidence      float64            `json:"confidence"`
 	Parameters      OpenAIParameters   `json:"parameters"`
+	Alternatives    []Alternative      `json:"alternatives,omitempty"`
 }
 
 // MinionOrchestratorResponse is returned when protocol="minion".
 type MinionOrchestratorResponse struct {
-	Protocol   LiteralString `json:"protocol"`
-	MinionData MinionDetails `json:"minion_data"`
+	Protocol     LiteralString `json:"protocol"`
+	MinionData   MinionDetails `json:"minion_data"`
+	Alternatives []Alternative `json:"alternatives,omitempty"`
 }
 
 // MinionsProtocolOrchestratorResponse is returned when protocol="minions_protocol".
 type MinionsProtocolOrchestratorResponse struct {
 	Protocol            LiteralString          `json:"protocol"`
 	MinionsProtocolData MinionsProtocolDetails `json:"minions_protocol_data"`
+	Alternatives        []Alternative          `json:"alternatives,omitempty"`
 }
 
 // LiteralString is a string‐alias to use as a discriminant.
