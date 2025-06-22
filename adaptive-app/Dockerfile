@@ -41,6 +41,8 @@ COPY --from=builder /app/node_modules/@prisma/client \
   ./node_modules/@prisma/client
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
+# Copy prisma folder (including migrations and schema)
+COPY --from=builder /app/prisma ./prisma
 
 # drop to non-root user
 RUN addgroup --system --gid 1001 nodejs \
@@ -49,4 +51,4 @@ USER nextjs
 
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME="0.0.0.0"
-CMD ["bun", "run", "start"]
+CMD ["sh", "-c", "bunx prisma migrate deploy && bun run start"]
