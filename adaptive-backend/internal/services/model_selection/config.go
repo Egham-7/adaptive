@@ -17,197 +17,164 @@ type Config struct {
 	mu                sync.RWMutex
 }
 
-// ConfigLoader handles loading and caching of configuration
 type ConfigLoader struct {
 	configPath string
 	config     *Config
 	mu         sync.RWMutex
 }
 
-// NewConfigLoader creates a new configuration loader
 func NewConfigLoader(configPath string) *ConfigLoader {
-	loader := &ConfigLoader{
-		configPath: configPath,
-	}
-	return loader
+	return &ConfigLoader{configPath: configPath}
 }
 
-// LoadConfig loads the configuration from the YAML file
-func (cl *ConfigLoader) LoadConfig() (*Config, error) {
-	cl.mu.Lock()
-	defer cl.mu.Unlock()
-
-	// Return cached config if already loaded
-	if cl.config != nil {
-		return cl.config, nil
-	}
-
-	// Check if config file exists
+// doLoad reads, parses, and returns a fresh *Config (no locking here)
+func (cl *ConfigLoader) doLoad() (*Config, error) {
 	if _, err := os.Stat(cl.configPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("configuration file not found at %s", cl.configPath)
 	}
-
-	// Read the YAML file
 	data, err := os.ReadFile(cl.configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %w", cl.configPath, err)
 	}
-
-	// Parse the YAML
-	var rawConfig map[string]any
-	if err := yaml.Unmarshal(data, &rawConfig); err != nil {
+	var raw map[string]any
+	if err := yaml.Unmarshal(data, &raw); err != nil {
 		return nil, fmt.Errorf("failed to parse YAML config: %w", err)
 	}
 
-	// Create the config struct
-	config := &Config{
+	cfg := &Config{
 		ModelCapabilities: make(map[string]models.ModelCapability),
 		TaskModelMappings: make(map[string]models.TaskModelMapping),
 		TaskParameters:    make(map[string]models.TaskParameters),
 	}
 
-	// Parse model capabilities
-	if capsRaw, ok := rawConfig["model_capabilities"].(map[string]any); ok {
+	if capsRaw, ok := raw["model_capabilities"].(map[string]any); ok {
 		for name, capRaw := range capsRaw {
-			if capMap, ok := capRaw.(map[string]any); ok {
+			if m, ok := capRaw.(map[string]any); ok {
 				c := models.ModelCapability{}
-				if desc, ok := capMap["description"].(string); ok {
+				if desc, ok := m["description"].(string); ok {
 					c.Description = desc
 				}
-				if prov, ok := capMap["provider"].(string); ok {
+				if prov, ok := m["provider"].(string); ok {
 					c.Provider = models.ProviderType(prov)
 				}
-				if cost, ok := capMap["cost_per_1k_tokens"].(float64); ok {
+				if cost, ok := m["cost_per_1k_tokens"].(float64); ok {
 					c.CostPer1kTokens = cost
 				}
-				if mt, ok := capMap["max_tokens"].(int); ok {
+				if mt, ok := m["max_tokens"].(int); ok {
 					c.MaxTokens = mt
 				}
-				if s, ok := capMap["supports_streaming"].(bool); ok {
+				if s, ok := m["supports_streaming"].(bool); ok {
 					c.SupportsStreaming = s
 				}
-				if f, ok := capMap["supports_function_calling"].(bool); ok {
+				if f, ok := m["supports_function_calling"].(bool); ok {
 					c.SupportsFunctionCalling = f
 				}
-				if v, ok := capMap["supports_vision"].(bool); ok {
+				if v, ok := m["supports_vision"].(bool); ok {
 					c.SupportsVision = v
 				}
-				config.ModelCapabilities[name] = c
+				cfg.ModelCapabilities[name] = c
 			}
 		}
 	}
 
-	// Parse task model mappings
-	if mapsRaw, ok := rawConfig["task_model_mappings"].(map[string]any); ok {
+	if mapsRaw, ok := raw["task_model_mappings"].(map[string]any); ok {
 		for t, mRaw := range mapsRaw {
 			if mMap, ok := mRaw.(map[string]any); ok {
-				m := models.TaskModelMapping{}
-				if easyRaw, ok := mMap["easy"].(map[string]any); ok {
-					m.Easy = parseDifficultyConfig(easyRaw)
+				tm := models.TaskModelMapping{}
+				if e, ok := mMap["easy"].(map[string]any); ok {
+					tm.Easy = parseDifficultyConfig(e)
 				}
-				if medRaw, ok := mMap["medium"].(map[string]any); ok {
-					m.Medium = parseDifficultyConfig(medRaw)
+				if m, ok := mMap["medium"].(map[string]any); ok {
+					tm.Medium = parseDifficultyConfig(m)
 				}
-				if hardRaw, ok := mMap["hard"].(map[string]any); ok {
-					m.Hard = parseDifficultyConfig(hardRaw)
+				if h, ok := mMap["hard"].(map[string]any); ok {
+					tm.Hard = parseDifficultyConfig(h)
 				}
-				config.TaskModelMappings[t] = m
+				cfg.TaskModelMappings[t] = tm
 			}
 		}
 	}
 
-	// Parse task parameters
-	if paramsRaw, ok := rawConfig["task_parameters"].(map[string]any); ok {
+	if paramsRaw, ok := raw["task_parameters"].(map[string]any); ok {
 		for t, pRaw := range paramsRaw {
 			if pMap, ok := pRaw.(map[string]any); ok {
-				p := models.TaskParameters{}
-				if tmp, ok := pMap["temperature"].(float64); ok {
-					p.Temperature = tmp
+				tp := models.TaskParameters{}
+				if v, ok := pMap["temperature"].(float64); ok {
+					tp.Temperature = v
 				}
-				if tp, ok := pMap["top_p"].(float64); ok {
-					p.TopP = tp
+				if v, ok := pMap["top_p"].(float64); ok {
+					tp.TopP = v
 				}
-				if pr, ok := pMap["presence_penalty"].(float64); ok {
-					p.PresencePenalty = pr
+				if v, ok := pMap["presence_penalty"].(float64); ok {
+					tp.PresencePenalty = v
 				}
-				if fr, ok := pMap["frequency_penalty"].(float64); ok {
-					p.FrequencyPenalty = fr
+				if v, ok := pMap["frequency_penalty"].(float64); ok {
+					tp.FrequencyPenalty = v
 				}
-				if mt, ok := pMap["max_completion_tokens"].(int); ok {
-					p.MaxCompletionTokens = mt
+				if v, ok := pMap["max_completion_tokens"].(int); ok {
+					tp.MaxCompletionTokens = v
 				}
-				if n, ok := pMap["n"].(int); ok {
-					p.N = n
+				if v, ok := pMap["n"].(int); ok {
+					tp.N = v
 				}
-				config.TaskParameters[t] = p
+				cfg.TaskParameters[t] = tp
 			}
 		}
 	}
 
-	cl.config = config
-	return config, nil
+	return cfg, nil
 }
 
-// parseDifficultyConfig parses a difficulty configuration from raw map
+// LoadConfig acquires write-lock, loads once, caches, and returns the config
+func (cl *ConfigLoader) LoadConfig() (*Config, error) {
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	if cl.config != nil {
+		return cl.config, nil
+	}
+	cfg, err := cl.doLoad()
+	if err != nil {
+		return nil, err
+	}
+	cl.config = cfg
+	return cfg, nil
+}
+
+// GetConfig implements double-checked locking to avoid races
+func (cl *ConfigLoader) GetConfig() (*Config, error) {
+	// 1) fast path under read-lock
+	cl.mu.RLock()
+	if cl.config != nil {
+		cl.mu.RUnlock()
+		return cl.config, nil
+	}
+	cl.mu.RUnlock()
+
+	// 2) upgrade to write-lock and check again
+	cl.mu.Lock()
+	defer cl.mu.Unlock()
+	if cl.config != nil {
+		return cl.config, nil
+	}
+	cfg, err := cl.doLoad()
+	if err != nil {
+		return nil, err
+	}
+	cl.config = cfg
+	return cfg, nil
+}
+
 func parseDifficultyConfig(raw map[string]any) models.DifficultyConfig {
 	d := models.DifficultyConfig{}
-	if model, ok := raw["model"].(string); ok {
-		d.Model = model
+	if m, ok := raw["model"].(string); ok {
+		d.Model = m
 	}
-	if th, ok := raw["complexity_threshold"].(float64); ok {
-		d.ComplexityThreshold = th
+	if t, ok := raw["complexity_threshold"].(float64); ok {
+		d.ComplexityThreshold = t
 	}
 	return d
 }
 
-// GetConfig returns the loaded configuration, loading it if necessary
-func (cl *ConfigLoader) GetConfig() (*Config, error) {
-	cl.mu.RLock()
-	if cl.config != nil {
-		defer cl.mu.RUnlock()
-		return cl.config, nil
-	}
-	cl.mu.RUnlock()
-	return cl.LoadConfig()
-}
-
-// ReloadConfig forces a reload of the configuration
-func (cl *ConfigLoader) ReloadConfig() (*Config, error) {
-	cl.mu.Lock()
-	cl.config = nil
-	cl.mu.Unlock()
-	return cl.LoadConfig()
-}
-
-// GetModelCapability returns capability information for a specific model
-func (c *Config) GetModelCapability(name string) (models.ModelCapability, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	cap, ok := c.ModelCapabilities[name]
-	return cap, ok
-}
-
-// GetTaskModelMapping returns model mapping for a specific task type
-func (c *Config) GetTaskModelMapping(
-	t models.TaskType,
-) (models.TaskModelMapping, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	m, ok := c.TaskModelMappings[string(t)]
-	return m, ok
-}
-
-// GetTaskParameters returns parameters for a specific task type
-func (c *Config) GetTaskParameters(
-	t models.TaskType,
-) (models.TaskParameters, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	p, ok := c.TaskParameters[string(t)]
-	return p, ok
-}
-
-// GetConfigPath returns the path to the configuration file
 func (cl *ConfigLoader) GetConfigPath() string {
 	return cl.configPath
 }
@@ -218,7 +185,7 @@ var (
 	configLoaderErr     error
 )
 
-// GetDefaultConfig returns the default configuration instance
+// GetDefaultConfig returns a singleton-loaded *Config
 func GetDefaultConfig() (*Config, error) {
 	configLoaderOnce.Do(func() {
 		const configFileName = "model_selection_config.yaml"
@@ -227,12 +194,38 @@ func GetDefaultConfig() (*Config, error) {
 			configLoaderErr = fmt.Errorf("failed to get working directory: %w", err)
 			return
 		}
-		configPath := filepath.Join(cwd, "internal", "config", configFileName)
-
-		defaultConfigLoader = NewConfigLoader(configPath)
+		path := filepath.Join(cwd, "internal", "config", configFileName)
+		defaultConfigLoader = NewConfigLoader(path)
 	})
 	if configLoaderErr != nil {
 		return nil, configLoaderErr
 	}
 	return defaultConfigLoader.GetConfig()
+}
+
+// Config methods
+
+func (c *Config) GetModelCapability(name string) (models.ModelCapability, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	cap, ok := c.ModelCapabilities[name]
+	return cap, ok
+}
+
+func (c *Config) GetTaskModelMapping(
+	t models.TaskType,
+) (models.TaskModelMapping, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	m, ok := c.TaskModelMappings[string(t)]
+	return m, ok
+}
+
+func (c *Config) GetTaskParameters(
+	t models.TaskType,
+) (models.TaskParameters, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	p, ok := c.TaskParameters[string(t)]
+	return p, ok
 }
