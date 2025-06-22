@@ -25,6 +25,7 @@ WORKDIR /root/
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/adaptive-backend .
+COPY --from=builder /app/config ./config
 
 # Expose the application port
 EXPOSE 8080
