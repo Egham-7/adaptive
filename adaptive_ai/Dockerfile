@@ -27,15 +27,11 @@ RUN apt-get update && \
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
-COPY pyproject.toml poetry.lock* ./
-COPY README.md ./
-COPY adaptive_ai/ ./adaptive_ai/
+COPY . .
 
 RUN poetry env use python3 && \
   poetry config virtualenvs.create false && \
   poetry install --only=main --no-interaction --no-ansi
-
-COPY . .
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

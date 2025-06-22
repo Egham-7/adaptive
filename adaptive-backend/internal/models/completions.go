@@ -11,22 +11,6 @@ type SelectModelRequest struct {
 	Provider string `json:"provider,omitempty"`
 }
 
-// SelectModelResponse represents the response from the select-model endpoint
-type SelectModelResponse struct {
-	SelectedModel string                         `json:"selected_model"`
-	Provider      string                         `json:"provider"`
-	Parameters    openai.ChatCompletionNewParams `json:"parameters"`
-}
-
-type OpenAIParameters struct {
-	MaxTokens        int64   `json:"max_tokens,omitempty"`
-	Temperature      float64 `json:"temperature,omitempty"`
-	TopP             float64 `json:"top_p,omitempty"`
-	PresencePenalty  float64 `json:"presence_penalty,omitempty"`
-	FrequencyPenalty float64 `json:"frequency_penalty,omitempty"`
-	N                int64   `json:"n,omitempty"`
-}
-
 type ChatCompletionRequest struct {
 	// A list of messages comprising the conversation so far. Depending on the
 	// [model](https://platform.openai.com/docs/models) you use, different message
@@ -222,6 +206,9 @@ type ChatCompletionRequest struct {
 	WebSearchOptions openai.ChatCompletionNewParamsWebSearchOptions `json:"web_search_options,omitzero"`
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
+
+	ProviderConstraint []string `json:"provider_constraint,omitempty"`
+	CostBias           float32  `json:"cost_bias,omitempty"` // Bias towards cheaper providers
 }
 
 func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
