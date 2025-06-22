@@ -29,7 +29,7 @@ const afterCode = `from openai import OpenAI
 
 openai = OpenAI(
     api_key="sk-your-api-key", 
-    base_url="https://api.adaptive.com/v1" 
+    base_url="https://api.adaptive.com/v1"
 )
 
 async def generate_text(prompt: str) -> str:
@@ -92,8 +92,8 @@ function FloatingPaths({ position }: { position: number }) {
 							hasCompletedInitialPass
 								? {}
 								: {
-										duration: 20 + Math.random() * 5,
-										delay: path.id * 0.1,
+										duration: 20 + Math.random() * 4,
+										delay: path.id * 0.001,
 										ease: "linear",
 										onComplete: () => {
 											if (path.id === paths.length - 1) {
@@ -204,6 +204,7 @@ export default function HeroSection() {
 								filename="llm.py"
 								lightTheme="github-light"
 								darkTheme="github-dark"
+								highlightColor="#ff6b6b"
 							/>
 						</div>
 					</div>
