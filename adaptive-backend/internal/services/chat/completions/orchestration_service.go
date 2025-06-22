@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/model_selection"
 	"adaptive-backend/internal/services/providers"
@@ -33,18 +34,6 @@ func NewOrchestrationService(
 	}
 }
 
-// OrchestratorResult holds the result of orchestration
-type OrchestratorResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string // For logging and debugging
-	CacheType    string
-	ProtocolType string
-	ModelName    string
-	Parameters   models.OpenAIParameters
-	TaskType     string               // For minions
-	Alternatives []models.Alternative // For failover racing if primary fails
-}
-
 // SelectAndConfigureProvider orchestrates the model selection and provider configuration
 // Behavior:
 // - If no alternatives are available, uses the primary provider directly
@@ -54,7 +43,8 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 	ctx context.Context,
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
-) (*OrchestratorResult, error) {
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) (*models.OrchestratorResult, error) {
 	fiberlog.Infof("[%s] Starting orchestration for user: %s", requestID, userID)
 
 	// Validate request has messages
@@ -74,37 +64,57 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 	}
 
 	// Call model selector to determine protocol and configuration
-	orchestratorResponse, cacheType, err := s.modelSelector.SelectModelWithCache(selectReq, userID, requestID)
+	orchestratorResponse, cacheType, err := s.modelSelector.SelectModelWithCache(selectReq, userID, requestID, circuitBreakers)
 	if err != nil {
 		fiberlog.Errorf("[%s] Model selection error: %v", requestID, err)
 		return nil, fmt.Errorf("model selection failed: %w", err)
 	}
 
-	// Process the orchestrator response based on type
-	switch resp := orchestratorResponse.(type) {
-	case models.StandardLLMOrchestratorResponse:
-		return s.handleStandardLLMResponse(resp, cacheType, requestID)
-	case models.MinionOrchestratorResponse:
-		return s.handleMinionResponse(resp, cacheType, requestID)
-	default:
-		return nil, fmt.Errorf("unknown orchestrator protocol received")
-	}
+	// Process the orchestrator response
+	return s.handleOrchestratorResponse(orchestratorResponse, cacheType, requestID)
 }
 
-// handleStandardLLMResponse processes standard LLM orchestrator responses
-// Always returns primary provider, stores alternatives for potential failover
-func (s *OrchestrationService) handleStandardLLMResponse(
-	resp models.StandardLLMOrchestratorResponse,
+// handleOrchestratorResponse processes unified orchestrator responses
+func (s *OrchestrationService) handleOrchestratorResponse(
+	resp *models.OrchestratorResponse,
 	cacheType string,
 	requestID string,
-) (*OrchestratorResult, error) {
-	fiberlog.Infof("[%s] Processing StandardLLM response: Model=%s, Provider=%s",
-		requestID, resp.StandardLLMData.Model, resp.StandardLLMData.Provider)
+) (*models.OrchestratorResult, error) {
+	var provider provider_interfaces.LLMProvider
+	var err error
+	var providerName, protocolType, modelName, taskType string
 
-	// Always create primary provider first
-	provider, err := providers.NewLLMProvider(resp.StandardLLMData.Provider, nil, s.minionRegistry)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create LLM provider %s: %w", resp.StandardLLMData.Provider, err)
+	switch resp.Protocol {
+	case models.ProtocolStandardLLM:
+		fiberlog.Infof("[%s] Processing StandardLLM response: Model=%s, Provider=%s",
+			requestID, resp.Model, resp.Provider)
+
+		provider, err = providers.NewLLMProvider(resp.Provider, nil, s.minionRegistry)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create LLM provider %s: %w", resp.Provider, err)
+		}
+
+		providerName = resp.Provider
+		protocolType = "StandardLLM"
+		modelName = resp.Model
+		taskType = ""
+
+	case models.ProtocolMinion:
+		fiberlog.Infof("[%s] Processing Minion response: TaskType=%s",
+			requestID, resp.TaskType)
+
+		provider, err = providers.NewLLMProvider("minion", &resp.TaskType, s.minionRegistry)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create minion provider for task %s: %w", resp.TaskType, err)
+		}
+
+		providerName = "minion"
+		protocolType = "Minion"
+		modelName = fmt.Sprintf("Minion-%s", resp.TaskType)
+		taskType = resp.TaskType
+
+	default:
+		return nil, fmt.Errorf("unknown orchestrator protocol: %s", resp.Protocol)
 	}
 
 	if len(resp.Alternatives) > 0 {
@@ -112,47 +122,14 @@ func (s *OrchestrationService) handleStandardLLMResponse(
 			requestID, len(resp.Alternatives))
 	}
 
-	return &OrchestratorResult{
+	return &models.OrchestratorResult{
 		Provider:     provider,
-		ProviderName: resp.StandardLLMData.Provider,
+		ProviderName: providerName,
 		CacheType:    cacheType,
-		ProtocolType: "StandardLLM",
-		ModelName:    resp.StandardLLMData.Model,
+		ProtocolType: protocolType,
+		ModelName:    modelName,
 		Parameters:   resp.Parameters,
-		TaskType:     "",
-		Alternatives: resp.Alternatives,
-	}, nil
-}
-
-// handleMinionResponse processes minion orchestrator responses
-// Always returns primary provider, stores alternatives for potential failover
-func (s *OrchestrationService) handleMinionResponse(
-	resp models.MinionOrchestratorResponse,
-	cacheType string,
-	requestID string,
-) (*OrchestratorResult, error) {
-	fiberlog.Infof("[%s] Processing Minion response: TaskType=%s",
-		requestID, resp.MinionData.TaskType)
-
-	// Always create primary minion provider first
-	provider, err := providers.NewLLMProvider("minion", &resp.MinionData.TaskType, s.minionRegistry)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create minion provider for task %s: %w", resp.MinionData.TaskType, err)
-	}
-
-	if len(resp.Alternatives) > 0 {
-		fiberlog.Infof("[%s] Primary minion ready, %d alternatives available for failover",
-			requestID, len(resp.Alternatives))
-	}
-
-	return &OrchestratorResult{
-		Provider:     provider,
-		ProviderName: "minion",
-		CacheType:    cacheType,
-		ProtocolType: "Minion",
-		Parameters:   resp.MinionData.Parameters,
-		ModelName:    fmt.Sprintf("Minion-%s", resp.MinionData.TaskType),
-		TaskType:     resp.MinionData.TaskType,
+		TaskType:     taskType,
 		Alternatives: resp.Alternatives,
 	}, nil
 }

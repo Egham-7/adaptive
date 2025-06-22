@@ -1,6 +1,12 @@
 package models
 
-import "github.com/openai/openai-go"
+import (
+	"time"
+
+	"adaptive-backend/internal/services/providers/provider_interfaces"
+
+	"github.com/openai/openai-go"
+)
 
 // ProviderType represents supported LLM providers
 type ProviderType string
@@ -113,51 +119,15 @@ type Alternative struct {
 	Model    string `json:"model"`
 }
 
-// StandardLLMDetails carries the provider+model for standard LLM calls.
-type StandardLLMDetails struct {
-	Provider string `json:"provider"`
-	Model    string `json:"model"`
-}
-
-// MinionDetails carries the task type for a minion call.
-type MinionDetails struct {
-	TaskType   string           `json:"task_type"`
-	Parameters OpenAIParameters `json:"parameters"`
-}
-
-// RemoteLLM describes which remote LLM a minions protocol should call.
-type RemoteLLM struct {
-	Provider string `json:"provider"`
-	Model    string `json:"model"`
-}
-
-// MinionsProtocolDetails packs the task type + remote LLM info.
-type MinionsProtocolDetails struct {
-	TaskType  string    `json:"task_type"`
-	RemoteLLM RemoteLLM `json:"remote_llm"`
-}
-
-// StandardLLMOrchestratorResponse is returned when protocol="standard_llm".
-type StandardLLMOrchestratorResponse struct {
-	Protocol        LiteralString      `json:"protocol"`
-	StandardLLMData StandardLLMDetails `json:"standard_llm_data"`
-	Confidence      float64            `json:"confidence"`
-	Parameters      OpenAIParameters   `json:"parameters"`
-	Alternatives    []Alternative      `json:"alternatives,omitempty"`
-}
-
-// MinionOrchestratorResponse is returned when protocol="minion".
-type MinionOrchestratorResponse struct {
-	Protocol     LiteralString `json:"protocol"`
-	MinionData   MinionDetails `json:"minion_data"`
-	Alternatives []Alternative `json:"alternatives,omitempty"`
-}
-
-// MinionsProtocolOrchestratorResponse is returned when protocol="minions_protocol".
-type MinionsProtocolOrchestratorResponse struct {
-	Protocol            LiteralString          `json:"protocol"`
-	MinionsProtocolData MinionsProtocolDetails `json:"minions_protocol_data"`
-	Alternatives        []Alternative          `json:"alternatives,omitempty"`
+// UnifiedOrchestratorResponse consolidates all orchestrator response types
+type OrchestratorResponse struct {
+	Protocol     LiteralString    `json:"protocol"`
+	Provider     string           `json:"provider,omitempty"`
+	Model        string           `json:"model,omitempty"`
+	TaskType     string           `json:"task_type,omitempty"`
+	Confidence   float64          `json:"confidence,omitempty"`
+	Parameters   OpenAIParameters `json:"parameters"`
+	Alternatives []Alternative    `json:"alternatives,omitempty"`
 }
 
 // LiteralString is a string‐alias to use as a discriminant.
@@ -168,9 +138,6 @@ const (
 	ProtocolMinion          LiteralString = "minion"
 	ProtocolMinionsProtocol LiteralString = "minions_protocol"
 )
-
-// OrchestratorResponse is a union of the three response types.
-type OrchestratorResponse any
 
 // ValidTaskTypes returns all valid task types
 func ValidTaskTypes() []TaskType {
@@ -218,4 +185,26 @@ func IsValidProvider(provider string) bool {
 		}
 	}
 	return false
+}
+
+// OrchestratorResult holds the result of orchestration
+type OrchestratorResult struct {
+	Provider     provider_interfaces.LLMProvider
+	ProviderName string // For logging and debugging
+	CacheType    string
+	ProtocolType string
+	ModelName    string
+	Parameters   OpenAIParameters
+	TaskType     string        // For minions
+	Alternatives []Alternative // For failover racing if primary fails
+}
+
+// RaceResult represents the result of a parallel request race
+type RaceResult struct {
+	Provider     provider_interfaces.LLMProvider
+	ProviderName string
+	ModelName    string
+	TaskType     string
+	Duration     time.Duration
+	Error        error
 }

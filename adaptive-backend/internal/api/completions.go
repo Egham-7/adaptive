@@ -1,6 +1,12 @@
 package api
 
 import (
+	"fmt"
+	"maps"
+	"os"
+	"sync"
+	"time"
+
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
@@ -8,10 +14,6 @@ import (
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/model_selection"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"fmt"
-	"os"
-	"sync"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -87,7 +89,14 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 
 	// Orchestrate model selection and provider configuration with automatic racing
 	ctx := c.Context()
-	orchestratorResult, err := h.orchestrationService.SelectAndConfigureProvider(ctx, req, apiKey, requestID)
+
+	// Pass circuit breaker information for health-aware model selection
+	h.cbMutex.RLock()
+	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
+	maps.Copy(circuitBreakers, h.circuitBreakers)
+	h.cbMutex.RUnlock()
+
+	orchestratorResult, err := h.orchestrationService.SelectAndConfigureProvider(ctx, req, apiKey, requestID, circuitBreakers)
 	if err != nil {
 		h.metricsService.RecordError(start, "500", isStream, requestID, "unknown")
 		return h.responseService.HandleInternalError(c, err.Error(), requestID)
@@ -134,66 +143,9 @@ func (h *CompletionHandler) handleStreamingResponse(
 	req *models.ChatCompletionRequest,
 	start time.Time,
 	requestID string,
-	orchestratorResult *completions.OrchestratorResult,
+	orchestratorResult *models.OrchestratorResult,
 ) error {
-	fiberlog.Infof("[%s] Processing streaming response with provider %s", requestID, providerName)
-
-	// Get or create circuit breaker for this provider
-	cb := h.getOrCreateCircuitBreaker(providerName)
-
-	// Check circuit breaker state and decide strategy
-	cbState := cb.GetState()
-	switch cbState {
-	case circuitbreaker.Open:
-		// Provider is failing - skip directly to alternatives
-		if len(orchestratorResult.Alternatives) > 0 {
-			fiberlog.Infof("[%s] Provider %s circuit is OPEN, racing alternatives immediately",
-				requestID, providerName)
-			return h.tryAlternativesForStreaming(c, orchestratorResult, req, start, requestID)
-		}
-		// No alternatives available, but circuit is open
-		cb.RecordFailure()
-		h.metricsService.RecordError(start, "503", true, requestID, providerName)
-		return h.responseService.HandleInternalError(c, "Provider circuit breaker is open and no alternatives available", requestID)
-
-	case circuitbreaker.HalfOpen:
-		// Provider is recovering - race primary against alternatives if we have them
-		if len(orchestratorResult.Alternatives) > 0 {
-			fiberlog.Infof("[%s] Provider %s circuit is HALF-OPEN, racing with alternatives",
-				requestID, providerName)
-			return h.raceWithPrimaryForStreaming(c, orchestratorResult, req, start, requestID)
-		}
-		// No alternatives, try primary but be ready to fail fast
-		fallthrough
-
-	case circuitbreaker.Closed:
-		// Provider is healthy - try it first, fallback to alternatives on failure
-		if cb.CanExecute() {
-			err := h.responseService.HandleStreamResponse(c, provider, req, requestID)
-			if err != nil {
-				cb.RecordFailure()
-
-				if len(orchestratorResult.Alternatives) > 0 {
-					fiberlog.Warnf("[%s] Primary provider %s failed, trying %d alternatives: %v",
-						requestID, providerName, len(orchestratorResult.Alternatives), err)
-					return h.tryAlternativesForStreaming(c, orchestratorResult, req, start, requestID)
-				}
-
-				h.metricsService.RecordError(start, "500", true, requestID, providerName)
-				return err
-			}
-
-			cb.RecordSuccess()
-			h.metricsService.RecordSuccess(start, true, requestID, providerName)
-			return nil
-		}
-
-		// Circuit breaker doesn't allow execution
-		h.metricsService.RecordError(start, "503", true, requestID, providerName)
-		return h.responseService.HandleInternalError(c, "Provider circuit breaker rejected request", requestID)
-	}
-
-	return h.responseService.HandleInternalError(c, "Unknown circuit breaker state", requestID)
+	return h.handleResponse(c, provider, providerName, req, start, requestID, orchestratorResult, true)
 }
 
 func (h *CompletionHandler) handleRegularResponse(
@@ -203,154 +155,116 @@ func (h *CompletionHandler) handleRegularResponse(
 	req *models.ChatCompletionRequest,
 	start time.Time,
 	requestID string,
-	orchestratorResult *completions.OrchestratorResult,
+	orchestratorResult *models.OrchestratorResult,
 ) error {
-	fiberlog.Infof("[%s] Processing regular response with provider %s", requestID, providerName)
+	return h.handleResponse(c, provider, providerName, req, start, requestID, orchestratorResult, false)
+}
 
-	// Get or create circuit breaker for this provider
+// handleResponse unified handler for both streaming and regular responses
+func (h *CompletionHandler) handleResponse(
+	c *fiber.Ctx,
+	provider provider_interfaces.LLMProvider,
+	providerName string,
+	req *models.ChatCompletionRequest,
+	start time.Time,
+	requestID string,
+	orchestratorResult *models.OrchestratorResult,
+	isStreaming bool,
+) error {
+	fiberlog.Infof("[%s] Processing %s response with provider %s", requestID,
+		map[bool]string{true: "streaming", false: "regular"}[isStreaming], providerName)
+
 	cb := h.getOrCreateCircuitBreaker(providerName)
 
-	// Check circuit breaker state and decide strategy
-	cbState := cb.GetState()
-	switch cbState {
-	case circuitbreaker.Open:
-		// Provider is failing - skip directly to alternatives
+	// Circuit breaker is open - skip to alternatives immediately
+	if cb.GetState() == circuitbreaker.Open {
 		if len(orchestratorResult.Alternatives) > 0 {
-			fiberlog.Infof("[%s] Provider %s circuit is OPEN, racing alternatives immediately",
-				requestID, providerName)
-			return h.tryAlternativesForRegular(c, orchestratorResult, req, start, requestID)
+			fiberlog.Infof("[%s] Provider %s circuit is OPEN, trying alternatives", requestID, providerName)
+			return h.tryAlternatives(c, orchestratorResult, req, start, requestID, isStreaming)
 		}
-		// No alternatives available, but circuit is open
 		cb.RecordFailure()
-		h.metricsService.RecordError(start, "503", false, requestID, providerName)
+		h.metricsService.RecordError(start, "503", isStreaming, requestID, providerName)
 		return h.responseService.HandleInternalError(c, "Provider circuit breaker is open and no alternatives available", requestID)
+	}
 
-	case circuitbreaker.HalfOpen:
-		// Provider is recovering - race primary against alternatives if we have them
-		if len(orchestratorResult.Alternatives) > 0 {
-			fiberlog.Infof("[%s] Provider %s circuit is HALF-OPEN, racing with alternatives",
-				requestID, providerName)
-			return h.raceWithPrimaryForRegular(c, orchestratorResult, req, start, requestID)
-		}
-		// No alternatives, try primary but be ready to fail fast
-		fallthrough
-
-	case circuitbreaker.Closed:
-		// Provider is healthy - try it first, fallback to alternatives on failure
-		if cb.CanExecute() {
-			err := h.responseService.HandleRegularResponse(c, provider, req, requestID)
-			if err != nil {
-				cb.RecordFailure()
-
-				if len(orchestratorResult.Alternatives) > 0 {
-					fiberlog.Warnf("[%s] Primary provider %s failed, trying %d alternatives: %v",
-						requestID, providerName, len(orchestratorResult.Alternatives), err)
-					return h.tryAlternativesForRegular(c, orchestratorResult, req, start, requestID)
-				}
-
-				h.metricsService.RecordError(start, "500", false, requestID, providerName)
-				return err
-			}
-
-			cb.RecordSuccess()
-			h.metricsService.RecordSuccess(start, false, requestID, providerName)
-			return nil
-		}
-
-		// Circuit breaker doesn't allow execution
-		h.metricsService.RecordError(start, "503", false, requestID, providerName)
+	// Circuit breaker allows execution - try primary provider
+	if !cb.CanExecute() {
+		h.metricsService.RecordError(start, "503", isStreaming, requestID, providerName)
 		return h.responseService.HandleInternalError(c, "Provider circuit breaker rejected request", requestID)
 	}
 
-	return h.responseService.HandleInternalError(c, "Unknown circuit breaker state", requestID)
+	// Execute primary provider
+	var err error
+	if isStreaming {
+		err = h.responseService.HandleStreamResponse(c, provider, req, requestID)
+	} else {
+		err = h.responseService.HandleRegularResponse(c, provider, req, requestID)
+	}
+
+	if err != nil {
+		cb.RecordFailure()
+		// Try alternatives if available
+		if len(orchestratorResult.Alternatives) > 0 {
+			fiberlog.Warnf("[%s] Primary provider %s failed, trying %d alternatives: %v",
+				requestID, providerName, len(orchestratorResult.Alternatives), err)
+			return h.tryAlternatives(c, orchestratorResult, req, start, requestID, isStreaming)
+		}
+		h.metricsService.RecordError(start, "500", isStreaming, requestID, providerName)
+		return err
+	}
+
+	cb.RecordSuccess()
+	h.metricsService.RecordSuccess(start, isStreaming, requestID, providerName)
+	return nil
 }
 
-// tryAlternativesForStreaming races alternative providers for streaming response
-func (h *CompletionHandler) tryAlternativesForStreaming(
+// tryAlternatives unified method for trying alternatives for both streaming and regular responses
+func (h *CompletionHandler) tryAlternatives(
 	c *fiber.Ctx,
-	orchestratorResult *completions.OrchestratorResult,
+	orchestratorResult *models.OrchestratorResult,
 	req *models.ChatCompletionRequest,
 	start time.Time,
 	requestID string,
+	isStreaming bool,
 ) error {
-	// Record primary provider failure in circuit breaker
+	// Record primary provider failure
 	primaryCB := h.getOrCreateCircuitBreaker(orchestratorResult.ProviderName)
 	primaryCB.RecordFailure()
 
 	// Create primary alternative for racing
-	var primary models.Alternative
-	if orchestratorResult.ProtocolType == "Minion" {
-		primary = models.Alternative{
-			Provider: "minion",
-			Model:    orchestratorResult.TaskType,
-		}
-	} else {
-		primary = models.Alternative{
-			Provider: orchestratorResult.ProviderName,
-			Model:    orchestratorResult.ModelName,
-		}
-	}
+	primary := h.createPrimaryAlternative(orchestratorResult)
 
 	// Race for fastest available provider
 	ctx := c.Context()
 	raceResult, err := h.raceService.RaceProviders(ctx, primary, orchestratorResult.Alternatives, requestID)
 	if err != nil {
-		h.metricsService.RecordError(start, "500", true, requestID, "all_alternatives")
+		h.metricsService.RecordError(start, "500", isStreaming, requestID, "all_alternatives")
 		return h.responseService.HandleInternalError(c, fmt.Sprintf("all providers failed: %v", err), requestID)
 	}
 
 	fiberlog.Infof("[%s] Alternative provider %s won the race", requestID, raceResult.ProviderName)
+
 	// Create new orchestrator result with no alternatives to prevent infinite recursion
-	fallbackResult := &completions.OrchestratorResult{
+	fallbackResult := &models.OrchestratorResult{
 		Provider:     raceResult.Provider,
 		ProviderName: raceResult.ProviderName,
 		Alternatives: nil,
 	}
-	return h.handleStreamingResponse(c, raceResult.Provider, raceResult.ProviderName, req, start, requestID, fallbackResult)
+	return h.handleResponse(c, raceResult.Provider, raceResult.ProviderName, req, start, requestID, fallbackResult, isStreaming)
 }
 
-// tryAlternativesForRegular races alternative providers for regular response
-func (h *CompletionHandler) tryAlternativesForRegular(
-	c *fiber.Ctx,
-	orchestratorResult *completions.OrchestratorResult,
-	req *models.ChatCompletionRequest,
-	start time.Time,
-	requestID string,
-) error {
-	// Record primary provider failure in circuit breaker
-	primaryCB := h.getOrCreateCircuitBreaker(orchestratorResult.ProviderName)
-	primaryCB.RecordFailure()
-
-	// Create primary alternative for racing
-	var primary models.Alternative
+// createPrimaryAlternative creates the primary alternative for racing
+func (h *CompletionHandler) createPrimaryAlternative(orchestratorResult *models.OrchestratorResult) models.Alternative {
 	if orchestratorResult.ProtocolType == "Minion" {
-		primary = models.Alternative{
+		return models.Alternative{
 			Provider: "minion",
 			Model:    orchestratorResult.TaskType,
 		}
-	} else {
-		primary = models.Alternative{
-			Provider: orchestratorResult.ProviderName,
-			Model:    orchestratorResult.ModelName,
-		}
 	}
-
-	// Race for fastest available provider
-	ctx := c.Context()
-	raceResult, err := h.raceService.RaceProviders(ctx, primary, orchestratorResult.Alternatives, requestID)
-	if err != nil {
-		h.metricsService.RecordError(start, "500", false, requestID, "all_alternatives")
-		return h.responseService.HandleInternalError(c, fmt.Sprintf("all providers failed: %v", err), requestID)
+	return models.Alternative{
+		Provider: orchestratorResult.ProviderName,
+		Model:    orchestratorResult.ModelName,
 	}
-
-	fiberlog.Infof("[%s] Alternative provider %s won the race", requestID, raceResult.ProviderName)
-	// Create new orchestrator result with no alternatives to prevent infinite recursion
-	fallbackResult := &completions.OrchestratorResult{
-		Provider:     raceResult.Provider,
-		ProviderName: raceResult.ProviderName,
-		Alternatives: nil,
-	}
-	return h.handleRegularResponse(c, raceResult.Provider, raceResult.ProviderName, req, start, requestID, fallbackResult)
 }
 
 // registerMinions configures all available minions in the registry
@@ -396,110 +310,6 @@ func (h *CompletionHandler) getOrCreateCircuitBreaker(providerName string) *circ
 	cb := circuitbreaker.NewWithConfig(config)
 	h.circuitBreakers[providerName] = cb
 	return cb
-}
-
-// raceWithPrimaryForStreaming races primary provider with alternatives for streaming response
-func (h *CompletionHandler) raceWithPrimaryForStreaming(
-	c *fiber.Ctx,
-	orchestratorResult *completions.OrchestratorResult,
-	req *models.ChatCompletionRequest,
-	start time.Time,
-	requestID string,
-) error {
-	// Create primary alternative for racing
-	var primary models.Alternative
-	if orchestratorResult.ProtocolType == "Minion" {
-		primary = models.Alternative{
-			Provider: "minion",
-			Model:    orchestratorResult.TaskType,
-		}
-	} else {
-		primary = models.Alternative{
-			Provider: orchestratorResult.ProviderName,
-			Model:    orchestratorResult.ModelName,
-		}
-	}
-
-	// Race primary with alternatives immediately
-	ctx := c.Context()
-	raceResult, err := h.raceService.RaceProviders(ctx, primary, orchestratorResult.Alternatives, requestID)
-	if err != nil {
-		// All providers failed, record primary failure
-		h.getOrCreateCircuitBreaker(orchestratorResult.ProviderName).RecordFailure()
-		h.metricsService.RecordError(start, "500", true, requestID, "all_alternatives")
-		return h.responseService.HandleInternalError(c, fmt.Sprintf("all providers failed: %v", err), requestID)
-	}
-
-	// Record success/failure for the primary circuit breaker based on race winner
-	primaryCB := h.getOrCreateCircuitBreaker(orchestratorResult.ProviderName)
-	if raceResult.ProviderName == orchestratorResult.ProviderName {
-		primaryCB.RecordSuccess()
-		fiberlog.Infof("[%s] Primary provider %s won the race in half-open state", requestID, raceResult.ProviderName)
-	} else {
-		primaryCB.RecordFailure()
-		fiberlog.Infof("[%s] Alternative provider %s won the race, primary %s lost",
-			requestID, raceResult.ProviderName, orchestratorResult.ProviderName)
-	}
-
-	// Create new orchestrator result with no alternatives to prevent infinite recursion
-	fallbackResult := &completions.OrchestratorResult{
-		Provider:     raceResult.Provider,
-		ProviderName: raceResult.ProviderName,
-		Alternatives: nil,
-	}
-	return h.handleStreamingResponse(c, raceResult.Provider, raceResult.ProviderName, req, start, requestID, fallbackResult)
-}
-
-// raceWithPrimaryForRegular races primary provider with alternatives for regular response
-func (h *CompletionHandler) raceWithPrimaryForRegular(
-	c *fiber.Ctx,
-	orchestratorResult *completions.OrchestratorResult,
-	req *models.ChatCompletionRequest,
-	start time.Time,
-	requestID string,
-) error {
-	// Create primary alternative for racing
-	var primary models.Alternative
-	if orchestratorResult.ProtocolType == "Minion" {
-		primary = models.Alternative{
-			Provider: "minion",
-			Model:    orchestratorResult.TaskType,
-		}
-	} else {
-		primary = models.Alternative{
-			Provider: orchestratorResult.ProviderName,
-			Model:    orchestratorResult.ModelName,
-		}
-	}
-
-	// Race primary with alternatives immediately
-	ctx := c.Context()
-	raceResult, err := h.raceService.RaceProviders(ctx, primary, orchestratorResult.Alternatives, requestID)
-	if err != nil {
-		// All providers failed, record primary failure
-		h.getOrCreateCircuitBreaker(orchestratorResult.ProviderName).RecordFailure()
-		h.metricsService.RecordError(start, "500", false, requestID, "all_alternatives")
-		return h.responseService.HandleInternalError(c, fmt.Sprintf("all providers failed: %v", err), requestID)
-	}
-
-	// Record success/failure for the primary circuit breaker based on race winner
-	primaryCB := h.getOrCreateCircuitBreaker(orchestratorResult.ProviderName)
-	if raceResult.ProviderName == orchestratorResult.ProviderName {
-		primaryCB.RecordSuccess()
-		fiberlog.Infof("[%s] Primary provider %s won the race in half-open state", requestID, raceResult.ProviderName)
-	} else {
-		primaryCB.RecordFailure()
-		fiberlog.Infof("[%s] Alternative provider %s won the race, primary %s lost",
-			requestID, raceResult.ProviderName, orchestratorResult.ProviderName)
-	}
-
-	// Create new orchestrator result with no alternatives to prevent infinite recursion
-	fallbackResult := &completions.OrchestratorResult{
-		Provider:     raceResult.Provider,
-		ProviderName: raceResult.ProviderName,
-		Alternatives: nil,
-	}
-	return h.handleRegularResponse(c, raceResult.Provider, raceResult.ProviderName, req, start, requestID, fallbackResult)
 }
 
 // getEnvOrDefault returns environment variable value or default if not set

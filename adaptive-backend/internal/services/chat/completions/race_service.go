@@ -14,16 +14,6 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// RaceResult represents the result of a parallel request race
-type RaceResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string
-	ModelName    string
-	TaskType     string
-	Duration     time.Duration
-	Error        error
-}
-
 // RaceService handles provider selection with automatic failover
 // Tries primary provider first, then races alternatives if primary fails
 type RaceService struct {
@@ -47,7 +37,7 @@ func (rs *RaceService) RaceProviders(
 	primary models.Alternative,
 	alternatives []models.Alternative,
 	requestID string,
-) (*RaceResult, error) {
+) (*models.RaceResult, error) {
 	fiberlog.Infof("[%s] Trying primary provider %s (%s) first", requestID, primary.Provider, primary.Model)
 
 	// Try primary provider first (just test connectivity)
@@ -76,7 +66,7 @@ func (rs *RaceService) RaceProviders(
 	defer cancel()
 
 	// Channel to collect results
-	resultCh := make(chan *RaceResult, len(allOptions))
+	resultCh := make(chan *models.RaceResult, len(allOptions))
 	var wg sync.WaitGroup
 
 	// Start parallel requests
@@ -140,10 +130,10 @@ func (rs *RaceService) RaceProviders(
 func (rs *RaceService) tryProviderConnection(
 	option models.Alternative,
 	requestID string,
-) *RaceResult {
+) *models.RaceResult {
 	fiberlog.Debugf("[%s] Testing connection to provider %s (%s)", requestID, option.Provider, option.Model)
 	start := time.Now()
-	result := &RaceResult{
+	result := &models.RaceResult{
 		ProviderName: option.Provider,
 		ModelName:    option.Model,
 		Duration:     0,
