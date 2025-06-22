@@ -30,7 +30,14 @@ type CompletionHandler struct {
 // NewCompletionHandler creates a new completion handler with all required services
 func NewCompletionHandler() *CompletionHandler {
 	// Initialize minion registry
-	minionRegistry := minions.NewMinionRegistry(11)
+const maxMinions = 11
+
+// NewCompletionHandler creates a new completion handler with all required services
+func NewCompletionHandler() *CompletionHandler {
+    // Initialize minion registry
+    minionRegistry := minions.NewMinionRegistry(maxMinions)
+    // ...
+}
 	registerMinions(minionRegistry)
 
 	// Initialize model selector
