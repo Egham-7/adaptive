@@ -1,10 +1,9 @@
 package completions
 
 import (
+	"adaptive-backend/internal/models"
 	"encoding/json"
 	"time"
-
-	"adaptive-backend/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -47,16 +46,4 @@ func (s *RequestService) GetAPIKey(c *fiber.Ctx) string {
 		return "anonymous"
 	}
 	return apiKey
-}
-
-// ExtractPrompt extracts the prompt from the last user message
-func (s *RequestService) ExtractPrompt(req *models.ChatCompletionRequest) string {
-    if len(req.Messages) == 0 {
-        return ""
-    }
-    lastMsg := req.Messages[len(req.Messages)-1]
-    if lastMsg.OfUser == nil || lastMsg.OfUser.Content == nil || lastMsg.OfUser.Content.OfString == nil {
-        return ""
-    }
-    return lastMsg.OfUser.Content.OfString.Value
 }
