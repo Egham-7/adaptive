@@ -51,8 +51,12 @@ func (s *RequestService) GetAPIKey(c *fiber.Ctx) string {
 
 // ExtractPrompt extracts the prompt from the last user message
 func (s *RequestService) ExtractPrompt(req *models.ChatCompletionRequest) string {
-	if len(req.Messages) == 0 {
-		return ""
-	}
-	return req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
+    if len(req.Messages) == 0 {
+        return ""
+    }
+    lastMsg := req.Messages[len(req.Messages)-1]
+    if lastMsg.OfUser == nil || lastMsg.OfUser.Content == nil || lastMsg.OfUser.Content.OfString == nil {
+        return ""
+    }
+    return lastMsg.OfUser.Content.OfString.Value
 }
