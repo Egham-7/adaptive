@@ -19,6 +19,7 @@ func NewParameterService() *ParameterService {
 func (s *ParameterService) ApplyModelParameters(
 	req *models.ChatCompletionRequest,
 	params models.OpenAIParameters,
+	modelName string,
 	requestID string,
 ) error {
 	fiberlog.Infof("[%s] Applying model parameters", requestID)
@@ -40,6 +41,8 @@ func (s *ParameterService) ApplyModelParameters(
 
 	req.N = params.N
 	fiberlog.Debugf("[%s] Applied N: %d", requestID, params.N)
+
+	req.Model = modelName
 
 	fiberlog.Infof("[%s] Parameter application complete", requestID)
 	return nil

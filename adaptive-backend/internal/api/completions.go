@@ -1,15 +1,14 @@
 package api
 
 import (
-	"os"
-	"time"
-
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/model_selection"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -98,7 +97,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		requestID, orchestratorResult.ProtocolType, orchestratorResult.ModelName)
 
 	// Apply parameters based on protocol type
-	if err := h.applyParametersFromOrchestrator(req, orchestratorResult.Parameters, requestID); err != nil {
+	if err := h.applyParametersFromOrchestrator(req, orchestratorResult.Parameters, requestID, orchestratorResult.ModelName); err != nil {
 		h.metricsService.RecordError(start, "500", isStream, requestID, orchestratorResult.ProviderName)
 		return h.responseService.HandleInternalError(c, "Parameter application failed: "+err.Error(), requestID)
 	}
@@ -115,8 +114,9 @@ func (h *CompletionHandler) applyParametersFromOrchestrator(
 	req *models.ChatCompletionRequest,
 	autoParameters models.OpenAIParameters,
 	requestID string,
+	selectedModel string,
 ) error {
-	return h.parameterService.ApplyModelParameters(req, autoParameters, requestID)
+	return h.parameterService.ApplyModelParameters(req, autoParameters, selectedModel, requestID)
 }
 
 func (h *CompletionHandler) handleStreamingResponse(

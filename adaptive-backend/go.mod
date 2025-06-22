@@ -11,6 +11,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/openai/openai-go v1.1.0
+	github.com/pkoukk/tiktoken-go v0.1.7
 	github.com/prometheus/client_golang v1.22.0
 	github.com/valyala/fasthttp v1.59.0
 	google.golang.org/genai v1.7.0
@@ -47,7 +48,10 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 )
 
-require golang.org/x/text v0.23.0 // indirect
+require (
+	github.com/dlclark/regexp2 v1.10.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+)
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
