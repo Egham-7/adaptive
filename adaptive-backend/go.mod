@@ -13,6 +13,7 @@ require (
 	github.com/openai/openai-go v1.1.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/valyala/fasthttp v1.59.0
+	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 	google.golang.org/genai v1.7.0
 	gopkg.in/yaml.v3 v3.0.1
 )

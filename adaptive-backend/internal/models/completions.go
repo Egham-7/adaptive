@@ -206,6 +206,8 @@ type ChatCompletionRequest struct {
 	WebSearchOptions openai.ChatCompletionNewParamsWebSearchOptions `json:"web_search_options,omitzero"`
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
+
+	ProviderConstraint []string `json:"provider_constraint,omitempty"`
 }
 
 func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
