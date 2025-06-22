@@ -1,12 +1,11 @@
 package model_selection
 
 import (
+	"adaptive-backend/internal/models"
 	"fmt"
 	"log"
 	"math"
 	"os"
-
-	"adaptive-backend/internal/models"
 
 	"github.com/botirk38/semanticcache"
 	lru "github.com/hashicorp/golang-lru/v2"
@@ -18,10 +17,13 @@ const (
 	defaultGlobalCacheSize    = 2000
 	defaultUserCachePoolSize  = 200
 	defaultUserCacheSize      = 150
-	defaultSemanticThreshold  = 0.85
 	minionComplexityThreshold = 0.2
 	minionPromptLength        = 30
+	defaultCostBiasFactor     = 0.15
 )
+
+// defaultSemanticThreshold is a variable so we can take its address if needed.
+var defaultSemanticThreshold float32 = 0.85
 
 // ModelSelector returns either a standard‐LLM or minion orchestrator response.
 type ModelSelector struct {
@@ -32,12 +34,27 @@ type ModelSelector struct {
 	embeddingProvider    semanticcache.EmbeddingProvider
 	semanticThreshold    float32
 	defaultUserCacheSize int
-	costBiasEnabled      bool
 	costBiasFactor       float64
 }
 
 // NewModelSelector constructs the selector, loading config and caches.
-func NewModelSelector() (*ModelSelector, error) {
+// If any of the numeric parameters are zero or negative, the default
+// values will be used.
+func NewModelSelector(
+	semanticThreshold float32,
+	userCacheSize int,
+	costBiasFactor float64,
+) (*ModelSelector, error) {
+	if semanticThreshold <= 0 {
+		semanticThreshold = defaultSemanticThreshold
+	}
+	if userCacheSize <= 0 {
+		userCacheSize = defaultUserCacheSize
+	}
+	if costBiasFactor <= 0 {
+		costBiasFactor = defaultCostBiasFactor
+	}
+
 	cfg, err := GetDefaultConfig()
 	if err != nil {
 		return nil, fmt.Errorf("load config: %w", err)
@@ -60,16 +77,16 @@ func NewModelSelector() (*ModelSelector, error) {
 	if err != nil {
 		return nil, fmt.Errorf("user cache pool: %w", err)
 	}
+
 	return &ModelSelector{
 		config:               cfg,
 		classifier:           classifier,
 		globalCache:          globalCache,
 		userCachePool:        userPool,
 		embeddingProvider:    embProv,
-		semanticThreshold:    defaultSemanticThreshold,
-		defaultUserCacheSize: defaultUserCacheSize,
-		costBiasEnabled:      true,
-		costBiasFactor:       0.15,
+		semanticThreshold:    semanticThreshold,
+		defaultUserCacheSize: userCacheSize,
+		costBiasFactor:       costBiasFactor,
 	}, nil
 }
 
@@ -217,9 +234,6 @@ func (ms *ModelSelector) adjustComplexityForCostBias(
 	complexity float64,
 	m models.TaskModelMapping,
 ) float64 {
-	if !ms.costBiasEnabled {
-		return complexity
-	}
 	eCost := ms.getModelCost(m.Easy.Model)
 	hCost := ms.getModelCost(m.Hard.Model)
 	spread := hCost - eCost
@@ -355,35 +369,26 @@ func (ms *ModelSelector) generateStandardLLMAlternatives(
 	var alternatives []models.Alternative
 	tt := ms.validateTaskType(cl.TaskType1)
 
-	// Get task mapping for generating alternatives
 	mapping, ok := ms.config.GetTaskModelMapping(tt)
 	if !ok {
-		// Use default alternatives based on complexity
 		return ms.getDefaultAlternatives(primaryModel)
 	}
 
-	// Add different difficulty level models as alternatives
 	configs := []models.DifficultyConfig{mapping.Easy, mapping.Medium, mapping.Hard}
-
-	for _, config := range configs {
-		if config.Model != primaryModel {
-			if cap, ok := ms.config.GetModelCapability(config.Model); ok {
+	for _, cfg := range configs {
+		if cfg.Model != primaryModel {
+			if cap, ok := ms.config.GetModelCapability(cfg.Model); ok {
 				alternatives = append(alternatives, models.Alternative{
 					Provider: string(cap.Provider),
-					Model:    config.Model,
+					Model:    cfg.Model,
 				})
 			}
 		}
 	}
-
-	// Add cross-provider alternatives
 	alternatives = append(alternatives, ms.getCrossProviderAlternatives(primaryModel)...)
-
-	// Limit to 3 alternatives to avoid excessive fallback attempts
 	if len(alternatives) > 3 {
 		alternatives = alternatives[:3]
 	}
-
 	return alternatives
 }
 
@@ -395,47 +400,36 @@ func (ms *ModelSelector) generateMinionAlternatives(
 	cx := ms.extractComplexityScore(cl)
 	tt := ms.validateTaskType(cl.TaskType1)
 
-	// Add other minion task types as alternatives
-	alternativeMinions := ms.getAlternativeMinionTasks(tt)
-	for _, minionTask := range alternativeMinions {
+	for _, minion := range ms.getAlternativeMinionTasks(tt) {
 		alternatives = append(alternatives, models.Alternative{
 			Provider: "minion",
-			Model:    string(minionTask),
+			Model:    string(minion),
 		})
 	}
 
-	// Add standard LLM fallback as last resort
 	mapping, ok := ms.config.GetTaskModelMapping(tt)
-	var fallbackModel string
-	var fallbackProvider string
-
+	var fbModel, fbProvider string
 	if ok {
 		adj := ms.adjustComplexityForCostBias(cx, mapping)
 		d := ms.selectDifficultyLevel(adj, mapping)
 		cfg := difficultyConfig(mapping, d)
-		fallbackModel = cfg.Model
-
-		if cap, ok := ms.config.GetModelCapability(fallbackModel); ok {
-			fallbackProvider = string(cap.Provider)
+		fbModel = cfg.Model
+		if cap, found := ms.config.GetModelCapability(fbModel); found {
+			fbProvider = string(cap.Provider)
 		} else {
-			fallbackProvider = "OpenAI"
+			fbProvider = "OpenAI"
 		}
 	} else {
-		fallbackModel = defaultModelFor(cx)
-		fallbackProvider = "OpenAI"
+		fbModel = defaultModelFor(cx)
+		fbProvider = "OpenAI"
 	}
-
-	// Add standard LLM fallback
 	alternatives = append(alternatives, models.Alternative{
-		Provider: fallbackProvider,
-		Model:    fallbackModel,
+		Provider: fbProvider,
+		Model:    fbModel,
 	})
-
-	// Limit alternatives
 	if len(alternatives) > 3 {
 		alternatives = alternatives[:3]
 	}
-
 	return alternatives
 }
 
@@ -444,19 +438,15 @@ func (ms *ModelSelector) getDefaultAlternatives(
 	excludeModel string,
 ) []models.Alternative {
 	var alternatives []models.Alternative
-
-	// Define default model tiers
-	defaultModels := []string{"gpt-4o", "gpt-4.1-mini", "gpt-4.1-nano"}
-
-	for _, model := range defaultModels {
-		if model != excludeModel {
+	defaults := []string{"gpt-4o", "gpt-4.1-mini", "gpt-4.1-nano"}
+	for _, m := range defaults {
+		if m != excludeModel {
 			alternatives = append(alternatives, models.Alternative{
 				Provider: "OpenAI",
-				Model:    model,
+				Model:    m,
 			})
 		}
 	}
-
 	return alternatives
 }
 
@@ -465,15 +455,12 @@ func (ms *ModelSelector) getCrossProviderAlternatives(
 	excludeModel string,
 ) []models.Alternative {
 	var alternatives []models.Alternative
-
-	// Cross-provider alternatives
-	crossProviderModels := map[string]string{
+	cross := map[string]string{
 		"claude-3-sonnet": "Anthropic",
 		"gemini-pro":      "Google",
 		"llama-3-70b":     "GROQ",
 	}
-
-	for model, provider := range crossProviderModels {
+	for model, provider := range cross {
 		if model != excludeModel {
 			alternatives = append(alternatives, models.Alternative{
 				Provider: provider,
@@ -481,39 +468,33 @@ func (ms *ModelSelector) getCrossProviderAlternatives(
 			})
 		}
 	}
-
 	return alternatives
 }
 
 // getAlternativeMinionTasks returns alternative minion task types based on the primary task type
 func (ms *ModelSelector) getAlternativeMinionTasks(primaryTask models.TaskType) []models.TaskType {
-	var alternatives []models.TaskType
-
-	// Define task type alternatives based on similarity/compatibility
 	switch primaryTask {
 	case models.TaskCodeGeneration:
-		alternatives = []models.TaskType{models.TaskTextGeneration, models.TaskRewrite, models.TaskOther}
+		return []models.TaskType{models.TaskTextGeneration, models.TaskRewrite, models.TaskOther}
 	case models.TaskOpenQA:
-		alternatives = []models.TaskType{models.TaskClosedQA, models.TaskChatbot, models.TaskOther}
+		return []models.TaskType{models.TaskClosedQA, models.TaskChatbot, models.TaskOther}
 	case models.TaskClosedQA:
-		alternatives = []models.TaskType{models.TaskOpenQA, models.TaskChatbot, models.TaskOther}
+		return []models.TaskType{models.TaskOpenQA, models.TaskChatbot, models.TaskOther}
 	case models.TaskSummarization:
-		alternatives = []models.TaskType{models.TaskExtraction, models.TaskRewrite, models.TaskOther}
+		return []models.TaskType{models.TaskExtraction, models.TaskRewrite, models.TaskOther}
 	case models.TaskTextGeneration:
-		alternatives = []models.TaskType{models.TaskCodeGeneration, models.TaskBrainstorming, models.TaskOther}
+		return []models.TaskType{models.TaskCodeGeneration, models.TaskBrainstorming, models.TaskOther}
 	case models.TaskClassification:
-		alternatives = []models.TaskType{models.TaskExtraction, models.TaskOther}
+		return []models.TaskType{models.TaskExtraction, models.TaskOther}
 	case models.TaskRewrite:
-		alternatives = []models.TaskType{models.TaskTextGeneration, models.TaskSummarization, models.TaskOther}
+		return []models.TaskType{models.TaskTextGeneration, models.TaskSummarization, models.TaskOther}
 	case models.TaskBrainstorming:
-		alternatives = []models.TaskType{models.TaskTextGeneration, models.TaskChatbot, models.TaskOther}
+		return []models.TaskType{models.TaskTextGeneration, models.TaskChatbot, models.TaskOther}
 	case models.TaskExtraction:
-		alternatives = []models.TaskType{models.TaskClassification, models.TaskSummarization, models.TaskOther}
+		return []models.TaskType{models.TaskClassification, models.TaskSummarization, models.TaskOther}
 	case models.TaskChatbot:
-		alternatives = []models.TaskType{models.TaskOpenQA, models.TaskBrainstorming, models.TaskOther}
+		return []models.TaskType{models.TaskOpenQA, models.TaskBrainstorming, models.TaskOther}
 	default:
-		alternatives = []models.TaskType{models.TaskChatbot, models.TaskTextGeneration, models.TaskOther}
+		return []models.TaskType{models.TaskChatbot, models.TaskTextGeneration, models.TaskOther}
 	}
-
-	return alternatives
 }

@@ -117,8 +117,8 @@ func (a *AnthropicStreamAdapter) processAnthropicStream() {
 			// capture usage from message_delta events
 			if md := event.AsMessageDelta(); md.Type == "message_delta" {
 				a.usageMu.Lock()
-				a.promptTokens = int(event.Usage.InputTokens)
-				a.completionTokens = int(event.Usage.OutputTokens)
+				a.promptTokens = int(md.Usage.InputTokens)
+				a.completionTokens = int(md.Usage.OutputTokens)
 				a.usageMu.Unlock()
 			}
 

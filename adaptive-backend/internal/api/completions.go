@@ -1,11 +1,6 @@
 package api
 
 import (
-	"fmt"
-	"os"
-	"sync"
-	"time"
-
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
@@ -13,6 +8,10 @@ import (
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/model_selection"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"fmt"
+	"os"
+	"sync"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -41,7 +40,7 @@ func NewCompletionHandler() *CompletionHandler {
 	registerMinions(minionRegistry)
 
 	// Initialize model selector
-	modelSelector, err := model_selection.NewModelSelector()
+	modelSelector, err := model_selection.NewModelSelector(0, 0, 0)
 	if err != nil {
 		fiberlog.Fatalf("failed to initialize ModelSelector: %v", err)
 	}
