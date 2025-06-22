@@ -217,17 +217,27 @@ var (
 	configLoaderOnce    sync.Once
 )
 
+var (
+	defaultConfigLoader *ConfigLoader
+	configLoaderOnce    sync.Once
+	configLoaderErr     error
+)
+
 // GetDefaultConfig returns the default configuration instance
 func GetDefaultConfig() (*Config, error) {
 	configLoaderOnce.Do(func() {
 		const configFileName = "model_selection_config.yaml"
 		cwd, err := os.Getwd()
 		if err != nil {
+			configLoaderErr = fmt.Errorf("failed to get working directory: %w", err)
 			return
 		}
 		configPath := filepath.Join(cwd, "internal", "config", configFileName)
 
 		defaultConfigLoader = NewConfigLoader(configPath)
 	})
+	if configLoaderErr != nil {
+		return nil, configLoaderErr
+	}
 	return defaultConfigLoader.GetConfig()
 }
