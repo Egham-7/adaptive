@@ -9,7 +9,7 @@ import HeroSection from "./_components/landing_page/hero";
 import PaymentNotificationWrapper from "./_components/landing_page/payment-notification";
 import Pricing from "./_components/landing_page/pricing";
 import StatsSection from "./_components/landing_page/stats-section";
-import TestimonialsSection from "./_components/landing_page/testimonials-section";
+import ChartsSection from "./_components/landing_page/charts-section";
 
 export default function LandingPage() {
 	return (
@@ -17,12 +17,10 @@ export default function LandingPage() {
 			<PaymentNotificationWrapper>
 				<Header />
 				<HeroSection />
-				<ChatbotPricing />
 				<Pricing />
+				<ChartsSection/>
 				<FeaturesSection />
 				<ContentSection />
-				<StatsSection />
-				<TestimonialsSection />
 				<CallToAction />
 				<Footer />
 			</PaymentNotificationWrapper>

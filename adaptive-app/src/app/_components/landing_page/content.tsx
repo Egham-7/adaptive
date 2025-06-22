@@ -1,5 +1,16 @@
 import { Cpu, Zap } from "lucide-react";
 import Image from "next/image";
+import { LogoCarousel } from "./logo-carousel";
+
+
+
+const logos = [
+	{ name: "OpenAI", id: 1, img: "/logos/openai.svg" },
+	{ name: "Anthropic", id: 2, img: "/logos/anthropic.svg" },
+	{ name: "Gemini", id: 3, img: "/logos/google.svg" },
+	{ name: "Llama", id: 3, img: "/logos/meta.svg" },
+	// ...more
+];
 
 export default function ContentSection() {
 	return (
@@ -48,21 +59,11 @@ export default function ContentSection() {
 					</div>
 
 					<div className="relative mt-6 sm:mt-0">
-						<div className="relative aspect-67/34 rounded-2xl bg-[linear-gradient(to_bottom,var(--color-input),transparent)] p-px dark:bg-[linear-gradient(to_bottom,var(--color-card),transparent)]">
-							<Image
-								src="/adaptive-api.jpeg"
-								className="hidden rounded-[15px] dark:block"
-								alt="Adaptive platform interface - dark mode"
-								width={700}
-								height={357}
-							/>
-							<Image
-								src="/adaptive-api-light.jpeg"
-								className="rounded-[15px] shadow-sm dark:hidden"
-								alt="Adaptive platform interface - light mode"
-								width={700}
-								height={357}
-							/>
+						<div className="rounded-2xl bg-[linear-gradient(to_bottom,var(--color-input),transparent)] p-px dark:bg-[linear-gradient(to_bottom,var(--color-card),transparent)]">
+							<LogoCarousel logos={logos} columnCount={2} />
+						</div>
+						<div className="">
+							<LogoCarousel logos={logos} columnCount={2} />
 						</div>
 					</div>
 				</div>
