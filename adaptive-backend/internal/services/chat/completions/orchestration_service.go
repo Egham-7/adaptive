@@ -1,13 +1,11 @@
 package completions
 
 import (
-	"fmt"
-
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/model_selection"
 	"adaptive-backend/internal/services/providers"
-	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
@@ -29,22 +27,11 @@ func NewOrchestrationService(
 	}
 }
 
-// OrchestratorResult holds the result of orchestration
-type OrchestratorResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string // For logging and debugging
-	CacheType    string
-	ProtocolType string
-	ModelName    string
-	Parameters   models.OpenAIParameters
-	TaskType     string // For minions
-}
-
 // SelectAndConfigureProvider orchestrates the model selection and provider configuration
 func (s *OrchestrationService) SelectAndConfigureProvider(
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
-) (*OrchestratorResult, error) {
+) (*models.OrchestratorResult, error) {
 	fiberlog.Infof("[%s] Starting orchestration for user: %s", requestID, userID)
 
 	// Validate request has messages
@@ -86,7 +73,7 @@ func (s *OrchestrationService) handleStandardLLMResponse(
 	resp models.StandardLLMOrchestratorResponse,
 	cacheType string,
 	requestID string,
-) (*OrchestratorResult, error) {
+) (*models.OrchestratorResult, error) {
 	fiberlog.Infof("[%s] Processing StandardLLM response: Model=%s, Provider=%s",
 		requestID, resp.StandardLLMData.Model, resp.StandardLLMData.Provider)
 
@@ -96,7 +83,7 @@ func (s *OrchestrationService) handleStandardLLMResponse(
 		return nil, fmt.Errorf("failed to create LLM provider %s: %w", resp.StandardLLMData.Provider, err)
 	}
 
-	return &OrchestratorResult{
+	return &models.OrchestratorResult{
 		Provider:     provider,
 		ProviderName: resp.StandardLLMData.Provider,
 		CacheType:    cacheType,
@@ -112,7 +99,7 @@ func (s *OrchestrationService) handleMinionResponse(
 	resp models.MinionOrchestratorResponse,
 	cacheType string,
 	requestID string,
-) (*OrchestratorResult, error) {
+) (*models.OrchestratorResult, error) {
 	fiberlog.Infof("[%s] Processing Minion response: TaskType=%s",
 		requestID, resp.MinionData.TaskType)
 
@@ -122,7 +109,7 @@ func (s *OrchestrationService) handleMinionResponse(
 		return nil, fmt.Errorf("failed to create minion provider for task %s: %w", resp.MinionData.TaskType, err)
 	}
 
-	return &OrchestratorResult{
+	return &models.OrchestratorResult{
 		Provider:     provider,
 		ProviderName: "minion",
 		CacheType:    cacheType,

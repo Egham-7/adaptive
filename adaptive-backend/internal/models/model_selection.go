@@ -1,6 +1,10 @@
 package models
 
-import "github.com/openai/openai-go"
+import (
+	"adaptive-backend/internal/services/providers/provider_interfaces"
+
+	"github.com/openai/openai-go"
+)
 
 // ProviderType represents supported LLM providers
 type ProviderType string
@@ -129,6 +133,17 @@ type RemoteLLM struct {
 type MinionsProtocolDetails struct {
 	TaskType  string    `json:"task_type"`
 	RemoteLLM RemoteLLM `json:"remote_llm"`
+}
+
+// OrchestratorResult holds the result of orchestration
+type OrchestratorResult struct {
+	Provider     provider_interfaces.LLMProvider
+	ProviderName string // For logging and debugging
+	CacheType    string
+	ProtocolType string
+	ModelName    string
+	Parameters   OpenAIParameters
+	TaskType     string // For minions
 }
 
 // StandardLLMOrchestratorResponse is returned when protocol="standard_llm".
