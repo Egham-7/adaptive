@@ -49,7 +49,7 @@ func (s *StandardRouter) Route(
 	var threshold float64
 
 	if !hasMapping {
-		modelName = defaultModelFor(cx)
+		modelName = s.defaultModelFor(cx)
 		threshold = 0.5
 	} else {
 		adj := s.adjustComplexityForCostBias(cx, mapping, s.costBiasFactor)
@@ -344,7 +344,7 @@ func (s *StandardRouter) filterHealthyAlternatives(
 	return healthy
 }
 
-func defaultModelFor(cx float64) string {
+func (s *StandardRouter) defaultModelFor(cx float64) string {
 	switch {
 	case cx <= 0.3:
 		return "gpt-4.1-nano"
