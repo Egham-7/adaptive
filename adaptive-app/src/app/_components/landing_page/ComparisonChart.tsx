@@ -15,18 +15,18 @@ import { Card } from "@/components/ui/card";
 const baseData = [
   {
     name: "Adaptive",
-    Cost: 1,
-    Quality: 95,
+    "Cost($)": 0.2,
+    "Quality(%)": 95,
   },
   {
-    name: "GPT-4",
-    Cost: 4,
-    Quality: 92,
+    name: "GPT-4o",
+    "Cost($)": 12.5,
+    "Quality(%)": 92,
   },
   {
-    name: "Claude 3",
-    Cost: 3.5,
-    Quality: 90,
+    name: "Claude Sonnet 4",
+    "Cost($)": 18,
+    "Quality(%)": 90,
   },
 ];
 
@@ -34,11 +34,12 @@ export default function ComparisonChart() {
   const chartRef = useRef<HTMLDivElement>(null);
   const [targetProgress, setTargetProgress] = useState(0);
   const [animatedProgress, setAnimatedProgress] = useState(0);
+  const [shouldAnimate, setShouldAnimate] = useState(false);
 
   // Get theme colors from CSS variables
   const [barColors, setBarColors] = useState({
-    primary: "#6366f1",
-    secondary: "#22d3ee",
+    primary: "oklch(0.4341 0.0392 41.9938)",
+    secondary: "oklch(0.65 0.0651 74.3695)", // Reduced lightness from 0.92 to 0.65 for better visibility
   });
 
   useEffect(() => {
@@ -47,11 +48,11 @@ export default function ComparisonChart() {
         primary:
           getComputedStyle(document.documentElement)
             .getPropertyValue("--color-primary")
-            .trim() || "#6366f1",
+            .trim() || "oklch(0.4341 0.0392 41.9938)",
         secondary:
           getComputedStyle(document.documentElement)
             .getPropertyValue("--color-secondary")
-            .trim() || "#22d3ee",
+            .trim() || "oklch(0.65 0.0651 74.3695)", // Darker fallback
       });
     }
     updateColors();
@@ -85,12 +86,18 @@ export default function ComparisonChart() {
   // Smoothly animate the progress toward the target
   useEffect(() => {
     setAnimatedProgress(targetProgress);
-  }, [targetProgress]);
+    // Trigger animation when chart becomes visible
+    if (targetProgress > 0.3 && !shouldAnimate) {
+      setShouldAnimate(true);
+    }
+  }, [targetProgress, shouldAnimate]);
 
-  const animatedData = baseData.map((d) => ({
-    ...d,
-    Cost: d.Cost * animatedProgress,
-    Quality: d.Quality * animatedProgress,
+  // Create animated data based on scroll progress
+  const animatedData = baseData.map((item) => ({
+    ...item,
+    "Cost($)": item["Cost($)"] * Math.max(0, Math.min(1, animatedProgress)),
+    "Quality(%)":
+      item["Quality(%)"] * Math.max(0, Math.min(1, animatedProgress)),
   }));
 
   return (
@@ -104,35 +111,37 @@ export default function ComparisonChart() {
     >
       <Card className="p-6 w-full shadow-xl">
         <h4 className="font-semibold text-xl mb-4">
-          Cost & Quality Comparison
+          Cost (Per 1M Token) & Quality Comparison
         </h4>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart
-            data={animatedData}
+            data={animatedData} // Use animated data instead of baseData
             layout="vertical"
             margin={{ top: 16, right: 16, left: 40, bottom: 32 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" domain={[0, 5]} xAxisId="left" />
+            <XAxis type="number" domain={[0, 20]} xAxisId="left" />
             <XAxis type="number" domain={[80, 100]} xAxisId="right" hide />
             <YAxis type="category" dataKey="name" />
             <Tooltip />
             <Legend />
             <Bar
               xAxisId="left"
-              dataKey="Cost"
+              dataKey="Cost($)"
               fill={barColors.primary}
               radius={[0, 8, 8, 0]}
               barSize={32}
-              isAnimationActive={false}
+              isAnimationActive={false} // Disable built-in animation since we're using scroll-based animation
+              animationDuration={0}
             />
             <Bar
               xAxisId="right"
-              dataKey="Quality"
+              dataKey="Quality(%)"
               fill={barColors.secondary}
               radius={[0, 8, 8, 0]}
               barSize={32}
-              isAnimationActive={false}
+              isAnimationActive={false} // Disable built-in animation since we're using scroll-based animation
+              animationDuration={0}
             />
           </BarChart>
         </ResponsiveContainer>
