@@ -121,15 +121,37 @@ func (h *CompletionHandler) buildStandardCandidates(
 	std *models.StandardLLMInfo,
 ) ([]candidate, error) {
 	var out []candidate
+	var cleanup []func() error
+	defer func() {
+		if r := recover(); r != nil {
+			for _, fn := range cleanup {
+				fn()
+			}
+			panic(r)
+		}
+	}()
+
 	svc, err := providers.NewLLMProvider(std.Provider, nil, h.minionRegistry)
 	if err != nil {
+		for _, fn := range cleanup {
+			fn()
+		}
 		return nil, fmt.Errorf("standard %s: %w", std.Provider, err)
+	}
+	if closer, ok := svc.(interface{ Close() error }); ok {
+		cleanup = append(cleanup, closer.Close)
 	}
 	out = append(out, candidate{std.Provider, svc, models.ProtocolStandardLLM})
 	for _, alt := range std.Alternatives {
 		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
 		if err != nil {
+			for _, fn := range cleanup {
+				fn()
+			}
 			return nil, fmt.Errorf("standard alt %s: %w", alt.Provider, err)
+		}
+		if closer, ok := svc.(interface{ Close() error }); ok {
+			cleanup = append(cleanup, closer.Close)
 		}
 		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
 	}
@@ -141,16 +163,39 @@ func (h *CompletionHandler) buildMinionCandidates(
 	min *models.MinionInfo,
 ) ([]candidate, error) {
 	var out []candidate
+	var cleanup []func() error
+
+	defer func() {
+		if r := recover(); r != nil {
+			for _, fn := range cleanup {
+				fn()
+			}
+			panic(r)
+		}
+	}()
+
 	tt := min.TaskType
 	svc, err := providers.NewLLMProvider("minion", &tt, h.minionRegistry)
 	if err != nil {
+		for _, fn := range cleanup {
+			fn()
+		}
 		return nil, fmt.Errorf("minion %s: %w", tt, err)
+	}
+	if closer, ok := svc.(interface{ Close() error }); ok {
+		cleanup = append(cleanup, closer.Close)
 	}
 	out = append(out, candidate{"minion", svc, models.ProtocolMinion})
 	for _, alt := range min.Alternatives {
 		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
 		if err != nil {
+			for _, fn := range cleanup {
+				fn()
+			}
 			return nil, fmt.Errorf("minion alt %s: %w", alt.Provider, err)
+		}
+		if closer, ok := svc.(interface{ Close() error }); ok {
+			cleanup = append(cleanup, closer.Close)
 		}
 		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
 	}
