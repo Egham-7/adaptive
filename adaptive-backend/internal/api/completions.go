@@ -7,9 +7,12 @@ import (
 	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/model_selection"
+	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
+	"maps"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,269 +20,257 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// CompletionHandler handles chat completions with model‐selector, orchestration,
-// minions, circuit breakers, metrics, and optional racing.
-type CompletionHandler struct {
-	requestService       *completions.RequestService
-	responseService      *completions.ResponseService
-	parameterService     *completions.ParameterService
-	orchestrationService *completions.OrchestrationService
-	metricsService       *completions.MetricsService
-	raceService          *completions.RaceService
-
-	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
-	cbMutex         sync.RWMutex
+type candidate struct {
+	Name     string
+	Provider provider_interfaces.LLMProvider
+	Protocol models.ProtocolType
 }
 
-// NewCompletionHandler wires up all dependencies.
+// CompletionHandler handles chat completions end-to-end.
+type CompletionHandler struct {
+	reqSvc         *completions.RequestService
+	respSvc        *completions.ResponseService
+	paramSvc       *completions.ParameterService
+	orchSvc        *completions.OrchestrationService
+	metricsSvc     *completions.MetricsService
+	raceSvc        *completions.RaceService
+	minionRegistry *minions.MinionRegistry
+
+	cbMu sync.RWMutex
+	cbs  map[string]*circuitbreaker.CircuitBreaker
+}
+
+// NewCompletionHandler wires up dependencies.
 func NewCompletionHandler() *CompletionHandler {
-	// Minions
-	minionRegistry := minions.NewMinionRegistry(11)
-	registerMinions(minionRegistry)
+	mr := minions.NewMinionRegistry(11)
+	registerMinions(mr)
 
-	// Model selector
-	modelSelector, err := model_selection.NewModelSelector(0, 0)
+	modelSel, err := model_selection.NewModelSelector(0, 0)
 	if err != nil {
-		fiberlog.Fatalf("failed init modelSelector: %v", err)
+		fiberlog.Fatalf("model selector init: %v", err)
 	}
-
-	// Metrics
 	chatMetrics := metrics.NewChatMetrics()
 
-	// Services
-	reqSvc := completions.NewRequestService()
-	respSvc := completions.NewResponseService()
-	paramSvc := completions.NewParameterService()
-	orchSvc := completions.NewOrchestrationService(modelSelector, minionRegistry)
-	metSvc := completions.NewMetricsService(chatMetrics)
-	raceSvc := completions.NewRaceService(minionRegistry)
-
 	return &CompletionHandler{
-		requestService:       reqSvc,
-		responseService:      respSvc,
-		parameterService:     paramSvc,
-		orchestrationService: orchSvc,
-		metricsService:       metSvc,
-		raceService:          raceSvc,
-		circuitBreakers:      make(map[string]*circuitbreaker.CircuitBreaker),
+		reqSvc:         completions.NewRequestService(),
+		respSvc:        completions.NewResponseService(),
+		paramSvc:       completions.NewParameterService(),
+		orchSvc:        completions.NewOrchestrationService(modelSel, mr),
+		metricsSvc:     completions.NewMetricsService(chatMetrics),
+		raceSvc:        completions.NewRaceService(mr),
+		minionRegistry: mr,
+		cbs:            make(map[string]*circuitbreaker.CircuitBreaker),
 	}
 }
 
-// ChatCompletion is the main HTTP handler.
+// ChatCompletion is the HTTP handler.
 func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	start := time.Now()
-	requestID := h.requestService.GetRequestID(c)
-	userID := h.requestService.GetAPIKey(c) // using API key as userID
+	reqID := h.reqSvc.GetRequestID(c)
+	userID := h.reqSvc.GetAPIKey(c)
+	fiberlog.Infof("[%s] start", reqID)
 
-	fiberlog.Infof("[%s] ChatCompletion start", requestID)
-
-	// parse & validate
-	req, err := h.requestService.ParseChatCompletionRequest(c)
+	req, err := h.reqSvc.ParseChatCompletionRequest(c)
 	if err != nil {
-		h.metricsService.RecordError(start, "400", req.Stream, requestID, "unknown")
-		return h.responseService.HandleBadRequest(c, "Invalid request: "+err.Error(), requestID)
+		h.metricsSvc.RecordError(start, "400", false, reqID, "")
+		return h.respSvc.HandleBadRequest(c, err.Error(), reqID)
 	}
 	isStream := req.Stream
-	h.metricsService.RecordRequestStart(requestID, isStream)
+	h.metricsSvc.RecordRequestStart(reqID, isStream)
 
-	// copy breakers snapshot
-	h.cbMutex.RLock()
-	cbs := make(map[string]*circuitbreaker.CircuitBreaker)
-	for k, v := range h.circuitBreakers {
-		cbs[k] = v
-	}
-	h.cbMutex.RUnlock()
-
-	// orchestrate selection + provider
-	provider, resp, err := h.orchestrationService.SelectAndConfigureProvider(
-		c.Context(), req, userID, requestID, cbs,
+	resp, err := h.orchSvc.SelectAndConfigureProvider(
+		c.Context(), req, userID, reqID, h.copyCBs(),
 	)
 	if err != nil {
-		h.metricsService.RecordError(start, "500", isStream, requestID, "unknown")
-		return h.responseService.HandleInternalError(c, err.Error(), requestID)
+		h.metricsSvc.RecordError(start, "500", isStream, reqID, "")
+		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	// determine providerName, modelName, alternatives, parameters
-	var providerName, modelName string
-	var alts []models.Alternative
-	var autoParams models.OpenAIParameters
-
+	// pick parameters from the "standard" branch on MinionsProtocol
+	var params models.OpenAIParameters
 	switch resp.Protocol {
 	case models.ProtocolStandardLLM:
-		info := resp.Standard
-		providerName = info.Provider
-		modelName = info.Model
-		alts = info.Alternatives
-		autoParams = info.Parameters
-
+		params = resp.Standard.Parameters
 	case models.ProtocolMinion:
-		info := resp.Minion
-		providerName = "minion"
-		modelName = info.TaskType
-		alts = info.Alternatives
-		autoParams = info.Parameters
-
+		params = resp.Minion.Parameters
+	case models.ProtocolMinionsProtocol:
+		params = resp.Standard.Parameters
 	default:
-		return h.responseService.HandleInternalError(c,
-			"unknown protocol "+string(resp.Protocol), requestID)
+		return h.respSvc.HandleInternalError(
+			c, "unknown protocol "+string(resp.Protocol), reqID,
+		)
 	}
 
-	// metrics: model selection
-	h.metricsService.RecordModelSelection(modelName, requestID, providerName)
-
-	fiberlog.Infof("[%s] Protocol=%s Model=%s Provider=%s",
-		requestID, resp.Protocol, modelName, providerName)
-
-	// apply parameters
-	if err := h.parameterService.ApplyModelParameters(req, autoParams, requestID); err != nil {
-		h.metricsService.RecordError(start, "500", isStream, requestID, providerName)
-		return h.responseService.HandleInternalError(c,
-			"parameter apply failed: "+err.Error(), requestID)
+	if err := h.paramSvc.ApplyModelParameters(req, params, reqID); err != nil {
+		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	// respond
-	if isStream {
-		return h.handleResponse(c, provider, providerName, req,
-			start, requestID, alts, true)
-	}
-	return h.handleResponse(c, provider, providerName, req,
-		start, requestID, alts, false)
+	return h.handleResponse(c, resp, req, start, reqID, isStream)
 }
 
-// handleResponse attempts primary provider, then optional failover.
+func (h *CompletionHandler) copyCBs() map[string]*circuitbreaker.CircuitBreaker {
+	h.cbMu.RLock()
+	defer h.cbMu.RUnlock()
+	m := make(map[string]*circuitbreaker.CircuitBreaker, len(h.cbs))
+	maps.Copy(m, h.cbs)
+	return m
+}
+
+// buildStandardCandidates returns primary + fallback LLMs.
+func (h *CompletionHandler) buildStandardCandidates(
+	std *models.StandardLLMInfo,
+) ([]candidate, error) {
+	var out []candidate
+	svc, err := providers.NewLLMProvider(std.Provider, nil, h.minionRegistry)
+	if err != nil {
+		return nil, fmt.Errorf("standard %s: %w", std.Provider, err)
+	}
+	out = append(out, candidate{std.Provider, svc, models.ProtocolStandardLLM})
+	for _, alt := range std.Alternatives {
+		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
+		if err != nil {
+			return nil, fmt.Errorf("standard alt %s: %w", alt.Provider, err)
+		}
+		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
+	}
+	return out, nil
+}
+
+// buildMinionCandidates returns the minion + fallback LLMs.
+func (h *CompletionHandler) buildMinionCandidates(
+	min *models.MinionInfo,
+) ([]candidate, error) {
+	var out []candidate
+	tt := min.TaskType
+	svc, err := providers.NewLLMProvider("minion", &tt, h.minionRegistry)
+	if err != nil {
+		return nil, fmt.Errorf("minion %s: %w", tt, err)
+	}
+	out = append(out, candidate{"minion", svc, models.ProtocolMinion})
+	for _, alt := range min.Alternatives {
+		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
+		if err != nil {
+			return nil, fmt.Errorf("minion alt %s: %w", alt.Provider, err)
+		}
+		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
+	}
+	return out, nil
+}
+
+// buildCandidates flattens resp into an ordered slice.
+func (h *CompletionHandler) buildCandidates(
+	resp *models.OrchestratorResponse,
+) ([]candidate, error) {
+	switch resp.Protocol {
+	case models.ProtocolStandardLLM:
+		return h.buildStandardCandidates(resp.Standard)
+	case models.ProtocolMinion:
+		return h.buildMinionCandidates(resp.Minion)
+	case models.ProtocolMinionsProtocol:
+		stds, err := h.buildStandardCandidates(resp.Standard)
+		if err != nil {
+			return nil, err
+		}
+		mins, err := h.buildMinionCandidates(resp.Minion)
+		if err != nil {
+			return nil, err
+		}
+		return append(stds, mins...), nil
+	default:
+		return nil, fmt.Errorf("unsupported protocol %s", resp.Protocol)
+	}
+}
+
+// handleResponse tries each candidate under its circuit-breaker.
 func (h *CompletionHandler) handleResponse(
 	c *fiber.Ctx,
-	provider provider_interfaces.LLMProvider,
-	providerName string,
+	resp *models.OrchestratorResponse,
 	req *models.ChatCompletionRequest,
 	start time.Time,
-	requestID string,
-	alts []models.Alternative,
-	isStreaming bool,
+	reqID string,
+	isStream bool,
 ) error {
-	cb := h.getOrCreateCircuitBreaker(providerName)
-
-	// if circuit open, skip to alternatives
-	if cb.GetState() == circuitbreaker.Open {
-		if len(alts) > 0 {
-			fiberlog.Warnf("[%s] %s circuit open, racing alternatives", requestID, providerName)
-			return h.raceAndRespond(c, alts, req, start, requestID, isStreaming)
-		}
-		cb.RecordFailure()
-		h.metricsService.RecordError(start, "503", isStreaming, requestID, providerName)
-		return h.responseService.HandleInternalError(c,
-			"provider circuit open", requestID)
-	}
-
-	// primary
-	if !cb.CanExecute() {
-		h.metricsService.RecordError(start, "503", isStreaming, requestID, providerName)
-		return h.responseService.HandleInternalError(c,
-			"provider unavailable", requestID)
-	}
-
-	var err error
-	if isStreaming {
-		err = h.responseService.HandleStreamResponse(c, provider, req, requestID)
-	} else {
-		err = h.responseService.HandleRegularResponse(c, provider, req, requestID)
-	}
-
+	cands, err := h.buildCandidates(resp)
 	if err != nil {
-		cb.RecordFailure()
-		h.metricsService.RecordError(start, "500", isStreaming, requestID, providerName)
-		if len(alts) > 0 {
-			fiberlog.Warnf("[%s] primary %s failed, racing %d alternatives",
-				requestID, providerName, len(alts))
-			return h.raceAndRespond(c, alts, req, start, requestID, isStreaming)
-		}
-		return err
+		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	cb.RecordSuccess()
-	h.metricsService.RecordSuccess(start, isStreaming, requestID, providerName)
-	return nil
+	var lastErr error
+	for _, cand := range cands {
+		cb := h.getOrCreateCB(cand.Name)
+		if cb.GetState() == circuitbreaker.Open || !cb.CanExecute() {
+			cb.RecordFailure()
+			continue
+		}
+
+		// we always pass both slots; only one is non-nil per protocol
+		var remoteProv, minionProv provider_interfaces.LLMProvider
+		if cand.Protocol == models.ProtocolMinion {
+			minionProv = cand.Provider
+		} else {
+			remoteProv = cand.Provider
+		}
+
+		if err := h.respSvc.HandleProtocol(
+			c,
+			cand.Protocol,
+			&remoteProv,
+			&minionProv,
+			req,
+			reqID,
+			isStream,
+		); err != nil {
+			cb.RecordFailure()
+			lastErr = err
+			continue
+		}
+
+		cb.RecordSuccess()
+		h.metricsSvc.RecordSuccess(start, isStream, reqID, cand.Name)
+		return nil
+	}
+
+	h.metricsSvc.RecordError(start, "503", isStream, reqID, "all")
+	if lastErr != nil {
+		return lastErr
+	}
+	return h.respSvc.HandleInternalError(c, "all providers failed", reqID)
 }
 
-// raceAndRespond races alternatives and sends first success.
-func (h *CompletionHandler) raceAndRespond(
-	c *fiber.Ctx,
-	alts []models.Alternative,
-	req *models.ChatCompletionRequest,
-	start time.Time,
-	requestID string,
-	isStreaming bool,
-) error {
-	primary := alts[0]
-	others := alts[1:]
-
-	raceResult, err := h.raceService.RaceProviders(
-		c.Context(), primary, others, requestID,
-	)
-	if err != nil {
-		h.metricsService.RecordError(start, "500", isStreaming, requestID, "alternatives")
-		return h.responseService.HandleInternalError(c,
-			fmt.Sprintf("all providers failed: %v", err), requestID)
-	}
-
-	fiberlog.Infof("[%s] alternative %s won", requestID, raceResult.ProviderName)
-	if isStreaming {
-		return h.responseService.HandleStreamResponse(c, raceResult.Provider, req, requestID)
-	}
-	return h.responseService.HandleRegularResponse(c, raceResult.Provider, req, requestID)
-}
-
-// getOrCreateCircuitBreaker returns or creates a breaker for provider.
-func (h *CompletionHandler) getOrCreateCircuitBreaker(
-	providerName string,
-) *circuitbreaker.CircuitBreaker {
-	h.cbMutex.RLock()
-	if cb, ok := h.circuitBreakers[providerName]; ok {
-		h.cbMutex.RUnlock()
+// getOrCreateCB returns or initializes a circuit-breaker.
+func (h *CompletionHandler) getOrCreateCB(name string) *circuitbreaker.CircuitBreaker {
+	h.cbMu.RLock()
+	cb, ok := h.cbs[name]
+	h.cbMu.RUnlock()
+	if ok {
 		return cb
 	}
-	h.cbMutex.RUnlock()
 
-	h.cbMutex.Lock()
-	defer h.cbMutex.Unlock()
-	if cb, ok := h.circuitBreakers[providerName]; ok {
+	h.cbMu.Lock()
+	defer h.cbMu.Unlock()
+	if cb, ok = h.cbs[name]; ok {
 		return cb
 	}
 	cfg := circuitbreaker.Config{
 		FailureThreshold: 3,
 		SuccessThreshold: 2,
 		Timeout:          10 * time.Second,
-		ResetAfter:       1 * time.Minute,
+		ResetAfter:       time.Minute,
 	}
-	cb := circuitbreaker.NewWithConfig(cfg)
-	h.circuitBreakers[providerName] = cb
+	cb = circuitbreaker.NewWithConfig(cfg)
+	h.cbs[name] = cb
 	return cb
 }
 
-// registerMinions configures all available minions in the registry.
-func registerMinions(registry *minions.MinionRegistry) {
-	registry.RegisterMinion("Open QA", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
-	registry.RegisterMinion("Closed QA", getEnvOrDefault("CLOSED_QA_MINION_URL", ""))
-	registry.RegisterMinion("Summarization", getEnvOrDefault("SUMMARIZATION_MINION_URL", ""))
-	registry.RegisterMinion("Text Generation", getEnvOrDefault("TEXT_GENERATION_MINION_URL", ""))
-	registry.RegisterMinion("Classification", getEnvOrDefault("CLASSIFICATION_MINION_URL", ""))
-	registry.RegisterMinion("Code Generation", getEnvOrDefault("CODE_GENERATION_MINION_URL", ""))
-	registry.RegisterMinion("Chatbot", getEnvOrDefault("CHATBOT_MINION_URL", ""))
-	registry.RegisterMinion("Rewrite", getEnvOrDefault("REWRITE_MINION_URL", ""))
-	registry.RegisterMinion("Brainstorming", getEnvOrDefault("BRAINSTORMING_MINION_URL", ""))
-	registry.RegisterMinion("Extraction", getEnvOrDefault("EXTRACTION_MINION_URL", ""))
-	registry.RegisterMinion("Other", getEnvOrDefault("OTHER_MINION_URL", ""))
-}
-
-// getEnvOrDefault returns environment variable value or default if not set.
-func getEnvOrDefault(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists && value != "" {
-		return value
+func registerMinions(reg *minions.MinionRegistry) {
+	for _, t := range models.ValidTaskTypes() {
+		key := strings.ToUpper(string(t)) + "_MINION_URL"
+		url := os.Getenv(key)
+		reg.RegisterMinion(string(t), url)
 	}
-	return defaultValue
 }
 
-// Health checks dependencies.
+// Health returns orchestration service health.
 func (h *CompletionHandler) Health() error {
-	return h.orchestrationService.ValidateOrchestrationContext()
+	return h.orchSvc.ValidateOrchestrationContext()
 }

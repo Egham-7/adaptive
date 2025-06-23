@@ -153,18 +153,6 @@ type OrchestratorResponse struct {
 	Minion   *MinionInfo      `json:"minion,omitempty"`
 }
 
-// OrchestratorResult holds internal routing results
-type OrchestratorResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string
-	CacheType    string
-	ProtocolType ProtocolType
-	ModelName    string
-	Parameters   OpenAIParameters
-	TaskType     string
-	Alternatives []Alternative
-}
-
 // RaceResult represents a parallel provider race outcome
 type RaceResult struct {
 	Provider     provider_interfaces.LLMProvider

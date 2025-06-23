@@ -22,23 +22,31 @@ func NewResponseService() *ResponseService {
 // MinionS protocols. req is the original ChatCompletionRequest.
 func (s *ResponseService) HandleProtocol(
 	c *fiber.Ctx,
-	resp *models.OrchestratorResponse,
-	remoteProv provider_interfaces.LLMProvider,
-	minionProv provider_interfaces.LLMProvider,
+	protocol models.ProtocolType,
+	remoteProv *provider_interfaces.LLMProvider,
+	minionProv *provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
 	requestID string,
 	isStream bool,
 ) error {
-	switch resp.Protocol {
+	switch protocol {
 	case models.ProtocolStandardLLM:
-		return s.handleStandard(c, remoteProv, req, requestID, isStream)
+
+		if remoteProv == nil {
+			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get remote provider", requestID)
+		}
+		return s.handleStandard(c, *remoteProv, req, requestID, isStream)
 
 	case models.ProtocolMinion:
-		return s.handleMinion(c, minionProv, req, requestID, isStream)
+
+		if minionProv == nil {
+			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get minion provider", requestID)
+		}
+		return s.handleMinion(c, *minionProv, req, requestID, isStream)
 
 	default:
 		return s.HandleError(c, fiber.StatusInternalServerError,
-			"unknown protocol "+string(resp.Protocol), requestID)
+			"unknown protocol "+string(protocol), requestID)
 	}
 }
 
