@@ -50,6 +50,40 @@ func (s *ResponseService) HandleProtocol(
 	}
 }
 
+// handleProtocolGeneric handles both streaming and regular flows for any protocol.
+func (s *ResponseService) handleProtocolGeneric(
+	c *fiber.Ctx,
+	prov provider_interfaces.LLMProvider,
+	req *models.ChatCompletionRequest,
+	requestID string,
+	isStream bool,
+	protocolName string,
+) error {
+	if isStream {
+		fiberlog.Infof("[%s] streaming %s response", requestID, protocolName)
+		streamResp, err := prov.Chat().
+			Completions().
+			StreamCompletion(req.ToOpenAIParams())
+		if err != nil {
+			fiberlog.Errorf("[%s] %s stream failed: %v", requestID, protocolName, err)
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				protocolName+" stream failed: "+err.Error(), requestID)
+		}
+		s.setStreamHeaders(c)
+		return stream.HandleStream(c, streamResp, requestID)
+	}
+	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
+	regResp, err := prov.Chat().
+		Completions().
+		CreateCompletion(req.ToOpenAIParams())
+	if err != nil {
+		fiberlog.Errorf("[%s] %s create failed: %v", requestID, protocolName, err)
+		return s.HandleError(c, fiber.StatusInternalServerError,
+			protocolName+" create failed: "+err.Error(), requestID)
+	}
+	return c.JSON(regResp)
+}
+
 // handleStandard handles both streaming and regular standard‐LLM flows.
 func (s *ResponseService) handleStandard(
 	c *fiber.Ctx,
@@ -58,29 +92,7 @@ func (s *ResponseService) handleStandard(
 	requestID string,
 	isStream bool,
 ) error {
-	if isStream {
-		fiberlog.Infof("[%s] streaming standard response", requestID)
-		streamResp, err := prov.Chat().
-			Completions().
-			StreamCompletion(req.ToOpenAIParams())
-		if err != nil {
-			fiberlog.Errorf("[%s] stream failed: %v", requestID, err)
-			return s.HandleError(c, fiber.StatusInternalServerError,
-				"stream failed: "+err.Error(), requestID)
-		}
-		s.setStreamHeaders(c)
-		return stream.HandleStream(c, streamResp, requestID)
-	}
-	fiberlog.Infof("[%s] generating standard completion", requestID)
-	regResp, err := prov.Chat().
-		Completions().
-		CreateCompletion(req.ToOpenAIParams())
-	if err != nil {
-		fiberlog.Errorf("[%s] create failed: %v", requestID, err)
-		return s.HandleError(c, fiber.StatusInternalServerError,
-			"create failed: "+err.Error(), requestID)
-	}
-	return c.JSON(regResp)
+	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, "standard")
 }
 
 // handleMinion handles both streaming and regular minion flows.
@@ -91,29 +103,7 @@ func (s *ResponseService) handleMinion(
 	requestID string,
 	isStream bool,
 ) error {
-	if isStream {
-		fiberlog.Infof("[%s] streaming minion response", requestID)
-		streamResp, err := prov.Chat().
-			Completions().
-			StreamCompletion(req.ToOpenAIParams())
-		if err != nil {
-			fiberlog.Errorf("[%s] minion stream failed: %v", requestID, err)
-			return s.HandleError(c, fiber.StatusInternalServerError,
-				"minion stream failed: "+err.Error(), requestID)
-		}
-		s.setStreamHeaders(c)
-		return stream.HandleStream(c, streamResp, requestID)
-	}
-	fiberlog.Infof("[%s] generating minion completion", requestID)
-	regResp, err := prov.Chat().
-		Completions().
-		CreateCompletion(req.ToOpenAIParams())
-	if err != nil {
-		fiberlog.Errorf("[%s] minion create failed: %v", requestID, err)
-		return s.HandleError(c, fiber.StatusInternalServerError,
-			"minion create failed: "+err.Error(), requestID)
-	}
-	return c.JSON(regResp)
+	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, "minion")
 }
 
 // HandleError sends a standardized error response
