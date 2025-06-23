@@ -114,7 +114,6 @@ export default function Pricing() {
 					</Card>
 
 					<Card className="flex flex-col">
-						
 						<CardHeader>
 							<CardTitle className="font-medium">Enterprise</CardTitle>
 							<div className="my-3 flex items-baseline">
