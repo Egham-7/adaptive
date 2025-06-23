@@ -13,6 +13,13 @@ import (
 const (
 	minionComplexityThreshold = 0.2
 	minionPromptLength        = 30
+
+	complexityThresholdNano = 0.3
+	complexityThresholdMini = 0.6
+
+	modelNameNano = "gpt-4.1-nano"
+	modelNameMini = "gpt-4.1-mini"
+	modelName4o   = "gpt-4o"
 )
 
 type MinionRouter struct {
@@ -287,11 +294,11 @@ func (m *MinionRouter) filterHealthyAlternatives(
 
 func (m *MinionRouter) defaultModelFor(cx float64) string {
 	switch {
-	case cx <= 0.3:
-		return "gpt-4.1-nano"
-	case cx <= 0.6:
-		return "gpt-4.1-mini"
+	case cx <= complexityThresholdNano:
+		return modelNameNano
+	case cx <= complexityThresholdMini:
+		return modelNameMini
 	default:
-		return "gpt-4o"
+		return modelName4o
 	}
 }
