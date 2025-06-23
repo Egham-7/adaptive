@@ -116,45 +116,21 @@ func (h *CompletionHandler) copyCBs() map[string]*circuitbreaker.CircuitBreaker 
 	return m
 }
 
-// cleanupOnError closes all resources in cleanup slice and logs errors.
-func cleanupOnError(cleanup []func() error) {
-	for _, fn := range cleanup {
-		if err := fn(); err != nil {
-			fiberlog.Errorf("cleanup failed: %v", err)
-		}
-	}
-}
-
 // buildStandardCandidates returns primary + fallback LLMs.
 func (h *CompletionHandler) buildStandardCandidates(
 	std *models.StandardLLMInfo,
 ) ([]candidate, error) {
 	var out []candidate
-	var cleanup []func() error
-	defer func() {
-		if r := recover(); r != nil {
-			cleanupOnError(cleanup)
-			panic(r)
-		}
-	}()
 
 	svc, err := providers.NewLLMProvider(std.Provider, nil, h.minionRegistry)
 	if err != nil {
-		cleanupOnError(cleanup)
 		return nil, fmt.Errorf("standard %s: %w", std.Provider, err)
-	}
-	if closer, ok := svc.(interface{ Close() error }); ok {
-		cleanup = append(cleanup, closer.Close)
 	}
 	out = append(out, candidate{std.Provider, svc, models.ProtocolStandardLLM})
 	for _, alt := range std.Alternatives {
 		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
 		if err != nil {
-			cleanupOnError(cleanup)
 			return nil, fmt.Errorf("standard alt %s: %w", alt.Provider, err)
-		}
-		if closer, ok := svc.(interface{ Close() error }); ok {
-			cleanup = append(cleanup, closer.Close)
 		}
 		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
 	}
@@ -166,33 +142,17 @@ func (h *CompletionHandler) buildMinionCandidates(
 	min *models.MinionInfo,
 ) ([]candidate, error) {
 	var out []candidate
-	var cleanup []func() error
-
-	defer func() {
-		if r := recover(); r != nil {
-			cleanupOnError(cleanup)
-			panic(r)
-		}
-	}()
 
 	tt := min.TaskType
 	svc, err := providers.NewLLMProvider("minion", &tt, h.minionRegistry)
 	if err != nil {
-		cleanupOnError(cleanup)
 		return nil, fmt.Errorf("minion %s: %w", tt, err)
-	}
-	if closer, ok := svc.(interface{ Close() error }); ok {
-		cleanup = append(cleanup, closer.Close)
 	}
 	out = append(out, candidate{"minion", svc, models.ProtocolMinion})
 	for _, alt := range min.Alternatives {
 		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
 		if err != nil {
-			cleanupOnError(cleanup)
 			return nil, fmt.Errorf("minion alt %s: %w", alt.Provider, err)
-		}
-		if closer, ok := svc.(interface{ Close() error }); ok {
-			cleanup = append(cleanup, closer.Close)
 		}
 		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
 	}
@@ -200,6 +160,7 @@ func (h *CompletionHandler) buildMinionCandidates(
 }
 
 // buildCandidates flattens resp into an ordered slice.
+// For ProtocolMinionsProtocol, returns a pair: [remote, minion]
 func (h *CompletionHandler) buildCandidates(
 	resp *models.OrchestratorResponse,
 ) ([]candidate, error) {
@@ -216,6 +177,12 @@ func (h *CompletionHandler) buildCandidates(
 		mins, err := h.buildMinionCandidates(resp.Minion)
 		if err != nil {
 			return nil, err
+		}
+		if len(stds) > 0 && len(mins) > 0 {
+			return []candidate{
+				{stds[0].Name, stds[0].Provider, models.ProtocolStandardLLM},
+				{mins[0].Name, mins[0].Provider, models.ProtocolMinion},
+			}, nil
 		}
 		return append(stds, mins...), nil
 	default:
@@ -238,16 +205,23 @@ func (h *CompletionHandler) handleResponse(
 	}
 
 	var lastErr error
-	for _, cand := range cands {
+	for i, cand := range cands {
 		cb := h.getOrCreateCB(cand.Name)
 		if cb.GetState() == circuitbreaker.Open || !cb.CanExecute() {
 			cb.RecordFailure()
 			continue
 		}
 
-		// we always pass both slots; only one is non-nil per protocol
+		// For MinionsProtocol, both providers are needed and are different
 		var remoteProv, minionProv provider_interfaces.LLMProvider
-		if cand.Protocol == models.ProtocolMinion {
+		if resp.Protocol == models.ProtocolMinionsProtocol && len(cands) == 2 {
+			remoteProv = cands[0].Provider
+			minionProv = cands[1].Provider
+			// Only run once for the pair
+			if i != 0 {
+				continue
+			}
+		} else if cand.Protocol == models.ProtocolMinion {
 			minionProv = cand.Provider
 		} else {
 			remoteProv = cand.Provider
@@ -255,7 +229,7 @@ func (h *CompletionHandler) handleResponse(
 
 		if err := h.respSvc.HandleProtocol(
 			c,
-			cand.Protocol,
+			resp.Protocol,
 			&remoteProv,
 			&minionProv,
 			req,
