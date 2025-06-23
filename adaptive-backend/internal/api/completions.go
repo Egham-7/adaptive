@@ -116,6 +116,15 @@ func (h *CompletionHandler) copyCBs() map[string]*circuitbreaker.CircuitBreaker 
 	return m
 }
 
+// cleanupOnError closes all resources in cleanup slice and logs errors.
+func cleanupOnError(cleanup []func() error) {
+	for _, fn := range cleanup {
+		if err := fn(); err != nil {
+			fiberlog.Errorf("cleanup failed: %v", err)
+		}
+	}
+}
+
 // buildStandardCandidates returns primary + fallback LLMs.
 func (h *CompletionHandler) buildStandardCandidates(
 	std *models.StandardLLMInfo,
@@ -124,18 +133,14 @@ func (h *CompletionHandler) buildStandardCandidates(
 	var cleanup []func() error
 	defer func() {
 		if r := recover(); r != nil {
-			for _, fn := range cleanup {
-				fn()
-			}
+			cleanupOnError(cleanup)
 			panic(r)
 		}
 	}()
 
 	svc, err := providers.NewLLMProvider(std.Provider, nil, h.minionRegistry)
 	if err != nil {
-		for _, fn := range cleanup {
-			fn()
-		}
+		cleanupOnError(cleanup)
 		return nil, fmt.Errorf("standard %s: %w", std.Provider, err)
 	}
 	if closer, ok := svc.(interface{ Close() error }); ok {
@@ -145,9 +150,7 @@ func (h *CompletionHandler) buildStandardCandidates(
 	for _, alt := range std.Alternatives {
 		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
 		if err != nil {
-			for _, fn := range cleanup {
-				fn()
-			}
+			cleanupOnError(cleanup)
 			return nil, fmt.Errorf("standard alt %s: %w", alt.Provider, err)
 		}
 		if closer, ok := svc.(interface{ Close() error }); ok {
@@ -167,9 +170,7 @@ func (h *CompletionHandler) buildMinionCandidates(
 
 	defer func() {
 		if r := recover(); r != nil {
-			for _, fn := range cleanup {
-				fn()
-			}
+			cleanupOnError(cleanup)
 			panic(r)
 		}
 	}()
@@ -177,9 +178,7 @@ func (h *CompletionHandler) buildMinionCandidates(
 	tt := min.TaskType
 	svc, err := providers.NewLLMProvider("minion", &tt, h.minionRegistry)
 	if err != nil {
-		for _, fn := range cleanup {
-			fn()
-		}
+		cleanupOnError(cleanup)
 		return nil, fmt.Errorf("minion %s: %w", tt, err)
 	}
 	if closer, ok := svc.(interface{ Close() error }); ok {
@@ -189,9 +188,7 @@ func (h *CompletionHandler) buildMinionCandidates(
 	for _, alt := range min.Alternatives {
 		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
 		if err != nil {
-			for _, fn := range cleanup {
-				fn()
-			}
+			cleanupOnError(cleanup)
 			return nil, fmt.Errorf("minion alt %s: %w", alt.Provider, err)
 		}
 		if closer, ok := svc.(interface{ Close() error }); ok {
