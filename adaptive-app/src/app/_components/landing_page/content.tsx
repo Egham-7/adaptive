@@ -5,10 +5,12 @@ import { LogoCarousel } from "./logo-carousel";
 
 
 const logos = [
-	{ name: "OpenAI", id: 1, img: "/logos/openai.svg" },
-	{ name: "Anthropic", id: 2, img: "/logos/anthropic.svg" },
+	{ name: "OpenAI", id: 1, img: "/logos/openai.webp" },
+	{ name: "Anthropic", id: 2, img: "/logos/anthropic.jpeg" },
 	{ name: "Gemini", id: 3, img: "/logos/google.svg" },
-	{ name: "Llama", id: 3, img: "/logos/meta.svg" },
+	{ name: "Llama", id: 2, img: "/logos/meta.png" },
+	{ name: "DeepSeek", id: 4, img: "/logos/deepseek.svg" },
+	{ name: "Grok", id: 1, img: "/logos/grok.svg" },
 	// ...more
 ];
 
