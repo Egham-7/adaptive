@@ -1,4 +1,3 @@
-// model_selector.go
 package model_selection
 
 import (
@@ -66,7 +65,13 @@ func (m *ModelSelector) SelectModelWithCache(
 		req.CostBias = defaultCostBiasFactor
 	}
 
-	// 1) Early minion?
+	// 1) Semantic cache
+	if hit, src, ok := m.cache.Lookup(req.Prompt, userID); ok {
+		log.Printf("[%s] cache hit (%s)", requestID, src)
+		return &hit, src, nil
+	}
+
+	// 2) Early minion?
 	cl, err := m.standard.classifier.Classify(req)
 	if err != nil {
 		return nil, "error", err
@@ -77,12 +82,6 @@ func (m *ModelSelector) SelectModelWithCache(
 		resp := m.minions.Route(cl, req.CostBias, req.ProviderConstraint, cbs)
 		log.Printf("[%s] early‐routed to minion", requestID)
 		return resp, "minion", nil
-	}
-
-	// 2) Semantic cache
-	if hit, src, ok := m.cache.Lookup(req.Prompt, userID); ok {
-		log.Printf("[%s] cache hit (%s)", requestID, src)
-		return &hit, src, nil
 	}
 
 	// 3) Standard LLM selection
