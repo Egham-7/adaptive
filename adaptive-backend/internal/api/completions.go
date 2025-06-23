@@ -9,7 +9,6 @@ import (
 	"adaptive-backend/internal/services/model_selection"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
-	"maps"
 	"os"
 	"sync"
 	"time"
@@ -18,148 +17,136 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// CompletionHandler handles chat completion requests with clean separation of concerns
-// Features automatic failover racing - tries primary provider first, only races alternatives if primary fails
+// CompletionHandler handles chat completions with model‐selector, orchestration,
+// minions, circuit breakers, metrics, and optional racing.
 type CompletionHandler struct {
-	// Core services
 	requestService       *completions.RequestService
 	responseService      *completions.ResponseService
 	parameterService     *completions.ParameterService
 	orchestrationService *completions.OrchestrationService
 	metricsService       *completions.MetricsService
-	raceService          *completions.RaceService // Used for automatic failover when primary provider fails
+	raceService          *completions.RaceService
 
-	// Circuit breakers for provider health tracking
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 	cbMutex         sync.RWMutex
 }
 
-// NewCompletionHandler creates a new completion handler with all required services
+// NewCompletionHandler wires up all dependencies.
 func NewCompletionHandler() *CompletionHandler {
-	// Initialize minion registry
+	// Minions
 	minionRegistry := minions.NewMinionRegistry(11)
 	registerMinions(minionRegistry)
 
-	// Initialize model selector
+	// Model selector
 	modelSelector, err := model_selection.NewModelSelector(0, 0)
 	if err != nil {
-		fiberlog.Fatalf("failed to initialize ModelSelector: %v", err)
+		fiberlog.Fatalf("failed init modelSelector: %v", err)
 	}
 
-	// Initialize metrics
+	// Metrics
 	chatMetrics := metrics.NewChatMetrics()
 
-	// Initialize services
-	requestService := completions.NewRequestService()
-	responseService := completions.NewResponseService()
-	parameterService := completions.NewParameterService()
-	orchestrationService := completions.NewOrchestrationService(modelSelector, minionRegistry)
-	metricsService := completions.NewMetricsService(chatMetrics)
-	raceService := completions.NewRaceService(minionRegistry)
+	// Services
+	reqSvc := completions.NewRequestService()
+	respSvc := completions.NewResponseService()
+	paramSvc := completions.NewParameterService()
+	orchSvc := completions.NewOrchestrationService(modelSelector, minionRegistry)
+	metSvc := completions.NewMetricsService(chatMetrics)
+	raceSvc := completions.NewRaceService(minionRegistry)
 
 	return &CompletionHandler{
-		requestService:       requestService,
-		responseService:      responseService,
-		parameterService:     parameterService,
-		orchestrationService: orchestrationService,
-		metricsService:       metricsService,
-		raceService:          raceService,
+		requestService:       reqSvc,
+		responseService:      respSvc,
+		parameterService:     paramSvc,
+		orchestrationService: orchSvc,
+		metricsService:       metSvc,
+		raceService:          raceSvc,
 		circuitBreakers:      make(map[string]*circuitbreaker.CircuitBreaker),
 	}
 }
 
-// ChatCompletion handles the main chat completion endpoint
+// ChatCompletion is the main HTTP handler.
 func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	start := time.Now()
 	requestID := h.requestService.GetRequestID(c)
-	apiKey := h.requestService.GetAPIKey(c)
+	userID := h.requestService.GetAPIKey(c) // using API key as userID
 
-	fiberlog.Infof("[%s] Starting chat completion request", requestID)
+	fiberlog.Infof("[%s] ChatCompletion start", requestID)
 
-	// Parse and validate request
+	// parse & validate
 	req, err := h.requestService.ParseChatCompletionRequest(c)
 	if err != nil {
-		h.metricsService.RecordError(start, "400", req != nil && req.Stream, requestID, "unknown")
+		h.metricsService.RecordError(start, "400", req.Stream, requestID, "unknown")
 		return h.responseService.HandleBadRequest(c, "Invalid request: "+err.Error(), requestID)
 	}
-
 	isStream := req.Stream
 	h.metricsService.RecordRequestStart(requestID, isStream)
 
-	// Orchestrate model selection and provider configuration with automatic racing
-	ctx := c.Context()
-
-	// Pass circuit breaker information for health-aware model selection
+	// copy breakers snapshot
 	h.cbMutex.RLock()
-	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
-	maps.Copy(circuitBreakers, h.circuitBreakers)
+	cbs := make(map[string]*circuitbreaker.CircuitBreaker)
+	for k, v := range h.circuitBreakers {
+		cbs[k] = v
+	}
 	h.cbMutex.RUnlock()
 
-	orchestratorResult, err := h.orchestrationService.SelectAndConfigureProvider(ctx, req, apiKey, requestID, circuitBreakers)
+	// orchestrate selection + provider
+	provider, resp, err := h.orchestrationService.SelectAndConfigureProvider(
+		c.Context(), req, userID, requestID, cbs,
+	)
 	if err != nil {
 		h.metricsService.RecordError(start, "500", isStream, requestID, "unknown")
 		return h.responseService.HandleInternalError(c, err.Error(), requestID)
 	}
 
-	// Record cache metrics if applicable
-	if orchestratorResult.CacheType == "user" || orchestratorResult.CacheType == "global" {
-		h.metricsService.RecordCacheHit(orchestratorResult.CacheType, requestID, orchestratorResult.ProviderName)
+	// determine providerName, modelName, alternatives, parameters
+	var providerName, modelName string
+	var alts []models.Alternative
+	var autoParams models.OpenAIParameters
+
+	switch resp.Protocol {
+	case models.ProtocolStandardLLM:
+		info := resp.Standard
+		providerName = info.Provider
+		modelName = info.Model
+		alts = info.Alternatives
+		autoParams = info.Parameters
+
+	case models.ProtocolMinion:
+		info := resp.Minion
+		providerName = "minion"
+		modelName = info.TaskType
+		alts = info.Alternatives
+		autoParams = info.Parameters
+
+	default:
+		return h.responseService.HandleInternalError(c,
+			"unknown protocol "+string(resp.Protocol), requestID)
 	}
 
-	// Record model selection
-	h.metricsService.RecordModelSelection(orchestratorResult.ModelName, requestID, orchestratorResult.ProviderName)
+	// metrics: model selection
+	h.metricsService.RecordModelSelection(modelName, requestID, providerName)
 
-	// Log protocol and model information
-	fiberlog.Infof("[%s] Protocol: %s, Model: %s",
-		requestID, orchestratorResult.ProtocolType, orchestratorResult.ModelName)
+	fiberlog.Infof("[%s] Protocol=%s Model=%s Provider=%s",
+		requestID, resp.Protocol, modelName, providerName)
 
-	// Apply parameters based on protocol type
-	if err := h.applyParametersFromOrchestrator(req, orchestratorResult.Parameters, requestID); err != nil {
-		h.metricsService.RecordError(start, "500", isStream, requestID, orchestratorResult.ProviderName)
-		return h.responseService.HandleInternalError(c, "Parameter application failed: "+err.Error(), requestID)
+	// apply parameters
+	if err := h.parameterService.ApplyModelParameters(req, autoParams, requestID); err != nil {
+		h.metricsService.RecordError(start, "500", isStream, requestID, providerName)
+		return h.responseService.HandleInternalError(c,
+			"parameter apply failed: "+err.Error(), requestID)
 	}
 
-	// Handle response based on streaming preference
+	// respond
 	if isStream {
-		return h.handleStreamingResponse(c, orchestratorResult.Provider, orchestratorResult.ProviderName, req, start, requestID, orchestratorResult)
+		return h.handleResponse(c, provider, providerName, req,
+			start, requestID, alts, true)
 	}
-	return h.handleRegularResponse(c, orchestratorResult.Provider, orchestratorResult.ProviderName, req, start, requestID, orchestratorResult)
+	return h.handleResponse(c, provider, providerName, req,
+		start, requestID, alts, false)
 }
 
-// applyParametersFromOrchestrator applies parameters from the orchestrator result
-func (h *CompletionHandler) applyParametersFromOrchestrator(
-	req *models.ChatCompletionRequest,
-	autoParameters models.OpenAIParameters,
-	requestID string,
-) error {
-	return h.parameterService.ApplyModelParameters(req, autoParameters, requestID)
-}
-
-func (h *CompletionHandler) handleStreamingResponse(
-	c *fiber.Ctx,
-	provider provider_interfaces.LLMProvider,
-	providerName string,
-	req *models.ChatCompletionRequest,
-	start time.Time,
-	requestID string,
-	orchestratorResult *models.OrchestratorResult,
-) error {
-	return h.handleResponse(c, provider, providerName, req, start, requestID, orchestratorResult, true)
-}
-
-func (h *CompletionHandler) handleRegularResponse(
-	c *fiber.Ctx,
-	provider provider_interfaces.LLMProvider,
-	providerName string,
-	req *models.ChatCompletionRequest,
-	start time.Time,
-	requestID string,
-	orchestratorResult *models.OrchestratorResult,
-) error {
-	return h.handleResponse(c, provider, providerName, req, start, requestID, orchestratorResult, false)
-}
-
-// handleResponse unified handler for both streaming and regular responses
+// handleResponse attempts primary provider, then optional failover.
 func (h *CompletionHandler) handleResponse(
 	c *fiber.Ctx,
 	provider provider_interfaces.LLMProvider,
@@ -167,32 +154,30 @@ func (h *CompletionHandler) handleResponse(
 	req *models.ChatCompletionRequest,
 	start time.Time,
 	requestID string,
-	orchestratorResult *models.OrchestratorResult,
+	alts []models.Alternative,
 	isStreaming bool,
 ) error {
-	fiberlog.Infof("[%s] Processing %s response with provider %s", requestID,
-		map[bool]string{true: "streaming", false: "regular"}[isStreaming], providerName)
-
 	cb := h.getOrCreateCircuitBreaker(providerName)
 
-	// Circuit breaker is open - skip to alternatives immediately
+	// if circuit open, skip to alternatives
 	if cb.GetState() == circuitbreaker.Open {
-		if len(orchestratorResult.Alternatives) > 0 {
-			fiberlog.Infof("[%s] Provider %s circuit is OPEN, trying alternatives", requestID, providerName)
-			return h.tryAlternatives(c, orchestratorResult, req, start, requestID, isStreaming)
+		if len(alts) > 0 {
+			fiberlog.Warnf("[%s] %s circuit open, racing alternatives", requestID, providerName)
+			return h.raceAndRespond(c, alts, req, start, requestID, isStreaming)
 		}
 		cb.RecordFailure()
 		h.metricsService.RecordError(start, "503", isStreaming, requestID, providerName)
-		return h.responseService.HandleInternalError(c, "Provider circuit breaker is open and no alternatives available", requestID)
+		return h.responseService.HandleInternalError(c,
+			"provider circuit open", requestID)
 	}
 
-	// Circuit breaker allows execution - try primary provider
+	// primary
 	if !cb.CanExecute() {
 		h.metricsService.RecordError(start, "503", isStreaming, requestID, providerName)
-		return h.responseService.HandleInternalError(c, "Provider circuit breaker rejected request", requestID)
+		return h.responseService.HandleInternalError(c,
+			"provider unavailable", requestID)
 	}
 
-	// Execute primary provider
 	var err error
 	if isStreaming {
 		err = h.responseService.HandleStreamResponse(c, provider, req, requestID)
@@ -202,13 +187,12 @@ func (h *CompletionHandler) handleResponse(
 
 	if err != nil {
 		cb.RecordFailure()
-		// Try alternatives if available
-		if len(orchestratorResult.Alternatives) > 0 {
-			fiberlog.Warnf("[%s] Primary provider %s failed, trying %d alternatives: %v",
-				requestID, providerName, len(orchestratorResult.Alternatives), err)
-			return h.tryAlternatives(c, orchestratorResult, req, start, requestID, isStreaming)
-		}
 		h.metricsService.RecordError(start, "500", isStreaming, requestID, providerName)
+		if len(alts) > 0 {
+			fiberlog.Warnf("[%s] primary %s failed, racing %d alternatives",
+				requestID, providerName, len(alts))
+			return h.raceAndRespond(c, alts, req, start, requestID, isStreaming)
+		}
 		return err
 	}
 
@@ -217,74 +201,40 @@ func (h *CompletionHandler) handleResponse(
 	return nil
 }
 
-// tryAlternatives unified method for trying alternatives for both streaming and regular responses
-func (h *CompletionHandler) tryAlternatives(
+// raceAndRespond races alternatives and sends first success.
+func (h *CompletionHandler) raceAndRespond(
 	c *fiber.Ctx,
-	orchestratorResult *models.OrchestratorResult,
+	alts []models.Alternative,
 	req *models.ChatCompletionRequest,
 	start time.Time,
 	requestID string,
 	isStreaming bool,
 ) error {
-	// Record primary provider failure
-	primaryCB := h.getOrCreateCircuitBreaker(orchestratorResult.ProviderName)
-	primaryCB.RecordFailure()
+	primary := alts[0]
+	others := alts[1:]
 
-	// Create primary alternative for racing
-	primary := h.createPrimaryAlternative(orchestratorResult)
-
-	// Race for fastest available provider
-	ctx := c.Context()
-	raceResult, err := h.raceService.RaceProviders(ctx, primary, orchestratorResult.Alternatives, requestID)
+	raceResult, err := h.raceService.RaceProviders(
+		c.Context(), primary, others, requestID,
+	)
 	if err != nil {
-		h.metricsService.RecordError(start, "500", isStreaming, requestID, "all_alternatives")
-		return h.responseService.HandleInternalError(c, fmt.Sprintf("all providers failed: %v", err), requestID)
+		h.metricsService.RecordError(start, "500", isStreaming, requestID, "alternatives")
+		return h.responseService.HandleInternalError(c,
+			fmt.Sprintf("all providers failed: %v", err), requestID)
 	}
 
-	fiberlog.Infof("[%s] Alternative provider %s won the race", requestID, raceResult.ProviderName)
-
-	// Create new orchestrator result with no alternatives to prevent infinite recursion
-	fallbackResult := &models.OrchestratorResult{
-		Provider:     raceResult.Provider,
-		ProviderName: raceResult.ProviderName,
-		Alternatives: nil,
+	fiberlog.Infof("[%s] alternative %s won", requestID, raceResult.ProviderName)
+	if isStreaming {
+		return h.responseService.HandleStreamResponse(c, raceResult.Provider, req, requestID)
 	}
-	return h.handleResponse(c, raceResult.Provider, raceResult.ProviderName, req, start, requestID, fallbackResult, isStreaming)
+	return h.responseService.HandleRegularResponse(c, raceResult.Provider, req, requestID)
 }
 
-// createPrimaryAlternative creates the primary alternative for racing
-func (h *CompletionHandler) createPrimaryAlternative(orchestratorResult *models.OrchestratorResult) models.Alternative {
-	if orchestratorResult.ProtocolType == "Minion" {
-		return models.Alternative{
-			Provider: "minion",
-			Model:    orchestratorResult.TaskType,
-		}
-	}
-	return models.Alternative{
-		Provider: orchestratorResult.ProviderName,
-		Model:    orchestratorResult.ModelName,
-	}
-}
-
-// registerMinions configures all available minions in the registry
-func registerMinions(registry *minions.MinionRegistry) {
-	registry.RegisterMinion("Open QA", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
-	registry.RegisterMinion("Closed QA", getEnvOrDefault("CLOSED_QA_MINION_URL", ""))
-	registry.RegisterMinion("Summarization", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
-	registry.RegisterMinion("Text Generation", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
-	registry.RegisterMinion("Classification", getEnvOrDefault("CLASSIFICATION_MINION_URL", ""))
-	registry.RegisterMinion("Code Generation", getEnvOrDefault("CODE_GENERATION_MINION_URL", ""))
-	registry.RegisterMinion("Chatbot", getEnvOrDefault("CHATBOT_MINION_URL", ""))
-	registry.RegisterMinion("Rewrite", getEnvOrDefault("REWRITE_MINION_URL", ""))
-	registry.RegisterMinion("Brainstorming", getEnvOrDefault("BRAINSTORMING_MINION_URL", ""))
-	registry.RegisterMinion("Extraction", getEnvOrDefault("EXTRACTION_MINION_URL", ""))
-	registry.RegisterMinion("Other", getEnvOrDefault("CHATBOT_MINION_URL", ""))
-}
-
-// getOrCreateCircuitBreaker returns or creates a circuit breaker for the given provider
-func (h *CompletionHandler) getOrCreateCircuitBreaker(providerName string) *circuitbreaker.CircuitBreaker {
+// getOrCreateCircuitBreaker returns or creates a breaker for provider.
+func (h *CompletionHandler) getOrCreateCircuitBreaker(
+	providerName string,
+) *circuitbreaker.CircuitBreaker {
 	h.cbMutex.RLock()
-	if cb, exists := h.circuitBreakers[providerName]; exists {
+	if cb, ok := h.circuitBreakers[providerName]; ok {
 		h.cbMutex.RUnlock()
 		return cb
 	}
@@ -292,26 +242,36 @@ func (h *CompletionHandler) getOrCreateCircuitBreaker(providerName string) *circ
 
 	h.cbMutex.Lock()
 	defer h.cbMutex.Unlock()
-
-	// Double-check after acquiring write lock
-	if cb, exists := h.circuitBreakers[providerName]; exists {
+	if cb, ok := h.circuitBreakers[providerName]; ok {
 		return cb
 	}
-
-	// Create provider-specific circuit breaker with aggressive settings for API providers
-	config := circuitbreaker.Config{
-		FailureThreshold: 3,                // Fail after 3 consecutive failures
-		SuccessThreshold: 2,                // Recover after 2 consecutive successes
-		Timeout:          10 * time.Second, // Shorter timeout for API calls
-		ResetAfter:       1 * time.Minute,  // Reset failure count after 1 minute
+	cfg := circuitbreaker.Config{
+		FailureThreshold: 3,
+		SuccessThreshold: 2,
+		Timeout:          10 * time.Second,
+		ResetAfter:       1 * time.Minute,
 	}
-
-	cb := circuitbreaker.NewWithConfig(config)
+	cb := circuitbreaker.NewWithConfig(cfg)
 	h.circuitBreakers[providerName] = cb
 	return cb
 }
 
-// getEnvOrDefault returns environment variable value or default if not set
+// registerMinions configures all available minions in the registry.
+func registerMinions(registry *minions.MinionRegistry) {
+	registry.RegisterMinion("Open QA", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
+	registry.RegisterMinion("Closed QA", getEnvOrDefault("CLOSED_QA_MINION_URL", ""))
+	registry.RegisterMinion("Summarization", getEnvOrDefault("SUMMARIZATION_MINION_URL", ""))
+	registry.RegisterMinion("Text Generation", getEnvOrDefault("TEXT_GENERATION_MINION_URL", ""))
+	registry.RegisterMinion("Classification", getEnvOrDefault("CLASSIFICATION_MINION_URL", ""))
+	registry.RegisterMinion("Code Generation", getEnvOrDefault("CODE_GENERATION_MINION_URL", ""))
+	registry.RegisterMinion("Chatbot", getEnvOrDefault("CHATBOT_MINION_URL", ""))
+	registry.RegisterMinion("Rewrite", getEnvOrDefault("REWRITE_MINION_URL", ""))
+	registry.RegisterMinion("Brainstorming", getEnvOrDefault("BRAINSTORMING_MINION_URL", ""))
+	registry.RegisterMinion("Extraction", getEnvOrDefault("EXTRACTION_MINION_URL", ""))
+	registry.RegisterMinion("Other", getEnvOrDefault("OTHER_MINION_URL", ""))
+}
+
+// getEnvOrDefault returns environment variable value or default if not set.
 func getEnvOrDefault(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
@@ -319,54 +279,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-// GetMetrics returns the metrics service for external access (e.g., health checks)
-func (h *CompletionHandler) GetMetrics() *completions.MetricsService {
-	return h.metricsService
-}
-
-// Health performs a health check on all services
+// Health checks dependencies.
 func (h *CompletionHandler) Health() error {
-	if err := h.orchestrationService.ValidateOrchestrationContext(); err != nil {
-		return err
-	}
-	// Add other health checks as needed
-	return nil
-}
-
-// GetCircuitBreakerStatus returns the status of all circuit breakers
-func (h *CompletionHandler) GetCircuitBreakerStatus() map[string]map[string]any {
-	h.cbMutex.RLock()
-	defer h.cbMutex.RUnlock()
-
-	status := make(map[string]map[string]any)
-	for providerName, cb := range h.circuitBreakers {
-		metrics := cb.GetMetrics()
-		state := cb.GetState()
-		successRate := cb.GetSuccessRate()
-
-		status[providerName] = map[string]any{
-			"state":               h.stateToString(state),
-			"total_requests":      metrics.TotalRequests,
-			"successful_requests": metrics.SuccessfulRequests,
-			"failed_requests":     metrics.FailedRequests,
-			"circuit_opens":       metrics.CircuitOpens,
-			"circuit_closes":      metrics.CircuitCloses,
-			"success_rate":        successRate,
-		}
-	}
-	return status
-}
-
-// stateToString converts circuit breaker state to string
-func (h *CompletionHandler) stateToString(state circuitbreaker.State) string {
-	switch state {
-	case circuitbreaker.Closed:
-		return "closed"
-	case circuitbreaker.Open:
-		return "open"
-	case circuitbreaker.HalfOpen:
-		return "half_open"
-	default:
-		return "unknown"
-	}
+	return h.orchestrationService.ValidateOrchestrationContext()
 }

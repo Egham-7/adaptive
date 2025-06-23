@@ -10,6 +10,7 @@ import (
 // ProviderType represents supported LLM providers
 type ProviderType string
 
+// OpenAIParameters aliases the ChatCompletion params type
 type OpenAIParameters = openai.ChatCompletionNewParams
 
 const (
@@ -46,7 +47,7 @@ const (
 	DifficultyHard   DifficultyLevel = "hard"
 )
 
-// ClassificationResult represents the response from the Python prompt classifier
+// ClassificationResult represents the response from the prompt classifier
 type ClassificationResult struct {
 	TaskType1             []string  `json:"task_type_1"`
 	CreativityScope       []float64 `json:"creativity_scope"`
@@ -56,7 +57,7 @@ type ClassificationResult struct {
 	DomainKnowledge       []float64 `json:"domain_knowledge"`
 }
 
-// ModelCapability represents the capabilities and configuration of a model
+// ModelCapability represents the capabilities of a model
 type ModelCapability struct {
 	Description             string       `yaml:"description" json:"description"`
 	Provider                ProviderType `yaml:"provider" json:"provider"`
@@ -67,20 +68,20 @@ type ModelCapability struct {
 	SupportsVision          bool         `yaml:"supports_vision" json:"supports_vision"`
 }
 
-// DifficultyConfig represents configuration for a specific difficulty level
+// DifficultyConfig represents config for a difficulty level
 type DifficultyConfig struct {
 	Model               string  `yaml:"model" json:"model"`
 	ComplexityThreshold float64 `yaml:"complexity_threshold" json:"complexity_threshold"`
 }
 
-// TaskModelMapping represents model mappings for different difficulty levels of a task
+// TaskModelMapping maps a task to models per difficulty
 type TaskModelMapping struct {
 	Easy   DifficultyConfig `yaml:"easy" json:"easy"`
 	Medium DifficultyConfig `yaml:"medium" json:"medium"`
 	Hard   DifficultyConfig `yaml:"hard" json:"hard"`
 }
 
-// TaskParameters represents parameters for different task types
+// TaskParameters represents LLM params for a task
 type TaskParameters struct {
 	Temperature         float64 `yaml:"temperature" json:"temperature"`
 	TopP                float64 `yaml:"top_p" json:"top_p"`
@@ -90,22 +91,22 @@ type TaskParameters struct {
 	N                   int     `yaml:"n" json:"n"`
 }
 
-// ModelSelectionConfig represents the complete configuration for model selection
+// ModelSelectionConfig holds global YAML config
 type ModelSelectionConfig struct {
 	ModelCapabilities map[string]ModelCapability    `yaml:"model_capabilities" json:"model_capabilities"`
 	TaskModelMappings map[TaskType]TaskModelMapping `yaml:"task_model_mappings" json:"task_model_mappings"`
 	TaskParameters    map[TaskType]TaskParameters   `yaml:"task_parameters" json:"task_parameters"`
 }
 
-// ModelSelectionRequest represents a request for model selection
+// ModelSelectionRequest represents an incoming selection request
 type ModelSelectionRequest struct {
 	Prompt             string   `json:"prompt"`
-	UserID             string   `json:"user_id,omitempty"`             // For caching purposes
-	ProviderConstraint []string `json:"provider_constraint,omitempty"` // Optional provider constraint
-	CostBias           float32  `json:"cost_bias,omitempty"`           // Optional cost bias for model selection
+	UserID             string   `json:"user_id,omitempty"`
+	ProviderConstraint []string `json:"provider_constraint,omitempty"`
+	CostBias           float32  `json:"cost_bias,omitempty"`
 }
 
-// PromptScores represents extracted scores from classification
+// PromptScores duplicates the scores for narrow use cases
 type PromptScores struct {
 	CreativityScope       []float64 `json:"creativity_scope"`
 	Reasoning             []float64 `json:"reasoning"`
@@ -114,33 +115,67 @@ type PromptScores struct {
 	DomainKnowledge       []float64 `json:"domain_knowledge"`
 }
 
-// Alternative represents an alternative model/provider combination for fallback
+// Alternative is a provider+model fallback candidate
 type Alternative struct {
 	Provider string `json:"provider"`
 	Model    string `json:"model"`
 }
 
-// UnifiedOrchestratorResponse consolidates all orchestrator response types
-type OrchestratorResponse struct {
-	Protocol     LiteralString    `json:"protocol"`
-	Provider     string           `json:"provider,omitempty"`
-	Model        string           `json:"model,omitempty"`
-	TaskType     string           `json:"task_type,omitempty"`
-	Confidence   float64          `json:"confidence,omitempty"`
+// ProtocolType discriminates the orchestrator response shape
+type ProtocolType string
+
+const (
+	ProtocolStandardLLM     ProtocolType = "standard_llm"
+	ProtocolMinion          ProtocolType = "minion"
+	ProtocolMinionsProtocol ProtocolType = "minions_protocol"
+)
+
+// StandardLLMInfo holds the chosen remote model details
+type StandardLLMInfo struct {
+	Provider     string           `json:"provider"`
+	Model        string           `json:"model"`
+	Confidence   float64          `json:"confidence"`
 	Parameters   OpenAIParameters `json:"parameters"`
 	Alternatives []Alternative    `json:"alternatives,omitempty"`
 }
 
-// LiteralString is a string‐alias to use as a discriminant.
-type LiteralString string
+// MinionInfo holds the chosen minion task details
+type MinionInfo struct {
+	TaskType     string           `json:"task_type"`
+	Parameters   OpenAIParameters `json:"parameters"`
+	Alternatives []Alternative    `json:"alternatives,omitempty"`
+}
 
-const (
-	ProtocolStandardLLM     LiteralString = "standard_llm"
-	ProtocolMinion          LiteralString = "minion"
-	ProtocolMinionsProtocol LiteralString = "minions_protocol"
-)
+// OrchestratorResponse is the union of standard and/or minion info
+type OrchestratorResponse struct {
+	Protocol ProtocolType     `json:"protocol"`
+	Standard *StandardLLMInfo `json:"standard,omitempty"`
+	Minion   *MinionInfo      `json:"minion,omitempty"`
+}
 
-// ValidTaskTypes returns all valid task types
+// OrchestratorResult holds internal routing results
+type OrchestratorResult struct {
+	Provider     provider_interfaces.LLMProvider
+	ProviderName string
+	CacheType    string
+	ProtocolType ProtocolType
+	ModelName    string
+	Parameters   OpenAIParameters
+	TaskType     string
+	Alternatives []Alternative
+}
+
+// RaceResult represents a parallel provider race outcome
+type RaceResult struct {
+	Provider     provider_interfaces.LLMProvider
+	ProviderName string
+	ModelName    string
+	TaskType     string
+	Duration     time.Duration
+	Error        error
+}
+
+// ValidTaskTypes returns all supported TaskType values
 func ValidTaskTypes() []TaskType {
 	return []TaskType{
 		TaskOpenQA,
@@ -157,7 +192,7 @@ func ValidTaskTypes() []TaskType {
 	}
 }
 
-// ValidProviders returns all valid provider types
+// ValidProviders returns all supported ProviderType values
 func ValidProviders() []ProviderType {
 	return []ProviderType{
 		ProviderOpenAI,
@@ -168,44 +203,22 @@ func ValidProviders() []ProviderType {
 	}
 }
 
-// IsValidTaskType checks if a task type is valid
+// IsValidTaskType checks if a string matches a known TaskType
 func IsValidTaskType(taskType string) bool {
-	for _, valid := range ValidTaskTypes() {
-		if string(valid) == taskType {
+	for _, t := range ValidTaskTypes() {
+		if string(t) == taskType {
 			return true
 		}
 	}
 	return false
 }
 
-// IsValidProvider checks if a provider is valid
+// IsValidProvider checks if a string matches a known provider
 func IsValidProvider(provider string) bool {
-	for _, valid := range ValidProviders() {
-		if string(valid) == provider {
+	for _, p := range ValidProviders() {
+		if string(p) == provider {
 			return true
 		}
 	}
 	return false
-}
-
-// OrchestratorResult holds the result of orchestration
-type OrchestratorResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string // For logging and debugging
-	CacheType    string
-	ProtocolType string
-	ModelName    string
-	Parameters   OpenAIParameters
-	TaskType     string        // For minions
-	Alternatives []Alternative // For failover racing if primary fails
-}
-
-// RaceResult represents the result of a parallel request race
-type RaceResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string
-	ModelName    string
-	TaskType     string
-	Duration     time.Duration
-	Error        error
 }
