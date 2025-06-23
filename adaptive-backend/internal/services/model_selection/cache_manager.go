@@ -49,12 +49,16 @@ func NewCacheManager(embProv semanticcache.EmbeddingProvider) (*CacheManager, er
 func (c *CacheManager) Lookup(prompt, userID string) (models.OrchestratorResponse, string, bool) {
 	key := prompt
 	if uc := c.getUserCache(userID); uc != nil {
-		if val, found, _ := uc.Lookup(key, c.threshold); found {
+		if val, found, err := uc.Lookup(key, c.threshold); found {
 			return val, "user", true
+		} else if err != nil {
+			log.Printf("user cache lookup error for %s: %v", userID, err)
 		}
 	}
-	if val, found, _ := c.global.Lookup(key, c.threshold); found {
+	if val, found, err := c.global.Lookup(key, c.threshold); found {
 		return val, "global", true
+	} else if err != nil {
+		log.Printf("global cache lookup error: %v", err)
 	}
 	return models.OrchestratorResponse{}, "", false
 }
