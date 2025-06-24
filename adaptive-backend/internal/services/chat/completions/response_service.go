@@ -35,21 +35,28 @@ func (s *ResponseService) HandleProtocol(
 	case models.ProtocolStandardLLM:
 
 		if remoteProv == nil {
-			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get remote provider", requestID)
+			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get remote provider: remoteProv is nil", requestID)
 		}
 		return s.handleStandard(c, *remoteProv, req, requestID, isStream)
 
 	case models.ProtocolMinion:
 
 		if minionProv == nil {
-			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get minion provider", requestID)
+			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get minion provider: minionProv is nil", requestID)
 		}
 		return s.handleMinion(c, *minionProv, req, requestID, isStream)
 
 	case models.ProtocolMinionsProtocol:
 
 		if remoteProv == nil || minionProv == nil {
-			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get providers for MinionsProtocol", requestID)
+			msg := "Failed to get providers for MinionsProtocol: "
+			if remoteProv == nil {
+				msg += "remoteProv is nil; "
+			}
+			if minionProv == nil {
+				msg += "minionProv is nil; "
+			}
+			return s.HandleError(c, fiber.StatusInternalServerError, msg, requestID)
 		}
 		return s.handleMinionsProtocol(c, *remoteProv, *minionProv, req, requestID, isStream)
 
