@@ -2,11 +2,13 @@ package completions
 
 import (
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/openai/openai-go"
 )
 
 // ResponseService handles HTTP responses for all protocols
@@ -45,7 +47,11 @@ func (s *ResponseService) HandleProtocol(
 		return s.handleMinion(c, *minionProv, req, requestID, isStream)
 
 	case models.ProtocolMinionsProtocol:
-		return nil
+
+		if remoteProv == nil || minionProv == nil {
+			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get providers for MinionsProtocol", requestID)
+		}
+		return s.handleMinionsProtocol(c, *remoteProv, *minionProv, req, requestID, isStream)
 
 	default:
 		return s.HandleError(c, fiber.StatusInternalServerError,
@@ -146,4 +152,30 @@ func (s *ResponseService) setStreamHeaders(c *fiber.Ctx) {
 	c.Set("Transfer-Encoding", "chunked")
 	c.Set("Access-Control-Allow-Origin", "*")
 	c.Set("Access-Control-Allow-Headers", "Cache-Control")
+}
+
+func (s *ResponseService) handleMinionsProtocol(
+	c *fiber.Ctx,
+	remoteProv provider_interfaces.LLMProvider,
+	minionProv provider_interfaces.LLMProvider,
+	req *models.ChatCompletionRequest,
+	requestID string,
+	isStream bool,
+) error {
+	orchestrator := minions.NewMinionsOrchestrationService()
+	var (
+		result *openai.ChatCompletion
+		err    error
+	)
+	result, err = orchestrator.OrchestrateMinionS(
+		c.Context(),
+		remoteProv,
+		minionProv,
+		req,
+		isStream,
+	)
+	if err != nil {
+		return s.HandleError(c, fiber.StatusInternalServerError, "MinionS protocol failed: "+err.Error(), requestID)
+	}
+	return c.JSON(result)
 }
