@@ -288,7 +288,10 @@ func (d *memoryChunkDecoder) Next() bool {
 	chunk := d.chunks[d.idx]
 	d.idx++
 	// Marshal chunk back to JSON for Data field
-	data, _ := json.Marshal(chunk)
+	data, err := json.Marshal(chunk)
+	if err != nil {
+		return false
+	}
 	d.evt = ssestream.Event{
 		Type: "",
 		Data: data,
