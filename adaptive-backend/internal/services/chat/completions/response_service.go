@@ -44,6 +44,9 @@ func (s *ResponseService) HandleProtocol(
 		}
 		return s.handleMinion(c, *minionProv, req, requestID, isStream)
 
+	case models.ProtocolMinionsProtocol:
+		return nil
+
 	default:
 		return s.HandleError(c, fiber.StatusInternalServerError,
 			"unknown protocol "+string(protocol), requestID)
