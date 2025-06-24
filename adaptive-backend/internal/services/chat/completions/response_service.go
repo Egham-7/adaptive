@@ -8,7 +8,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
 )
 
 // ResponseService handles HTTP responses for all protocols
@@ -33,21 +32,20 @@ func (s *ResponseService) HandleProtocol(
 ) error {
 	switch protocol {
 	case models.ProtocolStandardLLM:
-
 		if remoteProv == nil {
-			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get remote provider: remoteProv is nil", requestID)
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				"Failed to get remote provider: remoteProv is nil", requestID)
 		}
 		return s.handleStandard(c, *remoteProv, req, requestID, isStream)
 
 	case models.ProtocolMinion:
-
 		if minionProv == nil {
-			return s.HandleError(c, fiber.StatusInternalServerError, "Failed to get minion provider: minionProv is nil", requestID)
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				"Failed to get minion provider: minionProv is nil", requestID)
 		}
 		return s.handleMinion(c, *minionProv, req, requestID, isStream)
 
 	case models.ProtocolMinionsProtocol:
-
 		if remoteProv == nil || minionProv == nil {
 			msg := "Failed to get providers for MinionsProtocol: "
 			if remoteProv == nil {
@@ -58,7 +56,9 @@ func (s *ResponseService) HandleProtocol(
 			}
 			return s.HandleError(c, fiber.StatusInternalServerError, msg, requestID)
 		}
-		return s.handleMinionsProtocol(c, *remoteProv, *minionProv, req, requestID, isStream)
+		return s.handleMinionsProtocol(
+			c, *remoteProv, *minionProv, req, requestID, isStream,
+		)
 
 	default:
 		return s.HandleError(c, fiber.StatusInternalServerError,
@@ -122,6 +122,43 @@ func (s *ResponseService) handleMinion(
 	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, "minion")
 }
 
+// handleMinionsProtocol handles the MinionS protocol, both stream and non‐stream.
+func (s *ResponseService) handleMinionsProtocol(
+	c *fiber.Ctx,
+	remoteProv provider_interfaces.LLMProvider,
+	minionProv provider_interfaces.LLMProvider,
+	req *models.ChatCompletionRequest,
+	requestID string,
+	isStream bool,
+) error {
+	orchestrator := minions.NewMinionsOrchestrationService()
+
+	if isStream {
+		fiberlog.Infof("[%s] streaming MinionS response", requestID)
+		s.setStreamHeaders(c)
+		streamResp, err := orchestrator.OrchestrateMinionSStream(
+			c.Context(), remoteProv, minionProv, req,
+		)
+		if err != nil {
+			fiberlog.Errorf("[%s] MinionS stream failed: %v", requestID, err)
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				"MinionS streaming failed: "+err.Error(), requestID)
+		}
+		return stream.HandleStream(c, streamResp, requestID)
+	}
+
+	fiberlog.Infof("[%s] generating MinionS completion", requestID)
+	result, err := orchestrator.OrchestrateMinionS(
+		c.Context(), remoteProv, minionProv, req,
+	)
+	if err != nil {
+		fiberlog.Errorf("[%s] MinionS create failed: %v", requestID, err)
+		return s.HandleError(c, fiber.StatusInternalServerError,
+			"MinionS protocol failed: "+err.Error(), requestID)
+	}
+	return c.JSON(result)
+}
+
 // HandleError sends a standardized error response
 func (s *ResponseService) HandleError(
 	c *fiber.Ctx,
@@ -159,30 +196,4 @@ func (s *ResponseService) setStreamHeaders(c *fiber.Ctx) {
 	c.Set("Transfer-Encoding", "chunked")
 	c.Set("Access-Control-Allow-Origin", "*")
 	c.Set("Access-Control-Allow-Headers", "Cache-Control")
-}
-
-func (s *ResponseService) handleMinionsProtocol(
-	c *fiber.Ctx,
-	remoteProv provider_interfaces.LLMProvider,
-	minionProv provider_interfaces.LLMProvider,
-	req *models.ChatCompletionRequest,
-	requestID string,
-	isStream bool,
-) error {
-	orchestrator := minions.NewMinionsOrchestrationService()
-	var (
-		result *openai.ChatCompletion
-		err    error
-	)
-	result, err = orchestrator.OrchestrateMinionS(
-		c.Context(),
-		remoteProv,
-		minionProv,
-		req,
-		isStream,
-	)
-	if err != nil {
-		return s.HandleError(c, fiber.StatusInternalServerError, "MinionS protocol failed: "+err.Error(), requestID)
-	}
-	return c.JSON(result)
 }

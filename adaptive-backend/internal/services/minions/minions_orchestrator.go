@@ -18,93 +18,83 @@ import (
 // MinionsOrchestrationService coordinates the MinionS protocol loop.
 type MinionsOrchestrationService struct{}
 
+// NewMinionsOrchestrationService constructs the service.
 func NewMinionsOrchestrationService() *MinionsOrchestrationService {
 	return &MinionsOrchestrationService{}
 }
 
-// OrchestrateMinionS runs the MinionS protocol loop.
-// If isStream is true, buffers the final aggregation step using remoteAggregateStreamBuffered.
+// OrchestrateMinionS runs the MinionS protocol loop (non-streaming).
 func (s *MinionsOrchestrationService) OrchestrateMinionS(
 	ctx context.Context,
 	remoteProv provider_interfaces.LLMProvider,
 	localProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
-	isStream bool,
 ) (*openai.ChatCompletion, error) {
 	const maxRounds = 8
 	var (
 		roundResults []*openai.ChatCompletion
 		round        = 0
 	)
-
 	for round < maxRounds {
-		// Step a: Decompose (Remote LM)
+		// a) Decompose remotely
 		instructions, _, err := s.remoteDecompose(remoteProv, req, roundResults)
 		if err != nil {
 			return nil, err
 		}
-
-		// Step b: Execute & Filter (Local Minions, parallelized)
+		// b) Execute & filter locally
 		minionInputs := s.distributeInstructions(req.Messages, instructions)
 		rawResults := s.executeLocalMinionsParallel(localProv, minionInputs)
 		roundResults = s.filterMinionResults(rawResults)
-
-		// Step c: Aggregate (Remote LM)
-		if isStream {
-			stream, needMore, err := s.remoteAggregateStreamBuffered(remoteProv, req, roundResults)
-			if err != nil {
-				return nil, err
-			}
-			if stream != nil {
-				// Buffer the stream to reconstruct the final response
-				var contentBuilder strings.Builder
-				for stream.Next() {
-					chunk := stream.Current()
-					if len(chunk.Choices) > 0 {
-						contentBuilder.WriteString(chunk.Choices[0].Delta.Content)
-					}
-				}
-				if err := stream.Err(); err != nil {
-					return nil, err
-				}
-				var parsed struct {
-					Final  bool   `json:"final"`
-					Answer string `json:"answer"`
-				}
-				if err := json.Unmarshal([]byte(contentBuilder.String()), &parsed); err != nil {
-					return nil, errors.New("failed to parse aggregation response")
-				}
-				finalResp := &openai.ChatCompletion{
-					Choices: []openai.ChatCompletionChoice{
-						{
-							Message: openai.ChatCompletionMessage{
-								Role:    "assistant",
-								Content: parsed.Answer,
-							},
-						},
-					},
-				}
-				return finalResp, nil
-			}
-			if !needMore {
-				break
-			}
-		} else {
-			final, needMore, err := s.remoteAggregate(remoteProv, req, roundResults)
-			if err != nil {
-				return nil, err
-			}
-			if final != nil {
-				return final, nil
-			}
-			if !needMore {
-				break
-			}
+		// c) Aggregate remotely (non-streaming)
+		final, needMore, err := s.remoteAggregate(remoteProv, req, roundResults)
+		if err != nil {
+			return nil, err
+		}
+		if final != nil {
+			return final, nil
+		}
+		if !needMore {
+			break
 		}
 		round++
 	}
-
 	return nil, errors.New("MinionS protocol did not converge")
+}
+
+// OrchestrateMinionSStream runs the MinionS protocol loop (streaming).
+// Returns a stream of ChatCompletionChunk once aggregation is final.
+func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
+	ctx context.Context,
+	remoteProv provider_interfaces.LLMProvider,
+	localProv provider_interfaces.LLMProvider,
+	req *models.ChatCompletionRequest,
+) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
+	const maxRounds = 8
+	var (
+		roundResults []*openai.ChatCompletion
+		round        = 0
+	)
+	for round < maxRounds {
+		// a) Decompose remotely
+		instructions, _, err := s.remoteDecompose(remoteProv, req, roundResults)
+		if err != nil {
+			return nil, err
+		}
+		// b) Execute & filter locally
+		minionInputs := s.distributeInstructions(req.Messages, instructions)
+		rawResults := s.executeLocalMinionsParallel(localProv, minionInputs)
+		roundResults = s.filterMinionResults(rawResults)
+		// c) Aggregate remotely (streaming + buffered)
+		stream, needMore, err := s.remoteAggregateStreamBuffered(remoteProv, req, roundResults)
+		if err != nil {
+			return nil, err
+		}
+		if !needMore {
+			return stream, nil
+		}
+		round++
+	}
+	return nil, errors.New("MinionS streaming protocol did not converge")
 }
 
 // --- Protocol Step Implementations ---
@@ -121,8 +111,11 @@ func (s *MinionsOrchestrationService) remoteDecompose(
 		}
 	}
 	systemPrompt := "You are a large language model. Decompose the user query into atomic instructions for a local LM, and specify a chunking/selection strategy for the document. Respond as JSON: {\"instructions\": [\"...\"], \"chunk_strategy\": \"...\"}"
-	userPrompt := fmt.Sprintf("Query: %s\nPrevious Results: %s", getUserQuery(req), strings.Join(prevSummaries, "\n"))
-
+	userPrompt := fmt.Sprintf(
+		"Query: %s\nPrevious Results: %s",
+		getUserQuery(req),
+		strings.Join(prevSummaries, "\n"),
+	)
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(systemPrompt),
@@ -149,17 +142,17 @@ func (s *MinionsOrchestrationService) distributeInstructions(
 	chunks []openai.ChatCompletionMessageParamUnion,
 	instructions []string,
 ) []struct {
-	Chunk       openai.ChatCompletionMessageParamUnion // Document chunk
+	Chunk       openai.ChatCompletionMessageParamUnion
 	Instruction string
 } {
 	var inputs []struct {
-		Chunk       openai.ChatCompletionMessageParamUnion // Document chunk
+		Chunk       openai.ChatCompletionMessageParamUnion
 		Instruction string
 	}
 	for _, chunk := range chunks {
 		for _, instr := range instructions {
 			inputs = append(inputs, struct {
-				Chunk       openai.ChatCompletionMessageParamUnion // Document chunk
+				Chunk       openai.ChatCompletionMessageParamUnion
 				Instruction string
 			}{
 				Chunk:       chunk,
@@ -173,18 +166,16 @@ func (s *MinionsOrchestrationService) distributeInstructions(
 func (s *MinionsOrchestrationService) executeLocalMinionsParallel(
 	localProv provider_interfaces.LLMProvider,
 	inputs []struct {
-		Chunk       openai.ChatCompletionMessageParamUnion // Document chunk
+		Chunk       openai.ChatCompletionMessageParamUnion
 		Instruction string
 	},
 ) []*openai.ChatCompletion {
-	var (
-		results = make([]*openai.ChatCompletion, len(inputs))
-		wg      sync.WaitGroup
-	)
+	results := make([]*openai.ChatCompletion, len(inputs))
+	var wg sync.WaitGroup
 	wg.Add(len(inputs))
 	for i, input := range inputs {
 		go func(i int, input struct {
-			Chunk       openai.ChatCompletionMessageParamUnion // Document chunk
+			Chunk       openai.ChatCompletionMessageParamUnion
 			Instruction string
 		},
 		) {
@@ -219,8 +210,9 @@ func (s *MinionsOrchestrationService) filterMinionResults(
 		}
 		keep := false
 		for _, ch := range r.Choices {
-			if !strings.Contains(strings.ToLower(ch.Message.Content), "abstain") &&
-				!strings.Contains(strings.ToLower(ch.Message.Content), "\"answer\": \"none\"") {
+			lc := strings.ToLower(ch.Message.Content)
+			if !strings.Contains(lc, "abstain") &&
+				!strings.Contains(lc, "\"answer\": \"none\"") {
 				keep = true
 				break
 			}
@@ -270,7 +262,8 @@ func (s *MinionsOrchestrationService) remoteAggregate(
 	return finalResp, !parsed.Final, nil
 }
 
-// in-memory decoder for buffered chunks
+// --- Streaming aggregation with buffered decode ---
+
 type memoryChunkDecoder struct {
 	chunks []*openai.ChatCompletionChunk
 	idx    int
@@ -287,32 +280,24 @@ func (d *memoryChunkDecoder) Next() bool {
 	}
 	chunk := d.chunks[d.idx]
 	d.idx++
-	// Marshal chunk back to JSON for Data field
 	data, err := json.Marshal(chunk)
 	if err != nil {
 		return false
 	}
-	d.evt = ssestream.Event{
-		Type: "",
-		Data: data,
-	}
+	d.evt = ssestream.Event{Type: "", Data: data}
 	return true
 }
 
-func (d *memoryChunkDecoder) Event() ssestream.Event {
-	return d.evt
-}
+func (d *memoryChunkDecoder) Event() ssestream.Event { return d.evt }
+func (d *memoryChunkDecoder) Close() error           { return nil }
+func (d *memoryChunkDecoder) Err() error             { return nil }
 
-func (d *memoryChunkDecoder) Close() error { return nil }
-func (d *memoryChunkDecoder) Err() error   { return nil }
-
-// Streaming version of remoteAggregate, but buffers the stream for parsing before replay.
-// Returns an openai compatible stream after buffering and parsing.
+// remoteAggregateStreamBuffered buffers the streaming aggregation.
 func (s *MinionsOrchestrationService) remoteAggregateStreamBuffered(
 	remoteProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
 	results []*openai.ChatCompletion,
-) (stream *ssestream.Stream[openai.ChatCompletionChunk], needMore bool, err error) {
+) (*ssestream.Stream[openai.ChatCompletionChunk], bool, error) {
 	aggregationPrompt := buildAggregationPrompt(req, results)
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
@@ -326,20 +311,18 @@ func (s *MinionsOrchestrationService) remoteAggregateStreamBuffered(
 	if err != nil {
 		return nil, false, errors.New("remote aggregation streaming failed")
 	}
-
-	// Buffer the stream for parsing
 	var (
 		chunks         []*openai.ChatCompletionChunk
 		contentBuilder strings.Builder
 	)
 	for origStream.Next() {
 		chunk := origStream.Current()
-		chunkBytes, err := json.Marshal(chunk)
+		b, err := json.Marshal(chunk)
 		if err != nil {
 			continue
 		}
 		var parsedChunk openai.ChatCompletionChunk
-		if err := json.Unmarshal(chunkBytes, &parsedChunk); err == nil {
+		if err := json.Unmarshal(b, &parsedChunk); err == nil {
 			chunks = append(chunks, &parsedChunk)
 			if len(parsedChunk.Choices) > 0 {
 				contentBuilder.WriteString(parsedChunk.Choices[0].Delta.Content)
@@ -353,24 +336,30 @@ func (s *MinionsOrchestrationService) remoteAggregateStreamBuffered(
 		Final  bool   `json:"final"`
 		Answer string `json:"answer"`
 	}
-	parseErr := json.Unmarshal([]byte(contentBuilder.String()), &parsed)
-	if parseErr != nil {
+	if err := json.Unmarshal([]byte(contentBuilder.String()), &parsed); err != nil {
 		return nil, false, errors.New("failed to parse aggregation response")
 	}
-
-	// Create a new ssestream.Stream from buffered chunks
 	memDecoder := newMemoryChunkDecoder(chunks)
-	stream = ssestream.NewStream[openai.ChatCompletionChunk](memDecoder, nil)
+	stream := ssestream.NewStream[openai.ChatCompletionChunk](memDecoder, nil)
 	return stream, !parsed.Final, nil
 }
 
 // --- Helpers ---
 
-func buildMinionPrompt(instruction string, chunk openai.ChatCompletionMessageParamUnion) string {
-	return fmt.Sprintf("Instruction: %s\n\nChunk:\n%v\n\nReturn your answer as JSON: {\"answer\": \"...\", \"citation\": \"...\", \"explanation\": \"...\"} or abstain if not found.", instruction, chunk)
+func buildMinionPrompt(
+	instruction string,
+	chunk openai.ChatCompletionMessageParamUnion,
+) string {
+	return fmt.Sprintf(
+		"Instruction: %s\n\nChunk:\n%v\n\nReturn your answer as JSON: {\"answer\": \"...\", \"citation\": \"...\", \"explanation\": \"...\"} or abstain if not found.",
+		instruction, chunk,
+	)
 }
 
-func buildAggregationPrompt(req *models.ChatCompletionRequest, results []*openai.ChatCompletion) string {
+func buildAggregationPrompt(
+	req *models.ChatCompletionRequest,
+	results []*openai.ChatCompletion,
+) string {
 	var sb strings.Builder
 	sb.WriteString("User Query: ")
 	sb.WriteString(getUserQuery(req))
