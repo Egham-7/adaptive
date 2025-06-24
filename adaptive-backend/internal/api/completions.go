@@ -204,20 +204,26 @@ func (h *CompletionHandler) handleResponse(
 	}
 
 	var lastErr error
-	for i, cand := range cands {
+	for _, cand := range cands {
 		cb := h.getOrCreateCB(cand.Name)
 		if cb.GetState() == circuitbreaker.Open || !cb.CanExecute() {
 			cb.RecordFailure()
 			continue
 		}
 
-		// For MinionsProtocol, both providers are needed and are different
 		var remoteProv, minionProv provider_interfaces.LLMProvider
-		if resp.Protocol == models.ProtocolMinionsProtocol && len(cands) == 2 {
-			remoteProv = cands[0].Provider
-			minionProv = cands[1].Provider
-			// Only run once for the pair
-			if i != 0 {
+		if resp.Protocol == models.ProtocolMinionsProtocol {
+			for _, candidate := range cands {
+				switch candidate.Protocol {
+				case models.ProtocolStandardLLM:
+					remoteProv = candidate.Provider
+				case models.ProtocolMinion:
+					minionProv = candidate.Provider
+				}
+			}
+			if remoteProv == nil || minionProv == nil {
+				cb.RecordFailure()
+				lastErr = fmt.Errorf("MinionsProtocol: missing remote or minion provider")
 				continue
 			}
 		} else if cand.Protocol == models.ProtocolMinion {
