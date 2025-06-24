@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"maps"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -278,12 +277,25 @@ func (h *CompletionHandler) getOrCreateCB(name string) *circuitbreaker.CircuitBr
 	return cb
 }
 
-func registerMinions(reg *minions.MinionRegistry) {
-	for _, t := range models.ValidTaskTypes() {
-		key := strings.ToUpper(string(t)) + "_MINION_URL"
-		url := os.Getenv(key)
-		reg.RegisterMinion(string(t), url)
+func getEnvOrDefault(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
+		return value
 	}
+	return defaultValue
+}
+
+func registerMinions(registry *minions.MinionRegistry) {
+	registry.RegisterMinion("Open QA", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
+	registry.RegisterMinion("Closed QA", getEnvOrDefault("CLOSED_QA_MINION_URL", ""))
+	registry.RegisterMinion("Summarization", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
+	registry.RegisterMinion("Text Generation", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
+	registry.RegisterMinion("Classification", getEnvOrDefault("CLASSIFICATION_MINION_URL", ""))
+	registry.RegisterMinion("Code Generation", getEnvOrDefault("CODE_GENERATION_MINION_URL", ""))
+	registry.RegisterMinion("Chatbot", getEnvOrDefault("CHATBOT_MINION_URL", ""))
+	registry.RegisterMinion("Rewrite", getEnvOrDefault("REWRITE_MINION_URL", ""))
+	registry.RegisterMinion("Brainstorming", getEnvOrDefault("BRAINSTORMING_MINION_URL", ""))
+	registry.RegisterMinion("Extraction", getEnvOrDefault("EXTRACTION_MINION_URL", ""))
+	registry.RegisterMinion("Other", getEnvOrDefault("CHATBOT_MINION_URL", ""))
 }
 
 // Health returns orchestration service health.
