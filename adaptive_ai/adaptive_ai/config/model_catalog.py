@@ -320,10 +320,7 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
     ),
     TaskType.CODE_GENERATION: TaskModelMapping(
         model_entries=[
-            TaskModelEntry(
-            TaskModelEntry(
-                provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"
-            ),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
             TaskModelEntry(provider=ProviderType.GOOGLE, model_name="gemini-2.5-pro"),
             TaskModelEntry(

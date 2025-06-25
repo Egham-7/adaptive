@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 
 from langchain_core.documents import Document
@@ -8,16 +9,8 @@ from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
 
-
-class EmbeddingCache:
-    def __init__(
-        self,
-        embeddings_model: HuggingFaceEmbeddings,
-        similarity_threshold: float = 0.95,
-    ) -> None:
-import logging
-
 logger = logging.getLogger(__name__)
+
 
 class EmbeddingCache:
     def __init__(

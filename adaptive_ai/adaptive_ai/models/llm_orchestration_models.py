@@ -1,5 +1,4 @@
-# llm_orchestration_models.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .llm_enums import ProtocolType  # Import enum
 
@@ -43,15 +42,13 @@ class MinionInfo(BaseModel):
     alternatives: list[Alternative] | None = None
 
 
-from pydantic import model_validator
-
 class OrchestratorResponse(BaseModel):
     protocol: ProtocolType
     standard: StandardLLMInfo | None = None
     minion: MinionInfo | None = None
 
-    @model_validator(mode='after')
-    def validate_exclusive_fields(self) -> 'OrchestratorResponse':
+    @model_validator(mode="after")
+    def validate_exclusive_fields(self) -> "OrchestratorResponse":
         if self.standard is not None and self.minion is not None:
             raise ValueError("Cannot have both standard and minion responses")
         if self.standard is None and self.minion is None:
