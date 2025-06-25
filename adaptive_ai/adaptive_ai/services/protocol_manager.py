@@ -66,7 +66,7 @@ class ProtocolSelectionOutput(BaseModel):
     # minions_protocol_payload: dict | None = None
 
 
-class ProtocolSelectionService:
+class ProtocolManager:
     def __init__(self, model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(model_name)

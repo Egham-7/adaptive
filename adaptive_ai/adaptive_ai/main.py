@@ -16,9 +16,10 @@ from adaptive_ai.services.model_selector import (
     ModelSelectionService,
 )
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
+from adaptive_ai.services.protocol_manager import ProtocolManager
 
 
-class ProtocolSelectorAPI(ls.LitAPI):
+class ProtocolManagerAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         self.settings = get_settings()
         self.prompt_classifier = get_prompt_classifier()
@@ -34,6 +35,7 @@ class ProtocolSelectorAPI(ls.LitAPI):
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
         self.model_selection_service = ModelSelectionService()
+        self.protocol_manager = ProtocolManager()
 
     def decode_request(self, request: ModelSelectionRequest) -> ModelSelectionRequest:
         return request
@@ -75,15 +77,17 @@ class ProtocolSelectorAPI(ls.LitAPI):
                     raise ValueError(
                         "No eligible models found after applying provider and task constraints"
                     )
-                """
-                orchestrator_response: OrchestratorResponse = route_model(
-                    req, candidate_models
+                orchestrator_response: OrchestratorResponse = (
+                    self.protocol_manager.select_protocol(
+                        candidate_models=candidate_models,
+                        classification_result=current_classification_result,
+                        prompt=req.prompt,
+                    )
                 )
                 self.embedding_cache.add_to_cache(
                     current_classification_result, orchestrator_response
                 )
                 outputs.append(orchestrator_response)
-                """
 
         return outputs
 
@@ -93,7 +97,7 @@ class ProtocolSelectorAPI(ls.LitAPI):
 
 def create_app() -> ls.LitServer:
     settings = get_settings()
-    api = ProtocolSelectorAPI(
+    api = ProtocolManagerAPI(
         max_batch_size=settings.litserve.max_batch_size,
         batch_timeout=settings.litserve.batch_timeout,
     )
