@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -102,7 +102,12 @@ class EmbeddingCacheSettings(BaseModel):
     """Configuration for the embedding cache."""
 
     model_name: str = "Qwen/Qwen3-Embedding-0.6B"
-    similarity_threshold: float = 0.95
+    similarity_threshold: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="Similarity threshold for embedding cache hits",
+    )
 
 
 class Settings(BaseSettings):

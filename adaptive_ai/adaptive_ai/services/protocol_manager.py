@@ -29,7 +29,8 @@ class ProtocolSelectionOutput(BaseModel):
     )
     model: str = Field(description="The model name to use")
     confidence: float = Field(description="Confidence score for the selection")
-    explanation: str = Field(description="Explanation for the protocol selection")
+    explanation: str = Field(
+        description="Explanation for the protocol selection")
     # OpenAIParameters fields
     temperature: float = Field(
         description="Controls randomness: higher values mean more diverse completions. Range 0.0-2.0."
@@ -62,8 +63,6 @@ class ProtocolSelectionOutput(BaseModel):
         default=None,
         description="Alternative minion task types. Each should have task_type.",
     )
-    # For future extensibility: minions_protocol or other protocols can add their own fields
-    # minions_protocol_payload: dict | None = None
 
 
 class ProtocolManager:
@@ -77,7 +76,8 @@ class ProtocolManager:
             max_new_tokens=256,
         )
         self.llm = HuggingFacePipeline(pipeline=self.pipe)
-        self.parser = PydanticOutputParser(pydantic_object=ProtocolSelectionOutput)
+        self.parser = PydanticOutputParser(
+            pydantic_object=ProtocolSelectionOutput)
         self.protocol_descriptions = (
             "Protocols:\n"
             "1. standard_llm: Use a single large language model for the task.\n"
@@ -138,7 +138,9 @@ class ProtocolManager:
                 f"- Provider: {m.provider.value}, Model: {m.model_name}, "
                 f"Cost/1M input tokens: {m.cost_per_1m_input_tokens}, "
                 f"Cost/1M output tokens: {m.cost_per_1m_output_tokens}, "
-                f"Max context: {m.max_context_tokens}, Max output: {m.max_output_tokens}, "
+                f"Max context: {m.max_context_tokens}, Max output: {
+                    m.max_output_tokens
+                }, "
                 f"Function calling: {m.supports_function_calling}, "
                 f"Languages: {', '.join(m.languages_supported)}, "
                 f"Size: {m.model_size_params}, Latency: {m.latency_tier}"
@@ -159,13 +161,15 @@ class ProtocolManager:
         )
         try:
             chain = self.prompt | self.llm | self.parser
-            result: ProtocolSelectionOutput = chain.invoke({
-                "prompt": prompt,
-                "task_type": task_type,
-                "model_capabilities": model_capabilities,
-                "protocol_descriptions": self.protocol_descriptions,
-                "parameter_descriptions": self.parameter_descriptions,
-            })
+            result: ProtocolSelectionOutput = chain.invoke(
+                {
+                    "prompt": prompt,
+                    "task_type": task_type,
+                    "model_capabilities": model_capabilities,
+                    "protocol_descriptions": self.protocol_descriptions,
+                    "parameter_descriptions": self.parameter_descriptions,
+                }
+            )
         except Exception as e:
             raise RuntimeError(f"Protocol selection failed: {e}") from e
         protocol = (
@@ -182,16 +186,20 @@ class ProtocolManager:
             frequency_penalty=result.frequency_penalty,
             presence_penalty=result.presence_penalty,
         )
-        # Prepare alternatives for each protocol type
+
         standard_alts = None
-        standard_alts = None
+        minion_alts = None
         if result.standard_alternatives:
             try:
-                standard_alts = [Alternative(**alt) for alt in result.standard_alternatives]
+                standard_alts = [
+                    Alternative(**alt) for alt in result.standard_alternatives
+                ]
             except (TypeError, ValueError) as e:
                 # Log the error and continue without alternatives
                 standard_alts = None
 
+            standard_alts = [Alternative(**alt)
+                             for alt in result.standard_alternatives]
         minion_alts = None
         if result.minion_alternatives:
             try:
