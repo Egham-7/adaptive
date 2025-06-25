@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Any, cast
 
 from huggingface_hub import PyTorchModelHubMixin
@@ -250,7 +249,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
 
 class PromptClassifier:
-    def __init__(self) -> None:
+    def __init__(self, lit_logger: Any = None) -> None:
         self.config = AutoConfig.from_pretrained(
             "nvidia/prompt-task-and-complexity-classifier"
         )
@@ -262,7 +261,9 @@ class PromptClassifier:
             task_type_map=self.config.task_type_map,
             weights_map=self.config.weights_map,
             divisor_map=self.config.divisor_map,
+            lit_logger=lit_logger,
         ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
+        self.lit_logger = lit_logger
 
     def classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
         """
@@ -274,6 +275,11 @@ class PromptClassifier:
         Returns:
             List of classification results, one per prompt
         """
+        if self.lit_logger:
+            self.lit_logger.log(
+                "prompt_classification_batch_start", {"batch_size": len(prompts)}
+            )
+
         encoded_texts = self.tokenizer(
             prompts,
             padding=True,
@@ -288,12 +294,16 @@ class PromptClassifier:
         # Convert raw dictionary results to ClassificationResult Pydantic models
         results = [ClassificationResult(**result) for result in raw_results]
 
+        if self.lit_logger:
+            self.lit_logger.log(
+                "prompt_classification_batch_complete", {"batch_size": len(results)}
+            )
+
         print(
             f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
         )
         return results
 
 
-@lru_cache
-def get_prompt_classifier() -> PromptClassifier:
-    return PromptClassifier()
+def get_prompt_classifier(lit_logger: Any = None) -> PromptClassifier:
+    return PromptClassifier(lit_logger=lit_logger)
