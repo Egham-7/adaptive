@@ -41,7 +41,10 @@ class EmbeddingCache:
             print(
                 f"Updating existing classification result in cache (exact match). Doc ID: {doc_id}"
             )
-            self.vectorstore.delete(ids=[doc_id])
+            try:
+                self.vectorstore.delete(ids=[doc_id])
+            except Exception as e:
+                logger.warning(f"Failed to delete document {doc_id}: {e}")
         else:
             doc_id = uuid.uuid4().hex
             print(f"Adding new classification result to cache. Doc ID: {doc_id}")
