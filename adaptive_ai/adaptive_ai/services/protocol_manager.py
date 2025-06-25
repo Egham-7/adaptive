@@ -71,7 +71,7 @@ class LitLoggerProtocol(Protocol):
 class ProtocolManager:
     def __init__(
         self,
-        model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        model_name: str = "osmosis-ai/Osmosis-Structure-0.6B",
         max_new_tokens: int = 256,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
