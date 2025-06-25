@@ -2,7 +2,7 @@
 
 import { Slot } from "@radix-ui/react-slot";
 import { type VariantProps, cva } from "class-variance-authority";
-import { PanelLeftIcon } from "lucide-react";
+import { PanelLeftIcon, DollarSign } from "lucide-react";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import ChatbotPricing from "@/app/_components/landing_page/chatbot-pricing";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -292,8 +294,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
 			title="Toggle Sidebar"
 			className={cn(
 				"-translate-x-1/2 group-data-[side=left]:-right-4 absolute inset-y-0 z-20 hidden w-4 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=right]:left-0 sm:flex",
-				"in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
-				"[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
+				"in-data-[side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
 				"group-data-[collapsible=offcanvas]:translate-x-0 hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:after:left-full",
 				"[[data-side=left][data-collapsible=offcanvas]_&]:-right-2",
 				"[[data-side=right][data-collapsible=offcanvas]_&]:-left-2",
@@ -343,6 +344,46 @@ function SidebarHeader({ className, ...props }: React.ComponentProps<"div">) {
 	);
 }
 
+function SidebarPricingButton() {
+	const [open, setOpen] = React.useState(false);
+	return (
+		<>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<Button
+						variant="ghost"
+						size="icon"
+						className="w-full justify-start"
+						onClick={() => setOpen(true)}
+						aria-label="View Pricing"
+						data-sidebar="pricing-button"
+					>
+						View Plans
+						<span className="sr-only">View Pricing</span>
+					</Button>
+				</TooltipTrigger>
+				<TooltipContent side="right" align="center">
+					View Pricing
+				</TooltipContent>
+			</Tooltip>
+			{open && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+					<div className="relative w-full max-w-[90vw] h-[90vh] bg-background rounded-lg shadow-lg overflow-auto p-8">
+						<button
+							onClick={() => setOpen(false)}
+							className="absolute top-4 right-4 text-xl"
+							aria-label="Close"
+						>
+							×
+						</button>
+						<ChatbotPricing />
+					</div>
+				</div>
+			)}
+		</>
+	);
+}
+
 function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
@@ -350,7 +391,13 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<"div">) {
 			data-sidebar="footer"
 			className={cn("flex flex-col gap-2 p-2", className)}
 			{...props}
-		/>
+		>
+			<SidebarPricingButton />
+			
+			<div className="bg-muted/60 rounded-md p-2 mt-2">
+				{props.children}
+			</div>
+		</div>
 	);
 }
 
