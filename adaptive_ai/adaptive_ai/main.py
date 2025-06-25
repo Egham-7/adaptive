@@ -65,7 +65,7 @@ class ProtocolManagerAPI(ls.LitAPI):
             else:
                 try:
                     prompt_token_count = len(self.tokenizer.encode(req.prompt))
-                except Exception as e:
+                except Exception:
                     # Fallback to character-based estimation
                     prompt_token_count = len(req.prompt) // 4  # Rough approximation
 
