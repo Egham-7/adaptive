@@ -63,7 +63,11 @@ class ProtocolManagerAPI(ls.LitAPI):
             if cached_orchestrator_response:
                 outputs.append(cached_orchestrator_response)
             else:
-                prompt_token_count = len(self.tokenizer.encode(req.prompt))
+                try:
+                    prompt_token_count = len(self.tokenizer.encode(req.prompt))
+                except Exception as e:
+                    # Fallback to character-based estimation
+                    prompt_token_count = len(req.prompt) // 4  # Rough approximation
 
                 candidate_models: list[ModelCapability] = (
                     self.model_selection_service.select_candidate_models(
