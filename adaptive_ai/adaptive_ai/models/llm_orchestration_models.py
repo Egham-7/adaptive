@@ -43,7 +43,17 @@ class MinionInfo(BaseModel):
     alternatives: list[Alternative] | None = None
 
 
+from pydantic import model_validator
+
 class OrchestratorResponse(BaseModel):
     protocol: ProtocolType
     standard: StandardLLMInfo | None = None
     minion: MinionInfo | None = None
+
+    @model_validator(mode='after')
+    def validate_exclusive_fields(self) -> 'OrchestratorResponse':
+        if self.standard is not None and self.minion is not None:
+            raise ValueError("Cannot have both standard and minion responses")
+        if self.standard is None and self.minion is None:
+            raise ValueError("Must have either standard or minion response")
+        return self
