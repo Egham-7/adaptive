@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
@@ -17,6 +18,8 @@ from adaptive_ai.services.model_selector import (
 )
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 from adaptive_ai.services.protocol_manager import ProtocolManager
+
+logger = logging.getLogger(__name__)
 
 
 class ProtocolManagerAPI(ls.LitAPI):
@@ -93,7 +96,7 @@ class ProtocolManagerAPI(ls.LitAPI):
                         current_classification_result, orchestrator_response
                     )
                 except Exception as e:
-                    # Log the error but don't fail the request
+                    logger.exception("Failed to cache result: %s", e)
                     pass  # or log the error
                 outputs.append(orchestrator_response)
 
