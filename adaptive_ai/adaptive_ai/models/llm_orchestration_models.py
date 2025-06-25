@@ -28,6 +28,10 @@ class Alternative(BaseModel):
     model: str
 
 
+class MinionAlternative(BaseModel):
+    task_type: str
+
+
 class StandardLLMInfo(BaseModel):
     provider: str
     model: str
@@ -39,18 +43,22 @@ class StandardLLMInfo(BaseModel):
 class MinionInfo(BaseModel):
     task_type: str = Field(alias="task_type")
     parameters: OpenAIParameters
-    alternatives: list[Alternative] | None = None
+    alternatives: list[MinionAlternative] | None = None
 
 
+# Extensible OrchestratorResponse for future protocols
 class OrchestratorResponse(BaseModel):
     protocol: ProtocolType
     standard: StandardLLMInfo | None = None
     minion: MinionInfo | None = None
+    # For future extensibility, add new protocol payloads as new fields
+    # e.g., minions_protocol: MinionsProtocolInfo | None = None
 
     @model_validator(mode="after")
     def validate_exclusive_fields(self) -> "OrchestratorResponse":
-        if self.standard is not None and self.minion is not None:
-            raise ValueError("Cannot have both standard and minion responses")
-        if self.standard is None and self.minion is None:
-            raise ValueError("Must have either standard or minion response")
+        # Allow multiple protocol payloads for extensibility, but enforce at least one present
+        if not any([self.standard, self.minion]):
+            raise ValueError(
+                "Must have at least one protocol payload (standard, minion, etc.)"
+            )
         return self
