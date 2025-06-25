@@ -1,7 +1,6 @@
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
-# LangChain imports
 from langchain_huggingface.llms import HuggingFacePipeline
 from pydantic import BaseModel, Field
 from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
@@ -29,7 +28,8 @@ class ProtocolSelectionOutput(BaseModel):
     )
     model: str = Field(description="The model name to use")
     confidence: float = Field(description="Confidence score for the selection")
-    explanation: str = Field(description="Explanation for the protocol selection")
+    explanation: str = Field(
+        description="Explanation for the protocol selection")
     # OpenAIParameters fields
     temperature: float = Field(
         description="Controls randomness: higher values mean more diverse completions. Range 0.0-2.0."
@@ -65,23 +65,26 @@ class ProtocolSelectionOutput(BaseModel):
 
 
 class ProtocolManager:
-    def __init__(self, model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"):
-def __init__(self, 
-             model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", 
-             max_new_tokens: int = 256):
-    try:
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        self.pipe = pipeline(
-            "text-generation",
-            model=self.model,
-            tokenizer=self.tokenizer,
-            max_new_tokens=max_new_tokens,
-        )
-        self.llm = HuggingFacePipeline(pipeline=self.pipe)
-    except Exception as e:
-        raise RuntimeError(f"Failed to load model {model_name}: {e}") from e
-        self.parser = PydanticOutputParser(pydantic_object=ProtocolSelectionOutput)
+    def __init__(
+        self,
+        model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
+        max_new_tokens: int = 256,
+    ):
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+            self.model = AutoModelForCausalLM.from_pretrained(model_name)
+            self.pipe = pipeline(
+                "text-generation",
+                model=self.model,
+                tokenizer=self.tokenizer,
+                max_new_tokens=max_new_tokens,
+            )
+            self.llm = HuggingFacePipeline(pipeline=self.pipe)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load model {
+                               model_name}: {e}") from e
+        self.parser = PydanticOutputParser(
+            pydantic_object=ProtocolSelectionOutput)
         self.protocol_descriptions = (
             "Protocols:\n"
             "1. standard_llm: Use a single large language model for the task.\n"
@@ -202,7 +205,8 @@ def __init__(self,
                 # Log the error and continue without alternatives
                 standard_alts = None
 
-            standard_alts = [Alternative(**alt) for alt in result.standard_alternatives]
+            standard_alts = [Alternative(**alt)
+                             for alt in result.standard_alternatives]
         minion_alts = None
         if result.minion_alternatives:
             try:
