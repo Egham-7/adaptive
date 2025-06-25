@@ -139,9 +139,7 @@ class ProtocolManager:
                 f"- Provider: {m.provider.value}, Model: {m.model_name}, "
                 f"Cost/1M input tokens: {m.cost_per_1m_input_tokens}, "
                 f"Cost/1M output tokens: {m.cost_per_1m_output_tokens}, "
-                f"Max context: {m.max_context_tokens}, Max output: {
-                    m.max_output_tokens
-                }, "
+                f"Max context: {m.max_context_tokens}, Max output: {m.max_output_tokens}, "
                 f"Function calling: {m.supports_function_calling}, "
                 f"Languages: {', '.join(m.languages_supported)}, "
                 f"Size: {m.model_size_params}, Latency: {m.latency_tier}"
