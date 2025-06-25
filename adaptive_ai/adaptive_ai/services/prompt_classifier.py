@@ -1,11 +1,13 @@
 from functools import lru_cache
-from typing import Any, cast
+from typing import cast
 
 from huggingface_hub import PyTorchModelHubMixin
 import numpy as np
 import torch
 import torch.nn as nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+
+from adaptive_ai.models.llm_classification_models import ClassificationResult
 
 
 class MeanPooling(nn.Module):
@@ -256,7 +258,7 @@ class PromptClassifier:
             divisor_map=self.config.divisor_map,
         ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
 
-    def classify_prompts(self, prompts: list[str]) -> list[dict[str, Any]]:
+    def classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
         """
         Classify multiple prompts in a batch for optimal GPU utilization.
 
@@ -277,32 +279,12 @@ class PromptClassifier:
         with torch.no_grad():
             raw_results = self.model(encoded_texts)
 
-        # tell MyPy this is indeed list[dict[str,Any]]
-        results = cast(list[dict[str, Any]], raw_results)
+        results = cast(list[ClassificationResult], raw_results)
 
         print(
             f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
         )
         return results
-
-    def classify_task_types(self, texts: list[str]) -> list[str]:
-        """
-        Extract just the task types from classification results.
-
-        Args:
-            texts: List of prompts to classify
-
-        Returns:
-            List of primary task types for each prompt
-        """
-        results = self.classify_prompts(texts)
-        task_types = []
-
-        for result in results:
-            task_type = result.get("task_type_1", ["Other"])[0]
-            task_types.append(task_type)
-
-        return task_types
 
 
 @lru_cache

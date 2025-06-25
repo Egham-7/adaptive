@@ -25,7 +25,7 @@ classifiers = [
 
 
 [tool.poetry.dependencies]
-python = ">=3.11,<=4.0"
+python = ">=3.11,<4.0"
 numpy = "^1.26"
 scikit-learn = "^1.7.0"
 huggingface-hub = "^0.32.0"
@@ -42,6 +42,10 @@ pyyaml = "^6.0.2"
 tiktoken = "^0.9.0"
 pytest = "^8.4.1"
 pytest-cov = "^6.2.1"
+langchain = "^0.3.26"
+langchain-huggingface = "^0.3.0"
+sentence-transformers = "^4.1.0"
+langchain-core = "^0.3.66"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.15.0"
@@ -139,4 +143,3 @@ exclude_lines = [
   "class .*\\bProtocol\\):",
   "@(abc\\.)?abstractmethod",
 ]
-
