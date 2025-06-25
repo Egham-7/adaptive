@@ -71,7 +71,7 @@ class ProtocolManager:
     def __init__(
         self,
         model_name: str = "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        max_new_tokens: int = 256,
+        max_new_tokens: int = None,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
