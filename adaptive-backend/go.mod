@@ -13,9 +13,7 @@ require (
 	github.com/openai/openai-go v1.1.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/valyala/fasthttp v1.59.0
-	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
 	google.golang.org/genai v1.7.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -48,7 +46,10 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 )
 
-require golang.org/x/text v0.23.0 // indirect
+require (
+	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+)
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect

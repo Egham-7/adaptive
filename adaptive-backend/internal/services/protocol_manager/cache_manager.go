@@ -1,8 +1,9 @@
-package model_selection
+package protocol_manager
 
 import (
-	"adaptive-backend/internal/models"
 	"log"
+
+	"adaptive-backend/internal/models"
 
 	"github.com/botirk38/semanticcache"
 	lru "github.com/hashicorp/golang-lru/v2"

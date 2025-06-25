@@ -1,34 +1,35 @@
 package completions
 
 import (
+	"context"
+	"fmt"
+
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/minions"
-	"adaptive-backend/internal/services/model_selection"
-	"context"
-	"fmt"
+	"adaptive-backend/internal/services/protocol_manager"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// OrchestrationService coordinates model selection and provider setup.
+// OrchestrationService coordinates protocol selection and provider setup.
 type OrchestrationService struct {
-	modelSelector  *model_selection.ModelSelector
-	minionRegistry *minions.MinionRegistry
+	protocolManager *protocol_manager.ProtocolManager
+	minionRegistry  *minions.MinionRegistry
 }
 
 // NewOrchestrationService creates a new orchestration service.
 func NewOrchestrationService(
-	modelSelector *model_selection.ModelSelector,
+	protocolManager *protocol_manager.ProtocolManager,
 	minionRegistry *minions.MinionRegistry,
 ) *OrchestrationService {
 	return &OrchestrationService{
-		modelSelector:  modelSelector,
-		minionRegistry: minionRegistry,
+		protocolManager: protocolManager,
+		minionRegistry:  minionRegistry,
 	}
 }
 
-// SelectAndConfigureProvider runs model selection and returns the chosen
+// SelectAndConfigureProvider runs protocol selection and returns the chosen
 // LLM provider along with the orchestrator response.
 func (s *OrchestrationService) SelectAndConfigureProvider(
 	ctx context.Context,
@@ -55,12 +56,12 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 		CostBias:           req.CostBias,
 	}
 
-	resp, _, err = s.modelSelector.SelectModelWithCache(
+	resp, _, err = s.protocolManager.SelectProtocolWithCache(
 		selReq, userID, requestID, circuitBreakers,
 	)
 	if err != nil {
-		fiberlog.Errorf("[%s] Model selection error: %v", requestID, err)
-		return nil, fmt.Errorf("model selection failed: %w", err)
+		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
+		return nil, fmt.Errorf("protocol selection failed: %w", err)
 	}
 
 	return resp, nil
@@ -68,8 +69,8 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 
 // ValidateOrchestrationContext ensures dependencies are set.
 func (s *OrchestrationService) ValidateOrchestrationContext() error {
-	if s.modelSelector == nil {
-		return fmt.Errorf("model selector is required")
+	if s.protocolManager == nil {
+		return fmt.Errorf("protocol manager is required")
 	}
 	if s.minionRegistry == nil {
 		return fmt.Errorf("minion registry is required")

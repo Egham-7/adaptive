@@ -1,19 +1,20 @@
 package api
 
 import (
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/chat/completions"
-	"adaptive-backend/internal/services/circuitbreaker"
-	"adaptive-backend/internal/services/metrics"
-	"adaptive-backend/internal/services/minions"
-	"adaptive-backend/internal/services/model_selection"
-	"adaptive-backend/internal/services/providers"
-	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
 	"maps"
 	"os"
 	"sync"
 	"time"
+
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/chat/completions"
+	"adaptive-backend/internal/services/circuitbreaker"
+	"adaptive-backend/internal/services/metrics"
+	"adaptive-backend/internal/services/minions"
+	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/providers"
+	"adaptive-backend/internal/services/providers/provider_interfaces"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -44,9 +45,9 @@ func NewCompletionHandler() *CompletionHandler {
 	mr := minions.NewMinionRegistry(11)
 	registerMinions(mr)
 
-	modelSel, err := model_selection.NewModelSelector(0, 0)
+	protocolMgr, err := protocol_manager.NewProtocolManager(0, 0)
 	if err != nil {
-		fiberlog.Fatalf("model selector init: %v", err)
+		fiberlog.Fatalf("protocol manager init: %v", err)
 	}
 	chatMetrics := metrics.NewChatMetrics()
 
@@ -54,7 +55,7 @@ func NewCompletionHandler() *CompletionHandler {
 		reqSvc:         completions.NewRequestService(),
 		respSvc:        completions.NewResponseService(),
 		paramSvc:       completions.NewParameterService(),
-		orchSvc:        completions.NewOrchestrationService(modelSel, mr),
+		orchSvc:        completions.NewOrchestrationService(protocolMgr, mr),
 		metricsSvc:     completions.NewMetricsService(chatMetrics),
 		raceSvc:        completions.NewRaceService(mr),
 		minionRegistry: mr,
