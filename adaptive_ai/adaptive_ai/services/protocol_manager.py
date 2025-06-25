@@ -66,15 +66,21 @@ class ProtocolSelectionOutput(BaseModel):
 
 class ProtocolManager:
     def __init__(self, model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"):
+def __init__(self, 
+             model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B", 
+             max_new_tokens: int = 256):
+    try:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(model_name)
         self.pipe = pipeline(
             "text-generation",
             model=self.model,
             tokenizer=self.tokenizer,
-            max_new_tokens=256,
+            max_new_tokens=max_new_tokens,
         )
         self.llm = HuggingFacePipeline(pipeline=self.pipe)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load model {model_name}: {e}") from e
         self.parser = PydanticOutputParser(pydantic_object=ProtocolSelectionOutput)
         self.protocol_descriptions = (
             "Protocols:\n"
