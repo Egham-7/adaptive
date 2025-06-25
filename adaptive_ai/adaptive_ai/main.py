@@ -88,9 +88,13 @@ class ProtocolManagerAPI(ls.LitAPI):
                         prompt=req.prompt,
                     )
                 )
-                self.embedding_cache.add_to_cache(
-                    current_classification_result, orchestrator_response
-                )
+                try:
+                    self.embedding_cache.add_to_cache(
+                        current_classification_result, orchestrator_response
+                    )
+                except Exception as e:
+                    # Log the error but don't fail the request
+                    pass  # or log the error
                 outputs.append(orchestrator_response)
 
         return outputs
