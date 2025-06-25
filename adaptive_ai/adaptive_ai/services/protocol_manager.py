@@ -157,16 +157,17 @@ class ProtocolManager:
             if classification_result.task_type_1
             else "Other"
         )
-        chain = self.prompt | self.llm | self.parser
-        result: ProtocolSelectionOutput = chain.invoke(
-            {
+        try:
+            chain = self.prompt | self.llm | self.parser
+            result: ProtocolSelectionOutput = chain.invoke({
                 "prompt": prompt,
                 "task_type": task_type,
                 "model_capabilities": model_capabilities,
                 "protocol_descriptions": self.protocol_descriptions,
                 "parameter_descriptions": self.parameter_descriptions,
-            }
-        )
+            })
+        except Exception as e:
+            raise RuntimeError(f"Protocol selection failed: {e}") from e
         protocol = (
             ProtocolType(result.protocol)
             if result.protocol in ProtocolType._value2member_map_
