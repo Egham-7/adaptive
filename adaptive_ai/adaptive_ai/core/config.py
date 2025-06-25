@@ -101,7 +101,7 @@ class HealthConfig(BaseModel):
 class EmbeddingCacheSettings(BaseModel):
     """Configuration for the embedding cache."""
 
-    model_name: str = "Qwen/Qwen3-Embedding-8B"
+    model_name: str = "Qwen/Qwen3-Embedding-0.6B"
     similarity_threshold: float = 0.95
 
 
