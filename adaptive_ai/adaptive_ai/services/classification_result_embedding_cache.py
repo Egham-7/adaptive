@@ -15,13 +15,23 @@ class EmbeddingCache:
         embeddings_model: HuggingFaceEmbeddings,
         similarity_threshold: float = 0.95,
     ) -> None:
-        print(
+import logging
+
+logger = logging.getLogger(__name__)
+
+class EmbeddingCache:
+    def __init__(
+        self,
+        embeddings_model: HuggingFaceEmbeddings,
+        similarity_threshold: float = 0.95,
+    ) -> None:
+        logger.info(
             f"Initializing EmbeddingCache with LangChain InMemoryVectorStore and model: {embeddings_model.model_name}..."
         )
         self.vectorstore = InMemoryVectorStore(embeddings_model)
         self.similarity_threshold = similarity_threshold
         self._exact_match_ids: dict[str, str] = {}
-        print("Embedding cache initialized.")
+        logger.info("Embedding cache initialized.")
 
     def _classification_result_to_json_string(
         self, result: ClassificationResult
