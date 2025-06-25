@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import React, { useCallback, useEffect, useState, type SVGProps } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 interface Logo {
 	name: string;
@@ -125,44 +125,43 @@ interface LogoCarouselProps {
 import { useReducedMotion } from "framer-motion";
 
 export function LogoCarousel({ columnCount = 2, logos }: LogoCarouselProps) {
-  const [logoSets, setLogoSets] = useState<Logo[][]>([]);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
+	const [logoSets, setLogoSets] = useState<Logo[][]>([]);
+	const [currentTime, setCurrentTime] = useState(0);
+	const [isPaused, setIsPaused] = useState(false);
+	const shouldReduceMotion = useReducedMotion();
 
-  const updateTime = useCallback(() => {
-    if (isPaused || shouldReduceMotion) return;
-    setCurrentTime((prevTime) => prevTime + 100);
-  }, [isPaused, shouldReduceMotion]);
+	const updateTime = useCallback(() => {
+		if (isPaused || shouldReduceMotion) return;
+		setCurrentTime((prevTime) => prevTime + 100);
+	}, [isPaused, shouldReduceMotion]);
 
-  useEffect(() => {
-    const intervalId = setInterval(updateTime, 100);
-    return () => clearInterval(intervalId);
-  }, [updateTime]);
+	useEffect(() => {
+		const intervalId = setInterval(updateTime, 100);
+		return () => clearInterval(intervalId);
+	}, [updateTime]);
 
-  useEffect(() => {
-    const distributedLogos = distributeLogos(logos, columnCount);
-    setLogoSets(distributedLogos);
-  }, [logos, columnCount]);
+	useEffect(() => {
+		const distributedLogos = distributeLogos(logos, columnCount);
+		setLogoSets(distributedLogos);
+	}, [logos, columnCount]);
 
-  return (
-    <div
-      className="flex space-x-4"
-      role="region"
-      aria-label="Logo carousel"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      {logoSets.map((logos, index) => (
-        <LogoColumn
-          key={`column-${index}-${logos[0]?.id ?? "empty"}`}
-          logos={logos}
-          index={index}
-          currentTime={currentTime}
-        />
-      ))}
-    </div>
-  );
+	return (
+		<section
+			className="flex space-x-4"
+			aria-label="Logo carousel"
+			onMouseEnter={() => setIsPaused(true)}
+			onMouseLeave={() => setIsPaused(false)}
+		>
+			{logoSets.map((logos, index) => (
+				<LogoColumn
+					key={`column-${index}-${logos[0]?.id ?? "empty"}`}
+					logos={logos}
+					index={index}
+					currentTime={currentTime}
+				/>
+			))}
+		</section>
+	);
 }
 
 export { LogoColumn };
