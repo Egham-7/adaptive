@@ -29,8 +29,7 @@ class ProtocolSelectionOutput(BaseModel):
     )
     model: str = Field(description="The model name to use")
     confidence: float = Field(description="Confidence score for the selection")
-    explanation: str = Field(
-        description="Explanation for the protocol selection")
+    explanation: str = Field(description="Explanation for the protocol selection")
     # OpenAIParameters fields
     temperature: float = Field(
         description="Controls randomness: higher values mean more diverse completions. Range 0.0-2.0."
@@ -76,8 +75,7 @@ class ProtocolManager:
             max_new_tokens=256,
         )
         self.llm = HuggingFacePipeline(pipeline=self.pipe)
-        self.parser = PydanticOutputParser(
-            pydantic_object=ProtocolSelectionOutput)
+        self.parser = PydanticOutputParser(pydantic_object=ProtocolSelectionOutput)
         self.protocol_descriptions = (
             "Protocols:\n"
             "1. standard_llm: Use a single large language model for the task.\n"
@@ -194,19 +192,18 @@ class ProtocolManager:
                 standard_alts = [
                     Alternative(**alt) for alt in result.standard_alternatives
                 ]
-            except (TypeError, ValueError) as e:
+            except (TypeError, ValueError):
                 # Log the error and continue without alternatives
                 standard_alts = None
 
-            standard_alts = [Alternative(**alt)
-                             for alt in result.standard_alternatives]
+            standard_alts = [Alternative(**alt) for alt in result.standard_alternatives]
         minion_alts = None
         if result.minion_alternatives:
             try:
                 minion_alts = [
                     MinionAlternative(**alt) for alt in result.minion_alternatives
                 ]
-            except (TypeError, ValueError) as e:
+            except (TypeError, ValueError):
                 # Log the error and continue without alternatives
                 minion_alts = None
         # Handle each protocol type
