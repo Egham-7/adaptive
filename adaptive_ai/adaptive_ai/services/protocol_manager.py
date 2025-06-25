@@ -184,13 +184,23 @@ class ProtocolManager:
         )
         # Prepare alternatives for each protocol type
         standard_alts = None
+        standard_alts = None
         if result.standard_alternatives:
-            standard_alts = [Alternative(**alt) for alt in result.standard_alternatives]
+            try:
+                standard_alts = [Alternative(**alt) for alt in result.standard_alternatives]
+            except (TypeError, ValueError) as e:
+                # Log the error and continue without alternatives
+                standard_alts = None
+
         minion_alts = None
         if result.minion_alternatives:
-            minion_alts = [
-                MinionAlternative(**alt) for alt in result.minion_alternatives
-            ]
+            try:
+                minion_alts = [
+                    MinionAlternative(**alt) for alt in result.minion_alternatives
+                ]
+            except (TypeError, ValueError) as e:
+                # Log the error and continue without alternatives
+                minion_alts = None
         # Handle each protocol type
         if protocol == ProtocolType.STANDARD_LLM:
             standard = StandardLLMInfo(
