@@ -80,10 +80,9 @@ class EmbeddingCache:
                     exact_doc.metadata["orchestrator_response"]
                 )
             except Exception as e:
-                print(
+                logger.warning(
                     f"Error retrieving exact match document by ID '{self._exact_match_ids[query_json_string]}': {e}. Falling back to semantic search."
                 )
-                pass
 
         results: list[tuple[Document, float]] = (
             self.vectorstore.similarity_search_with_score(query=query_json_string, k=1)
