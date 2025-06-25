@@ -1,3 +1,5 @@
+from typing import Any, Protocol
+
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_huggingface.llms import HuggingFacePipeline
@@ -62,12 +64,17 @@ class ProtocolSelectionOutput(BaseModel):
     )
 
 
+class LitLoggerProtocol(Protocol):
+    def log(self, key: str, value: Any) -> None: ...
+
+
 class ProtocolManager:
     def __init__(
         self,
         model_name: str = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
         max_new_tokens: int = 256,
-    ):
+        lit_logger: LitLoggerProtocol | None = None,
+    ) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(model_name)
         self.pipe = pipeline(
@@ -129,6 +136,15 @@ class ProtocolManager:
                 "format_instructions": self.parser.get_format_instructions()
             },
         )
+        self.lit_logger: LitLoggerProtocol | None = lit_logger
+        self.log(
+            "protocol_manager_init",
+            {"model_name": model_name, "max_new_tokens": max_new_tokens},
+        )
+
+    def log(self, key: str, value: Any) -> None:
+        if self.lit_logger:
+            self.lit_logger.log(key, value)
 
     def _format_model_capabilities(
         self, candidate_models: list[ModelCapability]
@@ -158,6 +174,14 @@ class ProtocolManager:
             if classification_result.task_type_1
             else "Other"
         )
+        self.log(
+            "select_protocol_called",
+            {
+                "prompt": prompt,
+                "task_type": task_type,
+                "candidate_models_count": len(candidate_models),
+            },
+        )
         try:
             chain = self.prompt | self.llm | self.parser
             result: ProtocolSelectionOutput = chain.invoke(
@@ -169,13 +193,24 @@ class ProtocolManager:
                     "parameter_descriptions": self.parameter_descriptions,
                 }
             )
+            self.log(
+                "protocol_selection_success",
+                {
+                    "protocol": result.protocol,
+                    "provider": result.provider,
+                    "model": result.model,
+                    "confidence": result.confidence,
+                },
+            )
         except Exception as e:
+            self.log("protocol_selection_error", {"error": str(e)})
             raise RuntimeError(f"Protocol selection failed: {e}") from e
         protocol = (
             ProtocolType(result.protocol)
-            if result.protocol in ProtocolType._value2member_map_
+            if result.protocol in ProtocolType.__members__.values()
             else ProtocolType.STANDARD_LLM
         )
+        # ... rest of the method ...
         parameters = OpenAIParameters(
             temperature=result.temperature,
             top_p=result.top_p,
@@ -197,7 +232,6 @@ class ProtocolManager:
                 # Log the error and continue without alternatives
                 standard_alts = None
 
-            standard_alts = [Alternative(**alt) for alt in result.standard_alternatives]
         minion_alts = None
         if result.minion_alternatives:
             try:

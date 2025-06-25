@@ -1,5 +1,5 @@
 import json
-import logging
+from typing import Protocol
 import uuid
 
 from langchain_core.documents import Document
@@ -9,7 +9,9 @@ from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
 
-logger = logging.getLogger(__name__)
+
+class LitLoggerProtocol(Protocol):
+    def log(self, key: str, value: object) -> None: ...
 
 
 class EmbeddingCache:
@@ -17,14 +19,23 @@ class EmbeddingCache:
         self,
         embeddings_model: HuggingFaceEmbeddings,
         similarity_threshold: float = 0.95,
+        lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
-        logger.info(
-            f"Initializing EmbeddingCache with LangChain InMemoryVectorStore and model: {embeddings_model.model_name}..."
-        )
         self.vectorstore = InMemoryVectorStore(embeddings_model)
         self.similarity_threshold = similarity_threshold
         self._exact_match_ids: dict[str, str] = {}
-        logger.info("Embedding cache initialized.")
+        self.lit_logger = lit_logger
+        self.log(
+            "embedding_cache_init",
+            {
+                "model": getattr(embeddings_model, "model_name", str(embeddings_model)),
+                "similarity_threshold": similarity_threshold,
+            },
+        )
+
+    def log(self, key: str, value: object) -> None:
+        if self.lit_logger:
+            self.lit_logger.log(key, value)
 
     def _classification_result_to_json_string(
         self, result: ClassificationResult
@@ -41,36 +52,42 @@ class EmbeddingCache:
         doc_id: str
         if json_string in self._exact_match_ids:
             doc_id = self._exact_match_ids[json_string]
-            print(
-                f"Updating existing classification result in cache (exact match). Doc ID: {doc_id}"
-            )
+            self.log("embedding_cache_update", {"doc_id": doc_id})
             try:
                 self.vectorstore.delete(ids=[doc_id])
             except Exception as e:
-                logger.warning(f"Failed to delete document {doc_id}: {e}")
+                self.log(
+                    "embedding_cache_delete_error", {"doc_id": doc_id, "error": str(e)}
+                )
         else:
             doc_id = uuid.uuid4().hex
-            print(f"Adding new classification result to cache. Doc ID: {doc_id}")
+            self.log("embedding_cache_add", {"doc_id": doc_id})
 
         document = Document(
             page_content=json_string,
             metadata={"orchestrator_response": orchestrator_response.model_dump()},
             id=doc_id,
         )
-
         self.vectorstore.add_documents([document])
         self._exact_match_ids[json_string] = doc_id
 
-        print(f"Current cache size (documents): {self.get_cache_size()}")
+        cache_size = self.get_cache_size()
+        self.log("embedding_cache_size", cache_size)
 
     def search_cache(
         self, query_classification_result: ClassificationResult
     ) -> OrchestratorResponse | None:
-        if self.get_cache_size() == 0:
+        cache_size: int = self.get_cache_size()
+        if cache_size == 0:
+            self.log("embedding_cache_empty", 1)
             return None
 
-        query_json_string = self._classification_result_to_json_string(
+        query_json_string: str = self._classification_result_to_json_string(
             query_classification_result
+        )
+        self.log(
+            "embedding_cache_lookup",
+            {"query": query_json_string, "cache_size": cache_size},
         )
 
         if query_json_string in self._exact_match_ids:
@@ -78,13 +95,23 @@ class EmbeddingCache:
                 exact_doc = self.vectorstore.get_by_ids(
                     [self._exact_match_ids[query_json_string]]
                 )[0]
-                print("Cache HIT (exact string match from internal map)!")
+                self.log(
+                    "embedding_cache_hit",
+                    {
+                        "type": "exact",
+                        "doc_id": self._exact_match_ids[query_json_string],
+                    },
+                )
                 return OrchestratorResponse.model_validate(
                     exact_doc.metadata["orchestrator_response"]
                 )
             except Exception as e:
-                logger.warning(
-                    f"Error retrieving exact match document by ID '{self._exact_match_ids[query_json_string]}': {e}. Falling back to semantic search."
+                self.log(
+                    "embedding_cache_exact_error",
+                    {
+                        "doc_id": self._exact_match_ids[query_json_string],
+                        "error": str(e),
+                    },
                 )
 
         results: list[tuple[Document, float]] = (
@@ -94,21 +121,31 @@ class EmbeddingCache:
         if results:
             most_similar_doc, score = results[0]
             if score >= self.similarity_threshold:
-                print(
-                    f"Cache HIT (semantic match: score={score:.4f}, threshold={self.similarity_threshold})!"
+                self.log(
+                    "embedding_cache_hit",
+                    {
+                        "type": "semantic",
+                        "score": score,
+                        "threshold": self.similarity_threshold,
+                        "doc_id": most_similar_doc.id,
+                    },
                 )
                 return OrchestratorResponse.model_validate(
                     most_similar_doc.metadata["orchestrator_response"]
                 )
 
-        print("Cache MISS (no match above threshold).")
+        self.log("embedding_cache_hit", {"type": "miss"})
         return None
 
     def get_cache_size(self) -> int:
-        return len(self.vectorstore.store)
+        size: int = len(self.vectorstore.store)
+        self.log("embedding_cache_size_check", size)
+        return size
 
     def clear_cache(self) -> None:
-        print("Clearing embedding cache...")
+        self.vectorstore.store.clear()
+        self._exact_match_ids.clear()
+        self.log("embedding_cache_cleared", 1)
         self.vectorstore.store.clear()
         self._exact_match_ids.clear()
         print("Embedding cache cleared.")

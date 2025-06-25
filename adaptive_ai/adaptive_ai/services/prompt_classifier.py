@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import cast
+from typing import Any, cast
 
 from huggingface_hub import PyTorchModelHubMixin
 import numpy as np
@@ -44,6 +44,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         task_type_map: dict[str, str],
         weights_map: dict[str, list[float]],
         divisor_map: dict[str, float],
+        lit_logger: Any = None,
     ) -> None:
         super().__init__()
         self.backbone = AutoModel.from_pretrained(
@@ -60,6 +61,11 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         for i, head in enumerate(self.heads):
             self.add_module(f"head_{i}", head)
         self.pool = MeanPooling()
+        self.lit_logger = lit_logger
+
+    def log(self, key: str, value: Any) -> None:
+        if self.lit_logger:
+            self.lit_logger.log(key, value)
 
     def compute_results(
         self, preds: torch.Tensor, target: str, decimal: int = 4
@@ -279,7 +285,8 @@ class PromptClassifier:
         with torch.no_grad():
             raw_results = self.model(encoded_texts)
 
-        results = cast(list[ClassificationResult], raw_results)
+        # Convert raw dictionary results to ClassificationResult Pydantic models
+        results = [ClassificationResult(**result) for result in raw_results]
 
         print(
             f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
