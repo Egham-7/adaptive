@@ -35,7 +35,6 @@ class MinionAlternative(BaseModel):
 class StandardLLMInfo(BaseModel):
     provider: str
     model: str
-    confidence: float
     parameters: OpenAIParameters
     alternatives: list[Alternative] | None = None
 
