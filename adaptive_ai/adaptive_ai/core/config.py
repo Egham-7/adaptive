@@ -17,7 +17,7 @@ class AppConfig(BaseModel):
 class ServerConfig(BaseModel):
     """Server configuration."""
 
-    host: str = "127.0.0.1"
+    host: str = "0.0.0.0"  # noqa: S104
     port: int = 8000
     workers: int = 1
     timeout: int = 30
