@@ -136,7 +136,7 @@ class ProtocolSelectorAPI(ls.LitAPI):
 
                 if not candidate_models:
                     raise ValueError(
-                        f"No eligible models found after applying provider and task constraints for prompt: '{req.prompt[:50]}...'"
+                        "No eligible models found after applying provider and task constraints"
                     )
                 """
                 orchestrator_response: OrchestratorResponse = route_model(
