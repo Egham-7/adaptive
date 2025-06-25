@@ -15,7 +15,7 @@ from adaptive_ai.models.llm_enums import ProviderType, TaskType
 
 
 class ModelSelectionService:
-    def __init__(self):
+    def __init__(self) -> None:
         # Pre-process all model capabilities into a quick-lookup map
         self._all_model_capabilities_by_id: dict[
             tuple[ProviderType, str], ModelCapability
