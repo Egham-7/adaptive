@@ -1,0 +1,44 @@
+# llm_core_models.py
+
+from pydantic import BaseModel, Field
+
+from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskModelEntry
+
+
+class ModelCapability(BaseModel):
+    description: str
+    provider: ProviderType
+    model_name: str
+    cost_per_1m_input_tokens: float = Field(alias="cost_per_1m_input_tokens")
+    cost_per_1m_output_tokens: float = Field(alias="cost_per_1m_output_tokens")
+    max_context_tokens: int = Field(alias="max_context_tokens")
+    max_output_tokens: int | None = Field(None, alias="max_output_tokens")
+    supports_function_calling: bool = Field(alias="supports_function_calling")
+    languages_supported: list[str] = Field(
+        default_factory=list, alias="languages_supported"
+    )
+    model_size_params: str | None = Field(None, alias="model_size_params")
+    latency_tier: str | None = Field(None, alias="latency_tier")
+
+
+class TaskModelEntry(BaseModel):
+    provider: ProviderType
+    model_name: str = Field(alias="model_name")
+
+
+class TaskModelMapping(BaseModel):
+    model_entries: list[TaskModelEntry] = Field(alias="model_entries")
+
+
+class ModelSelectionConfig(BaseModel):
+    model_capabilities: dict[str, ModelCapability] = Field(alias="model_capabilities")
+    task_model_mappings: dict[TaskType, TaskModelMapping] = Field(
+        alias="task_model_mappings"
+    )
+
+
+class ModelSelectionRequest(BaseModel):
+    prompt: str
+    user_id: str | None = Field(alias="user_id")
+    provider_constraint: list[str] | None = Field(alias="provider_constraint")
+    cost_bias: float | None = Field(alias="cost_bias")

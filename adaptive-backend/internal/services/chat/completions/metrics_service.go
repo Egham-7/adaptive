@@ -85,22 +85,22 @@ func (s *MetricsService) RecordCacheHit(cacheType string, requestID string, prov
 	fiberlog.Infof("[%s] Recorded cache hit: type=%s, provider=%s", requestID, cacheType, provider)
 }
 
-// RecordModelSelection records which model was selected for the request
-func (s *MetricsService) RecordModelSelection(model string, requestID string, provider string) {
+// RecordProtocolSelection records which protocol was selected for the request
+func (s *MetricsService) RecordProtocolSelection(model string, requestID string, provider string) {
 	if s.chatMetrics == nil {
 		return
 	}
 
-	s.chatMetrics.ModelSelections.
+	s.chatMetrics.ProtocolSelections.
 		WithLabelValues(model, provider).
 		Inc()
 
-	fiberlog.Infof("[%s] Recorded model selection: model=%s, provider=%s", requestID, model, provider)
+	fiberlog.Infof("[%s] Recorded protocol selection: model=%s, provider=%s", requestID, model, provider)
 }
 
 // RecordMinionSelection records when a minion is selected for the request
 func (s *MetricsService) RecordMinionSelection(taskType string, requestID string) {
-	s.RecordModelSelection(fmt.Sprintf("Minion-%s", taskType), requestID, "minion")
+	s.RecordProtocolSelection(fmt.Sprintf("Minion-%s", taskType), requestID, "minion")
 }
 
 // RecordParameterApplication records parameter application metrics

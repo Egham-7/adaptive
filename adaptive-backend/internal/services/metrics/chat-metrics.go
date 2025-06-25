@@ -7,10 +7,10 @@ import (
 
 // ChatMetrics holds all Prometheus metrics related to chat completions
 type ChatMetrics struct {
-	RequestDuration *prometheus.HistogramVec
-	CacheHits       *prometheus.CounterVec
-	ModelSelections *prometheus.CounterVec
-	CacheLookups    *prometheus.CounterVec
+	RequestDuration    *prometheus.HistogramVec
+	CacheHits          *prometheus.CounterVec
+	ProtocolSelections *prometheus.CounterVec
+	CacheLookups       *prometheus.CounterVec
 }
 
 // NewChatMetrics initializes and registers all chat-related Prometheus metrics
@@ -26,9 +26,9 @@ func NewChatMetrics() *ChatMetrics {
 			Help: "Number of cache hits",
 		}, []string{"cache_type", "provider"}),
 
-		ModelSelections: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "chat_completion_model_selections_total",
-			Help: "Number of times each model was selected",
+		ProtocolSelections: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "chat_completion_protocol_selections_total",
+			Help: "Number of times each protocol was selected",
 		}, []string{"model", "provider"}),
 		CacheLookups: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "chat_completion_cache_lookups_total",
