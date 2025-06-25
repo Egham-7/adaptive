@@ -74,7 +74,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = 88
-target-version = ['py312']
+target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -90,7 +90,7 @@ extend-exclude = '''
 '''
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py311"
 line-length = 88
 
 [tool.ruff.lint]
@@ -106,7 +106,7 @@ known-first-party = ["adaptive_ai"]
 force-sort-within-sections = true
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 check_untyped_defs = true
 disallow_any_generics = true
 disallow_incomplete_defs = true
