@@ -59,9 +59,16 @@ class ModelSelectionService:
         """
         # Determine eligible providers based on request constraints
         eligible_providers: list[ProviderType] = (
-            [ProviderType(p) for p in request.provider_constraint]
-            if request.provider_constraint
-            else list(provider_model_capabilities.keys())
+        eligible_providers: list[ProviderType] = []
+        if request.provider_constraint:
+            for p in request.provider_constraint:
+                try:
+                    eligible_providers.append(ProviderType(p))
+                except ValueError:
+                    # Skip invalid provider types
+                    continue
+        else:
+            eligible_providers = list(provider_model_capabilities.keys())
         )
 
         # Determine primary task type from classification result
