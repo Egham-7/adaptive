@@ -65,6 +65,12 @@ class ProtocolManagerAPI(ls.LitAPI):
 
         self.log("predict_called", {"batch_size": len(requests)})
 
+        if len(all_classification_results) != len(requests):
+            raise ValueError(
+                f"Classification results count ({len(all_classification_results)}) "
+                f"doesn't match requests count ({len(requests)})"
+            )
+
         for i, req in enumerate(requests):
             current_classification_result: ClassificationResult = (
                 all_classification_results[i]
