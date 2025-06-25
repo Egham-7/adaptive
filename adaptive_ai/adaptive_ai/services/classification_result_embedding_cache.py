@@ -146,6 +146,3 @@ class EmbeddingCache:
         self.vectorstore.store.clear()
         self._exact_match_ids.clear()
         self.log("embedding_cache_cleared", 1)
-        self.vectorstore.store.clear()
-        self._exact_match_ids.clear()
-        print("Embedding cache cleared.")
