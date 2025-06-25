@@ -47,8 +47,9 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	userID, requestID string,
 	cbs map[string]*circuitbreaker.CircuitBreaker,
 ) (*models.OrchestratorResponse, string, error) {
-	if req.CostBias <= 0 {
-		req.CostBias = defaultCostBiasFactor
+	if req.CostBias == nil || *req.CostBias <= 0 {
+		bias := float32(defaultCostBiasFactor)
+		req.CostBias = &bias
 	}
 
 	// 1) Check semantic cache first

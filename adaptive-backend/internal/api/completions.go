@@ -150,11 +150,12 @@ func (h *CompletionHandler) buildMinionCandidates(
 	}
 	out = append(out, candidate{"minion", svc, models.ProtocolMinion})
 	for _, alt := range min.Alternatives {
-		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
+		taskType := alt.TaskType
+		svc, err := providers.NewLLMProvider("minion", &taskType, h.minionRegistry)
 		if err != nil {
-			return nil, fmt.Errorf("minion alt %s: %w", alt.Provider, err)
+			return nil, fmt.Errorf("minion alt %s: %w", alt.TaskType, err)
 		}
-		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
+		out = append(out, candidate{alt.TaskType, svc, models.ProtocolMinion})
 	}
 	return out, nil
 }

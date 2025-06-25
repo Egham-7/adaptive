@@ -50,10 +50,15 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 		return nil, fmt.Errorf("last message content cannot be empty")
 	}
 
+	var costBias *float32
+	if req.CostBias != 0 {
+		costBias = &req.CostBias
+	}
+
 	selReq := models.ModelSelectionRequest{
 		Prompt:             prompt,
 		ProviderConstraint: req.ProviderConstraint,
-		CostBias:           req.CostBias,
+		CostBias:           costBias,
 	}
 
 	resp, _, err = s.protocolManager.SelectProtocolWithCache(
