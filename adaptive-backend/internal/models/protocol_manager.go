@@ -39,7 +39,7 @@ const (
 	TaskOther          TaskType = "Other"
 )
 
-// ProtocolType represents orchestrator response types - aligned with Python ProtocolType enum.
+// ProtocolType represents protocol response types - aligned with Python ProtocolType enum.
 type ProtocolType string
 
 const (
@@ -47,21 +47,6 @@ const (
 	ProtocolMinion          ProtocolType = "minion"
 	ProtocolMinionsProtocol ProtocolType = "minions_protocol"
 )
-
-// ClassificationResult represents the response from the prompt classifier.
-type ClassificationResult struct {
-	TaskType1             []string  `json:"task_type_1"`
-	TaskType2             []string  `json:"task_type_2"`
-	TaskTypeProb          []float64 `json:"task_type_prob"`
-	CreativityScope       []float64 `json:"creativity_scope"`
-	Reasoning             []float64 `json:"reasoning"`
-	ContextualKnowledge   []float64 `json:"contextual_knowledge"`
-	PromptComplexityScore []float64 `json:"prompt_complexity_score"`
-	DomainKnowledge       []float64 `json:"domain_knowledge"`
-	NumberOfFewShots      []float64 `json:"number_of_few_shots"`
-	NoLabelReason         []float64 `json:"no_label_reason"`
-	ConstraintCt          []float64 `json:"constraint_ct"`
-}
 
 // ModelCapability represents the capabilities of a model.
 type ModelCapability struct {
@@ -76,23 +61,6 @@ type ModelCapability struct {
 	LanguagesSupported      []string     `json:"languages_supported"`
 	ModelSizeParams         *string      `json:"model_size_params,omitempty"`
 	LatencyTier             *string      `json:"latency_tier,omitempty"`
-}
-
-// TaskModelEntry represents a model entry for a task.
-type TaskModelEntry struct {
-	Provider  ProviderType `json:"provider"`
-	ModelName string       `json:"model_name"`
-}
-
-// TaskModelMapping maps a task to model entries.
-type TaskModelMapping struct {
-	ModelEntries []TaskModelEntry `json:"model_entries"`
-}
-
-// ModelSelectionConfig holds configuration for model selection.
-type ModelSelectionConfig struct {
-	ModelCapabilities map[string]ModelCapability    `json:"model_capabilities"`
-	TaskModelMappings map[TaskType]TaskModelMapping `json:"task_model_mappings"`
 }
 
 // ModelSelectionRequest represents an incoming selection request.
@@ -133,8 +101,8 @@ type MinionInfo struct {
 	Alternatives []MinionAlternative `json:"alternatives,omitempty"`
 }
 
-// OrchestratorResponse is the union of standard and/or minion info.
-type OrchestratorResponse struct {
+// ProtocolResponse is the union of standard and/or minion info.
+type ProtocolResponse struct {
 	Protocol ProtocolType     `json:"protocol"`
 	Standard *StandardLLMInfo `json:"standard,omitempty"`
 	Minion   *MinionInfo      `json:"minion,omitempty"`
@@ -148,54 +116,4 @@ type RaceResult struct {
 	TaskType     string
 	Duration     time.Duration
 	Error        error
-}
-
-// ValidTaskTypes returns all supported TaskType values.
-func ValidTaskTypes() []TaskType {
-	return []TaskType{
-		TaskOpenQA,
-		TaskClosedQA,
-		TaskSummarization,
-		TaskTextGeneration,
-		TaskCodeGeneration,
-		TaskChatbot,
-		TaskClassification,
-		TaskRewrite,
-		TaskBrainstorming,
-		TaskExtraction,
-		TaskOther,
-	}
-}
-
-// ValidProviders returns all supported ProviderType values.
-func ValidProviders() []ProviderType {
-	return []ProviderType{
-		ProviderOpenAI,
-		ProviderAnthropic,
-		ProviderGoogle,
-		ProviderGroq,
-		ProviderDeepseek,
-		ProviderMistral,
-		ProviderGrok,
-	}
-}
-
-// IsValidTaskType checks if a string matches a known TaskType.
-func IsValidTaskType(taskType string) bool {
-	for _, t := range ValidTaskTypes() {
-		if string(t) == taskType {
-			return true
-		}
-	}
-	return false
-}
-
-// IsValidProvider checks if a string matches a known provider.
-func IsValidProvider(provider string) bool {
-	for _, p := range ValidProviders() {
-		if string(p) == provider {
-			return true
-		}
-	}
-	return false
 }

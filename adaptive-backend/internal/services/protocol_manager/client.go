@@ -58,7 +58,7 @@ func NewProtocolManagerClientWithConfig(config ProtocolManagerConfig) *ProtocolM
 
 func (c *ProtocolManagerClient) SelectProtocol(
 	req models.ModelSelectionRequest,
-) (models.OrchestratorResponse, error) {
+) (models.ProtocolResponse, error) {
 	start := time.Now()
 
 	if !c.circuitBreaker.CanExecute() {
@@ -68,7 +68,7 @@ func (c *ProtocolManagerClient) SelectProtocol(
 			fmt.Errorf("circuit breaker open for protocol manager service")
 	}
 
-	var out models.OrchestratorResponse
+	var out models.ProtocolResponse
 	opts := &services.RequestOptions{Timeout: c.timeout}
 	err := c.client.Post("/predict", req, &out, opts)
 	if err != nil {
@@ -83,9 +83,9 @@ func (c *ProtocolManagerClient) SelectProtocol(
 	return out, nil
 }
 
-func (c *ProtocolManagerClient) getFallbackProtocolResponse(req models.ModelSelectionRequest) models.OrchestratorResponse {
+func (c *ProtocolManagerClient) getFallbackProtocolResponse(req models.ModelSelectionRequest) models.ProtocolResponse {
 	// Simple fallback: always route to standard LLM with basic parameters
-	return models.OrchestratorResponse{
+	return models.ProtocolResponse{
 		Protocol: models.ProtocolStandardLLM,
 		Standard: &models.StandardLLMInfo{
 			Provider:   string(models.ProviderOpenAI),

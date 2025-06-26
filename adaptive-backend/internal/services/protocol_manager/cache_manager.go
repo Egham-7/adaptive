@@ -17,21 +17,21 @@ const (
 )
 
 type CacheManager struct {
-	global      *semanticcache.SemanticCache[string, models.OrchestratorResponse]
-	userPool    *lru.Cache[string, *semanticcache.SemanticCache[string, models.OrchestratorResponse]]
+	global      *semanticcache.SemanticCache[string, models.ProtocolResponse]
+	userPool    *lru.Cache[string, *semanticcache.SemanticCache[string, models.ProtocolResponse]]
 	embProv     semanticcache.EmbeddingProvider
 	threshold   float32
 	defaultSize int
 }
 
 func NewCacheManager(embProv semanticcache.EmbeddingProvider) (*CacheManager, error) {
-	global, err := semanticcache.NewSemanticCache[string, models.OrchestratorResponse](
+	global, err := semanticcache.NewSemanticCache[string, models.ProtocolResponse](
 		defaultGlobalCacheSize, embProv, nil,
 	)
 	if err != nil {
 		return nil, err
 	}
-	userPool, err := lru.New[string, *semanticcache.SemanticCache[string, models.OrchestratorResponse]](
+	userPool, err := lru.New[string, *semanticcache.SemanticCache[string, models.ProtocolResponse]](
 		defaultUserCachePoolSize,
 	)
 	if err != nil {
@@ -47,7 +47,7 @@ func NewCacheManager(embProv semanticcache.EmbeddingProvider) (*CacheManager, er
 }
 
 // Lookup returns (value, sourceTag, found)
-func (c *CacheManager) Lookup(prompt, userID string) (models.OrchestratorResponse, string, bool) {
+func (c *CacheManager) Lookup(prompt, userID string) (models.ProtocolResponse, string, bool) {
 	key := prompt
 	if uc := c.getUserCache(userID); uc != nil {
 		if val, found, err := uc.Lookup(key, c.threshold); found {
@@ -61,10 +61,10 @@ func (c *CacheManager) Lookup(prompt, userID string) (models.OrchestratorRespons
 	} else if err != nil {
 		log.Printf("global cache lookup error: %v", err)
 	}
-	return models.OrchestratorResponse{}, "", false
+	return models.ProtocolResponse{}, "", false
 }
 
-func (c *CacheManager) Store(prompt, userID string, resp models.OrchestratorResponse) {
+func (c *CacheManager) Store(prompt, userID string, resp models.ProtocolResponse) {
 	key := prompt
 	_ = c.global.Set(key, key, resp)
 	if uc := c.getUserCache(userID); uc != nil {
@@ -72,11 +72,11 @@ func (c *CacheManager) Store(prompt, userID string, resp models.OrchestratorResp
 	}
 }
 
-func (c *CacheManager) getUserCache(userID string) *semanticcache.SemanticCache[string, models.OrchestratorResponse] {
+func (c *CacheManager) getUserCache(userID string) *semanticcache.SemanticCache[string, models.ProtocolResponse] {
 	if uc, ok := c.userPool.Get(userID); ok {
 		return uc
 	}
-	uc, err := semanticcache.NewSemanticCache[string, models.OrchestratorResponse](
+	uc, err := semanticcache.NewSemanticCache[string, models.ProtocolResponse](
 		c.defaultSize, c.embProv, nil,
 	)
 	if err != nil {
