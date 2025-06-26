@@ -3,9 +3,9 @@ FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONUNBUFFERED=1 \
   PYTHONDONTWRITEBYTECODE=1 \
-  PATH="/root/.local/bin:$PATH" 
+  PATH="/root/.local/bin:$PATH"
 
-WORKDIR /app
+WORKDIR /app # This sets the working directory inside the container
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -14,14 +14,10 @@ RUN apt-get update && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
-# Install uv using the recommended standalone installer script
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN pip install uv
 
-COPY . .
+COPY . . 
 
-# Install dependencies using uv.
-# uv sync installs dependencies defined in pyproject.toml and poetry.lock
-# into the current Python environment.
 RUN uv sync --all-extras --dev
 
 COPY entrypoint.sh /entrypoint.sh
