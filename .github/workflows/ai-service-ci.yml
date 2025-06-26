@@ -84,9 +84,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -98,7 +95,7 @@ jobs:
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: .
+          appSourcePath: adaptive_ai
           registryUrl: llmadaptiveregistry.azurecr.io
           registryUsername: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_PASSWORD }}
