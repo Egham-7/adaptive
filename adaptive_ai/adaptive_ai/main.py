@@ -1,172 +1,326 @@
-from typing import Any
+import json
+import re
+from typing import Any, Protocol
 
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-import litserve as ls
-import tiktoken
+from pydantic import BaseModel, Field
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from adaptive_ai.core.config import get_settings
 from adaptive_ai.models.llm_classification_models import ClassificationResult
-from adaptive_ai.models.llm_core_models import (
-    ModelCapability,
-    ModelSelectionRequest,
+from adaptive_ai.models.llm_core_models import ModelCapability
+from adaptive_ai.models.llm_enums import ProtocolType
+from adaptive_ai.models.llm_orchestration_models import (
+    Alternative,
+    MinionAlternative,
+    MinionInfo,
+    OpenAIParameters,
+    OrchestratorResponse,
+    StandardLLMInfo,
 )
-from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
-from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
-from adaptive_ai.services.model_selector import (
-    ModelSelectionService,
-)
-from adaptive_ai.services.prompt_classifier import get_prompt_classifier
-from adaptive_ai.services.protocol_manager import ProtocolManager
 
 
-# LitServe Console Logger
-class ConsoleLogger(ls.Logger):
-    def process(self, key: str, value: Any) -> None:
-        print(f"[LitServe] Received {key} with value {value}", flush=True)
+class ProtocolSelectionOutput(BaseModel):
+    protocol: str = Field(
+        description="The protocol to use: standard_llm, minion, or minions_protocol"
+    )
+    provider: str = Field(
+        description="The provider to use (e.g., OpenAI, DeepSeek, Groq, etc.)"
+    )
+    model: str = Field(description="The model name to use")
+    explanation: str = Field(description="Explanation for the protocol selection")
+    temperature: float = Field(
+        description="Controls randomness: higher values mean more diverse completions. Range 0.0-2.0."
+    )
+    top_p: float = Field(
+        description="Nucleus sampling: only considers tokens whose cumulative probability "
+        "exceeds top_p. Range 0.0-1.0."
+    )
+    max_tokens: int | None = Field(
+        description="The maximum number of tokens to generate in the completion."
+    )
+    n: int = Field(
+        description="How many chat completion choices to generate for each input message."
+    )
+    stop: str | None = Field(
+        description="Sequences where the API will stop generating further tokens."
+    )
+    frequency_penalty: float = Field(
+        description="Penalize new tokens based on their existing frequency in the text "
+        "so far. Range -2.0 to 2.0."
+    )
+    presence_penalty: float = Field(
+        description="Penalize new tokens based on whether they appear in the text so "
+        "far. Range -2.0 to 2.0."
+    )
+    standard_alternatives: list[dict[str, str]] = Field(
+        default=[],
+        description="Alternative models for standard_llm. Each should have provider "
+        "and model.",
+    )
+    minion_alternatives: list[dict[str, str]] = Field(
+        default=[],
+        description="Alternative minion task types. Each should have task_type.",
+    )
 
 
-class ProtocolManagerAPI(ls.LitAPI):
-    def setup(self, device: str) -> None:
-        self.settings = get_settings()
-        self.prompt_classifier = get_prompt_classifier(lit_logger=self)
+class LitLoggerProtocol(Protocol):
+    def log(self, key: str, value: Any) -> None: ...
 
-        self.embedding_model = HuggingFaceEmbeddings(
-            model_name=self.settings.embedding_cache.model_name
+
+class ProtocolManager:
+    def __init__(
+        self,
+        device: str,
+        model_name: str = "meta-llama/Llama-3.1-8B-Instruct",
+        max_new_tokens: int | None = None,
+        lit_logger: LitLoggerProtocol | None = None,
+    ) -> None:
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        model_device_map = "auto"
+        if device.lower() == "cpu":
+            model_device_map = "cpu"
+        elif device.lower() == "gpu":
+            model_device_map = "cuda"
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map=model_device_map,
         )
-        self.embedding_cache = EmbeddingCache(
-            embeddings_model=self.embedding_model,
-            similarity_threshold=self.settings.embedding_cache.similarity_threshold,
-            lit_logger=self,
+
+        self.max_new_tokens = max_new_tokens if max_new_tokens is not None else 512
+
+        self.output_schema_json = json.dumps(
+            ProtocolSelectionOutput.model_json_schema(), indent=2
         )
 
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")
-
-        self.model_selection_service = ModelSelectionService(lit_logger=self)
-        self.protocol_manager = ProtocolManager(lit_logger=self, device=device)
-
-    def decode_request(self, request: ModelSelectionRequest) -> ModelSelectionRequest:
-        return request
-
-    def predict(
-        self, requests: list[ModelSelectionRequest]
-    ) -> list[OrchestratorResponse]:
-        import time
-
-        outputs: list[OrchestratorResponse] = []
-
-        prompts: list[str] = [req.prompt for req in requests]
-
-        t0 = time.perf_counter()
-        all_classification_results: list[ClassificationResult] = (
-            self.prompt_classifier.classify_prompts(prompts)
+        self.protocol_descriptions = (
+            "Protocols:\n"
+            "1. standard_llm: Use a single large language model for the task.\n"
+            "   - Advantages: Simplicity, direct response, no orchestration overhead.\n"
+            "   - Disadvantages: May not be optimal for complex or multi-step tasks.\n"
+            "   - Alternatives: List of alternative models (provider, model).\n"
+            "2. minion: Use a specialized smaller model (minion) for a specific subtask.\n"
+            "   - Advantages: Efficiency, can be faster and cheaper for narrow tasks.\n"
+            "   - Disadvantages: Limited scope, may not handle general or complex queries.\n"
+            "   - Alternatives: List of alternative minion task types (task_type).\n"
+            "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
+            "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
+            "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
+            "   - Payload: May include both standard_llm and minion info.\n"
         )
-        t1 = time.perf_counter()
-        self.log("classification_time", t1 - t0)
+        self.parameter_descriptions = (
+            "Parameters to generate for the selected model (explain and set each):\n"
+            "- temperature: Controls randomness. Higher values mean more diverse "
+            "completions. Range 0.0-2.0.\n"
+            "- top_p: Nucleus sampling. Only considers tokens whose cumulative "
+            "probability exceeds top_p. Range 0.0-1.0.\n"
+            "- max_tokens: The maximum number of tokens to generate in the completion.\n"
+            "- n: How many chat completion choices to generate for each input message.\n"
+            "- stop: Sequences where the API will stop generating further tokens.\n"
+            "- frequency_penalty: Penalize new tokens based on their existing frequency "
+            "in the text so far. Range -2.0 to 2.0.\n"
+            "- presence_penalty: Penalize new tokens based on whether they appear in the "
+            "text so far. Range -2.0 to 2.0.\n"
+        )
+        self.lit_logger: LitLoggerProtocol | None = lit_logger
+        self.log(
+            "protocol_manager_init",
+            {"model_name": model_name, "max_new_tokens": max_new_tokens},
+        )
 
-        self.log("predict_called", {"batch_size": len(requests)})
+    def log(self, key: str, value: Any) -> None:
+        if self.lit_logger:
+            self.lit_logger.log(key, value)
 
-        if len(all_classification_results) != len(requests):
-            raise ValueError(
-                f"Classification results count ({len(all_classification_results)}) "
-                f"doesn't match requests count ({len(requests)})"
+    def _format_model_capabilities(
+        self, candidate_models: list[ModelCapability]
+    ) -> str:
+        lines = []
+        for m in candidate_models:
+            lines.append(
+                f"- Provider: {m.provider.value}, Model: {m.model_name}, "
+                f"Cost/1M input tokens: {m.cost_per_1m_input_tokens}, "
+                f"Cost/1M output tokens: {m.cost_per_1m_output_tokens}, "
+                f"Max context: {m.max_context_tokens}, Max output: "
+                f"{m.max_output_tokens}, Function calling: "
+                f"{m.supports_function_calling}, Languages: "
+                f"{', '.join(m.languages_supported)}, Size: {m.model_size_params}, "
+                f"Latency: {m.latency_tier}"
+            )
+        return "\n".join(lines)
+
+    def select_protocol(
+        self,
+        candidate_models: list[ModelCapability],
+        classification_result: ClassificationResult,
+        prompt: str,
+    ) -> OrchestratorResponse:
+        model_capabilities = self._format_model_capabilities(candidate_models)
+        task_type = (
+            classification_result.task_type_1[0]
+            if classification_result.task_type_1
+            else "Other"
+        )
+        self.log(
+            "select_protocol_called",
+            {
+                "prompt": prompt,
+                "task_type": task_type,
+                "candidate_models_count": len(candidate_models),
+            },
+        )
+        try:
+            system_message_content = (
+                "You are a protocol selection expert. Given a user prompt, task type, "
+                "and candidate models, choose the best protocol and model. You MUST "
+                "respond with a JSON object that strictly conforms to the following "
+                f"Pydantic schema:\n```json\n{self.output_schema_json}\n```\n"
+                f"{self.protocol_descriptions}\n"
+                f"{self.parameter_descriptions}\n"
+                "For standard_llm, return alternatives as a list of objects with "
+                "provider and model.\n"
+                "For minion, return alternatives as a list of objects with task_type.\n"
+                "For minions_protocol, you may include both standard_llm and minion "
+                "info.\n"
             )
 
-        for i, req in enumerate(requests):
-            current_classification_result: ClassificationResult = (
-                all_classification_results[i]
+            user_query_content = (
+                f"Prompt: {prompt}\n"
+                f"Task type: {task_type}\n"
+                f"Candidate models (with capabilities):\n{model_capabilities}\n"
+                "Please output the JSON object directly, with no additional text or "
+                "explanations."
             )
-            cache_t0 = time.perf_counter()
-            cached_orchestrator_response: OrchestratorResponse | None = (
-                self.embedding_cache.search_cache(current_classification_result)
-            )
-            cache_t1 = time.perf_counter()
-            self.log("cache_lookup_time", cache_t1 - cache_t0)
 
-            if cached_orchestrator_response:
-                self.log("cache_hit", 1)
-                outputs.append(cached_orchestrator_response)
+            messages = [
+                {"role": "system", "content": system_message_content},
+                {"role": "user", "content": user_query_content},
+            ]
+
+            input_ids = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_tensors="pt",
+            ).to(self.model.device)
+
+            outputs = self.model.generate(
+                input_ids,
+                max_new_tokens=self.max_new_tokens,
+                pad_token_id=self.tokenizer.eos_token_id,
+                temperature=0.7,
+                top_p=0.9,
+                do_sample=True,
+            )
+
+            generated_token_ids = outputs[0][len(input_ids[0]) :]
+            raw_llm_output = self.tokenizer.decode(
+                generated_token_ids, skip_special_tokens=True
+            )
+
+            json_match = re.search(
+                r"```json\s*(\{.*?\})\s*```", raw_llm_output, re.DOTALL
+            )
+            if not json_match:
+                json_match = re.search(r"\{.*?\}", raw_llm_output, re.DOTALL)
+
+            if json_match:
+                json_string = (
+                    json_match.group(0)
+                    if json_match.group(1) == ""
+                    else json_match.group(1)
+                )
             else:
-                self.log("cache_hit", 0)
-                try:
-                    prompt_token_count = len(self.tokenizer.encode(req.prompt))
-                except Exception as e:
-                    prompt_token_count = len(req.prompt) // 4  # Rough approximation
-                    self.log(
-                        "prompt_token_count_fallback",
-                        {"prompt": req.prompt, "error": str(e)},
-                    )
-
-                select_t0 = time.perf_counter()
-                candidate_models: list[ModelCapability] = (
-                    self.model_selection_service.select_candidate_models(
-                        request=req,
-                        classification_result=current_classification_result,
-                        prompt_token_count=prompt_token_count,
-                    )
+                raise ValueError(
+                    "Could not find a valid JSON object in the LLM output."
                 )
-                select_t1 = time.perf_counter()
-                self.log("model_selection_time", select_t1 - select_t0)
 
-                if not candidate_models:
-                    self.log("no_eligible_models", {"prompt": req.prompt})
-                    raise ValueError(
-                        "No eligible models found after applying provider and task constraints"
-                    )
-                protocol_t0 = time.perf_counter()
-                orchestrator_response: OrchestratorResponse = (
-                    self.protocol_manager.select_protocol(
-                        candidate_models=candidate_models,
-                        classification_result=current_classification_result,
-                        prompt=req.prompt,
-                    )
+            parsed_data = json.loads(json_string)
+            result = ProtocolSelectionOutput.model_validate(parsed_data)
+
+            self.log(
+                "protocol_selection_success",
+                {
+                    "protocol": result.protocol,
+                    "provider": result.provider,
+                    "model": result.model,
+                },
+            )
+        except Exception as e:
+            self.log("protocol_selection_error", {"error": str(e)})
+            raise RuntimeError(f"Protocol selection failed: {e}") from e
+
+        protocol_str = result.protocol
+        protocol = (
+            ProtocolType(protocol_str)
+            if protocol_str and protocol_str in ProtocolType.__members__.values()
+            else ProtocolType.STANDARD_LLM
+        )
+        parameters = OpenAIParameters(
+            temperature=result.temperature,
+            top_p=result.top_p,
+            max_tokens=result.max_tokens,
+            n=result.n,
+            stop=result.stop,
+            frequency_penalty=result.frequency_penalty,
+            presence_penalty=result.presence_penalty,
+        )
+
+        standard_alts = []
+        if result.standard_alternatives:
+            try:
+                standard_alts = [
+                    Alternative(**alt) for alt in result.standard_alternatives
+                ]
+            except (TypeError, ValueError) as e:
+                self.log(
+                    "standard_alternatives_parsing_error",
+                    {"error": str(e), "data": result.standard_alternatives},
                 )
-                protocol_t1 = time.perf_counter()
-                self.log("protocol_selection_time", protocol_t1 - protocol_t0)
-                try:
-                    cache_add_t0 = time.perf_counter()
-                    self.embedding_cache.add_to_cache(
-                        current_classification_result, orchestrator_response
-                    )
-                    cache_add_t1 = time.perf_counter()
-                    self.log("cache_add_time", cache_add_t1 - cache_add_t0)
-                except Exception as e:
-                    self.log("cache_add_error", {"error": str(e)})
-                    pass
-                outputs.append(orchestrator_response)
+                standard_alts = []
 
-        self.log("predict_completed", {"output_count": len(outputs)})
-        return outputs
+        minion_alts = []
+        if result.minion_alternatives:
+            try:
+                minion_alts = [
+                    MinionAlternative(**alt) for alt in result.minion_alternatives
+                ]
+            except (TypeError, ValueError) as e:
+                self.log(
+                    "minion_alternatives_parsing_error",
+                    {"error": str(e), "data": result.minion_alternatives},
+                )
+                minion_alts = []
 
-    def encode_response(self, output: OrchestratorResponse) -> dict[str, Any]:
-        return output.model_dump()
-
-
-def create_app() -> ls.LitServer:
-    settings = get_settings()
-    api = ProtocolManagerAPI(
-        max_batch_size=settings.litserve.max_batch_size,
-        batch_timeout=settings.litserve.batch_timeout,
-    )
-
-    loggers: list[ConsoleLogger] = [ConsoleLogger()]
-    callbacks: list[object] = []
-
-    return ls.LitServer(
-        api,
-        accelerator=settings.litserve.accelerator,
-        devices=settings.litserve.devices,
-        loggers=loggers,
-        callbacks=callbacks,
-    )
-
-
-def main() -> None:
-    settings = get_settings()
-    app = create_app()
-    app.run(
-        generate_client_file=False, host=settings.server.host, port=settings.server.port
-    )
-
-
-if __name__ == "__main__":
-    main()
+        if protocol == ProtocolType.STANDARD_LLM:
+            standard = StandardLLMInfo(
+                provider=result.provider,
+                model=result.model,
+                parameters=parameters,
+                alternatives=standard_alts,
+            )
+            return OrchestratorResponse(protocol=protocol, standard=standard)
+        elif protocol == ProtocolType.MINION:
+            minion = MinionInfo(
+                task_type=task_type,
+                parameters=parameters,
+                alternatives=minion_alts,
+            )
+            return OrchestratorResponse(protocol=protocol, minion=minion)
+        elif protocol == ProtocolType.MINIONS_PROTOCOL:
+            standard = StandardLLMInfo(
+                provider=result.provider,
+                model=result.model,
+                parameters=parameters,
+                alternatives=standard_alts,
+            )
+            minion = MinionInfo(
+                task_type=task_type,
+                parameters=parameters,
+                alternatives=minion_alts,
+            )
+            return OrchestratorResponse(
+                protocol=protocol, standard=standard, minion=minion
+            )
+        else:
+            return OrchestratorResponse(protocol=protocol)
