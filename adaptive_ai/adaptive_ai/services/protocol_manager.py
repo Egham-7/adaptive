@@ -1,9 +1,9 @@
-from typing import Any, Protocol, cast
+import json
+import re
+from typing import Any, Protocol
 
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import PromptTemplate
-from langchain_huggingface.llms import HuggingFacePipeline
 from pydantic import BaseModel, Field
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import ModelCapability
@@ -74,17 +74,25 @@ class ProtocolManager:
         max_new_tokens: int | None = None,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        self.llm = HuggingFacePipeline.from_model_id(
-            model_id=model_name,
-            task="text-generation",
-            pipeline_kwargs={
-                "max_new_tokens": max_new_tokens
-            },  # Pass max_new_tokens here
-            device=0 if device == "gpu" else -1,
+        model_device_map = "auto"
+        if device.lower() == "cpu":
+            model_device_map = "cpu"
+        elif device.lower() == "gpu":
+            model_device_map = "cuda"
+
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map=model_device_map,
         )
 
-        self.parser = PydanticOutputParser(pydantic_object=ProtocolSelectionOutput)
+        self.max_new_tokens = max_new_tokens if max_new_tokens is not None else 512
+
+        self.output_schema_json = json.dumps(
+            ProtocolSelectionOutput.model_json_schema(), indent=2
+        )
+
         self.protocol_descriptions = (
             "Protocols:\n"
             "1. standard_llm: Use a single large language model for the task.\n"
@@ -113,34 +121,6 @@ class ProtocolManager:
             "in the text so far. Range -2.0 to 2.0.\n"
             "- presence_penalty: Penalize new tokens based on whether they appear in the "
             "text so far. Range -2.0 to 2.0.\n"
-        )
-        self.prompt = PromptTemplate(
-            template=(
-                "You are a protocol selection expert. Given a user prompt, task type, "
-                "and candidate models, choose the best protocol and model. You MUST "
-                "respond with the exact JSON format specified.\n"
-                "{protocol_descriptions}\n"
-                "{parameter_descriptions}\n"
-                "For standard_llm, return alternatives as a list of objects with "
-                "provider and model.\n"
-                "For minion, return alternatives as a list of objects with task_type.\n"
-                "For minions_protocol, you may include both standard_llm and minion "
-                "info.\n"
-                "{format_instructions}\n"
-                "Prompt: {prompt}\n"
-                "Task type: {task_type}\n"
-                "Candidate models (with capabilities):\n{model_capabilities}\n"
-            ),
-            input_variables=[
-                "prompt",
-                "task_type",
-                "model_capabilities",
-                "protocol_descriptions",
-                "parameter_descriptions",
-            ],
-            partial_variables={
-                "format_instructions": self.parser.get_format_instructions()
-            },
         )
         self.lit_logger: LitLoggerProtocol | None = lit_logger
         self.log(
@@ -190,19 +170,74 @@ class ProtocolManager:
             },
         )
         try:
-            chain = self.prompt | self.llm | self.parser
-            result = cast(
-                ProtocolSelectionOutput,
-                chain.invoke(
-                    {
-                        "prompt": prompt,
-                        "task_type": task_type,
-                        "model_capabilities": model_capabilities,
-                        "protocol_descriptions": self.protocol_descriptions,
-                        "parameter_descriptions": self.parameter_descriptions,
-                    }
-                ),
+            system_message_content = (
+                "You are a protocol selection expert. Given a user prompt, task type, "
+                "and candidate models, choose the best protocol and model. You MUST "
+                "respond with a JSON object that strictly conforms to the following "
+                f"Pydantic schema:\n```json\n{self.output_schema_json}\n```\n"
+                f"{self.protocol_descriptions}\n"
+                f"{self.parameter_descriptions}\n"
+                "For standard_llm, return alternatives as a list of objects with "
+                "provider and model.\n"
+                "For minion, return alternatives as a list of objects with task_type.\n"
+                "For minions_protocol, you may include both standard_llm and minion "
+                "info.\n"
             )
+
+            user_query_content = (
+                f"Prompt: {prompt}\n"
+                f"Task type: {task_type}\n"
+                f"Candidate models (with capabilities):\n{model_capabilities}\n"
+                "Please output the JSON object directly, with no additional text or "
+                "explanations."
+            )
+
+            messages = [
+                {"role": "system", "content": system_message_content},
+                {"role": "user", "content": user_query_content},
+            ]
+
+            input_ids = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=True,
+                add_generation_prompt=True,
+                return_tensors="pt",
+            ).to(self.model.device)
+
+            outputs = self.model.generate(
+                input_ids,
+                max_new_tokens=self.max_new_tokens,
+                pad_token_id=self.tokenizer.eos_token_id,
+                temperature=0.7,
+                top_p=0.9,
+                do_sample=True,
+            )
+
+            generated_token_ids = outputs[0][len(input_ids[0]) :]
+            raw_llm_output = self.tokenizer.decode(
+                generated_token_ids, skip_special_tokens=True
+            )
+
+            json_match = re.search(
+                r"```json\s*(\{.*?\})\s*```", raw_llm_output, re.DOTALL
+            )
+            if not json_match:
+                json_match = re.search(r"\{.*?\}", raw_llm_output, re.DOTALL)
+
+            if json_match:
+                json_string = (
+                    json_match.group(0)
+                    if json_match.group(1) == ""
+                    else json_match.group(1)
+                )
+            else:
+                raise ValueError(
+                    "Could not find a valid JSON object in the LLM output."
+                )
+
+            parsed_data = json.loads(json_string)
+            result = ProtocolSelectionOutput.model_validate(parsed_data)
+
             self.log(
                 "protocol_selection_success",
                 {
@@ -214,9 +249,11 @@ class ProtocolManager:
         except Exception as e:
             self.log("protocol_selection_error", {"error": str(e)})
             raise RuntimeError(f"Protocol selection failed: {e}") from e
+
+        protocol_str = result.protocol
         protocol = (
-            ProtocolType(result.protocol)
-            if result.protocol and result.protocol in ProtocolType.__members__.values()
+            ProtocolType(protocol_str)
+            if protocol_str and protocol_str in ProtocolType.__members__.values()
             else ProtocolType.STANDARD_LLM
         )
         parameters = OpenAIParameters(
@@ -240,7 +277,6 @@ class ProtocolManager:
                     "standard_alternatives_parsing_error",
                     {"error": str(e), "data": result.standard_alternatives},
                 )
-                # Keep standard_alts as empty list if parsing fails
                 standard_alts = []
 
         minion_alts = []
@@ -254,7 +290,6 @@ class ProtocolManager:
                     "minion_alternatives_parsing_error",
                     {"error": str(e), "data": result.minion_alternatives},
                 )
-                # Keep minion_alts as empty list if parsing fails
                 minion_alts = []
 
         if protocol == ProtocolType.STANDARD_LLM:
