@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import React, { useCallback, useEffect, useState, type SVGProps } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 interface Logo {
   name: string;
@@ -122,13 +122,18 @@ interface LogoCarouselProps {
   logos: Logo[];
 }
 
+import { useReducedMotion } from "framer-motion";
+
 export function LogoCarousel({ columnCount = 2, logos }: LogoCarouselProps) {
   const [logoSets, setLogoSets] = useState<Logo[][]>([]);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   const updateTime = useCallback(() => {
+    if (isPaused || shouldReduceMotion) return;
     setCurrentTime((prevTime) => prevTime + 100);
-  }, []);
+  }, [isPaused, shouldReduceMotion]);
 
   useEffect(() => {
     const intervalId = setInterval(updateTime, 100);
@@ -141,7 +146,12 @@ export function LogoCarousel({ columnCount = 2, logos }: LogoCarouselProps) {
   }, [logos, columnCount]);
 
   return (
-    <div className="flex space-x-4">
+    <section
+      className="flex space-x-4"
+      aria-label="Logo carousel"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
       {logoSets.map((logos, index) => (
         <LogoColumn
           key={`column-${index}-${logos[0]?.id ?? "empty"}`}
@@ -150,7 +160,7 @@ export function LogoCarousel({ columnCount = 2, logos }: LogoCarouselProps) {
           currentTime={currentTime}
         />
       ))}
-    </div>
+    </section>
   );
 }
 

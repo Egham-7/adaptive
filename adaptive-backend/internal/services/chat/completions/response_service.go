@@ -10,16 +10,23 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// ResponseService handles HTTP responses for all protocols
+const (
+	protocolStandard   = "standard"
+	protocolMinion     = "minion"
+	protocolMinions    = "minions_protocol"
+	errUnknownProtocol = "unknown protocol"
+)
+
+// ResponseService handles HTTP responses for all protocols.
 type ResponseService struct{}
 
-// NewResponseService creates a new response service
+// NewResponseService creates a new response service.
 func NewResponseService() *ResponseService {
 	return &ResponseService{}
 }
 
 // HandleProtocol routes to the correct response flow based on protocol.
-// remoteProv is the standard‐LLM provider, minionProv is used for minion or
+// remoteProv is the standard-LLM provider, minionProv is used for minion or
 // MinionS protocols. req is the original ChatCompletionRequest.
 func (s *ResponseService) HandleProtocol(
 	c *fiber.Ctx,
@@ -62,7 +69,7 @@ func (s *ResponseService) HandleProtocol(
 
 	default:
 		return s.HandleError(c, fiber.StatusInternalServerError,
-			"unknown protocol "+string(protocol), requestID)
+			errUnknownProtocol+" "+string(protocol), requestID)
 	}
 }
 
@@ -100,7 +107,7 @@ func (s *ResponseService) handleProtocolGeneric(
 	return c.JSON(regResp)
 }
 
-// handleStandard handles both streaming and regular standard‐LLM flows.
+// handleStandard handles both streaming and regular standard-LLM flows.
 func (s *ResponseService) handleStandard(
 	c *fiber.Ctx,
 	prov provider_interfaces.LLMProvider,
@@ -108,7 +115,7 @@ func (s *ResponseService) handleStandard(
 	requestID string,
 	isStream bool,
 ) error {
-	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, "standard")
+	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolStandard)
 }
 
 // handleMinion handles both streaming and regular minion flows.
@@ -119,10 +126,10 @@ func (s *ResponseService) handleMinion(
 	requestID string,
 	isStream bool,
 ) error {
-	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, "minion")
+	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolMinion)
 }
 
-// handleMinionsProtocol handles the MinionS protocol, both stream and non‐stream.
+// handleMinionsProtocol handles the MinionS protocol, both stream and non-stream.
 func (s *ResponseService) handleMinionsProtocol(
 	c *fiber.Ctx,
 	remoteProv provider_interfaces.LLMProvider,
@@ -159,7 +166,7 @@ func (s *ResponseService) handleMinionsProtocol(
 	return c.JSON(result)
 }
 
-// HandleError sends a standardized error response
+// HandleError sends a standardized error response.
 func (s *ResponseService) HandleError(
 	c *fiber.Ctx,
 	statusCode int,
@@ -172,7 +179,7 @@ func (s *ResponseService) HandleError(
 	})
 }
 
-// HandleBadRequest handles 400 errors
+// HandleBadRequest handles 400 errors.
 func (s *ResponseService) HandleBadRequest(
 	c *fiber.Ctx,
 	message, requestID string,
@@ -180,7 +187,7 @@ func (s *ResponseService) HandleBadRequest(
 	return s.HandleError(c, fiber.StatusBadRequest, message, requestID)
 }
 
-// HandleInternalError handles 500 errors
+// HandleInternalError handles 500 errors.
 func (s *ResponseService) HandleInternalError(
 	c *fiber.Ctx,
 	message, requestID string,
@@ -188,7 +195,7 @@ func (s *ResponseService) HandleInternalError(
 	return s.HandleError(c, fiber.StatusInternalServerError, message, requestID)
 }
 
-// setStreamHeaders sets SSE headers
+// setStreamHeaders sets SSE headers.
 func (s *ResponseService) setStreamHeaders(c *fiber.Ctx) {
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")

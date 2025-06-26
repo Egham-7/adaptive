@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.9.0-cudnn-runtime-ubuntu22.04
+FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime 
 
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONUNBUFFERED=1 \
@@ -10,25 +10,16 @@ WORKDIR /app
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends \
-  software-properties-common \
-  curl && \
-  add-apt-repository -y ppa:deadsnakes/ppa && \
-  apt-get update && \
-  apt-get install -y --no-install-recommends \
-  python3.11 \
-  python3.11-venv \
-  python3.11-dev \
-  python3-pip && \
+  apt-get install -y --no-install-recommends curl && \
   apt-get clean && \
-  rm -rf /var/lib/apt/lists/* && \
-  ln -sf /usr/bin/python3.11 /usr/bin/python3 && \
-  ln -sf /usr/bin/python3.11 /usr/bin/python
+  rm -rf /var/lib/apt/lists/*
 
+# Install Poetry using the pre-installed Python
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 COPY . .
 
+# Use python3 (which points to 3.10 in this base image)
 RUN poetry env use python3 && \
   poetry config virtualenvs.create false && \
   poetry install --only=main --no-interaction --no-ansi
@@ -39,4 +30,3 @@ RUN chmod +x /entrypoint.sh
 EXPOSE 8000
 
 ENTRYPOINT ["/entrypoint.sh"]
-
