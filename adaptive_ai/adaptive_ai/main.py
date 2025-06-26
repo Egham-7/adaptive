@@ -117,7 +117,6 @@ class ProtocolManagerAPI(ls.LitAPI):
                     self.protocol_manager.select_protocol(
                         candidate_models=candidate_models,
                         classification_result=current_classification_result,
-                        prompt=req.prompt,
                     )
                 )
                 protocol_t1 = time.perf_counter()

@@ -102,9 +102,9 @@ class ProtocolManager:
             "2. minion: Use a specialized smaller model (minion) for a specific subtask.\n"
             "   - Advantages: Efficiency, can be faster and cheaper for narrow tasks.\n"
             "   - Disadvantages: Limited scope, may not handle general or complex queries.\n"
-            "   - Alternatives: List of alternative minion task types (task_type).\n"
             "   - **Recommendation: Favor 'minion' for simple, well-defined questions "
-            "     where a specialized model can maintain high quality and efficiency.**\n"  # Added line
+            "     where a specialized model can maintain high quality and efficiency.**\n"
+            "   - Alternatives: List of alternative minion task types (task_type).\n"
             "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
             "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
             "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
@@ -139,7 +139,8 @@ class ProtocolManager:
         self, candidate_models: list[ModelCapability]
     ) -> str:
         lines = []
-        for m in candidate_models:
+        for i, m in enumerate(candidate_models):
+            rank_info = f"  (Rank {i+1})" if len(candidate_models) > 1 else ""
             lines.append(
                 f"- Provider: {m.provider.value}, Model: {m.model_name}, "
                 f"Cost/1M input tokens: {m.cost_per_1m_input_tokens}, "
@@ -148,7 +149,7 @@ class ProtocolManager:
                 f"{m.max_output_tokens}, Function calling: "
                 f"{m.supports_function_calling}, Languages: "
                 f"{', '.join(m.languages_supported)}, Size: {m.model_size_params}, "
-                f"Latency: {m.latency_tier}"
+                f"Latency: {m.latency_tier}{rank_info}"
             )
         return "\n".join(lines)
 
@@ -156,7 +157,6 @@ class ProtocolManager:
         self,
         candidate_models: list[ModelCapability],
         classification_result: ClassificationResult,
-        prompt: str,
     ) -> OrchestratorResponse:
         model_capabilities = self._format_model_capabilities(candidate_models)
         task_type = (
@@ -164,18 +164,18 @@ class ProtocolManager:
             if classification_result.task_type_1
             else "Other"
         )
+
         self.log(
             "select_protocol_called",
             {
-                "prompt": prompt,
                 "task_type": task_type,
                 "candidate_models_count": len(candidate_models),
             },
         )
         try:
             system_message_content = (
-                "You are a protocol selection expert. Given a user prompt, task type, "
-                "and candidate models, choose the best protocol and model. You MUST "
+                "You are a protocol selection expert. Given a task type and candidate "
+                "models, choose the best protocol and model. You MUST "
                 "respond with a JSON object that strictly conforms to the following "
                 f"Pydantic schema:\n```json\n{self.output_schema_json}\n```\n"
                 f"{self.protocol_descriptions}\n"
@@ -188,8 +188,9 @@ class ProtocolManager:
             )
 
             user_query_content = (
-                f"Prompt: {prompt}\n"
                 f"Task type: {task_type}\n"
+                "The following candidate models are ordered by preference, with the "
+                "first being the most preferred and the last being the least:\n"
                 f"Candidate models (with capabilities):\n{model_capabilities}\n"
                 "Please output the JSON object directly, with no additional text or "
                 "explanations."
