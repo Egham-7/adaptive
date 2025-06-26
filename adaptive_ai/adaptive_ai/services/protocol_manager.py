@@ -70,7 +70,7 @@ class LitLoggerProtocol(Protocol):
 class ProtocolManager:
     def __init__(
         self,
-        model_name: str = "mistralai/Mistral-7B-Instruct-v0.3",
+        model_name: str ="meta-llama/Llama-3.1-8B-Instruct",
         max_new_tokens: int | None = None,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
