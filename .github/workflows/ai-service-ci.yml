@@ -28,24 +28,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.WORKING_DIR }}/.venv
-          key: ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-uv-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-uv-
+          enable-cache: true
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
 
       - name: Run tests
         run: uv run pytest --cov=. --cov-report=xml
@@ -68,24 +58,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.WORKING_DIR }}/.venv
-          key: ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-uv-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-uv-
+          enable-cache: true
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
 
       - name: Run type checking
         run: uv run mypy .
@@ -108,24 +88,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        run: pip install uv
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.WORKING_DIR }}/.venv
-          key: ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-uv-${{ hashFiles('**/pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-python-${{ env.PYTHON_VERSION }}-uv-
+          enable-cache: true
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --all-extras --dev
 
       - name: Azure Login
         uses: azure/login@v2
