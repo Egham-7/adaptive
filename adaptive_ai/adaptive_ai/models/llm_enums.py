@@ -2,13 +2,13 @@ from enum import Enum
 
 
 class ProviderType(str, Enum):
-    OPENAI = "OpenAI"
-    ANTHROPIC = "Anthropic"
-    GOOGLE = "Google"
-    GROQ = "GROQ"
-    DEEPSEEK = "DEEPSEEK"
-    MISTRAL = "Mistral"
-    GROK = "GROK"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "gemini"
+    GROQ = "groq"
+    DEEPSEEK = "deepseek"
+    MISTRAL = "mistral"
+    GROK = "grok"
 
 
 class TaskType(str, Enum):
