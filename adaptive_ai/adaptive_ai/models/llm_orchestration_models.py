@@ -36,13 +36,13 @@ class StandardLLMInfo(BaseModel):
     provider: str
     model: str
     parameters: OpenAIParameters
-    alternatives: list[Alternative] | None = None
+    alternatives: list[Alternative]
 
 
 class MinionInfo(BaseModel):
     task_type: str = Field(alias="task_type")
     parameters: OpenAIParameters
-    alternatives: list[MinionAlternative] | None = None
+    alternatives: list[MinionAlternative]
 
 
 # Extensible OrchestratorResponse for future protocols

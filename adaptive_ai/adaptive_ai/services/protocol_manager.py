@@ -4,7 +4,6 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_huggingface.llms import HuggingFacePipeline
 from pydantic import BaseModel, Field
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import ModelCapability
@@ -52,13 +51,13 @@ class ProtocolSelectionOutput(BaseModel):
         description="Penalize new tokens based on whether they appear in the text so far. Range -2.0 to 2.0."
     )
     # Alternatives for standard_llm
-    standard_alternatives: list[dict[str, str]] | None = Field(
-        default=None,
+    standard_alternatives: list[dict[str, str]] = Field(
+        default=[],
         description="Alternative models for standard_llm. Each should have provider and model.",
     )
     # Alternatives for minion
-    minion_alternatives: list[dict[str, str]] | None = Field(
-        default=None,
+    minion_alternatives: list[dict[str, str]] = Field(
+        default=[],
         description="Alternative minion task types. Each should have task_type.",
     )
 
@@ -70,19 +69,17 @@ class LitLoggerProtocol(Protocol):
 class ProtocolManager:
     def __init__(
         self,
-        model_name: str = "mistralai/Mistral-7B-Instruct-v0.3",
+        device: str,
+        model_name: str = "meta-llama/Llama-3.1-8B-Instruct",
         max_new_tokens: int | None = None,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        self.pipe = pipeline(
-            "text-generation",
-            model=self.model,
-            tokenizer=self.tokenizer,
-            max_new_tokens=max_new_tokens,
+
+        self.llm = HuggingFacePipeline.from_model_id(
+            model_id=model_name,
+            task="text-generation",
+            device=0 if device == "gpu" else -1,
         )
-        self.llm = HuggingFacePipeline(pipeline=self.pipe)
 
         self.parser = PydanticOutputParser(pydantic_object=ProtocolSelectionOutput)
         self.protocol_descriptions = (
@@ -218,26 +215,9 @@ class ProtocolManager:
             presence_penalty=result.presence_penalty,
         )
 
-        standard_alts = None
-        minion_alts = None
-        if result.standard_alternatives:
-            try:
-                standard_alts = [
-                    Alternative(**alt) for alt in result.standard_alternatives
-                ]
-            except (TypeError, ValueError):
-                # Log the error and continue without alternatives
-                standard_alts = None
+        standard_alts = [Alternative(**alt) for alt in result.standard_alternatives]
 
-        minion_alts = None
-        if result.minion_alternatives:
-            try:
-                minion_alts = [
-                    MinionAlternative(**alt) for alt in result.minion_alternatives
-                ]
-            except (TypeError, ValueError):
-                # Log the error and continue without alternatives
-                minion_alts = None
+        minion_alts = [MinionAlternative(**alt) for alt in result.minion_alternatives]
         # Handle each protocol type
         if protocol == ProtocolType.STANDARD_LLM:
             standard = StandardLLMInfo(
