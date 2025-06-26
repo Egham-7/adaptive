@@ -104,7 +104,7 @@ class ProtocolManager:
             "   - Disadvantages: Limited scope, may not handle general or complex queries.\n"
             "   - Alternatives: List of alternative minion task types (task_type).\n"
             "   - **Recommendation: Favor 'minion' for simple, well-defined questions "
-            "     where a specialized model can maintain high quality and efficiency.**\n" # Added line
+            "     where a specialized model can maintain high quality and efficiency.**\n"  # Added line
             "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
             "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
             "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
