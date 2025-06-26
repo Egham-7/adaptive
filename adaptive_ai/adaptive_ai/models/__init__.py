@@ -19,7 +19,6 @@ from .llm_core_models import (
     TaskModelMapping,
 )
 from .llm_enums import (
-    DifficultyLevel,
     ProtocolType,
     ProviderType,
     TaskType,
@@ -39,7 +38,6 @@ __all__ = [
     "Alternative",
     # Classification Models
     "ClassificationResult",
-    "DifficultyLevel",
     "MinionInfo",
     # Core Models
     "ModelCapability",

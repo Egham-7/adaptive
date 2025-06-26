@@ -39,15 +39,6 @@ const (
 	TaskOther          TaskType = "Other"
 )
 
-// DifficultyLevel represents task difficulty levels - aligned with Python DifficultyLevel enum.
-type DifficultyLevel string
-
-const (
-	DifficultyEasy   DifficultyLevel = "easy"
-	DifficultyMedium DifficultyLevel = "medium"
-	DifficultyHard   DifficultyLevel = "hard"
-)
-
 // ProtocolType represents orchestrator response types - aligned with Python ProtocolType enum.
 type ProtocolType string
 

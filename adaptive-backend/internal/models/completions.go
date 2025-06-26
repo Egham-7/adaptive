@@ -6,24 +6,17 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// SelectModelRequest represents a request to select a model for a given prompt and provider.
 type SelectModelRequest struct {
 	Prompt   string `json:"prompt"`
 	Provider string `json:"provider,omitempty"`
 }
 
+// ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {
-	// A list of messages comprising the conversation so far. Depending on the
-	// [model](https://platform.openai.com/docs/models) you use, different message
-	// types (modalities) are supported, like
-	// [text](https://platform.openai.com/docs/guides/text-generation),
-	// [images](https://platform.openai.com/docs/guides/vision), and
-	// [audio](https://platform.openai.com/docs/guides/audio).
+	// Messages comprising the conversation so far.
 	Messages []openai.ChatCompletionMessageParamUnion `json:"messages,omitzero"`
-	// Model ID used to generate the response, like `gpt-4o` or `o3`. OpenAI offers a
-	// wide range of models with different capabilities, performance characteristics,
-	// and price points. Refer to the
-	// [model guide](https://platform.openai.com/docs/models) to browse and compare
-	// available models.
+	// Model ID used to generate the response.
 	Model shared.ChatModel `json:"model,omitzero"`
 	// Number between -2.0 and 2.0. Positive values penalize new tokens based on their
 	// existing frequency in the text so far, decreasing the model's likelihood to
@@ -211,6 +204,7 @@ type ChatCompletionRequest struct {
 	CostBias           float32  `json:"cost_bias,omitempty"` // Bias towards cheaper providers
 }
 
+// ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
 func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
 	return &openai.ChatCompletionNewParams{
 		Messages:            r.Messages,
