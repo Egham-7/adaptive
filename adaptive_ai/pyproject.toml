@@ -47,6 +47,7 @@ langchain-huggingface = "^0.3.0"
 sentence-transformers = "^4.1.0"
 langchain-core = "^0.3.66"
 protobuf = "^6.31.1"
+sentencepiece = "^0.2.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.15.0"
