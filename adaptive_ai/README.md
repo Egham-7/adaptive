@@ -1,3 +1,4 @@
+````markdown
 # Adaptive AI Service
 
 Python ML service that intelligently selects optimal LLM models based on prompt analysis.
@@ -13,22 +14,29 @@ Python ML service that intelligently selects optimal LLM models based on prompt 
 ## Quick Start
 
 ```bash
-# Install dependencies
-poetry install
+# Install uv (if you don't have it)
+pip install uv
 
-# Set environment variables
+# Create a virtual environment and install dependencies
+uv venv
+uv sync
+
+# Set environment variables (see next section)
 cp .env.example .env.local
 
 # Run service
-poetry run python main.py
+uv run adaptive_ai/python main.py
 ```
+````
 
 ## Environment Variables
 
 ```bash
-# Optional: for enhanced features
-OPENAI_API_KEY=sk-xxxxx
-HUGGINGFACE_TOKEN=hf_xxxxx
+# HUGGINGFACE_TOKEN=hf_xxxxx
+
+# Example for a private Hugging Face model download or rate-limit bypass:
+# HF_HOME=/path/to/cache # To specify Hugging Face cache directory
+# HF_TOKEN=hf_xxxxx # Your Hugging Face token if downloading private models or for higher rate limits
 ```
 
 ## API
@@ -38,6 +46,7 @@ HUGGINGFACE_TOKEN=hf_xxxxx
 **Endpoint:** `POST /predict`
 
 **Request:**
+
 ```json
 {
   "prompt": "Write a Python function to sort a list"
@@ -45,27 +54,113 @@ HUGGINGFACE_TOKEN=hf_xxxxx
 ```
 
 **Response:**
+
+The response structure varies based on the `protocol` chosen by the AI.
+
+**Example for `standard_llm` protocol:**
+
+This protocol indicates that a single large language model has been selected for the task.
+
 ```json
 {
-  "selected_model": "gpt-4o",
-  "provider": "openai",
-  "match_score": 0.94,
-  "domain": "programming",
-  "prompt_scores": {
-    "creativity_scope": [0.3],
-    "reasoning": [0.8],
-    "contextual_knowledge": [0.6],
-    "domain_knowledge": [0.9]
+  "protocol": "standard_llm",
+  "standard": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "parameters": {
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "max_tokens": 512,
+      "n": 1,
+      "stop": null,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0
+    },
+    "alternatives": [
+      {
+        "provider": "google",
+        "model": "gemini-1.5-pro"
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-3-opus"
+      }
+    ]
+  },
+  "minion": null
+}
+```
+
+**Example for `minion` protocol:**
+
+This protocol indicates that a specialized "minion" model is recommended for a specific subtask.
+
+````json
+{
+  "protocol": "minion",
+  "standard": null,
+  "minion": {
+    "task_type": "code_generation",
+    "parameters": {
+      "temperature": 0.3,
+      "top_p": 0.5,
+      "max_tokens": 256,
+      "n": 1,
+      "stop": "```",
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0
+    },
+    "alternatives": [
+      {
+        "task_type": "text_summarization"
+      }
+    ]
+  }
+}
+````
+
+**Example for `minions_protocol`:**
+
+This protocol suggests orchestrating multiple minion models. It will include details for both a standard LLM (for orchestration/high-level reasoning) and a minion (for a specific sub-task).
+
+```json
+{
+  "protocol": "minions_protocol",
+  "standard": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "parameters": {
+      "temperature": 0.5,
+      "top_p": 0.8,
+      "max_tokens": 1024,
+      "n": 1,
+      "stop": null,
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0
+    },
+    "alternatives": null
+  },
+  "minion": {
+    "task_type": "data_extraction",
+    "parameters": {
+      "temperature": 0.1,
+      "top_p": 0.1,
+      "max_tokens": 128,
+      "n": 1,
+      "stop": "}",
+      "frequency_penalty": 0.0,
+      "presence_penalty": 0.0
+    },
+    "alternatives": null
   }
 }
 ```
 
 ## How It Works
 
-1. **Prompt Analysis**: Uses NVIDIA's prompt classifier to extract complexity dimensions
-2. **Domain Detection**: Classifies prompt into specialized domains (code, writing, analysis, etc.)
-3. **Vector Matching**: Cosine similarity between prompt vector and model capability vectors
-4. **Model Selection**: Returns best matching model with confidence score
+1.  **Prompt Analysis**: Uses NVIDIA's prompt classifier to extract complexity dimensions.
+2.  **Domain Detection**: Classifies prompt into specialized domains (code, writing, analysis, etc.).
+3.  **Model Selection**: An internal LLM, loaded directly via Hugging Face Transformers, determines the best `protocol` (e.g., `standard_llm`, `minion`, `minions_protocol`) and specific models/parameters based on the analyzed prompt, available model capabilities, and specified preferences (e.g., favoring specialized 'minion' models for simple questions to balance quality and efficiency). It generates a structured output based on a predefined Pydantic schema, which is then parsed to orchestrate the response.
 
 ## Project Structure
 
@@ -86,25 +181,25 @@ core/
 
 ## Adding New Models
 
-1. Define model capabilities in `models/llms.py`:
+1.  Define model capabilities in `models/llms.py`:
 
-```python
-model_capabilities = {
-    "new-model": {
-        "provider": "provider-name",
-        "capability_vector": [0.8, 0.9, 0.7, 0.8],  # [creativity, reasoning, context, domain]
-        "cost_per_token": 0.00001,
-        "max_tokens": 4096
+    ```python
+    model_capabilities = {
+        "new-model": {
+            "provider": "provider-name",
+            "capability_vector": [0.8, 0.9, 0.7, 0.8],  # [creativity, reasoning, context, domain]
+            "cost_per_token": 0.00001,
+            "max_tokens": 4096
+        }
     }
-}
-```
+    ```
 
-2. Update domain mappings in `models/domain_mappings.py`
+2.  Update domain mappings in `models/domain_mappings.py`
 
 ## Testing
 
 ```bash
-poetry run pytest
+uv run pytest
 ```
 
 ## Docker
@@ -113,3 +208,4 @@ poetry run pytest
 docker build -t adaptive-ai .
 docker run -p 8000:8000 adaptive-ai
 ```
+
