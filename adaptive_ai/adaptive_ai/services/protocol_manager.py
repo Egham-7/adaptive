@@ -103,11 +103,14 @@ class ProtocolManager:
             "   - Advantages: Efficiency, can be faster and cheaper for narrow tasks.\n"
             "   - Disadvantages: Limited scope, may not handle general or complex queries.\n"
             "   - Alternatives: List of alternative minion task types (task_type).\n"
+            "   - **Recommendation: Favor 'minion' for simple, well-defined questions "
+            "     where a specialized model can maintain high quality and efficiency.**\n" # Added line
             "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
             "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
             "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
             "   - Payload: May include both standard_llm and minion info.\n"
         )
+
         self.parameter_descriptions = (
             "Parameters to generate for the selected model (explain and set each):\n"
             "- temperature: Controls randomness. Higher values mean more diverse "
