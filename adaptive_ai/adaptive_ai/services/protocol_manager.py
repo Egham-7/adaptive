@@ -142,14 +142,7 @@ class ProtocolManager:
         for i, m in enumerate(candidate_models):
             rank_info = f"  (Rank {i+1})" if len(candidate_models) > 1 else ""
             lines.append(
-                f"- Provider: {m.provider.value}, Model: {m.model_name}, "
-                f"Cost/1M input tokens: {m.cost_per_1m_input_tokens}, "
-                f"Cost/1M output tokens: {m.cost_per_1m_output_tokens}, "
-                f"Max context: {m.max_context_tokens}, Max output: "
-                f"{m.max_output_tokens}, Function calling: "
-                f"{m.supports_function_calling}, Languages: "
-                f"{', '.join(m.languages_supported)}, Size: {m.model_size_params}, "
-                f"Latency: {m.latency_tier}{rank_info}"
+                f"- Provider: {m.provider.value}, Model: {m.model_name}{rank_info}"
             )
         return "\n".join(lines)
 
@@ -158,11 +151,16 @@ class ProtocolManager:
         candidate_models: list[ModelCapability],
         classification_result: ClassificationResult,
     ) -> OrchestratorResponse:
-        model_capabilities = self._format_model_capabilities(candidate_models)
+        model_capabilities_str = self._format_model_capabilities(candidate_models)
         task_type = (
             classification_result.task_type_1[0]
             if classification_result.task_type_1
             else "Other"
+        )
+
+        # Convert classification_result to a JSON string for the prompt
+        classification_result_json = json.dumps(
+            classification_result.model_dump(), indent=2
         )
 
         self.log(
@@ -170,14 +168,15 @@ class ProtocolManager:
             {
                 "task_type": task_type,
                 "candidate_models_count": len(candidate_models),
+                "classification_result_data": classification_result.model_dump(),
             },
         )
         try:
             system_message_content = (
-                "You are a protocol selection expert. Given a task type and candidate "
-                "models, choose the best protocol and model. You MUST "
-                "respond with a JSON object that strictly conforms to the following "
-                f"Pydantic schema:\n```json\n{self.output_schema_json}\n```\n"
+                "You are a protocol selection expert. Given a task type, a detailed "
+                "classification result, and candidate models, choose the best protocol "
+                "and model. You MUST respond with a JSON object that strictly conforms "
+                f"to the following Pydantic schema:\n```json\n{self.output_schema_json}\n```\n"
                 f"{self.protocol_descriptions}\n"
                 f"{self.parameter_descriptions}\n"
                 "For standard_llm, return alternatives as a list of objects with "
@@ -189,9 +188,10 @@ class ProtocolManager:
 
             user_query_content = (
                 f"Task type: {task_type}\n"
+                f"Classification Result:\n```json\n{classification_result_json}\n```\n"
                 "The following candidate models are ordered by preference, with the "
                 "first being the most preferred and the last being the least:\n"
-                f"Candidate models (with capabilities):\n{model_capabilities}\n"
+                f"Candidate models (with capabilities):\n{model_capabilities_str}\n"
                 "Please output the JSON object directly, with no additional text or "
                 "explanations."
             )
