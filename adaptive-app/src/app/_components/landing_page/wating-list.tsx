@@ -15,7 +15,7 @@ export function WaitingListSection() {
           </p>
           <Input
             type="email"
-            placeholder="hi@manuarora.in"
+            placeholder="hello@llmadaptive.uk"
             className="w-full mt-4 relative z-10 bg-white dark:bg-white"
           />
         </div>
