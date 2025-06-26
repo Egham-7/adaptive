@@ -25,12 +25,12 @@ classifiers = [
 
 
 [tool.poetry.dependencies]
-python = ">=3.11,<4.0"
+python = ">=3.10,<4.0"
 numpy = "^1.26"
 scikit-learn = "^1.7.0"
 huggingface-hub = "^0.32.0"
 transformers = "^4.52.4"
-torch = "2.2"
+torch = ">=2.2, <=3.0"
 litserve = "^0.2.10"
 pydantic = "^2.11.5"
 pydantic-settings = "^2.9.1"
@@ -46,6 +46,7 @@ langchain = "^0.3.26"
 langchain-huggingface = "^0.3.0"
 sentence-transformers = "^4.1.0"
 langchain-core = "^0.3.66"
+protobuf = "^6.31.1"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.15.0"
