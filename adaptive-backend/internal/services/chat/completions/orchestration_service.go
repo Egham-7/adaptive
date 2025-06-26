@@ -2,6 +2,7 @@ package completions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"adaptive-backend/internal/models"
@@ -82,10 +83,10 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 // ValidateOrchestrationContext ensures dependencies are set.
 func (s *OrchestrationService) ValidateOrchestrationContext() error {
 	if s.protocolManager == nil {
-		return fmt.Errorf(errProtocolManager)
+		return errors.New(errProtocolManager)
 	}
 	if s.minionRegistry == nil {
-		return fmt.Errorf(errMinionRegistry)
+		return errors.New(errMinionRegistry)
 	}
 	return nil
 }
