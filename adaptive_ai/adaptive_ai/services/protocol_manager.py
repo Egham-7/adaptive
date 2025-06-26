@@ -70,7 +70,7 @@ class LitLoggerProtocol(Protocol):
 class ProtocolManager:
     def __init__(
         self,
-        model_name: str = "Qwen/Qwen2.5-VL-3B-Instruct",
+        model_name: str = "mistralai/Mistral-7B-Instruct-v0.3",
         max_new_tokens: int | None = None,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
