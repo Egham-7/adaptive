@@ -24,52 +24,57 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
-// SetupRoutes configures all the application routes
+// SetupRoutes configures all the application routes for the Fiber app.
 func SetupRoutes(app *fiber.App) {
-	// Create handler instances
 	chatCompletionHandler := api.NewCompletionHandler()
-
-	// OpenAI-compatible API routes
 	v1Group := app.Group("/v1")
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 }
 
+const (
+	defaultAppName    = "Adaptive v1.0"
+	defaultVersion    = "1.0.0"
+	metricsEndpoint   = "/metrics"
+	healthEndpoint    = "/health"
+	chatEndpoint      = "/v1/chat/completions"
+	allowedMethods    = "GET, POST, PUT, DELETE, OPTIONS"
+	allowedHeadersKey = "ALLOWED_ORIGINS"
+	addrKey           = "ADDR"
+	envKey            = "ENV"
+)
+
+// main is the entry point for the Adaptive backend server.
 func main() {
-	err := godotenv.Load(".env.local")
-	if err != nil {
+	if err := godotenv.Load(".env.local"); err != nil {
 		log.Println("No .env.local file found, proceeding with environment variables")
 	}
 
-	// Initialize system metrics and start periodic collection
 	systemMetrics := metrics.NewSystemMetrics()
 	systemMetrics.StartPeriodicUpdates(30 * time.Second)
 	log.Println("System metrics initialized and collection started")
 
-	// Check required environment variables
-	port := os.Getenv("ADDR")
+	port := os.Getenv(addrKey)
 	if port == "" {
 		log.Fatal("ADDR environment variable is required but not set")
 	}
 
-	allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	allowedOrigins := os.Getenv(allowedHeadersKey)
 	if allowedOrigins == "" {
 		log.Fatal("ALLOWED_ORIGINS environment variable is required but not set")
 	}
 
-	// Get environment-specific configuration
-	isProd := os.Getenv("ENV") == "production"
+	isProd := os.Getenv(envKey) == "production"
 
-	// Initialize Fiber app with optimized configuration
 	app := fiber.New(fiber.Config{
-		AppName:              "Adaptive v1.0",
-		EnablePrintRoutes:    !isProd, // Disable route printing in production
+		AppName:              defaultAppName,
+		EnablePrintRoutes:    !isProd,
 		ReadTimeout:          2 * time.Minute,
 		WriteTimeout:         2 * time.Minute,
 		IdleTimeout:          5 * time.Minute,
-		ReadBufferSize:       8192,  // Increased buffer size
-		WriteBufferSize:      8192,  // Increased buffer size
-		CompressedFileSuffix: ".gz", // Enable compression
-		Prefork:              false, // Disable prefork for now
+		ReadBufferSize:       8192,
+		WriteBufferSize:      8192,
+		CompressedFileSuffix: ".gz",
+		Prefork:              false,
 		CaseSensitive:        true,
 		StrictRouting:        false,
 		ServerHeader:         "Adaptive",
@@ -78,10 +83,7 @@ func main() {
 			if e, ok := err.(*fiber.Error); ok {
 				code = e.Code
 			}
-
-			// Log error for monitoring
 			log.Printf("Request error: %v (status: %d, path: %s)", err, code, c.Path())
-
 			return c.Status(code).JSON(fiber.Map{
 				"error": err.Error(),
 				"code":  code,
@@ -89,22 +91,18 @@ func main() {
 		},
 	})
 
-	// Setup middleware
 	setupMiddleware(app, allowedOrigins)
-
-	// Setup routes
 	SetupRoutes(app)
 
-	// Add welcome route
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"message":    "Welcome to Adaptive!",
-			"version":    "1.0.0",
+			"version":    defaultVersion,
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"metrics":   "/metrics",
-				"chat":      "/v1/chat/completions",
+				"metrics":   metricsEndpoint,
+				"chat":      chatEndpoint,
 				"openai":    "/v1/openai/chat/completions",
 				"anthropic": "/v1/anthropic/chat/completions",
 				"groq":      "/v1/groq/chat/completions",
@@ -115,8 +113,7 @@ func main() {
 		})
 	})
 
-	// Add health check endpoint
-	app.Get("/health", func(c *fiber.Ctx) error {
+	app.Get(healthEndpoint, func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":     "healthy",
 			"timestamp":  time.Now(),
@@ -126,17 +123,14 @@ func main() {
 		})
 	})
 
-	// Graceful shutdown setup
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Start server with graceful shutdown
 	fmt.Printf("Server starting on %s with allowed origins: %s\n", port, allowedOrigins)
-	fmt.Printf("Environment: %s\n", os.Getenv("ENV"))
+	fmt.Printf("Environment: %s\n", os.Getenv(envKey))
 	fmt.Printf("Go version: %s\n", runtime.Version())
 	fmt.Printf("GOMAXPROCS: %d\n", runtime.GOMAXPROCS(0))
 
-	// Start the server
 	go func() {
 		if err := app.Listen(port); err != nil {
 			log.Printf("Server startup error: %v", err)
@@ -144,7 +138,6 @@ func main() {
 		}
 	}()
 
-	// Wait for shutdown signal
 	<-ctx.Done()
 	log.Println("Server shutting down...")
 	if err := app.Shutdown(); err != nil {
@@ -152,27 +145,23 @@ func main() {
 	}
 }
 
-// setupMiddleware configures all the application middleware
+// setupMiddleware configures all the application middleware for the Fiber app.
 func setupMiddleware(app *fiber.App, allowedOrigins string) {
-	isProd := os.Getenv("ENV") == "production"
+	isProd := os.Getenv(envKey) == "production"
 
-	// Recovery middleware (must be first)
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: !isProd,
 	}))
 
-	// Compression middleware for better performance
 	app.Use(compress.New(compress.Config{
-		Level: compress.LevelBestSpeed, // Balance between speed and compression
+		Level: compress.LevelBestSpeed,
 	}))
 
-	// Rate limiting to prevent abuse
 	app.Use(limiter.New(limiter.Config{
-		Max:               1000, // requests
+		Max:               1000,
 		Expiration:        1 * time.Minute,
 		LimiterMiddleware: limiter.SlidingWindow{},
 		KeyGenerator: func(c *fiber.Ctx) string {
-			// Use API key if available, otherwise IP
 			apiKey := c.Get("X-Stainless-API-Key")
 			if apiKey != "" {
 				return apiKey
@@ -187,7 +176,6 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		},
 	}))
 
-	// Logger middleware with conditional configuration
 	if isProd {
 		app.Use(logger.New(logger.Config{
 			Format: "${time} ${status} ${method} ${path} ${latency} ${bytesSent}b\n",
@@ -221,25 +209,21 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		"X-Stainless-Timeout",
 	}
 
-	// Join the headers into a comma-separated string
 	allowedHeadersString := strings.Join(allAllowedHeaders, ", ")
 
-	// CORS middleware with optimized configuration
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowHeaders:     allowedHeadersString,
-		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
+		AllowMethods:     allowedMethods,
 		AllowCredentials: true,
-		MaxAge:           86400, // 24 hours cache for preflight
+		MaxAge:           86400,
 		ExposeHeaders:    "Content-Length, Content-Type, X-Request-ID",
 	}))
 
-	// Prometheus metrics
 	prometheus := fiberprometheus.New("adaptive-backend")
-	prometheus.RegisterAt(app, "/metrics")
+	prometheus.RegisterAt(app, metricsEndpoint)
 	app.Use(prometheus.Middleware)
 
-	// pprof for performance profiling (development only)
 	if !isProd {
 		app.Use(pprof.New())
 	}

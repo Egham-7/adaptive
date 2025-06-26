@@ -20,6 +20,19 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
+const (
+	// Circuit breaker configuration
+	defaultFailureThreshold = 3
+	defaultSuccessThreshold = 2
+	defaultTimeout          = 10 * time.Second
+	defaultResetAfter       = time.Minute
+
+	// HTTP status codes
+	statusBadRequest  = 400
+	statusServerError = 503
+)
+
+// candidate represents a model/provider/protocol candidate for completion.
 type candidate struct {
 	Name     string
 	Provider provider_interfaces.LLMProvider
@@ -27,6 +40,8 @@ type candidate struct {
 }
 
 // CompletionHandler handles chat completions end-to-end.
+// It manages the lifecycle of chat completion requests, including provider selection,
+// circuit breaking, and response handling.
 type CompletionHandler struct {
 	reqSvc         *completions.RequestService
 	respSvc        *completions.ResponseService
@@ -40,14 +55,14 @@ type CompletionHandler struct {
 	cbs  map[string]*circuitbreaker.CircuitBreaker
 }
 
-// NewCompletionHandler wires up dependencies.
+// NewCompletionHandler wires up dependencies and initializes the completion handler.
 func NewCompletionHandler() *CompletionHandler {
 	mr := minions.NewMinionRegistry(11)
 	registerMinions(mr)
 
 	protocolMgr, err := protocol_manager.NewProtocolManager(0, 0)
 	if err != nil {
-		fiberlog.Fatalf("protocol manager init: %v", err)
+		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
 	}
 	chatMetrics := metrics.NewChatMetrics()
 
@@ -63,16 +78,18 @@ func NewCompletionHandler() *CompletionHandler {
 	}
 }
 
-// ChatCompletion is the HTTP handler.
+// ChatCompletion handles the chat completion HTTP request.
+// It processes the request through provider selection, parameter configuration,
+// and response handling with circuit breaking for reliability.
 func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	start := time.Now()
 	reqID := h.reqSvc.GetRequestID(c)
 	userID := h.reqSvc.GetAPIKey(c)
-	fiberlog.Infof("[%s] start", reqID)
+	fiberlog.Infof("[%s] starting chat completion request", reqID)
 
 	req, err := h.reqSvc.ParseChatCompletionRequest(c)
 	if err != nil {
-		h.metricsSvc.RecordError(start, "400", false, reqID, "")
+		h.metricsSvc.RecordError(start, fmt.Sprint(statusBadRequest), false, reqID, "")
 		return h.respSvc.HandleBadRequest(c, err.Error(), reqID)
 	}
 	isStream := req.Stream
@@ -82,11 +99,11 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		c.Context(), req, userID, reqID, h.copyCBs(),
 	)
 	if err != nil {
-		h.metricsSvc.RecordError(start, "500", isStream, reqID, "")
+		h.metricsSvc.RecordError(start, fmt.Sprint(statusServerError), isStream, reqID, "")
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	// pick parameters from the "standard" branch on MinionsProtocol
+	// Pick parameters from the "standard" branch on MinionsProtocol
 	var params models.OpenAIParameters
 	switch resp.Protocol {
 	case models.ProtocolStandardLLM:
@@ -97,7 +114,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		params = resp.Standard.Parameters
 	default:
 		return h.respSvc.HandleInternalError(
-			c, "unknown protocol "+string(resp.Protocol), reqID,
+			c, fmt.Sprintf("unknown protocol: %s", resp.Protocol), reqID,
 		)
 	}
 
@@ -108,6 +125,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	return h.handleResponse(c, resp, req, start, reqID, isStream)
 }
 
+// copyCBs safely copies the circuit breaker map.
 func (h *CompletionHandler) copyCBs() map[string]*circuitbreaker.CircuitBreaker {
 	h.cbMu.RLock()
 	defer h.cbMu.RUnlock()
@@ -124,13 +142,14 @@ func (h *CompletionHandler) buildStandardCandidates(
 
 	svc, err := providers.NewLLMProvider(std.Provider, nil, h.minionRegistry)
 	if err != nil {
-		return nil, fmt.Errorf("standard %s: %w", std.Provider, err)
+		return nil, fmt.Errorf("standard provider %s: %w", std.Provider, err)
 	}
 	out = append(out, candidate{std.Provider, svc, models.ProtocolStandardLLM})
+
 	for _, alt := range std.Alternatives {
 		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
 		if err != nil {
-			return nil, fmt.Errorf("standard alt %s: %w", alt.Provider, err)
+			return nil, fmt.Errorf("standard alternative provider %s: %w", alt.Provider, err)
 		}
 		out = append(out, candidate{alt.Provider, svc, models.ProtocolStandardLLM})
 	}
@@ -146,14 +165,15 @@ func (h *CompletionHandler) buildMinionCandidates(
 	tt := min.TaskType
 	svc, err := providers.NewLLMProvider("minion", &tt, h.minionRegistry)
 	if err != nil {
-		return nil, fmt.Errorf("minion %s: %w", tt, err)
+		return nil, fmt.Errorf("minion task type %s: %w", tt, err)
 	}
 	out = append(out, candidate{"minion", svc, models.ProtocolMinion})
+
 	for _, alt := range min.Alternatives {
 		taskType := alt.TaskType
 		svc, err := providers.NewLLMProvider("minion", &taskType, h.minionRegistry)
 		if err != nil {
-			return nil, fmt.Errorf("minion alt %s: %w", alt.TaskType, err)
+			return nil, fmt.Errorf("minion alternative task type %s: %w", alt.TaskType, err)
 		}
 		out = append(out, candidate{alt.TaskType, svc, models.ProtocolMinion})
 	}
@@ -253,7 +273,7 @@ func (h *CompletionHandler) handleResponse(
 		return nil
 	}
 
-	h.metricsSvc.RecordError(start, "503", isStream, reqID, "all")
+	h.metricsSvc.RecordError(start, fmt.Sprint(statusServerError), isStream, reqID, "all")
 	if lastErr != nil {
 		return lastErr
 	}
@@ -261,6 +281,7 @@ func (h *CompletionHandler) handleResponse(
 }
 
 // getOrCreateCB returns or initializes a circuit-breaker.
+// It uses double-checked locking pattern for thread safety and efficiency.
 func (h *CompletionHandler) getOrCreateCB(name string) *circuitbreaker.CircuitBreaker {
 	h.cbMu.RLock()
 	cb, ok := h.cbs[name]
@@ -274,17 +295,19 @@ func (h *CompletionHandler) getOrCreateCB(name string) *circuitbreaker.CircuitBr
 	if cb, ok = h.cbs[name]; ok {
 		return cb
 	}
+
 	cfg := circuitbreaker.Config{
-		FailureThreshold: 3,
-		SuccessThreshold: 2,
-		Timeout:          10 * time.Second,
-		ResetAfter:       time.Minute,
+		FailureThreshold: defaultFailureThreshold,
+		SuccessThreshold: defaultSuccessThreshold,
+		Timeout:          defaultTimeout,
+		ResetAfter:       defaultResetAfter,
 	}
 	cb = circuitbreaker.NewWithConfig(cfg)
 	h.cbs[name] = cb
 	return cb
 }
 
+// getEnvOrDefault returns the value of the environment variable or a default.
 func getEnvOrDefault(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
@@ -292,6 +315,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
+// registerMinions registers all minions in the registry.
 func registerMinions(registry *minions.MinionRegistry) {
 	registry.RegisterMinion("Open QA", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
 	registry.RegisterMinion("Closed QA", getEnvOrDefault("CLOSED_QA_MINION_URL", ""))

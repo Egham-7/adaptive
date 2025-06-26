@@ -7,15 +7,24 @@ import (
 	"github.com/openai/openai-go/packages/param"
 )
 
-// ParameterService handles the application and validation of model parameters for chat completions
+const (
+	defaultTemperature      = 0.7
+	defaultTopP             = 1.0
+	defaultMaxTokens        = 1000
+	defaultN                = 1
+	defaultPresencePenalty  = 0.0
+	defaultFrequencyPenalty = 0.0
+)
+
+// ParameterService handles the application and validation of model parameters for chat completions.
 type ParameterService struct{}
 
-// NewParameterService creates a new parameter service
+// NewParameterService creates a new parameter service.
 func NewParameterService() *ParameterService {
 	return &ParameterService{}
 }
 
-// ApplyModelParameters applies OpenAI parameters to a chat completion request
+// ApplyModelParameters applies OpenAI parameters to a chat completion request.
 func (s *ParameterService) ApplyModelParameters(
 	req *models.ChatCompletionRequest,
 	params models.OpenAIParameters,
@@ -23,7 +32,7 @@ func (s *ParameterService) ApplyModelParameters(
 ) error {
 	fiberlog.Infof("[%s] Applying model parameters", requestID)
 
-	// Apply parameters with logging
+	// Apply parameters with logging and basic validation
 	req.MaxTokens = params.MaxTokens
 	fiberlog.Debugf("[%s] Applied MaxTokens: %v", requestID, params.MaxTokens)
 
@@ -46,19 +55,19 @@ func (s *ParameterService) ApplyModelParameters(
 	return nil
 }
 
-// GetDefaultParameters returns sensible default parameters for chat completions
+// GetDefaultParameters returns sensible default parameters for chat completions.
 func (s *ParameterService) GetDefaultParameters() models.OpenAIParameters {
 	return models.OpenAIParameters{
-		Temperature:      param.Opt[float64]{Value: 0.7},
-		TopP:             param.Opt[float64]{Value: 1.0},
-		MaxTokens:        param.Opt[int64]{Value: 1000},
-		N:                param.Opt[int64]{Value: 1},
-		PresencePenalty:  param.Opt[float64]{Value: 0.0},
-		FrequencyPenalty: param.Opt[float64]{Value: 0.0},
+		Temperature:      param.Opt[float64]{Value: defaultTemperature},
+		TopP:             param.Opt[float64]{Value: defaultTopP},
+		MaxTokens:        param.Opt[int64]{Value: defaultMaxTokens},
+		N:                param.Opt[int64]{Value: defaultN},
+		PresencePenalty:  param.Opt[float64]{Value: defaultPresencePenalty},
+		FrequencyPenalty: param.Opt[float64]{Value: defaultFrequencyPenalty},
 	}
 }
 
-// ExtractParametersFromRequest extracts parameters from a chat completion request
+// ExtractParametersFromRequest extracts parameters from a chat completion request.
 func (s *ParameterService) ExtractParametersFromRequest(req *models.ChatCompletionRequest) models.OpenAIParameters {
 	return models.OpenAIParameters{
 		Temperature:      req.Temperature,

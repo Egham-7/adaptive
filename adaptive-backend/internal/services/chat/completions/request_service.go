@@ -10,15 +10,20 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// RequestService handles HTTP request parsing and validation for chat completions
+const (
+	headerRequestID = "X-Request-ID"
+	headerAPIKey    = "X-Stainless-API-Key"
+)
+
+// RequestService handles HTTP request parsing and validation for chat completions.
 type RequestService struct{}
 
-// NewRequestService creates a new request service
+// NewRequestService creates a new request service.
 func NewRequestService() *RequestService {
 	return &RequestService{}
 }
 
-// ParseChatCompletionRequest parses and validates a chat completion request
+// ParseChatCompletionRequest parses and validates a chat completion request.
 func (s *RequestService) ParseChatCompletionRequest(c *fiber.Ctx) (*models.ChatCompletionRequest, error) {
 	requestID := s.GetRequestID(c)
 	body := c.Body()
@@ -35,21 +40,21 @@ func (s *RequestService) ParseChatCompletionRequest(c *fiber.Ctx) (*models.ChatC
 	return &req, nil
 }
 
-// GetRequestID extracts or generates a request ID from the context
+// GetRequestID extracts or generates a request ID from the context.
 func (s *RequestService) GetRequestID(c *fiber.Ctx) string {
-	return c.Get("X-Request-ID", time.Now().String())
+	return c.Get(headerRequestID, time.Now().String())
 }
 
-// GetAPIKey extracts the API key from the request headers
+// GetAPIKey extracts the API key from the request headers.
 func (s *RequestService) GetAPIKey(c *fiber.Ctx) string {
-	apiKey := string(c.Request().Header.Peek("X-Stainless-API-Key"))
+	apiKey := string(c.Request().Header.Peek(headerAPIKey))
 	if apiKey == "" {
 		return "anonymous"
 	}
 	return apiKey
 }
 
-// ExtractPrompt extracts the prompt from the last user message
+// ExtractPrompt extracts the prompt from the last user message.
 func (s *RequestService) ExtractPrompt(req *models.ChatCompletionRequest) string {
 	if len(req.Messages) == 0 {
 		return ""
