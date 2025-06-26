@@ -14,6 +14,10 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
+const (
+	raceDefaultTimeout = 10 * time.Second
+)
+
 // RaceService handles provider selection with automatic failover
 // Tries primary provider first, then races alternatives if primary fails
 type RaceService struct {
@@ -25,7 +29,7 @@ type RaceService struct {
 func NewRaceService(minionRegistry *minions.MinionRegistry) *RaceService {
 	return &RaceService{
 		minionRegistry: minionRegistry,
-		timeout:        10 * time.Second, // Default timeout
+		timeout:        raceDefaultTimeout,
 	}
 }
 

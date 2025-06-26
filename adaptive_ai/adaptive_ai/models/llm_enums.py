@@ -25,12 +25,6 @@ class TaskType(str, Enum):
     OTHER = "Other"
 
 
-class DifficultyLevel(str, Enum):
-    EASY = "easy"
-    MEDIUM = "medium"
-    HARD = "hard"
-
-
 class ProtocolType(str, Enum):
     STANDARD_LLM = "standard_llm"
     MINION = "minion"

@@ -13,16 +13,21 @@ import (
 
 const defaultCostBiasFactor = 0.15
 
+// ProtocolManager coordinates protocol selection and caching for model orchestration.
 type ProtocolManager struct {
 	cache  *CacheManager
 	client *ProtocolManagerClient
 }
 
+// NewProtocolManager creates a new ProtocolManager with semantic cache and client.
 func NewProtocolManager(
 	semanticThreshold float32,
 	userCacheSize int,
 ) (*ProtocolManager, error) {
 	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is not set")
+	}
 	embProv, err := semanticcache.NewOpenAIProvider(apiKey, "")
 	if err != nil {
 		return nil, fmt.Errorf("init embedding provider: %w", err)
@@ -30,7 +35,7 @@ func NewProtocolManager(
 
 	cacheMgr, err := NewCacheManager(embProv)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("init cache manager: %w", err)
 	}
 
 	client := NewProtocolManagerClient()
@@ -41,7 +46,8 @@ func NewProtocolManager(
 	}, nil
 }
 
-// SelectProtocolWithCache first checks cache, then calls Python service for protocol selection
+// SelectProtocolWithCache checks the semantic cache, then calls the Python service for protocol selection if needed.
+// It returns the orchestrator response, the source (cache or service), and any error encountered.
 func (pm *ProtocolManager) SelectProtocolWithCache(
 	req models.ModelSelectionRequest,
 	userID, requestID string,
@@ -62,7 +68,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	resp, err := pm.client.SelectProtocol(req)
 	if err != nil {
 		log.Printf("[%s] protocol selection failed: %v", requestID, err)
-		return nil, "error", err
+		return nil, "error", fmt.Errorf("protocol selection failed: %w", err)
 	}
 
 	log.Printf("[%s] protocol selected: %s", requestID, resp.Protocol)
@@ -73,7 +79,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	return &resp, string(resp.Protocol), nil
 }
 
-// GetClientMetrics returns circuit breaker metrics for the Python service client
+// GetClientMetrics returns circuit breaker metrics for the Python service client.
 func (pm *ProtocolManager) GetClientMetrics() circuitbreaker.LocalMetrics {
 	return pm.client.GetCircuitBreakerMetrics()
 }

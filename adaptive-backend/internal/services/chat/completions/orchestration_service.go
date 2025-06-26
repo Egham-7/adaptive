@@ -2,6 +2,7 @@ package completions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"adaptive-backend/internal/models"
@@ -10,6 +11,13 @@ import (
 	"adaptive-backend/internal/services/protocol_manager"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
+)
+
+const (
+	errNoMessages      = "messages array must contain at least one element"
+	errEmptyPrompt     = "last message content cannot be empty"
+	errProtocolManager = "protocol manager is required"
+	errMinionRegistry  = "minion registry is required"
 )
 
 // OrchestrationService coordinates protocol selection and provider setup.
@@ -43,11 +51,11 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 	fiberlog.Infof("[%s] Starting orchestration for user: %s", requestID, userID)
 
 	if len(req.Messages) == 0 {
-		return nil, fmt.Errorf("messages array must contain at least one element")
+		return nil, fmt.Errorf("%s", errNoMessages)
 	}
 	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
 	if prompt == "" {
-		return nil, fmt.Errorf("last message content cannot be empty")
+		return nil, fmt.Errorf("%s", errEmptyPrompt)
 	}
 
 	var costBias *float32
@@ -75,10 +83,10 @@ func (s *OrchestrationService) SelectAndConfigureProvider(
 // ValidateOrchestrationContext ensures dependencies are set.
 func (s *OrchestrationService) ValidateOrchestrationContext() error {
 	if s.protocolManager == nil {
-		return fmt.Errorf("protocol manager is required")
+		return errors.New(errProtocolManager)
 	}
 	if s.minionRegistry == nil {
-		return fmt.Errorf("minion registry is required")
+		return errors.New(errMinionRegistry)
 	}
 	return nil
 }

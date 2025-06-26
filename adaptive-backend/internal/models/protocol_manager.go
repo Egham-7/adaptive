@@ -1,3 +1,4 @@
+// Package models defines core types for protocol management and model selection.
 package models
 
 import (
@@ -8,20 +9,20 @@ import (
 	"github.com/openai/openai-go"
 )
 
-// ProviderType represents supported LLM providers - aligned with Python ProviderType enum
+// ProviderType represents supported LLM providers - aligned with Python ProviderType enum.
 type ProviderType string
 
 const (
-	ProviderOpenAI    ProviderType = "OpenAI"
-	ProviderAnthropic ProviderType = "Anthropic"
-	ProviderGoogle    ProviderType = "Google"
-	ProviderGroq      ProviderType = "GROQ"
-	ProviderDeepseek  ProviderType = "DEEPSEEK"
-	ProviderMistral   ProviderType = "Mistral"
-	ProviderGrok      ProviderType = "GROK"
+	ProviderOpenAI    ProviderType = "openai"
+	ProviderAnthropic ProviderType = "anthropic"
+	ProviderGoogle    ProviderType = "google"
+	ProviderGroq      ProviderType = "groq"
+	ProviderDeepseek  ProviderType = "deepseek"
+	ProviderMistral   ProviderType = "mistral"
+	ProviderGrok      ProviderType = "grok"
 )
 
-// TaskType represents different types of tasks - aligned with Python TaskType enum
+// TaskType represents different types of tasks - aligned with Python TaskType enum.
 type TaskType string
 
 const (
@@ -38,16 +39,7 @@ const (
 	TaskOther          TaskType = "Other"
 )
 
-// DifficultyLevel represents task difficulty levels - aligned with Python DifficultyLevel enum
-type DifficultyLevel string
-
-const (
-	DifficultyEasy   DifficultyLevel = "easy"
-	DifficultyMedium DifficultyLevel = "medium"
-	DifficultyHard   DifficultyLevel = "hard"
-)
-
-// ProtocolType represents orchestrator response types - aligned with Python ProtocolType enum
+// ProtocolType represents orchestrator response types - aligned with Python ProtocolType enum.
 type ProtocolType string
 
 const (
@@ -56,7 +48,7 @@ const (
 	ProtocolMinionsProtocol ProtocolType = "minions_protocol"
 )
 
-// ClassificationResult represents the response from the prompt classifier - aligned with Python ClassificationResult
+// ClassificationResult represents the response from the prompt classifier.
 type ClassificationResult struct {
 	TaskType1             []string  `json:"task_type_1"`
 	TaskType2             []string  `json:"task_type_2"`
@@ -71,7 +63,7 @@ type ClassificationResult struct {
 	ConstraintCt          []float64 `json:"constraint_ct"`
 }
 
-// ModelCapability represents the capabilities of a model - aligned with Python ModelCapability
+// ModelCapability represents the capabilities of a model.
 type ModelCapability struct {
 	Description             string       `json:"description"`
 	Provider                ProviderType `json:"provider"`
@@ -86,24 +78,24 @@ type ModelCapability struct {
 	LatencyTier             *string      `json:"latency_tier,omitempty"`
 }
 
-// TaskModelEntry represents a model entry for a task - aligned with Python TaskModelEntry
+// TaskModelEntry represents a model entry for a task.
 type TaskModelEntry struct {
 	Provider  ProviderType `json:"provider"`
 	ModelName string       `json:"model_name"`
 }
 
-// TaskModelMapping maps a task to model entries - aligned with Python TaskModelMapping
+// TaskModelMapping maps a task to model entries.
 type TaskModelMapping struct {
 	ModelEntries []TaskModelEntry `json:"model_entries"`
 }
 
-// ModelSelectionConfig holds configuration - aligned with Python ModelSelectionConfig
+// ModelSelectionConfig holds configuration for model selection.
 type ModelSelectionConfig struct {
 	ModelCapabilities map[string]ModelCapability    `json:"model_capabilities"`
 	TaskModelMappings map[TaskType]TaskModelMapping `json:"task_model_mappings"`
 }
 
-// ModelSelectionRequest represents an incoming selection request - aligned with Python ModelSelectionRequest
+// ModelSelectionRequest represents an incoming selection request.
 type ModelSelectionRequest struct {
 	Prompt             string   `json:"prompt"`
 	UserID             *string  `json:"user_id,omitempty"`
@@ -111,21 +103,21 @@ type ModelSelectionRequest struct {
 	CostBias           *float32 `json:"cost_bias,omitempty"`
 }
 
-// OpenAIParameters aliases the ChatCompletion params type from OpenAI Go SDK
+// OpenAIParameters aliases the ChatCompletion params type from OpenAI Go SDK.
 type OpenAIParameters = openai.ChatCompletionNewParams
 
-// Alternative represents a provider+model fallback candidate - aligned with Python Alternative
+// Alternative represents a provider+model fallback candidate.
 type Alternative struct {
 	Provider string `json:"provider"`
 	Model    string `json:"model"`
 }
 
-// MinionAlternative represents a minion task alternative - aligned with Python MinionAlternative
+// MinionAlternative represents a minion task alternative.
 type MinionAlternative struct {
 	TaskType string `json:"task_type"`
 }
 
-// StandardLLMInfo holds the chosen remote model details - aligned with Python StandardLLMInfo
+// StandardLLMInfo holds the chosen remote model details.
 type StandardLLMInfo struct {
 	Provider     string           `json:"provider"`
 	Model        string           `json:"model"`
@@ -134,21 +126,21 @@ type StandardLLMInfo struct {
 	Alternatives []Alternative    `json:"alternatives,omitempty"`
 }
 
-// MinionInfo holds the chosen minion task details - aligned with Python MinionInfo
+// MinionInfo holds the chosen minion task details.
 type MinionInfo struct {
 	TaskType     string              `json:"task_type"`
 	Parameters   OpenAIParameters    `json:"parameters"`
 	Alternatives []MinionAlternative `json:"alternatives,omitempty"`
 }
 
-// OrchestratorResponse is the union of standard and/or minion info - aligned with Python OrchestratorResponse
+// OrchestratorResponse is the union of standard and/or minion info.
 type OrchestratorResponse struct {
 	Protocol ProtocolType     `json:"protocol"`
 	Standard *StandardLLMInfo `json:"standard,omitempty"`
 	Minion   *MinionInfo      `json:"minion,omitempty"`
 }
 
-// RaceResult represents a parallel provider race outcome
+// RaceResult represents a parallel provider race outcome.
 type RaceResult struct {
 	Provider     provider_interfaces.LLMProvider
 	ProviderName string
@@ -158,7 +150,7 @@ type RaceResult struct {
 	Error        error
 }
 
-// ValidTaskTypes returns all supported TaskType values
+// ValidTaskTypes returns all supported TaskType values.
 func ValidTaskTypes() []TaskType {
 	return []TaskType{
 		TaskOpenQA,
@@ -175,7 +167,7 @@ func ValidTaskTypes() []TaskType {
 	}
 }
 
-// ValidProviders returns all supported ProviderType values
+// ValidProviders returns all supported ProviderType values.
 func ValidProviders() []ProviderType {
 	return []ProviderType{
 		ProviderOpenAI,
@@ -188,7 +180,7 @@ func ValidProviders() []ProviderType {
 	}
 }
 
-// IsValidTaskType checks if a string matches a known TaskType
+// IsValidTaskType checks if a string matches a known TaskType.
 func IsValidTaskType(taskType string) bool {
 	for _, t := range ValidTaskTypes() {
 		if string(t) == taskType {
@@ -198,7 +190,7 @@ func IsValidTaskType(taskType string) bool {
 	return false
 }
 
-// IsValidProvider checks if a string matches a known provider
+// IsValidProvider checks if a string matches a known provider.
 func IsValidProvider(provider string) bool {
 	for _, p := range ValidProviders() {
 		if string(p) == provider {
