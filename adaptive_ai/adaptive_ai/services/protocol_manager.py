@@ -4,7 +4,6 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_huggingface.llms import HuggingFacePipeline
 from pydantic import BaseModel, Field
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import ModelCapability
@@ -70,19 +69,17 @@ class LitLoggerProtocol(Protocol):
 class ProtocolManager:
     def __init__(
         self,
+        device: str,
         model_name: str = "meta-llama/Llama-3.1-8B-Instruct",
         max_new_tokens: int | None = None,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        self.pipe = pipeline(
-            "text-generation",
-            model=self.model,
-            tokenizer=self.tokenizer,
-            max_new_tokens=max_new_tokens,
+
+        self.llm = HuggingFacePipeline.from_model_id(
+            model_id=model_name,
+            task="text-generation",
+            device=0 if device == "gpu" else -1,
         )
-        self.llm = HuggingFacePipeline(pipeline=self.pipe)
 
         self.parser = PydanticOutputParser(pydantic_object=ProtocolSelectionOutput)
         self.protocol_descriptions = (

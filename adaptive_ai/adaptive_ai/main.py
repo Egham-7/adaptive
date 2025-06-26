@@ -42,7 +42,7 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
         self.model_selection_service = ModelSelectionService(lit_logger=self)
-        self.protocol_manager = ProtocolManager(lit_logger=self)
+        self.protocol_manager = ProtocolManager(lit_logger=self, device=device)
 
     def decode_request(self, request: ModelSelectionRequest) -> ModelSelectionRequest:
         return request
