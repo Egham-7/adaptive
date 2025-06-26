@@ -12,7 +12,7 @@ import (
 
 const (
 	headerRequestID = "X-Request-ID"
-	headerAPIKey    = "X-Stainless-API-Key"
+	headerAPIKey    = "X-Stainless-API-Key" // #nosec G101
 )
 
 // RequestService handles HTTP request parsing and validation for chat completions.
