@@ -1,5 +1,5 @@
 import { Globe } from "./globe";
-
+import { BackgroundBeams } from "./background-beams";
 export function WaitingListSection() {
   return (
     <div className="relative flexmax-w-lg items-center justify-center overflow-hidden rounded-lg border bg-background md:pb-60 md:shadow-xl">
@@ -19,6 +19,7 @@ export function WaitingListSection() {
             className="w-full mt-4 relative z-10 bg-white dark:bg-white"
           />
         </div>
+        <BackgroundBeams />
       </div>
     </div>
   );
