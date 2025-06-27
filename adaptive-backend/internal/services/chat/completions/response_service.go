@@ -86,7 +86,7 @@ func (s *ResponseService) handleProtocolGeneric(
 		fiberlog.Infof("[%s] streaming %s response", requestID, protocolName)
 		streamResp, err := prov.Chat().
 			Completions().
-			StreamCompletion(req.ToOpenAIParams())
+			StreamCompletion(c.Context(), req.ToOpenAIParams())
 		if err != nil {
 			fiberlog.Errorf("[%s] %s stream failed: %v", requestID, protocolName, err)
 			return s.HandleError(c, fiber.StatusInternalServerError,
@@ -98,7 +98,7 @@ func (s *ResponseService) handleProtocolGeneric(
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
 	regResp, err := prov.Chat().
 		Completions().
-		CreateCompletion(req.ToOpenAIParams())
+		CreateCompletion(c.Context(), req.ToOpenAIParams())
 	if err != nil {
 		fiberlog.Errorf("[%s] %s create failed: %v", requestID, protocolName, err)
 		return s.HandleError(c, fiber.StatusInternalServerError,

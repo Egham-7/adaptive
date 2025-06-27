@@ -16,7 +16,7 @@ type AnthropicCompletions struct {
 }
 
 // CreateCompletion implements Completions interface
-func (c *AnthropicCompletions) CreateCompletion(req *openai.ChatCompletionNewParams) (*openai.ChatCompletion, error) {
+func (c *AnthropicCompletions) CreateCompletion(ctx context.Context, req *openai.ChatCompletionNewParams) (*openai.ChatCompletion, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
@@ -49,7 +49,7 @@ func (c *AnthropicCompletions) CreateCompletion(req *openai.ChatCompletionNewPar
 	}
 
 	// Call Anthropic API
-	resp, err := c.client.Messages.New(context.Background(), anthropicReq)
+	resp, err := c.client.Messages.New(ctx, anthropicReq)
 	if err != nil {
 		return nil, fmt.Errorf("anthropic chat completion failed: %w", err)
 	}
@@ -59,7 +59,7 @@ func (c *AnthropicCompletions) CreateCompletion(req *openai.ChatCompletionNewPar
 }
 
 // StreamCompletion implements Completions interface
-func (c *AnthropicCompletions) StreamCompletion(req *openai.ChatCompletionNewParams) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
+func (c *AnthropicCompletions) StreamCompletion(ctx context.Context, req *openai.ChatCompletionNewParams) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
@@ -90,7 +90,7 @@ func (c *AnthropicCompletions) StreamCompletion(req *openai.ChatCompletionNewPar
 	}
 
 	// Create streaming request
-	stream := c.client.Messages.NewStreaming(context.Background(), anthropicReq)
+	stream := c.client.Messages.NewStreaming(ctx, anthropicReq)
 
 	// Convert Anthropic stream to OpenAI format
 	return convertAnthropicStreamToOpenAI(stream)
