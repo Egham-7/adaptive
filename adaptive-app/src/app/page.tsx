@@ -11,17 +11,17 @@ import Pricing from "./_components/landing_page/pricing";
 import { WaitingListSection } from "./_components/landing_page/wating-list";
 
 export default function LandingPage() {
-  return (
-    <Suspense>
-      <Header />
-      <HeroSection />
-      <Pricing />
-      <ChartsSection />
-      <FeaturesSection />
-      <ContentSection />
-      <WaitingListSection />
-      <CallToAction />
-      <Footer />
-    </Suspense>
-  );
+	return (
+		<Suspense>
+			<Header />
+			<HeroSection />
+			<Pricing />
+			<ChartsSection />
+			<FeaturesSection />
+			<ContentSection />
+			<WaitingListSection />
+			<CallToAction />
+			<Footer />
+		</Suspense>
+	);
 }
