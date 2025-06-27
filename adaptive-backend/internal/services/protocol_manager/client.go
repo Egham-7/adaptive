@@ -90,7 +90,6 @@ func (c *ProtocolManagerClient) getFallbackProtocolResponse(req models.ModelSele
 		Standard: &models.StandardLLMInfo{
 			Provider:   string(models.ProviderOpenAI),
 			Model:      "gpt-4o-mini",
-			Confidence: 0.5,
 			Parameters: models.OpenAIParameters{
 				Temperature:      param.Opt[float64]{Value: 0.7},
 				TopP:             param.Opt[float64]{Value: 0.9},
