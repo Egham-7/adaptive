@@ -18,6 +18,7 @@ export function SidebarNavFooter() {
 				<SidebarMenuItem>
 					<SidebarMenuButton asChild>
 						<UserButton
+							userProfileUrl="/chat-platform/settings"
 							appearance={{
 								elements: {
 									userButtonAvatarBox: "w-8 h-8",
