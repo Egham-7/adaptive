@@ -14,9 +14,13 @@ type HuggingFaceCompletions struct {
 
 // NewHuggingFaceCompletions creates a new HuggingFace completions service
 func NewHuggingFaceCompletions(client *openai.Client) *HuggingFaceCompletions {
+	if client == nil {
+		panic("client cannot be nil")
+	}
 	return &HuggingFaceCompletions{
 		client: client,
 	}
+}
 }
 
 // CreateCompletion processes a chat completion request with HuggingFace
