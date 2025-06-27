@@ -9,6 +9,7 @@ class ProviderType(str, Enum):
     DEEPSEEK = "deepseek"
     MISTRAL = "mistral"
     GROK = "grok"
+    HUGGINGFACE = "huggingface"
 
 
 class TaskType(str, Enum):

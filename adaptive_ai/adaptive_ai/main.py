@@ -107,6 +107,16 @@ class ProtocolManagerAPI(ls.LitAPI):
                 select_t1 = time.perf_counter()
                 self.log("model_selection_time", select_t1 - select_t0)
 
+                # Get designated minion and alternatives
+                minion_model = self.model_selection_service.get_designated_minion(
+                    classification_result=current_classification_result
+                )
+                minion_alternatives = (
+                    self.model_selection_service.get_minion_alternatives(
+                        primary_minion=minion_model
+                    )
+                )
+
                 if not candidate_models:
                     self.log("no_eligible_models", {"prompt": req.prompt})
                     raise ValueError(
@@ -116,6 +126,8 @@ class ProtocolManagerAPI(ls.LitAPI):
                 orchestrator_response: OrchestratorResponse = (
                     self.protocol_manager.select_protocol(
                         candidate_models=candidate_models,
+                        minion_model=minion_model,
+                        minion_alternatives=minion_alternatives,
                         classification_result=current_classification_result,
                     )
                 )

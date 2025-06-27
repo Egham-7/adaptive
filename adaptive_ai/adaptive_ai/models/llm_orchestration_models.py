@@ -28,8 +28,9 @@ class Alternative(BaseModel):
     model: str
 
 
-class MinionAlternative(BaseModel):
-    task_type: str
+class HuggingFaceAlternative(BaseModel):
+    model: str
+    base_url: str | None = Field(None, alias="base_url")
 
 
 class StandardLLMInfo(BaseModel):
@@ -40,9 +41,10 @@ class StandardLLMInfo(BaseModel):
 
 
 class MinionInfo(BaseModel):
-    task_type: str = Field(alias="task_type")
+    model: str
+    base_url: str | None = Field(None, alias="base_url")
     parameters: OpenAIParameters
-    alternatives: list[MinionAlternative]
+    alternatives: list[HuggingFaceAlternative]
 
 
 # Extensible OrchestratorResponse for future protocols

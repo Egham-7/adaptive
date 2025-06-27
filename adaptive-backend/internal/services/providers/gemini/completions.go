@@ -18,12 +18,12 @@ type GeminiCompletions struct {
 
 // CreateCompletion calls Gemini's non-streaming API.
 func (c *GeminiCompletions) CreateCompletion(
+	ctx context.Context,
 	req *openai.ChatCompletionNewParams,
 ) (*openai.ChatCompletion, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
-	ctx := context.Background()
 
 	// Convert OpenAI messages to Gemini format
 	parts := make([]*genai.Part, len(req.Messages))
@@ -52,12 +52,12 @@ func (c *GeminiCompletions) CreateCompletion(
 
 // StreamCompletion calls Gemini's streaming API.
 func (c *GeminiCompletions) StreamCompletion(
+	ctx context.Context,
 	req *openai.ChatCompletionNewParams,
 ) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
-	ctx := context.Background()
 
 	// Convert OpenAI messages to Gemini format
 	parts := make([]*genai.Part, len(req.Messages))

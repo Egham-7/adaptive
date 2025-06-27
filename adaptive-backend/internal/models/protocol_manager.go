@@ -13,13 +13,14 @@ import (
 type ProviderType string
 
 const (
-	ProviderOpenAI    ProviderType = "openai"
-	ProviderAnthropic ProviderType = "anthropic"
-	ProviderGoogle    ProviderType = "google"
-	ProviderGroq      ProviderType = "groq"
-	ProviderDeepseek  ProviderType = "deepseek"
-	ProviderMistral   ProviderType = "mistral"
-	ProviderGrok      ProviderType = "grok"
+	ProviderOpenAI      ProviderType = "openai"
+	ProviderAnthropic   ProviderType = "anthropic"
+	ProviderGoogle      ProviderType = "google"
+	ProviderGroq        ProviderType = "groq"
+	ProviderDeepseek    ProviderType = "deepseek"
+	ProviderMistral     ProviderType = "mistral"
+	ProviderGrok        ProviderType = "grok"
+	ProviderHuggingFace ProviderType = "huggingface"
 )
 
 // TaskType represents different types of tasks - aligned with Python TaskType enum.
@@ -80,25 +81,26 @@ type Alternative struct {
 	Model    string `json:"model"`
 }
 
-// MinionAlternative represents a minion task alternative.
-type MinionAlternative struct {
-	TaskType string `json:"task_type"`
+// HuggingFaceAlternative represents a HuggingFace model alternative.
+type HuggingFaceAlternative struct {
+	Model   string `json:"model"`
+	BaseURL string `json:"base_url,omitempty"`
 }
 
 // StandardLLMInfo holds the chosen remote model details.
 type StandardLLMInfo struct {
 	Provider     string           `json:"provider"`
 	Model        string           `json:"model"`
-	Confidence   float64          `json:"confidence"`
 	Parameters   OpenAIParameters `json:"parameters"`
 	Alternatives []Alternative    `json:"alternatives,omitempty"`
 }
 
-// MinionInfo holds the chosen minion task details.
+// MinionInfo holds the chosen HuggingFace model details.
 type MinionInfo struct {
-	TaskType     string              `json:"task_type"`
-	Parameters   OpenAIParameters    `json:"parameters"`
-	Alternatives []MinionAlternative `json:"alternatives,omitempty"`
+	Model        string                   `json:"model"`
+	BaseURL      string                   `json:"base_url,omitempty"`
+	Parameters   OpenAIParameters         `json:"parameters"`
+	Alternatives []HuggingFaceAlternative `json:"alternatives,omitempty"`
 }
 
 // ProtocolResponse is the union of standard and/or minion info.
