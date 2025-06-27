@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"os"
@@ -46,7 +47,7 @@ type CompletionHandler struct {
 	reqSvc         *completions.RequestService
 	respSvc        *completions.ResponseService
 	paramSvc       *completions.ParameterService
-	orchSvc        *completions.OrchestrationService
+	protocolMgr    *protocol_manager.ProtocolManager
 	metricsSvc     *completions.MetricsService
 	raceSvc        *completions.RaceService
 	minionRegistry *minions.MinionRegistry
@@ -70,7 +71,7 @@ func NewCompletionHandler() *CompletionHandler {
 		reqSvc:         completions.NewRequestService(),
 		respSvc:        completions.NewResponseService(),
 		paramSvc:       completions.NewParameterService(),
-		orchSvc:        completions.NewOrchestrationService(protocolMgr, mr),
+		protocolMgr:    protocolMgr,
 		metricsSvc:     completions.NewMetricsService(chatMetrics),
 		raceSvc:        completions.NewRaceService(mr),
 		minionRegistry: mr,
@@ -95,7 +96,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	isStream := req.Stream
 	h.metricsSvc.RecordRequestStart(reqID, isStream)
 
-	resp, err := h.orchSvc.SelectAndConfigureProvider(
+	resp, err := h.selectProtocol(
 		c.Context(), req, userID, reqID, h.copyCBs(),
 	)
 	if err != nil {
@@ -123,6 +124,48 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 
 	return h.handleResponse(c, resp, req, start, reqID, isStream)
+}
+
+// selectProtocol runs protocol selection and returns the chosen protocol response.
+func (h *CompletionHandler) selectProtocol(
+	ctx context.Context,
+	req *models.ChatCompletionRequest,
+	userID, requestID string,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+) (
+	resp *models.ProtocolResponse,
+	err error,
+) {
+	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
+
+	if len(req.Messages) == 0 {
+		return nil, fmt.Errorf("messages array must contain at least one element")
+	}
+	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
+	if prompt == "" {
+		return nil, fmt.Errorf("last message content cannot be empty")
+	}
+
+	var costBias *float32
+	if req.CostBias != 0 {
+		costBias = &req.CostBias
+	}
+
+	selReq := models.ModelSelectionRequest{
+		Prompt:             prompt,
+		ProviderConstraint: req.ProviderConstraint,
+		CostBias:           costBias,
+	}
+
+	resp, _, err = h.protocolMgr.SelectProtocolWithCache(
+		selReq, userID, requestID, circuitBreakers,
+	)
+	if err != nil {
+		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
+		return nil, fmt.Errorf("protocol selection failed: %w", err)
+	}
+
+	return resp, nil
 }
 
 // copyCBs safely copies the circuit breaker map.
@@ -183,7 +226,7 @@ func (h *CompletionHandler) buildMinionCandidates(
 // buildCandidates flattens resp into an ordered slice.
 // For ProtocolMinionsProtocol, returns a pair: [remote, minion]
 func (h *CompletionHandler) buildCandidates(
-	resp *models.OrchestratorResponse,
+	resp *models.ProtocolResponse,
 ) ([]candidate, error) {
 	switch resp.Protocol {
 	case models.ProtocolStandardLLM:
@@ -214,7 +257,7 @@ func (h *CompletionHandler) buildCandidates(
 // handleResponse tries each candidate under its circuit-breaker.
 func (h *CompletionHandler) handleResponse(
 	c *fiber.Ctx,
-	resp *models.OrchestratorResponse,
+	resp *models.ProtocolResponse,
 	req *models.ChatCompletionRequest,
 	start time.Time,
 	reqID string,
@@ -330,7 +373,7 @@ func registerMinions(registry *minions.MinionRegistry) {
 	registry.RegisterMinion("Other", getEnvOrDefault("CHATBOT_MINION_URL", ""))
 }
 
-// Health returns orchestration service health.
+// Health returns protocol manager health.
 func (h *CompletionHandler) Health() error {
-	return h.orchSvc.ValidateOrchestrationContext()
+	return h.protocolMgr.ValidateContext()
 }

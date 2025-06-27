@@ -13,7 +13,7 @@ import (
 
 const defaultCostBiasFactor = 0.15
 
-// ProtocolManager coordinates protocol selection and caching for model orchestration.
+// ProtocolManager coordinates protocol selection and caching for model selection.
 type ProtocolManager struct {
 	cache  *CacheManager
 	client *ProtocolManagerClient
@@ -47,12 +47,12 @@ func NewProtocolManager(
 }
 
 // SelectProtocolWithCache checks the semantic cache, then calls the Python service for protocol selection if needed.
-// It returns the orchestrator response, the source (cache or service), and any error encountered.
+// It returns the protocol response, the source (cache or service), and any error encountered.
 func (pm *ProtocolManager) SelectProtocolWithCache(
 	req models.ModelSelectionRequest,
 	userID, requestID string,
 	cbs map[string]*circuitbreaker.CircuitBreaker,
-) (*models.OrchestratorResponse, string, error) {
+) (*models.ProtocolResponse, string, error) {
 	if req.CostBias == nil || *req.CostBias <= 0 {
 		bias := float32(defaultCostBiasFactor)
 		req.CostBias = &bias
@@ -82,4 +82,15 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 // GetClientMetrics returns circuit breaker metrics for the Python service client.
 func (pm *ProtocolManager) GetClientMetrics() circuitbreaker.LocalMetrics {
 	return pm.client.GetCircuitBreakerMetrics()
+}
+
+// ValidateContext ensures dependencies are set.
+func (pm *ProtocolManager) ValidateContext() error {
+	if pm.cache == nil {
+		return fmt.Errorf("cache manager is required")
+	}
+	if pm.client == nil {
+		return fmt.Errorf("protocol manager client is required")
+	}
+	return nil
 }

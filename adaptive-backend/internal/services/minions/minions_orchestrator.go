@@ -30,225 +30,254 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 	localProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
 ) (*openai.ChatCompletion, error) {
-	const maxRounds = 8
-	var (
-		roundResults []*openai.ChatCompletion
-		round        = 0
-	)
-	for round < maxRounds {
-		// a) Decompose remotely
-		instructions, _, err := s.remoteDecompose(remoteProv, req, roundResults)
-		if err != nil {
-			return nil, err
-		}
-		// b) Execute & filter locally
-		minionInputs := s.distributeInstructions(req.Messages, instructions)
-		rawResults := s.executeLocalMinionsParallel(localProv, minionInputs)
-		roundResults = s.filterMinionResults(rawResults)
-		// c) Aggregate remotely (non-streaming)
-		final, needMore, err := s.remoteAggregate(remoteProv, req, roundResults)
-		if err != nil {
-			return nil, err
-		}
-		if final != nil {
-			return final, nil
-		}
-		if !needMore {
-			break
-		}
-		round++
+	const maxRounds = 5
+
+	userQuery := getUserQuery(req)
+	if userQuery == "" {
+		return nil, errors.New("no user query found")
 	}
-	return nil, errors.New("MinionS protocol did not converge")
+
+	var previousResults []string
+
+	for range maxRounds {
+		// Step 1: Decompose into instructions
+		instructions, err := s.remoteDecompose(remoteProv, userQuery, previousResults, req.Model)
+		if err != nil {
+			return nil, fmt.Errorf("decomposition failed: %w", err)
+		}
+
+		if len(instructions) == 0 {
+			return nil, errors.New("no instructions generated")
+		}
+
+		// Step 2: Execute instructions in parallel
+		results := s.executeInstructionsParallel(localProv, instructions)
+
+		// Step 3: Aggregate results
+		response, isComplete, err := s.remoteAggregate(remoteProv, userQuery, results, req.Model)
+		if err != nil {
+			return nil, fmt.Errorf("aggregation failed: %w", err)
+		}
+
+		if isComplete {
+			return response, nil
+		}
+
+		// Prepare for next round
+		previousResults = extractResultsForNextRound(results)
+	}
+
+	return nil, errors.New("MinionS protocol did not converge within maximum rounds")
 }
 
 // OrchestrateMinionSStream runs the MinionS protocol loop (streaming).
-// Returns a stream of ChatCompletionChunk once aggregation is final.
 func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 	ctx context.Context,
 	remoteProv provider_interfaces.LLMProvider,
 	localProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
 ) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
-	const maxRounds = 8
-	var (
-		roundResults []*openai.ChatCompletion
-		round        = 0
-	)
-	for round < maxRounds {
-		// a) Decompose remotely
-		instructions, _, err := s.remoteDecompose(remoteProv, req, roundResults)
+	const maxRounds = 5
+
+	userQuery := getUserQuery(req)
+	if userQuery == "" {
+		return nil, errors.New("no user query found")
+	}
+
+	var previousResults []string
+
+	for range maxRounds {
+		// Step 1: Decompose into instructions
+		instructions, err := s.remoteDecompose(remoteProv, userQuery, previousResults, req.Model)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("decomposition failed: %w", err)
 		}
-		// b) Execute & filter locally
-		minionInputs := s.distributeInstructions(req.Messages, instructions)
-		rawResults := s.executeLocalMinionsParallel(localProv, minionInputs)
-		roundResults = s.filterMinionResults(rawResults)
-		// c) Aggregate remotely (streaming + buffered)
-		stream, needMore, err := s.remoteAggregateStreamBuffered(remoteProv, req, roundResults)
+
+		if len(instructions) == 0 {
+			return nil, errors.New("no instructions generated")
+		}
+
+		// Step 2: Execute instructions in parallel
+		results := s.executeInstructionsParallel(localProv, instructions)
+
+		// Step 3: Aggregate results (streaming)
+		stream, isComplete, err := s.remoteAggregateStream(remoteProv, userQuery, results, req.Model)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("streaming aggregation failed: %w", err)
 		}
-		if !needMore {
+
+		if isComplete {
 			return stream, nil
 		}
-		round++
+
+		// Prepare for next round
+		previousResults = extractResultsForNextRound(results)
 	}
-	return nil, errors.New("MinionS streaming protocol did not converge")
+
+	return nil, errors.New("MinionS streaming protocol did not converge within maximum rounds")
 }
 
-// --- Protocol Step Implementations ---
+// InstructionResult represents the result of executing an instruction
+type InstructionResult struct {
+	Instruction string
+	Result      string
+	Success     bool
+	Error       error
+}
 
+// remoteDecompose asks the remote LLM to break down the query into atomic instructions
 func (s *MinionsOrchestrationService) remoteDecompose(
 	remoteProv provider_interfaces.LLMProvider,
-	req *models.ChatCompletionRequest,
-	previous []*openai.ChatCompletion,
-) (instructions []string, chunkStrategy string, err error) {
-	var prevSummaries []string
-	for _, r := range previous {
-		for _, ch := range r.Choices {
-			prevSummaries = append(prevSummaries, ch.Message.Content)
+	userQuery string,
+	previousResults []string,
+	model string,
+) ([]string, error) {
+	systemPrompt := `You are an expert at breaking down complex queries into simple, atomic instructions.
+Analyze the user query and decompose it into specific, actionable instructions that can be executed independently.
+Each instruction should be clear, focused, and require no additional context.
+Return your response as JSON with an array of instruction strings.`
+
+	var userPrompt strings.Builder
+	userPrompt.WriteString("User Query: ")
+	userPrompt.WriteString(userQuery)
+
+	if len(previousResults) > 0 {
+		userPrompt.WriteString("\n\nPrevious Results:\n")
+		for i, result := range previousResults {
+			userPrompt.WriteString(fmt.Sprintf("%d. %s\n", i+1, result))
 		}
+		userPrompt.WriteString("\nBased on these previous results, what additional instructions are needed to fully answer the query?")
 	}
-	systemPrompt := "You are a large language model. Decompose the user query into atomic instructions for a local LM, and specify a chunking/selection strategy for the document. Respond as JSON: {\"instructions\": [\"...\"], \"chunk_strategy\": \"...\"}"
-	userPrompt := fmt.Sprintf(
-		"Query: %s\nPrevious Results: %s",
-		getUserQuery(req),
-		strings.Join(prevSummaries, "\n"),
-	)
+
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(systemPrompt),
-			openai.UserMessage(userPrompt),
+			openai.UserMessage(userPrompt.String()),
 		},
-		Model:          req.Model,
-		ResponseFormat: jsonSchemaResponseFormat(),
+		Model:          model,
+		ResponseFormat: s.createDecomposeSchema(),
+		Temperature:    openai.Float(0.1),
 	}
+
 	resp, err := remoteProv.Chat().Completions().CreateCompletion(&param)
-	if err != nil || len(resp.Choices) == 0 {
-		return nil, "", errors.New("remote decomposition failed")
+	if err != nil {
+		return nil, err
 	}
+
+	if len(resp.Choices) == 0 {
+		return nil, errors.New("no response choices")
+	}
+
 	var parsed struct {
-		Instructions  []string `json:"instructions"`
-		ChunkStrategy string   `json:"chunk_strategy"`
+		Instructions []string `json:"instructions"`
 	}
+
 	if err := json.Unmarshal([]byte(resp.Choices[0].Message.Content), &parsed); err != nil {
-		return nil, "", errors.New("failed to parse decomposition response")
+		return nil, fmt.Errorf("failed to parse instructions: %w", err)
 	}
-	return parsed.Instructions, parsed.ChunkStrategy, nil
+
+	return parsed.Instructions, nil
 }
 
-func (s *MinionsOrchestrationService) distributeInstructions(
-	chunks []openai.ChatCompletionMessageParamUnion,
-	instructions []string,
-) []struct {
-	Chunk       openai.ChatCompletionMessageParamUnion
-	Instruction string
-} {
-	var inputs []struct {
-		Chunk       openai.ChatCompletionMessageParamUnion
-		Instruction string
-	}
-	for _, chunk := range chunks {
-		for _, instr := range instructions {
-			inputs = append(inputs, struct {
-				Chunk       openai.ChatCompletionMessageParamUnion
-				Instruction string
-			}{
-				Chunk:       chunk,
-				Instruction: instr,
-			})
-		}
-	}
-	return inputs
-}
-
-func (s *MinionsOrchestrationService) executeLocalMinionsParallel(
+// executeInstructionsParallel executes multiple instructions concurrently
+func (s *MinionsOrchestrationService) executeInstructionsParallel(
 	localProv provider_interfaces.LLMProvider,
-	inputs []struct {
-		Chunk       openai.ChatCompletionMessageParamUnion
-		Instruction string
-	},
-) []*openai.ChatCompletion {
-	results := make([]*openai.ChatCompletion, len(inputs))
+	instructions []string,
+) []*InstructionResult {
+	results := make([]*InstructionResult, len(instructions))
 	var wg sync.WaitGroup
-	wg.Add(len(inputs))
-	for i, input := range inputs {
-		go func(i int, input struct {
-			Chunk       openai.ChatCompletionMessageParamUnion
-			Instruction string
-		},
-		) {
+
+	for i, instruction := range instructions {
+		wg.Add(1)
+		go func(index int, instr string) {
 			defer wg.Done()
-			prompt := buildMinionPrompt(input.Instruction, input.Chunk)
-			param := openai.ChatCompletionNewParams{
-				Messages: []openai.ChatCompletionMessageParamUnion{
-					openai.SystemMessage("You are a helpful assistant. Answer only based on the provided chunk. If you cannot answer, abstain."),
-					openai.UserMessage(prompt),
-				},
-				ResponseFormat: jsonSchemaResponseFormat(),
-			}
-			resp, err := localProv.Chat().Completions().CreateCompletion(&param)
-			if err != nil {
-				results[i] = nil
-				return
-			}
-			results[i] = resp
-		}(i, input)
+			results[index] = s.executeInstruction(localProv, instr)
+		}(i, instruction)
 	}
+
 	wg.Wait()
 	return results
 }
 
-func (s *MinionsOrchestrationService) filterMinionResults(
-	results []*openai.ChatCompletion,
-) []*openai.ChatCompletion {
-	var filtered []*openai.ChatCompletion
-	for _, r := range results {
-		if r == nil {
-			continue
-		}
-		keep := false
-		for _, ch := range r.Choices {
-			lc := strings.ToLower(ch.Message.Content)
-			if !strings.Contains(lc, "abstain") &&
-				!strings.Contains(lc, "\"answer\": \"none\"") {
-				keep = true
-				break
-			}
-		}
-		if keep {
-			filtered = append(filtered, r)
-		}
-	}
-	return filtered
-}
+// executeInstruction executes a single instruction
+func (s *MinionsOrchestrationService) executeInstruction(
+	localProv provider_interfaces.LLMProvider,
+	instruction string,
+) *InstructionResult {
+	systemPrompt := `You are a helpful assistant. Execute the given instruction precisely and provide a clear, factual response.
+If you cannot execute the instruction, explain why. Be concise but complete in your response.`
 
-func (s *MinionsOrchestrationService) remoteAggregate(
-	remoteProv provider_interfaces.LLMProvider,
-	req *models.ChatCompletionRequest,
-	results []*openai.ChatCompletion,
-) (final *openai.ChatCompletion, needMore bool, err error) {
-	aggregationPrompt := buildAggregationPrompt(req, results)
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful assistant. Aggregate the following minion results and decide if the answer is final. Respond as JSON: {\"final\": true/false, \"answer\": \"...\"}"),
+			openai.SystemMessage(systemPrompt),
+			openai.UserMessage(instruction),
+		},
+		Temperature: openai.Float(0.3),
+	}
+
+	resp, err := localProv.Chat().Completions().CreateCompletion(&param)
+	if err != nil {
+		return &InstructionResult{
+			Instruction: instruction,
+			Success:     false,
+			Error:       err,
+		}
+	}
+
+	if len(resp.Choices) == 0 {
+		return &InstructionResult{
+			Instruction: instruction,
+			Success:     false,
+			Error:       errors.New("no response choices"),
+		}
+	}
+
+	return &InstructionResult{
+		Instruction: instruction,
+		Result:      resp.Choices[0].Message.Content,
+		Success:     true,
+	}
+}
+
+// remoteAggregate combines results and determines if the response is complete
+func (s *MinionsOrchestrationService) remoteAggregate(
+	remoteProv provider_interfaces.LLMProvider,
+	userQuery string,
+	results []*InstructionResult,
+	model string,
+) (*openai.ChatCompletion, bool, error) {
+	aggregationPrompt := s.buildAggregationPrompt(userQuery, results)
+
+	param := openai.ChatCompletionNewParams{
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
+Determine if you have enough information to provide a complete answer.
+Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 			openai.UserMessage(aggregationPrompt),
 		},
-		Model:          req.Model,
-		ResponseFormat: jsonSchemaAggregateResponseFormat(),
+		Model:          model,
+		ResponseFormat: s.createAggregateSchema(),
+		Temperature:    openai.Float(0.2),
 	}
+
 	resp, err := remoteProv.Chat().Completions().CreateCompletion(&param)
-	if err != nil || len(resp.Choices) == 0 {
-		return nil, false, errors.New("remote aggregation failed")
+	if err != nil {
+		return nil, false, err
 	}
+
+	if len(resp.Choices) == 0 {
+		return nil, false, errors.New("no response choices")
+	}
+
 	var parsed struct {
-		Final  bool   `json:"final"`
-		Answer string `json:"answer"`
+		Complete bool   `json:"complete"`
+		Answer   string `json:"answer"`
 	}
+
 	if err := json.Unmarshal([]byte(resp.Choices[0].Message.Content), &parsed); err != nil {
-		return nil, false, errors.New("failed to parse aggregation response")
+		return nil, false, fmt.Errorf("failed to parse aggregation: %w", err)
 	}
+
 	finalResp := &openai.ChatCompletion{
 		Choices: []openai.ChatCompletionChoice{
 			{
@@ -259,117 +288,103 @@ func (s *MinionsOrchestrationService) remoteAggregate(
 			},
 		},
 	}
-	return finalResp, !parsed.Final, nil
+
+	return finalResp, parsed.Complete, nil
 }
 
-// --- Streaming aggregation with buffered decode ---
-
-type memoryChunkDecoder struct {
-	chunks []*openai.ChatCompletionChunk
-	idx    int
-	evt    ssestream.Event
-}
-
-func newMemoryChunkDecoder(chunks []*openai.ChatCompletionChunk) *memoryChunkDecoder {
-	return &memoryChunkDecoder{chunks: chunks}
-}
-
-func (d *memoryChunkDecoder) Next() bool {
-	if d.idx >= len(d.chunks) {
-		return false
-	}
-	chunk := d.chunks[d.idx]
-	d.idx++
-	data, err := json.Marshal(chunk)
-	if err != nil {
-		return false
-	}
-	d.evt = ssestream.Event{Type: "", Data: data}
-	return true
-}
-
-func (d *memoryChunkDecoder) Event() ssestream.Event { return d.evt }
-func (d *memoryChunkDecoder) Close() error           { return nil }
-func (d *memoryChunkDecoder) Err() error             { return nil }
-
-// remoteAggregateStreamBuffered buffers the streaming aggregation.
-func (s *MinionsOrchestrationService) remoteAggregateStreamBuffered(
+// remoteAggregateStream performs streaming aggregation
+func (s *MinionsOrchestrationService) remoteAggregateStream(
 	remoteProv provider_interfaces.LLMProvider,
-	req *models.ChatCompletionRequest,
-	results []*openai.ChatCompletion,
+	userQuery string,
+	results []*InstructionResult,
+	model string,
 ) (*ssestream.Stream[openai.ChatCompletionChunk], bool, error) {
-	aggregationPrompt := buildAggregationPrompt(req, results)
+	aggregationPrompt := s.buildAggregationPrompt(userQuery, results)
+
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful assistant. Aggregate the following minion results and decide if the answer is final. Respond as JSON: {\"final\": true/false, \"answer\": \"...\"}"),
+			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
+Determine if you have enough information to provide a complete answer.
+Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 			openai.UserMessage(aggregationPrompt),
 		},
-		Model:          req.Model,
-		ResponseFormat: jsonSchemaAggregateResponseFormat(),
+		Model:          model,
+		ResponseFormat: s.createAggregateSchema(),
+		Temperature:    openai.Float(0.2),
 	}
+
 	origStream, err := remoteProv.Chat().Completions().StreamCompletion(&param)
 	if err != nil {
-		return nil, false, errors.New("remote aggregation streaming failed")
+		return nil, false, err
 	}
+
 	var (
 		chunks         []*openai.ChatCompletionChunk
 		contentBuilder strings.Builder
 	)
+
 	for origStream.Next() {
 		chunk := origStream.Current()
-		b, err := json.Marshal(chunk)
-		if err != nil {
-			continue
-		}
-		var parsedChunk openai.ChatCompletionChunk
-		if err := json.Unmarshal(b, &parsedChunk); err == nil {
-			chunks = append(chunks, &parsedChunk)
-			if len(parsedChunk.Choices) > 0 {
-				contentBuilder.WriteString(parsedChunk.Choices[0].Delta.Content)
-			}
+		chunks = append(chunks, &chunk)
+		if len(chunk.Choices) > 0 {
+			contentBuilder.WriteString(chunk.Choices[0].Delta.Content)
 		}
 	}
+
 	if err := origStream.Err(); err != nil {
 		return nil, false, err
 	}
+
 	var parsed struct {
-		Final  bool   `json:"final"`
-		Answer string `json:"answer"`
+		Complete bool   `json:"complete"`
+		Answer   string `json:"answer"`
 	}
+
 	if err := json.Unmarshal([]byte(contentBuilder.String()), &parsed); err != nil {
-		return nil, false, errors.New("failed to parse aggregation response")
+		return nil, false, fmt.Errorf("failed to parse streaming aggregation: %w", err)
 	}
-	memDecoder := newMemoryChunkDecoder(chunks)
-	stream := ssestream.NewStream[openai.ChatCompletionChunk](memDecoder, nil)
-	return stream, !parsed.Final, nil
+
+	decoder := newMemoryChunkDecoder(chunks)
+	stream := ssestream.NewStream[openai.ChatCompletionChunk](decoder, nil)
+
+	return stream, parsed.Complete, nil
 }
 
-// --- Helpers ---
+// Helper functions
 
-func buildMinionPrompt(
-	instruction string,
-	chunk openai.ChatCompletionMessageParamUnion,
-) string {
-	return fmt.Sprintf(
-		"Instruction: %s\n\nChunk:\n%v\n\nReturn your answer as JSON: {\"answer\": \"...\", \"citation\": \"...\", \"explanation\": \"...\"} or abstain if not found.",
-		instruction, chunk,
-	)
-}
-
-func buildAggregationPrompt(
-	req *models.ChatCompletionRequest,
-	results []*openai.ChatCompletion,
+func (s *MinionsOrchestrationService) buildAggregationPrompt(
+	userQuery string,
+	results []*InstructionResult,
 ) string {
 	var sb strings.Builder
-	sb.WriteString("User Query: ")
-	sb.WriteString(getUserQuery(req))
-	sb.WriteString("\nMinion Results:\n")
-	for i, r := range results {
-		for _, ch := range r.Choices {
-			sb.WriteString(fmt.Sprintf("Minion %d: %s\n", i+1, ch.Message.Content))
+
+	sb.WriteString("Original User Query: ")
+	sb.WriteString(userQuery)
+	sb.WriteString("\n\nInstruction Results:\n")
+
+	for i, result := range results {
+		sb.WriteString(fmt.Sprintf("\nInstruction %d: %s\n", i+1, result.Instruction))
+		if result.Success {
+			sb.WriteString(fmt.Sprintf("Result: %s\n", result.Result))
+		} else {
+			sb.WriteString(fmt.Sprintf("Error: %v\n", result.Error))
 		}
 	}
+
+	sb.WriteString("\nPlease aggregate these results to answer the original query. ")
+	sb.WriteString("Determine if you have sufficient information for a complete answer.")
+
 	return sb.String()
+}
+
+func extractResultsForNextRound(results []*InstructionResult) []string {
+	var summaries []string
+	for _, result := range results {
+		if result.Success {
+			summaries = append(summaries, result.Result)
+		}
+	}
+	return summaries
 }
 
 func getUserQuery(req *models.ChatCompletionRequest) string {
@@ -381,21 +396,26 @@ func getUserQuery(req *models.ChatCompletionRequest) string {
 	return ""
 }
 
-func jsonSchemaResponseFormat() openai.ChatCompletionNewParamsResponseFormatUnion {
+func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
 	schema := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
-			"answer":      map[string]any{"type": "string"},
-			"citation":    map[string]any{"type": "string"},
-			"explanation": map[string]any{"type": "string"},
+			"instructions": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "string",
+				},
+				"description": "Array of atomic instructions to execute",
+			},
 		},
-		"required": []string{"answer"},
+		"required": []string{"instructions"},
 	}
+
 	return openai.ChatCompletionNewParamsResponseFormatUnion{
 		OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
 			JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
-				Name:        "minion_answer",
-				Description: openai.String("Minion answer with citation and explanation"),
+				Name:        "instruction_decomposition",
+				Description: openai.String("Decompose query into atomic instructions"),
 				Schema:      schema,
 				Strict:      openai.Bool(true),
 			},
@@ -403,20 +423,27 @@ func jsonSchemaResponseFormat() openai.ChatCompletionNewParamsResponseFormatUnio
 	}
 }
 
-func jsonSchemaAggregateResponseFormat() openai.ChatCompletionNewParamsResponseFormatUnion {
+func (s *MinionsOrchestrationService) createAggregateSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
 	schema := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
-			"final":  map[string]any{"type": "boolean"},
-			"answer": map[string]any{"type": "string"},
+			"complete": map[string]any{
+				"type":        "boolean",
+				"description": "Whether the answer is complete",
+			},
+			"answer": map[string]any{
+				"type":        "string",
+				"description": "The aggregated answer",
+			},
 		},
-		"required": []string{"final", "answer"},
+		"required": []string{"complete", "answer"},
 	}
+
 	return openai.ChatCompletionNewParamsResponseFormatUnion{
 		OfJSONSchema: &shared.ResponseFormatJSONSchemaParam{
 			JSONSchema: shared.ResponseFormatJSONSchemaJSONSchemaParam{
-				Name:        "aggregate_answer",
-				Description: openai.String("Aggregate answer with final flag"),
+				Name:        "aggregated_response",
+				Description: openai.String("Aggregated response with completion status"),
 				Schema:      schema,
 				Strict:      openai.Bool(true),
 			},
