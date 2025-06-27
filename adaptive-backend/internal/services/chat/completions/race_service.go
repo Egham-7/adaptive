@@ -7,25 +7,26 @@ import (
 	"time"
 
 	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
+const (
+	raceDefaultTimeout = 10 * time.Second
+)
+
 // RaceService handles provider selection with automatic failover
 // Tries primary provider first, then races alternatives if primary fails
 type RaceService struct {
-	minionRegistry *minions.MinionRegistry
-	timeout        time.Duration
+	timeout time.Duration
 }
 
 // NewRaceService creates a new race service
-func NewRaceService(minionRegistry *minions.MinionRegistry) *RaceService {
+func NewRaceService() *RaceService {
 	return &RaceService{
-		minionRegistry: minionRegistry,
-		timeout:        10 * time.Second, // Default timeout
+		timeout: raceDefaultTimeout,
 	}
 }
 
@@ -143,16 +144,8 @@ func (rs *RaceService) tryProviderConnection(
 	var provider provider_interfaces.LLMProvider
 	var err error
 
-	if option.Provider == "minion" {
-		// For minions, the model field contains the task type
-		taskType := option.Model
-		fiberlog.Debugf("[%s] Creating minion provider for task: %s", requestID, taskType)
-		provider, err = providers.NewLLMProvider("minion", &taskType, rs.minionRegistry)
-		result.TaskType = taskType
-	} else {
-		fiberlog.Debugf("[%s] Creating LLM provider: %s", requestID, option.Provider)
-		provider, err = providers.NewLLMProvider(option.Provider, nil, rs.minionRegistry)
-	}
+	fiberlog.Debugf("[%s] Creating LLM provider: %s", requestID, option.Provider)
+	provider, err = providers.NewLLMProvider(option.Provider)
 
 	if err != nil {
 		result.Error = fmt.Errorf("failed to create provider %s: %w", option.Provider, err)

@@ -155,8 +155,8 @@ export default function Pricing() {
 					</Card>
 				</div>
 
-				<div className="mx-auto mt-16 max-w-3xl">
-					<div className="rounded-lg border bg-muted/30 p-6">
+				<div className="mx-auto mt-16 max-w-3xl ">
+					<div className="rounded-xl border bg-card p-6">
 						<h3 className="mb-4 font-medium text-lg">Volume Discounts</h3>
 						<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 							<div className="rounded-md border bg-background p-4">

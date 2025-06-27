@@ -7,15 +7,24 @@ import (
 	"github.com/openai/openai-go/packages/param"
 )
 
-// ParameterService handles the application and validation of model parameters for chat completions
+const (
+	defaultTemperature      = 0.7
+	defaultTopP             = 1.0
+	defaultMaxTokens        = 1000
+	defaultN                = 1
+	defaultPresencePenalty  = 0.0
+	defaultFrequencyPenalty = 0.0
+)
+
+// ParameterService handles the application and validation of model parameters for chat completions.
 type ParameterService struct{}
 
-// NewParameterService creates a new parameter service
+// NewParameterService creates a new parameter service.
 func NewParameterService() *ParameterService {
 	return &ParameterService{}
 }
 
-// ApplyModelParameters applies OpenAI parameters to a chat completion request
+// ApplyModelParameters applies OpenAI parameters to a chat completion request.
 func (s *ParameterService) ApplyModelParameters(
 	req *models.ChatCompletionRequest,
 	params models.OpenAIParameters,
@@ -23,48 +32,42 @@ func (s *ParameterService) ApplyModelParameters(
 ) error {
 	fiberlog.Infof("[%s] Applying model parameters", requestID)
 
-	// Apply parameters with logging
+	// Apply parameters with logging and basic validation
 	req.MaxTokens = params.MaxTokens
-	fiberlog.Debugf("[%s] Applied MaxTokens: %d", requestID, params.MaxTokens)
+	fiberlog.Debugf("[%s] Applied MaxTokens: %v", requestID, params.MaxTokens)
 
 	req.Temperature = params.Temperature
-	fiberlog.Debugf("[%s] Applied Temperature: %f", requestID, params.Temperature)
+	fiberlog.Debugf("[%s] Applied Temperature: %v", requestID, params.Temperature)
 
 	req.TopP = params.TopP
-	fiberlog.Debugf("[%s] Applied TopP: %f", requestID, params.TopP)
+	fiberlog.Debugf("[%s] Applied TopP: %v", requestID, params.TopP)
+
 	req.PresencePenalty = params.PresencePenalty
-	fiberlog.Debugf("[%s] Applied PresencePenalty: %f", requestID, params.PresencePenalty)
+	fiberlog.Debugf("[%s] Applied PresencePenalty: %v", requestID, params.PresencePenalty)
 
 	req.FrequencyPenalty = params.FrequencyPenalty
-	fiberlog.Debugf("[%s] Applied FrequencyPenalty: %f", requestID, params.FrequencyPenalty)
+	fiberlog.Debugf("[%s] Applied FrequencyPenalty: %v", requestID, params.FrequencyPenalty)
 
 	req.N = params.N
-	fiberlog.Debugf("[%s] Applied N: %d", requestID, params.N)
+	fiberlog.Debugf("[%s] Applied N: %v", requestID, params.N)
 
 	fiberlog.Infof("[%s] Parameter application complete", requestID)
 	return nil
 }
 
-// GetDefaultParameters returns sensible default parameters for chat completions
+// GetDefaultParameters returns sensible default parameters for chat completions.
 func (s *ParameterService) GetDefaultParameters() models.OpenAIParameters {
-	temperature := 0.7
-	topP := 1.0
-	maxTokens := 1000
-	n := 1
-	presencePenalty := 0.0
-	frequencyPenalty := 0.0
-
 	return models.OpenAIParameters{
-		Temperature:      param.Opt[float64]{Value: temperature},
-		TopP:             param.Opt[float64]{Value: topP},
-		MaxTokens:        param.Opt[int64]{Value: int64(maxTokens)},
-		N:                param.Opt[int64]{Value: int64(n)},
-		PresencePenalty:  param.Opt[float64]{Value: presencePenalty},
-		FrequencyPenalty: param.Opt[float64]{Value: frequencyPenalty},
+		Temperature:      param.Opt[float64]{Value: defaultTemperature},
+		TopP:             param.Opt[float64]{Value: defaultTopP},
+		MaxTokens:        param.Opt[int64]{Value: defaultMaxTokens},
+		N:                param.Opt[int64]{Value: defaultN},
+		PresencePenalty:  param.Opt[float64]{Value: defaultPresencePenalty},
+		FrequencyPenalty: param.Opt[float64]{Value: defaultFrequencyPenalty},
 	}
 }
 
-// ExtractParametersFromRequest extracts parameters from a chat completion request
+// ExtractParametersFromRequest extracts parameters from a chat completion request.
 func (s *ParameterService) ExtractParametersFromRequest(req *models.ChatCompletionRequest) models.OpenAIParameters {
 	return models.OpenAIParameters{
 		Temperature:      req.Temperature,

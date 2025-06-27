@@ -1,11 +1,7 @@
 from functools import lru_cache
-import os
-from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings
-import yaml
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AppConfig(BaseModel):
@@ -21,7 +17,7 @@ class AppConfig(BaseModel):
 class ServerConfig(BaseModel):
     """Server configuration."""
 
-    host: str = "127.0.0.1"
+    host: str = "0.0.0.0"  # noqa: S104
     port: int = 8000
     workers: int = 1
     timeout: int = 30
@@ -101,10 +97,22 @@ class HealthConfig(BaseModel):
     timeout: float = 5.0
 
 
+# NEW: Added EmbeddingCacheSettings
+class EmbeddingCacheSettings(BaseModel):
+    """Configuration for the embedding cache."""
+
+    model_name: str = "Qwen/Qwen3-Embedding-0.6B"
+    similarity_threshold: float = Field(
+        default=0.95,
+        ge=0.0,
+        le=1.0,
+        description="Similarity threshold for embedding cache hits",
+    )
+
+
 class Settings(BaseSettings):
     """Main application settings."""
 
-    # Configuration sections
     app: AppConfig = AppConfig()
     server: ServerConfig = ServerConfig()
     litserve: LitServeConfig = LitServeConfig()
@@ -112,90 +120,15 @@ class Settings(BaseSettings):
     metrics: MetricsConfig = MetricsConfig()
     security: SecurityConfig = SecurityConfig()
     health: HealthConfig = HealthConfig()
+    # NEW: Added embedding_cache configuration
+    embedding_cache: EmbeddingCacheSettings = EmbeddingCacheSettings()
 
-    # File paths
-    config_file: str = Field("config/config.yaml")
-
-    class Config:
-        env_file = ".env"
-        env_prefix = "ADAPTIVE_AI_"
-        case_sensitive = False
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        # Load configuration from YAML file
-        self._load_yaml_config()
-
-    def _load_yaml_config(self) -> None:
-        """Load configuration from YAML file."""
-        config_path = self.get_config_file_path()
-        if config_path and config_path.exists():
-            yaml_config = _load_yaml_config(str(config_path))
-            self._merge_yaml_config(yaml_config)
-
-    def _merge_yaml_config(self, yaml_config: dict[str, Any]) -> None:
-        """Merge YAML configuration into settings."""
-        config_mapping = {
-            "app": (AppConfig, "app"),
-            "server": (ServerConfig, "server"),
-            "litserve": (LitServeConfig, "litserve"),
-            "logging": (LoggingConfig, "logging"),
-            "metrics": (MetricsConfig, "metrics"),
-            "security": (SecurityConfig, "security"),
-            "health": (HealthConfig, "health"),
-        }
-
-        for key, (config_class, attr_name) in config_mapping.items():
-            if key in yaml_config:
-                setattr(self, attr_name, config_class(**yaml_config[key]))
-
-    def get_config_file_path(self) -> Path | None:
-        """Get the path to the configuration file."""
-        if os.path.isabs(self.config_file):
-            return Path(self.config_file)
-
-        # Check if we're in a Docker container
-        if os.path.exists("/app"):
-            config_path = Path("/app") / self.config_file
-            if config_path.exists():
-                return config_path
-
-        # Local development - get project root
-        current_dir = Path(__file__).parent.parent.parent
-        config_path = current_dir / self.config_file
-        if config_path.exists():
-            return config_path
-
-        # Fallback: look in current working directory
-        config_path = Path.cwd() / self.config_file
-        if config_path.exists():
-            return config_path
-
-        return None
-
-    def load_model_config(self) -> dict[str, Any]:
-        """Load the complete model configuration from YAML file."""
-        config_path = self.get_config_file_path()
-        if config_path and config_path.exists():
-            return _load_yaml_config(str(config_path))
-        return {}
+    model_config = SettingsConfigDict(
+        env_file=".env", env_prefix="ADAPTIVE_AI_", case_sensitive=False
+    )
 
 
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
     return Settings()
-
-
-@lru_cache(maxsize=1)
-def _load_yaml_config(config_path: str) -> dict[str, Any]:
-    """Load the configuration YAML file (cached)."""
-    try:
-        with open(config_path, encoding="utf-8") as file:
-            return yaml.safe_load(file) or {}
-    except FileNotFoundError:
-        raise FileNotFoundError(
-            f"Configuration file not found: {config_path}"
-        ) from None
-    except yaml.YAMLError as e:
-        raise ValueError(f"Error parsing configuration YAML: {e}") from e

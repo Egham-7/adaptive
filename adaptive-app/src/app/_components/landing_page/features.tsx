@@ -32,10 +32,13 @@ export default function FeaturesSection() {
 					<h2 className="font-semibold text-4xl lg:text-5xl">
 						Built for Scaling teams
 					</h2>
-					<p className="mt-6 text-lg">
-						Empower your team with workflows that adapt to your needs, whether
-						you prefer git synchronization or a AI Agents interface.
-					</p>
+
+					<div>
+						<p className="mt-6 text-lg">
+							Empower your team with workflows that adapt to your needs, whether
+							you prefer git synchronization or a AI Agents interface.
+						</p>
+					</div>
 				</div>
 
 				<div className="-mx-4 md:-mx-12 relative rounded-3xl p-3 lg:col-span-3">

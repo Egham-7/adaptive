@@ -9,6 +9,12 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
+const (
+	methodCompletion = "completion"
+	methodStream     = "stream"
+	statusOK         = "200"
+)
+
 // MetricsService handles metrics recording for chat completions
 type MetricsService struct {
 	chatMetrics *metrics.ChatMetrics
@@ -23,28 +29,28 @@ func NewMetricsService(chatMetrics *metrics.ChatMetrics) *MetricsService {
 
 // RecordRequestStart records the start of a request
 func (s *MetricsService) RecordRequestStart(requestID string, isStream bool) {
-	method := "completion"
+	method := methodCompletion
 	if isStream {
-		method = "stream"
+		method = methodStream
 	}
 	fiberlog.Debugf("[%s] Recording request start for method: %s", requestID, method)
 }
 
 // RecordSuccess records a successful request completion
-func (s *MetricsService) RecordSuccess(start time.Time, isStream bool, requestID string, provider string) {
+func (s *MetricsService) RecordSuccess(start time.Time, isStream bool, requestID, provider string) {
 	if s.chatMetrics == nil {
 		return
 	}
 
-	method := "completion"
+	method := methodCompletion
 	if isStream {
-		method = "stream"
+		method = methodStream
 	}
 
 	duration := time.Since(start).Seconds()
 
 	s.chatMetrics.RequestDuration.
-		WithLabelValues(method, "200", provider).
+		WithLabelValues(method, statusOK, provider).
 		Observe(duration)
 
 	fiberlog.Infof("[%s] Recorded success: method=%s, provider=%s, duration=%.3fs",
@@ -52,14 +58,14 @@ func (s *MetricsService) RecordSuccess(start time.Time, isStream bool, requestID
 }
 
 // RecordError records an error during request processing
-func (s *MetricsService) RecordError(start time.Time, statusCode string, isStream bool, requestID string, provider string) {
+func (s *MetricsService) RecordError(start time.Time, statusCode string, isStream bool, requestID, provider string) {
 	if s.chatMetrics == nil {
 		return
 	}
 
-	method := "completion"
+	method := methodCompletion
 	if isStream {
-		method = "stream"
+		method = methodStream
 	}
 
 	duration := time.Since(start).Seconds()
@@ -73,7 +79,7 @@ func (s *MetricsService) RecordError(start time.Time, statusCode string, isStrea
 }
 
 // RecordCacheHit records a cache hit event
-func (s *MetricsService) RecordCacheHit(cacheType string, requestID string, provider string) {
+func (s *MetricsService) RecordCacheHit(cacheType, requestID, provider string) {
 	if s.chatMetrics == nil {
 		return
 	}
@@ -85,43 +91,40 @@ func (s *MetricsService) RecordCacheHit(cacheType string, requestID string, prov
 	fiberlog.Infof("[%s] Recorded cache hit: type=%s, provider=%s", requestID, cacheType, provider)
 }
 
-// RecordModelSelection records which model was selected for the request
-func (s *MetricsService) RecordModelSelection(model string, requestID string, provider string) {
+// RecordProtocolSelection records which protocol was selected for the request
+func (s *MetricsService) RecordProtocolSelection(model, requestID, provider string) {
 	if s.chatMetrics == nil {
 		return
 	}
 
-	s.chatMetrics.ModelSelections.
+	s.chatMetrics.ProtocolSelections.
 		WithLabelValues(model, provider).
 		Inc()
 
-	fiberlog.Infof("[%s] Recorded model selection: model=%s, provider=%s", requestID, model, provider)
+	fiberlog.Infof("[%s] Recorded protocol selection: model=%s, provider=%s", requestID, model, provider)
 }
 
 // RecordMinionSelection records when a minion is selected for the request
-func (s *MetricsService) RecordMinionSelection(taskType string, requestID string) {
-	s.RecordModelSelection(fmt.Sprintf("Minion-%s", taskType), requestID, "minion")
+func (s *MetricsService) RecordMinionSelection(taskType, requestID string) {
+	s.RecordProtocolSelection(fmt.Sprintf("Minion-%s", taskType), requestID, "minion")
 }
 
 // RecordParameterApplication records parameter application metrics
-func (s *MetricsService) RecordParameterApplication(paramType string, requestID string) {
-	// This could be extended to track parameter usage patterns
+func (s *MetricsService) RecordParameterApplication(paramType, requestID string) {
 	fiberlog.Debugf("[%s] Applied parameter: %s", requestID, paramType)
 }
 
 // RecordValidationError records validation errors
-func (s *MetricsService) RecordValidationError(validationType string, requestID string) {
+func (s *MetricsService) RecordValidationError(validationType, requestID string) {
 	fiberlog.Warnf("[%s] Validation error: %s", requestID, validationType)
-	// Could extend to track validation error patterns
 }
 
 // RecordProviderLatency records the latency of provider calls
-func (s *MetricsService) RecordProviderLatency(provider string, operation string, duration time.Duration, requestID string) {
+func (s *MetricsService) RecordProviderLatency(provider, operation string, duration time.Duration, requestID string) {
 	if s.chatMetrics == nil {
 		return
 	}
 
-	// This would require extending the ChatMetrics struct to include provider latency metrics
 	fiberlog.Debugf("[%s] Provider latency: provider=%s, operation=%s, duration=%.3fs",
 		requestID, provider, operation, duration.Seconds())
 }

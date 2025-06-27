@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Any, cast
 
 from huggingface_hub import PyTorchModelHubMixin
@@ -6,6 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+
+from adaptive_ai.models.llm_classification_models import ClassificationResult
 
 
 class MeanPooling(nn.Module):
@@ -42,6 +43,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         task_type_map: dict[str, str],
         weights_map: dict[str, list[float]],
         divisor_map: dict[str, float],
+        lit_logger: Any = None,
     ) -> None:
         super().__init__()
         self.backbone = AutoModel.from_pretrained(
@@ -58,6 +60,11 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         for i, head in enumerate(self.heads):
             self.add_module(f"head_{i}", head)
         self.pool = MeanPooling()
+        self.lit_logger = lit_logger
+
+    def log(self, key: str, value: Any) -> None:
+        if self.lit_logger:
+            self.lit_logger.log(key, value)
 
     def compute_results(
         self, preds: torch.Tensor, target: str, decimal: int = 4
@@ -242,7 +249,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
 
 class PromptClassifier:
-    def __init__(self) -> None:
+    def __init__(self, lit_logger: Any = None) -> None:
         self.config = AutoConfig.from_pretrained(
             "nvidia/prompt-task-and-complexity-classifier"
         )
@@ -254,9 +261,11 @@ class PromptClassifier:
             task_type_map=self.config.task_type_map,
             weights_map=self.config.weights_map,
             divisor_map=self.config.divisor_map,
+            lit_logger=lit_logger,
         ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
+        self.lit_logger = lit_logger
 
-    def classify_prompts(self, prompts: list[str]) -> list[dict[str, Any]]:
+    def classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
         """
         Classify multiple prompts in a batch for optimal GPU utilization.
 
@@ -266,6 +275,11 @@ class PromptClassifier:
         Returns:
             List of classification results, one per prompt
         """
+        if self.lit_logger:
+            self.lit_logger.log(
+                "prompt_classification_batch_start", {"batch_size": len(prompts)}
+            )
+
         encoded_texts = self.tokenizer(
             prompts,
             padding=True,
@@ -277,34 +291,19 @@ class PromptClassifier:
         with torch.no_grad():
             raw_results = self.model(encoded_texts)
 
-        # tell MyPy this is indeed list[dict[str,Any]]
-        results = cast(list[dict[str, Any]], raw_results)
+        # Convert raw dictionary results to ClassificationResult Pydantic models
+        results = [ClassificationResult(**result) for result in raw_results]
+
+        if self.lit_logger:
+            self.lit_logger.log(
+                "prompt_classification_batch_complete", {"batch_size": len(results)}
+            )
 
         print(
             f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
         )
         return results
 
-    def classify_task_types(self, texts: list[str]) -> list[str]:
-        """
-        Extract just the task types from classification results.
 
-        Args:
-            texts: List of prompts to classify
-
-        Returns:
-            List of primary task types for each prompt
-        """
-        results = self.classify_prompts(texts)
-        task_types = []
-
-        for result in results:
-            task_type = result.get("task_type_1", ["Other"])[0]
-            task_types.append(task_type)
-
-        return task_types
-
-
-@lru_cache
-def get_prompt_classifier() -> PromptClassifier:
-    return PromptClassifier()
+def get_prompt_classifier(lit_logger: Any = None) -> PromptClassifier:
+    return PromptClassifier(lit_logger=lit_logger)
