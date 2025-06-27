@@ -3,14 +3,16 @@ import { LogoCarousel } from "./logo-carousel";
 
 const logos1 = [
 	{ name: "OpenAI", id: 1, img: "/logos/openai.webp" },
-	{ name: "Gemini", id: 3, img: "/logos/google.svg" },
-	{ name: "DeepSeek", id: 4, img: "/logos/deepseek.svg" },
+	{ name: "Gemini", id: 2, img: "/logos/google.svg" },
+	{ name: "DeepSeek", id: 3, img: "/logos/deepseek.svg" },
+	{ name: "Llama", id: 2, img: "/logos/meta.png" },
 ];
 
 const logos2 = [
-	{ name: "Anthropic", id: 2, img: "/logos/anthropic.jpeg" },
+	{ name: "Anthropic", id: 1, img: "/logos/anthropic.jpeg" },
 	{ name: "Llama", id: 2, img: "/logos/meta.png" },
-	{ name: "Grok", id: 1, img: "/logos/grok.svg" },
+	{ name: "Grok", id: 3, img: "/logos/grok.svg" },
+	{ name: "OpenAI", id: 4, img: "/logos/openai.webp" },
 ];
 
 export default function ContentSection() {
