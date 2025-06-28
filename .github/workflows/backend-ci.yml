@@ -1,153 +1,150 @@
 name: Backend CI/CD
 
 on:
-  push:
-    branches: [main, dev]
-    paths:
-      - "adaptive-backend/**"
-      - ".github/workflows/backend-ci.yml"
-      - ".github/scripts/**"
-  pull_request:
-    branches: [main, dev]
-    paths:
-      - "adaptive-backend/**"
-      - ".github/workflows/backend-ci.yml"
-      - ".github/scripts/**"
-  workflow_dispatch:
+    push:
+        branches: [main]
+        paths:
+            - "adaptive-backend/**"
+            - ".github/workflows/backend-ci.yml"
+    pull_request:
+        branches: [main]
+        paths:
+            - "adaptive-backend/**"
+            - ".github/workflows/backend-ci.yml"
+    workflow_dispatch:
 
 env:
-  GO_VERSION: "1.24"
-  WORKING_DIR: "./adaptive-backend"
+    GO_VERSION: "1.24"
+    WORKING_DIR: "./adaptive-backend"
 
 jobs:
-  test:
-    name: Test & Coverage
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    test:
+        name: Test & Coverage
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ${{ env.WORKING_DIR }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+                  cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
 
-      - name: Download dependencies
-        run: go mod download
+            - name: Download dependencies
+              run: go mod download
 
-      - name: Verify dependencies
-        run: go mod verify
+            - name: Verify dependencies
+              run: go mod verify
 
-      - name: Run tests
-        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+            - name: Run tests
+              run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          file: ${{ env.WORKING_DIR }}/coverage.txt
-          flags: backend
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+            - name: Upload coverage
+              uses: codecov/codecov-action@v4
+              with:
+                  file: ${{ env.WORKING_DIR }}/coverage.txt
+                  flags: backend
+                  fail_ci_if_error: false
+                  token: ${{ secrets.CODECOV_TOKEN }}
 
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ${{ env.WORKING_DIR }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+                  cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: latest
-          working-directory: ${{ env.WORKING_DIR }}
-          args: --timeout=5m
+            - name: golangci-lint
+              uses: golangci/golangci-lint-action@v6
+              with:
+                  version: latest
+                  working-directory: ${{ env.WORKING_DIR }}
+                  args: --timeout=5m
 
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    security:
+        name: Security Scan
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ${{ env.WORKING_DIR }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+                  cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
 
-      - name: Download dependencies
-        run: go mod download
+            - name: Download dependencies
+              run: go mod download
 
-      - name: Install Gosec
-        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+            - name: Install Gosec
+              run: go install github.com/securego/gosec/v2/cmd/gosec@latest
 
-      - name: Run Gosec
-        run: gosec -exclude-dir=vendor -exclude-dir=testdata ./...
+            - name: Run Gosec
+              run: gosec -exclude-dir=vendor -exclude-dir=testdata ./...
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: [test, lint]
-    defaults:
-      run:
-        working-directory: ${{ env.WORKING_DIR }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        needs: [test, lint]
+        defaults:
+            run:
+                working-directory: ${{ env.WORKING_DIR }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+                  cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
 
-      - name: Build
-        run: go build -v ./...
+            - name: Build
+              run: go build -v ./...
 
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    needs: [build, security]
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+        needs: [build, security]
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        permissions:
+            id-token: write
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.BACKEND_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.BACKEND_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.BACKEND_AZURE_SUBSCRIPTION_ID }}
+            - name: Azure Login
+              uses: azure/login@v2
+              with:
+                  client-id: ${{ secrets.BACKEND_AZURE_CLIENT_ID }}
+                  tenant-id: ${{ secrets.BACKEND_AZURE_TENANT_ID }}
+                  subscription-id: ${{ secrets.BACKEND_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          appSourcePath: ${{ github.workspace }}/adaptive-backend
-          acrName: llmadaptiveregistry
-          containerAppName: backend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}
-          resourceGroup: adaptive
-          imageToBuild: llmadaptiveregistry.azurecr.io/backend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}:${{ github.sha }}
-          registryUrl: llmadaptiveregistry.azurecr.io
-          registryUsername: ${{ secrets.BACKEND_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.BACKEND_REGISTRY_PASSWORD }}
+            - name: Deploy to Azure Container Apps
+              uses: azure/container-apps-deploy-action@v2
+              with:
+                  appSourcePath: ${{ github.workspace }}/adaptive-backend
+                  registryUrl: llmadaptiveregistry.azurecr.io
+                  registryUsername: ${{ secrets.BACKEND_REGISTRY_USERNAME }}
+                  registryPassword: ${{ secrets.BACKEND_REGISTRY_PASSWORD }}
+                  containerAppName: backend
+                  resourceGroup: adaptive
+                  imageToBuild: llmadaptiveregistry.azurecr.io/backend:${{ github.sha }}
