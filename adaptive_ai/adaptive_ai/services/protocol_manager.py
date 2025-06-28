@@ -15,6 +15,7 @@ from adaptive_ai.models.llm_orchestration_models import (
     OpenAIParameters,
     OrchestratorResponse,
     StandardLLMInfo,
+    MinionInfo
 )
 
 
@@ -51,12 +52,12 @@ class ProtocolSelectionOutput(BaseModel):
         description="Penalize new tokens based on whether they appear in the text so "
         "far. Range -2.0 to 2.0."
     )
-    standard_alternatives: list[dict[str, str]] = Field(
+    standard_alternatives: list[StandardLLMInfo] = Field(
         default=[],
         description="Alternative models for standard_llm. Each should have provider "
         "and model.",
     )
-    minion_alternatives: list[dict[str, str]] = Field(
+    minion_alternatives: list[MinionInfo] = Field(
         default=[],
         description="Alternative HuggingFace models. Each should have model and optionally base_url.",
     )
@@ -108,7 +109,7 @@ class ProtocolManager:
             "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
             "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
             "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
-            "   - Payload: May include both standard_llm and minion info.\n"
+            "   - Payload: Includes both standard_llm and minion info.\n"
         )
 
         self.parameter_descriptions = (
