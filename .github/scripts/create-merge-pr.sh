@@ -3,16 +3,53 @@
 # Script to create PR from dev to main
 set -e
 
+# Validate arguments
+if [ $# -ne 4 ]; then
+    echo "Error: This script requires exactly 4 arguments" >&2
+    echo "Usage: $0 <commits_ahead> <merge_type> <actor> <workflow>" >&2
+    exit 1
+fi
+
 COMMITS_AHEAD="$1"
 MERGE_TYPE="$2"
 ACTOR="$3"
 WORKFLOW="$4"
 
+# Check that all arguments are non-empty
+if [ -z "$COMMITS_AHEAD" ]; then
+    echo "Error: commits_ahead argument cannot be empty" >&2
+    exit 1
+fi
+
+if [ -z "$MERGE_TYPE" ]; then
+    echo "Error: merge_type argument cannot be empty" >&2
+    exit 1
+fi
+
+if [ -z "$ACTOR" ]; then
+    echo "Error: actor argument cannot be empty" >&2
+    exit 1
+fi
+
+if [ -z "$WORKFLOW" ]; then
+    echo "Error: workflow argument cannot be empty" >&2
+    exit 1
+fi
+
+# Create secure temporary file
+PR_BODY_FILE=$(mktemp)
+
+# Set up cleanup trap
+cleanup() {
+    rm -f "$PR_BODY_FILE"
+}
+trap cleanup EXIT INT TERM
+
 # Create PR body
 PR_TITLE="🚀 Merge dev to main (${COMMITS_AHEAD} commits)"
 
 # Create PR body as a temp file
-cat > /tmp/pr_body.md << EOF
+cat > "$PR_BODY_FILE" << EOF
 ## 🚀 Automated Merge from Dev to Main
 
 This PR was automatically created to merge the latest changes from \`dev\` to \`main\`.
@@ -39,7 +76,7 @@ else
     # Create new PR
     NEW_PR=$(gh pr create \
         --title "$PR_TITLE" \
-        --body-file /tmp/pr_body.md \
+        --body-file "$PR_BODY_FILE" \
         --base main \
         --head dev \
         --assignee "$ACTOR")
@@ -49,5 +86,4 @@ else
     echo "Created PR #$PR_NUMBER"
 fi
 
-# Clean up
-rm -f /tmp/pr_body.md
+# Cleanup handled by trap

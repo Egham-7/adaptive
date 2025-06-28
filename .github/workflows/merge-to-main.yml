@@ -49,25 +49,65 @@ jobs:
         run: |
           git checkout main
           git pull origin main
-          git merge-tree $(git merge-base origin/main origin/dev) origin/main origin/dev | grep -q "^@@" && {
-            echo "❌ Merge conflicts detected. Please resolve conflicts manually."
+          
+          # Get merge base safely
+          MERGE_BASE=$(git merge-base origin/main origin/dev)
+          if [ -z "$MERGE_BASE" ]; then
+            echo "❌ Unable to find merge base between main and dev"
             exit 1
-          } || {
+          fi
+          
+          # Check for merge conflicts using git merge-tree
+          MERGE_RESULT=$(git merge-tree "$MERGE_BASE" origin/main origin/dev)
+          
+          if echo "$MERGE_RESULT" | grep -q "^<<<<<<<"; then
+            echo "❌ Merge conflicts detected. Please resolve conflicts manually."
+            echo "Conflict markers found in merge result."
+            exit 1
+          elif [ -n "$MERGE_RESULT" ] && echo "$MERGE_RESULT" | grep -q "^@@"; then
+            echo "❌ Merge conflicts detected. Please resolve conflicts manually."
+            echo "Diff conflicts found in merge result."
+            exit 1
+          else
             echo "✅ No merge conflicts detected"
-          }
+          fi
 
       - name: Create Pull Request
         id: create_pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Ensure script has execute permissions
+          chmod +x .github/scripts/create-merge-pr.sh
+          
+          # Run script and capture output safely
+          set +e  # Temporarily disable exit on error to handle script output
           OUTPUT=$(.github/scripts/create-merge-pr.sh \
             "${{ steps.check_ahead.outputs.commits_ahead }}" \
             "${{ inputs.merge_type }}" \
             "${{ github.actor }}" \
-            "${{ github.workflow }}")
-
-          PR_NUMBER=$(echo "$OUTPUT" | grep "pr_number=" | cut -d'=' -f2)
+            "${{ github.workflow }}" 2>&1)
+          SCRIPT_EXIT_CODE=$?
+          set -e  # Re-enable exit on error
+          
+          # Check if script succeeded
+          if [ $SCRIPT_EXIT_CODE -ne 0 ]; then
+            echo "❌ Script failed with exit code $SCRIPT_EXIT_CODE"
+            echo "$OUTPUT"
+            exit $SCRIPT_EXIT_CODE
+          fi
+          
+          # Extract PR number safely
+          PR_NUMBER=$(printf '%s\n' "$OUTPUT" | grep "^pr_number=" | head -n1 | cut -d'=' -f2)
+          
+          # Validate PR number was extracted
+          if [ -z "$PR_NUMBER" ]; then
+            echo "❌ Failed to extract PR number from script output"
+            echo "Script output:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+          
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "$OUTPUT"
 
