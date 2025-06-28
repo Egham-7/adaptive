@@ -94,9 +94,9 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
