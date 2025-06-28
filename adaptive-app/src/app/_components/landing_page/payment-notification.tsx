@@ -1,6 +1,6 @@
 "use client";
 import { verifySession } from "@/actions/verify-session";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Notification from "../custom/notification";
 
@@ -32,7 +32,6 @@ const setSessionStorage = (key: string, value: string): void => {
 
 export default function PaymentNotificationWrapper({ children }: Props) {
 	const searchParams = useSearchParams();
-	const router = useRouter();
 	const [notification, setNotification] = useState<{
 		type: "success" | "error";
 		message: string;
@@ -53,8 +52,7 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 				}
 
 				try {
-					const { isValid, error, sessionData } =
-						await verifySession(sessionId);
+					const { isValid } = await verifySession(sessionId);
 
 					if (isValid) {
 						setNotification({
