@@ -129,6 +129,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -136,17 +137,18 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.BACKEND_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.BACKEND_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.BACKEND_AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive-backend
+          acrName: llmadaptiveregistry
+          containerAppName: backend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}
+          resourceGroup: adaptive
+          imageToBuild: llmadaptiveregistry.azurecr.io/backend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}:${{ github.sha }}
           registryUrl: llmadaptiveregistry.azurecr.io
           registryUsername: ${{ secrets.BACKEND_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.BACKEND_REGISTRY_PASSWORD }}
-          containerAppName: backend
-          resourceGroup: adaptive
-          imageToBuild: llmadaptiveregistry.azurecr.io/backend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}:${{ github.sha }}

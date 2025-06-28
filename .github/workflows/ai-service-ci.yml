@@ -86,6 +86,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -93,17 +94,18 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: adaptive_ai
+          appSourcePath: ${{ github.workspace }}/adaptive_ai
+          acrName: llmadaptiveregistry
+          containerAppName: prompt-classifier${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}
+          resourceGroup: adaptive
+          imageToBuild: llmadaptiveregistry.azurecr.io/prompt-classifier${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}:${{ github.sha }}
           registryUrl: llmadaptiveregistry.azurecr.io
           registryUsername: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_PASSWORD }}
-          containerAppName: prompt-classifier
-          resourceGroup: adaptive
-          imageToBuild: llmadaptiveregistry.azurecr.io/prompt-classifier${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}:${{ github.sha }}

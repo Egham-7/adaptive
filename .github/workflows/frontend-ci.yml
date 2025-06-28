@@ -97,6 +97,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,21 +105,22 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.FRONTEND_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.FRONTEND_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.FRONTEND_AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Build and Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive-app
-          registryUrl: llmadaptiveregistry.azurecr.io
-          registryUsername: ${{ secrets.FRONTEND_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.FRONTEND_REGISTRY_PASSWORD }}
-          containerAppName: frontend
+          acrName: llmadaptiveregistry
+          containerAppName: frontend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}
           resourceGroup: adaptive
           imageToBuild: llmadaptiveregistry.azurecr.io/frontend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}:${{ github.sha }}
           buildArguments: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}
             STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+          registryUrl: llmadaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.FRONTEND_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.FRONTEND_REGISTRY_PASSWORD }}
