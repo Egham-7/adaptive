@@ -129,7 +129,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
