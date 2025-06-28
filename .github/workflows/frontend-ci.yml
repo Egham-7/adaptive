@@ -3,14 +3,10 @@ name: Frontend CI/CD
 on:
   push:
     branches: [main]
-    paths:
-      - "adaptive-app/**"
-      - ".github/workflows/frontend-ci.yml"
+
   pull_request:
     branches: [main]
-    paths:
-      - "adaptive-app/**"
-      - ".github/workflows/frontend-ci.yml"
+
   workflow_dispatch:
 
 env:

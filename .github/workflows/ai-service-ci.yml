@@ -3,14 +3,9 @@ name: AI Service CI/CD
 on:
   push:
     branches: [main]
-    paths:
-      - "adaptive_ai/**"
-      - ".github/workflows/ai-service-ci.yml"
+
   pull_request:
     branches: [main]
-    paths:
-      - "adaptive_ai/**"
-      - ".github/workflows/ai-service-ci.yml"
   workflow_dispatch:
 
 env:
