@@ -15,7 +15,6 @@ from adaptive_ai.models.llm_orchestration_models import (
     OpenAIParameters,
     OrchestratorResponse,
     StandardLLMInfo,
-    MinionInfo
 )
 
 
@@ -52,12 +51,12 @@ class ProtocolSelectionOutput(BaseModel):
         description="Penalize new tokens based on whether they appear in the text so "
         "far. Range -2.0 to 2.0."
     )
-    standard_alternatives: list[StandardLLMInfo] = Field(
+    standard_alternatives: list[Alternative] = Field(
         default=[],
         description="Alternative models for standard_llm. Each should have provider "
         "and model.",
     )
-    minion_alternatives: list[MinionInfo] = Field(
+    minion_alternatives: list[HuggingFaceAlternative] = Field(
         default=[],
         description="Alternative HuggingFace models. Each should have model and optionally base_url.",
     )
@@ -290,18 +289,7 @@ class ProtocolManager:
             presence_penalty=result.presence_penalty,
         )
 
-        standard_alts = []
-        if result.standard_alternatives:
-            try:
-                standard_alts = [
-                    Alternative(**alt) for alt in result.standard_alternatives
-                ]
-            except (TypeError, ValueError) as e:
-                self.log(
-                    "standard_alternatives_parsing_error",
-                    {"error": str(e), "data": result.standard_alternatives},
-                )
-                standard_alts = []
+        standard_alts = result.standard_alternatives
 
         # Convert minion alternatives from model selector
         minion_alts = self._convert_minion_alternatives(minion_alternatives)
