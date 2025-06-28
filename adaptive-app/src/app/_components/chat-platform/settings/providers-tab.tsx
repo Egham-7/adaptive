@@ -47,9 +47,7 @@ export const ProvidersTab: React.FC<ProvidersTabProps> = ({
                   <div className="flex flex-col items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center">
                       <Image
-                        src={`/logos/${provider.name
-                          .toLowerCase()
-                          .replace(" ", "")}.svg`}
+                        src={provider.logoPath}
                         alt={provider.name}
                         width={40}
                         height={40}
@@ -58,9 +56,6 @@ export const ProvidersTab: React.FC<ProvidersTabProps> = ({
                     </div>
                     <div className="text-center">
                       <div className="font-medium text-sm">{provider.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        ${provider.costPerToken}/token
-                      </div>
                     </div>
                   </div>
                   <Switch

@@ -2,6 +2,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { LogOut } from "lucide-react";
 
 const providerSchema = z.object({
   id: z.string(),
@@ -29,12 +30,48 @@ const userMetadataSchema = z.object({
 });
 
 const defaultProviders = [
-  { id: "1", name: "OpenAI", enabled: true, costPerToken: 0.002 },
-  { id: "2", name: "Anthropic", enabled: true, costPerToken: 0.003 },
-  { id: "3", name: "Gemini", enabled: true, costPerToken: 0.001 },
-  { id: "4", name: "Groq", enabled: true, costPerToken: 0.0025 },
-  { id: "5", name: "Deepseek", enabled: true, costPerToken: 0.0018 },
-  { id: "6", name: "HuggingFace", enabled: true, costPerToken: 0.0022 },
+  {
+    id: "openai",
+    name: "OpenAI",
+    enabled: true,
+    costPerToken: 0.002,
+    logoPath: "/logos/openai.webp",
+  },
+  {
+    id: "anthropic",
+    name: "Anthropic",
+    enabled: true,
+    costPerToken: 0.003,
+    logoPath: "/logos/anthropic.jpeg",
+  },
+  {
+    id: "google",
+    name: "Gemini",
+    enabled: true,
+    costPerToken: 0.001,
+    logoPath: "/logos/google.svg",
+  },
+  {
+    id: "groq",
+    name: "Groq",
+    enabled: true,
+    costPerToken: 0.0025,
+    logoPath: "/logos/grok.svg",
+  },
+  {
+    id: "deepseek",
+    name: "Deepseek",
+    enabled: true,
+    costPerToken: 0.0018,
+    logoPath: "/logos/deepseek.svg",
+  },
+  {
+    id: "huggingface",
+    name: "HuggingFace",
+    enabled: true,
+    costPerToken: 0.0022,
+    logoPath: "/logos/huggingface.svg",
+  },
 ];
 
 export const userRouter = createTRPCRouter({
