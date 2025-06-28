@@ -6,11 +6,13 @@ on:
     paths:
       - "adaptive_ai/**"
       - ".github/workflows/ai-service-ci.yml"
+      - ".github/scripts/**"
   pull_request:
     branches: [main, dev]
     paths:
       - "adaptive_ai/**"
       - ".github/workflows/ai-service-ci.yml"
+      - ".github/scripts/**"
   workflow_dispatch:
 
 env:
