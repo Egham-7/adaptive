@@ -2,12 +2,12 @@ name: Frontend CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "adaptive-app/**"
       - ".github/workflows/frontend-ci.yml"
   pull_request:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "adaptive-app/**"
       - ".github/workflows/frontend-ci.yml"
@@ -91,7 +91,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: [quality, security]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push'
     permissions:
       id-token: write
       contents: read
@@ -115,7 +115,7 @@ jobs:
           registryPassword: ${{ secrets.FRONTEND_REGISTRY_PASSWORD }}
           containerAppName: frontend
           resourceGroup: adaptive
-          imageToBuild: llmadaptiveregistry.azurecr.io/frontend:${{ github.sha }}
+          imageToBuild: llmadaptiveregistry.azurecr.io/frontend${{ github.ref == 'refs/heads/dev' && '-dev' || '' }}:${{ github.sha }}
           buildArguments: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             CLERK_PUBLISHABLE_KEY=${{ secrets.CLERK_PUBLISHABLE_KEY }}

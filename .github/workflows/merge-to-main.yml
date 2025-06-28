@@ -1,0 +1,85 @@
+name: Merge Dev to Main
+
+on:
+  workflow_dispatch:
+    inputs:
+      merge_type:
+        description: "Type of merge"
+        required: true
+        default: "merge"
+        type: choice
+        options:
+          - merge
+          - squash
+          - rebase
+
+jobs:
+  merge:
+    name: Merge Dev to Main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check if dev is ahead of main
+        id: check_ahead
+        run: |
+          git fetch origin main dev
+          AHEAD=$(git rev-list --count origin/main..origin/dev)
+          echo "commits_ahead=$AHEAD" >> $GITHUB_OUTPUT
+          if [ "$AHEAD" -eq 0 ]; then
+            echo "❌ Dev branch is not ahead of main. Nothing to merge."
+            exit 1
+          else
+            echo "✅ Dev is $AHEAD commits ahead of main"
+          fi
+
+      - name: Check for merge conflicts
+        run: |
+          git checkout main
+          git pull origin main
+          git merge-tree $(git merge-base origin/main origin/dev) origin/main origin/dev | grep -q "^@@" && {
+            echo "❌ Merge conflicts detected. Please resolve conflicts manually."
+            exit 1
+          } || {
+            echo "✅ No merge conflicts detected"
+          }
+
+      - name: Create Pull Request
+        id: create_pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OUTPUT=$(.github/scripts/create-merge-pr.sh \
+            "${{ steps.check_ahead.outputs.commits_ahead }}" \
+            "${{ inputs.merge_type }}" \
+            "${{ github.actor }}" \
+            "${{ github.workflow }}")
+
+          PR_NUMBER=$(echo "$OUTPUT" | grep "pr_number=" | cut -d'=' -f2)
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "$OUTPUT"
+
+
+      - name: Summary
+        run: |
+          echo "## 🎉 Merge Process Initiated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR Number**: #${{ steps.create_pr.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commits to merge**: ${{ steps.check_ahead.outputs.commits_ahead }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Merge type**: ${{ inputs.merge_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Ready for manual review and merge" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please review the PR and merge manually when ready." >> $GITHUB_STEP_SUMMARY
+
