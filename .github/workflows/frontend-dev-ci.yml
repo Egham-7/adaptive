@@ -112,7 +112,6 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive-app
-          acrName: llmadaptiveregistry
           containerAppName: frontend-dev
           resourceGroup: adaptive
           imageToBuild: llmadaptiveregistry.azurecr.io/frontend-dev:${{ github.sha }}
