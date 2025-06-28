@@ -5,21 +5,29 @@ ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONDONTWRITEBYTECODE=1 \
   PATH="/root/.local/bin:$PATH"
 
-WORKDIR /app # This sets the working directory inside the container
+WORKDIR /app
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# Install system dependencies
 RUN apt-get update && \
   apt-get install -y --no-install-recommends curl && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
+# Install uv
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
-COPY . . 
+# Copy dependency files first for better caching
+COPY pyproject.toml uv.lock* README.md ./
 
-RUN uv sync --all-extras --dev
+# Install dependencies (this layer will be cached if deps don't change)
+RUN uv sync --all-extras --no-dev
 
+# Copy application code
+COPY . .
+
+# Copy and setup entrypoint
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
