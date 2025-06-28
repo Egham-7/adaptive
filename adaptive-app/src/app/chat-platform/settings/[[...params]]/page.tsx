@@ -2,13 +2,12 @@
 
 import { useUser } from "@clerk/nextjs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Settings, Target, User, Shield } from "lucide-react";
-import { type Provider } from "@/types/settings";
+import { Brain, Settings, Target, User } from "lucide-react";
+import { type Provider, type UserPreferences } from "@/types/settings";
 import { ProvidersTab } from "@/app/_components/chat-platform/settings/providers-tab";
 import { api } from "@/trpc/react";
 import { ProfileTab } from "@/app/_components/chat-platform/settings/profile-tab";
 import { PreferencesTab } from "@/app/_components/chat-platform/settings/preferences-tab";
-import { AccountTab } from "@/app/_components/chat-platform/settings/account-tab";
 
 const SettingsPage: React.FC = () => {
   const { user, isLoaded } = useUser();
@@ -17,7 +16,37 @@ const SettingsPage: React.FC = () => {
     undefined,
     { enabled: isLoaded && !!user },
   );
-  const updatePreferencesMutation = api.user.updatePreferences.useMutation();
+  const utils = api.useUtils();
+  const updatePreferencesMutation = api.user.updatePreferences.useMutation({
+    onMutate: async (newPreferences: { providers: Provider[] }) => {
+      await utils.user.getPreferences.cancel();
+
+      const previousData = utils.user.getPreferences.getData();
+
+      if (previousData) {
+        utils.user.getPreferences.setData(
+          undefined,
+          (old: UserPreferences | undefined) => {
+            if (!old) return old;
+            return {
+              ...old,
+              ...newPreferences,
+            };
+          },
+        );
+      }
+
+      return { previousData };
+    },
+    onError: (_err, _newPreferences, context) => {
+      if (context?.previousData) {
+        utils.user.getPreferences.setData(undefined, context.previousData);
+      }
+    },
+    onSettled: () => {
+      utils.user.getPreferences.invalidate();
+    },
+  });
 
   const updateProvider = (id: string, updates: Partial<Provider>) => {
     if (!preferences) return;
@@ -46,13 +75,11 @@ const SettingsPage: React.FC = () => {
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="mb-8 flex items-center gap-3">
           <Settings className="h-8 w-8 text-primary" />
-          <h1 className="font-bold text-3xl text-foreground">
-            AI Chat Settings
-          </h1>
+          <h1 className="font-bold text-3xl text-foreground">Settings</h1>
         </div>
 
         <Tabs defaultValue="providers" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="providers" className="flex items-center gap-2">
               <Brain className="h-4 w-4" />
               Providers
@@ -67,10 +94,6 @@ const SettingsPage: React.FC = () => {
             >
               <Target className="h-4 w-4" />
               Preferences
-            </TabsTrigger>
-            <TabsTrigger value="account" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Account
             </TabsTrigger>
           </TabsList>
 
@@ -87,10 +110,6 @@ const SettingsPage: React.FC = () => {
 
           <TabsContent value="preferences">
             <PreferencesTab />
-          </TabsContent>
-
-          <TabsContent value="account">
-            <AccountTab />
           </TabsContent>
         </Tabs>
       </div>

@@ -14,7 +14,19 @@ const userPreferencesSchema = z.object({
   providers: z.array(providerSchema),
 });
 
-const userMetadataSchema = z.record(z.any());
+const userMetadataSchema = z.object({
+  displayName: z.string().optional(),
+  responseStyle: z
+    .enum(["concise", "balanced", "detailed", "creative"])
+    .optional(),
+  language: z
+    .enum(["english", "spanish", "french", "german", "chinese"])
+    .optional(),
+  fullName: z.string().optional(),
+  preferredName: z.string().optional(),
+  jobRole: z.string().optional(),
+  personalPreferences: z.string().optional(),
+});
 
 const defaultProviders = [
   { id: "1", name: "OpenAI", enabled: true, costPerToken: 0.002 },
@@ -35,9 +47,17 @@ export const userRouter = createTRPCRouter({
     try {
       const user = await (await clerkClient()).users.getUser(userId);
       const preferences = user.privateMetadata.userPreferences as any;
-      
+      const publicMetadata = user.publicMetadata as any;
+
       return {
         providers: preferences?.providers || defaultProviders,
+        displayName: publicMetadata?.displayName,
+        responseStyle: publicMetadata?.responseStyle || "balanced",
+        language: publicMetadata?.language || "english",
+        fullName: publicMetadata?.fullName,
+        preferredName: publicMetadata?.preferredName,
+        jobRole: publicMetadata?.jobRole,
+        personalPreferences: publicMetadata?.personalPreferences,
       };
     } catch (error) {
       console.error("Error fetching user preferences:", error);
@@ -57,7 +77,9 @@ export const userRouter = createTRPCRouter({
       }
 
       try {
-        await (await clerkClient()).users.updateUserMetadata(userId, {
+        await (
+          await clerkClient()
+        ).users.updateUserMetadata(userId, {
           privateMetadata: {
             userPreferences: input,
           },
@@ -82,7 +104,9 @@ export const userRouter = createTRPCRouter({
       }
 
       try {
-        await (await clerkClient()).users.updateUserMetadata(userId, {
+        await (
+          await clerkClient()
+        ).users.updateUserMetadata(userId, {
           publicMetadata: input,
         });
 

@@ -51,7 +51,9 @@ export const ProvidersTab: React.FC<ProvidersTabProps> = ({
                           .toLowerCase()
                           .replace(" ", "")}.svg`}
                         alt={provider.name}
-                        className="h-10 w-10 object-contain"
+                        width={40}
+                        height={40}
+                        className=" object-contain"
                       />
                     </div>
                     <div className="text-center">

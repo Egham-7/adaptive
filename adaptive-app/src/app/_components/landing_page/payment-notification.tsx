@@ -1,6 +1,6 @@
 "use client";
 import { verifySession } from "@/actions/verify-session";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Notification from "../custom/notification";
 
