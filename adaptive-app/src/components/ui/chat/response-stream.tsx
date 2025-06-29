@@ -111,7 +111,7 @@ function useTextStream({
 
   const updateSegments = useCallback((text: string) => {
     if (modeRef.current === "fade") {
-      if (typeof Intl === undefined || typeof Intl.Segmenter !== "function") {
+      if (typeof Intl === "undefined" || typeof Intl.Segmenter !== "function") {
         console.warn(
           "Intl.Segmenter is not supported in this browser; using regex fallback. " +
             "Consider loading a polyfill for better language support.",
