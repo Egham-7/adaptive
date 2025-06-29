@@ -37,9 +37,9 @@ class ModelSelectionConfig(BaseModel):
     )
 
 
-
-
 class ModelSelectionRequest(BaseModel):
     prompt: str
-    provider_constraint: list[str] | None = Field(default=None, alias="provider_constraint")
+    provider_constraint: list[str] | None = Field(
+        default=None, alias="provider_constraint"
+    )
     cost_bias: float | None = Field(default=None, alias="cost_bias")
