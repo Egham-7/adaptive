@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, Info, Mic, Paperclip, Square, Search, BrainCircuit, Plus } from "lucide-react";
+import { ArrowUp, Info, Mic, Paperclip, Square, Search, BrainCircuit, Plus, Telescope, Zap } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { omit } from "remeda";
@@ -182,7 +182,7 @@ export function MessageInput({
 
   useAutosizeTextArea({
     ref: textAreaRef as React.RefObject<HTMLTextAreaElement>,
-    maxHeight: 240,
+    maxHeight: 180,
     borderWidth: 1,
     dependencies: [props.value, showFileList],
   });
@@ -209,7 +209,7 @@ export function MessageInput({
       <div className="relative flex w-full items-center space-x-2">
         <div className="relative flex-1">
           <div className={cn(
-            "relative w-full border border-input rounded-xl bg-background transition-[border] focus-within:border-primary",
+            "relative w-full border border-input rounded-xl bg-background shadow-sm overflow-hidden",
             className,
           )}>
             <textarea
@@ -219,71 +219,56 @@ export function MessageInput({
               onPaste={onPaste}
               onKeyDown={onKeyDown}
               className={cn(
-                "z-10 w-full grow resize-none border-0 bg-transparent p-3 pr-24 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
-                showFileList && "pb-16",
-                enableAdvancedFeatures && "pb-12",
+                "z-10 w-full grow resize-none border-0 bg-transparent p-3 pr-20 text-base outline-none placeholder:text-muted-foreground text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+                showFileList && enableAdvancedFeatures && "pb-16",
+                showFileList && !enableAdvancedFeatures && "pb-12", 
+                !showFileList && enableAdvancedFeatures && "pb-10",
               )}
               {...(props.allowAttachments
-                ? omit(props, ["allowAttachments", "files", "setFiles", "enableAdvancedFeatures"])
-                : omit(props, ["allowAttachments", "enableAdvancedFeatures"]))}
+                ? omit(props, ["allowAttachments", "files", "setFiles", "enableAdvancedFeatures"] as (keyof typeof props)[])
+                : omit(props, ["allowAttachments", "enableAdvancedFeatures"] as (keyof typeof props)[]))}
             />
             
             {enableAdvancedFeatures && (
-              <div className="px-3 py-2 border-t border-input/20 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="px-3 py-2 flex items-center justify-between relative z-20">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setSearchEnabled(!searchEnabled)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                       searchEnabled
                         ? "bg-primary/10 text-primary hover:bg-primary/20"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     )}
                   >
-                    <Search className="w-4 h-4" />
+                    <Search className="w-3.5 h-3.5" />
                     <span>Search</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setDeepResearchEnabled(!deepResearchEnabled)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                       deepResearchEnabled
                         ? "bg-primary/10 text-primary hover:bg-primary/20"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     )}
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-4 h-4"
-                    >
-                      <circle
-                        cx="8"
-                        cy="8"
-                        r="7"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                      <circle cx="8" cy="8" r="3" fill="currentColor" />
-                    </svg>
+                    <Telescope className="w-3.5 h-3.5" />
                     <span>Deep Research</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setReasonEnabled(!reasonEnabled)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors",
+                      "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
                       reasonEnabled
                         ? "bg-primary/10 text-primary hover:bg-primary/20"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
                     )}
                   >
-                    <BrainCircuit className="w-4 h-4" />
+                    <Zap className="w-3.5 h-3.5" />
                     <span>Reason</span>
                   </button>
                 </div>
@@ -294,9 +279,9 @@ export function MessageInput({
                       const files = await showFileUploadDialog();
                       addFiles(files);
                     }}
-                    className="flex items-center gap-2 text-muted-foreground text-sm hover:text-foreground transition-colors"
+                    className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-3.5 h-3.5" />
                     <span>Upload Files</span>
                   </button>
                 )}
@@ -305,7 +290,7 @@ export function MessageInput({
           </div>
 
           {props.allowAttachments && (
-            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-scroll py-3">
+            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-auto py-3">
               <div className="flex space-x-3">
                 <AnimatePresence mode="popLayout">
                   {props.files?.map((file) => {
@@ -351,23 +336,21 @@ export function MessageInput({
           </Button>
         )}
         {isSpeechSupported && (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className={cn("h-8 w-8", isListening && "text-primary")}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Voice input"
-            size="icon"
             onClick={toggleListening}
           >
             <Mic className="h-4 w-4" />
-          </Button>
+          </button>
         )}
         {isGenerating && stop ? (
           <Button
             type="button"
             size="icon"
             className={cn(
-              "h-8 w-8",
+              "h-8 w-8 rounded-full",
               props.value.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground"
             )}
             aria-label="Stop generating"
@@ -380,7 +363,7 @@ export function MessageInput({
             type="submit"
             size="icon"
             className={cn(
-              "h-8 w-8 transition-all",
+              "h-8 w-8 rounded-full transition-all",
               props.value.trim()
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "bg-muted text-muted-foreground cursor-not-allowed"

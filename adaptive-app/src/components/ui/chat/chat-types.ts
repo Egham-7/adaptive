@@ -2,7 +2,10 @@ import type { UIMessage } from "@ai-sdk/react";
 import type { ReactElement } from "react";
 
 // Message part types
-export type MessageTextPart = Extract<UIMessage["parts"][number], { type: "text" }>;
+export type MessageTextPart = Extract<
+  UIMessage["parts"][number],
+  { type: "text" }
+>;
 export type MessageToolPart = Extract<
   UIMessage["parts"][number],
   { type: `tool-${string}` }
@@ -49,11 +52,7 @@ export interface ChatPropsBase {
   isUnlimited?: boolean;
   limitsLoading?: boolean;
   userId?: string;
-}
-
-export interface ChatPropsWithoutSuggestions extends ChatPropsBase {
-  sendMessage?: never;
-  suggestions?: never;
+  showWelcomeInterface?: boolean;
 }
 
 export interface ChatPropsWithSuggestions extends ChatPropsBase {
@@ -61,7 +60,7 @@ export interface ChatPropsWithSuggestions extends ChatPropsBase {
   suggestions: string[];
 }
 
-export type ChatProps = ChatPropsWithoutSuggestions | ChatPropsWithSuggestions;
+export type ChatProps = ChatPropsWithSuggestions;
 
 export interface ChatFormProps {
   className?: string;
@@ -76,3 +75,4 @@ export interface ChatFormProps {
   }) => ReactElement;
   hasReachedLimit?: boolean;
 }
+

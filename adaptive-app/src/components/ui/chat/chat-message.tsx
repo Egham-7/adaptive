@@ -2,7 +2,7 @@
 
 import { type VariantProps, cva } from "class-variance-authority";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, Code2, Terminal, X } from "lucide-react";
+import { Check, ChevronRight, Code2, RotateCcw, Terminal, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -86,6 +86,9 @@ export interface ChatMessageProps extends UIMessage {
   enableStreaming?: boolean;
   streamingMode?: "typewriter" | "fade";
   streamingSpeed?: number;
+  isError?: boolean;
+  error?: Error;
+  onRetryError?: () => void;
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -102,6 +105,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   enableStreaming = false,
   streamingMode = "typewriter",
   streamingSpeed = 30,
+  isError = false,
+  error,
+  onRetryError,
   ...message
 }) => {
   const content =
@@ -307,6 +313,39 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             {formattedTime}
           </time>
         ) : null}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className={cn("flex flex-col", "items-start")}>
+        <div 
+          className={cn(chatBubbleVariants({ isUser: false, animation }), "border-destructive/20 bg-destructive/10 text-destructive-foreground")}
+          role="alert"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-3">
+            <X className="h-4 w-4 mt-1 flex-shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <h4 className="font-medium text-sm mb-1">Error generating response</h4>
+              <p className="text-xs opacity-90 mb-2">
+                {error?.message || "Something went wrong. Please try again."}
+              </p>
+              {onRetryError && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onRetryError}
+                  className="h-7 px-2 text-xs border-destructive/20 hover:bg-destructive/20"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Try again
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

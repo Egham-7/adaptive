@@ -202,6 +202,122 @@
 	--shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
 }
 
+@keyframes spinner-fade {
+	0% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0.15;
+	}
+}
+
+@keyframes thin-pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+@keyframes pulse-dot {
+	0%,
+	80%,
+	100% {
+		transform: scale(0);
+	}
+	40% {
+		transform: scale(1);
+	}
+}
+
+@keyframes bounce-dots {
+	0%,
+	80%,
+	100% {
+		transform: scale(0);
+	}
+	40% {
+		transform: scale(1);
+	}
+}
+
+@keyframes typing {
+	0%,
+	60%,
+	100% {
+		transform: translateY(0);
+	}
+	30% {
+		transform: translateY(-10px);
+	}
+}
+
+@keyframes wave {
+	0%,
+	40%,
+	100% {
+		transform: scaleY(0.4);
+	}
+	20% {
+		transform: scaleY(1);
+	}
+}
+
+@keyframes wave-bars {
+	0%,
+	40%,
+	100% {
+		transform: scaleY(0.4);
+	}
+	20% {
+		transform: scaleY(1);
+	}
+}
+
+@keyframes blink {
+	0%,
+	50% {
+		opacity: 1;
+	}
+	51%,
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes text-blink {
+	0%,
+	50% {
+		opacity: 1;
+	}
+	51%,
+	100% {
+		opacity: 0.3;
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+@keyframes loading-dots {
+	0%,
+	80%,
+	100% {
+		opacity: 0;
+	}
+	40% {
+		opacity: 1;
+	}
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
