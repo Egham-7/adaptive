@@ -257,7 +257,13 @@ function useTextStream({
   }, [textStream, isComplete, processStringTypewriter]);
 
   useEffect(() => {
-    startStreaming();
+    reset();
+
+    if (typeof textStream === "string") {
+      processStringTypewriter(textStream);
+    } else if (textStream) {
+      processAsyncIterable(textStream);
+    }
 
     return () => {
       if (animationRef.current) {
@@ -267,7 +273,7 @@ function useTextStream({
         streamRef.current.abort();
       }
     };
-  }, [textStream, startStreaming]);
+  }, [textStream]);
 
   return {
     displayedText,
