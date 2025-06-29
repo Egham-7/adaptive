@@ -38,14 +38,12 @@ model Conversation {
 }
 
 model Message {
-  id      String @id @default(cuid())
-  role    String
-  content String
+  id   String @id @default(cuid())
+  role String
 
-  reasoning               Json?
-  annotations             Json?
-  parts                   Json?
-  experimentalAttachments Json?
+  metadata    Json?
+  annotations Json?
+  parts       Json
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

@@ -35,11 +35,15 @@ export function ConversationList({
 	const groupedConversations = useMemo(() => {
 		const filtered =
 			conversations?.filter(
-				(c) =>
-					c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-					c.messages[0]?.content
-						.toLowerCase()
-						.includes(searchQuery.toLowerCase()),
+				(c) => {
+					const titleMatch = c.title.toLowerCase().includes(searchQuery.toLowerCase());
+					const messageMatch = c.messages[0] && Array.isArray(c.messages[0].parts)
+						? (c.messages[0].parts.find((p) => p && typeof p === 'object' && 'type' in p && p.type === 'text') as { text: string })?.text
+							?.toLowerCase()
+							?.includes(searchQuery.toLowerCase()) || false
+						: false;
+					return titleMatch || messageMatch;
+				}
 			) ?? [];
 
 		const pinned: ConversationListItem[] = [];

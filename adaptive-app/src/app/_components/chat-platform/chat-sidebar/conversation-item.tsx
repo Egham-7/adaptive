@@ -52,7 +52,9 @@ export function ConversationItem({
 						{lastMessage && (
 							<p className="truncate text-muted-foreground text-xs">
 								{lastMessage.role === "user" ? "You: " : "AI: "}
-								{lastMessage.content}
+								{Array.isArray(lastMessage.parts) 
+									? (lastMessage.parts.find((p) => p && typeof p === 'object' && 'type' in p && p.type === 'text') as { text: string })?.text || ''
+									: ''}
 							</p>
 						)}
 					</div>
