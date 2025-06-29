@@ -11,10 +11,9 @@ export { MessageInput } from "./message-input";
 export { AudioVisualizer } from "./audio-visualizer";
 export { FilePreview } from "./file-preview";
 export { InterruptPrompt } from "./interrupt-prompt";
-export { TypingIndicator } from "./typing-indicator";
 export { PromptSuggestions } from "./prompt-suggestions";
 export { ResponseStream, useTextStream } from "./response-stream";
-export { 
+export {
   Loader,
   CircularLoader,
   ClassicLoader,
@@ -27,5 +26,6 @@ export {
   TerminalLoader,
   TextBlinkLoader,
   TextShimmerLoader,
-  TextDotsLoader
+  TextDotsLoader,
 } from "./loader";
+
