@@ -13,6 +13,10 @@ import (
 )
 
 func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error) {
+	return NewLLMProviderWithBaseURL(providerName, nil)
+}
+
+func NewLLMProviderWithBaseURL(providerName string, baseURL *string) (provider_interfaces.LLMProvider, error) {
 	switch strings.ToLower(providerName) {
 	case "openai":
 		service, err := openai.NewOpenAIService(nil)
@@ -41,7 +45,7 @@ func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error
 		return service, nil
 
 	case "huggingface":
-		service, err := huggingface.NewHuggingFaceService(nil)
+		service, err := huggingface.NewHuggingFaceService(baseURL)
 		if err != nil {
 			return nil, err
 		}

@@ -29,6 +29,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 	remoteProv provider_interfaces.LLMProvider,
 	localProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	minionModel string,
 ) (*openai.ChatCompletion, error) {
 	const maxRounds = 5
 
@@ -51,7 +52,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 		}
 
 		// Step 2: Execute instructions in parallel
-		results := s.executeInstructionsParallel(ctx, localProv, instructions)
+		results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
 
 		// Step 3: Aggregate results
 		response, isComplete, err := s.remoteAggregate(ctx, remoteProv, userQuery, results, req.Model)
@@ -76,6 +77,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 	remoteProv provider_interfaces.LLMProvider,
 	localProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	minionModel string,
 ) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	const maxRounds = 5
 
@@ -98,7 +100,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 		}
 
 		// Step 2: Execute instructions in parallel
-		results := s.executeInstructionsParallel(ctx, localProv, instructions)
+		results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
 
 		// Step 3: Aggregate results (streaming)
 		stream, isComplete, err := s.remoteAggregateStream(ctx, remoteProv, userQuery, results, req.Model)
@@ -185,6 +187,7 @@ func (s *MinionsOrchestrationService) executeInstructionsParallel(
 	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instructions []string,
+	minionModel string,
 ) []*InstructionResult {
 	results := make([]*InstructionResult, len(instructions))
 	var wg sync.WaitGroup
@@ -193,7 +196,7 @@ func (s *MinionsOrchestrationService) executeInstructionsParallel(
 		wg.Add(1)
 		go func(index int, instr string) {
 			defer wg.Done()
-			results[index] = s.executeInstruction(ctx, localProv, instr)
+			results[index] = s.executeInstruction(ctx, localProv, instr, minionModel)
 		}(i, instruction)
 	}
 
@@ -206,6 +209,7 @@ func (s *MinionsOrchestrationService) executeInstruction(
 	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instruction string,
+	minionModel string,
 ) *InstructionResult {
 	systemPrompt := `You are a helpful assistant. Execute the given instruction precisely and provide a clear, factual response.
 If you cannot execute the instruction, explain why. Be concise but complete in your response.`
@@ -216,6 +220,11 @@ If you cannot execute the instruction, explain why. Be concise but complete in y
 			openai.UserMessage(instruction),
 		},
 		Temperature: openai.Float(0.3),
+	}
+	
+	// Only set model if provided (for HuggingFace, model is embedded in BaseURL)
+	if minionModel != "" {
+		param.Model = shared.ChatModel(minionModel)
 	}
 
 	resp, err := localProv.Chat().Completions().CreateCompletion(ctx, &param)

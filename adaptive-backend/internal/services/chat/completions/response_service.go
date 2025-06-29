@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/openai/openai-go/shared"
 )
 
 const (
@@ -34,6 +35,7 @@ func (s *ResponseService) HandleProtocol(
 	remoteProv *provider_interfaces.LLMProvider,
 	minionProv *provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	resp *models.ProtocolResponse,
 	requestID string,
 	isStream bool,
 ) error {
@@ -43,12 +45,20 @@ func (s *ResponseService) HandleProtocol(
 			return s.HandleError(c, fiber.StatusInternalServerError,
 				"Failed to get remote provider: remoteProv is nil", requestID)
 		}
+		if resp.Standard != nil {
+			req.Model = shared.ChatModel(resp.Standard.Model)
+			fiberlog.Infof("[%s] Set standard model to: %s", requestID, resp.Standard.Model)
+		}
 		return s.handleStandard(c, *remoteProv, req, requestID, isStream)
 
 	case models.ProtocolMinion:
 		if minionProv == nil {
 			return s.HandleError(c, fiber.StatusInternalServerError,
 				"Failed to get minion provider: minionProv is nil", requestID)
+		}
+		// For HuggingFace providers, the model is embedded in the BaseURL, so don't set req.Model
+		if resp.Minion != nil {
+			fiberlog.Infof("[%s] Using minion model: %s with BaseURL: %s", requestID, resp.Minion.Model, resp.Minion.BaseURL)
 		}
 		return s.handleMinion(c, *minionProv, req, requestID, isStream)
 
@@ -64,7 +74,7 @@ func (s *ResponseService) HandleProtocol(
 			return s.HandleError(c, fiber.StatusInternalServerError, msg, requestID)
 		}
 		return s.handleMinionsProtocol(
-			c, *remoteProv, *minionProv, req, requestID, isStream,
+			c, *remoteProv, *minionProv, req, resp, requestID, isStream,
 		)
 
 	default:
@@ -135,16 +145,28 @@ func (s *ResponseService) handleMinionsProtocol(
 	remoteProv provider_interfaces.LLMProvider,
 	minionProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	resp *models.ProtocolResponse,
 	requestID string,
 	isStream bool,
 ) error {
 	orchestrator := minions.NewMinionsOrchestrationService()
 
+	// Set the remote model for remote provider calls
+	if resp.Standard != nil {
+		req.Model = shared.ChatModel(resp.Standard.Model)
+		fiberlog.Infof("[%s] Set remote model to: %s", requestID, resp.Standard.Model)
+	}
+
+	// For HuggingFace minions, don't pass model name since it's embedded in BaseURL
+	if resp.Minion != nil {
+		fiberlog.Infof("[%s] Using minion model: %s with BaseURL: %s", requestID, resp.Minion.Model, resp.Minion.BaseURL)
+	}
+
 	if isStream {
 		fiberlog.Infof("[%s] streaming MinionS response", requestID)
 		s.setStreamHeaders(c)
 		streamResp, err := orchestrator.OrchestrateMinionSStream(
-			c.Context(), remoteProv, minionProv, req,
+			c.Context(), remoteProv, minionProv, req, "",
 		)
 		if err != nil {
 			fiberlog.Errorf("[%s] MinionS stream failed: %v", requestID, err)
@@ -156,7 +178,7 @@ func (s *ResponseService) handleMinionsProtocol(
 
 	fiberlog.Infof("[%s] generating MinionS completion", requestID)
 	result, err := orchestrator.OrchestrateMinionS(
-		c.Context(), remoteProv, minionProv, req,
+		c.Context(), remoteProv, minionProv, req, "",
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] MinionS create failed: %v", requestID, err)

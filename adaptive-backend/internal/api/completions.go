@@ -42,12 +42,12 @@ type candidate struct {
 // It manages the lifecycle of chat completion requests, including provider selection,
 // circuit breaking, and response handling.
 type CompletionHandler struct {
-	reqSvc         *completions.RequestService
-	respSvc        *completions.ResponseService
-	paramSvc       *completions.ParameterService
-	protocolMgr    *protocol_manager.ProtocolManager
-	metricsSvc     *completions.MetricsService
-	raceSvc        *completions.RaceService
+	reqSvc      *completions.RequestService
+	respSvc     *completions.ResponseService
+	paramSvc    *completions.ParameterService
+	protocolMgr *protocol_manager.ProtocolManager
+	metricsSvc  *completions.MetricsService
+	raceSvc     *completions.RaceService
 
 	cbMu sync.RWMutex
 	cbs  map[string]*circuitbreaker.CircuitBreaker
@@ -198,14 +198,23 @@ func (h *CompletionHandler) buildMinionCandidates(
 ) ([]candidate, error) {
 	var out []candidate
 
-	svc, err := providers.NewLLMProvider("huggingface")
+	var baseURL *string
+	if min.BaseURL != "" {
+		baseURL = &min.BaseURL
+	}
+	
+	svc, err := providers.NewLLMProviderWithBaseURL("huggingface", baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("huggingface model %s: %w", min.Model, err)
 	}
 	out = append(out, candidate{"huggingface", svc, models.ProtocolMinion})
 
 	for _, alt := range min.Alternatives {
-		svc, err := providers.NewLLMProvider("huggingface")
+		var altBaseURL *string
+		if alt.BaseURL != "" {
+			altBaseURL = &alt.BaseURL
+		}
+		svc, err := providers.NewLLMProviderWithBaseURL("huggingface", altBaseURL)
 		if err != nil {
 			return nil, fmt.Errorf("huggingface alternative model %s: %w", alt.Model, err)
 		}
@@ -294,6 +303,7 @@ func (h *CompletionHandler) handleResponse(
 			&remoteProv,
 			&minionProv,
 			req,
+			resp,
 			reqID,
 			isStream,
 		); err != nil {
@@ -340,8 +350,6 @@ func (h *CompletionHandler) getOrCreateCB(name string) *circuitbreaker.CircuitBr
 	h.cbs[name] = cb
 	return cb
 }
-
-
 
 // Health returns protocol manager health.
 func (h *CompletionHandler) Health() error {
