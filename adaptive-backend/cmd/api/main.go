@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"adaptive-backend/internal/api"
+	"adaptive-backend/internal/middleware"
 	"adaptive-backend/internal/services/metrics"
 
 	"github.com/ansrivas/fiberprometheus/v2"
@@ -27,7 +28,9 @@ import (
 // SetupRoutes configures all the application routes for the Fiber app.
 func SetupRoutes(app *fiber.App) {
 	chatCompletionHandler := api.NewCompletionHandler()
-	v1Group := app.Group("/v1")
+	
+	// Apply API key authentication to all v1 routes
+	v1Group := app.Group("/v1", middleware.APIKeyAuth())
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 }
 
