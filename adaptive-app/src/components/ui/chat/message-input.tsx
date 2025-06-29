@@ -1,7 +1,17 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, Info, Mic, Paperclip, Square, Search, BrainCircuit, Plus, Telescope, Zap } from "lucide-react";
+import {
+  ArrowUp,
+  Info,
+  Mic,
+  Paperclip,
+  Square,
+  Search,
+  Plus,
+  Telescope,
+  Zap,
+} from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { omit } from "remeda";
@@ -60,7 +70,6 @@ export function MessageInput({
   const [reasonEnabled, setReasonEnabled] = useState(false);
 
   const {
-    isListening,
     isSpeechSupported,
     isRecording,
     isTranscribing,
@@ -185,16 +194,183 @@ export function MessageInput({
     ref: textAreaRef as React.RefObject<HTMLTextAreaElement>,
     maxHeight: 180,
     borderWidth: 1,
-    dependencies: [props.value, showFileList],
+    dependencies: [props.value],
   });
 
   return (
-    <div
-      className="relative flex w-full"
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-    >
+    <div className="w-full">
+      <div
+        className={cn(
+          "relative border border-input bg-background shadow-sm",
+          showFileList ? "rounded-t-xl" : "rounded-xl",
+          className,
+        )}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+      >
+        <textarea
+          aria-label="Write your prompt here"
+          placeholder={placeholder}
+          ref={textAreaRef}
+          onPaste={onPaste}
+          onKeyDown={onKeyDown}
+          className={cn(
+            "w-full h-5 grow resize-none border-0 bg-transparent px-3 py-2 pr-12 text-base outline-none placeholder:text-muted-foreground text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+          )}
+          {...(props.allowAttachments
+            ? omit(props, [
+                "allowAttachments",
+                "files",
+                "setFiles",
+                "enableAdvancedFeatures",
+              ] as (keyof typeof props)[])
+            : omit(props, [
+                "allowAttachments",
+                "enableAdvancedFeatures",
+              ] as (keyof typeof props)[]))}
+        />
+
+        {enableAdvancedFeatures && (
+          <div className="px-3 pb-1.5 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <FeatureToggle
+                icon={Search}
+                label="Search"
+                isEnabled={searchEnabled}
+                onToggle={() => setSearchEnabled(!searchEnabled)}
+                ariaLabel="Toggle Search"
+              />
+              <FeatureToggle
+                icon={Telescope}
+                label="Deep Research"
+                isEnabled={deepResearchEnabled}
+                onToggle={() => setDeepResearchEnabled(!deepResearchEnabled)}
+                ariaLabel="Toggle Deep Research"
+              />
+              <FeatureToggle
+                icon={Zap}
+                label="Reason"
+                isEnabled={reasonEnabled}
+                onToggle={() => setReasonEnabled(!reasonEnabled)}
+                ariaLabel="Toggle Reasoning"
+              />
+            </div>
+            {props.allowAttachments && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const files = await showFileUploadDialog();
+                  addFiles(files);
+                }}
+                className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Upload Files</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="absolute top-2 right-2 flex gap-1">
+          {!enableAdvancedFeatures && props.allowAttachments && (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="h-8 w-8"
+              aria-label="Attach a file"
+              onClick={async () => {
+                const files = await showFileUploadDialog();
+                addFiles(files);
+              }}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+          )}
+          {isSpeechSupported && (
+            <button
+              type="button"
+              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Voice input"
+              onClick={toggleListening}
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+          )}
+          {isGenerating && stop ? (
+            <Button
+              type="button"
+              size="icon"
+              className={cn(
+                "h-8 w-8 rounded-full",
+                props.value.trim()
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground",
+              )}
+              aria-label="Stop generating"
+              onClick={stop}
+            >
+              <Square className="h-3 w-3 animate-pulse" fill="currentColor" />
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              size="icon"
+              className={cn(
+                "h-8 w-8 rounded-full transition-all",
+                props.value.trim()
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed",
+              )}
+              aria-label="Send message"
+              disabled={props.value === "" || isGenerating}
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        {props.allowAttachments && (
+          <FileUploadOverlay isDragging={isDragging} />
+        )}
+
+        <RecordingControls
+          isRecording={isRecording}
+          isTranscribing={isTranscribing}
+          audioStream={audioStream}
+          textAreaHeight={textAreaHeight}
+          onStopRecording={stopRecording}
+        />
+      </div>
+
+      {props.allowAttachments && showFileList && (
+        <div className="border-l border-r border-b border-input rounded-b-xl bg-background px-3 py-2">
+          <div className="flex space-x-3 overflow-x-auto">
+            <AnimatePresence mode="popLayout">
+              {props.files?.map((file) => {
+                return (
+                  <FilePreview
+                    key={file.name + String(file.lastModified)}
+                    file={file}
+                    onRemove={() => {
+                      props.setFiles((files) => {
+                        if (!files) return null;
+                        const filtered = Array.from(files).filter(
+                          (f) => f !== file,
+                        );
+                        if (filtered.length === 0) return null;
+                        return filtered;
+                      });
+                    }}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
+
       {enableInterrupt && (
         <InterruptPrompt
           isOpen={showInterruptPrompt}
@@ -204,171 +380,6 @@ export function MessageInput({
 
       <RecordingPrompt
         isVisible={isRecording}
-        onStopRecording={stopRecording}
-      />
-
-      <div className="relative flex w-full items-center space-x-2">
-        <div className="relative flex-1">
-          <div className={cn(
-            "relative w-full border border-input rounded-xl bg-background shadow-sm overflow-hidden",
-            className,
-          )}>
-            <textarea
-              aria-label="Write your prompt here"
-              placeholder={placeholder}
-              ref={textAreaRef}
-              onPaste={onPaste}
-              onKeyDown={onKeyDown}
-              className={cn(
-                "z-10 w-full grow resize-none border-0 bg-transparent p-3 pr-20 text-base outline-none placeholder:text-muted-foreground text-foreground disabled:cursor-not-allowed disabled:opacity-50",
-                showFileList && enableAdvancedFeatures && "pb-16",
-                showFileList && !enableAdvancedFeatures && "pb-12", 
-                !showFileList && enableAdvancedFeatures && "pb-10",
-              )}
-              {...(props.allowAttachments
-                ? omit(props, ["allowAttachments", "files", "setFiles", "enableAdvancedFeatures"] as (keyof typeof props)[])
-                : omit(props, ["allowAttachments", "enableAdvancedFeatures"] as (keyof typeof props)[]))}
-            />
-            
-            {enableAdvancedFeatures && (
-              <div className="px-3 py-2 flex items-center justify-between relative z-20">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {/* TODO: Implement search functionality - this button toggles search mode for enhanced query processing */}
-                  <FeatureToggle
-                    icon={Search}
-                    label="Search"
-                    isEnabled={searchEnabled}
-                    onToggle={() => setSearchEnabled(!searchEnabled)}
-                    ariaLabel="Toggle Search"
-                  />
-                  {/* TODO: Implement deep research functionality - this button enables comprehensive research mode with multiple sources */}
-                  <FeatureToggle
-                    icon={Telescope}
-                    label="Deep Research"
-                    isEnabled={deepResearchEnabled}
-                    onToggle={() => setDeepResearchEnabled(!deepResearchEnabled)}
-                    ariaLabel="Toggle Deep Research"
-                  />
-                  {/* TODO: Implement reasoning functionality - this button activates step-by-step reasoning mode for complex problems */}
-                  <FeatureToggle
-                    icon={Zap}
-                    label="Reason"
-                    isEnabled={reasonEnabled}
-                    onToggle={() => setReasonEnabled(!reasonEnabled)}
-                    ariaLabel="Toggle Reasoning"
-                  />
-                </div>
-                {props.allowAttachments && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const files = await showFileUploadDialog();
-                      addFiles(files);
-                    }}
-                    className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Upload Files</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          {props.allowAttachments && (
-            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-auto py-3">
-              <div className="flex space-x-3">
-                <AnimatePresence mode="popLayout">
-                  {props.files?.map((file) => {
-                    return (
-                      <FilePreview
-                        key={file.name + String(file.lastModified)}
-                        file={file}
-                        onRemove={() => {
-                          props.setFiles((files) => {
-                            if (!files) return null;
-
-                            const filtered = Array.from(files).filter(
-                              (f) => f !== file,
-                            );
-                            if (filtered.length === 0) return null;
-                            return filtered;
-                          });
-                        }}
-                      />
-                    );
-                  })}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="absolute top-3 right-3 z-10 flex gap-2">
-        {!enableAdvancedFeatures && props.allowAttachments && (
-          <Button
-            type="button"
-            size="icon"
-            variant="outline"
-            className="h-8 w-8"
-            aria-label="Attach a file"
-            onClick={async () => {
-              const files = await showFileUploadDialog();
-              addFiles(files);
-            }}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-        )}
-        {isSpeechSupported && (
-          <button
-            type="button"
-            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Voice input"
-            onClick={toggleListening}
-          >
-            <Mic className="h-4 w-4" />
-          </button>
-        )}
-        {isGenerating && stop ? (
-          <Button
-            type="button"
-            size="icon"
-            className={cn(
-              "h-8 w-8 rounded-full",
-              props.value.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground"
-            )}
-            aria-label="Stop generating"
-            onClick={stop}
-          >
-            <Square className="h-3 w-3 animate-pulse" fill="currentColor" />
-          </Button>
-        ) : (
-          <Button
-            type="submit"
-            size="icon"
-            className={cn(
-              "h-8 w-8 rounded-full transition-all",
-              props.value.trim()
-                ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-muted text-muted-foreground cursor-not-allowed"
-            )}
-            aria-label="Send message"
-            disabled={props.value === "" || isGenerating}
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      {props.allowAttachments && <FileUploadOverlay isDragging={isDragging} />}
-
-      <RecordingControls
-        isRecording={isRecording}
-        isTranscribing={isTranscribing}
-        audioStream={audioStream}
-        textAreaHeight={textAreaHeight}
         onStopRecording={stopRecording}
       />
     </div>

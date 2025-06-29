@@ -32,31 +32,32 @@ export function MessageInputWrapper({
   };
 
   return (
-    <ChatForm
-      className={className}
-      isPending={isPending}
-      handleSubmit={handleSubmit}
-      hasReachedLimit={hasReachedLimit}
-    >
-      {({ files, setFiles }) => (
-        <MessageInput
-          value={value}
-          onChange={onChange}
-          allowAttachments
-          files={files}
-          setFiles={setFiles}
-          stop={handleStop}
-          isGenerating={isGenerating}
-          transcribeAudio={transcribeAudio}
-          disabled={hasReachedLimit}
-          enableAdvancedFeatures={true}
-          placeholder={
-            hasReachedLimit
-              ? "Daily message limit reached - upgrade to continue"
-              : "Ask me anything..."
-          }
-        />
-      )}
-    </ChatForm>
+    <div className={`w-full max-w-3xl mx-auto ${className}`}>
+      <ChatForm
+        isPending={isPending}
+        handleSubmit={handleSubmit}
+        hasReachedLimit={hasReachedLimit}
+      >
+        {({ files, setFiles }) => (
+          <MessageInput
+            value={value}
+            onChange={onChange}
+            allowAttachments
+            files={files}
+            setFiles={setFiles}
+            stop={handleStop}
+            isGenerating={isGenerating}
+            transcribeAudio={transcribeAudio}
+            disabled={hasReachedLimit}
+            enableAdvancedFeatures={true}
+            placeholder={
+              hasReachedLimit
+                ? "Daily message limit reached - upgrade to continue"
+                : "Ask me anything..."
+            }
+          />
+        )}
+      </ChatForm>
+    </div>
   );
 }
