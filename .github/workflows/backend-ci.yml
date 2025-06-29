@@ -6,9 +6,6 @@ on:
 
   pull_request:
     branches: [main]
-    paths:
-      - "adaptive-backend/**"
-      - ".github/workflows/backend-ci.yml"
   workflow_dispatch:
 
 env:
