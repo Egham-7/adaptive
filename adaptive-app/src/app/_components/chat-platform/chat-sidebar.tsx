@@ -1,5 +1,7 @@
 "use client";
 
+import { usePathname } from "next/navigation";
+import { useState } from "react";
 import CommonSidebarHeader from "@/components/sidebar-header";
 import {
 	Sidebar,
@@ -12,8 +14,6 @@ import { useConversations } from "@/hooks/conversations/use-conversations";
 import { useCreateConversation } from "@/hooks/conversations/use-create-conversation";
 import { usePinConversation } from "@/hooks/conversations/use-pin-conversation";
 import type { ConversationListItem } from "@/types";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
 import { ConversationList } from "./chat-sidebar/conversation-list";
 import { SidebarActions } from "./chat-sidebar/sidebar-actions";
 import { SidebarNavFooter } from "./chat-sidebar/sidebar-nav-footer";

@@ -1,7 +1,7 @@
 "use client";
-import { verifySession } from "@/actions/verify-session";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { verifySession } from "@/actions/verify-session";
 import Notification from "../custom/notification";
 
 type Props = {

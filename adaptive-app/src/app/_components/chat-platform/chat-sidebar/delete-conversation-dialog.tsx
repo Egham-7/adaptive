@@ -2,6 +2,8 @@
 
 "use client";
 
+import { Trash2 } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -26,8 +28,6 @@ import {
 import { useDeleteConversation } from "@/hooks/conversations/use-delete-conversation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { ConversationListItem } from "@/types";
-import { Trash2 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
 
 interface DeleteConversationDialogProps {
 	conversation: ConversationListItem;

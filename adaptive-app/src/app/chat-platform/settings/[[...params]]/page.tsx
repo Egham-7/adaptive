@@ -1,13 +1,13 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
+import { Brain, Settings, Target, User } from "lucide-react";
 import { PreferencesTab } from "@/app/_components/chat-platform/settings/preferences-tab";
 import { ProfileTab } from "@/app/_components/chat-platform/settings/profile-tab";
 import { ProvidersTab } from "@/app/_components/chat-platform/settings/providers-tab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/trpc/react";
 import type { Provider, UserPreferences } from "@/types/settings";
-import { useUser } from "@clerk/nextjs";
-import { Brain, Settings, Target, User } from "lucide-react";
 
 const SettingsPage: React.FC = () => {
 	const { user, isLoaded } = useUser();

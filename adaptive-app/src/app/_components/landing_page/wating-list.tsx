@@ -26,4 +26,3 @@ export function WaitingListSection() {
 }
 
 import { Input } from "@/components/ui/input";
-import React from "react";

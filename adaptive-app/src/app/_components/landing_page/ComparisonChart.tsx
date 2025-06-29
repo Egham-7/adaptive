@@ -1,5 +1,4 @@
 "use client";
-import { Card } from "@/components/ui/card";
 import { useEffect, useRef, useState } from "react";
 import {
 	Bar,
@@ -11,6 +10,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { Card } from "@/components/ui/card";
 
 const baseData = [
 	{

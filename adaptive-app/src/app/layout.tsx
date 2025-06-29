@@ -1,13 +1,13 @@
 import "../styles/globals.css";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { ThemeProvider } from "@/context/theme-provider";
-import { TRPCReactProvider } from "@/trpc/react";
-import { HydrateClient } from "@/trpc/server";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Lora, Outfit, Roboto_Mono } from "next/font/google";
 import { Toaster } from "sonner";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { ThemeProvider } from "@/context/theme-provider";
+import { TRPCReactProvider } from "@/trpc/react";
+import { HydrateClient } from "@/trpc/server";
 
 // Configure Outfit for sans-serif
 const outfit = Outfit({

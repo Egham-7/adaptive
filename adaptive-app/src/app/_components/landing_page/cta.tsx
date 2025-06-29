@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { Rocket } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function CallToAction() {
 	return (

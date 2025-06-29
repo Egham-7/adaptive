@@ -65,11 +65,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	}
 
 	// 2) Call Python service for protocol selection
-	resp, err := pm.client.SelectProtocol(req)
-	if err != nil {
-		log.Printf("[%s] protocol selection failed: %v", requestID, err)
-		return nil, "error", fmt.Errorf("protocol selection failed: %w", err)
-	}
+	resp := pm.client.SelectProtocol(req)
 
 	log.Printf("[%s] protocol selected: %s", requestID, resp.Protocol)
 

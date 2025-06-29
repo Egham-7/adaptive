@@ -1,11 +1,18 @@
 "use client";
 
+import { type UIMessage, useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { useCallback, useState } from "react";
+
 import { Chat } from "@/components/ui/chat";
 import { useMessageLimits } from "@/hooks/messages/use-message-limits";
 import type { ConversationListItem, Message } from "@/types";
-import { useChat } from "ai/react";
-import type { Message as SDKMessage } from "ai/react";
-import { useCallback, useMemo } from "react";
+
+const CHAT_SUGGESTIONS = [
+	"Generate a tasty vegan lasagna recipe for 3 people.",
+	"Generate a list of 5 questions for a frontend job interview.",
+	"Who won the 2022 FIFA World Cup?",
+];
 
 interface ChatClientProps {
 	conversation: ConversationListItem;
@@ -20,52 +27,39 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 		isLoading: limitsLoading,
 	} = useMessageLimits();
 
-	const mappedMessages = useMemo(
-		() =>
-			initialMessages.map((msg: Message) => ({
-				id: msg.id,
-				role: msg.role as "user" | "assistant" | "system",
-				content: msg.content,
-				createdAt: msg.createdAt,
-				reasoning: msg.reasoning ?? undefined,
-				annotations: msg.annotations ? msg.annotations : undefined,
-				parts: msg.parts ? msg.parts : undefined,
-				experimentalAttachments: msg.experimentalAttachments
-					? msg.experimentalAttachments
-					: undefined,
-			})) as unknown as SDKMessage[],
-		[initialMessages],
-	);
+	const mappedMessages = initialMessages as unknown as UIMessage[];
 
+	const [input, setInput] = useState("");
 	const {
 		messages,
-		input,
-		handleInputChange,
-		handleSubmit: originalHandleSubmit,
 		setMessages,
-		append,
 		status,
 		stop,
 		error,
-		reload,
+		sendMessage,
+		regenerate,
 	} = useChat({
-		api: "/api/chat",
 		id: conversation.id.toString(),
-		initialMessages: mappedMessages,
-		experimental_prepareRequestBody({ messages, id }) {
-			return { message: messages[messages.length - 1], id };
-		},
+		messages: mappedMessages,
+		transport: new DefaultChatTransport({
+			api: "/api/chat",
+			credentials: "include",
+		}),
 	});
+
+	const handleInputChange = useCallback(
+		(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+			setInput(event.target.value);
+		},
+		[],
+	);
 
 	const handleSubmit = useCallback(
 		(
 			event?: { preventDefault?: () => void },
-			options?: { experimental_attachments?: FileList },
+			options?: { files?: FileList },
 		) => {
-			// Call preventDefault if event exists and has the method
-			if (event?.preventDefault) {
-				event.preventDefault();
-			}
+			event?.preventDefault?.();
 
 			if (hasReachedLimit) {
 				alert(
@@ -74,10 +68,12 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 				return;
 			}
 
-			// Pass both parameters to the original function
-			originalHandleSubmit(event, options);
+			if (!input.trim()) return;
+
+			sendMessage({ text: input, files: options?.files });
+			setInput("");
 		},
-		[originalHandleSubmit, hasReachedLimit],
+		[sendMessage, hasReachedLimit, input],
 	);
 
 	const isLoading = status === "streaming" || status === "submitted";
@@ -94,21 +90,16 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 				setMessages={setMessages}
 				isGenerating={isLoading}
 				stop={stop}
-				append={append}
-				suggestions={[
-					"Generate a tasty vegan lasagna recipe for 3 people.",
-					"Generate a list of 5 questions for a frontend job interview.",
-					"Who won the 2022 FIFA World Cup?",
-				]}
+				sendMessage={(message) => sendMessage({ text: message.text })}
+				suggestions={CHAT_SUGGESTIONS as string[]}
 				isError={isError}
 				error={error}
-				onRetry={reload}
-				// Pass limit info to Chat component
+				onRetry={regenerate}
 				hasReachedLimit={hasReachedLimit}
 				remainingMessages={remainingMessages}
 				isUnlimited={isUnlimited}
 				limitsLoading={limitsLoading}
-				userId={conversation.userId} // Add this prop with the actual user ID
+				userId={conversation.userId}
 			/>
 		</div>
 	);

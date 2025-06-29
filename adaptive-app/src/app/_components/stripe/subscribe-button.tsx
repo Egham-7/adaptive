@@ -1,9 +1,9 @@
 "use client";
 
-import { subscribeAction } from "@/actions/subscribe";
-import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { subscribeAction } from "@/actions/subscribe";
+import { cn } from "@/lib/utils";
 
 type Props = {
 	userId: string;

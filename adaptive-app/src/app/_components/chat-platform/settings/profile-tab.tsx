@@ -1,5 +1,8 @@
 "use client";
 
+import type { UserResource } from "@clerk/types";
+import { User } from "lucide-react";
+import type React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	Card,
@@ -14,9 +17,6 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/trpc/react";
 import type { UserMetadata, UserPreferences } from "@/types/settings";
-import type { UserResource } from "@clerk/types";
-import { User } from "lucide-react";
-import type React from "react";
 
 interface ProfileTabProps {
 	user: UserResource | null | undefined;
