@@ -362,6 +362,44 @@ export function Chat({
     );
   }, [limitsLoading, isUnlimited, displayRemainingMessages, userId]);
 
+// … somewhere above the return in your Chat component …
+
+  const renderMessageInput = (className?: string) => (
+    <ChatForm
+      className={className}
+      isPending={isGenerating || isTyping}
+      handleSubmit={handleSubmit}
+      hasReachedLimit={hasReachedLimit}
+    >
+      {({ files, setFiles }) => (
+        <MessageInput
+          value={input}
+          onChange={handleInputChange}
+          allowAttachments
+          files={files}
+          setFiles={setFiles}
+          stop={handleStop}
+          isGenerating={isGenerating}
+          transcribeAudio={transcribeAudio}
+          disabled={hasReachedLimit}
+          enableAdvancedFeatures={true}
+          placeholder={
+            hasReachedLimit
+              ? "Daily message limit reached - upgrade to continue"
+              : "Ask me anything..."
+          }
+        />
+      )}
+    </ChatForm>
+  );
+
+  const renderErrorDisplay = () =>
+    isError ? (
+      <div className="mx-4 mb-4">
+        <ChatErrorDisplay error={error} onRetry={onRetry} />
+      </div>
+    ) : null;
+
   return showWelcomeInterface ? (
     isEmpty ? (
       <ChatContainer
@@ -379,39 +417,12 @@ export function Chat({
           />
 
           {/* Input area with integrated functions */}
-          <ChatForm
-            className="w-full mb-6"
-            isPending={isGenerating || isTyping}
-            handleSubmit={handleSubmit}
-            hasReachedLimit={hasReachedLimit}
-          >
-            {({ files, setFiles }) => (
-              <MessageInput
-                value={input}
-                onChange={handleInputChange}
-                allowAttachments
-                files={files}
-                setFiles={setFiles}
-                stop={handleStop}
-                isGenerating={isGenerating}
-                transcribeAudio={transcribeAudio}
-                disabled={hasReachedLimit}
-                enableAdvancedFeatures={true}
-                placeholder={
-                  hasReachedLimit
-                    ? "Daily message limit reached - upgrade to continue"
-                    : "Ask me anything..."
-                }
-              />
-            )}
-          </ChatForm>
+          {renderMessageInput("w-full mb-6")}
 
           {/* Error feedback */}
-          {isError && (
-            <div className="w-full max-w-3xl mx-auto mb-4">
-              <ChatErrorDisplay error={error} onRetry={onRetry} />
-            </div>
-          )}
+          <div className="w-full max-w-3xl mx-auto mb-4">
+            <ChatErrorDisplay error={error} onRetry={onRetry} />
+          </div>
 
           {MessageCounter}
           {MessageLimitWarning}
@@ -428,43 +439,15 @@ export function Chat({
         </ChatMessages>
 
         {/* Error feedback */}
-        {isError && (
-          <div className="mx-4 mb-4">
-            <ChatErrorDisplay error={error} onRetry={onRetry} />
-          </div>
-        )}
+        {renderErrorDisplay()}
 
         {MessageCounter}
         {MessageLimitWarning}
 
-        <ChatForm
-          className="mt-auto mb-6"
-          isPending={isGenerating || isTyping}
-          handleSubmit={handleSubmit}
-          hasReachedLimit={hasReachedLimit}
-        >
-          {({ files, setFiles }) => (
-            <MessageInput
-              value={input}
-              onChange={handleInputChange}
-              allowAttachments
-              files={files}
-              setFiles={setFiles}
-              stop={handleStop}
-              isGenerating={isGenerating}
-              transcribeAudio={transcribeAudio}
-              disabled={hasReachedLimit}
-              enableAdvancedFeatures={true}
-              placeholder={
-                hasReachedLimit
-                  ? "Daily message limit reached - upgrade to continue"
-                  : "Ask me anything..."
-              }
-            />
-          )}
-        </ChatForm>
+        {renderMessageInput("mt-auto mb-6")}
       </ChatContainer>
     )
+  );
   ) : (
     <ChatContainer className={cn("h-full", className)}>
       {state.messages.length > 0 && (
