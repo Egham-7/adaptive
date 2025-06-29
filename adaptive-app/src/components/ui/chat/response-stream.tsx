@@ -146,7 +146,6 @@ function useTextStream({
   const markComplete = useCallback(() => {
     if (!completedRef.current) {
       completedRef.current = true;
-      isStreamingRef.current = false;
       setIsComplete(true);
       onCompleteRef.current?.();
     }
@@ -257,27 +256,10 @@ function useTextStream({
     }
   }, [textStream, isComplete, processStringTypewriter]);
 
-  const previousTextRef = useRef<string | null>(null);
-  const isStreamingRef = useRef(false);
-
   useEffect(() => {
-    // Only restart streaming if the text content has actually changed
-    if (typeof textStream === 'string') {
-      const previousText = previousTextRef.current;
-      
-      // Don't restart if text hasn't changed and we're not complete
-      if (textStream === previousText && isStreamingRef.current) {
-        return;
-      }
-      
-      previousTextRef.current = textStream;
-    }
-    
-    isStreamingRef.current = true;
     startStreaming();
 
     return () => {
-      isStreamingRef.current = false;
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
