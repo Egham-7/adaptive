@@ -14,8 +14,8 @@ import {
 import { FilePreview } from "./file-preview";
 import { CircularLoader, DotsLoader } from "./loader";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
-import { ResponseStream } from "./response-stream";
 import { Textarea } from "@/components/ui/textarea";
+import { useAnimatedText } from "@/components/ui/animated-text";
 import { cn } from "@/lib/utils";
 
 import type { UIMessage } from "@ai-sdk/react";
@@ -83,12 +83,10 @@ export interface ChatMessageProps extends UIMessage {
   onEditingContentChange?: (content: string) => void;
   onSaveEdit?: () => void;
   onCancelEdit?: () => void;
-  enableStreaming?: boolean;
-  streamingMode?: "typewriter" | "fade";
-  streamingSpeed?: number;
   isError?: boolean;
   error?: Error;
   onRetryError?: () => void;
+  isStreaming?: boolean;
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -102,16 +100,15 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onEditingContentChange,
   onSaveEdit,
   onCancelEdit,
-  enableStreaming = false,
-  streamingMode = "typewriter",
-  streamingSpeed = 30,
   isError = false,
   error,
   onRetryError,
+  isStreaming = false,
   ...message
 }) => {
   const content =
     (parts?.find((p) => p.type === "text") as TextUIPart)?.text || "";
+  const animatedContent = useAnimatedText(content, " ");
   const createdAt =
     message.metadata &&
     typeof message.metadata === "object" &&
@@ -191,7 +188,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               </div>
             </div>
           ) : (
-            <MarkdownRenderer>{content}</MarkdownRenderer>
+            <MarkdownRenderer>{isStreaming ? animatedContent : content}</MarkdownRenderer>
           )}
 
           {actions && !isEditing ? (
@@ -221,21 +218,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <div className={cn("flex flex-col", "items-start")}>
         {parts.map((part, index) => {
           if (part.type === "text") {
+            const partAnimatedContent = useAnimatedText(part.text, " ");
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
               <React.Fragment key={`text-${index}`}>
                 <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-                  {enableStreaming && index === parts.length - 1 ? (
-                    <ResponseStream
-                      textStream={part.text}
-                      mode={streamingMode}
-                      speed={streamingSpeed}
-                      as="div"
-                      className="[&>*]:text-inherit [&>*]:leading-inherit"
-                    />
-                  ) : (
-                    <MarkdownRenderer>{part.text}</MarkdownRenderer>
-                  )}
+                  <MarkdownRenderer>{isStreaming ? partAnimatedContent : part.text}</MarkdownRenderer>
                   {actions && index === parts.length - 1 ? (
                     <div className="-bottom-4 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
                       {actions}
@@ -294,7 +282,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return (
       <div className={cn("flex flex-col", "items-start")}>
         <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-          <MarkdownRenderer>{content}</MarkdownRenderer>
+          <MarkdownRenderer>{isStreaming ? animatedContent : content}</MarkdownRenderer>
           {actions ? (
             <div className="-bottom-2 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
               {actions}

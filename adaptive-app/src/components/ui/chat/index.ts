@@ -12,7 +12,6 @@ export { AudioVisualizer } from "./audio-visualizer";
 export { FilePreview } from "./file-preview";
 export { InterruptPrompt } from "./interrupt-prompt";
 export { PromptSuggestions } from "./prompt-suggestions";
-export { ResponseStream, useTextStream } from "./response-stream";
 export {
   Loader,
   CircularLoader,
