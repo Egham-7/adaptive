@@ -1,5 +1,9 @@
 "use client";
 
+import { Target } from "lucide-react";
+import { useTheme } from "next-themes";
+import type React from "react";
+import { useEffect, useState } from "react";
 import {
 	Card,
 	CardContent,
@@ -15,10 +19,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Target } from "lucide-react";
-import { useTheme } from "next-themes";
-import type React from "react";
-import { useEffect, useState } from "react";
 
 export const PreferencesTab: React.FC = () => {
 	const { theme, setTheme } = useTheme();

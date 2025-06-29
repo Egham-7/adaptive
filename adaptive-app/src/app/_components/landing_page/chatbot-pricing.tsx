@@ -1,4 +1,6 @@
 "use client";
+import { SignUpButton, useUser } from "@clerk/nextjs";
+import { Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -7,8 +9,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { SignUpButton, useUser } from "@clerk/nextjs";
-import { Check, Zap } from "lucide-react";
 import SubscribeButton from "../stripe/subscribe-button";
 
 export default function ChatbotPricing() {

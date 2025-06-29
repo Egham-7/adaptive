@@ -17,7 +17,7 @@ export async function verifySession(sessionId: string) {
 				metadata: session.metadata,
 			},
 		};
-	} catch (error) {
+	} catch (_error) {
 		return {
 			isValid: false,
 			error: "Failed to verify payment session",

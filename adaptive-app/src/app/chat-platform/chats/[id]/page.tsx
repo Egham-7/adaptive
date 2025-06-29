@@ -1,7 +1,6 @@
+import { notFound } from "next/navigation";
 import { ChatClient } from "@/app/_components/chat-platform/chats/chat-client";
 import { api } from "@/trpc/server";
-import type { MessageListInput } from "@/types";
-import { notFound } from "next/navigation";
 
 interface ConversationPageProps {
 	params: Promise<{

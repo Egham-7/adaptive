@@ -1,8 +1,8 @@
-import type { useConversations } from "@/hooks/conversations/use-conversations";
-import type { ConversationListItem } from "@/types";
 import { isToday, subDays } from "date-fns";
 import { Pin } from "lucide-react";
 import { useMemo } from "react";
+import type { useConversations } from "@/hooks/conversations/use-conversations";
+import type { ConversationListItem } from "@/types";
 import { ConversationGroup } from "./conversation-group";
 import {
 	ConversationListEmpty,
@@ -34,17 +34,26 @@ export function ConversationList({
 }: ConversationListProps) {
 	const groupedConversations = useMemo(() => {
 		const filtered =
-			conversations?.filter(
-				(c) => {
-					const titleMatch = c.title.toLowerCase().includes(searchQuery.toLowerCase());
-					const messageMatch = c.messages[0] && Array.isArray(c.messages[0].parts)
-						? (c.messages[0].parts.find((p) => p && typeof p === 'object' && 'type' in p && p.type === 'text') as { text: string })?.text
-							?.toLowerCase()
-							?.includes(searchQuery.toLowerCase()) || false
+			conversations?.filter((c) => {
+				const titleMatch = c.title
+					.toLowerCase()
+					.includes(searchQuery.toLowerCase());
+				const messageMatch =
+					c.messages[0] && Array.isArray(c.messages[0].parts)
+						? (
+								c.messages[0].parts.find(
+									(p) =>
+										p &&
+										typeof p === "object" &&
+										"type" in p &&
+										p.type === "text",
+								) as { text: string }
+							)?.text
+								?.toLowerCase()
+								?.includes(searchQuery.toLowerCase()) || false
 						: false;
-					return titleMatch || messageMatch;
-				}
-			) ?? [];
+				return titleMatch || messageMatch;
+			}) ?? [];
 
 		const pinned: ConversationListItem[] = [];
 		const unpinned: ConversationListItem[] = [];
