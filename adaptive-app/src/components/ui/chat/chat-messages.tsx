@@ -7,16 +7,17 @@ import { useAutoScroll } from "@/hooks/use-auto-scroll";
 interface ChatMessagesProps {
   messages: UIMessage[];
   children: React.ReactNode;
+  isStreaming?: boolean;
 }
 
-export function ChatMessages({ messages, children }: ChatMessagesProps) {
+export function ChatMessages({ messages, children, isStreaming }: ChatMessagesProps) {
   const {
     containerRef,
     scrollToBottom,
     handleScroll,
     shouldAutoScroll,
     handleTouchStart,
-  } = useAutoScroll([messages]);
+  } = useAutoScroll([messages], isStreaming);
 
   return (
     <div

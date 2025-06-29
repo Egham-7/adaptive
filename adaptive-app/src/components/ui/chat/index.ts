@@ -3,7 +3,16 @@ export { ChatContainer } from "./chat-container";
 export { ChatErrorDisplay } from "./chat-error-display";
 export { ChatForm } from "./chat-form";
 export { ChatMessages } from "./chat-messages";
-export { useOptimisticMessageCount } from "./chat-hooks";
+export { ChatStatus } from "./chat-status";
+export { MessageActions } from "./message-actions";
+export { WelcomeScreen } from "./welcome-screen";
+export { 
+  useOptimisticMessageCount,
+  useChatState,
+  useChatActions,
+  useChatLimits,
+  useChatRating,
+} from "./chat-hooks";
 export { messageReducer } from "./chat-reducer";
 export * from "./chat-types";
 export * from "./chat-utils";
