@@ -1,5 +1,5 @@
 import { ChatMessage, type ChatMessageProps } from "./chat-message";
-import { TypingIndicator } from "@/components/ui/typing-indicator";
+import { TypingLoader } from "./loader";
 import type { UIMessage } from "@ai-sdk/react";
 
 type AdditionalMessageOptions = Omit<ChatMessageProps, keyof UIMessage>;
@@ -36,7 +36,13 @@ export function MessageList({
           />
         );
       })}
-      {isTyping && <TypingIndicator />}
+      {isTyping && (
+        <div className="flex items-center justify-start p-4">
+          <div className="bg-muted rounded-lg px-3 py-2">
+            <TypingLoader size="sm" className="opacity-70" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

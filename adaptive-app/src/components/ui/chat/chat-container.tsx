@@ -8,7 +8,7 @@ export const ChatContainer = forwardRef<
   return (
     <div
       ref={ref}
-      className={cn("grid max-h-full w-full grid-rows-[1fr_auto]", className)}
+      className={cn("flex flex-col w-full", className)}
       {...props}
     />
   );

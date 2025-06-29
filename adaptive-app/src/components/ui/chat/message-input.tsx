@@ -1,15 +1,17 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, Info, Loader2, Mic, Paperclip, Square } from "lucide-react";
+import { ArrowUp, Info, Mic, Paperclip, Square, Search, BrainCircuit, Plus, Telescope, Zap } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { omit } from "remeda";
 
-import { AudioVisualizer } from "@/components/ui/audio-visualizer";
+import { AudioVisualizer } from "./audio-visualizer";
 import { Button } from "@/components/ui/button";
-import { FilePreview } from "@/components/ui/file-preview";
-import { InterruptPrompt } from "@/components/ui/interrupt-prompt";
+import { FeatureToggle } from "./feature-toggle";
+import { FilePreview } from "./file-preview";
+import { InterruptPrompt } from "./interrupt-prompt";
+import { TextShimmerLoader } from "./loader";
 import { useAudioRecording } from "@/hooks/use-audio-recording";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,7 @@ interface MessageInputBaseProps
   isGenerating: boolean;
   enableInterrupt?: boolean;
   transcribeAudio?: (blob: Blob) => Promise<string>;
+  enableAdvancedFeatures?: boolean;
 }
 
 interface MessageInputWithoutAttachmentProps extends MessageInputBaseProps {
@@ -47,10 +50,14 @@ export function MessageInput({
   isGenerating,
   enableInterrupt = true,
   transcribeAudio,
+  enableAdvancedFeatures = false,
   ...props
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showInterruptPrompt, setShowInterruptPrompt] = useState(false);
+  const [searchEnabled, setSearchEnabled] = useState(false);
+  const [deepResearchEnabled, setDeepResearchEnabled] = useState(false);
+  const [reasonEnabled, setReasonEnabled] = useState(false);
 
   const {
     isListening,
@@ -176,7 +183,7 @@ export function MessageInput({
 
   useAutosizeTextArea({
     ref: textAreaRef as React.RefObject<HTMLTextAreaElement>,
-    maxHeight: 240,
+    maxHeight: 180,
     borderWidth: 1,
     dependencies: [props.value, showFileList],
   });
@@ -202,24 +209,74 @@ export function MessageInput({
 
       <div className="relative flex w-full items-center space-x-2">
         <div className="relative flex-1">
-          <textarea
-            aria-label="Write your prompt here"
-            placeholder={placeholder}
-            ref={textAreaRef}
-            onPaste={onPaste}
-            onKeyDown={onKeyDown}
-            className={cn(
-              "z-10 w-full grow resize-none rounded-xl border border-input bg-background p-3 pr-24 text-sm ring-offset-background transition-[border] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
-              showFileList && "pb-16",
-              className,
+          <div className={cn(
+            "relative w-full border border-input rounded-xl bg-background shadow-sm overflow-hidden",
+            className,
+          )}>
+            <textarea
+              aria-label="Write your prompt here"
+              placeholder={placeholder}
+              ref={textAreaRef}
+              onPaste={onPaste}
+              onKeyDown={onKeyDown}
+              className={cn(
+                "z-10 w-full grow resize-none border-0 bg-transparent p-3 pr-20 text-base outline-none placeholder:text-muted-foreground text-foreground disabled:cursor-not-allowed disabled:opacity-50",
+                showFileList && enableAdvancedFeatures && "pb-16",
+                showFileList && !enableAdvancedFeatures && "pb-12", 
+                !showFileList && enableAdvancedFeatures && "pb-10",
+              )}
+              {...(props.allowAttachments
+                ? omit(props, ["allowAttachments", "files", "setFiles", "enableAdvancedFeatures"] as (keyof typeof props)[])
+                : omit(props, ["allowAttachments", "enableAdvancedFeatures"] as (keyof typeof props)[]))}
+            />
+            
+            {enableAdvancedFeatures && (
+              <div className="px-3 py-2 flex items-center justify-between relative z-20">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* TODO: Implement search functionality - this button toggles search mode for enhanced query processing */}
+                  <FeatureToggle
+                    icon={Search}
+                    label="Search"
+                    isEnabled={searchEnabled}
+                    onToggle={() => setSearchEnabled(!searchEnabled)}
+                    ariaLabel="Toggle Search"
+                  />
+                  {/* TODO: Implement deep research functionality - this button enables comprehensive research mode with multiple sources */}
+                  <FeatureToggle
+                    icon={Telescope}
+                    label="Deep Research"
+                    isEnabled={deepResearchEnabled}
+                    onToggle={() => setDeepResearchEnabled(!deepResearchEnabled)}
+                    ariaLabel="Toggle Deep Research"
+                  />
+                  {/* TODO: Implement reasoning functionality - this button activates step-by-step reasoning mode for complex problems */}
+                  <FeatureToggle
+                    icon={Zap}
+                    label="Reason"
+                    isEnabled={reasonEnabled}
+                    onToggle={() => setReasonEnabled(!reasonEnabled)}
+                    ariaLabel="Toggle Reasoning"
+                  />
+                </div>
+                {props.allowAttachments && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const files = await showFileUploadDialog();
+                      addFiles(files);
+                    }}
+                    className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Upload Files</span>
+                  </button>
+                )}
+              </div>
             )}
-            {...(props.allowAttachments
-              ? omit(props, ["allowAttachments", "files", "setFiles"])
-              : omit(props, ["allowAttachments"]))}
-          />
+          </div>
 
           {props.allowAttachments && (
-            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-scroll py-3">
+            <div className="absolute inset-x-3 bottom-0 z-20 overflow-x-auto py-3">
               <div className="flex space-x-3">
                 <AnimatePresence mode="popLayout">
                   {props.files?.map((file) => {
@@ -248,8 +305,8 @@ export function MessageInput({
         </div>
       </div>
 
-      <div className="absolute top-3 right-3 z-0 flex gap-2">
-        {props.allowAttachments && (
+      <div className="absolute top-3 right-3 z-10 flex gap-2">
+        {!enableAdvancedFeatures && props.allowAttachments && (
           <Button
             type="button"
             size="icon"
@@ -265,22 +322,23 @@ export function MessageInput({
           </Button>
         )}
         {isSpeechSupported && (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            className={cn("h-8 w-8", isListening && "text-primary")}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Voice input"
-            size="icon"
             onClick={toggleListening}
           >
             <Mic className="h-4 w-4" />
-          </Button>
+          </button>
         )}
         {isGenerating && stop ? (
           <Button
             type="button"
             size="icon"
-            className="h-8 w-8"
+            className={cn(
+              "h-8 w-8 rounded-full",
+              props.value.trim() ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground"
+            )}
             aria-label="Stop generating"
             onClick={stop}
           >
@@ -290,11 +348,16 @@ export function MessageInput({
           <Button
             type="submit"
             size="icon"
-            className="h-8 w-8 transition-opacity"
+            className={cn(
+              "h-8 w-8 rounded-full transition-all",
+              props.value.trim()
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
+            )}
             aria-label="Send message"
             disabled={props.value === "" || isGenerating}
           >
-            <ArrowUp className="h-5 w-5" />
+            <ArrowUp className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -393,23 +456,9 @@ function TranscribingOverlay() {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="relative">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <motion.div
-          className="absolute inset-0 h-8 w-8 animate-pulse rounded-full bg-primary/20"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1.2, opacity: 1 }}
-          transition={{
-            duration: 1,
-            repeat: Number.POSITIVE_INFINITY,
-            repeatType: "reverse",
-            ease: "easeInOut",
-          }}
-        />
+      <div className="mb-3">
+        <TextShimmerLoader text="Transcribing audio" size="sm" />
       </div>
-      <p className="mt-4 font-medium text-muted-foreground text-sm">
-        Transcribing audio...
-      </p>
     </motion.div>
   );
 }

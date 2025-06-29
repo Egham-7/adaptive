@@ -83,6 +83,7 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 		<div className="flex h-full flex-col">
 			<Chat
 				className="flex-1"
+				showWelcomeInterface={true}
 				messages={messages}
 				input={input}
 				handleInputChange={handleInputChange}
