@@ -307,21 +307,16 @@ function ResponseStream({
 }: ResponseStreamProps) {
   const animationEndRef = useRef<(() => void) | null>(null);
 
-  const {
-    displayedText,
-    isComplete,
-    segments,
-    getFadeDuration,
-    getSegmentDelay,
-  } = useTextStream({
-    textStream,
-    speed,
-    mode,
-    onComplete,
-    fadeDuration,
-    segmentDelay,
-    characterChunkSize,
-  });
+  const { displayedText, isComplete, segments, getSegmentDelay } =
+    useTextStream({
+      textStream,
+      speed,
+      mode,
+      onComplete,
+      fadeDuration,
+      segmentDelay,
+      characterChunkSize,
+    });
 
   useEffect(() => {
     animationEndRef.current = onComplete ?? null;

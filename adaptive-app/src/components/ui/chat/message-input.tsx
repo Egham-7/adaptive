@@ -8,6 +8,7 @@ import { omit } from "remeda";
 
 import { AudioVisualizer } from "./audio-visualizer";
 import { Button } from "@/components/ui/button";
+import { FeatureToggle } from "./feature-toggle";
 import { FilePreview } from "./file-preview";
 import { InterruptPrompt } from "./interrupt-prompt";
 import { TextShimmerLoader } from "./loader";
@@ -232,45 +233,30 @@ export function MessageInput({
             {enableAdvancedFeatures && (
               <div className="px-3 py-2 flex items-center justify-between relative z-20">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setSearchEnabled(!searchEnabled)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                      searchEnabled
-                        ? "bg-primary/10 text-primary hover:bg-primary/20"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                  >
-                    <Search className="w-3.5 h-3.5" />
-                    <span>Search</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeepResearchEnabled(!deepResearchEnabled)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                      deepResearchEnabled
-                        ? "bg-primary/10 text-primary hover:bg-primary/20"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                  >
-                    <Telescope className="w-3.5 h-3.5" />
-                    <span>Deep Research</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReasonEnabled(!reasonEnabled)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                      reasonEnabled
-                        ? "bg-primary/10 text-primary hover:bg-primary/20"
-                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                    )}
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>Reason</span>
-                  </button>
+                  {/* TODO: Implement search functionality - this button toggles search mode for enhanced query processing */}
+                  <FeatureToggle
+                    icon={Search}
+                    label="Search"
+                    isEnabled={searchEnabled}
+                    onToggle={() => setSearchEnabled(!searchEnabled)}
+                    ariaLabel="Toggle Search"
+                  />
+                  {/* TODO: Implement deep research functionality - this button enables comprehensive research mode with multiple sources */}
+                  <FeatureToggle
+                    icon={Telescope}
+                    label="Deep Research"
+                    isEnabled={deepResearchEnabled}
+                    onToggle={() => setDeepResearchEnabled(!deepResearchEnabled)}
+                    ariaLabel="Toggle Deep Research"
+                  />
+                  {/* TODO: Implement reasoning functionality - this button activates step-by-step reasoning mode for complex problems */}
+                  <FeatureToggle
+                    icon={Zap}
+                    label="Reason"
+                    isEnabled={reasonEnabled}
+                    onToggle={() => setReasonEnabled(!reasonEnabled)}
+                    ariaLabel="Toggle Reasoning"
+                  />
                 </div>
                 {props.allowAttachments && (
                   <button

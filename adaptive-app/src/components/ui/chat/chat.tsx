@@ -5,7 +5,6 @@ import type { UIMessage } from "@ai-sdk/react";
 import { useDeleteMessage } from "@/hooks/messages/use-delete-message";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
-import { MessageInput } from "./message-input";
 import { MessageList } from "@/components/ui/chat/message-list";
 import { PromptSuggestions } from "./prompt-suggestions";
 import SubscribeButton from "@/app/_components/stripe/subscribe-button";
@@ -14,8 +13,9 @@ import { cn } from "@/lib/utils";
 
 import { ChatContainer } from "./chat-container";
 import { ChatErrorDisplay } from "./chat-error-display";
-import { ChatForm } from "./chat-form";
 import { ChatMessages } from "./chat-messages";
+import { ErrorDisplay } from "./error-display";
+import { MessageInputWrapper } from "./message-input-wrapper";
 import { useOptimisticMessageCount } from "./chat-hooks";
 import { messageReducer } from "./chat-reducer";
 import type { ChatProps, MessageTextPart } from "./chat-types";
@@ -362,44 +362,6 @@ export function Chat({
     );
   }, [limitsLoading, isUnlimited, displayRemainingMessages, userId]);
 
-// … somewhere above the return in your Chat component …
-
-  const renderMessageInput = (className?: string) => (
-    <ChatForm
-      className={className}
-      isPending={isGenerating || isTyping}
-      handleSubmit={handleSubmit}
-      hasReachedLimit={hasReachedLimit}
-    >
-      {({ files, setFiles }) => (
-        <MessageInput
-          value={input}
-          onChange={handleInputChange}
-          allowAttachments
-          files={files}
-          setFiles={setFiles}
-          stop={handleStop}
-          isGenerating={isGenerating}
-          transcribeAudio={transcribeAudio}
-          disabled={hasReachedLimit}
-          enableAdvancedFeatures={true}
-          placeholder={
-            hasReachedLimit
-              ? "Daily message limit reached - upgrade to continue"
-              : "Ask me anything..."
-          }
-        />
-      )}
-    </ChatForm>
-  );
-
-  const renderErrorDisplay = () =>
-    isError ? (
-      <div className="mx-4 mb-4">
-        <ChatErrorDisplay error={error} onRetry={onRetry} />
-      </div>
-    ) : null;
-
   return showWelcomeInterface ? (
     isEmpty ? (
       <ChatContainer
@@ -417,12 +379,25 @@ export function Chat({
           />
 
           {/* Input area with integrated functions */}
-          {renderMessageInput("w-full mb-6")}
+          <MessageInputWrapper
+            className="w-full mb-6"
+            isPending={isGenerating || isTyping}
+            handleSubmit={handleSubmit}
+            hasReachedLimit={hasReachedLimit}
+            value={input}
+            onChange={handleInputChange}
+            stop={handleStop}
+            isGenerating={isGenerating}
+            transcribeAudio={transcribeAudio}
+          />
 
           {/* Error feedback */}
-          <div className="w-full max-w-3xl mx-auto mb-4">
-            <ChatErrorDisplay error={error} onRetry={onRetry} />
-          </div>
+          <ErrorDisplay
+            isError={isError}
+            error={error}
+            onRetry={onRetry}
+            className="w-full max-w-3xl mx-auto mb-4"
+          />
 
           {MessageCounter}
           {MessageLimitWarning}
@@ -439,15 +414,24 @@ export function Chat({
         </ChatMessages>
 
         {/* Error feedback */}
-        {renderErrorDisplay()}
+        {error && <ChatErrorDisplay />}
 
         {MessageCounter}
         {MessageLimitWarning}
 
-        {renderMessageInput("mt-auto mb-6")}
+        <MessageInputWrapper
+          className="mt-auto mb-6"
+          isPending={isGenerating || isTyping}
+          handleSubmit={handleSubmit}
+          hasReachedLimit={hasReachedLimit}
+          value={input}
+          onChange={handleInputChange}
+          stop={handleStop}
+          isGenerating={isGenerating}
+          transcribeAudio={transcribeAudio}
+        />
       </ChatContainer>
     )
-  );
   ) : (
     <ChatContainer className={cn("h-full", className)}>
       {state.messages.length > 0 && (
@@ -461,41 +445,22 @@ export function Chat({
       )}
 
       {/* Error feedback */}
-      {isError && (
-        <div className="mx-4 mb-4">
-          <ChatErrorDisplay error={error} onRetry={onRetry} />
-        </div>
-      )}
+      <ErrorDisplay isError={isError} error={error} onRetry={onRetry} />
 
       {MessageCounter}
       {MessageLimitWarning}
 
-      <ChatForm
+      <MessageInputWrapper
         className="mt-auto mb-6"
         isPending={isGenerating || isTyping}
         handleSubmit={handleSubmit}
         hasReachedLimit={hasReachedLimit}
-      >
-        {({ files, setFiles }) => (
-          <MessageInput
-            value={input}
-            onChange={handleInputChange}
-            allowAttachments
-            files={files}
-            setFiles={setFiles}
-            stop={handleStop}
-            isGenerating={isGenerating}
-            transcribeAudio={transcribeAudio}
-            disabled={hasReachedLimit}
-            enableAdvancedFeatures={true}
-            placeholder={
-              hasReachedLimit
-                ? "Daily message limit reached - upgrade to continue"
-                : "Ask me anything..."
-            }
-          />
-        )}
-      </ChatForm>
+        value={input}
+        onChange={handleInputChange}
+        stop={handleStop}
+        isGenerating={isGenerating}
+        transcribeAudio={transcribeAudio}
+      />
     </ChatContainer>
   );
 }
