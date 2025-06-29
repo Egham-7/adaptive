@@ -14,7 +14,6 @@ import {
 import { FilePreview } from "./file-preview";
 import { CircularLoader, DotsLoader } from "./loader";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
-import { ResponseStream } from "./response-stream";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -83,9 +82,6 @@ export interface ChatMessageProps extends UIMessage {
   onEditingContentChange?: (content: string) => void;
   onSaveEdit?: () => void;
   onCancelEdit?: () => void;
-  enableStreaming?: boolean;
-  streamingMode?: "typewriter" | "fade";
-  streamingSpeed?: number;
   isError?: boolean;
   error?: Error;
   onRetryError?: () => void;
@@ -102,9 +98,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onEditingContentChange,
   onSaveEdit,
   onCancelEdit,
-  enableStreaming = false,
-  streamingMode = "typewriter",
-  streamingSpeed = 30,
   isError = false,
   error,
   onRetryError,
@@ -225,17 +218,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
               <React.Fragment key={`text-${index}`}>
                 <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-                  {enableStreaming && index === parts.length - 1 ? (
-                    <ResponseStream
-                      textStream={part.text}
-                      mode={streamingMode}
-                      speed={streamingSpeed}
-                      as="div"
-                      className="[&>*]:text-inherit [&>*]:leading-inherit"
-                    />
-                  ) : (
-                    <MarkdownRenderer>{part.text}</MarkdownRenderer>
-                  )}
+                  <MarkdownRenderer>{part.text}</MarkdownRenderer>
                   {actions && index === parts.length - 1 ? (
                     <div className="-bottom-4 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
                       {actions}
