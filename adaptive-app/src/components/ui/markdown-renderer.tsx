@@ -1,7 +1,8 @@
-import React, { Suspense } from "react";
+import React from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import { CodeBlock, CodeBlockCode } from "@/components/ui/code-block";
 import { CopyButton } from "@/components/ui/copy-button";
 import { cn } from "@/lib/utils";
 
@@ -19,102 +20,37 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
 	);
 }
 
-interface HighlightedPre extends React.HTMLAttributes<HTMLPreElement> {
-	children: string;
-	language: string;
-}
 
-const HighlightedPre = React.memo(
-	async ({ children, language, ...props }: HighlightedPre) => {
-		const { codeToTokens, bundledLanguages } = await import("shiki");
-
-		if (!(language in bundledLanguages)) {
-			return <pre {...props}>{children}</pre>;
-		}
-
-		const { tokens } = await codeToTokens(children, {
-			lang: language as keyof typeof bundledLanguages,
-			defaultColor: false,
-			themes: {
-				light: "github-light",
-				dark: "github-dark",
-			},
-		});
-
-		return (
-			<pre {...props}>
-				<code>
-					{tokens.map((line, lineIndex) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: Shiki tokens don't have stable IDs, index is appropriate here
-						<React.Fragment key={`line-${lineIndex}`}>
-							<span>
-								{line.map((token, tokenIndex) => {
-									const style =
-										typeof token.htmlStyle === "string"
-											? undefined
-											: token.htmlStyle;
-
-									return (
-										<span
-											// biome-ignore lint/suspicious/noArrayIndexKey: Shiki tokens don't have stable IDs, index is appropriate here
-											key={`token-${lineIndex}-${tokenIndex}`}
-											className="bg-shiki-light-bg text-shiki-light dark:bg-shiki-dark-bg dark:text-shiki-dark"
-											style={style}
-										>
-											{token.content}
-										</span>
-									);
-								})}
-							</span>
-							{lineIndex !== tokens.length - 1 && "\n"}
-						</React.Fragment>
-					))}
-				</code>
-			</pre>
-		);
-	},
-);
-HighlightedPre.displayName = "HighlightedCode";
-
-interface CodeBlockProps extends React.HTMLAttributes<HTMLPreElement> {
+interface CustomCodeBlockProps extends React.HTMLAttributes<HTMLPreElement> {
 	children: React.ReactNode;
 	className?: string;
 	language: string;
 }
 
-const CodeBlock = ({
+const CustomCodeBlock = ({
 	children,
 	className,
 	language,
 	...restProps
-}: CodeBlockProps) => {
+}: CustomCodeBlockProps) => {
 	const code =
 		typeof children === "string"
 			? children
 			: childrenTakeAllStringContents(children);
 
-	const preClass = cn(
-		"overflow-x-scroll rounded-md border bg-background/50 p-4 font-mono text-sm [scrollbar-width:none]",
-		className,
-	);
-
 	return (
 		<div className="group/code relative mb-4">
-			<Suspense
-				fallback={
-					<pre className={preClass} {...restProps}>
-						{children}
-					</pre>
-				}
-			>
-				<HighlightedPre language={language} className={preClass}>
-					{code}
-				</HighlightedPre>
-			</Suspense>
-
-			<div className="invisible absolute top-2 right-2 flex space-x-1 rounded-lg p-1 opacity-0 transition-all duration-200 group-hover/code:visible group-hover/code:opacity-100">
-				<CopyButton content={code} copyMessage="Copied code to clipboard" />
-			</div>
+			<CodeBlock className={className}>
+				<CodeBlockCode 
+					code={code} 
+					language={language}
+					theme="github-light"
+					className="relative"
+				/>
+				<div className="invisible absolute top-2 right-2 flex space-x-1 rounded-lg bg-background/80 backdrop-blur-sm p-1 opacity-0 transition-all duration-200 group-hover/code:visible group-hover/code:opacity-100">
+					<CopyButton content={code} copyMessage="Copied code to clipboard" />
+				</div>
+			</CodeBlock>
 		</div>
 	);
 };
@@ -158,9 +94,9 @@ const COMPONENTS = {
 	}: React.PropsWithChildren<{ className?: string; node?: unknown }>) => {
 		const match = /language-(\w+)/.exec(className || "");
 		return match ? (
-			<CodeBlock className={className} language={match[1] ?? ""} {...rest}>
+			<CustomCodeBlock className={className} language={match[1] ?? ""} {...rest}>
 				{children}
-			</CodeBlock>
+			</CustomCodeBlock>
 		) : (
 			<code
 				className={cn(
