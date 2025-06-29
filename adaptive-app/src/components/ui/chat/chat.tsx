@@ -235,18 +235,11 @@ export function Chat({
         (message.parts?.find((p) => p.type === "text") as MessageTextPart)
           ?.text || getMessageContent(message);
 
-      // Check if this is the latest assistant message and we're generating
-      const isLatestAssistantMessage =
-        message.id === lastMessage?.id && lastMessage?.role === "assistant";
-      const shouldStream = isGenerating && isLatestAssistantMessage && !isError;
-
       return {
-        enableStreaming: shouldStream,
-        streamingMode: "typewriter" as const,
-        streamingSpeed: 40,
-        isError: isError && isLatestAssistantMessage,
-        error: isError && isLatestAssistantMessage ? error : undefined,
-        onRetryError: isError && isLatestAssistantMessage ? onRetry : undefined,
+        isStreaming: isGenerating,
+        isError,
+        error,
+        onRetryError: onRetry,
         actions: onRateResponse ? (
           <>
             <div className="border-r pr-1">
