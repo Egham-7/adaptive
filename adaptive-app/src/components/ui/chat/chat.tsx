@@ -1,14 +1,8 @@
-import { useCallback, useEffect, useMemo, useReducer } from "react";
-import { Edit3, RotateCcw, ThumbsDown, ThumbsUp, Trash2 } from "lucide-react";
+import { useCallback } from "react";
 import type { UIMessage } from "@ai-sdk/react";
 
 import { useDeleteMessage } from "@/hooks/messages/use-delete-message";
-import { Button } from "@/components/ui/button";
-import { CopyButton } from "@/components/ui/copy-button";
 import { MessageList } from "@/components/ui/chat/message-list";
-import { PromptSuggestions } from "./prompt-suggestions";
-import SubscribeButton from "@/app/_components/stripe/subscribe-button";
-import { DAILY_MESSAGE_LIMIT } from "@/lib/chat/message-limits";
 import { cn } from "@/lib/utils";
 
 import { ChatContainer } from "./chat-container";
@@ -16,10 +10,16 @@ import { ChatErrorDisplay } from "./chat-error-display";
 import { ChatMessages } from "./chat-messages";
 import { ErrorDisplay } from "./error-display";
 import { MessageInputWrapper } from "./message-input-wrapper";
-import { useOptimisticMessageCount } from "./chat-hooks";
-import { messageReducer } from "./chat-reducer";
-import type { ChatProps, MessageTextPart } from "./chat-types";
-import { getMessageContent } from "./chat-utils";
+import { WelcomeScreen } from "./welcome-screen";
+import { ChatStatus } from "./chat-status";
+import { MessageActions } from "./message-actions";
+import {
+  useChatState,
+  useChatActions,
+  useChatLimits,
+  useChatRating,
+} from "./chat-hooks";
+import type { ChatProps } from "./chat-types";
 
 export function Chat({
   messages,
@@ -45,392 +45,114 @@ export function Chat({
   showWelcomeInterface = false,
 }: ChatProps) {
   const deleteMessageMutation = useDeleteMessage();
-  const [state, dispatch] = useReducer(messageReducer, {
-    messages,
-    editingMessageId: null,
-    editingContent: "",
-  });
 
-  const optimisticRemainingMessages = useOptimisticMessageCount(
+  // Initialize all hooks
+  const chatState = useChatState(messages);
+  const chatLimits = useChatLimits({
     messages,
     remainingMessages,
-  );
-
-  // Sync external messages with internal state
-  useEffect(() => {
-    dispatch({ type: "SET_MESSAGES", messages });
-  }, [messages]);
+    hasReachedLimit,
+    isUnlimited,
+    limitsLoading,
+  });
+  const chatRating = useChatRating({ onRateResponse });
+  const chatActions = useChatActions({
+    chatState: chatState.state,
+    chatActions: chatState.actions,
+    messages,
+    setMessages,
+    sendMessage,
+    deleteMessageMutation,
+    isGenerating,
+  });
 
   // Computed values
-  const displayRemainingMessages =
-    optimisticRemainingMessages ?? remainingMessages;
-  const usedMessages =
-    displayRemainingMessages !== undefined
-      ? DAILY_MESSAGE_LIMIT - displayRemainingMessages
-      : 0;
-
-  const lastMessage = state.messages.at(-1);
-  const isEmpty = state.messages.length === 0;
-  const isTyping = lastMessage?.role === "user" && !isError;
+  const isTyping = chatState.computed.lastMessage?.role === "user" && !isError;
 
   // Event handlers
   const handleStop = useCallback(() => {
     stop?.();
-    const lastAssistantMessage = state.messages.findLast(
-      (m) => m.role === "assistant",
-    );
-    if (lastAssistantMessage) {
-      dispatch({
-        type: "CANCEL_TOOL_INVOCATIONS",
-        messageId: lastAssistantMessage.id,
-      });
-    }
-  }, [stop, state.messages]);
-
-  const handleEditMessage = useCallback(
-    (messageId: string, content: string) => {
-      dispatch({ type: "EDIT_MESSAGE", messageId, content });
-    },
-    [],
-  );
-
-  const handleSaveEdit = useCallback(
-    (messageId: string) => {
-      if (!state.editingContent.trim()) return;
-
-      const messageIndex = state.messages.findIndex((m) => m.id === messageId);
-      if (messageIndex === -1) return;
-
-      // Delete subsequent messages
-      const messagesToDelete = state.messages.slice(messageIndex);
-      messagesToDelete.forEach((msg) => {
-        deleteMessageMutation.mutate({ id: msg.id });
-      });
-
-      setMessages(messages.slice(0, messageIndex));
-      sendMessage?.({ text: state.editingContent.trim() });
-      dispatch({ type: "CLEAR_EDITING" });
-    },
-    [
-      state.editingContent,
-      state.messages,
-      deleteMessageMutation,
-      setMessages,
-      messages,
-      sendMessage,
-    ],
-  );
-
-  const handleCancelEdit = useCallback(() => {
-    dispatch({ type: "CLEAR_EDITING" });
-  }, []);
-
-  const handleRetryMessage = useCallback(
-    (message: UIMessage) => {
-      if (!sendMessage) return;
-
-      const messageIndex = state.messages.findIndex((m) => m.id === message.id);
-      if (messageIndex !== -1) {
-        console.log("Retrying message:", message.id);
-        const messagesToDelete = state.messages.slice(0, messageIndex + 1);
-        console.log(
-          "Messages to delete:",
-          messagesToDelete.map((m) => m.id),
-        );
-        messagesToDelete.forEach((msg) => {
-          deleteMessageMutation.mutate({ id: msg.id });
-        });
-      }
-      setMessages(messages.slice(0, messageIndex));
-      dispatch({ type: "RETRY_MESSAGE", messageId: message.id });
-      sendMessage({ text: getMessageContent(message) });
-    },
-    [sendMessage, state.messages, deleteMessageMutation],
-  );
-
-  const handleDeleteMessage = useCallback(
-    (messageId: string) => {
-      const messageIndex = state.messages.findIndex((m) => m.id === messageId);
-      if (messageIndex !== -1) {
-        const messagesToDelete = state.messages.slice(messageIndex);
-        messagesToDelete.forEach((msg) => {
-          deleteMessageMutation.mutate({ id: msg.id });
-        });
-      }
-      setMessages(messages.slice(0, messageIndex));
-      dispatch({ type: "DELETE_MESSAGE_AND_AFTER", messageId });
-    },
-    [state.messages, deleteMessageMutation],
-  );
-
-  const handleRateMessage = useCallback(
-    (messageId: string, rating: "thumbs-up" | "thumbs-down") => {
-      onRateResponse?.(messageId, rating);
-    },
-    [onRateResponse],
-  );
+    chatActions.handleStop();
+  }, [stop, chatActions]);
 
   // Message options factory
   const messageOptions = useCallback(
     (message: UIMessage) => {
-      const isUserMessage = message.role === "user";
-      const canEdit = isUserMessage && !isGenerating;
-      const canRetry = isUserMessage && !isGenerating;
-      const canDelete = !isGenerating;
-
-      if (isUserMessage) {
-        return {
-          actions: (
-            <>
-              {canEdit && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() =>
-                    handleEditMessage(message.id, getMessageContent(message))
-                  }
-                  disabled={state.editingMessageId === message.id}
-                >
-                  <Edit3 className="h-4 w-4" />
-                </Button>
-              )}
-              {canRetry && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() => handleRetryMessage(message)}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              )}
-              {canDelete && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-destructive hover:text-destructive"
-                  onClick={() => handleDeleteMessage(message.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </>
-          ),
-          isEditing: state.editingMessageId === message.id,
-          editingContent: state.editingContent,
-          onEditingContentChange: (content: string) =>
-            dispatch({
-              type: "EDIT_MESSAGE",
-              messageId: state.editingMessageId || "",
-              content,
-            }),
-          onSaveEdit: () => handleSaveEdit(message.id),
-          onCancelEdit: handleCancelEdit,
-        };
-      }
-
-      // Assistant message actions
-      const messageContent =
-        (message.parts?.find((p) => p.type === "text") as MessageTextPart)
-          ?.text || getMessageContent(message);
+      const capabilities = chatActions.getMessageCapabilities(message);
 
       return {
+        actions: (
+          <MessageActions
+            message={message}
+            canEdit={capabilities.canEdit}
+            canRetry={capabilities.canRetry}
+            canDelete={capabilities.canDelete}
+            canRate={chatRating.canRate}
+            isEditing={capabilities.isEditing}
+            onEdit={chatActions.handleEditMessage}
+            onRetry={chatActions.handleRetryMessage}
+            onDelete={chatActions.handleDeleteMessage}
+            onRate={chatRating.handleRateMessage}
+          />
+        ),
+        isEditing: capabilities.isEditing,
+        editingContent: chatState.state.editingContent,
+        onEditingContentChange: (content: string) =>
+          chatState.actions.updateEditingContent(message.id, content),
+        onSaveEdit: () => chatActions.handleSaveEdit(message.id),
+        onCancelEdit: chatActions.handleCancelEdit,
         isStreaming: isGenerating,
         isError,
         error,
         onRetryError: onRetry,
-        actions: onRateResponse ? (
-          <>
-            <div className="border-r pr-1">
-              <CopyButton
-                content={messageContent}
-                copyMessage="Copied response to clipboard!"
-              />
-            </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6"
-              onClick={() => handleRateMessage(message.id, "thumbs-up")}
-            >
-              <ThumbsUp className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-6 w-6"
-              onClick={() => handleRateMessage(message.id, "thumbs-down")}
-            >
-              <ThumbsDown className="h-4 w-4" />
-            </Button>
-          </>
-        ) : (
-          <CopyButton
-            content={messageContent}
-            copyMessage="Copied response to clipboard!"
-          />
-        ),
       };
     },
-    [
-      onRateResponse,
-      isGenerating,
-      state.editingMessageId,
-      state.editingContent,
-      handleEditMessage,
-      handleSaveEdit,
-      handleCancelEdit,
-      handleRetryMessage,
-      handleDeleteMessage,
-      handleRateMessage,
-    ],
+    [chatActions, chatRating, chatState, isGenerating, isError, error, onRetry],
   );
 
-  // Render message counter
-  const MessageCounter = useMemo(() => {
-    if (
-      limitsLoading ||
-      isUnlimited ||
-      displayRemainingMessages === undefined
-    ) {
-      return null;
-    }
+  // Common chat status props
+  const chatStatusProps = {
+    shouldShowCounter: chatLimits.shouldShowCounter,
+    shouldShowWarning: chatLimits.shouldShowWarning,
+    limitStatus: chatLimits.limitStatus,
+    usedMessages: chatLimits.usedMessages,
+    displayRemainingMessages: chatLimits.displayRemainingMessages,
+    userId,
+  };
 
+  // Show welcome screen if configured and no messages
+  if (showWelcomeInterface && chatState.computed.isEmpty && sendMessage) {
     return (
-      <div className="mx-4 mb-2 text-center">
-        <span
-          className={cn(
-            "text-xs px-2 py-1 rounded-full",
-            hasReachedLimit
-              ? "bg-destructive/10 text-destructive"
-              : displayRemainingMessages <= 2
-                ? "bg-secondary/10 text-secondary-foreground"
-                : "bg-muted text-muted-foreground",
-          )}
-        >
-          {usedMessages}/{DAILY_MESSAGE_LIMIT} messages used today
-        </span>
-      </div>
+      <WelcomeScreen
+        className={className}
+        suggestions={suggestions ?? []}
+        sendMessage={sendMessage}
+        handleSubmit={handleSubmit}
+        input={input}
+        handleInputChange={handleInputChange}
+        isGenerating={isGenerating}
+        isTyping={isTyping}
+        hasReachedLimit={hasReachedLimit}
+        transcribeAudio={transcribeAudio}
+        isError={isError}
+        error={error}
+        onRetry={onRetry}
+        onStop={handleStop}
+        {...chatStatusProps}
+      />
     );
-  }, [
-    limitsLoading,
-    isUnlimited,
-    displayRemainingMessages,
-    hasReachedLimit,
-    usedMessages,
-  ]);
+  }
 
-  // Render message limit warning
-  const MessageLimitWarning = useMemo(() => {
-    if (
-      limitsLoading ||
-      isUnlimited ||
-      displayRemainingMessages === undefined ||
-      displayRemainingMessages > 5
-    ) {
-      return null;
-    }
-
-    return (
-      <div className="mx-4 mt-8 text-center">
-        <div className="inline-block rounded-lg border border-secondary/20 bg-secondary/10 p-4 text-left">
-          <p className="text-sm text-secondary-foreground">
-            {displayRemainingMessages > 0
-              ? `You have ${displayRemainingMessages} messages remaining today.`
-              : "You've reached your daily message limit."}
-            {userId && (
-              <SubscribeButton
-                userId={userId}
-                variant="link"
-                className="ml-1 text-secondary-foreground hover:text-secondary-foreground/80"
-              >
-                Upgrade to Pro
-              </SubscribeButton>
-            )}{" "}
-            for unlimited messages.
-          </p>
-        </div>
-      </div>
-    );
-  }, [limitsLoading, isUnlimited, displayRemainingMessages, userId]);
-
-  return showWelcomeInterface ? (
-    isEmpty ? (
-      <ChatContainer
-        className={cn(
-          "min-h-screen flex flex-col items-center justify-center bg-background p-6",
-          className,
-        )}
-      >
-        <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
-          <PromptSuggestions
-            label="Try these prompts ✨"
-            sendMessage={sendMessage}
-            suggestions={suggestions ?? []}
-            enableCategories={true}
-          />
-
-          {/* Input area with integrated functions */}
-          <MessageInputWrapper
-            className="w-full mb-6"
-            isPending={isGenerating || isTyping}
-            handleSubmit={handleSubmit}
-            hasReachedLimit={hasReachedLimit}
-            value={input}
-            onChange={handleInputChange}
-            stop={handleStop}
-            isGenerating={isGenerating}
-            transcribeAudio={transcribeAudio}
-          />
-
-          {/* Error feedback */}
-          <ErrorDisplay
-            isError={isError}
-            error={error}
-            onRetry={onRetry}
-            className="w-full max-w-3xl mx-auto mb-4"
-          />
-
-          {MessageCounter}
-          {MessageLimitWarning}
-        </div>
-      </ChatContainer>
-    ) : (
-      <ChatContainer className={cn("h-full", className)}>
-        <ChatMessages messages={state.messages}>
-          <MessageList
-            messages={state.messages}
-            isTyping={isTyping}
-            messageOptions={messageOptions}
-          />
-        </ChatMessages>
-
-        {/* Error feedback */}
-        {error && <ChatErrorDisplay />}
-
-        {MessageCounter}
-        {MessageLimitWarning}
-
-        <MessageInputWrapper
-          className="mt-auto mb-6"
-          isPending={isGenerating || isTyping}
-          handleSubmit={handleSubmit}
-          hasReachedLimit={hasReachedLimit}
-          value={input}
-          onChange={handleInputChange}
-          stop={handleStop}
-          isGenerating={isGenerating}
-          transcribeAudio={transcribeAudio}
-        />
-      </ChatContainer>
-    )
-  ) : (
+  // Main chat interface
+  return (
     <ChatContainer className={cn("h-full", className)}>
-      {state.messages.length > 0 && (
-        <ChatMessages messages={state.messages}>
+      {chatState.state.messages.length > 0 && (
+        <ChatMessages
+          messages={chatState.state.messages}
+          isStreaming={isGenerating}
+        >
           <MessageList
-            messages={state.messages}
+            messages={chatState.state.messages}
             isTyping={isTyping}
             messageOptions={messageOptions}
           />
@@ -438,10 +160,10 @@ export function Chat({
       )}
 
       {/* Error feedback */}
+      {error && <ChatErrorDisplay />}
       <ErrorDisplay isError={isError} error={error} onRetry={onRetry} />
 
-      {MessageCounter}
-      {MessageLimitWarning}
+      <ChatStatus {...chatStatusProps} />
 
       <MessageInputWrapper
         className="mt-auto mb-6"
