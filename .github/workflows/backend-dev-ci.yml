@@ -144,7 +144,6 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/adaptive-backend
-          acrName: llmadaptiveregistry
           containerAppName: backend-dev
           resourceGroup: adaptive
           imageToBuild: llmadaptiveregistry.azurecr.io/backend-dev:${{ github.sha }}
