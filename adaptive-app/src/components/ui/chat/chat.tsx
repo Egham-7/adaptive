@@ -5,7 +5,7 @@ import type { UIMessage } from "@ai-sdk/react";
 import { useDeleteMessage } from "@/hooks/messages/use-delete-message";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
-import { MessageInput } from "@/components/ui/message-input";
+import { MessageInput } from "./message-input";
 import { MessageList } from "@/components/ui/chat/message-list";
 import { PromptSuggestions } from "./prompt-suggestions";
 import SubscribeButton from "@/app/_components/stripe/subscribe-button";
@@ -42,6 +42,7 @@ export function Chat({
   isUnlimited = true,
   limitsLoading = false,
   userId,
+  showWelcomeInterface = false,
 }: ChatProps) {
   const deleteMessageMutation = useDeleteMessage();
   const [state, dispatch] = useReducer(messageReducer, {
@@ -70,7 +71,7 @@ export function Chat({
 
   const lastMessage = state.messages.at(-1);
   const isEmpty = state.messages.length === 0;
-  const isTyping = lastMessage?.role === "user";
+  const isTyping = lastMessage?.role === "user" && !isError;
 
   // Event handlers
   const handleStop = useCallback(() => {
@@ -234,7 +235,18 @@ export function Chat({
         (message.parts?.find((p) => p.type === "text") as MessageTextPart)
           ?.text || getMessageContent(message);
 
+      // Check if this is the latest assistant message and we're generating
+      const isLatestAssistantMessage =
+        message.id === lastMessage?.id && lastMessage?.role === "assistant";
+      const shouldStream = isGenerating && isLatestAssistantMessage && !isError;
+
       return {
+        enableStreaming: shouldStream,
+        streamingMode: "typewriter" as const,
+        streamingSpeed: 40,
+        isError: isError && isLatestAssistantMessage,
+        error: isError && isLatestAssistantMessage ? error : undefined,
+        onRetryError: isError && isLatestAssistantMessage ? onRetry : undefined,
         actions: onRateResponse ? (
           <>
             <div className="border-r pr-1">
@@ -298,10 +310,10 @@ export function Chat({
           className={cn(
             "text-xs px-2 py-1 rounded-full",
             hasReachedLimit
-              ? "bg-red-100 text-red-700"
+              ? "bg-destructive/10 text-destructive"
               : displayRemainingMessages <= 2
-                ? "bg-orange-100 text-orange-700"
-                : "bg-gray-100 text-gray-600",
+                ? "bg-secondary/10 text-secondary-foreground"
+                : "bg-muted text-muted-foreground",
           )}
         >
           {usedMessages}/{DAILY_MESSAGE_LIMIT} messages used today
@@ -328,9 +340,9 @@ export function Chat({
     }
 
     return (
-      <div className="mx-4 mt-4 text-center">
-        <div className="inline-block rounded-lg border border-orange-200 bg-orange-50 p-4 text-left">
-          <p className="text-sm text-orange-800">
+      <div className="mx-4 mt-8 text-center">
+        <div className="inline-block rounded-lg border border-secondary/20 bg-secondary/10 p-4 text-left">
+          <p className="text-sm text-secondary-foreground">
             {displayRemainingMessages > 0
               ? `You have ${displayRemainingMessages} messages remaining today.`
               : "You've reached your daily message limit."}
@@ -338,7 +350,7 @@ export function Chat({
               <SubscribeButton
                 userId={userId}
                 variant="link"
-                className="ml-1 text-orange-800 hover:text-orange-900"
+                className="ml-1 text-secondary-foreground hover:text-secondary-foreground/80"
               >
                 Upgrade to Pro
               </SubscribeButton>
@@ -350,16 +362,111 @@ export function Chat({
     );
   }, [limitsLoading, isUnlimited, displayRemainingMessages, userId]);
 
-  return (
-    <ChatContainer className={className}>
-      {isEmpty && sendMessage && suggestions && (
-        <PromptSuggestions
-          label="Try these prompts ✨"
-          sendMessage={sendMessage}
-          suggestions={suggestions}
-        />
-      )}
+  return showWelcomeInterface ? (
+    isEmpty ? (
+      <ChatContainer
+        className={cn(
+          "min-h-screen flex flex-col items-center justify-center bg-background p-6",
+          className,
+        )}
+      >
+        <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
+          <PromptSuggestions
+            label="Try these prompts ✨"
+            sendMessage={sendMessage}
+            suggestions={suggestions ?? []}
+            enableCategories={true}
+          />
 
+          {/* Input area with integrated functions */}
+          <ChatForm
+            className="w-full mb-6"
+            isPending={isGenerating || isTyping}
+            handleSubmit={handleSubmit}
+            hasReachedLimit={hasReachedLimit}
+          >
+            {({ files, setFiles }) => (
+              <MessageInput
+                value={input}
+                onChange={handleInputChange}
+                allowAttachments
+                files={files}
+                setFiles={setFiles}
+                stop={handleStop}
+                isGenerating={isGenerating}
+                transcribeAudio={transcribeAudio}
+                disabled={hasReachedLimit}
+                enableAdvancedFeatures={true}
+                placeholder={
+                  hasReachedLimit
+                    ? "Daily message limit reached - upgrade to continue"
+                    : "Ask me anything..."
+                }
+              />
+            )}
+          </ChatForm>
+
+          {/* Error feedback */}
+          {isError && (
+            <div className="w-full max-w-3xl mx-auto mb-4">
+              <ChatErrorDisplay error={error} onRetry={onRetry} />
+            </div>
+          )}
+
+          {MessageCounter}
+          {MessageLimitWarning}
+        </div>
+      </ChatContainer>
+    ) : (
+      <ChatContainer className={cn("h-full", className)}>
+        <ChatMessages messages={state.messages}>
+          <MessageList
+            messages={state.messages}
+            isTyping={isTyping}
+            messageOptions={messageOptions}
+          />
+        </ChatMessages>
+
+        {/* Error feedback */}
+        {isError && (
+          <div className="mx-4 mb-4">
+            <ChatErrorDisplay error={error} onRetry={onRetry} />
+          </div>
+        )}
+
+        {MessageCounter}
+        {MessageLimitWarning}
+
+        <ChatForm
+          className="mt-auto mb-6"
+          isPending={isGenerating || isTyping}
+          handleSubmit={handleSubmit}
+          hasReachedLimit={hasReachedLimit}
+        >
+          {({ files, setFiles }) => (
+            <MessageInput
+              value={input}
+              onChange={handleInputChange}
+              allowAttachments
+              files={files}
+              setFiles={setFiles}
+              stop={handleStop}
+              isGenerating={isGenerating}
+              transcribeAudio={transcribeAudio}
+              disabled={hasReachedLimit}
+              enableAdvancedFeatures={true}
+              placeholder={
+                hasReachedLimit
+                  ? "Daily message limit reached - upgrade to continue"
+                  : "Ask me anything..."
+              }
+            />
+          )}
+        </ChatForm>
+      </ChatContainer>
+    )
+  ) : (
+    <ChatContainer className={cn("h-full", className)}>
       {state.messages.length > 0 && (
         <ChatMessages messages={state.messages}>
           <MessageList
@@ -370,13 +477,18 @@ export function Chat({
         </ChatMessages>
       )}
 
-      {isError && <ChatErrorDisplay error={error} onRetry={onRetry} />}
+      {/* Error feedback */}
+      {isError && (
+        <div className="mx-4 mb-4">
+          <ChatErrorDisplay error={error} onRetry={onRetry} />
+        </div>
+      )}
 
       {MessageCounter}
       {MessageLimitWarning}
 
       <ChatForm
-        className="mt-auto"
+        className="mt-auto mb-6"
         isPending={isGenerating || isTyping}
         handleSubmit={handleSubmit}
         hasReachedLimit={hasReachedLimit}
@@ -392,10 +504,11 @@ export function Chat({
             isGenerating={isGenerating}
             transcribeAudio={transcribeAudio}
             disabled={hasReachedLimit}
+            enableAdvancedFeatures={true}
             placeholder={
               hasReachedLimit
                 ? "Daily message limit reached - upgrade to continue"
-                : undefined
+                : "Ask me anything..."
             }
           />
         )}
@@ -403,4 +516,3 @@ export function Chat({
     </ChatContainer>
   );
 }
-

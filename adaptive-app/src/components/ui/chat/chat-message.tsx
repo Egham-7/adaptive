@@ -2,7 +2,7 @@
 
 import { type VariantProps, cva } from "class-variance-authority";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, Code2, Loader2, Terminal, X } from "lucide-react";
+import { Check, ChevronRight, Code2, RotateCcw, Terminal, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FilePreview } from "@/components/ui/file-preview";
+import { FilePreview } from "./file-preview";
+import { CircularLoader, DotsLoader } from "./loader";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { ResponseStream } from "./response-stream";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +83,12 @@ export interface ChatMessageProps extends UIMessage {
   onEditingContentChange?: (content: string) => void;
   onSaveEdit?: () => void;
   onCancelEdit?: () => void;
+  enableStreaming?: boolean;
+  streamingMode?: "typewriter" | "fade";
+  streamingSpeed?: number;
+  isError?: boolean;
+  error?: Error;
+  onRetryError?: () => void;
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -94,6 +102,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onEditingContentChange,
   onSaveEdit,
   onCancelEdit,
+  enableStreaming = false,
+  streamingMode = "typewriter",
+  streamingSpeed = 30,
+  isError = false,
+  error,
+  onRetryError,
   ...message
 }) => {
   const content =
@@ -211,7 +225,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
               <React.Fragment key={`text-${index}`}>
                 <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-                  <MarkdownRenderer>{part.text}</MarkdownRenderer>
+                  {enableStreaming && index === parts.length - 1 ? (
+                    <ResponseStream
+                      textStream={part.text}
+                      mode={streamingMode}
+                      speed={streamingSpeed}
+                      as="div"
+                      className="[&>*]:text-inherit [&>*]:leading-inherit"
+                    />
+                  ) : (
+                    <MarkdownRenderer>{part.text}</MarkdownRenderer>
+                  )}
                   {actions && index === parts.length - 1 ? (
                     <div className="-bottom-4 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
                       {actions}
@@ -293,9 +317,42 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   }
 
+  if (isError) {
+    return (
+      <div className={cn("flex flex-col", "items-start")}>
+        <div 
+          className={cn(chatBubbleVariants({ isUser: false, animation }), "border-destructive/20 bg-destructive/10 text-destructive-foreground")}
+          role="alert"
+          aria-live="polite"
+        >
+          <div className="flex items-start gap-3">
+            <X className="h-4 w-4 mt-1 flex-shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <h4 className="font-medium text-sm mb-1">Error generating response</h4>
+              <p className="text-xs opacity-90 mb-2">
+                {error?.message || "Something went wrong. Please try again."}
+              </p>
+              {onRetryError && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onRetryError}
+                  className="h-7 px-2 text-xs border-destructive/20 hover:bg-destructive/20"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Try again
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
+      <CircularLoader size="sm" className="text-muted-foreground" />
     </div>
   );
 };
@@ -388,7 +445,7 @@ function ToolCallBlock({ toolPart }: ToolCallBlockProps) {
             </span>
             ...
           </span>
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <DotsLoader size="sm" />
         </div>
       );
     case "result":

@@ -7,3 +7,25 @@ export { useOptimisticMessageCount } from "./chat-hooks";
 export { messageReducer } from "./chat-reducer";
 export * from "./chat-types";
 export * from "./chat-utils";
+export { MessageInput } from "./message-input";
+export { AudioVisualizer } from "./audio-visualizer";
+export { FilePreview } from "./file-preview";
+export { InterruptPrompt } from "./interrupt-prompt";
+export { TypingIndicator } from "./typing-indicator";
+export { PromptSuggestions } from "./prompt-suggestions";
+export { ResponseStream, useTextStream } from "./response-stream";
+export { 
+  Loader,
+  CircularLoader,
+  ClassicLoader,
+  PulseLoader,
+  PulseDotLoader,
+  DotsLoader,
+  TypingLoader,
+  WaveLoader,
+  BarsLoader,
+  TerminalLoader,
+  TextBlinkLoader,
+  TextShimmerLoader,
+  TextDotsLoader
+} from "./loader";

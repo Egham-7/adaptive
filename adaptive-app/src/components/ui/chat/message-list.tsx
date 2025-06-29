@@ -1,5 +1,5 @@
 import { ChatMessage, type ChatMessageProps } from "./chat-message";
-import { TypingIndicator } from "@/components/ui/typing-indicator";
+import { TypingIndicator } from "./typing-indicator";
 import type { UIMessage } from "@ai-sdk/react";
 
 type AdditionalMessageOptions = Omit<ChatMessageProps, keyof UIMessage>;
