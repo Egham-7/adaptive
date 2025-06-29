@@ -5,7 +5,7 @@ import type { UIMessage } from "@ai-sdk/react";
 import { useDeleteMessage } from "@/hooks/messages/use-delete-message";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
-import { MessageInput } from "@/components/ui/message-input";
+import { MessageInput } from "./message-input";
 import { MessageList } from "@/components/ui/chat/message-list";
 import { PromptSuggestions } from "./prompt-suggestions";
 import SubscribeButton from "@/app/_components/stripe/subscribe-button";
@@ -234,7 +234,16 @@ export function Chat({
         (message.parts?.find((p) => p.type === "text") as MessageTextPart)
           ?.text || getMessageContent(message);
 
+      // Check if this is the latest assistant message and we're generating
+      const isLatestAssistantMessage = 
+        message.id === lastMessage?.id && 
+        lastMessage?.role === "assistant";
+      const shouldStream = isGenerating && isLatestAssistantMessage;
+
       return {
+        enableStreaming: shouldStream,
+        streamingMode: "typewriter" as const,
+        streamingSpeed: 40,
         actions: onRateResponse ? (
           <>
             <div className="border-r pr-1">
@@ -357,6 +366,7 @@ export function Chat({
           label="Try these prompts ✨"
           sendMessage={sendMessage}
           suggestions={suggestions}
+          enableCategories={true}
         />
       )}
 
@@ -392,10 +402,11 @@ export function Chat({
             isGenerating={isGenerating}
             transcribeAudio={transcribeAudio}
             disabled={hasReachedLimit}
+            enableAdvancedFeatures={true}
             placeholder={
               hasReachedLimit
                 ? "Daily message limit reached - upgrade to continue"
-                : undefined
+                : "Ask me anything..."
             }
           />
         )}

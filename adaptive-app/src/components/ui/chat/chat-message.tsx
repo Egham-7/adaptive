@@ -2,7 +2,7 @@
 
 import { type VariantProps, cva } from "class-variance-authority";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, Code2, Loader2, Terminal, X } from "lucide-react";
+import { Check, ChevronRight, Code2, Terminal, X } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { FilePreview } from "@/components/ui/file-preview";
+import { FilePreview } from "./file-preview";
+import { CircularLoader, DotsLoader } from "./loader";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { ResponseStream } from "./response-stream";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
@@ -81,6 +83,9 @@ export interface ChatMessageProps extends UIMessage {
   onEditingContentChange?: (content: string) => void;
   onSaveEdit?: () => void;
   onCancelEdit?: () => void;
+  enableStreaming?: boolean;
+  streamingMode?: "typewriter" | "fade";
+  streamingSpeed?: number;
 }
 
 export const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -94,6 +99,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onEditingContentChange,
   onSaveEdit,
   onCancelEdit,
+  enableStreaming = false,
+  streamingMode = "typewriter",
+  streamingSpeed = 30,
   ...message
 }) => {
   const content =
@@ -211,7 +219,17 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
               <React.Fragment key={`text-${index}`}>
                 <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-                  <MarkdownRenderer>{part.text}</MarkdownRenderer>
+                  {enableStreaming && index === parts.length - 1 ? (
+                    <ResponseStream
+                      textStream={part.text}
+                      mode={streamingMode}
+                      speed={streamingSpeed}
+                      as="div"
+                      className="[&>*]:text-inherit [&>*]:leading-inherit"
+                    />
+                  ) : (
+                    <MarkdownRenderer>{part.text}</MarkdownRenderer>
+                  )}
                   {actions && index === parts.length - 1 ? (
                     <div className="-bottom-4 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
                       {actions}
@@ -295,7 +313,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   return (
     <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent text-muted-foreground" />
+      <CircularLoader size="sm" className="text-muted-foreground" />
     </div>
   );
 };
@@ -388,7 +406,7 @@ function ToolCallBlock({ toolPart }: ToolCallBlockProps) {
             </span>
             ...
           </span>
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <DotsLoader size="sm" />
         </div>
       );
     case "result":
