@@ -1,7 +1,6 @@
 package protocol_manager
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -58,14 +57,13 @@ func NewProtocolManagerClientWithConfig(config ProtocolManagerConfig) *ProtocolM
 
 func (c *ProtocolManagerClient) SelectProtocol(
 	req models.ModelSelectionRequest,
-) (models.ProtocolResponse, error) {
+) models.ProtocolResponse {
 	start := time.Now()
 
 	if !c.circuitBreaker.CanExecute() {
 		log.Printf("[CIRCUIT_BREAKER] Protocol Manager service unavailable (Open state). Using fallback.")
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
-		return c.getFallbackProtocolResponse(req),
-			fmt.Errorf("circuit breaker open for protocol manager service")
+		return c.getFallbackProtocolResponse()
 	}
 
 	var out models.ProtocolResponse
@@ -74,22 +72,21 @@ func (c *ProtocolManagerClient) SelectProtocol(
 	if err != nil {
 		c.circuitBreaker.RecordFailure()
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
-		return c.getFallbackProtocolResponse(req),
-			fmt.Errorf("protocol selection request failed: %w", err)
+		return c.getFallbackProtocolResponse()
 	}
 
 	c.circuitBreaker.RecordSuccess()
 	c.circuitBreaker.RecordRequestDuration(time.Since(start), true)
-	return out, nil
+	return out
 }
 
-func (c *ProtocolManagerClient) getFallbackProtocolResponse(req models.ModelSelectionRequest) models.ProtocolResponse {
+func (c *ProtocolManagerClient) getFallbackProtocolResponse() models.ProtocolResponse {
 	// Simple fallback: always route to standard LLM with basic parameters
 	return models.ProtocolResponse{
 		Protocol: models.ProtocolStandardLLM,
 		Standard: &models.StandardLLMInfo{
-			Provider:   string(models.ProviderOpenAI),
-			Model:      "gpt-4o-mini",
+			Provider: string(models.ProviderOpenAI),
+			Model:    "gpt-4o-mini",
 			Parameters: models.OpenAIParameters{
 				Temperature:      param.Opt[float64]{Value: 0.7},
 				TopP:             param.Opt[float64]{Value: 0.9},

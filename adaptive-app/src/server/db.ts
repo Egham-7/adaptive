@@ -1,5 +1,6 @@
 import { env } from "@/env";
 import { PrismaClient } from "../../prisma/generated";
+
 const createPrismaClient = () =>
 	new PrismaClient({
 		log:

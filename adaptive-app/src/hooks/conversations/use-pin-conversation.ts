@@ -14,7 +14,7 @@ export const usePinConversation = () => {
 			);
 			return { previousConversations };
 		},
-		onError: (err, _newTodo, context) => {
+		onError: (_err, _newTodo, context) => {
 			utils.conversations.list.setData(
 				undefined,
 				context?.previousConversations,

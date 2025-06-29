@@ -1,3 +1,7 @@
+import type { PrismaClient } from "@prisma/client";
+import { TRPCError } from "@trpc/server";
+import type { Conversation, Message } from "prisma/generated";
+import { z } from "zod";
 import {
 	getRemainingMessages,
 	hasReachedDailyLimit,
@@ -5,10 +9,6 @@ import {
 import { createMessageSchema, updateMessageSchema } from "@/lib/chat/schema";
 import { isUserSubscribed } from "@/lib/stripe/subscription-utils";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import type { PrismaClient } from "@prisma/client";
-import { TRPCError } from "@trpc/server";
-import type { Conversation, Message } from "prisma/generated";
-import { z } from "zod";
 
 type CreateMessageInput = z.infer<typeof createMessageSchema>;
 type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
@@ -51,21 +51,17 @@ const createMessageData = (
 ) => ({
 	id: input.id,
 	role: input.role,
-	content: input.content,
-	reasoning: input.reasoning ?? null,
-	annotations: input.annotations ?? null,
-	parts: input.parts ?? null,
-	experimentalAttachments: input.experimentalAttachments ?? null,
+	metadata: input.metadata || undefined,
+	annotations: input.annotations || undefined,
+	parts: input.parts || undefined,
 	conversation: { connect: { id: conversationId } },
 	...(input.createdAt && { createdAt: new Date(input.createdAt) }),
 });
 
 const updateMessageData = (input: Omit<UpdateMessageInput, "id">) => ({
-	content: input.content,
-	reasoning: input.reasoning ?? null,
-	annotations: input.annotations ?? null,
-	parts: input.parts ?? null,
-	experimentalAttachments: input.experimentalAttachments ?? null,
+	metadata: input.metadata || undefined,
+	annotations: input.annotations || undefined,
+	parts: input.parts || undefined,
 	updatedAt: new Date(),
 });
 
@@ -288,12 +284,13 @@ export const messageRouter = createTRPCRouter({
 						const createData = {
 							id: messageData.id,
 							role: messageData.role,
-							content: messageData.content,
-							reasoning: messageData.reasoning ?? null,
-							annotations: messageData.annotations ?? null,
-							parts: messageData.parts ?? null,
-							experimentalAttachments:
-								messageData.experimentalAttachments ?? null,
+							metadata: messageData.metadata
+								? JSON.parse(JSON.stringify(messageData.metadata))
+								: null,
+							annotations: messageData.annotations
+								? JSON.parse(JSON.stringify(messageData.annotations))
+								: null,
+							parts: JSON.parse(JSON.stringify(messageData.parts)),
 							conversation: { connect: { id: conversationId } },
 							...(messageData.createdAt && {
 								createdAt: new Date(messageData.createdAt),
@@ -301,12 +298,13 @@ export const messageRouter = createTRPCRouter({
 						};
 
 						const updateData = {
-							content: messageData.content,
-							reasoning: messageData.reasoning ?? null,
-							annotations: messageData.annotations ?? null,
-							parts: messageData.parts ?? null,
-							experimentalAttachments:
-								messageData.experimentalAttachments ?? null,
+							metadata: messageData.metadata
+								? JSON.parse(JSON.stringify(messageData.metadata))
+								: null,
+							annotations: messageData.annotations
+								? JSON.parse(JSON.stringify(messageData.annotations))
+								: null,
+							parts: JSON.parse(JSON.stringify(messageData.parts)),
 						};
 
 						return tx.message.upsert({

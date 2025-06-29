@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import {
 	transformerNotationDiff,
 	transformerNotationFocus,
@@ -8,6 +7,7 @@ import {
 import { FileIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface CodeComparisonProps {
 	beforeCode: string;

@@ -2,7 +2,7 @@
 
 // Import 'auth' from Clerk. We can alias it if needed, but 'auth' is fine.
 import { auth as getClerkAuth } from "@clerk/nextjs/server";
-import { TRPCError, initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 

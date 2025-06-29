@@ -1,5 +1,6 @@
 // src/components/chat/chat-sidebar/SidebarNavFooter.tsx
 
+import { UserButton } from "@clerk/nextjs";
 import {
 	SidebarFooter,
 	SidebarMenu,
@@ -7,7 +8,6 @@ import {
 	SidebarMenuItem,
 	SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { UserButton } from "@clerk/nextjs";
 import { ModeToggle } from "../../mode-toggle";
 
 export function SidebarNavFooter() {

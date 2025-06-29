@@ -51,12 +51,12 @@ class ProtocolSelectionOutput(BaseModel):
         description="Penalize new tokens based on whether they appear in the text so "
         "far. Range -2.0 to 2.0."
     )
-    standard_alternatives: list[dict[str, str]] = Field(
+    standard_alternatives: list[Alternative] = Field(
         default=[],
         description="Alternative models for standard_llm. Each should have provider "
         "and model.",
     )
-    minion_alternatives: list[dict[str, str]] = Field(
+    minion_alternatives: list[HuggingFaceAlternative] = Field(
         default=[],
         description="Alternative HuggingFace models. Each should have model and optionally base_url.",
     )
@@ -108,7 +108,7 @@ class ProtocolManager:
             "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
             "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
             "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
-            "   - Payload: May include both standard_llm and minion info.\n"
+            "   - Payload: Includes both standard_llm and minion info.\n"
         )
 
         self.parameter_descriptions = (
@@ -289,53 +289,43 @@ class ProtocolManager:
             presence_penalty=result.presence_penalty,
         )
 
-        standard_alts = []
-        if result.standard_alternatives:
-            try:
-                standard_alts = [
-                    Alternative(**alt) for alt in result.standard_alternatives
-                ]
-            except (TypeError, ValueError) as e:
-                self.log(
-                    "standard_alternatives_parsing_error",
-                    {"error": str(e), "data": result.standard_alternatives},
-                )
-                standard_alts = []
+        standard_alts = result.standard_alternatives
 
         # Convert minion alternatives from model selector
         minion_alts = self._convert_minion_alternatives(minion_alternatives)
 
-        if protocol == ProtocolType.STANDARD_LLM:
-            standard = StandardLLMInfo(
-                provider=result.provider,
-                model=result.model,
-                parameters=parameters,
-                alternatives=standard_alts,
-            )
-            return OrchestratorResponse(protocol=protocol, standard=standard)
-        elif protocol == ProtocolType.MINION:
-            minion = MinionInfo(
-                model=minion_model,
-                base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
-                parameters=parameters,
-                alternatives=minion_alts,
-            )
-            return OrchestratorResponse(protocol=protocol, minion=minion)
-        elif protocol == ProtocolType.MINIONS_PROTOCOL:
-            standard = StandardLLMInfo(
-                provider=result.provider,
-                model=result.model,
-                parameters=parameters,
-                alternatives=standard_alts,
-            )
-            minion = MinionInfo(
-                model=minion_model,
-                base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
-                parameters=parameters,
-                alternatives=minion_alts,
-            )
-            return OrchestratorResponse(
-                protocol=protocol, standard=standard, minion=minion
-            )
-        else:
-            return OrchestratorResponse(protocol=protocol)
+        match protocol:
+            case ProtocolType.STANDARD_LLM:
+                standard = StandardLLMInfo(
+                    provider=result.provider,
+                    model=result.model,
+                    parameters=parameters,
+                    alternatives=standard_alts,
+                )
+                return OrchestratorResponse(protocol=protocol, standard=standard)
+            case ProtocolType.MINION:
+                minion = MinionInfo(
+                    model=minion_model,
+                    base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
+                    parameters=parameters,
+                    alternatives=minion_alts,
+                )
+                return OrchestratorResponse(protocol=protocol, minion=minion)
+            case ProtocolType.MINIONS_PROTOCOL:
+                standard = StandardLLMInfo(
+                    provider=result.provider,
+                    model=result.model,
+                    parameters=parameters,
+                    alternatives=standard_alts,
+                )
+                minion = MinionInfo(
+                    model=minion_model,
+                    base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
+                    parameters=parameters,
+                    alternatives=minion_alts,
+                )
+                return OrchestratorResponse(
+                    protocol=protocol, standard=standard, minion=minion
+                )
+            case _:
+                return OrchestratorResponse(protocol=protocol)

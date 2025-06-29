@@ -1,5 +1,7 @@
 "use client";
 
+import { Database } from "lucide-react";
+import Image from "next/image";
 import {
 	Card,
 	CardContent,
@@ -9,8 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import type { Provider } from "@/types/settings";
-import { Database } from "lucide-react";
-import Image from "next/image";
 
 interface ProvidersTabProps {
 	providers: Provider[];
