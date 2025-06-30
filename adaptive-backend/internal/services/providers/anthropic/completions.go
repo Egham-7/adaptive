@@ -160,9 +160,8 @@ func (c *AnthropicCompletions) convertOpenAIToAnthropicMessages(msgs []openai.Ch
 			messages = append(messages, anthropicMsg)
 
 		case msg.OfFunction != nil:
-			// Convert deprecated function messages to user messages
-			anthropicMsg := c.convertFunctionMessage(msg.OfFunction)
-			messages = append(messages, anthropicMsg)
+			// Skip deprecated function messages
+			continue
 
 		default:
 			return nil, "", fmt.Errorf("unknown message type at index %d", i)
@@ -198,15 +197,6 @@ func (c *AnthropicCompletions) convertToolMessage(msg *openai.ChatCompletionTool
 	return anthropic.NewUserMessage(anthropic.NewTextBlock(contextualContent))
 }
 
-// convertFunctionMessage converts OpenAI function message to Anthropic format
-func (c *AnthropicCompletions) convertFunctionMessage(msg *openai.ChatCompletionFunctionMessageParam) anthropic.MessageParam {
-	content := ""
-	if msg.Content.Valid() {
-		content = msg.Content.Value
-	}
-	contextualContent := fmt.Sprintf("Function %s response: %s", msg.Name, content)
-	return anthropic.NewUserMessage(anthropic.NewTextBlock(contextualContent))
-}
 
 // extractUserMessageContent extracts content from OpenAI user message
 func (c *AnthropicCompletions) extractUserMessageContent(msg *openai.ChatCompletionUserMessageParam) (string, error) {

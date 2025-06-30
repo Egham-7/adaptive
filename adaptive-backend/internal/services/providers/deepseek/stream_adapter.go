@@ -116,14 +116,20 @@ func (d *DeepSeekStreamAdapter) convertDeepSeekResponseToOpenAIChunk(response *d
 		}
 	}
 
-	return &openai.ChatCompletionChunk{
+	chunk := &openai.ChatCompletionChunk{
 		ID:      response.ID,
 		Object:  "chat.completion.chunk",
 		Created: response.Created,
 		Model:   response.Model,
 		Choices: choices,
-		Usage:   *usage,
 	}
+
+	// Only set usage if it's not nil
+	if usage != nil {
+		chunk.Usage = *usage
+	}
+
+	return chunk
 }
 
 // sendFinalChunk sends the final chunk to indicate stream completion
