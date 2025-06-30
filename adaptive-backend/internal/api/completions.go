@@ -14,6 +14,7 @@ import (
 	"adaptive-backend/internal/services/protocol_manager"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -131,12 +132,9 @@ func (h *CompletionHandler) selectProtocol(
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	if len(req.Messages) == 0 {
-		return nil, fmt.Errorf("messages array must contain at least one element")
-	}
-	prompt := req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
-	if prompt == "" {
-		return nil, fmt.Errorf("last message content cannot be empty")
+	prompt, err := utils.FindLastUserMessage(req.Messages)
+	if err != nil {
+		return nil, fmt.Errorf("invalid message format: %w", err)
 	}
 
 	var costBias *float32

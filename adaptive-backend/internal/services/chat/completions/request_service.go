@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -56,8 +57,9 @@ func (s *RequestService) GetAPIKey(c *fiber.Ctx) string {
 
 // ExtractPrompt extracts the prompt from the last user message.
 func (s *RequestService) ExtractPrompt(req *models.ChatCompletionRequest) string {
-	if len(req.Messages) == 0 {
+	prompt, err := utils.FindLastUserMessage(req.Messages)
+	if err != nil {
 		return ""
 	}
-	return req.Messages[len(req.Messages)-1].OfUser.Content.OfString.Value
+	return prompt
 }
