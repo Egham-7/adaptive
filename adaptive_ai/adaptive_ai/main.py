@@ -144,7 +144,10 @@ class ProtocolManagerAPI(ls.LitAPI):
                     self.log("cache_add_time", cache_add_t1 - cache_add_t0)
                 except Exception as e:
                     cache_add_t1 = time.perf_counter()
-                    self.log("cache_add_error", {"error": str(e), "time": cache_add_t1 - cache_add_t0})
+                    self.log(
+                        "cache_add_error",
+                        {"error": str(e), "time": cache_add_t1 - cache_add_t0},
+                    )
                     # Don't suppress the error completely - log it but continue
                     # The cache failure shouldn't break the prediction pipeline
                 outputs.append(orchestrator_response)

@@ -140,7 +140,7 @@ class ProtocolManager:
     ) -> str:
         lines = []
         for i, m in enumerate(candidate_models):
-            rank_info = f"  (Rank {i+1})" if len(candidate_models) > 1 else ""
+            rank_info = f"  (Rank {i + 1})" if len(candidate_models) > 1 else ""
             lines.append(
                 f"- Provider: {m.provider.value}, Model: {m.model_name}{rank_info}"
             )
