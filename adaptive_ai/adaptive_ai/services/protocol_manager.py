@@ -140,7 +140,7 @@ class ProtocolManager:
     ) -> str:
         lines = []
         for i, m in enumerate(candidate_models):
-            rank_info = f"  (Rank {i+1})" if len(candidate_models) > 1 else ""
+            rank_info = f"  (Rank {i + 1})" if len(candidate_models) > 1 else ""
             lines.append(
                 f"- Provider: {m.provider.value}, Model: {m.model_name}{rank_info}"
             )
@@ -248,10 +248,11 @@ class ProtocolManager:
                 json_match = re.search(r"\{.*?\}", raw_llm_output, re.DOTALL)
 
             if json_match:
+                # Safe group access - check if group(1) exists
                 json_string = (
-                    json_match.group(0)
-                    if json_match.group(1) == ""
-                    else json_match.group(1)
+                    json_match.group(1)
+                    if json_match.lastindex and json_match.lastindex >= 1
+                    else json_match.group(0)
                 )
             else:
                 raise ValueError(

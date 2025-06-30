@@ -108,6 +108,15 @@ class EmbeddingCacheSettings(BaseModel):
         le=1.0,
         description="Similarity threshold for embedding cache hits",
     )
+    max_size: int = Field(
+        default=1000,
+        ge=1,
+        description="Maximum number of items in cache before LRU eviction",
+    )
+    thread_safe: bool = Field(
+        default=True,
+        description="Enable thread-safe cache operations",
+    )
 
 
 class Settings(BaseSettings):
