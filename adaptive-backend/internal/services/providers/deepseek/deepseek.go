@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cohesion-org/deepseek-go"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 // DeepSeekService handles DeepSeek API interactions
 type DeepSeekService struct {
-	client *deepseek.Client
+	client *openai.Client
 }
 
 // NewDeepSeekService creates a new DeepSeek service
@@ -20,11 +21,18 @@ func NewDeepSeekService() (*DeepSeekService, error) {
 		return nil, fmt.Errorf("DEEPSEEK_API_KEY environment variable not set")
 	}
 
-	client := deepseek.NewClient(apiKey)
-	return &DeepSeekService{client: client}, nil
+	client := openai.NewClient(
+		option.WithAPIKey(apiKey),
+		option.WithBaseURL("https://api.deepseek.com"),
+	)
+	return &DeepSeekService{client: &client}, nil
 }
 
 // Chat returns the chat interface
 func (s *DeepSeekService) Chat() provider_interfaces.Chat {
 	return &DeepSeekChat{service: s}
+}
+
+func (s *DeepSeekService) GetProviderName() string {
+	return "deepseek"
 }

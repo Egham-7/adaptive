@@ -3,6 +3,7 @@ package completions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/minions"
+	"adaptive-backend/internal/services/pricing"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
 
@@ -103,7 +104,8 @@ func (s *ResponseService) handleProtocolGeneric(
 				protocolName+" stream failed: "+err.Error(), requestID)
 		}
 		s.setStreamHeaders(c)
-		return stream.HandleStream(c, streamResp, requestID)
+		// Pass comparison provider info for cost calculation in stream
+		return stream.HandleStream(c, streamResp, requestID, protocolName, string(req.Model), req.ComparisonProvider)
 	}
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
 	regResp, err := prov.Chat().
@@ -113,6 +115,19 @@ func (s *ResponseService) handleProtocolGeneric(
 		fiberlog.Errorf("[%s] %s create failed: %v", requestID, protocolName, err)
 		return s.HandleError(c, fiber.StatusInternalServerError,
 			protocolName+" create failed: "+err.Error(), requestID)
+	}
+	// Convert to our adaptive format with cost savings for non-streaming
+	if req.ComparisonProvider.Provider != "" && req.ComparisonProvider.Model != "" {
+		costSaved := pricing.CalculateCostSaved(
+			protocolName,
+			string(req.Model),
+			req.ComparisonProvider.Provider,
+			req.ComparisonProvider.Model,
+			regResp.Usage.PromptTokens,
+			regResp.Usage.CompletionTokens,
+		)
+		adaptiveResp := models.ConvertToAdaptive(regResp, costSaved)
+		return c.JSON(adaptiveResp)
 	}
 	return c.JSON(regResp)
 }
@@ -173,7 +188,8 @@ func (s *ResponseService) handleMinionsProtocol(
 			return s.HandleError(c, fiber.StatusInternalServerError,
 				"MinionS streaming failed: "+err.Error(), requestID)
 		}
-		return stream.HandleStream(c, streamResp, requestID)
+		// Pass comparison provider info for cost calculation in stream
+		return stream.HandleStream(c, streamResp, requestID, remoteProv.GetProviderName(), string(req.Model), req.ComparisonProvider)
 	}
 
 	fiberlog.Infof("[%s] generating MinionS completion", requestID)

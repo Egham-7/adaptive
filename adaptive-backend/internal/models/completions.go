@@ -200,8 +200,9 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProviderConstraint []string `json:"provider_constraint,omitempty"`
-	CostBias           float32  `json:"cost_bias,omitempty"` // Bias towards cheaper providers
+	ProviderConstraint []string           `json:"provider_constraint,omitempty"`
+	CostBias           float32            `json:"cost_bias,omitempty"` // Bias towards cheaper providers
+	ComparisonProvider ComparisonProvider `json:"comparison_provider"` // Provider to compare costs against
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
@@ -237,4 +238,88 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 		Tools:               r.Tools,
 		WebSearchOptions:    r.WebSearchOptions,
 	}
+}
+
+// ComparisonProvider represents a provider and model for cost comparison
+type ComparisonProvider struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+}
+
+// CompletionUsage extends OpenAI's CompletionUsage with cost savings
+type CompletionUsage struct {
+	// Standard OpenAI usage fields
+	CompletionTokens int64 `json:"completion_tokens"`
+	PromptTokens     int64 `json:"prompt_tokens"`
+	TotalTokens      int64 `json:"total_tokens"`
+
+	CostSaved float32 `json:"cost_saved,omitempty"`
+}
+
+// ChatCompletion extends OpenAI's ChatCompletion with enhanced usage
+type ChatCompletion struct {
+	ID                string                           `json:"id"`
+	Choices           []openai.ChatCompletionChoice    `json:"choices"`
+	Created           int64                            `json:"created"`
+	Model             string                           `json:"model"`
+	Object            string                           `json:"object"`
+	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitempty"`
+	SystemFingerprint string                           `json:"system_fingerprint,omitempty"`
+	Usage             CompletionUsage                  `json:"usage"`
+}
+
+// ChatCompletionChunk extends OpenAI's ChatCompletionChunk with enhanced usage
+type ChatCompletionChunk struct {
+	ID                string                                `json:"id"`
+	Choices           []openai.ChatCompletionChunkChoice    `json:"choices"`
+	Created           int64                                 `json:"created"`
+	Model             string                                `json:"model"`
+	Object            string                                `json:"object"`
+	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitempty"`
+	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
+	Usage             *CompletionUsage                      `json:"usage,omitempty"`
+}
+
+// ConvertToAdaptive converts OpenAI ChatCompletion to our ChatCompletion
+func ConvertToAdaptive(completion *openai.ChatCompletion, costSaved float32) *ChatCompletion {
+	return &ChatCompletion{
+		ID:                completion.ID,
+		Choices:           completion.Choices,
+		Created:           completion.Created,
+		Model:             completion.Model,
+		Object:            string(completion.Object),
+		ServiceTier:       completion.ServiceTier,
+		SystemFingerprint: completion.SystemFingerprint,
+		Usage: CompletionUsage{
+			CompletionTokens: completion.Usage.CompletionTokens,
+			PromptTokens:     completion.Usage.PromptTokens,
+			TotalTokens:      completion.Usage.TotalTokens,
+			CostSaved:        costSaved,
+		},
+	}
+}
+
+// ConvertChunkToAdaptive converts OpenAI ChatCompletionChunk to our ChatCompletionChunk
+func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, costSaved float32) *ChatCompletionChunk {
+	adaptive := &ChatCompletionChunk{
+		ID:                chunk.ID,
+		Choices:           chunk.Choices,
+		Created:           chunk.Created,
+		Model:             chunk.Model,
+		Object:            string(chunk.Object),
+		ServiceTier:       chunk.ServiceTier,
+		SystemFingerprint: chunk.SystemFingerprint,
+	}
+
+	// Only add usage if it exists in the original chunk
+	if chunk.Usage.CompletionTokens > 0 || chunk.Usage.PromptTokens > 0 || chunk.Usage.TotalTokens > 0 {
+		adaptive.Usage = &CompletionUsage{
+			CompletionTokens: chunk.Usage.CompletionTokens,
+			PromptTokens:     chunk.Usage.PromptTokens,
+			TotalTokens:      chunk.Usage.TotalTokens,
+			CostSaved:        costSaved,
+		}
+	}
+
+	return adaptive
 }
