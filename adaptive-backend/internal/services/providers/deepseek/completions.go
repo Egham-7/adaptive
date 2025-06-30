@@ -316,25 +316,25 @@ func convertDeepSeekResponseFormat(
 
 // serializeUserContentPart serializes user content parts to JSON
 func serializeUserContentPart(part openai.ChatCompletionContentPartUnionParam) string {
-	contentMap := make(map[string]interface{})
+	contentMap := make(map[string]any)
 
 	if part.OfImageURL != nil {
 		contentMap["type"] = "image_url"
-		contentMap["image_url"] = map[string]interface{}{
+		contentMap["image_url"] = map[string]any{
 			"url": part.OfImageURL.ImageURL.URL,
 		}
 		if part.OfImageURL.ImageURL.Detail != "" {
-			contentMap["image_url"].(map[string]interface{})["detail"] = part.OfImageURL.ImageURL.Detail
+			contentMap["image_url"].(map[string]any)["detail"] = part.OfImageURL.ImageURL.Detail
 		}
 	} else if part.OfInputAudio != nil {
 		contentMap["type"] = "input_audio"
-		contentMap["input_audio"] = map[string]interface{}{
+		contentMap["input_audio"] = map[string]any{
 			"data":   part.OfInputAudio.InputAudio.Data,
 			"format": part.OfInputAudio.InputAudio.Format,
 		}
 	} else if part.OfFile != nil {
 		contentMap["type"] = "file"
-		fileData := make(map[string]interface{})
+		fileData := make(map[string]any)
 		if !param.IsOmitted(part.OfFile.File.FileID) {
 			fileData["file_id"] = part.OfFile.File.FileID.Value
 		}
