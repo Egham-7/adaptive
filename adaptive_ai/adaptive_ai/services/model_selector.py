@@ -34,9 +34,9 @@ class ModelSelectionService:
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
         ]
         self.lit_logger: LitLoggerProtocol | None = lit_logger
         self.log(

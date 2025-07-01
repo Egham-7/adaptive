@@ -13,7 +13,8 @@ from adaptive_ai.models import (
 # Other providers remain in the catalog but are inactive
 ACTIVE_PROVIDERS = {
     ProviderType.OPENAI,
-    ProviderType.GROQ,  # Includes grok-3 and grok-3-mini models
+    ProviderType.GROQ,  # Fast inference provider
+    ProviderType.GROK,  # X.AI's models (grok-3, grok-3-mini)
     ProviderType.DEEPSEEK,
 }
 
@@ -251,9 +252,12 @@ provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
         ),
     ],
     ProviderType.GROQ: [
+        # Add GROQ (fast inference) models here when available
+    ],
+    ProviderType.GROK: [
         ModelCapability(
             description="A mini version of Grok, optimized for very low latency and cost.",
-            provider=ProviderType.GROQ,
+            provider=ProviderType.GROK,
             model_name="grok-3-mini",
             cost_per_1m_input_tokens=0.30,
             cost_per_1m_output_tokens=0.50,
@@ -266,7 +270,7 @@ provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
         ),
         ModelCapability(
             description="Grok's general-purpose model, known for extreme speed.",
-            provider=ProviderType.GROQ,
+            provider=ProviderType.GROK,
             model_name="grok-3",
             cost_per_1m_input_tokens=3.00,
             cost_per_1m_output_tokens=15.00,
@@ -396,17 +400,17 @@ provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
 # --- In-memory map for TaskModelMapping (Remote/Standard LLM Models) ---
 # This maps each TaskType to an ordered list of TaskModelEntry,
 # where the first model is considered 'best' for that task type, and so on.
-# --- ACTIVE TASK MODEL MAPPINGS (OPENAI, GROQ & DEEPSEEK ONLY) ---
-# Updated to only include active providers: OpenAI, GROQ, and DeepSeek
+# --- ACTIVE TASK MODEL MAPPINGS (OPENAI, GROK & DEEPSEEK ONLY) ---
+# Updated to only include active providers: OpenAI, GROK, and DeepSeek
 task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
     TaskType.OPEN_QA: TaskModelMapping(
         model_entries=[
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
         ]
     ),
     TaskType.CODE_GENERATION: TaskModelMapping(
@@ -417,7 +421,7 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
                 provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
             ),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
         ]
     ),
@@ -426,14 +430,14 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         ]
     ),
     TaskType.TEXT_GENERATION: TaskModelMapping(
         model_entries=[
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
@@ -442,10 +446,10 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
     TaskType.CHATBOT: TaskModelMapping(
         model_entries=[
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         ]
     ),
     TaskType.CLOSED_QA: TaskModelMapping(
@@ -453,13 +457,13 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         ]
     ),
     TaskType.CLASSIFICATION: TaskModelMapping(
         model_entries=[
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1-nano"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
         ]
@@ -469,13 +473,13 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         ]
     ),
     TaskType.BRAINSTORMING: TaskModelMapping(
         model_entries=[
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
             TaskModelEntry(
                 provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
@@ -485,7 +489,7 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
     TaskType.EXTRACTION: TaskModelMapping(
         model_entries=[
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1-nano"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
         ]
@@ -493,7 +497,7 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
     TaskType.OTHER: TaskModelMapping(
         model_entries=[
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROQ, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
             TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         ]
