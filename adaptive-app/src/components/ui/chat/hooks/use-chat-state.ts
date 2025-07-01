@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import type { UIMessage } from "@ai-sdk/react";
-import type { ChatLimitsProps, ChatErrorProps, ChatRatingProps } from "../chat-types";
+import type {
+  ChatLimitsProps,
+  ChatErrorProps,
+  ChatRatingProps,
+} from "../chat-types";
 import { useMessageState } from "./use-message-state";
 import { useMessageSync } from "./use-message-sync";
 import { useMessageCapabilities } from "./use-message-capabilities";
@@ -37,15 +41,14 @@ export function useChatState({
   errorProps,
   ratingProps,
 }: ChatStateHookProps) {
-  
   // Core message state
   const messageState = useMessageState(initialMessages);
-  
+
   // Sync external messages with internal state
   useMessageSync(
     initialMessages,
     messageState.state.messages,
-    messageState.actions.setMessages
+    messageState.actions.setMessages,
   );
 
   // Chat limits state
@@ -88,38 +91,43 @@ export function useChatState({
     stop?.();
     if (messageState.computed.lastAssistantMessage) {
       messageState.actions.cancelToolInvocations(
-        messageState.computed.lastAssistantMessage.id
+        messageState.computed.lastAssistantMessage.id,
       );
     }
   }, [stop, messageState.actions, messageState.computed.lastAssistantMessage]);
 
   // Message options factory with clean streaming logic
-  const createMessageOptions = useCallback((message: UIMessage) => {
-    const messageCaps = capabilities.getMessageCapabilities(message);
-    const isStreaming = shouldShowStreaming(message, messages, isGenerating);
+  const createMessageOptions = useCallback(
+    (message: UIMessage) => {
+      const messageCaps = capabilities.getMessageCapabilities(message);
+      const isStreaming = shouldShowStreaming(message, messages, isGenerating);
 
-    return {
-      capabilities: messageCaps,
-      isStreaming,
-      editingContent: messageState.state.editingContent,
-      onEditingContentChange: (content: string) =>
-        messageState.actions.updateEditingContent(message.id, content),
-      onSaveEdit: () => messageActions.handleSaveEdit(message.id),
-      onCancelEdit: messageState.actions.clearEditing,
-      onRetry: () => messageActions.handleRetryMessage(message),
-      onDelete: () => messageActions.handleDeleteMessage(message.id),
-      onRate: ratingProps.onRateResponse 
-        ? (messageId: string, rating: "thumbs-up" | "thumbs-down") => ratingProps.onRateResponse!(messageId, rating)
-        : undefined,
-    };
-  }, [
-    capabilities,
-    messages,
-    isGenerating,
-    messageState,
-    messageActions,
-    ratingProps.onRateResponse,
-  ]);
+      return {
+        capabilities: messageCaps,
+        isStreaming,
+        editingContent: messageState.state.editingContent,
+        onEditingContentChange: (content: string) =>
+          messageState.actions.updateEditingContent(message.id, content),
+        onSaveEdit: () => messageActions.handleSaveEdit(message.id),
+        onCancelEdit: messageState.actions.clearEditing,
+        onRetry: () => messageActions.handleRetryMessage(message),
+        onDelete: () => messageActions.handleDeleteMessage(message.id),
+
+        onRate: ratingProps.onRateResponse
+          ? (messageId: string, rating: "thumbs-up" | "thumbs-down") =>
+              ratingProps.onRateResponse?.(messageId, rating)
+          : undefined,
+      };
+    },
+    [
+      capabilities,
+      messages,
+      isGenerating,
+      messageState,
+      messageActions,
+      ratingProps.onRateResponse,
+    ],
+  );
 
   return {
     // State
@@ -128,19 +136,21 @@ export function useChatState({
     limits: limitsState,
     error: errorState,
     rating: ratingState,
-    
+
     // Actions
     messageActions: {
       startEditing: messageState.actions.startEditing,
       clearEditing: messageState.actions.clearEditing,
       ...messageActions,
     },
-    
+
     // Utilities
     createMessageOptions,
     handleStop,
-    
+
     // Computed values
-    isTyping: messageState.computed.lastMessage?.role === "user" && !errorState.isError,
+    isTyping:
+      messageState.computed.lastMessage?.role === "user" && !errorState.isError,
   };
 }
+
