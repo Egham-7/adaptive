@@ -5,16 +5,31 @@ const ACTIVATION_THRESHOLD = 50;
 // Minimum pixels of scroll-up movement required to disable auto-scroll
 const MIN_SCROLL_UP_THRESHOLD = 10;
 
-export function useAutoScroll(dependencies: React.DependencyList) {
+export function useAutoScroll(dependencies: React.DependencyList, isStreaming?: boolean) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const previousScrollTop = useRef<number | null>(null);
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+	const scrollAnimationFrameRef = useRef<number | null>(null);
 
 	const scrollToBottom = useCallback(() => {
 		if (containerRef.current) {
 			containerRef.current.scrollTop = containerRef.current.scrollHeight;
 		}
 	}, []);
+
+	const scrollToBottomSmooth = useCallback(() => {
+		if (containerRef.current && shouldAutoScroll) {
+			const container = containerRef.current;
+			const targetScrollTop = container.scrollHeight - container.clientHeight;
+			const currentScrollTop = container.scrollTop;
+			
+			// Only auto-scroll if we're close to the bottom already
+			const distanceFromBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight);
+			if (distanceFromBottom < ACTIVATION_THRESHOLD * 2) {
+				container.scrollTop = targetScrollTop;
+			}
+		}
+	}, [shouldAutoScroll]);
 
 	const handleScroll = () => {
 		if (containerRef.current) {
@@ -56,11 +71,31 @@ export function useAutoScroll(dependencies: React.DependencyList) {
 		}
 	}, []);
 
+	// Effect for regular message updates
 	useEffect(() => {
 		if (shouldAutoScroll) {
 			scrollToBottom();
 		}
 	}, [shouldAutoScroll, scrollToBottom, ...dependencies]);
+
+	// Effect for streaming content - continuously scroll during streaming
+	useEffect(() => {
+		if (isStreaming && shouldAutoScroll) {
+			const scheduleScroll = () => {
+				scrollToBottomSmooth();
+				scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
+			};
+			
+			scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
+			
+			return () => {
+				if (scrollAnimationFrameRef.current) {
+					cancelAnimationFrame(scrollAnimationFrameRef.current);
+					scrollAnimationFrameRef.current = null;
+				}
+			};
+		}
+	}, [isStreaming, shouldAutoScroll, scrollToBottomSmooth]);
 
 	return {
 		containerRef,

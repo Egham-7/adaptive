@@ -1,13 +1,13 @@
 // src/server/api/routers/conversation.ts
 
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import {
 	createConversationSchema,
 	getConversationsOptionsSchema,
 	updateConversationSchema,
 } from "@/lib/chat/schema";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 export const conversationRouter = createTRPCRouter({
 	create: protectedProcedure

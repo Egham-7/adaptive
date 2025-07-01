@@ -1,6 +1,6 @@
+import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@/server/api/root";
 import { api } from "@/trpc/react";
-import type { inferRouterOutputs } from "@trpc/server";
 
 type ConversationListOutput =
 	inferRouterOutputs<AppRouter>["conversations"]["list"];

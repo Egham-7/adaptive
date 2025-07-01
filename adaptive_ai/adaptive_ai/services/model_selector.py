@@ -1,6 +1,7 @@
 from typing import Any
 
 from adaptive_ai.config.model_catalog import (
+    minion_task_model_mappings,
     provider_model_capabilities,
     task_model_mappings_data,
 )
@@ -137,3 +138,44 @@ class ModelSelectionService:
 
         self.log("candidate_models_count", len(candidate_models))
         return candidate_models
+
+    def get_designated_minion(
+        self,
+        classification_result: ClassificationResult,
+    ) -> str:
+        """Get the designated HuggingFace minion specialist for the task type."""
+        primary_task_type: TaskType = (
+            TaskType(classification_result.task_type_1[0])
+            if classification_result.task_type_1
+            else TaskType.OTHER
+        )
+
+        minion_model = minion_task_model_mappings.get(
+            primary_task_type,
+            minion_task_model_mappings[TaskType.OTHER],  # Fallback to OTHER
+        )
+
+        self.log(
+            "designated_minion_selected",
+            {
+                "task_type": primary_task_type.value,
+                "minion_model": minion_model,
+            },
+        )
+
+        return minion_model
+
+    def get_minion_alternatives(
+        self,
+        primary_minion: str,
+    ) -> list[str]:
+        """Generate fallback minion alternatives by using other capable minions."""
+        alternatives = []
+
+        # Get all other minions from the mapping that could potentially handle the task
+        for _task, model in minion_task_model_mappings.items():
+            if model != primary_minion:  # Exclude the primary minion
+                alternatives.append(model)
+
+        # Limit to top 3 alternatives to avoid overwhelming
+        return alternatives[:3]

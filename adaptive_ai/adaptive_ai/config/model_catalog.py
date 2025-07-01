@@ -297,9 +297,94 @@ provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
             latency_tier="high",
         ),
     ],
+    ProviderType.HUGGINGFACE: [
+        # General-purpose models around 10B params
+        ModelCapability(
+            description="Qwen2.5 14B - Alibaba's advanced multilingual model with strong reasoning capabilities.",
+            provider=ProviderType.HUGGINGFACE,
+            model_name="Qwen/Qwen2.5-14B-Instruct",
+            cost_per_1m_input_tokens=0.12,
+            cost_per_1m_output_tokens=0.12,
+            max_context_tokens=32768,
+            max_output_tokens=8192,
+            supports_function_calling=True,
+            languages_supported=["en", "zh", "es", "fr", "de", "ja", "ko"],
+            model_size_params="14B",
+            latency_tier="medium",
+        ),
+        ModelCapability(
+            description="Meta's Llama 3.1 8B - Excellent general-purpose model with strong instruction following.",
+            provider=ProviderType.HUGGINGFACE,
+            model_name="meta-llama/Llama-3.1-8B-Instruct",
+            cost_per_1m_input_tokens=0.10,
+            cost_per_1m_output_tokens=0.10,
+            max_context_tokens=131072,
+            max_output_tokens=4096,
+            supports_function_calling=False,
+            languages_supported=["en", "es", "fr", "de", "it", "pt", "hi", "th"],
+            model_size_params="8B",
+            latency_tier="low",
+        ),
+        # Code generation specialist
+        ModelCapability(
+            description="CodeLlama 13B - Meta's specialized model for code generation and understanding.",
+            provider=ProviderType.HUGGINGFACE,
+            model_name="codellama/CodeLlama-13b-Instruct-hf",
+            cost_per_1m_input_tokens=0.11,
+            cost_per_1m_output_tokens=0.11,
+            max_context_tokens=16384,
+            max_output_tokens=4096,
+            supports_function_calling=False,
+            languages_supported=["en"],
+            model_size_params="13B",
+            latency_tier="medium",
+        ),
+        # Conversational specialist
+        ModelCapability(
+            description="Mistral 7B Instruct v0.3 - Optimized for conversational AI and chat applications.",
+            provider=ProviderType.HUGGINGFACE,
+            model_name="mistralai/Mistral-7B-Instruct-v0.3",
+            cost_per_1m_input_tokens=0.08,
+            cost_per_1m_output_tokens=0.08,
+            max_context_tokens=32768,
+            max_output_tokens=4096,
+            supports_function_calling=False,
+            languages_supported=["en", "fr", "de", "es", "it"],
+            model_size_params="7B",
+            latency_tier="low",
+        ),
+        # Text generation and summarization specialist
+        ModelCapability(
+            description="FLAN-T5-XL - Google's instruction-tuned model excellent for summarization and text processing.",
+            provider=ProviderType.HUGGINGFACE,
+            model_name="google/flan-t5-xl",
+            cost_per_1m_input_tokens=0.06,
+            cost_per_1m_output_tokens=0.06,
+            max_context_tokens=2048,
+            max_output_tokens=1024,
+            supports_function_calling=False,
+            languages_supported=["en"],
+            model_size_params="3B",
+            latency_tier="very low",
+        ),
+        # Classification and extraction specialist
+        ModelCapability(
+            description="DeBERTa v3 Large - Microsoft's model optimized for classification and NLU tasks.",
+            provider=ProviderType.HUGGINGFACE,
+            model_name="microsoft/deberta-v3-large",
+            cost_per_1m_input_tokens=0.04,
+            cost_per_1m_output_tokens=0.04,
+            max_context_tokens=512,
+            max_output_tokens=512,
+            supports_function_calling=False,
+            languages_supported=["en"],
+            model_size_params="304M",
+            latency_tier="very low",
+        ),
+    ],
 }
 
-# --- In-memory map for TaskModelMapping ---
+# --- In-memory map for TaskModelMapping (Remote/Standard LLM Models) ---
 # This maps each TaskType to an ordered list of TaskModelEntry,
 # where the first model is considered 'best' for that task type, and so on.
 task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
@@ -372,4 +457,21 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         ]
     ),
+}
+
+# --- Minion Task Model Mappings (HuggingFace Models) ---
+# This maps each TaskType to a SINGLE designated HuggingFace specialist model,
+# each optimized for specific task types and available via HuggingFace Inference API
+minion_task_model_mappings: dict[TaskType, str] = {
+    TaskType.OPEN_QA: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.CODE_GENERATION: "codellama/CodeLlama-13b-Instruct-hf",
+    TaskType.SUMMARIZATION: "google/flan-t5-xl",
+    TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.CHATBOT: "mistralai/Mistral-7B-Instruct-v0.3",
+    TaskType.CLASSIFICATION: "microsoft/deberta-v3-large",
+    TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.REWRITE: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.BRAINSTORMING: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.EXTRACTION: "microsoft/deberta-v3-large",
+    TaskType.OTHER: "meta-llama/Llama-3.1-8B-Instruct",
 }

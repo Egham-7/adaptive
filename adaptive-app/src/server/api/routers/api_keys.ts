@@ -1,7 +1,11 @@
 import crypto from "node:crypto";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "@/server/api/trpc";
 
 const createAPIKeySchema = z.object({
 	name: z.string().min(1),
@@ -169,7 +173,7 @@ export const apiKeysRouter = createTRPCRouter({
 			return { success: true };
 		}),
 
-	verify: protectedProcedure
+	verify: publicProcedure
 		.input(z.object({ apiKey: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const apiKey = input.apiKey;
@@ -178,11 +182,17 @@ export const apiKeysRouter = createTRPCRouter({
 			}
 			const prefix = apiKey.slice(0, 8);
 			const record = await ctx.db.apiKey.findFirst({
-				where: { keyPrefix: prefix },
+				where: { keyPrefix: prefix, status: "active" },
 			});
 			if (!record) {
 				return { valid: false };
 			}
+
+			// Check if key is expired
+			if (record.expiresAt && record.expiresAt < new Date()) {
+				return { valid: false };
+			}
+
 			const hash = crypto.createHash("sha256").update(apiKey).digest("hex");
 			return { valid: hash === record.keyHash };
 		}),

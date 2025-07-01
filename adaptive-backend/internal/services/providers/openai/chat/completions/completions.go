@@ -20,11 +20,11 @@ func NewOpenAICompletions(client *openai.Client) *OpenAICompletions {
 }
 
 // CreateCompletion processes a chat completion request with OpenAI
-func (c *OpenAICompletions) CreateCompletion(req *openai.ChatCompletionNewParams) (*openai.ChatCompletion, error) {
+func (c *OpenAICompletions) CreateCompletion(ctx context.Context, req *openai.ChatCompletionNewParams) (*openai.ChatCompletion, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
-	resp, err := c.client.Chat.Completions.New(context.Background(), *req)
+	resp, err := c.client.Chat.Completions.New(ctx, *req)
 	if err != nil {
 		return nil, fmt.Errorf("openai chat completion failed: %w", err)
 	}
@@ -32,12 +32,12 @@ func (c *OpenAICompletions) CreateCompletion(req *openai.ChatCompletionNewParams
 }
 
 // StreamCompletion streams a chat completion using OpenAI
-func (c *OpenAICompletions) StreamCompletion(req *openai.ChatCompletionNewParams) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
+func (c *OpenAICompletions) StreamCompletion(ctx context.Context, req *openai.ChatCompletionNewParams) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
 
-	stream := c.client.Chat.Completions.NewStreaming(context.Background(), *req)
+	stream := c.client.Chat.Completions.NewStreaming(ctx, *req)
 
 	return stream, nil
 }

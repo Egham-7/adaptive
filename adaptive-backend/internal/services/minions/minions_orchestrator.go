@@ -29,6 +29,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 	remoteProv provider_interfaces.LLMProvider,
 	localProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	minionModel string,
 ) (*openai.ChatCompletion, error) {
 	const maxRounds = 5
 
@@ -41,7 +42,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 
 	for range maxRounds {
 		// Step 1: Decompose into instructions
-		instructions, err := s.remoteDecompose(remoteProv, userQuery, previousResults, req.Model)
+		instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
 		if err != nil {
 			return nil, fmt.Errorf("decomposition failed: %w", err)
 		}
@@ -51,10 +52,10 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 		}
 
 		// Step 2: Execute instructions in parallel
-		results := s.executeInstructionsParallel(localProv, instructions)
+		results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
 
 		// Step 3: Aggregate results
-		response, isComplete, err := s.remoteAggregate(remoteProv, userQuery, results, req.Model)
+		response, isComplete, err := s.remoteAggregate(ctx, remoteProv, userQuery, results, req.Model)
 		if err != nil {
 			return nil, fmt.Errorf("aggregation failed: %w", err)
 		}
@@ -76,6 +77,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 	remoteProv provider_interfaces.LLMProvider,
 	localProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	minionModel string,
 ) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	const maxRounds = 5
 
@@ -88,7 +90,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 
 	for range maxRounds {
 		// Step 1: Decompose into instructions
-		instructions, err := s.remoteDecompose(remoteProv, userQuery, previousResults, req.Model)
+		instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
 		if err != nil {
 			return nil, fmt.Errorf("decomposition failed: %w", err)
 		}
@@ -98,10 +100,10 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 		}
 
 		// Step 2: Execute instructions in parallel
-		results := s.executeInstructionsParallel(localProv, instructions)
+		results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
 
 		// Step 3: Aggregate results (streaming)
-		stream, isComplete, err := s.remoteAggregateStream(remoteProv, userQuery, results, req.Model)
+		stream, isComplete, err := s.remoteAggregateStream(ctx, remoteProv, userQuery, results, req.Model)
 		if err != nil {
 			return nil, fmt.Errorf("streaming aggregation failed: %w", err)
 		}
@@ -127,6 +129,7 @@ type InstructionResult struct {
 
 // remoteDecompose asks the remote LLM to break down the query into atomic instructions
 func (s *MinionsOrchestrationService) remoteDecompose(
+	ctx context.Context,
 	remoteProv provider_interfaces.LLMProvider,
 	userQuery string,
 	previousResults []string,
@@ -159,7 +162,7 @@ Return your response as JSON with an array of instruction strings.`
 		Temperature:    openai.Float(0.1),
 	}
 
-	resp, err := remoteProv.Chat().Completions().CreateCompletion(&param)
+	resp, err := remoteProv.Chat().Completions().CreateCompletion(ctx, &param)
 	if err != nil {
 		return nil, err
 	}
@@ -181,8 +184,10 @@ Return your response as JSON with an array of instruction strings.`
 
 // executeInstructionsParallel executes multiple instructions concurrently
 func (s *MinionsOrchestrationService) executeInstructionsParallel(
+	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instructions []string,
+	minionModel string,
 ) []*InstructionResult {
 	results := make([]*InstructionResult, len(instructions))
 	var wg sync.WaitGroup
@@ -191,7 +196,7 @@ func (s *MinionsOrchestrationService) executeInstructionsParallel(
 		wg.Add(1)
 		go func(index int, instr string) {
 			defer wg.Done()
-			results[index] = s.executeInstruction(localProv, instr)
+			results[index] = s.executeInstruction(ctx, localProv, instr, minionModel)
 		}(i, instruction)
 	}
 
@@ -201,8 +206,10 @@ func (s *MinionsOrchestrationService) executeInstructionsParallel(
 
 // executeInstruction executes a single instruction
 func (s *MinionsOrchestrationService) executeInstruction(
+	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instruction string,
+	minionModel string,
 ) *InstructionResult {
 	systemPrompt := `You are a helpful assistant. Execute the given instruction precisely and provide a clear, factual response.
 If you cannot execute the instruction, explain why. Be concise but complete in your response.`
@@ -214,8 +221,13 @@ If you cannot execute the instruction, explain why. Be concise but complete in y
 		},
 		Temperature: openai.Float(0.3),
 	}
+	
+	// Only set model if provided (for HuggingFace, model is embedded in BaseURL)
+	if minionModel != "" {
+		param.Model = shared.ChatModel(minionModel)
+	}
 
-	resp, err := localProv.Chat().Completions().CreateCompletion(&param)
+	resp, err := localProv.Chat().Completions().CreateCompletion(ctx, &param)
 	if err != nil {
 		return &InstructionResult{
 			Instruction: instruction,
@@ -241,6 +253,7 @@ If you cannot execute the instruction, explain why. Be concise but complete in y
 
 // remoteAggregate combines results and determines if the response is complete
 func (s *MinionsOrchestrationService) remoteAggregate(
+	ctx context.Context,
 	remoteProv provider_interfaces.LLMProvider,
 	userQuery string,
 	results []*InstructionResult,
@@ -260,7 +273,7 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 		Temperature:    openai.Float(0.2),
 	}
 
-	resp, err := remoteProv.Chat().Completions().CreateCompletion(&param)
+	resp, err := remoteProv.Chat().Completions().CreateCompletion(ctx, &param)
 	if err != nil {
 		return nil, false, err
 	}
@@ -294,6 +307,7 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 
 // remoteAggregateStream performs streaming aggregation
 func (s *MinionsOrchestrationService) remoteAggregateStream(
+	ctx context.Context,
 	remoteProv provider_interfaces.LLMProvider,
 	userQuery string,
 	results []*InstructionResult,
@@ -313,7 +327,7 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 		Temperature:    openai.Float(0.2),
 	}
 
-	origStream, err := remoteProv.Chat().Completions().StreamCompletion(&param)
+	origStream, err := remoteProv.Chat().Completions().StreamCompletion(ctx, &param)
 	if err != nil {
 		return nil, false, err
 	}

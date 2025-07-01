@@ -1,20 +1,13 @@
-import { chatRequestSchema } from "@/lib/chat/ai-sdk";
+import { createOpenAI } from "@ai-sdk/openai";
+import { auth } from "@clerk/nextjs/server";
+import { TRPCError } from "@trpc/server";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import type { z } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
 import type { messageRoleSchema } from "@/lib/chat/schema";
 import { isUserSubscribed } from "@/lib/stripe/subscription-utils";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
-import type { Message as DBMessage } from "@/types";
-import { createOpenAI } from "@ai-sdk/openai";
-import { auth } from "@clerk/nextjs/server";
-import { TRPCError } from "@trpc/server";
-import {
-	type Message as SDKMessage,
-	appendClientMessage,
-	appendResponseMessages,
-	streamText,
-} from "ai";
-import type { z } from "zod";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
@@ -27,8 +20,8 @@ export async function POST(req: Request) {
 		}
 
 		const body = await req.json();
-		const validatedInput = chatRequestSchema.parse(body);
-		const { message, id: conversationId } = validatedInput;
+		console.log("Received body:", body);
+		const { messages, id: conversationId } = body;
 
 		const numericConversationId = Number(conversationId);
 
@@ -69,51 +62,55 @@ export async function POST(req: Request) {
 
 		const previousMessages = (await api.messages.listByConversation({
 			conversationId: numericConversationId,
-		})) as DBMessage[];
+		})) as UIMessage[];
 
-		const currentMessagesFromClient = appendClientMessage({
-			messages: previousMessages as unknown as SDKMessage[],
-			message,
-		});
-
+		// Convert UI messages to core messages for the AI model
+		const coreMessages = convertToModelMessages([
+			...previousMessages,
+			...messages,
+		]);
 		const adaptive = createOpenAI({
 			baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+			name: "Adaptive AI",
 		});
 
 		const result = streamText({
-			model: adaptive(""),
-			messages: currentMessagesFromClient,
-			async onFinish({ response }) {
-				const finalMessagesToPersistSDK: SDKMessage[] = appendResponseMessages({
-					messages: currentMessagesFromClient as SDKMessage[],
-					responseMessages: response.messages,
-				});
-				const finalMessagesToPersist = finalMessagesToPersistSDK.map(
-					(message: SDKMessage) => {
-						const {
-							experimental_attachments,
-							// Remove deprecated properties
-							...messageWithoutUnwantedProps
-						} = message;
-						return {
-							...messageWithoutUnwantedProps,
-							role: message.role as MessageRole,
-							conversationId: numericConversationId,
-							annotations: message.annotations ?? null,
-							parts: message.parts ?? null,
-							experimentalAttachments: experimental_attachments ?? null,
-						};
-					},
-				);
+			model: adaptive.chat(""),
+			messages: coreMessages,
+			async onFinish({ text }) {
+				// Create the assistant response message
+				const assistantMessage = {
+					id: crypto.randomUUID(),
+					role: "assistant" as MessageRole,
+					content: text,
+					conversationId: numericConversationId,
+					parts: [{ type: "text" as const, text }],
+					metadata: null,
+					annotations: null,
+				};
+
+				const message = messages[messages.length - 1];
+
+				// Also save the user message if it's new
+				const userMessage = {
+					id: message.id || crypto.randomUUID(),
+					role: message.role as MessageRole,
+					conversationId: numericConversationId,
+					parts: message.parts || [
+						{ type: "text" as const, text: message.content as string },
+					],
+					metadata: message.metadata ?? null,
+					annotations: message.annotations ?? null,
+				};
 
 				await api.messages.batchUpsert({
 					conversationId: numericConversationId,
-					messages: finalMessagesToPersist,
+					messages: [userMessage, assistantMessage],
 				});
 			},
 		});
 
-		const data = result.toDataStreamResponse({});
+		const data = result.toUIMessageStreamResponse();
 
 		return data;
 	} catch (error) {

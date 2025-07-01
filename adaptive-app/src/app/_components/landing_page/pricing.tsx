@@ -1,3 +1,6 @@
+import { SignUpButton } from "@clerk/nextjs";
+import { Check, Zap } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -6,9 +9,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { SignUpButton } from "@clerk/nextjs";
-import { Check, Zap } from "lucide-react";
-import Link from "next/link";
 
 export default function Pricing() {
 	return (
@@ -52,7 +52,7 @@ export default function Pricing() {
 									"Community support",
 									"$10 free credit to start",
 									"No credit card required",
-								].map((item, index) => (
+								].map((item, _index) => (
 									<li key={item} className="flex items-center gap-2">
 										<Check className="size-3 text-primary" />
 										{item}
@@ -103,7 +103,7 @@ export default function Pricing() {
 									"Webhook integrations",
 									"Team access controls",
 									"99.9% uptime SLA",
-								].map((item, index) => (
+								].map((item, _index) => (
 									<li key={item} className="flex items-center gap-2">
 										<Check className="size-3 text-primary" />
 										{item}
@@ -144,7 +144,7 @@ export default function Pricing() {
 									"Audit logs & compliance",
 									"On-premise deployment options",
 									"MSA and custom contracts",
-								].map((item, index) => (
+								].map((item, _index) => (
 									<li key={item} className="flex items-center gap-2">
 										<Check className="size-3 text-primary" />
 										{item}

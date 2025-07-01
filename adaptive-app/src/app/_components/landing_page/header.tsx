@@ -1,5 +1,9 @@
 "use client";
 
+import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { ChevronDown, Menu, X } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -7,10 +11,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SignInButton, SignUpButton, SignedIn, SignedOut } from "@clerk/nextjs";
-import { ChevronDown, Menu, X } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
 import { Logo } from "../logo";
 import { ModeToggle } from "../mode-toggle";
 

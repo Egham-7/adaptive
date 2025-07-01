@@ -4,15 +4,19 @@ import (
 	"errors"
 	"strings"
 
-	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/providers/anthropic"
 	"adaptive-backend/internal/services/providers/deepseek"
 	"adaptive-backend/internal/services/providers/gemini"
+	"adaptive-backend/internal/services/providers/huggingface"
 	"adaptive-backend/internal/services/providers/openai"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 )
 
-func NewLLMProvider(providerName string, taskType *string, minionRegistry *minions.MinionRegistry) (provider_interfaces.LLMProvider, error) {
+func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error) {
+	return NewLLMProviderWithBaseURL(providerName, nil)
+}
+
+func NewLLMProviderWithBaseURL(providerName string, baseURL *string) (provider_interfaces.LLMProvider, error) {
 	switch strings.ToLower(providerName) {
 	case "openai":
 		service, err := openai.NewOpenAIService(nil)
@@ -40,23 +44,8 @@ func NewLLMProvider(providerName string, taskType *string, minionRegistry *minio
 		}
 		return service, nil
 
-	case "minion":
-
-		if minionRegistry == nil {
-			return nil, errors.New("minion registry must be provided for minion provider")
-		}
-
-		if taskType == nil {
-			return nil, errors.New("task type must be provided for minion provider")
-		}
-
-		baseURL, found := minionRegistry.GetMinionURL(*taskType)
-
-		if !found {
-			return nil, errors.New("minion not found for task type: " + *taskType)
-		}
-
-		service, err := openai.NewOpenAIService(&baseURL)
+	case "huggingface":
+		service, err := huggingface.NewHuggingFaceService(baseURL)
 		if err != nil {
 			return nil, err
 		}

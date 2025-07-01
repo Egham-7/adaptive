@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"os"
 	"sync"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/metrics"
-	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/protocol_manager"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
@@ -44,13 +42,12 @@ type candidate struct {
 // It manages the lifecycle of chat completion requests, including provider selection,
 // circuit breaking, and response handling.
 type CompletionHandler struct {
-	reqSvc         *completions.RequestService
-	respSvc        *completions.ResponseService
-	paramSvc       *completions.ParameterService
-	protocolMgr    *protocol_manager.ProtocolManager
-	metricsSvc     *completions.MetricsService
-	raceSvc        *completions.RaceService
-	minionRegistry *minions.MinionRegistry
+	reqSvc      *completions.RequestService
+	respSvc     *completions.ResponseService
+	paramSvc    *completions.ParameterService
+	protocolMgr *protocol_manager.ProtocolManager
+	metricsSvc  *completions.MetricsService
+	raceSvc     *completions.RaceService
 
 	cbMu sync.RWMutex
 	cbs  map[string]*circuitbreaker.CircuitBreaker
@@ -58,9 +55,6 @@ type CompletionHandler struct {
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
 func NewCompletionHandler() *CompletionHandler {
-	mr := minions.NewMinionRegistry(11)
-	registerMinions(mr)
-
 	protocolMgr, err := protocol_manager.NewProtocolManager(0, 0)
 	if err != nil {
 		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
@@ -68,14 +62,13 @@ func NewCompletionHandler() *CompletionHandler {
 	chatMetrics := metrics.NewChatMetrics()
 
 	return &CompletionHandler{
-		reqSvc:         completions.NewRequestService(),
-		respSvc:        completions.NewResponseService(),
-		paramSvc:       completions.NewParameterService(),
-		protocolMgr:    protocolMgr,
-		metricsSvc:     completions.NewMetricsService(chatMetrics),
-		raceSvc:        completions.NewRaceService(mr),
-		minionRegistry: mr,
-		cbs:            make(map[string]*circuitbreaker.CircuitBreaker),
+		reqSvc:      completions.NewRequestService(),
+		respSvc:     completions.NewResponseService(),
+		paramSvc:    completions.NewParameterService(),
+		protocolMgr: protocolMgr,
+		metricsSvc:  completions.NewMetricsService(chatMetrics),
+		raceSvc:     completions.NewRaceService(),
+		cbs:         make(map[string]*circuitbreaker.CircuitBreaker),
 	}
 }
 
@@ -183,14 +176,14 @@ func (h *CompletionHandler) buildStandardCandidates(
 ) ([]candidate, error) {
 	var out []candidate
 
-	svc, err := providers.NewLLMProvider(std.Provider, nil, h.minionRegistry)
+	svc, err := providers.NewLLMProvider(std.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("standard provider %s: %w", std.Provider, err)
 	}
 	out = append(out, candidate{std.Provider, svc, models.ProtocolStandardLLM})
 
 	for _, alt := range std.Alternatives {
-		svc, err := providers.NewLLMProvider(alt.Provider, nil, h.minionRegistry)
+		svc, err := providers.NewLLMProvider(alt.Provider)
 		if err != nil {
 			return nil, fmt.Errorf("standard alternative provider %s: %w", alt.Provider, err)
 		}
@@ -199,26 +192,33 @@ func (h *CompletionHandler) buildStandardCandidates(
 	return out, nil
 }
 
-// buildMinionCandidates returns the minion + fallback LLMs.
+// buildMinionCandidates returns the HuggingFace + fallback LLMs.
 func (h *CompletionHandler) buildMinionCandidates(
 	min *models.MinionInfo,
 ) ([]candidate, error) {
 	var out []candidate
 
-	tt := min.TaskType
-	svc, err := providers.NewLLMProvider("minion", &tt, h.minionRegistry)
-	if err != nil {
-		return nil, fmt.Errorf("minion task type %s: %w", tt, err)
+	var baseURL *string
+	if min.BaseURL != "" {
+		baseURL = &min.BaseURL
 	}
-	out = append(out, candidate{"minion", svc, models.ProtocolMinion})
+	
+	svc, err := providers.NewLLMProviderWithBaseURL("huggingface", baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("huggingface model %s: %w", min.Model, err)
+	}
+	out = append(out, candidate{"huggingface", svc, models.ProtocolMinion})
 
 	for _, alt := range min.Alternatives {
-		taskType := alt.TaskType
-		svc, err := providers.NewLLMProvider("minion", &taskType, h.minionRegistry)
-		if err != nil {
-			return nil, fmt.Errorf("minion alternative task type %s: %w", alt.TaskType, err)
+		var altBaseURL *string
+		if alt.BaseURL != "" {
+			altBaseURL = &alt.BaseURL
 		}
-		out = append(out, candidate{alt.TaskType, svc, models.ProtocolMinion})
+		svc, err := providers.NewLLMProviderWithBaseURL("huggingface", altBaseURL)
+		if err != nil {
+			return nil, fmt.Errorf("huggingface alternative model %s: %w", alt.Model, err)
+		}
+		out = append(out, candidate{alt.Model, svc, models.ProtocolMinion})
 	}
 	return out, nil
 }
@@ -303,6 +303,7 @@ func (h *CompletionHandler) handleResponse(
 			&remoteProv,
 			&minionProv,
 			req,
+			resp,
 			reqID,
 			isStream,
 		); err != nil {
@@ -348,29 +349,6 @@ func (h *CompletionHandler) getOrCreateCB(name string) *circuitbreaker.CircuitBr
 	cb = circuitbreaker.NewWithConfig(cfg)
 	h.cbs[name] = cb
 	return cb
-}
-
-// getEnvOrDefault returns the value of the environment variable or a default.
-func getEnvOrDefault(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists && value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// registerMinions registers all minions in the registry.
-func registerMinions(registry *minions.MinionRegistry) {
-	registry.RegisterMinion("Open QA", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
-	registry.RegisterMinion("Closed QA", getEnvOrDefault("CLOSED_QA_MINION_URL", ""))
-	registry.RegisterMinion("Summarization", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
-	registry.RegisterMinion("Text Generation", getEnvOrDefault("OPEN_QA_MINION_URL", ""))
-	registry.RegisterMinion("Classification", getEnvOrDefault("CLASSIFICATION_MINION_URL", ""))
-	registry.RegisterMinion("Code Generation", getEnvOrDefault("CODE_GENERATION_MINION_URL", ""))
-	registry.RegisterMinion("Chatbot", getEnvOrDefault("CHATBOT_MINION_URL", ""))
-	registry.RegisterMinion("Rewrite", getEnvOrDefault("REWRITE_MINION_URL", ""))
-	registry.RegisterMinion("Brainstorming", getEnvOrDefault("BRAINSTORMING_MINION_URL", ""))
-	registry.RegisterMinion("Extraction", getEnvOrDefault("EXTRACTION_MINION_URL", ""))
-	registry.RegisterMinion("Other", getEnvOrDefault("CHATBOT_MINION_URL", ""))
 }
 
 // Health returns protocol manager health.

@@ -10,7 +10,7 @@ from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import ProtocolType
 from adaptive_ai.models.llm_orchestration_models import (
     Alternative,
-    MinionAlternative,
+    HuggingFaceAlternative,
     MinionInfo,
     OpenAIParameters,
     OrchestratorResponse,
@@ -51,14 +51,14 @@ class ProtocolSelectionOutput(BaseModel):
         description="Penalize new tokens based on whether they appear in the text so "
         "far. Range -2.0 to 2.0."
     )
-    standard_alternatives: list[dict[str, str]] = Field(
+    standard_alternatives: list[Alternative] = Field(
         default=[],
         description="Alternative models for standard_llm. Each should have provider "
         "and model.",
     )
-    minion_alternatives: list[dict[str, str]] = Field(
+    minion_alternatives: list[HuggingFaceAlternative] = Field(
         default=[],
-        description="Alternative minion task types. Each should have task_type.",
+        description="Alternative HuggingFace models. Each should have model and optionally base_url.",
     )
 
 
@@ -99,16 +99,16 @@ class ProtocolManager:
             "   - Advantages: Simplicity, direct response, no orchestration overhead.\n"
             "   - Disadvantages: May not be optimal for complex or multi-step tasks.\n"
             "   - Alternatives: List of alternative models (provider, model).\n"
-            "2. minion: Use a specialized smaller model (minion) for a specific subtask.\n"
+            "2. minion: Use a specialized HuggingFace model for a specific subtask.\n"
             "   - Advantages: Efficiency, can be faster and cheaper for narrow tasks.\n"
             "   - Disadvantages: Limited scope, may not handle general or complex queries.\n"
             "   - **Recommendation: Favor 'minion' for simple, well-defined questions "
             "     where a specialized model can maintain high quality and efficiency.**\n"
-            "   - Alternatives: List of alternative minion task types (task_type).\n"
+            "   - Alternatives: List of alternative HuggingFace models (model, base_url).\n"
             "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
             "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
             "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
-            "   - Payload: May include both standard_llm and minion info.\n"
+            "   - Payload: Includes both standard_llm and minion info.\n"
         )
 
         self.parameter_descriptions = (
@@ -146,9 +146,23 @@ class ProtocolManager:
             )
         return "\n".join(lines)
 
+    def _convert_minion_alternatives(
+        self, minion_alternatives: list[str]
+    ) -> list[HuggingFaceAlternative]:
+        """Convert minion alternative model names to HuggingFaceAlternative objects."""
+        return [
+            HuggingFaceAlternative(
+                model=model,
+                base_url=f"https://router.huggingface.co/hf-inference/models/{model}/v1",
+            )
+            for model in minion_alternatives
+        ]
+
     def select_protocol(
         self,
         candidate_models: list[ModelCapability],
+        minion_model: str,
+        minion_alternatives: list[str],
         classification_result: ClassificationResult,
     ) -> OrchestratorResponse:
         model_capabilities_str = self._format_model_capabilities(candidate_models)
@@ -181,7 +195,7 @@ class ProtocolManager:
                 f"{self.parameter_descriptions}\n"
                 "For standard_llm, return alternatives as a list of objects with "
                 "provider and model.\n"
-                "For minion, return alternatives as a list of objects with task_type.\n"
+                "For minion, return alternatives as a list of objects with model and optionally base_url.\n"
                 "For minions_protocol, you may include both standard_llm and minion "
                 "info.\n"
             )
@@ -189,9 +203,14 @@ class ProtocolManager:
             user_query_content = (
                 f"Task type: {task_type}\n"
                 f"Classification Result:\n```json\n{classification_result_json}\n```\n"
-                "The following candidate models are ordered by preference, with the "
+                "The following remote candidate models are ordered by preference, with the "
                 "first being the most preferred and the last being the least:\n"
-                f"Candidate models (with capabilities):\n{model_capabilities_str}\n"
+                f"Remote candidate models (with capabilities):\n{model_capabilities_str}\n\n"
+                f"Designated minion (HuggingFace specialist) for this task type: {minion_model}\n\n"
+                "Choose between:\n"
+                "- standard_llm: Use only a remote model\n"
+                "- minion: Use only the designated HuggingFace specialist\n"
+                "- minions_protocol: Use both remote model AND minion together (hybrid)\n\n"
                 "Please output the JSON object directly, with no additional text or "
                 "explanations."
             )
@@ -270,61 +289,43 @@ class ProtocolManager:
             presence_penalty=result.presence_penalty,
         )
 
-        standard_alts = []
-        if result.standard_alternatives:
-            try:
-                standard_alts = [
-                    Alternative(**alt) for alt in result.standard_alternatives
-                ]
-            except (TypeError, ValueError) as e:
-                self.log(
-                    "standard_alternatives_parsing_error",
-                    {"error": str(e), "data": result.standard_alternatives},
-                )
-                standard_alts = []
+        standard_alts = result.standard_alternatives
 
-        minion_alts = []
-        if result.minion_alternatives:
-            try:
-                minion_alts = [
-                    MinionAlternative(**alt) for alt in result.minion_alternatives
-                ]
-            except (TypeError, ValueError) as e:
-                self.log(
-                    "minion_alternatives_parsing_error",
-                    {"error": str(e), "data": result.minion_alternatives},
-                )
-                minion_alts = []
+        # Convert minion alternatives from model selector
+        minion_alts = self._convert_minion_alternatives(minion_alternatives)
 
-        if protocol == ProtocolType.STANDARD_LLM:
-            standard = StandardLLMInfo(
-                provider=result.provider,
-                model=result.model,
-                parameters=parameters,
-                alternatives=standard_alts,
-            )
-            return OrchestratorResponse(protocol=protocol, standard=standard)
-        elif protocol == ProtocolType.MINION:
-            minion = MinionInfo(
-                task_type=task_type,
-                parameters=parameters,
-                alternatives=minion_alts,
-            )
-            return OrchestratorResponse(protocol=protocol, minion=minion)
-        elif protocol == ProtocolType.MINIONS_PROTOCOL:
-            standard = StandardLLMInfo(
-                provider=result.provider,
-                model=result.model,
-                parameters=parameters,
-                alternatives=standard_alts,
-            )
-            minion = MinionInfo(
-                task_type=task_type,
-                parameters=parameters,
-                alternatives=minion_alts,
-            )
-            return OrchestratorResponse(
-                protocol=protocol, standard=standard, minion=minion
-            )
-        else:
-            return OrchestratorResponse(protocol=protocol)
+        match protocol:
+            case ProtocolType.STANDARD_LLM:
+                standard = StandardLLMInfo(
+                    provider=result.provider,
+                    model=result.model,
+                    parameters=parameters,
+                    alternatives=standard_alts,
+                )
+                return OrchestratorResponse(protocol=protocol, standard=standard)
+            case ProtocolType.MINION:
+                minion = MinionInfo(
+                    model=minion_model,
+                    base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
+                    parameters=parameters,
+                    alternatives=minion_alts,
+                )
+                return OrchestratorResponse(protocol=protocol, minion=minion)
+            case ProtocolType.MINIONS_PROTOCOL:
+                standard = StandardLLMInfo(
+                    provider=result.provider,
+                    model=result.model,
+                    parameters=parameters,
+                    alternatives=standard_alts,
+                )
+                minion = MinionInfo(
+                    model=minion_model,
+                    base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
+                    parameters=parameters,
+                    alternatives=minion_alts,
+                )
+                return OrchestratorResponse(
+                    protocol=protocol, standard=standard, minion=minion
+                )
+            case _:
+                return OrchestratorResponse(protocol=protocol)

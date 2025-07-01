@@ -1,5 +1,5 @@
-import { api } from "@/trpc/react";
 import type { Message } from "prisma/generated"; // Assuming Message comes from prisma/generated, adjust if different
+import { api } from "@/trpc/react";
 
 export const useCreateMessage = () => {
 	const utils = api.useUtils();

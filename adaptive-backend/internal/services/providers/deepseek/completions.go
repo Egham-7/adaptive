@@ -17,7 +17,7 @@ type DeepSeekCompletions struct {
 }
 
 // CreateCompletion processes a chat completion request with DeepSeek
-func (c *DeepSeekCompletions) CreateCompletion(req *openai.ChatCompletionNewParams) (*openai.ChatCompletion, error) {
+func (c *DeepSeekCompletions) CreateCompletion(ctx context.Context, req *openai.ChatCompletionNewParams) (*openai.ChatCompletion, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
@@ -44,7 +44,7 @@ func (c *DeepSeekCompletions) CreateCompletion(req *openai.ChatCompletionNewPara
 	}
 
 	// Call DeepSeek API
-	resp, err := c.chat.service.client.CreateChatCompletion(context.Background(), deepseekReq)
+	resp, err := c.chat.service.client.CreateChatCompletion(ctx, deepseekReq)
 	if err != nil {
 		return nil, fmt.Errorf("deepseek chat completion failed: %w", err)
 	}
@@ -54,7 +54,7 @@ func (c *DeepSeekCompletions) CreateCompletion(req *openai.ChatCompletionNewPara
 }
 
 // StreamCompletion processes a streaming chat completion request with DeepSeek
-func (c *DeepSeekCompletions) StreamCompletion(req *openai.ChatCompletionNewParams) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
+func (c *DeepSeekCompletions) StreamCompletion(ctx context.Context, req *openai.ChatCompletionNewParams) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
@@ -82,7 +82,7 @@ func (c *DeepSeekCompletions) StreamCompletion(req *openai.ChatCompletionNewPara
 	}
 
 	// Call DeepSeek streaming API
-	stream, err := c.chat.service.client.CreateChatCompletionStream(context.Background(), deepseekReq)
+	stream, err := c.chat.service.client.CreateChatCompletionStream(ctx, deepseekReq)
 	if err != nil {
 		return nil, fmt.Errorf("deepseek stream chat completion failed: %w", err)
 	}

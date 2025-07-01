@@ -14,8 +14,8 @@ type Props = {
 };
 
 export const subscribeAction = async ({ userId }: Props) => {
-	const successUrl = `${process.env.NEXT_PUBLIC_URL}/chat-platform?success=true`;
-	const cancelUrl = `${process.env.NEXT_PUBLIC_URL}/?canceled=true`;
+	const _successUrl = `${process.env.NEXT_PUBLIC_URL}/chat-platform?success=true`;
+	const _cancelUrl = `${process.env.NEXT_PUBLIC_URL}/?canceled=true`;
 
 	const { url } = await stripe.checkout.sessions.create({
 		payment_method_types: ["card"],

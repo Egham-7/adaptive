@@ -1,4 +1,5 @@
-import { Button } from "@/components/ui/button";
+import { Pin } from "lucide-react";
+import Link from "next/link";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import {
 	Tooltip,
@@ -8,8 +9,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { ConversationListItem } from "@/types";
-import { Pin } from "lucide-react";
-import Link from "next/link";
 import { DeleteConversationDialog } from "./delete-conversation-dialog";
 import { EditConversationDialog } from "./edit-conversation-dialog";
 
@@ -52,7 +51,17 @@ export function ConversationItem({
 						{lastMessage && (
 							<p className="truncate text-muted-foreground text-xs">
 								{lastMessage.role === "user" ? "You: " : "AI: "}
-								{lastMessage.content}
+								{Array.isArray(lastMessage.parts)
+									? (
+											lastMessage.parts.find(
+												(p) =>
+													p &&
+													typeof p === "object" &&
+													"type" in p &&
+													p.type === "text",
+											) as { text: string }
+										)?.text || ""
+									: ""}
 							</p>
 						)}
 					</div>

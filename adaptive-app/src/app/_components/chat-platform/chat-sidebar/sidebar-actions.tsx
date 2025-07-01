@@ -1,8 +1,8 @@
 // src/components/chat/chat-sidebar/SidebarActions.tsx
 
+import { PlusCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Search } from "lucide-react";
 
 interface SidebarActionsProps {
 	searchQuery: string;
