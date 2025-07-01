@@ -119,7 +119,7 @@ func (s *ResponseService) handleProtocolGeneric(
 	// Convert to our adaptive format with cost savings for non-streaming
 	if req.ComparisonProvider.Provider != "" && req.ComparisonProvider.Model != "" {
 		costSaved := pricing.CalculateCostSaved(
-			protocolName,
+			prov.GetProviderName(),
 			string(req.Model),
 			req.ComparisonProvider.Provider,
 			req.ComparisonProvider.Model,
