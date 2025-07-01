@@ -231,7 +231,7 @@ class ProtocolManager:
                 input_ids,
                 max_new_tokens=self.max_new_tokens,
                 pad_token_id=self.tokenizer.eos_token_id,
-                temperature=0.7,
+                temperature=0.1,  # Lower temperature for more deterministic JSON output
                 top_p=0.9,
                 do_sample=True,
             )
@@ -259,7 +259,21 @@ class ProtocolManager:
                     "Could not find a valid JSON object in the LLM output."
                 )
 
-            parsed_data = json.loads(json_string)
+            # Parse JSON with fallback handling
+            try:
+                parsed_data = json.loads(json_string)
+            except json.JSONDecodeError as json_error:
+                # Log the parsing error with context
+                self.log("json_parsing_error", {
+                    "error": str(json_error),
+                    "raw_output_preview": raw_llm_output[:500],
+                    "extracted_json_preview": json_string[:300]
+                })
+                
+                # Use fallback instead of repair
+                self.log("using_fallback_protocol", {"reason": "json_parse_failed"})
+                parsed_data = self._get_fallback_protocol_data(candidate_models)
+
             result = ProtocolSelectionOutput.model_validate(parsed_data)
 
             self.log(
@@ -271,8 +285,15 @@ class ProtocolManager:
                 },
             )
         except Exception as e:
-            self.log("protocol_selection_error", {"error": str(e)})
-            raise RuntimeError(f"Protocol selection failed: {e}") from e
+            # Log error and use fallback instead of raising
+            self.log("protocol_selection_error", {
+                "error": str(e),
+                "error_type": type(e).__name__
+            })
+            
+            self.log("using_emergency_fallback", {"reason": "unrecoverable_error"})
+            parsed_data = self._get_fallback_protocol_data(candidate_models)
+            result = ProtocolSelectionOutput.model_validate(parsed_data)
 
         protocol_str = result.protocol
         protocol = (
@@ -330,3 +351,42 @@ class ProtocolManager:
                 )
             case _:
                 return OrchestratorResponse(protocol=protocol)
+
+    def _get_fallback_protocol_data(self, candidate_models: list[ModelCapability]) -> dict[str, Any]:
+        """
+        Generate fallback protocol data when JSON parsing fails.
+        Defaults to standard protocol with first available model.
+        """
+        if candidate_models and len(candidate_models) > 0:
+            # Use first candidate model for standard protocol
+            first_model = candidate_models[0]
+            return {
+                "protocol": "standard_llm",
+                "provider": first_model.provider.value,
+                "model": first_model.model_name,
+                "explanation": "Fallback due to JSON parsing failure",
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "max_tokens": 1000,
+                "n": 1,
+                "stop": None,
+                "frequency_penalty": 0.0,
+                "presence_penalty": 0.0,
+                "standard_alternatives": []
+            }
+        else:
+            # Emergency fallback with default OpenAI model
+            return {
+                "protocol": "standard_llm", 
+                "provider": "openai",
+                "model": "gpt-4o-mini",
+                "explanation": "Emergency fallback - no candidate models available",
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "max_tokens": 1000,
+                "n": 1,
+                "stop": None,
+                "frequency_penalty": 0.0,
+                "presence_penalty": 0.0,
+                "standard_alternatives": []
+            }
