@@ -21,10 +21,10 @@ The Adaptive Backend is a high-performance Go server that acts as a unified gate
 ```mermaid
 graph TB
     Client[Client Applications] --> Backend[Adaptive Backend<br/>Go API Server]
-    
+
     Backend --> AI[AI Service<br/>Model Selection]
     Backend --> DB[(Database<br/>Conversations & Analytics)]
-    
+
     Backend --> OpenAI[OpenAI API]
     Backend --> Anthropic[Anthropic API]
     Backend --> Google[Google AI API]
@@ -120,9 +120,7 @@ Routes across all providers for optimal model selection with configurable constr
 ```json
 {
   "model": "adaptive",
-  "messages": [
-    {"role": "user", "content": "Explain quantum computing"}
-  ],
+  "messages": [{ "role": "user", "content": "Explain quantum computing" }],
   "stream": false,
   "temperature": 0.7,
   "max_tokens": 1000,
@@ -143,6 +141,7 @@ Routes across all providers for optimal model selection with configurable constr
   - `1.0`: Maximum performance (prefer best models regardless of cost)
 
 **Response:**
+
 ```json
 {
   "choices": [
@@ -179,9 +178,7 @@ Routes across all providers for optimal model selection with configurable constr
 ```json
 {
   "model": "adaptive",
-  "messages": [
-    {"role": "user", "content": "Write a story"}
-  ],
+  "messages": [{ "role": "user", "content": "Write a story" }],
   "stream": true,
   "provider_constraints": ["openai"],
   "cost_bias": 0.8
@@ -189,6 +186,7 @@ Routes across all providers for optimal model selection with configurable constr
 ```
 
 Returns Server-Sent Events (SSE) format:
+
 ```
 data: {"choices":[{"delta":{"content":"Once"},"index":0}]}
 
@@ -216,7 +214,7 @@ Returns available models across all providers.
     },
     {
       "id": "claude-3-opus",
-      "object": "model", 
+      "object": "model",
       "created": 1640995200,
       "owned_by": "anthropic"
     }
@@ -228,37 +226,41 @@ Returns available models across all providers.
 ### Provider Constraints Examples
 
 #### OpenAI Only
+
 ```json
 {
   "model": "adaptive",
-  "messages": [{"role": "user", "content": "Hello"}],
+  "messages": [{ "role": "user", "content": "Hello" }],
   "provider_constraints": ["openai"]
 }
 ```
 
 #### Anthropic and Google AI Only
+
 ```json
 {
   "model": "adaptive",
-  "messages": [{"role": "user", "content": "Hello"}],
+  "messages": [{ "role": "user", "content": "Hello" }],
   "provider_constraints": ["anthropic", "google"]
 }
 ```
 
 #### Cost-Optimized Selection
+
 ```json
 {
   "model": "adaptive",
-  "messages": [{"role": "user", "content": "Simple question"}],
+  "messages": [{ "role": "user", "content": "Simple question" }],
   "cost_bias": 0.1
 }
 ```
 
 #### Performance-Optimized Selection
+
 ```json
 {
   "model": "adaptive",
-  "messages": [{"role": "user", "content": "Complex reasoning task"}],
+  "messages": [{ "role": "user", "content": "Complex reasoning task" }],
   "cost_bias": 0.9
 }
 ```
@@ -527,28 +529,28 @@ spec:
         app: adaptive-backend
     spec:
       containers:
-      - name: adaptive-backend
-        image: adaptive-backend:latest
-        ports:
-        - containerPort: 8080
-        env:
-        - name: DB_SERVER
-          valueFrom:
-            secretKeyRef:
-              name: adaptive-secrets
-              key: db-server
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 5
+        - name: adaptive-backend
+          image: adaptive-backend:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: adaptive-secrets
+                  key: db-server
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
 ```
 
 ### Environment Variables
