@@ -251,11 +251,11 @@ type CompletionUsage struct {
 	CostSaved float32 `json:"cost_saved,omitempty"`
 
 	// Number of tokens in the generated completion.
-	CompletionTokens int64 `json:"completion_tokens,required"`
+	CompletionTokens int64 `json:"completion_tokens"`
 	// Number of tokens in the prompt.
-	PromptTokens int64 `json:"prompt_tokens,required"`
+	PromptTokens int64 `json:"prompt_tokens"`
 	// Total number of tokens used in the request (prompt + completion).
-	TotalTokens int64 `json:"total_tokens,required"`
+	TotalTokens int64 `json:"total_tokens"`
 	// Breakdown of tokens used in a completion.
 	CompletionTokensDetails openai.CompletionUsageCompletionTokensDetails `json:"completion_tokens_details"`
 	// Breakdown of tokens used in the prompt.
