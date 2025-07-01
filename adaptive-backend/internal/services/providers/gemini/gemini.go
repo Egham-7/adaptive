@@ -35,3 +35,7 @@ func NewGeminiService() (*GeminiService, error) {
 func (s *GeminiService) Chat() provider_interfaces.Chat {
 	return &GeminiChat{service: s}
 }
+
+func (s *GeminiService) GetProviderName() string {
+	return "gemini"
+}

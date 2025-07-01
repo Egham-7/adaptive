@@ -34,3 +34,7 @@ func (s *AnthropicService) Chat() provider_interfaces.Chat {
 		completions: &AnthropicCompletions{client: s.client},
 	}
 }
+
+func (s *AnthropicService) GetProviderName() string {
+	return "anthropic"
+}

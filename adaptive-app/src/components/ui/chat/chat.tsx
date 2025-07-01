@@ -13,12 +13,7 @@ import { MessageInputWrapper } from "./message-input-wrapper";
 import { WelcomeScreen } from "./welcome-screen";
 import { ChatStatus } from "./chat-status";
 import { MessageActions } from "./message-actions";
-import {
-  useChatState,
-  useChatActions,
-  useChatLimits,
-  useChatRating,
-} from "./chat-hooks";
+import { useChatState } from "./hooks/use-chat-state";
 import type { ChatProps } from "./chat-types";
 
 export function Chat({
@@ -46,77 +41,72 @@ export function Chat({
 }: ChatProps) {
   const deleteMessageMutation = useDeleteMessage();
 
-  // Initialize all hooks
-  const chatState = useChatState(messages);
-  const chatLimits = useChatLimits({
-    messages,
-    remainingMessages,
-    hasReachedLimit,
-    isUnlimited,
-    limitsLoading,
-  });
-  const chatRating = useChatRating({ onRateResponse });
-  const chatActions = useChatActions({
-    chatState: chatState.state,
-    chatActions: chatState.actions,
+  // Initialize unified chat state
+  const chatState = useChatState({
+    initialMessages: messages,
     messages,
     setMessages,
     sendMessage,
     deleteMessageMutation,
     isGenerating,
+    stop,
+    limitsProps: {
+      hasReachedLimit,
+      remainingMessages,
+      isUnlimited,
+      limitsLoading,
+    },
+    errorProps: {
+      isError,
+      error,
+      onRetry,
+    },
+    ratingProps: {
+      onRateResponse,
+    },
   });
 
-  // Computed values
-  const isTyping = chatState.computed.lastMessage?.role === "user" && !isError;
-
-  // Event handlers
-  const handleStop = useCallback(() => {
-    stop?.();
-    chatActions.handleStop();
-  }, [stop, chatActions]);
-
-  // Message options factory
+  // Message options factory with clean interface
   const messageOptions = useCallback(
     (message: UIMessage) => {
-      const capabilities = chatActions.getMessageCapabilities(message);
-
+      const options = chatState.createMessageOptions(message);
+      
       return {
         actions: (
           <MessageActions
             message={message}
-            canEdit={capabilities.canEdit}
-            canRetry={capabilities.canRetry}
-            canDelete={capabilities.canDelete}
-            canRate={chatRating.canRate}
-            isEditing={capabilities.isEditing}
-            onEdit={chatActions.handleEditMessage}
-            onRetry={chatActions.handleRetryMessage}
-            onDelete={chatActions.handleDeleteMessage}
-            onRate={chatRating.handleRateMessage}
+            canEdit={options.capabilities.canEdit}
+            canRetry={options.capabilities.canRetry}
+            canDelete={options.capabilities.canDelete}
+            canRate={options.capabilities.canRate}
+            isEditing={options.capabilities.isEditing}
+            onEdit={chatState.messageActions.startEditing}
+            onRetry={options.onRetry}
+            onDelete={options.onDelete}
+            onRate={options.onRate}
           />
         ),
-        isEditing: capabilities.isEditing,
-        editingContent: chatState.state.editingContent,
-        onEditingContentChange: (content: string) =>
-          chatState.actions.updateEditingContent(message.id, content),
-        onSaveEdit: () => chatActions.handleSaveEdit(message.id),
-        onCancelEdit: chatActions.handleCancelEdit,
-        isStreaming: isGenerating,
+        isEditing: options.capabilities.isEditing,
+        editingContent: options.editingContent,
+        onEditingContentChange: options.onEditingContentChange,
+        onSaveEdit: options.onSaveEdit,
+        onCancelEdit: options.onCancelEdit,
+        isStreaming: options.isStreaming,
         isError,
         error,
         onRetryError: onRetry,
       };
     },
-    [chatActions, chatRating, chatState, isGenerating, isError, error, onRetry],
+    [chatState, isError, error, onRetry],
   );
 
   // Common chat status props
   const chatStatusProps = {
-    shouldShowCounter: chatLimits.shouldShowCounter,
-    shouldShowWarning: chatLimits.shouldShowWarning,
-    limitStatus: chatLimits.limitStatus,
-    usedMessages: chatLimits.usedMessages,
-    displayRemainingMessages: chatLimits.displayRemainingMessages,
+    shouldShowCounter: chatState.limits.shouldShowCounter,
+    shouldShowWarning: chatState.limits.shouldShowWarning,
+    limitStatus: chatState.limits.limitStatus,
+    usedMessages: chatState.limits.usedMessages,
+    displayRemainingMessages: chatState.limits.displayRemainingMessages,
     userId,
   };
 
@@ -131,13 +121,13 @@ export function Chat({
         input={input}
         handleInputChange={handleInputChange}
         isGenerating={isGenerating}
-        isTyping={isTyping}
-        hasReachedLimit={hasReachedLimit}
+        isTyping={chatState.isTyping}
+        hasReachedLimit={chatState.limits.hasReachedLimit}
         transcribeAudio={transcribeAudio}
-        isError={isError}
-        error={error}
+        isError={chatState.error.isError}
+        error={chatState.error.error}
         onRetry={onRetry}
-        onStop={handleStop}
+        onStop={chatState.handleStop}
         {...chatStatusProps}
       />
     );
@@ -146,33 +136,37 @@ export function Chat({
   // Main chat interface
   return (
     <ChatContainer className={cn("h-full", className)}>
-      {chatState.state.messages.length > 0 && (
+      {chatState.messages.length > 0 && (
         <ChatMessages
-          messages={chatState.state.messages}
+          messages={chatState.messages}
           isStreaming={isGenerating}
         >
           <MessageList
-            messages={chatState.state.messages}
-            isTyping={isTyping}
+            messages={chatState.messages}
+            isTyping={chatState.isTyping}
             messageOptions={messageOptions}
           />
         </ChatMessages>
       )}
 
       {/* Error feedback */}
-      {error && <ChatErrorDisplay />}
-      <ErrorDisplay isError={isError} error={error} onRetry={onRetry} />
+      {chatState.error.error && <ChatErrorDisplay />}
+      <ErrorDisplay 
+        isError={chatState.error.isError} 
+        error={chatState.error.error} 
+        onRetry={onRetry} 
+      />
 
       <ChatStatus {...chatStatusProps} />
 
       <MessageInputWrapper
         className="mt-auto mb-6"
-        isPending={isGenerating || isTyping}
+        isPending={isGenerating || chatState.isTyping}
         handleSubmit={handleSubmit}
-        hasReachedLimit={hasReachedLimit}
+        hasReachedLimit={chatState.limits.hasReachedLimit}
         value={input}
         onChange={handleInputChange}
-        stop={handleStop}
+        stop={chatState.handleStop}
         isGenerating={isGenerating}
         transcribeAudio={transcribeAudio}
       />

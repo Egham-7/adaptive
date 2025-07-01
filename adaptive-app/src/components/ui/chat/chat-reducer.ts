@@ -65,6 +65,12 @@ export function messageReducer(
         editingContent: action.content,
       };
 
+    case "UPDATE_EDITING_CONTENT":
+      return {
+        ...state,
+        editingContent: action.content,
+      };
+
     case "RETRY_MESSAGE": {
       const messageIndex = state.messages.findIndex(
         (m) => m.id === action.messageId,

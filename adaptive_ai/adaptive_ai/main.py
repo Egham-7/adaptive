@@ -36,6 +36,8 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.embedding_cache = EmbeddingCache(
             embeddings_model=self.embedding_model,
             similarity_threshold=self.settings.embedding_cache.similarity_threshold,
+            max_size=self.settings.embedding_cache.max_size,
+            thread_safe=self.settings.embedding_cache.thread_safe,
             lit_logger=self,
         )
 
@@ -133,16 +135,21 @@ class ProtocolManagerAPI(ls.LitAPI):
                 )
                 protocol_t1 = time.perf_counter()
                 self.log("protocol_selection_time", protocol_t1 - protocol_t0)
+                cache_add_t0 = time.perf_counter()
                 try:
-                    cache_add_t0 = time.perf_counter()
                     self.embedding_cache.add_to_cache(
                         current_classification_result, orchestrator_response
                     )
                     cache_add_t1 = time.perf_counter()
                     self.log("cache_add_time", cache_add_t1 - cache_add_t0)
                 except Exception as e:
-                    self.log("cache_add_error", {"error": str(e)})
-                    pass
+                    cache_add_t1 = time.perf_counter()
+                    self.log(
+                        "cache_add_error",
+                        {"error": str(e), "time": cache_add_t1 - cache_add_t0},
+                    )
+                    # Don't suppress the error completely - log it but continue
+                    # The cache failure shouldn't break the prediction pipeline
                 outputs.append(orchestrator_response)
 
         self.log("predict_completed", {"output_count": len(outputs)})

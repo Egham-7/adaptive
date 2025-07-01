@@ -93,11 +93,30 @@ func (a *GeminiStreamAdapter) convertGeminiResponseToOpenAIChunk(resp *genai.Gen
 	}
 
 	var content string
-	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		content = resp.Candidates[0].Content.Parts[0].Text
+	var finishReason string
+	
+	if len(resp.Candidates) > 0 {
+		candidate := resp.Candidates[0]
+		if len(candidate.Content.Parts) > 0 {
+			content = candidate.Content.Parts[0].Text
+		}
+		
+		// Map finish reason
+		switch candidate.FinishReason {
+		case genai.FinishReasonStop:
+			finishReason = "stop"
+		case genai.FinishReasonMaxTokens:
+			finishReason = "length"
+		case genai.FinishReasonSafety:
+			finishReason = "content_filter"
+		case genai.FinishReasonRecitation:
+			finishReason = "content_filter"
+		case genai.FinishReasonOther:
+			finishReason = "stop"
+		}
 	}
 
-	return &openai.ChatCompletionChunk{
+	chunk := &openai.ChatCompletionChunk{
 		ID:     resp.ResponseID,
 		Object: "chat.completion.chunk",
 		Model:  resp.ModelVersion,
@@ -108,9 +127,21 @@ func (a *GeminiStreamAdapter) convertGeminiResponseToOpenAIChunk(resp *genai.Gen
 					Role:    "assistant",
 					Content: content,
 				},
+				FinishReason: finishReason,
 			},
 		},
 	}
+
+	// Add usage information if available
+	if resp.UsageMetadata != nil {
+		chunk.Usage = openai.CompletionUsage{
+			CompletionTokens: int64(resp.UsageMetadata.CandidatesTokenCount),
+			PromptTokens:     int64(resp.UsageMetadata.PromptTokenCount),
+			TotalTokens:      int64(resp.UsageMetadata.TotalTokenCount),
+		}
+	}
+
+	return chunk
 }
 
 // sendFinalChunk sends the final chunk to indicate stream completion
