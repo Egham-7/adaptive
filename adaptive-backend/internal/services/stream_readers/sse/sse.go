@@ -8,6 +8,6 @@ import (
 	"github.com/openai/openai-go/packages/ssestream"
 )
 
-func GetSSEStreamReader(stream *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedProvider string, selectedModel string, comparisonProvider models.ComparisonProvider) (stream_readers.StreamReader, error) {
-	return NewOpenAIStreamReader(stream, requestID, selectedProvider, selectedModel, comparisonProvider), nil
+func GetSSEStreamReader(stream *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedModel string, comparisonProvider models.ComparisonProvider, providers []string) (stream_readers.StreamReader, error) {
+	return NewOpenAIStreamReader(stream, requestID, selectedModel, comparisonProvider, providers), nil
 }

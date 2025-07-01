@@ -28,17 +28,17 @@ type OpenAIStreamReader struct {
 	stream             *ssestream.Stream[openai.ChatCompletionChunk]
 	done               bool
 	buf                strings.Builder
-	selectedProvider   string
 	selectedModel      string
 	comparisonProvider models.ComparisonProvider
+	providers          []string
 }
 
 func NewOpenAIStreamReader(
 	stream *ssestream.Stream[openai.ChatCompletionChunk],
 	requestID string,
-	selectedProvider string,
 	selectedModel string,
 	comparisonProvider models.ComparisonProvider,
+	providers []string,
 ) *OpenAIStreamReader {
 	r := &OpenAIStreamReader{
 		BaseStreamReader: stream_readers.BaseStreamReader{
@@ -46,9 +46,9 @@ func NewOpenAIStreamReader(
 			RequestID: requestID,
 		},
 		stream:             stream,
-		selectedProvider:   selectedProvider,
 		selectedModel:      selectedModel,
 		comparisonProvider: comparisonProvider,
+		providers:          providers,
 	}
 	r.buf.Grow(512)
 	return r
@@ -65,18 +65,36 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	if !r.stream.Next() {
-		if err := r.stream.Err(); err == nil || errors.Is(err, io.EOF) {
-			r.Buffer = []byte(sseDoneMessage)
-			r.done = true
-			return r.Read(p)
+	// Check if we can advance to the next chunk
+	hasNext := r.stream.Next()
+	log.Printf("[%s] Stream.Next() returned: %v", r.RequestID, hasNext)
+
+	if !hasNext {
+		// Check for stream errors
+		if err := r.stream.Err(); err != nil && !errors.Is(err, io.EOF) {
+			log.Printf("[%s] Stream error detected: %v", r.RequestID, err)
+			return r.handleError(err, p)
 		}
-		return r.handleError(r.stream.Err(), p)
+
+		log.Printf("[%s] No more chunks available - sending [DONE]", r.RequestID)
+		r.Buffer = []byte(sseDoneMessage)
+		r.done = true
+		return r.Read(p)
 	}
 
+	// Get and process the current chunk
 	chunk := r.stream.Current()
+	log.Printf("[%s] Processing chunk: ID=%s, Choices=%d, Usage.TotalTokens=%d",
+		r.RequestID, chunk.ID, len(chunk.Choices), chunk.Usage.TotalTokens)
+
 	if err := r.processChunk(&chunk); err != nil {
 		return r.handleError(err, p)
+	}
+
+	// Check if this is the final usage chunk
+	if len(chunk.Choices) == 0 && chunk.Usage.TotalTokens > 0 {
+		log.Printf("[%s] ✓ FINAL USAGE CHUNK DETECTED - TotalTokens=%d", r.RequestID, chunk.Usage.TotalTokens)
+		r.done = true
 	}
 
 	return r.Read(p)
@@ -102,12 +120,12 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	// Calculate cost saved if we have usage data and comparison provider
 	var costSaved float32 = 0.0
 	if r.comparisonProvider.Provider != "" && r.comparisonProvider.Model != "" &&
-		(chunk.Usage.CompletionTokens > 0 || chunk.Usage.PromptTokens > 0) {
+		len(r.providers) > 0 && (chunk.Usage.CompletionTokens > 0 || chunk.Usage.PromptTokens > 0) {
 		var err error
 		costSaved, err = pricing.CalculateCostSaved(
-			r.selectedProvider,
+			strings.ToLower(r.providers[0]), // Use primary provider from providers array
 			r.selectedModel,
-			r.comparisonProvider.Provider,
+			strings.ToLower(r.comparisonProvider.Provider),
 			r.comparisonProvider.Model,
 			chunk.Usage.PromptTokens,
 			chunk.Usage.CompletionTokens,
@@ -119,17 +137,17 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	}
 
 	// Log original OpenAI chunk details
-	log.Printf("[%s] Original OpenAI chunk: ID=%s, Model=%s, Choices=%d", 
+	log.Printf("[%s] Original OpenAI chunk: ID=%s, Model=%s, Choices=%d",
 		r.RequestID, chunk.ID, chunk.Model, len(chunk.Choices))
-	
+
 	// Log original choice details
 	for i, choice := range chunk.Choices {
-		log.Printf("[%s] Original Choice[%d]: Role='%s', Content='%s', FinishReason='%s'", 
+		log.Printf("[%s] Original Choice[%d]: Role='%s', Content='%s', FinishReason='%s'",
 			r.RequestID, i, choice.Delta.Role, choice.Delta.Content, choice.FinishReason)
 	}
 
 	// Convert OpenAI chunk to our adaptive chunk with cost savings
-	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, costSaved)
+	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, costSaved, r.providers)
 
 	jsonData, err := json.Marshal(adaptiveChunk)
 	if err != nil {
@@ -155,25 +173,7 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	r.buf.WriteString(sseLineSuffix)
 	r.Buffer = []byte(r.buf.String())
 
-	r.updateStreamStatus(chunk)
 	return nil
-}
-
-// updateStreamStatus checks the chunk and updates the reader's done status.
-func (r *OpenAIStreamReader) updateStreamStatus(chunk *openai.ChatCompletionChunk) {
-	if len(chunk.Choices) > 0 {
-		allFinished := true
-		for i := range chunk.Choices {
-			if chunk.Choices[i].FinishReason == "" {
-				allFinished = false
-				break
-			}
-		}
-		r.done = allFinished
-	} else if chunk.Usage.TotalTokens > 0 {
-		// This handles the final usage-only chunk.
-		r.done = true
-	}
 }
 
 func (r *OpenAIStreamReader) Close() error {
