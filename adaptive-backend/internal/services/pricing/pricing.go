@@ -1,5 +1,7 @@
 package pricing
 
+import "fmt"
+
 // ModelPricing represents the pricing for input and output tokens per million
 type ModelPricing struct {
 	InputTokensPerMillion  float32 `json:"input_tokens_per_million"`
@@ -59,29 +61,36 @@ var GlobalPricing = map[string]ProviderPricing{
 }
 
 // CalculateCost calculates the cost for given input and output tokens
-func CalculateCost(provider, model string, inputTokens, outputTokens int64) float32 {
+func CalculateCost(provider, model string, inputTokens, outputTokens int64) (float32, error) {
 	providerPricing, exists := GlobalPricing[provider]
 	if !exists {
-		return 0.0
+		return 0.0, fmt.Errorf("provider '%s' not found in pricing data", provider)
 	}
 	
 	modelPricing, exists := providerPricing[model]
 	if !exists {
-		return 0.0
+		return 0.0, fmt.Errorf("model '%s' not found for provider '%s'", model, provider)
 	}
 	
 	inputCost := float32(inputTokens) / 1000000.0 * modelPricing.InputTokensPerMillion
 	outputCost := float32(outputTokens) / 1000000.0 * modelPricing.OutputTokensPerMillion
 	
-	return inputCost + outputCost
+	return inputCost + outputCost, nil
 }
 
 // CalculateCostSaved calculates the cost savings between selected provider and comparison provider
-func CalculateCostSaved(selectedProvider, selectedModel string, comparisonProvider, comparisonModel string, inputTokens, outputTokens int64) float32 {
-	selectedCost := CalculateCost(selectedProvider, selectedModel, inputTokens, outputTokens)
-	comparisonCost := CalculateCost(comparisonProvider, comparisonModel, inputTokens, outputTokens)
+func CalculateCostSaved(selectedProvider, selectedModel string, comparisonProvider, comparisonModel string, inputTokens, outputTokens int64) (float32, error) {
+	selectedCost, err := CalculateCost(selectedProvider, selectedModel, inputTokens, outputTokens)
+	if err != nil {
+		return 0.0, fmt.Errorf("error calculating selected provider cost: %w", err)
+	}
 	
-	return comparisonCost - selectedCost
+	comparisonCost, err := CalculateCost(comparisonProvider, comparisonModel, inputTokens, outputTokens)
+	if err != nil {
+		return 0.0, fmt.Errorf("error calculating comparison provider cost: %w", err)
+	}
+	
+	return comparisonCost - selectedCost, nil
 }
 
 // GetModelPricing returns the pricing for a specific model

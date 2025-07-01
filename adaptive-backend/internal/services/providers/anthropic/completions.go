@@ -277,7 +277,7 @@ func (c *AnthropicCompletions) extractAssistantMessageContent(msg *openai.ChatCo
 		return strings.Join(toolCallTexts, "\n")
 	}
 
-	return "No content available"
+	return ""
 }
 
 // extractContentFromSystemMessage extracts content from OpenAI system message

@@ -103,7 +103,8 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	var costSaved float32 = 0.0
 	if r.comparisonProvider.Provider != "" && r.comparisonProvider.Model != "" &&
 		(chunk.Usage.CompletionTokens > 0 || chunk.Usage.PromptTokens > 0) {
-		costSaved = pricing.CalculateCostSaved(
+		var err error
+		costSaved, err = pricing.CalculateCostSaved(
 			r.selectedProvider,
 			r.selectedModel,
 			r.comparisonProvider.Provider,
@@ -111,6 +112,10 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 			chunk.Usage.PromptTokens,
 			chunk.Usage.CompletionTokens,
 		)
+		if err != nil {
+			log.Printf("[%s] Error calculating cost savings: %v", r.RequestID, err)
+			costSaved = 0.0 // Default to 0 savings on error
+		}
 	}
 
 	// Log original OpenAI chunk details

@@ -118,7 +118,7 @@ func (s *ResponseService) handleProtocolGeneric(
 	}
 	// Convert to our adaptive format with cost savings for non-streaming
 	if req.ComparisonProvider.Provider != "" && req.ComparisonProvider.Model != "" {
-		costSaved := pricing.CalculateCostSaved(
+		costSaved, err := pricing.CalculateCostSaved(
 			prov.GetProviderName(),
 			string(req.Model),
 			req.ComparisonProvider.Provider,
@@ -126,6 +126,9 @@ func (s *ResponseService) handleProtocolGeneric(
 			regResp.Usage.PromptTokens,
 			regResp.Usage.CompletionTokens,
 		)
+		if err != nil {
+			costSaved = 0.0 // Default to 0 savings on error
+		}
 		adaptiveResp := models.ConvertToAdaptive(regResp, costSaved)
 		return c.JSON(adaptiveResp)
 	}

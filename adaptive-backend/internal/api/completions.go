@@ -1,9 +1,9 @@
 package api
 
 import (
-	"context"
 	"fmt"
 	"maps"
+	"strings"
 	"sync"
 	"time"
 
@@ -91,7 +91,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	h.metricsSvc.RecordRequestStart(reqID, isStream)
 
 	resp, err := h.selectProtocol(
-		c.Context(), req, userID, reqID, h.copyCBs(),
+		req, userID, reqID, h.copyCBs(),
 	)
 	if err != nil {
 		h.metricsSvc.RecordError(start, fmt.Sprint(statusServerError), isStream, reqID, "")
@@ -122,7 +122,6 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 
 // selectProtocol runs protocol selection and returns the chosen protocol response.
 func (h *CompletionHandler) selectProtocol(
-	ctx context.Context,
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
@@ -200,7 +199,7 @@ func (h *CompletionHandler) buildMinionCandidates(
 	if min.BaseURL != "" {
 		baseURL = &min.BaseURL
 	}
-	
+
 	svc, err := providers.NewLLMProviderWithBaseURL("huggingface", baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("huggingface model %s: %w", min.Model, err)
@@ -305,6 +304,12 @@ func (h *CompletionHandler) handleResponse(
 			reqID,
 			isStream,
 		); err != nil {
+			// Check for request validation errors (like nil request)
+			if strings.Contains(err.Error(), "request cannot be nil") {
+				// Don't continue to other providers for request validation errors
+				return h.respSvc.HandleInternalError(c, fmt.Sprintf("invalid request: %v", err), reqID)
+			}
+
 			cb.RecordFailure()
 			lastErr = err
 			continue
