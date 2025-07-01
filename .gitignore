@@ -1,3 +1,4 @@
 .env.*
 .env
-*.csv
+*.csvadaptive_ai/adaptive_ai/benchmark_testing/
+benchmarks/

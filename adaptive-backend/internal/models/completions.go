@@ -248,12 +248,18 @@ type ComparisonProvider struct {
 
 // CompletionUsage extends OpenAI's CompletionUsage with cost savings
 type CompletionUsage struct {
-	// Standard OpenAI usage fields
-	CompletionTokens int64 `json:"completion_tokens"`
-	PromptTokens     int64 `json:"prompt_tokens"`
-	TotalTokens      int64 `json:"total_tokens"`
-
 	CostSaved float32 `json:"cost_saved,omitempty"`
+
+	// Number of tokens in the generated completion.
+	CompletionTokens int64 `json:"completion_tokens"`
+	// Number of tokens in the prompt.
+	PromptTokens int64 `json:"prompt_tokens"`
+	// Total number of tokens used in the request (prompt + completion).
+	TotalTokens int64 `json:"total_tokens"`
+	// Breakdown of tokens used in a completion.
+	CompletionTokensDetails openai.CompletionUsageCompletionTokensDetails `json:"completion_tokens_details"`
+	// Breakdown of tokens used in the prompt.
+	PromptTokensDetails openai.CompletionUsagePromptTokensDetails `json:"prompt_tokens_details"`
 }
 
 // ChatCompletion extends OpenAI's ChatCompletion with enhanced usage
@@ -266,6 +272,7 @@ type ChatCompletion struct {
 	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                           `json:"system_fingerprint,omitempty"`
 	Usage             CompletionUsage                  `json:"usage"`
+	Providers         []string                         `json:"providers,omitempty"`
 }
 
 // ChatCompletionChunkChoiceDelta represents the delta of a chat completion chunk choice with proper JSON handling
@@ -294,10 +301,11 @@ type ChatCompletionChunk struct {
 	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
 	Usage             *CompletionUsage                      `json:"usage,omitempty"`
+	Providers         []string                              `json:"providers,omitempty"`
 }
 
 // ConvertToAdaptive converts OpenAI ChatCompletion to our ChatCompletion
-func ConvertToAdaptive(completion *openai.ChatCompletion, costSaved float32) *ChatCompletion {
+func ConvertToAdaptive(completion *openai.ChatCompletion, costSaved float32, providers []string) *ChatCompletion {
 	return &ChatCompletion{
 		ID:                completion.ID,
 		Choices:           completion.Choices,
@@ -312,11 +320,12 @@ func ConvertToAdaptive(completion *openai.ChatCompletion, costSaved float32) *Ch
 			TotalTokens:      completion.Usage.TotalTokens,
 			CostSaved:        costSaved,
 		},
+		Providers: providers,
 	}
 }
 
 // ConvertChunkToAdaptive converts OpenAI ChatCompletionChunk to our ChatCompletionChunk
-func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, costSaved float32) *ChatCompletionChunk {
+func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, costSaved float32, providers []string) *ChatCompletionChunk {
 	// Convert choices with proper role handling
 	adaptiveChoices := make([]ChatCompletionChunkChoice, len(chunk.Choices))
 	for i, choice := range chunk.Choices {
@@ -341,6 +350,7 @@ func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, costSaved float32
 		Object:            string(chunk.Object),
 		ServiceTier:       chunk.ServiceTier,
 		SystemFingerprint: chunk.SystemFingerprint,
+		Providers:         providers,
 	}
 
 	// Only add usage if it exists in the original chunk
