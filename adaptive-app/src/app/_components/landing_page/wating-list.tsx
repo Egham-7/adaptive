@@ -1,6 +1,42 @@
+"use client"
+import React, { useState } from "react";
 import { BackgroundBeams } from "./background-beams";
 import { Globe } from "./globe";
+import { Input } from "@/components/ui/input";
+
 export function WaitingListSection() {
+	const [email, setEmail] = useState("");
+	const [status, setStatus] = useState<"idle" | "loading" | "success" | "duplicate" | "error">("idle");
+	const [message, setMessage] = useState("");
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setStatus("loading");
+		setMessage("");
+		try {
+			const res = await fetch("/api/waitlist", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ email }),
+			});
+			const data = await res.json();
+			if (res.ok) {
+				setStatus("success");
+				setMessage("You're on the waitlist! 🎉");
+				setEmail("");
+			} else if (res.status === 409) {
+				setStatus("duplicate");
+				setMessage("This email is already on the waitlist.");
+			} else {
+				setStatus("error");
+				setMessage(data.error || "Something went wrong.");
+			}
+		} catch (err) {
+			setStatus("error");
+			setMessage("Network error. Please try again.");
+		}
+	};
+
 	return (
 		<div className="flexmax-w-lg relative items-center justify-center overflow-hidden rounded-lg border bg-background md:pb-60 md:shadow-xl">
 			<div className="relative flex h-[20rem] w-full flex-col items-center justify-center rounded-md bg-background antialiased">
@@ -13,16 +49,38 @@ export function WaitingListSection() {
 					<p className="relative z-10 mx-auto my-2 max-w-lg text-center text-gray-700 text-sm dark:text-gray-800">
 						Help us launch this software as soon as possible!
 					</p>
-					<Input
-						type="email"
-						placeholder="hello@llmadaptive.uk"
-						className="relative z-10 mt-4 w-full bg-white dark:bg-white"
-					/>
+					<form onSubmit={handleSubmit} className="w-full">
+						<Input
+							type="email"
+							placeholder="hello@llmadaptive.uk"
+							className="relative z-10 mt-4 w-full bg-white dark:bg-white"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							required
+							disabled={status === "loading"}
+						/>
+						<button
+							type="submit"
+							className="mt-2 w-full rounded bg-black text-white py-2 font-semibold disabled:opacity-50"
+							disabled={status === "loading"}
+						>
+							{status === "loading" ? "Joining..." : "Join Waitlist"}
+						</button>
+					</form>
+					{message && (
+						<div className="mt-2 text-center text-sm">
+							{status === "success" ? (
+								<span className="text-green-600">{message}</span>
+							) : status === "duplicate" ? (
+								<span className="text-yellow-600">{message}</span>
+							) : status === "error" ? (
+								<span className="text-red-600">{message}</span>
+							) : null}
+						</div>
+					)}
 				</div>
 				<BackgroundBeams />
 			</div>
 		</div>
 	);
 }
-
-import { Input } from "@/components/ui/input";

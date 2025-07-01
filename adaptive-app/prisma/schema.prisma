@@ -71,3 +71,9 @@ model Subscription {
   @@index([userId])
   @@index([status])
 }
+
+model WaitlistEmail {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
