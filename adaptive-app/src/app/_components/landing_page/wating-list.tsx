@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { BackgroundBeams } from "./background-beams";
 import { Globe } from "./globe";
 import { Input } from "@/components/ui/input";
+import validator from "validator";
 
 export function WaitingListSection() {
 	const [email, setEmail] = useState("");
@@ -14,6 +15,11 @@ export function WaitingListSection() {
 		setStatus("loading");
 		setMessage("");
 		try {
+			if (!email || !validator.isEmail(email)) {
+				setStatus("error");
+				setMessage("Invalid email");
+				return;
+			}
 			const res = await fetch("/api/waitlist", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -24,6 +30,12 @@ export function WaitingListSection() {
 				setStatus("success");
 				setMessage("You're on the waitlist! 🎉");
 				setEmail("");
+				// Send welcome email (fire and forget)
+				fetch("/api/waitlist/send-email", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ email }),
+				});
 			} else if (res.status === 409) {
 				setStatus("duplicate");
 				setMessage("This email is already on the waitlist.");

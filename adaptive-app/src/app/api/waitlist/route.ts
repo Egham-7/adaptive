@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { db } from "@/server/db";
+
+
+
+
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Save to database
-    const waitlistEntry = await prisma.waitlistEmail.create({
+    const waitlistEntry = await db.waitlistEmail.create({
       data: { email },
     });
 
