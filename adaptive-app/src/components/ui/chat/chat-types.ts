@@ -1,5 +1,6 @@
 import type { UIMessage } from "@ai-sdk/react";
 import type { ReactElement } from "react";
+import type { ChatStatus, RatingType, AnimationType } from "./constants/chat-constants";
 
 // Message part types
 export type MessageTextPart = Extract<
@@ -10,6 +11,23 @@ export type MessageToolPart = Extract<
   UIMessage["parts"][number],
   { type: `tool-${string}` }
 >;
+export type MessageReasoningPart = Extract<
+  UIMessage["parts"][number],
+  { type: "reasoning" }
+>;
+export type MessageFilePart = Extract<
+  UIMessage["parts"][number],
+  { type: "file" }
+>;
+
+// Enhanced message capabilities
+export interface MessageCapabilities {
+  canEdit: boolean;
+  canRetry: boolean;
+  canDelete: boolean;
+  canRate: boolean;
+  isEditing: boolean;
+}
 
 // State management types
 export type MessageAction =
@@ -18,12 +36,21 @@ export type MessageAction =
   | { type: "SET_MESSAGES"; messages: UIMessage[] }
   | { type: "EDIT_MESSAGE"; messageId: string; content: string }
   | { type: "RETRY_MESSAGE"; messageId: string }
-  | { type: "CLEAR_EDITING" };
+  | { type: "CLEAR_EDITING" }
+  | { type: "UPDATE_EDITING_CONTENT"; messageId: string; content: string };
 
 export interface MessageState {
   messages: UIMessage[];
   editingMessageId: string | null;
   editingContent: string;
+}
+
+// Computed state for better performance
+export interface MessageComputedState {
+  lastMessage: UIMessage | undefined;
+  lastAssistantMessage: UIMessage | undefined;
+  isEmpty: boolean;
+  userMessageCount: number;
 }
 
 // Core chat configuration
@@ -54,6 +81,18 @@ export interface ChatMessageProps {
 }
 
 // Status and limits types
+export interface ChatLimitsState {
+  hasReachedLimit: boolean;
+  remainingMessages?: number;
+  isUnlimited: boolean;
+  limitsLoading: boolean;
+  usedMessages: number;
+  displayRemainingMessages?: number;
+  shouldShowCounter: boolean;
+  shouldShowWarning: boolean;
+  limitStatus: ChatStatus;
+}
+
 export interface ChatLimitsProps {
   hasReachedLimit?: boolean;
   remainingMessages?: number;
@@ -62,6 +101,12 @@ export interface ChatLimitsProps {
 }
 
 // Error handling types
+export interface ChatErrorState {
+  isError: boolean;
+  error?: Error;
+  canRetry: boolean;
+}
+
 export interface ChatErrorProps {
   isError?: boolean;
   error?: Error;
@@ -69,11 +114,12 @@ export interface ChatErrorProps {
 }
 
 // Rating functionality types
+export interface ChatRatingState {
+  canRate: boolean;
+}
+
 export interface ChatRatingProps {
-  onRateResponse?: (
-    messageId: string,
-    rating: "thumbs-up" | "thumbs-down",
-  ) => void;
+  onRateResponse?: (messageId: string, rating: RatingType) => void;
 }
 
 // Main chat component props

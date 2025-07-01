@@ -188,7 +188,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               </div>
             </div>
           ) : (
-            <MarkdownRenderer>{isStreaming ? animatedContent : content}</MarkdownRenderer>
+            <MarkdownRenderer>{content}</MarkdownRenderer>
           )}
 
           {actions && !isEditing ? (

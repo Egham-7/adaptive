@@ -113,12 +113,35 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 		)
 	}
 
+	// Log original OpenAI chunk details
+	log.Printf("[%s] Original OpenAI chunk: ID=%s, Model=%s, Choices=%d", 
+		r.RequestID, chunk.ID, chunk.Model, len(chunk.Choices))
+	
+	// Log original choice details
+	for i, choice := range chunk.Choices {
+		log.Printf("[%s] Original Choice[%d]: Role='%s', Content='%s', FinishReason='%s'", 
+			r.RequestID, i, choice.Delta.Role, choice.Delta.Content, choice.FinishReason)
+	}
+
 	// Convert OpenAI chunk to our adaptive chunk with cost savings
 	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, costSaved)
 
 	jsonData, err := json.Marshal(adaptiveChunk)
 	if err != nil {
 		return err
+	}
+
+	// Log the actual JSON being sent
+	log.Printf("[%s] JSON output: %s", r.RequestID, string(jsonData))
+
+	// Log chunk details
+	log.Printf("[%s] Outputting chunk: ID=%s, Model=%s, Choices=%d, CostSaved=%.4f",
+		r.RequestID, adaptiveChunk.ID, adaptiveChunk.Model, len(adaptiveChunk.Choices), costSaved)
+
+	// Log choice details if present
+	for i, choice := range adaptiveChunk.Choices {
+		log.Printf("[%s] Choice[%d]: Role=%s, Content=%s, FinishReason=%s",
+			r.RequestID, i, choice.Delta.Role, choice.Delta.Content, choice.FinishReason)
 	}
 
 	r.buf.Reset()

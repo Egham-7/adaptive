@@ -268,10 +268,26 @@ type ChatCompletion struct {
 	Usage             CompletionUsage                  `json:"usage"`
 }
 
+// ChatCompletionChunkChoiceDelta represents the delta of a chat completion chunk choice with proper JSON handling
+type ChatCompletionChunkChoiceDelta struct {
+	Content   string                                          `json:"content,omitempty"`
+	Refusal   string                                          `json:"refusal,omitempty"`
+	Role      string                                          `json:"role,omitempty"`
+	ToolCalls []openai.ChatCompletionChunkChoiceDeltaToolCall `json:"tool_calls,omitempty"`
+}
+
+// ChatCompletionChunkChoice represents a chat completion chunk choice with proper JSON handling
+type ChatCompletionChunkChoice struct {
+	Delta        ChatCompletionChunkChoiceDelta           `json:"delta"`
+	FinishReason string                                   `json:"finish_reason,omitempty"`
+	Index        int64                                    `json:"index"`
+	Logprobs     openai.ChatCompletionChunkChoiceLogprobs `json:"logprobs"`
+}
+
 // ChatCompletionChunk extends OpenAI's ChatCompletionChunk with enhanced usage
 type ChatCompletionChunk struct {
 	ID                string                                `json:"id"`
-	Choices           []openai.ChatCompletionChunkChoice    `json:"choices"`
+	Choices           []ChatCompletionChunkChoice           `json:"choices"`
 	Created           int64                                 `json:"created"`
 	Model             string                                `json:"model"`
 	Object            string                                `json:"object"`
@@ -301,9 +317,25 @@ func ConvertToAdaptive(completion *openai.ChatCompletion, costSaved float32) *Ch
 
 // ConvertChunkToAdaptive converts OpenAI ChatCompletionChunk to our ChatCompletionChunk
 func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, costSaved float32) *ChatCompletionChunk {
+	// Convert choices with proper role handling
+	adaptiveChoices := make([]ChatCompletionChunkChoice, len(chunk.Choices))
+	for i, choice := range chunk.Choices {
+		adaptiveChoices[i] = ChatCompletionChunkChoice{
+			Delta: ChatCompletionChunkChoiceDelta{
+				Content:   choice.Delta.Content,
+				Refusal:   choice.Delta.Refusal,
+				Role:      choice.Delta.Role, // This will be omitted if empty due to omitempty
+				ToolCalls: choice.Delta.ToolCalls,
+			},
+			FinishReason: choice.FinishReason,
+			Index:        choice.Index,
+			Logprobs:     choice.Logprobs,
+		}
+	}
+
 	adaptive := &ChatCompletionChunk{
 		ID:                chunk.ID,
-		Choices:           chunk.Choices,
+		Choices:           adaptiveChoices,
 		Created:           chunk.Created,
 		Model:             chunk.Model,
 		Object:            string(chunk.Object),
