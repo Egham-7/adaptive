@@ -2,6 +2,7 @@ package anthropic
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -356,9 +357,14 @@ func (c *AnthropicCompletions) convertBase64File(fileData, filename string) (ant
 		}), nil
 	}
 
-	// Default to text file
+	// Default to text file - decode base64 data first
+	decodedData, err := base64.StdEncoding.DecodeString(fileData)
+	if err != nil {
+		return anthropic.ContentBlockParamUnion{}, fmt.Errorf("failed to decode base64 file data: %w", err)
+	}
+	
 	return anthropic.NewDocumentBlock(anthropic.PlainTextSourceParam{
-		Data:      fileData, // Note: This assumes text content, may need decoding
+		Data:      string(decodedData),
 		MediaType: "text/plain",
 		Type:      "text",
 	}), nil
