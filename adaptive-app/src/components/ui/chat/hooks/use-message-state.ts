@@ -32,7 +32,7 @@ export function useMessageState(initialMessages: UIMessage[]) {
       dispatch({ type: "EDIT_MESSAGE", messageId, content }),
     
     updateEditingContent: (messageId: string, content: string) => 
-      dispatch({ type: "UPDATE_EDITING_CONTENT", content }),
+      dispatch({ type: "UPDATE_EDITING_CONTENT", messageId, content }),
     
     clearEditing: () => 
       dispatch({ type: "CLEAR_EDITING" }),

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/openai/openai-go"
@@ -215,6 +216,7 @@ func convertAssistantContent(msg *openai.ChatCompletionAssistantMessageParam) []
 			err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args)
 
 			if err != nil {
+				log.Printf("Failed to unmarshal tool call arguments for function %s: %v", toolCall.Function.Name, err)
 				continue
 			}
 		}
