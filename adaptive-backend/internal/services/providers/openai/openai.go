@@ -46,3 +46,7 @@ func NewOpenAIService(baseUrl *string) (*OpenAIService, error) {
 func (s *OpenAIService) Chat() provider_interfaces.Chat {
 	return s.chat
 }
+
+func (s *OpenAIService) GetProviderName() string {
+	return "openai"
+}

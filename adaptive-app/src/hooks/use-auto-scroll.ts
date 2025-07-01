@@ -5,7 +5,10 @@ const ACTIVATION_THRESHOLD = 50;
 // Minimum pixels of scroll-up movement required to disable auto-scroll
 const MIN_SCROLL_UP_THRESHOLD = 10;
 
-export function useAutoScroll(dependencies: React.DependencyList, isStreaming?: boolean) {
+export function useAutoScroll(
+	dependencies: React.DependencyList,
+	isStreaming?: boolean,
+) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const previousScrollTop = useRef<number | null>(null);
 	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -21,10 +24,12 @@ export function useAutoScroll(dependencies: React.DependencyList, isStreaming?: 
 		if (containerRef.current && shouldAutoScroll) {
 			const container = containerRef.current;
 			const targetScrollTop = container.scrollHeight - container.clientHeight;
-			const currentScrollTop = container.scrollTop;
-			
+			const _currentScrollTop = container.scrollTop;
+
 			// Only auto-scroll if we're close to the bottom already
-			const distanceFromBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight);
+			const distanceFromBottom = Math.abs(
+				container.scrollHeight - container.scrollTop - container.clientHeight,
+			);
 			if (distanceFromBottom < ACTIVATION_THRESHOLD * 2) {
 				container.scrollTop = targetScrollTop;
 			}
@@ -85,9 +90,9 @@ export function useAutoScroll(dependencies: React.DependencyList, isStreaming?: 
 				scrollToBottomSmooth();
 				scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
 			};
-			
+
 			scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
-			
+
 			return () => {
 				if (scrollAnimationFrameRef.current) {
 					cancelAnimationFrame(scrollAnimationFrameRef.current);

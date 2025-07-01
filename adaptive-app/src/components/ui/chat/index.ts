@@ -6,13 +6,6 @@ export { ChatMessages } from "./chat-messages";
 export { ChatStatus } from "./chat-status";
 export { MessageActions } from "./message-actions";
 export { WelcomeScreen } from "./welcome-screen";
-export { 
-  useOptimisticMessageCount,
-  useChatState,
-  useChatActions,
-  useChatLimits,
-  useChatRating,
-} from "./chat-hooks";
 export { messageReducer } from "./chat-reducer";
 export * from "./chat-types";
 export * from "./chat-utils";
@@ -36,4 +29,3 @@ export {
   TextShimmerLoader,
   TextDotsLoader,
 } from "./loader";
-

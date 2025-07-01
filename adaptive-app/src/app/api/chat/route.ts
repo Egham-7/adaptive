@@ -69,6 +69,22 @@ export async function POST(req: Request) {
 			...previousMessages,
 			...messages,
 		]);
+
+		// Save user message immediately before attempting AI response
+		const message = messages[messages.length - 1];
+		const userMessage = {
+			id: message.id || crypto.randomUUID(),
+			role: message.role as MessageRole,
+			conversationId: numericConversationId,
+			parts: message.parts || [
+				{ type: "text" as const, text: message.content as string },
+			],
+			metadata: message.metadata ?? null,
+			annotations: message.annotations ?? null,
+		};
+
+		await api.messages.create(userMessage);
+
 		const adaptive = createOpenAI({
 			baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
 			name: "Adaptive AI",
@@ -89,24 +105,7 @@ export async function POST(req: Request) {
 					annotations: null,
 				};
 
-				const message = messages[messages.length - 1];
-
-				// Also save the user message if it's new
-				const userMessage = {
-					id: message.id || crypto.randomUUID(),
-					role: message.role as MessageRole,
-					conversationId: numericConversationId,
-					parts: message.parts || [
-						{ type: "text" as const, text: message.content as string },
-					],
-					metadata: message.metadata ?? null,
-					annotations: message.annotations ?? null,
-				};
-
-				await api.messages.batchUpsert({
-					conversationId: numericConversationId,
-					messages: [userMessage, assistantMessage],
-				});
+				await api.messages.create(assistantMessage);
 			},
 		});
 

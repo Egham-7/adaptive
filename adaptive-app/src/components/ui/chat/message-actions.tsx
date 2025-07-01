@@ -16,7 +16,7 @@ interface MessageActionsProps {
   onEdit: (messageId: string, content: string) => void;
   onRetry: (message: UIMessage) => void;
   onDelete: (messageId: string) => void;
-  onRate: (messageId: string, rating: "thumbs-up" | "thumbs-down") => void;
+  onRate?: (messageId: string, rating: "thumbs-up" | "thumbs-down") => void;
 }
 
 export function MessageActions({
@@ -90,7 +90,7 @@ export function MessageActions({
         size="icon"
         variant="ghost"
         className="h-6 w-6"
-        onClick={() => onRate(message.id, "thumbs-up")}
+        onClick={() => onRate?.(message.id, "thumbs-up")}
       >
         <ThumbsUp className="h-4 w-4" />
       </Button>
@@ -98,7 +98,7 @@ export function MessageActions({
         size="icon"
         variant="ghost"
         className="h-6 w-6"
-        onClick={() => onRate(message.id, "thumbs-down")}
+        onClick={() => onRate?.(message.id, "thumbs-down")}
       >
         <ThumbsDown className="h-4 w-4" />
       </Button>

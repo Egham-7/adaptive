@@ -7,6 +7,8 @@ import (
 	"adaptive-backend/internal/services/providers/anthropic"
 	"adaptive-backend/internal/services/providers/deepseek"
 	"adaptive-backend/internal/services/providers/gemini"
+	"adaptive-backend/internal/services/providers/grok"
+	"adaptive-backend/internal/services/providers/groq"
 	"adaptive-backend/internal/services/providers/huggingface"
 	"adaptive-backend/internal/services/providers/openai"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
@@ -46,6 +48,20 @@ func NewLLMProviderWithBaseURL(providerName string, baseURL *string) (provider_i
 
 	case "huggingface":
 		service, err := huggingface.NewHuggingFaceService(baseURL)
+		if err != nil {
+			return nil, err
+		}
+		return service, nil
+
+	case "groq":
+		service, err := groq.NewGroqService()
+		if err != nil {
+			return nil, err
+		}
+		return service, nil
+
+	case "grok":
+		service, err := grok.NewGrokService()
 		if err != nil {
 			return nil, err
 		}
