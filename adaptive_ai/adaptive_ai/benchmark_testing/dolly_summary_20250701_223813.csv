@@ -1,2 +1,0 @@
-total_samples,successful_calls,failed_calls,success_rate_percent,total_cost_usd,avg_cost_per_request_usd,endpoint_url,timestamp
-1000,996,4,99.6,0.020389040000000015,2.0389040000000014e-05,https://prompt-classifer-dev.mangoplant-a7a21605.swedencentral.azurecontainerapps.io/predict,2025-07-01T22:38:13.905971
