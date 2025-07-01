@@ -65,7 +65,7 @@ export function useMessageActions({
 
       const messageIndex = findMessageIndex(messageState.messages, message.id);
       if (messageIndex !== -1) {
-        const messagesToDelete = messageState.messages.slice(0, messageIndex + 1);
+        const messagesToDelete = messageState.messages.slice(messageIndex);
         messagesToDelete.forEach((msg) => {
           deleteMessageMutation.mutate({ id: msg.id });
         });

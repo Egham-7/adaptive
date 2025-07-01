@@ -2,6 +2,7 @@ package anthropic
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -62,6 +63,11 @@ func (c *AnthropicCompletions) CreateCompletion(ctx context.Context, req *openai
 	// Set optional parameters
 	c.setOptionalParameters(&anthropicReq, req)
 
+	// Convert tools if present
+	if len(req.Tools) > 0 {
+		anthropicReq.Tools = c.convertTools(req.Tools)
+	}
+
 	// Call Anthropic API
 	resp, err := c.client.Messages.New(ctx, anthropicReq)
 	if err != nil {
@@ -111,6 +117,11 @@ func (c *AnthropicCompletions) StreamCompletion(ctx context.Context, req *openai
 	// Set optional parameters
 	c.setOptionalParameters(&anthropicReq, req)
 
+	// Convert tools if present
+	if len(req.Tools) > 0 {
+		anthropicReq.Tools = c.convertTools(req.Tools)
+	}
+
 	// Create streaming request
 	stream := c.client.Messages.NewStreaming(ctx, anthropicReq)
 
@@ -155,7 +166,7 @@ func (c *AnthropicCompletions) convertOpenAIToAnthropicMessages(msgs []openai.Ch
 			}
 
 		case msg.OfTool != nil:
-			// For now, convert tool messages to user messages with context
+			// Convert tool messages to tool result blocks
 			anthropicMsg := c.convertToolMessage(msg.OfTool)
 			messages = append(messages, anthropicMsg)
 
@@ -174,65 +185,225 @@ func (c *AnthropicCompletions) convertOpenAIToAnthropicMessages(msgs []openai.Ch
 	return messages, systemPrompt, nil
 }
 
-// convertUserMessage converts OpenAI user message to Anthropic format
+// convertUserMessage converts OpenAI user message to Anthropic format with full content support
 func (c *AnthropicCompletions) convertUserMessage(msg *openai.ChatCompletionUserMessageParam) (anthropic.MessageParam, error) {
-	content, err := c.extractUserMessageContent(msg)
-	if err != nil {
-		return anthropic.MessageParam{}, err
-	}
-
-	return anthropic.NewUserMessage(anthropic.NewTextBlock(content)), nil
-}
-
-// convertAssistantMessage converts OpenAI assistant message to Anthropic format
-func (c *AnthropicCompletions) convertAssistantMessage(msg *openai.ChatCompletionAssistantMessageParam) (anthropic.MessageParam, error) {
-	content := c.extractAssistantMessageContent(msg)
-	return anthropic.NewAssistantMessage(anthropic.NewTextBlock(content)), nil
-}
-
-// convertToolMessage converts OpenAI tool message to Anthropic format
-func (c *AnthropicCompletions) convertToolMessage(msg *openai.ChatCompletionToolMessageParam) anthropic.MessageParam {
-	content := c.extractToolMessageContent(msg)
-	contextualContent := fmt.Sprintf("Tool response (ID: %s): %s", msg.ToolCallID, content)
-	return anthropic.NewUserMessage(anthropic.NewTextBlock(contextualContent))
-}
-
-
-// extractUserMessageContent extracts content from OpenAI user message
-func (c *AnthropicCompletions) extractUserMessageContent(msg *openai.ChatCompletionUserMessageParam) (string, error) {
 	contentUnion := msg.Content
 
-	// Handle string content
+	// Handle simple string content
 	if contentUnion.OfString.Valid() {
-		return contentUnion.OfString.Value, nil
+		return anthropic.NewUserMessage(anthropic.NewTextBlock(contentUnion.OfString.Value)), nil
 	}
 
 	// Handle array of content parts
 	if len(contentUnion.OfArrayOfContentParts) > 0 {
-		var textParts []string
+		var blocks []anthropic.ContentBlockParamUnion
 
 		for _, part := range contentUnion.OfArrayOfContentParts {
 			switch {
 			case part.OfText != nil:
-				textParts = append(textParts, part.OfText.Text)
+				blocks = append(blocks, anthropic.NewTextBlock(part.OfText.Text))
+
 			case part.OfImageURL != nil:
-				// For now, just indicate that an image was present
-				textParts = append(textParts, "[Image content not supported in Anthropic conversion]")
+				imageBlock, err := c.convertImageContent(part.OfImageURL)
+				if err != nil {
+					// Fallback to text description if conversion fails
+					blocks = append(blocks, anthropic.NewTextBlock("[Image content - conversion failed: "+err.Error()+"]"))
+				} else {
+					blocks = append(blocks, imageBlock)
+				}
+
 			case part.OfInputAudio != nil:
-				// For now, just indicate that audio was present
-				textParts = append(textParts, "[Audio content not supported in Anthropic conversion]")
+				// Anthropic doesn't support audio yet, but be explicit about it
+				blocks = append(blocks, anthropic.NewTextBlock("[Audio content - not yet supported by Anthropic API]"))
+
 			case part.OfFile != nil:
-				// For now, just indicate that a file was present
-				textParts = append(textParts, "[File content not supported in Anthropic conversion]")
+				fileBlock, err := c.convertFileContent(part.OfFile)
+				if err != nil {
+					// Fallback to text description if conversion fails
+					blocks = append(blocks, anthropic.NewTextBlock("[File content - conversion failed: "+err.Error()+"]"))
+				} else {
+					blocks = append(blocks, fileBlock)
+				}
 			}
 		}
 
-		if len(textParts) > 0 {
-			return strings.Join(textParts, "\n"), nil
+		if len(blocks) > 0 {
+			return anthropic.MessageParam{
+				Role:    anthropic.MessageParamRoleUser,
+				Content: blocks,
+			}, nil
 		}
 	}
 
-	return "", fmt.Errorf("no valid content found in user message")
+	return anthropic.MessageParam{}, fmt.Errorf("no valid content found in user message")
+}
+
+// convertAssistantMessage converts OpenAI assistant message to Anthropic format with full tool call support
+func (c *AnthropicCompletions) convertAssistantMessage(msg *openai.ChatCompletionAssistantMessageParam) (anthropic.MessageParam, error) {
+	var blocks []anthropic.ContentBlockParamUnion
+
+	// Handle text content
+	content := c.extractAssistantMessageContent(msg)
+	if content != "" {
+		blocks = append(blocks, anthropic.NewTextBlock(content))
+	}
+
+	// Handle tool calls
+	if len(msg.ToolCalls) > 0 {
+		toolBlocks := c.convertToolCalls(msg.ToolCalls)
+		blocks = append(blocks, toolBlocks...)
+	}
+
+	if len(blocks) > 0 {
+		return anthropic.MessageParam{
+			Role:    anthropic.MessageParamRoleAssistant,
+			Content: blocks,
+		}, nil
+	}
+
+	// Fallback to empty text block
+	return anthropic.NewAssistantMessage(anthropic.NewTextBlock("")), nil
+}
+
+// convertToolMessage converts OpenAI tool message to Anthropic tool result
+func (c *AnthropicCompletions) convertToolMessage(msg *openai.ChatCompletionToolMessageParam) anthropic.MessageParam {
+	content := c.extractToolMessageContent(msg)
+
+	// Create tool result block
+	toolResultBlock := anthropic.NewToolResultBlock(
+		msg.ToolCallID,
+		content,
+		false, // isError
+	)
+
+	return anthropic.NewUserMessage(toolResultBlock)
+}
+
+// convertImageContent converts OpenAI image content to Anthropic format
+func (c *AnthropicCompletions) convertImageContent(imageURL *openai.ChatCompletionContentPartImageParam) (anthropic.ContentBlockParamUnion, error) {
+	if imageURL.ImageURL.URL == "" {
+		return anthropic.ContentBlockParamUnion{}, fmt.Errorf("image URL is empty")
+	}
+
+	// If it's a base64 data URL
+	if strings.HasPrefix(imageURL.ImageURL.URL, "data:") {
+		return c.convertBase64Image(imageURL.ImageURL.URL)
+	}
+
+	// If it's a regular URL
+	return anthropic.NewImageBlock(anthropic.URLImageSourceParam{
+		URL:  imageURL.ImageURL.URL,
+		Type: "url",
+	}), nil
+}
+
+// convertBase64Image converts base64 data URL to Anthropic format
+func (c *AnthropicCompletions) convertBase64Image(dataURL string) (anthropic.ContentBlockParamUnion, error) {
+	// Parse data:image/jpeg;base64,<data>
+	parts := strings.Split(dataURL, ",")
+	if len(parts) != 2 {
+		return anthropic.ContentBlockParamUnion{}, fmt.Errorf("invalid data URL format")
+	}
+
+	header := parts[0]
+	data := parts[1]
+
+	// Extract media type
+	var mediaType string
+	if strings.Contains(header, "image/jpeg") {
+		mediaType = "image/jpeg"
+	} else if strings.Contains(header, "image/png") {
+		mediaType = "image/png"
+	} else if strings.Contains(header, "image/gif") {
+		mediaType = "image/gif"
+	} else if strings.Contains(header, "image/webp") {
+		mediaType = "image/webp"
+	} else {
+		return anthropic.ContentBlockParamUnion{}, fmt.Errorf("unsupported image type")
+	}
+
+	return anthropic.NewImageBlockBase64(mediaType, data), nil
+}
+
+// convertFileContent converts OpenAI file content to Anthropic format
+func (c *AnthropicCompletions) convertFileContent(file *openai.ChatCompletionContentPartFileParam) (anthropic.ContentBlockParamUnion, error) {
+	// Handle file based on available data
+	if file.File.FileData.Valid() {
+		// Base64 file data
+		return c.convertBase64File(file.File.FileData.Value, file.File.Filename.Value)
+	}
+
+	if file.File.FileID.Valid() {
+		// File ID - would need to fetch from OpenAI API, simplified for now
+		return anthropic.NewDocumentBlock(anthropic.PlainTextSourceParam{
+			Data:      fmt.Sprintf("File ID: %s (content would need to be fetched)", file.File.FileID.Value),
+			MediaType: "text/plain",
+			Type:      "text",
+		}), nil
+	}
+
+	return anthropic.ContentBlockParamUnion{}, fmt.Errorf("no valid file data found")
+}
+
+// convertBase64File converts base64 file data to Anthropic format
+func (c *AnthropicCompletions) convertBase64File(fileData, filename string) (anthropic.ContentBlockParamUnion, error) {
+	// Determine file type from filename or assume text
+	if strings.HasSuffix(strings.ToLower(filename), ".pdf") {
+		return anthropic.NewDocumentBlock(anthropic.Base64PDFSourceParam{
+			Data:      fileData,
+			MediaType: "application/pdf",
+			Type:      "base64",
+		}), nil
+	}
+
+	// Default to text file
+	return anthropic.NewDocumentBlock(anthropic.PlainTextSourceParam{
+		Data:      fileData, // Note: This assumes text content, may need decoding
+		MediaType: "text/plain",
+		Type:      "text",
+	}), nil
+}
+
+// convertToolCalls converts OpenAI tool calls to Anthropic format
+func (c *AnthropicCompletions) convertToolCalls(toolCalls []openai.ChatCompletionMessageToolCallParam) []anthropic.ContentBlockParamUnion {
+	var blocks []anthropic.ContentBlockParamUnion
+
+	for _, toolCall := range toolCalls {
+		block := anthropic.NewToolUseBlock(
+			toolCall.ID,
+			json.RawMessage(toolCall.Function.Arguments),
+			toolCall.Function.Name,
+		)
+		blocks = append(blocks, block)
+	}
+
+	return blocks
+}
+
+// convertTools converts OpenAI tools to Anthropic format
+func (c *AnthropicCompletions) convertTools(tools []openai.ChatCompletionToolParam) []anthropic.ToolUnionParam {
+	var anthropicTools []anthropic.ToolUnionParam
+
+	for _, tool := range tools {
+		// Convert OpenAI function to Anthropic tool
+		anthropicTool := anthropic.ToolUnionParamOfTool(
+			anthropic.ToolInputSchemaParam{
+				Type:       "object",
+				Properties: tool.Function.Parameters,
+			},
+			tool.Function.Name,
+		)
+
+		if tool.Function.Description.Valid() {
+			if anthropicTool.OfTool != nil {
+				anthropicTool.OfTool.Description = anthropic.String(tool.Function.Description.Value)
+			}
+		}
+
+		anthropicTools = append(anthropicTools, anthropicTool)
+	}
+
+	return anthropicTools
 }
 
 // extractAssistantMessageContent extracts content from OpenAI assistant message
@@ -267,16 +438,7 @@ func (c *AnthropicCompletions) extractAssistantMessageContent(msg *openai.ChatCo
 		return fmt.Sprintf("[Refusal: %s]", msg.Refusal.Value)
 	}
 
-	// Handle tool calls (simplified representation)
-	if len(msg.ToolCalls) > 0 {
-		var toolCallTexts []string
-		for _, toolCall := range msg.ToolCalls {
-			toolCallTexts = append(toolCallTexts, fmt.Sprintf("Called function %s with arguments: %s",
-				toolCall.Function.Name, toolCall.Function.Arguments))
-		}
-		return strings.Join(toolCallTexts, "\n")
-	}
-
+	// Don't include tool calls in text content since they're handled separately
 	return ""
 }
 
@@ -374,24 +536,88 @@ func (c *AnthropicCompletions) setOptionalParameters(anthropicReq *anthropic.Mes
 	} else if len(req.Stop.OfStringArray) > 0 {
 		anthropicReq.StopSequences = req.Stop.OfStringArray
 	}
+
+	// Handle tool choice
+	if !c.isToolChoiceEmpty(req.ToolChoice) {
+		anthropicReq.ToolChoice = c.convertToolChoice(req.ToolChoice)
+	}
+}
+
+// isToolChoiceEmpty checks if tool choice is empty/default
+func (c *AnthropicCompletions) isToolChoiceEmpty(toolChoice openai.ChatCompletionToolChoiceOptionUnionParam) bool {
+	return !toolChoice.OfAuto.Valid() && toolChoice.OfChatCompletionNamedToolChoice == nil
+}
+
+// convertToolChoice converts OpenAI tool choice to Anthropic format
+func (c *AnthropicCompletions) convertToolChoice(toolChoice openai.ChatCompletionToolChoiceOptionUnionParam) anthropic.ToolChoiceUnionParam {
+	if toolChoice.OfAuto.Valid() {
+		switch toolChoice.OfAuto.Value {
+		case "auto":
+			return anthropic.ToolChoiceUnionParam{
+				OfAuto: &anthropic.ToolChoiceAutoParam{Type: "auto"},
+			}
+		case "none":
+			return anthropic.ToolChoiceUnionParam{
+				OfNone: &anthropic.ToolChoiceNoneParam{Type: "none"},
+			}
+		case "required":
+			return anthropic.ToolChoiceUnionParam{
+				OfAny: &anthropic.ToolChoiceAnyParam{Type: "any"},
+			}
+		}
+	}
+
+	if toolChoice.OfChatCompletionNamedToolChoice != nil {
+		return anthropic.ToolChoiceParamOfTool(toolChoice.OfChatCompletionNamedToolChoice.Function.Name)
+	}
+
+	// Default to auto
+	return anthropic.ToolChoiceUnionParam{
+		OfAuto: &anthropic.ToolChoiceAutoParam{Type: "auto"},
+	}
 }
 
 // convertAnthropicToOpenAIResponse converts Anthropic response to OpenAI format
 func (c *AnthropicCompletions) convertAnthropicToOpenAIResponse(resp *anthropic.Message) *openai.ChatCompletion {
 	// Extract content from Anthropic response
 	var content string
-	if len(resp.Content) > 0 {
-		var textParts []string
-		for _, contentBlock := range resp.Content {
-			if textBlock := contentBlock.AsText(); textBlock.Type == "text" {
-				textParts = append(textParts, textBlock.Text)
+	var toolCalls []openai.ChatCompletionMessageToolCall
+
+	for _, contentBlock := range resp.Content {
+		switch block := contentBlock.AsAny().(type) {
+		case anthropic.TextBlock:
+			if content != "" {
+				content += "\n"
 			}
+			content += block.Text
+		case anthropic.ToolUseBlock:
+			toolCall := openai.ChatCompletionMessageToolCall{
+				ID:   block.ID,
+				Type: "function",
+				Function: openai.ChatCompletionMessageToolCallFunction{
+					Name:      block.Name,
+					Arguments: string(block.Input),
+				},
+			}
+			toolCalls = append(toolCalls, toolCall)
 		}
-		content = strings.Join(textParts, "\n")
 	}
 
 	// Determine finish reason
 	finishReason := c.mapAnthropicStopReason(resp.StopReason)
+
+	// Create the message
+	message := openai.ChatCompletionMessage{
+		Role: "assistant",
+	}
+
+	if content != "" {
+		message.Content = content
+	}
+
+	if len(toolCalls) > 0 {
+		message.ToolCalls = toolCalls
+	}
 
 	return &openai.ChatCompletion{
 		ID:     resp.ID,
@@ -399,11 +625,8 @@ func (c *AnthropicCompletions) convertAnthropicToOpenAIResponse(resp *anthropic.
 		Model:  string(resp.Model),
 		Choices: []openai.ChatCompletionChoice{
 			{
-				Index: 0,
-				Message: openai.ChatCompletionMessage{
-					Role:    "assistant",
-					Content: content,
-				},
+				Index:        0,
+				Message:      message,
 				FinishReason: finishReason,
 			},
 		},
