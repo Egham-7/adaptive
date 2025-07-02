@@ -3,6 +3,7 @@ package completions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/minions"
+	"adaptive-backend/internal/services/pricing"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
 
@@ -24,6 +25,24 @@ type ResponseService struct{}
 // NewResponseService creates a new response service.
 func NewResponseService() *ResponseService {
 	return &ResponseService{}
+}
+
+// getProvidersForProtocol returns the list of providers based on the protocol and provider
+func (s *ResponseService) getProvidersForProtocol(protocolName string, prov provider_interfaces.LLMProvider) []string {
+	switch protocolName {
+	case protocolStandard:
+		// Standard protocol: just the provider name
+		return []string{prov.GetProviderName()}
+	case protocolMinion:
+		// Minion protocol: huggingface (minionProvider is always HF for now)
+		return []string{"huggingface"}
+	case protocolMinions:
+		// MinionsProtocol: remote provider + minionProvider (scalable for future)
+		return []string{prov.GetProviderName(), "huggingface"}
+	default:
+		// Default to just the provider name
+		return []string{prov.GetProviderName()}
+	}
 }
 
 // HandleProtocol routes to the correct response flow based on protocol.
@@ -103,7 +122,9 @@ func (s *ResponseService) handleProtocolGeneric(
 				protocolName+" stream failed: "+err.Error(), requestID)
 		}
 		s.setStreamHeaders(c)
-		return stream.HandleStream(c, streamResp, requestID)
+		// Pass comparison provider info for cost calculation in stream
+		providers := s.getProvidersForProtocol(protocolName, prov)
+		return stream.HandleStream(c, streamResp, requestID, string(req.Model), req.ComparisonProvider, providers)
 	}
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
 	regResp, err := prov.Chat().
@@ -114,7 +135,27 @@ func (s *ResponseService) handleProtocolGeneric(
 		return s.HandleError(c, fiber.StatusInternalServerError,
 			protocolName+" create failed: "+err.Error(), requestID)
 	}
-	return c.JSON(regResp)
+	// Convert to our adaptive format with cost savings for non-streaming
+	if req.ComparisonProvider.Provider != "" && req.ComparisonProvider.Model != "" {
+		costSaved, err := pricing.CalculateCostSaved(
+			prov.GetProviderName(),
+			string(req.Model),
+			req.ComparisonProvider.Provider,
+			req.ComparisonProvider.Model,
+			regResp.Usage.PromptTokens,
+			regResp.Usage.CompletionTokens,
+		)
+		if err != nil {
+			costSaved = 0.0 // Default to 0 savings on error
+		}
+		providers := s.getProvidersForProtocol(protocolName, prov)
+		adaptiveResp := models.ConvertToAdaptive(regResp, costSaved, providers)
+		return c.JSON(adaptiveResp)
+	}
+	// No comparison provider, but still add provider info
+	providers := s.getProvidersForProtocol(protocolName, prov)
+	adaptiveResp := models.ConvertToAdaptive(regResp, 0.0, providers)
+	return c.JSON(adaptiveResp)
 }
 
 // handleStandard handles both streaming and regular standard-LLM flows.
@@ -173,7 +214,9 @@ func (s *ResponseService) handleMinionsProtocol(
 			return s.HandleError(c, fiber.StatusInternalServerError,
 				"MinionS streaming failed: "+err.Error(), requestID)
 		}
-		return stream.HandleStream(c, streamResp, requestID)
+		// Pass comparison provider info for cost calculation in stream
+		providers := s.getProvidersForProtocol(protocolMinions, remoteProv)
+		return stream.HandleStream(c, streamResp, requestID, string(req.Model), req.ComparisonProvider, providers)
 	}
 
 	fiberlog.Infof("[%s] generating MinionS completion", requestID)

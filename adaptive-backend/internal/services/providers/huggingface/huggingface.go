@@ -50,3 +50,7 @@ func NewHuggingFaceService(baseUrl *string) (*HuggingFaceService, error) {
 func (s *HuggingFaceService) Chat() provider_interfaces.Chat {
 	return s.chat
 }
+
+func (s *HuggingFaceService) GetProviderName() string {
+	return "huggingface"
+}

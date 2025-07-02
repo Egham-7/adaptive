@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/param"
@@ -26,11 +28,16 @@ func (c *GeminiCompletions) CreateCompletion(
 	}
 
 	// Convert OpenAI messages to Gemini format
-	parts := make([]*genai.Part, len(req.Messages))
-	for i, msg := range req.Messages {
-		parts[i] = &genai.Part{Text: extractMessageContent(msg)}
+	contents := make([]*genai.Content, 0, len(req.Messages))
+	for _, msg := range req.Messages {
+		parts, role := convertMessageToGeminiParts(msg)
+		if len(parts) > 0 {
+			contents = append(contents, &genai.Content{
+				Parts: parts,
+				Role:  role,
+			})
+		}
 	}
-	content := &genai.Content{Parts: parts}
 
 	opts, err := convertGeminiOptions(req)
 	if err != nil {
@@ -40,7 +47,7 @@ func (c *GeminiCompletions) CreateCompletion(
 	resp, err := c.chat.service.client.Models.GenerateContent(
 		ctx,
 		string(req.Model),
-		[]*genai.Content{content},
+		contents,
 		opts,
 	)
 	if err != nil {
@@ -60,11 +67,16 @@ func (c *GeminiCompletions) StreamCompletion(
 	}
 
 	// Convert OpenAI messages to Gemini format
-	parts := make([]*genai.Part, len(req.Messages))
-	for i, msg := range req.Messages {
-		parts[i] = &genai.Part{Text: extractMessageContent(msg)}
+	contents := make([]*genai.Content, 0, len(req.Messages))
+	for _, msg := range req.Messages {
+		parts, role := convertMessageToGeminiParts(msg)
+		if len(parts) > 0 {
+			contents = append(contents, &genai.Content{
+				Parts: parts,
+				Role:  role,
+			})
+		}
 	}
-	content := &genai.Content{Parts: parts}
 
 	opts, err := convertGeminiOptions(req)
 	if err != nil {
@@ -74,7 +86,7 @@ func (c *GeminiCompletions) StreamCompletion(
 	stream := c.chat.service.client.Models.GenerateContentStream(
 		ctx,
 		string(req.Model),
-		[]*genai.Content{content},
+		contents,
 		opts,
 	)
 
@@ -128,90 +140,161 @@ func convertGeminiOptions(
 	return cfg, nil
 }
 
-// extractMessageContent extracts string content from OpenAI message union
-func extractMessageContent(msg openai.ChatCompletionMessageParamUnion) string {
-	// Handle different message types using the union pattern
-	if msg.OfUser != nil {
-		return extractUserContent(msg.OfUser.Content)
+// convertMessageToGeminiParts converts OpenAI message to Gemini parts and role
+func convertMessageToGeminiParts(msg openai.ChatCompletionMessageParamUnion) ([]*genai.Part, string) {
+	switch {
+	case msg.OfUser != nil:
+		return convertUserContent(msg.OfUser.Content), "user"
+	case msg.OfAssistant != nil:
+		return convertAssistantContent(msg.OfAssistant), "model"
+	case msg.OfSystem != nil:
+		return convertSystemContent(msg.OfSystem.Content), "user"
+	case msg.OfDeveloper != nil:
+		return convertDeveloperContent(msg.OfDeveloper.Content), "user"
+	case msg.OfTool != nil:
+		return convertToolContent(msg.OfTool), "user"
+	default:
+		return nil, ""
 	}
-	if msg.OfAssistant != nil {
-		return extractAssistantContent(msg.OfAssistant.Content)
-	}
-	if msg.OfSystem != nil {
-		return extractSystemContent(msg.OfSystem.Content)
-	}
-	if msg.OfDeveloper != nil {
-		return extractDeveloperContent(msg.OfDeveloper.Content)
-	}
-	return ""
 }
 
-// extractUserContent extracts string content from user message content union
-func extractUserContent(content openai.ChatCompletionUserMessageParamContentUnion) string {
+// convertUserContent handles OpenAI user message content with all media types
+func convertUserContent(content openai.ChatCompletionUserMessageParamContentUnion) []*genai.Part {
 	if !param.IsOmitted(content.OfString) {
-		return content.OfString.Value
+		return []*genai.Part{genai.NewPartFromText(content.OfString.Value)}
 	}
-	// For array content, concatenate text parts
-	if !param.IsOmitted(content.OfArrayOfContentParts) {
-		var result string
-		for _, part := range content.OfArrayOfContentParts {
+
+	if param.IsOmitted(content.OfArrayOfContentParts) {
+		return []*genai.Part{genai.NewPartFromText("")}
+	}
+
+	var parts []*genai.Part
+	for _, part := range content.OfArrayOfContentParts {
+		switch {
+		case part.OfText != nil:
+			parts = append(parts, genai.NewPartFromText(part.OfText.Text))
+		case part.OfImageURL != nil:
+			parts = append(parts, genai.NewPartFromURI(part.OfImageURL.ImageURL.URL, "image/*"))
+		case part.OfInputAudio != nil:
+			parts = append(parts, genai.NewPartFromBytes(
+				[]byte(part.OfInputAudio.InputAudio.Data),
+				string(part.OfInputAudio.InputAudio.Format),
+			))
+		case part.OfFile != nil:
+			parts = append(parts, convertFilePart(part.OfFile.File))
+		}
+	}
+	return parts
+}
+
+// convertAssistantContent handles OpenAI assistant message with content, refusal, and tool calls
+func convertAssistantContent(msg *openai.ChatCompletionAssistantMessageParam) []*genai.Part {
+	var parts []*genai.Part
+
+	// Add content parts
+	if !param.IsOmitted(msg.Content.OfString) {
+		parts = append(parts, genai.NewPartFromText(msg.Content.OfString.Value))
+	} else if !param.IsOmitted(msg.Content.OfArrayOfContentParts) {
+		for _, part := range msg.Content.OfArrayOfContentParts {
 			if part.OfText != nil {
-				result += part.OfText.Text
+				parts = append(parts, genai.NewPartFromText(part.OfText.Text))
+			} else if part.OfRefusal != nil {
+				parts = append(parts, genai.NewPartFromText(fmt.Sprintf("[Refusal: %s]", part.OfRefusal.Refusal)))
 			}
 		}
-		return result
 	}
-	return ""
-}
 
-// extractAssistantContent extracts string content from assistant message content union
-func extractAssistantContent(content openai.ChatCompletionAssistantMessageParamContentUnion) string {
-	if !param.IsOmitted(content.OfString) {
-		return content.OfString.Value
+	// Add refusal if present
+	if !param.IsOmitted(msg.Refusal) && msg.Refusal.Value != "" {
+		parts = append(parts, genai.NewPartFromText(fmt.Sprintf("[Refusal: %s]", msg.Refusal.Value)))
 	}
-	// For array content, concatenate text parts
-	if !param.IsOmitted(content.OfArrayOfContentParts) {
-		var result string
-		for _, part := range content.OfArrayOfContentParts {
-			if part.OfText != nil {
-				result += part.OfText.Text
+
+	// Add tool calls as function calls
+	for _, toolCall := range msg.ToolCalls {
+		args := make(map[string]any)
+		if toolCall.Function.Arguments != "" {
+			err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args)
+
+			if err != nil {
+				log.Printf("Failed to unmarshal tool call arguments for function %s: %v", toolCall.Function.Name, err)
+				continue
 			}
 		}
-		return result
+		parts = append(parts, genai.NewPartFromFunctionCall(toolCall.Function.Name, args))
 	}
-	return ""
+
+	if len(parts) == 0 {
+		parts = []*genai.Part{genai.NewPartFromText("")}
+	}
+	return parts
 }
 
-// extractSystemContent extracts string content from system message content union
-func extractSystemContent(content openai.ChatCompletionSystemMessageParamContentUnion) string {
+// convertSystemContent handles system message content
+func convertSystemContent(content openai.ChatCompletionSystemMessageParamContentUnion) []*genai.Part {
 	if !param.IsOmitted(content.OfString) {
-		return content.OfString.Value
+		return []*genai.Part{genai.NewPartFromText(content.OfString.Value)}
 	}
-	// For array content, concatenate text parts
-	if !param.IsOmitted(content.OfArrayOfContentParts) {
-		var result string
-		for _, part := range content.OfArrayOfContentParts {
-			result += part.Text
-		}
-		return result
+
+	if param.IsOmitted(content.OfArrayOfContentParts) {
+		return []*genai.Part{genai.NewPartFromText("")}
 	}
-	return ""
+
+	var parts []*genai.Part
+	for _, part := range content.OfArrayOfContentParts {
+		parts = append(parts, genai.NewPartFromText(part.Text))
+	}
+	return parts
 }
 
-// extractDeveloperContent extracts string content from developer message content union
-func extractDeveloperContent(content openai.ChatCompletionDeveloperMessageParamContentUnion) string {
+// convertDeveloperContent handles developer message content
+func convertDeveloperContent(content openai.ChatCompletionDeveloperMessageParamContentUnion) []*genai.Part {
 	if !param.IsOmitted(content.OfString) {
-		return content.OfString.Value
+		return []*genai.Part{genai.NewPartFromText(content.OfString.Value)}
 	}
-	// For array content, concatenate text parts
-	if !param.IsOmitted(content.OfArrayOfContentParts) {
-		var result string
-		for _, part := range content.OfArrayOfContentParts {
-			result += part.Text
+
+	if param.IsOmitted(content.OfArrayOfContentParts) {
+		return []*genai.Part{genai.NewPartFromText("")}
+	}
+
+	var parts []*genai.Part
+	for _, part := range content.OfArrayOfContentParts {
+		parts = append(parts, genai.NewPartFromText(part.Text))
+	}
+	return parts
+}
+
+// convertToolContent handles OpenAI tool message as function response
+func convertToolContent(msg *openai.ChatCompletionToolMessageParam) []*genai.Part {
+	var content string
+	if !param.IsOmitted(msg.Content.OfString) {
+		content = msg.Content.OfString.Value
+	} else if !param.IsOmitted(msg.Content.OfArrayOfContentParts) {
+		var textParts []string
+		for _, part := range msg.Content.OfArrayOfContentParts {
+			textParts = append(textParts, part.Text)
 		}
-		return result
+		content = strings.Join(textParts, "\n")
 	}
-	return ""
+
+	response := map[string]any{"result": content}
+	return []*genai.Part{genai.NewPartFromFunctionResponse(msg.ToolCallID, response)}
+}
+
+// convertFilePart handles OpenAI file content
+func convertFilePart(file openai.ChatCompletionContentPartFileFileParam) *genai.Part {
+	if !param.IsOmitted(file.FileData) {
+		return genai.NewPartFromBytes([]byte(file.FileData.Value), "application/octet-stream")
+	}
+
+	fileName := "unknown"
+	if !param.IsOmitted(file.Filename) {
+		fileName = file.Filename.Value
+	}
+	fileID := ""
+	if !param.IsOmitted(file.FileID) {
+		fileID = file.FileID.Value
+	}
+	return genai.NewPartFromText(fmt.Sprintf("[File: %s (ID: %s)]", fileName, fileID))
 }
 
 // convertFromGeminiResponse converts Gemini response to OpenAI format

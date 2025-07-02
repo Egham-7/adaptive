@@ -1,9 +1,9 @@
 package stream
 
 import (
+	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/metrics"
-	"adaptive-backend/internal/services/stream_readers"
 	"adaptive-backend/internal/services/stream_readers/sse"
 	"bufio"
 	"encoding/json"
@@ -32,7 +32,7 @@ func initMetrics() {
 }
 
 // HandleStream manages the streaming response to the client with optimized performance
-func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string) error {
+func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedModel string, comparisonProvider models.ComparisonProvider, providers []string) error {
 	log.Printf("[%s] Starting stream handling", requestID)
 	// Initialize metrics if needed
 	initMetrics()
@@ -48,7 +48,7 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 		var totalBytes int64
 		var status string
 
-		streamReader, err := selectStreamReader(resp, requestID)
+		streamReader, err := sse.GetSSEStreamReader(resp, requestID, selectedModel, comparisonProvider, providers)
 		if err != nil {
 			status = "reader_error"
 			promStreamMetrics.RecordError("reader_creation", provider)
@@ -75,9 +75,6 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 	return nil
 }
 
-func selectStreamReader(resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string) (stream_readers.StreamReader, error) {
-	return sse.GetSSEStreamReader(resp, requestID)
-}
 
 func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, startTime time.Time, totalBytesPtr *int64) error {
 	// Get buffer from pool - start with medium size for typical streaming

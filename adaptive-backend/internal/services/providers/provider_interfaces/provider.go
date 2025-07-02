@@ -17,4 +17,5 @@ type Chat interface {
 
 type LLMProvider interface {
 	Chat() Chat
+	GetProviderName() string
 }

@@ -5,103 +5,107 @@ const ACTIVATION_THRESHOLD = 50;
 // Minimum pixels of scroll-up movement required to disable auto-scroll
 const MIN_SCROLL_UP_THRESHOLD = 10;
 
-export function useAutoScroll(dependencies: React.DependencyList, isStreaming?: boolean) {
-	const containerRef = useRef<HTMLDivElement | null>(null);
-	const previousScrollTop = useRef<number | null>(null);
-	const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-	const scrollAnimationFrameRef = useRef<number | null>(null);
+export function useAutoScroll(
+  dependencies: React.DependencyList,
+  isStreaming?: boolean,
+) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const previousScrollTop = useRef<number | null>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const scrollAnimationFrameRef = useRef<number | null>(null);
 
-	const scrollToBottom = useCallback(() => {
-		if (containerRef.current) {
-			containerRef.current.scrollTop = containerRef.current.scrollHeight;
-		}
-	}, []);
+  const scrollToBottom = useCallback(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, []);
 
-	const scrollToBottomSmooth = useCallback(() => {
-		if (containerRef.current && shouldAutoScroll) {
-			const container = containerRef.current;
-			const targetScrollTop = container.scrollHeight - container.clientHeight;
-			const currentScrollTop = container.scrollTop;
-			
-			// Only auto-scroll if we're close to the bottom already
-			const distanceFromBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight);
-			if (distanceFromBottom < ACTIVATION_THRESHOLD * 2) {
-				container.scrollTop = targetScrollTop;
-			}
-		}
-	}, [shouldAutoScroll]);
+  const scrollToBottomSmooth = useCallback(() => {
+    if (containerRef.current && shouldAutoScroll) {
+      const container = containerRef.current;
+      const targetScrollTop = container.scrollHeight - container.clientHeight;
 
-	const handleScroll = () => {
-		if (containerRef.current) {
-			const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      // Only auto-scroll if we're close to the bottom already
+      const distanceFromBottom = Math.abs(
+        container.scrollHeight - container.scrollTop - container.clientHeight,
+      );
+      if (distanceFromBottom < ACTIVATION_THRESHOLD * 2) {
+        container.scrollTop = targetScrollTop;
+      }
+    }
+  }, [shouldAutoScroll]);
 
-			const distanceFromBottom = Math.abs(
-				scrollHeight - scrollTop - clientHeight,
-			);
+  const handleScroll = () => {
+    if (containerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
 
-			const isScrollingUp = previousScrollTop.current
-				? scrollTop < previousScrollTop.current
-				: false;
+      const distanceFromBottom = Math.abs(
+        scrollHeight - scrollTop - clientHeight,
+      );
 
-			const scrollUpDistance = previousScrollTop.current
-				? previousScrollTop.current - scrollTop
-				: 0;
+      const isScrollingUp = previousScrollTop.current
+        ? scrollTop < previousScrollTop.current
+        : false;
 
-			const isDeliberateScrollUp =
-				isScrollingUp && scrollUpDistance > MIN_SCROLL_UP_THRESHOLD;
+      const scrollUpDistance = previousScrollTop.current
+        ? previousScrollTop.current - scrollTop
+        : 0;
 
-			if (isDeliberateScrollUp) {
-				setShouldAutoScroll(false);
-			} else {
-				const isScrolledToBottom = distanceFromBottom < ACTIVATION_THRESHOLD;
-				setShouldAutoScroll(isScrolledToBottom);
-			}
+      const isDeliberateScrollUp =
+        isScrollingUp && scrollUpDistance > MIN_SCROLL_UP_THRESHOLD;
 
-			previousScrollTop.current = scrollTop;
-		}
-	};
+      if (isDeliberateScrollUp) {
+        setShouldAutoScroll(false);
+      } else {
+        const isScrolledToBottom = distanceFromBottom < ACTIVATION_THRESHOLD;
+        setShouldAutoScroll(isScrolledToBottom);
+      }
 
-	const handleTouchStart = () => {
-		setShouldAutoScroll(false);
-	};
+      previousScrollTop.current = scrollTop;
+    }
+  };
 
-	useEffect(() => {
-		if (containerRef.current) {
-			previousScrollTop.current = containerRef.current.scrollTop;
-		}
-	}, []);
+  const handleTouchStart = () => {
+    setShouldAutoScroll(false);
+  };
 
-	// Effect for regular message updates
-	useEffect(() => {
-		if (shouldAutoScroll) {
-			scrollToBottom();
-		}
-	}, [shouldAutoScroll, scrollToBottom, ...dependencies]);
+  useEffect(() => {
+    if (containerRef.current) {
+      previousScrollTop.current = containerRef.current.scrollTop;
+    }
+  }, []);
 
-	// Effect for streaming content - continuously scroll during streaming
-	useEffect(() => {
-		if (isStreaming && shouldAutoScroll) {
-			const scheduleScroll = () => {
-				scrollToBottomSmooth();
-				scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
-			};
-			
-			scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
-			
-			return () => {
-				if (scrollAnimationFrameRef.current) {
-					cancelAnimationFrame(scrollAnimationFrameRef.current);
-					scrollAnimationFrameRef.current = null;
-				}
-			};
-		}
-	}, [isStreaming, shouldAutoScroll, scrollToBottomSmooth]);
+  // Effect for regular message updates
+  useEffect(() => {
+    if (shouldAutoScroll) {
+      scrollToBottom();
+    }
+  }, [shouldAutoScroll, scrollToBottom, ...dependencies]);
 
-	return {
-		containerRef,
-		scrollToBottom,
-		handleScroll,
-		shouldAutoScroll,
-		handleTouchStart,
-	};
+  // Effect for streaming content - continuously scroll during streaming
+  useEffect(() => {
+    if (isStreaming && shouldAutoScroll) {
+      const scheduleScroll = () => {
+        scrollToBottomSmooth();
+        scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
+      };
+
+      scrollAnimationFrameRef.current = requestAnimationFrame(scheduleScroll);
+
+      return () => {
+        if (scrollAnimationFrameRef.current) {
+          cancelAnimationFrame(scrollAnimationFrameRef.current);
+          scrollAnimationFrameRef.current = null;
+        }
+      };
+    }
+  }, [isStreaming, shouldAutoScroll, scrollToBottomSmooth]);
+
+  return {
+    containerRef,
+    scrollToBottom,
+    handleScroll,
+    shouldAutoScroll,
+    handleTouchStart,
+  };
 }

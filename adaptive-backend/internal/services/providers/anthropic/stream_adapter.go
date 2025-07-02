@@ -1,8 +1,6 @@
 package anthropic
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,33 +14,26 @@ import (
 	"github.com/openai/openai-go/packages/ssestream"
 )
 
-// AnthropicStreamAdapter implements a full streaming adapter for Anthropic to OpenAI conversion
+// AnthropicStreamAdapter implements a streaming adapter for Anthropic to OpenAI conversion
+// It implements both io.ReadCloser and ssestream.Decoder interfaces
 type AnthropicStreamAdapter struct {
 	anthropicStream *anthropicssestream.Stream[anthropic.MessageStreamEventUnion]
-	openaiStream    *OpenAIStreamReader
 	ctx             context.Context
 	cancel          context.CancelFunc
 	started         bool
 	mu              sync.Mutex
 	modelName       string
 	modelMu         sync.RWMutex
+	messageID       string
 	// usage tracking
 	usageMu          sync.Mutex
 	promptTokens     int
 	completionTokens int
-}
-
-// OpenAIStreamReader implements the SSE stream interface for OpenAI chunks
-type OpenAIStreamReader struct {
-	buffer      *bytes.Buffer
-	scanner     *bufio.Scanner
-	chunkChan   chan openai.ChatCompletionChunk
-	errorChan   chan error
-	done        chan struct{}
-	closed      bool
-	mu          sync.RWMutex
-	currentData []byte
-	hasNext     bool
+	// for ssestream.Decoder interface
+	currentChunk *openai.ChatCompletionChunk
+	err          error
+	closed       bool
+	finalSent    bool
 }
 
 // NewAnthropicStreamAdapter creates a new Anthropic stream adapter
@@ -51,30 +42,16 @@ func NewAnthropicStreamAdapter(
 ) *AnthropicStreamAdapter {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	buffer := &bytes.Buffer{}
-	openaiReader := &OpenAIStreamReader{
-		buffer:    buffer,
-		scanner:   bufio.NewScanner(buffer),
-		chunkChan: make(chan openai.ChatCompletionChunk, 100),
-		errorChan: make(chan error, 1),
-		done:      make(chan struct{}),
-	}
-
 	return &AnthropicStreamAdapter{
-		anthropicStream:  stream,
-		openaiStream:     openaiReader,
-		ctx:              ctx,
-		cancel:           cancel,
-		modelName:        "claude-3-5-sonnet-20241022",
-		promptTokens:     0,
-		completionTokens: 0,
+		anthropicStream: stream,
+		ctx:             ctx,
+		cancel:          cancel,
+		modelName:       "claude-3-5-sonnet-20241022",
 	}
 }
 
-// ConvertToOpenAIStream starts the conversion and returns the OpenAI stream
-func (a *AnthropicStreamAdapter) ConvertToOpenAIStream() (
-	*ssestream.Stream[openai.ChatCompletionChunk], error,
-) {
+// ConvertToOpenAIStream creates an OpenAI SSE stream from the Anthropic stream
+func (a *AnthropicStreamAdapter) ConvertToOpenAIStream() (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -83,87 +60,94 @@ func (a *AnthropicStreamAdapter) ConvertToOpenAIStream() (
 	}
 	a.started = true
 
-	// Start the conversion goroutine
-	go a.processAnthropicStream()
-
-	// Create and return the OpenAI stream wrapper
-	return ssestream.NewStream[openai.ChatCompletionChunk](a.openaiStream, nil), nil
+	// Return the SSE stream using this adapter as the decoder
+	return ssestream.NewStream[openai.ChatCompletionChunk](a, nil), nil
 }
 
-// processAnthropicStream processes the Anthropic stream and converts events to OpenAI chunks
-func (a *AnthropicStreamAdapter) processAnthropicStream() {
+// Next implements ssestream.Decoder interface
+func (a *AnthropicStreamAdapter) Next() bool {
+	if a.closed {
+		return false
+	}
+
 	for {
 		select {
 		case <-a.ctx.Done():
-			a.closeStream()
-			return
+			return false
 		default:
 			if !a.anthropicStream.Next() {
 				err := a.anthropicStream.Err()
 				if err != nil && err != io.EOF {
-					select {
-					case a.openaiStream.errorChan <- fmt.Errorf("anthropic stream error: %w", err):
-					case <-a.ctx.Done():
-					}
+					a.err = err
 				}
-				// Send final chunk (with usage) and close
-				a.sendFinalChunk()
-				a.closeStream()
-				return
+				// Send final usage chunk if needed
+				if !a.finalSent {
+					a.sendFinalChunk()
+				}
+				return false
 			}
 
 			event := a.anthropicStream.Current()
 
-			// capture usage from message_delta events
-			if md := event.AsMessageDelta(); md.Type == "message_delta" {
-				a.usageMu.Lock()
-				a.promptTokens = int(md.Usage.InputTokens)
-				a.completionTokens = int(md.Usage.OutputTokens)
-				a.usageMu.Unlock()
-			}
+			// Update state
+			a.updateState(event)
 
-			// Store model name from message_start event
-			if messageStart := event.AsMessageStart(); messageStart.Type == "message_start" {
-				a.modelMu.Lock()
-				a.modelName = string(messageStart.Message.Model)
-				a.modelMu.Unlock()
-			}
-
+			// Convert event to chunk
 			chunk := a.convertAnthropicEventToOpenAIChunk(event)
 			if chunk != nil {
-				a.writeChunkToBuffer(*chunk)
+				a.currentChunk = chunk
+				return true
 			}
+			// Continue loop if no chunk was generated
 		}
 	}
 }
 
-// writeChunkToBuffer writes a chunk as SSE data to the buffer
-func (a *AnthropicStreamAdapter) writeChunkToBuffer(chunk openai.ChatCompletionChunk) {
-	a.openaiStream.mu.Lock()
-	defer a.openaiStream.mu.Unlock()
-
-	if a.openaiStream.closed {
-		return
+// Event implements ssestream.Decoder interface
+func (a *AnthropicStreamAdapter) Event() ssestream.Event {
+	if a.currentChunk == nil {
+		return ssestream.Event{Type: "data", Data: []byte("{}")}
 	}
 
-	// Serialize chunk to JSON
-	jsonData, err := json.Marshal(chunk)
+	jsonData, err := json.Marshal(a.currentChunk)
 	if err != nil {
-		select {
-		case a.openaiStream.errorChan <- fmt.Errorf("failed to marshal chunk: %w", err):
-		case <-a.ctx.Done():
-		}
-		return
+		return ssestream.Event{Type: "data", Data: []byte("{}")}
 	}
 
-	// Write as SSE format
-	sseData := fmt.Sprintf("data: %s\n\n", string(jsonData))
-	a.openaiStream.buffer.WriteString(sseData)
+	return ssestream.Event{
+		Type: "data",
+		Data: jsonData,
+	}
+}
 
-	// Signal that new data is available
-	select {
-	case a.openaiStream.chunkChan <- chunk:
-	case <-a.ctx.Done():
+// Err implements ssestream.Decoder interface
+func (a *AnthropicStreamAdapter) Err() error {
+	return a.err
+}
+
+// Close implements both io.Closer and ssestream.Decoder interfaces
+func (a *AnthropicStreamAdapter) Close() error {
+	a.cancel()
+	a.closed = true
+	return a.anthropicStream.Close()
+}
+
+// updateState updates adapter state from Anthropic events
+func (a *AnthropicStreamAdapter) updateState(event anthropic.MessageStreamEventUnion) {
+	// Capture usage from message_delta events
+	if md := event.AsMessageDelta(); md.Type == "message_delta" {
+		a.usageMu.Lock()
+		a.promptTokens = int(md.Usage.InputTokens)
+		a.completionTokens = int(md.Usage.OutputTokens)
+		a.usageMu.Unlock()
+	}
+
+	// Store model name and message ID from message_start event
+	if messageStart := event.AsMessageStart(); messageStart.Type == "message_start" {
+		a.modelMu.Lock()
+		a.modelName = string(messageStart.Message.Model)
+		a.messageID = messageStart.Message.ID
+		a.modelMu.Unlock()
 	}
 }
 
@@ -171,25 +155,31 @@ func (a *AnthropicStreamAdapter) writeChunkToBuffer(chunk openai.ChatCompletionC
 func (a *AnthropicStreamAdapter) convertAnthropicEventToOpenAIChunk(
 	event anthropic.MessageStreamEventUnion,
 ) *openai.ChatCompletionChunk {
+	a.modelMu.RLock()
+	modelName := a.modelName
+	messageID := a.messageID
+	a.modelMu.RUnlock()
+
+	if modelName == "" {
+		modelName = "claude-3-5-sonnet-20241022"
+	}
+	if messageID == "" {
+		messageID = fmt.Sprintf("chatcmpl-%d", time.Now().UnixNano())
+	}
+
 	// Handle content block delta (actual text content)
 	if contentBlockDelta := event.AsContentBlockDelta(); contentBlockDelta.Type == "content_block_delta" {
-		if contentBlockDelta.Delta.Type == "text_delta" {
-			a.modelMu.RLock()
-			modelName := a.modelName
-			a.modelMu.RUnlock()
-			if modelName == "" {
-				modelName = "claude-3-5-sonnet-20241022"
-			}
+		deltaEvent := contentBlockDelta.Delta.AsAny()
+		if textDelta, ok := deltaEvent.(anthropic.TextDelta); ok {
 			return &openai.ChatCompletionChunk{
-				ID:      fmt.Sprintf("anthropic-stream-%d", contentBlockDelta.Index),
+				ID:      messageID,
 				Object:  "chat.completion.chunk",
 				Created: time.Now().Unix(),
 				Model:   modelName,
 				Choices: []openai.ChatCompletionChunkChoice{{
-					Index: 0,
+					Index: int64(contentBlockDelta.Index),
 					Delta: openai.ChatCompletionChunkChoiceDelta{
-						Role:    "assistant",
-						Content: contentBlockDelta.Delta.Text,
+						Content: textDelta.Text,
 					},
 				}},
 			}
@@ -214,22 +204,34 @@ func (a *AnthropicStreamAdapter) convertAnthropicEventToOpenAIChunk(
 
 	// Handle content block start
 	if contentBlockStart := event.AsContentBlockStart(); contentBlockStart.Type == "content_block_start" {
-		a.modelMu.RLock()
-		modelName := a.modelName
-		a.modelMu.RUnlock()
-		if modelName == "" {
-			modelName = "claude-3-5-sonnet-20241022"
+		// Only send a chunk if it's a text block
+		if contentBlock := contentBlockStart.ContentBlock.AsText(); contentBlock.Type == "text" {
+			return &openai.ChatCompletionChunk{
+				ID:      messageID,
+				Object:  "chat.completion.chunk",
+				Created: time.Now().Unix(),
+				Model:   modelName,
+				Choices: []openai.ChatCompletionChunkChoice{{
+					Index: int64(contentBlockStart.Index),
+					Delta: openai.ChatCompletionChunkChoiceDelta{
+						Role: "assistant",
+					},
+				}},
+			}
 		}
+	}
+
+	// Handle message stop - send a chunk with finish_reason
+	if messageStop := event.AsMessageStop(); messageStop.Type == "message_stop" {
 		return &openai.ChatCompletionChunk{
-			ID:      fmt.Sprintf("anthropic-stream-%d", contentBlockStart.Index),
+			ID:      messageID,
 			Object:  "chat.completion.chunk",
 			Created: time.Now().Unix(),
 			Model:   modelName,
 			Choices: []openai.ChatCompletionChunkChoice{{
-				Index: 0,
-				Delta: openai.ChatCompletionChunkChoiceDelta{
-					Role: "assistant",
-				},
+				Index:        0,
+				Delta:        openai.ChatCompletionChunkChoiceDelta{},
+				FinishReason: "stop",
 			}},
 		}
 	}
@@ -239,11 +241,20 @@ func (a *AnthropicStreamAdapter) convertAnthropicEventToOpenAIChunk(
 
 // sendFinalChunk sends the final chunk to indicate stream completion, including usage
 func (a *AnthropicStreamAdapter) sendFinalChunk() {
+	if a.finalSent {
+		return
+	}
+
 	a.modelMu.RLock()
 	modelName := a.modelName
+	messageID := a.messageID
 	a.modelMu.RUnlock()
+
 	if modelName == "" {
 		modelName = "claude-3-5-sonnet-20241022"
+	}
+	if messageID == "" {
+		messageID = fmt.Sprintf("chatcmpl-%d", time.Now().UnixNano())
 	}
 
 	a.usageMu.Lock()
@@ -252,150 +263,27 @@ func (a *AnthropicStreamAdapter) sendFinalChunk() {
 	a.usageMu.Unlock()
 	total := prompt + completion
 
-	finalChunk := openai.ChatCompletionChunk{
-		ID:      fmt.Sprintf("anthropic-stream-final-%d", time.Now().UnixNano()),
-		Object:  "chat.completion.chunk",
-		Created: time.Now().Unix(),
-		Model:   modelName,
-		Choices: []openai.ChatCompletionChunkChoice{{
-			Index:        0,
-			Delta:        openai.ChatCompletionChunkChoiceDelta{},
-			FinishReason: "stop",
-		}},
-		Usage: openai.CompletionUsage{
-			PromptTokens:     int64(prompt),
-			CompletionTokens: int64(completion),
-			TotalTokens:      int64(total),
-		},
-	}
-
-	a.writeChunkToBuffer(finalChunk)
-
-	// Write final SSE termination
-	a.openaiStream.mu.Lock()
-	a.openaiStream.buffer.WriteString("data: [DONE]\n\n")
-	a.openaiStream.mu.Unlock()
-}
-
-// closeStream closes all channels and marks the stream as closed
-func (a *AnthropicStreamAdapter) closeStream() {
-	a.openaiStream.mu.Lock()
-	defer a.openaiStream.mu.Unlock()
-
-	if !a.openaiStream.closed {
-		a.openaiStream.closed = true
-		close(a.openaiStream.chunkChan)
-		close(a.openaiStream.errorChan)
-		close(a.openaiStream.done)
-	}
-}
-
-// Read implements io.Reader for OpenAIStreamReader
-func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	if r.closed {
-		return 0, io.EOF
-	}
-
-	return r.buffer.Read(p)
-}
-
-// Next implements ssestream.Decoder interface
-func (r *OpenAIStreamReader) Next() bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if r.closed {
-		return false
-	}
-
-	// Check if we have data in the buffer
-	if r.buffer.Len() > 0 {
-		// Read the next line
-		if r.scanner.Scan() {
-			r.currentData = r.scanner.Bytes()
-			r.hasNext = true
-			return true
+	// Send usage chunk if we have token counts
+	if total > 0 {
+		a.currentChunk = &openai.ChatCompletionChunk{
+			ID:      messageID,
+			Object:  "chat.completion.chunk",
+			Created: time.Now().Unix(),
+			Model:   modelName,
+			Choices: []openai.ChatCompletionChunkChoice{{
+				Index:        0,
+				Delta:        openai.ChatCompletionChunkChoiceDelta{},
+				FinishReason: "",
+			}},
+			Usage: openai.CompletionUsage{
+				PromptTokens:     int64(prompt),
+				CompletionTokens: int64(completion),
+				TotalTokens:      int64(total),
+			},
 		}
 	}
 
-	// Wait for new data
-	select {
-	case _, ok := <-r.chunkChan:
-		if !ok {
-			return false
-		}
-		// Reset scanner to read from updated buffer
-		r.scanner = bufio.NewScanner(r.buffer)
-		if r.scanner.Scan() {
-			r.currentData = r.scanner.Bytes()
-			r.hasNext = true
-			return true
-		}
-		return false
-	case <-r.done:
-		return false
-	}
-}
-
-// Event implements ssestream.Decoder interface
-func (r *OpenAIStreamReader) Event() ssestream.Event {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	if r.hasNext {
-		// Parse SSE event from current data
-		line := string(r.currentData)
-		if len(line) > 6 && line[:6] == "data: " {
-			data := line[6:]
-			if data == "[DONE]" {
-				return ssestream.Event{
-					Type: "done",
-					Data: []byte("[DONE]"),
-				}
-			}
-			return ssestream.Event{
-				Type: "data",
-				Data: []byte(data),
-			}
-		}
-	}
-
-	return ssestream.Event{
-		Type: "data",
-		Data: []byte("{}"),
-	}
-}
-
-// Close implements ssestream.Decoder interface
-func (r *OpenAIStreamReader) Close() error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	if !r.closed {
-		r.closed = true
-		close(r.done)
-	}
-	return nil
-}
-
-// Err implements ssestream.Decoder interface
-func (r *OpenAIStreamReader) Err() error {
-	select {
-	case err := <-r.errorChan:
-		return err
-	default:
-		return nil
-	}
-}
-
-// Close closes the adapter and underlying streams
-func (a *AnthropicStreamAdapter) Close() error {
-	a.cancel()
-	a.closeStream()
-	return a.anthropicStream.Close()
+	a.finalSent = true
 }
 
 // GetProviderName returns the provider name

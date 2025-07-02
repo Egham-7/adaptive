@@ -1,6 +1,7 @@
 from typing import Any
 
 from adaptive_ai.config.model_catalog import (
+    ACTIVE_PROVIDERS,
     minion_task_model_mappings,
     provider_model_capabilities,
     task_model_mappings_data,
@@ -28,17 +29,14 @@ class ModelSelectionService:
             for m_cap in provider_list
         }
 
+        # Updated default models to only include active providers
         self._default_task_specific_model_entries: list[TaskModelEntry] = [
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GOOGLE, model_name="gemini-2.5-pro"),
-            TaskModelEntry(
-                provider=ProviderType.ANTHROPIC, model_name="claude-sonnet-4-20250514"
-            ),
-            TaskModelEntry(provider=ProviderType.GOOGLE, model_name="gemini-2.5-flash"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
             TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(
-                provider=ProviderType.MISTRAL, model_name="mistral-small-latest"
-            ),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
         ]
         self.lit_logger: LitLoggerProtocol | None = lit_logger
         self.log(
@@ -72,16 +70,20 @@ class ModelSelectionService:
         )
         if request.provider_constraint:
             all_known_provider_types = {p.value for p in ProviderType}
+            # Filter to only include active providers
             eligible_providers = {
                 ProviderType(p)
                 for p in request.provider_constraint
-                if p in all_known_provider_types
+                if p in all_known_provider_types and ProviderType(p) in ACTIVE_PROVIDERS
             }
             for p in request.provider_constraint:
                 if p not in all_known_provider_types:
                     self.log("invalid_provider_constraint", p)
+                elif ProviderType(p) not in ACTIVE_PROVIDERS:
+                    self.log("inactive_provider_constraint", p)
         else:
-            eligible_providers = set(provider_model_capabilities.keys())
+            # Only use active providers even when no constraint is specified
+            eligible_providers = ACTIVE_PROVIDERS
 
         primary_task_type: TaskType = (
             TaskType(classification_result.task_type_1[0])
