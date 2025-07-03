@@ -264,12 +264,15 @@ class ProtocolManager:
                 parsed_data = json.loads(json_string)
             except json.JSONDecodeError as json_error:
                 # Log the parsing error with context
-                self.log("json_parsing_error", {
-                    "error": str(json_error),
-                    "raw_output_preview": raw_llm_output[:500],
-                    "extracted_json_preview": json_string[:300]
-                })
-                
+                self.log(
+                    "json_parsing_error",
+                    {
+                        "error": str(json_error),
+                        "raw_output_preview": raw_llm_output[:500],
+                        "extracted_json_preview": json_string[:300],
+                    },
+                )
+
                 # Use fallback instead of repair
                 self.log("using_fallback_protocol", {"reason": "json_parse_failed"})
                 parsed_data = self._get_fallback_protocol_data(candidate_models)
@@ -286,11 +289,11 @@ class ProtocolManager:
             )
         except Exception as e:
             # Log error and use fallback instead of raising
-            self.log("protocol_selection_error", {
-                "error": str(e),
-                "error_type": type(e).__name__
-            })
-            
+            self.log(
+                "protocol_selection_error",
+                {"error": str(e), "error_type": type(e).__name__},
+            )
+
             self.log("using_emergency_fallback", {"reason": "unrecoverable_error"})
             parsed_data = self._get_fallback_protocol_data(candidate_models)
             result = ProtocolSelectionOutput.model_validate(parsed_data)
@@ -352,7 +355,9 @@ class ProtocolManager:
             case _:
                 return OrchestratorResponse(protocol=protocol)
 
-    def _get_fallback_protocol_data(self, candidate_models: list[ModelCapability]) -> dict[str, Any]:
+    def _get_fallback_protocol_data(
+        self, candidate_models: list[ModelCapability]
+    ) -> dict[str, Any]:
         """
         Generate fallback protocol data when JSON parsing fails.
         Defaults to standard protocol with first available model.
@@ -372,12 +377,12 @@ class ProtocolManager:
                 "stop": None,
                 "frequency_penalty": 0.0,
                 "presence_penalty": 0.0,
-                "standard_alternatives": []
+                "standard_alternatives": [],
             }
         else:
             # Emergency fallback with default OpenAI model
             return {
-                "protocol": "standard_llm", 
+                "protocol": "standard_llm",
                 "provider": "openai",
                 "model": "gpt-4o-mini",
                 "explanation": "Emergency fallback - no candidate models available",
@@ -388,5 +393,5 @@ class ProtocolManager:
                 "stop": None,
                 "frequency_penalty": 0.0,
                 "presence_penalty": 0.0,
-                "standard_alternatives": []
+                "standard_alternatives": [],
             }
