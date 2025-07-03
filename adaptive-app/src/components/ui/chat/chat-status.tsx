@@ -45,7 +45,6 @@ export function ChatStatus({
             : "You've reached your daily message limit."}
           {userId && (
             <SubscribeButton
-              userId={userId}
               variant="link"
               className="ml-1 text-secondary-foreground hover:text-secondary-foreground/80"
             >

@@ -33,7 +33,6 @@ export function ConversationItem({
 				prefetch={true}
 			>
 				<SidebarMenuButton
-					tooltip={conversation.title}
 					className={cn(
 						"group relative",
 						isActive && "bg-accent text-accent-foreground",

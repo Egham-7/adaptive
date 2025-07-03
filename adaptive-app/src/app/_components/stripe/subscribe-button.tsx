@@ -1,12 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { subscribeAction } from "@/actions/subscribe";
+import { api } from "@/trpc/react";
 import { cn } from "@/lib/utils";
 
 type Props = {
-	userId: string;
 	children?: React.ReactNode;
 	className?: string;
 	variant?: "default" | "link";
@@ -14,27 +12,28 @@ type Props = {
 };
 
 function SubscribeButton({
-	userId,
 	children,
 	className,
 	variant = "default",
 	disabled = false,
 }: Props) {
 	const router = useRouter();
-	const [isPending, startTransition] = useTransition();
+	const createCheckoutSession = api.subscription.createCheckoutSession.useMutation();
 
 	const handleClickSubscribeButton = async () => {
-		startTransition(async () => {
-			const url = await subscribeAction({ userId });
-			if (url) {
-				router.push(url);
+		try {
+			const result = await createCheckoutSession.mutateAsync({});
+			if (result.url) {
+				router.push(result.url);
 			} else {
 				console.error("Failed to create subscription session");
 			}
-		});
+		} catch (error) {
+			console.error("Failed to create subscription session:", error);
+		}
 	};
 
-	const isDisabled = isPending || disabled;
+	const isDisabled = createCheckoutSession.isPending || disabled;
 
 	if (variant === "link") {
 		return (
@@ -47,7 +46,7 @@ function SubscribeButton({
 					className,
 				)}
 			>
-				{isPending ? "Loading..." : children || "Upgrade to Pro"}
+				{createCheckoutSession.isPending ? "Loading..." : children || "Upgrade to Pro"}
 			</button>
 		);
 	}
@@ -62,7 +61,7 @@ function SubscribeButton({
 				className,
 			)}
 		>
-			{isPending ? "Loading..." : children || "Subscribe"}
+			{createCheckoutSession.isPending ? "Loading..." : children || "Subscribe"}
 		</button>
 	);
 }
