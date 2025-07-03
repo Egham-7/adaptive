@@ -1,151 +1,187 @@
 "use client";
+import { motion, useInView, useSpring, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import {
-	Bar,
-	BarChart,
-	CartesianGrid,
-	Legend,
-	ResponsiveContainer,
-	Tooltip,
-	XAxis,
-	YAxis,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
+import {
+    type ChartConfig,
+    ChartContainer,
+    ChartLegend,
+    ChartLegendContent,
+    ChartTooltip,
+    ChartTooltipContent,
+} from "@/components/ui/chart";
 
-const baseData = [
-	{
-		name: "Adaptive",
-		"Cost($)": 0.2,
-		"Quality(%)": 95,
-	},
-	{
-		name: "GPT-4o",
-		"Cost($)": 12.5,
-		"Quality(%)": 92,
-	},
-	{
-		name: "Claude Sonnet 4",
-		"Cost($)": 18,
-		"Quality(%)": 90,
-	},
+interface ChartData {
+    name: string;
+    costSavedPercent: number;
+}
+
+const baseData: ChartData[] = [
+    {
+        name: "Adaptive",
+        costSavedPercent: 78, // 78% cost savings per million tokens
+    },
+    {
+        name: "OpenAI",
+        costSavedPercent: 35, // 35% cost savings with optimizations
+    },
+    {
+        name: "Anthropic",
+        costSavedPercent: 22, // 22% cost savings with optimizations
+    },
+    {
+        name: "Google",
+        costSavedPercent: 15, // 15% cost savings with optimizations
+    },
 ];
 
+const chartConfig = {
+    costSavedPercent: {
+        label: "Cost Saved %",
+        color: "#6366f1", // Primary color mapped from CSS vars
+    },
+} satisfies ChartConfig;
+
 export default function ComparisonChart() {
-	const chartRef = useRef<HTMLDivElement>(null);
-	const [targetProgress, setTargetProgress] = useState(0);
-	const [animatedProgress, setAnimatedProgress] = useState(0);
-	const [shouldAnimate, setShouldAnimate] = useState(false);
+    const chartRef = useRef<HTMLDivElement>(null);
+    const isInView = useInView(chartRef, {
+        once: true,
+        margin: "-100px",
+        amount: 0.3,
+    });
 
-	// Get theme colors from CSS variables
-	const [barColors, setBarColors] = useState({
-		primary: "oklch(0.4341 0.0392 41.9938)",
-		secondary: "oklch(0.65 0.0651 74.3695)", // Reduced lightness from 0.92 to 0.65 for better visibility
-	});
+    // Smooth spring animation for progress
+    const springProgress = useSpring(0, {
+        stiffness: 100,
+        damping: 30,
+        restDelta: 0.001,
+    });
 
-	useEffect(() => {
-		function updateColors() {
-			setBarColors({
-				primary:
-					getComputedStyle(document.documentElement)
-						.getPropertyValue("--color-primary")
-						.trim() || "oklch(0.4341 0.0392 41.9938)",
-				secondary:
-					getComputedStyle(document.documentElement)
-						.getPropertyValue("--color-secondary")
-						.trim() || "oklch(0.65 0.0651 74.3695)", // Darker fallback
-			});
-		}
-		updateColors();
-		window.addEventListener("themechange", updateColors); // If you have a custom event for theme change
-		return () => window.removeEventListener("themechange", updateColors);
-	}, []);
+    // Transform progress to animated values
+    const animatedCost = useTransform(springProgress, [0, 1], [0, 1]);
 
-	// Track scroll and set the target progress
-	useEffect(() => {
-		const handleScroll = () => {
-			if (!chartRef.current) return;
-			const rect = chartRef.current.getBoundingClientRect();
-			const windowHeight =
-				window.innerHeight || document.documentElement.clientHeight;
-			const chartHeight = rect.height;
-			const visible =
-				Math.min(windowHeight, rect.bottom) - Math.max(0, rect.top);
-			let newProgress = visible / chartHeight;
-			newProgress = Math.max(0, Math.min(1, newProgress));
-			setTargetProgress(newProgress);
-		};
-		window.addEventListener("scroll", handleScroll, { passive: true });
-		window.addEventListener("resize", handleScroll);
-		handleScroll();
-		return () => {
-			window.removeEventListener("scroll", handleScroll);
-			window.removeEventListener("resize", handleScroll);
-		};
-	}, []);
+    // State for animated data
+    const [animatedData, setAnimatedData] = useState<ChartData[]>(
+        baseData.map((item) => ({
+            ...item,
+            costSavedPercent: 0,
+        })),
+    );
 
-	// Smoothly animate the progress toward the target
-	useEffect(() => {
-		setAnimatedProgress(targetProgress);
-		// Trigger animation when chart becomes visible
-		if (targetProgress > 0.3 && !shouldAnimate) {
-			setShouldAnimate(true);
-		}
-	}, [targetProgress, shouldAnimate]);
+    // Trigger animation when in view
+    useEffect(() => {
+        if (isInView) {
+            springProgress.set(1);
+        }
+    }, [isInView, springProgress]);
 
-	// Create animated data based on scroll progress
-	const animatedData = baseData.map((item) => ({
-		...item,
-		"Cost($)": item["Cost($)"] * Math.max(0, Math.min(1, animatedProgress)),
-		"Quality(%)":
-			item["Quality(%)"] * Math.max(0, Math.min(1, animatedProgress)),
-	}));
+    // Update animated data based on spring values
+    useEffect(() => {
+        const unsubscribeCost = animatedCost.on("change", (latest) => {
+            setAnimatedData((prev) =>
+                prev.map((item, index) => {
+                    const baseItem = baseData[index];
+                    return {
+                        ...item,
+                        costSavedPercent: baseItem ? baseItem.costSavedPercent * latest : 0,
+                    };
+                }),
+            );
+        });
 
-	return (
-		<div
-			ref={chartRef}
-			className={`w-full transition-all duration-700 ${
-				animatedProgress > 0
-					? "translate-y-0 opacity-100"
-					: "translate-y-8 opacity-0"
-			}`}
-		>
-			<Card className="w-full p-6 shadow-xl">
-				<h4 className="mb-4 font-semibold text-xl">
-					Cost (Per 1M Token) & Quality Comparison
-				</h4>
-				<ResponsiveContainer width="100%" height={300}>
-					<BarChart
-						data={animatedData} // Use animated data instead of baseData
-						layout="vertical"
-						margin={{ top: 16, right: 16, left: 40, bottom: 32 }}
-					>
-						<CartesianGrid strokeDasharray="3 3" />
-						<XAxis type="number" domain={[0, 20]} xAxisId="left" />
-						<XAxis type="number" domain={[80, 100]} xAxisId="right" hide />
-						<YAxis type="category" dataKey="name" />
-						<Tooltip />
-						<Legend />
-						<Bar
-							xAxisId="left"
-							dataKey="Cost($)"
-							fill={barColors.primary}
-							radius={[0, 8, 8, 0]}
-							barSize={32}
-							isAnimationActive={false} // Disable built-in animation since we're using scroll-based animation
-							animationDuration={0}
-						/>
-						<Bar
-							xAxisId="right"
-							dataKey="Quality(%)"
-							fill={barColors.secondary}
-							radius={[0, 8, 8, 0]}
-							barSize={32}
-							isAnimationActive={false} // Disable built-in animation since we're using scroll-based animation
-							animationDuration={0}
-						/>
-					</BarChart>
-				</ResponsiveContainer>
-			</Card>
-		</div>
-	);
+        return () => {
+            unsubscribeCost();
+        };
+    }, [animatedCost]);
+
+    return (
+        <motion.div
+            ref={chartRef}
+            initial={{ opacity: 0, y: 50 }}
+            animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+            transition={{
+                duration: 0.8,
+                ease: [0.21, 1.11, 0.81, 0.99], // Custom ease for bounce effect
+            }}
+            className="w-full"
+        >
+            <Card className="w-full overflow-hidden p-6 shadow-xl" aria-labelledby="chart-title">
+                <motion.h4
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
+                    transition={{ delay: 0.2, duration: 0.6 }}
+                    className="mb-4 font-semibold text-xl"
+                    id="chart-title"
+                    style={{ color: "#0f172a" }}
+                >
+                    Provider Cost Efficiency Comparison
+                </motion.h4>
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
+                    transition={{
+                        delay: 0.4,
+                        duration: 0.7,
+                        ease: [0.25, 0.46, 0.45, 0.94],
+                    }}
+                >
+                    <ChartContainer config={chartConfig} className="h-[400px] w-full">
+                        <BarChart
+                            data={animatedData}
+                            layout="vertical"
+                            margin={{ top: 16, right: 16, left: 120, bottom: 32 }}
+                        >
+                            <CartesianGrid
+                                strokeDasharray="3 3"
+                                horizontal={true}
+                                vertical={false}
+                                stroke="#e2e8f0"
+                                className="opacity-30"
+                            />
+                            <XAxis
+                                type="number"
+                                domain={[0, 100]}
+                                tickFormatter={(value) => `${value}%`}
+                                tick={{ fill: "#64748b", fontSize: 12 }}
+                            />
+                            <YAxis
+                                type="category"
+                                dataKey="name"
+                                width={120}
+                                fontSize={12}
+                                tick={{ fill: "#64748b", fontSize: 11 }}
+                            />
+                            <ChartTooltip
+                                content={
+                                    <ChartTooltipContent
+                                        formatter={(value, name) => [`${Number(value).toFixed(0)}%`]}
+                                    />
+                                }
+                            />
+                            <Bar
+                                dataKey="costSavedPercent"
+                                radius={[0, 8, 8, 0]}
+                                barSize={30}
+                                isAnimationActive={false}
+                                animationDuration={0}
+                            >
+                                {animatedData.map((entry) => (
+                                    <Cell
+                                        key={`cost-cell-${entry.name}`}
+                                        fill={
+                                            entry.name === "Adaptive"
+                                                ? "#059669" // Green for Adaptive (savings)
+                                                : "#64748b" // Muted gray for others
+                                        }
+                                    />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ChartContainer>
+                </motion.div>
+            </Card>
+        </motion.div>
+    );
 }
