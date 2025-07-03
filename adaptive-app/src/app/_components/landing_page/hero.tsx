@@ -3,8 +3,8 @@
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { MessageSquare, Rocket, Zap } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { forwardRef, useCallback, useRef, useState } from "react";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ const Circle = forwardRef<HTMLDivElement, CircleProps>(
 			<div
 				ref={ref}
 				className={cn(
-					"z-10 flex size-16 items-center justify-center rounded-full border-2 bg-white/90 backdrop-blur-sm p-3 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)] dark:bg-neutral-800/90",
+					"z-10 flex size-16 items-center justify-center rounded-full border-2 bg-white/90 p-3 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)] backdrop-blur-sm dark:bg-neutral-800/90",
 					className,
 				)}
 			>
@@ -162,8 +162,9 @@ export default function HeroSection() {
 						</h1>
 
 						<p className="mx-auto mt-8 max-w-3xl text-balance text-muted-foreground">
-							Adaptive intelligently routes your queries to the best AI model for each task. 
-							Get optimal results while reducing costs by up to 90% compared to using premium models for everything.
+							Adaptive intelligently routes your queries to the best AI model
+							for each task. Get optimal results while reducing costs by up to
+							90% compared to using premium models for everything.
 						</p>
 
 						{/* Animated Beam Visualization */}
@@ -244,7 +245,7 @@ export default function HeroSection() {
 												alt="Anthropic"
 												width={32}
 												height={32}
-												className="h-8 w-8 object-contain rounded-sm"
+												className="h-8 w-8 rounded-sm object-contain"
 											/>
 										</Circle>
 									</motion.div>
