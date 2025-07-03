@@ -19,9 +19,7 @@ from adaptive_ai.models.llm_orchestration_models import (
 
 
 class ProtocolSelectionOutput(BaseModel):
-    protocol: str = Field(
-        description="The protocol to use: standard_llm, minion, or minions_protocol"
-    )
+    protocol: str = Field(description="The protocol to use: standard_llm or minion")
     provider: str = Field(
         description="The provider to use (e.g., OpenAI, DeepSeek, Groq, etc.)"
     )
@@ -105,10 +103,6 @@ class ProtocolManager:
             "   - **Recommendation: Favor 'minion' for simple, well-defined questions "
             "     where a specialized model can maintain high quality and efficiency.**\n"
             "   - Alternatives: List of alternative HuggingFace models (model, base_url).\n"
-            "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
-            "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
-            "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
-            "   - Payload: Includes both standard_llm and minion info.\n"
         )
 
         self.parameter_descriptions = (
@@ -196,8 +190,6 @@ class ProtocolManager:
                 "For standard_llm, return alternatives as a list of objects with "
                 "provider and model.\n"
                 "For minion, return alternatives as a list of objects with model and optionally base_url.\n"
-                "For minions_protocol, you may include both standard_llm and minion "
-                "info.\n"
             )
 
             user_query_content = (
@@ -209,8 +201,7 @@ class ProtocolManager:
                 f"Designated minion (HuggingFace specialist) for this task type: {minion_model}\n\n"
                 "Choose between:\n"
                 "- standard_llm: Use only a remote model\n"
-                "- minion: Use only the designated HuggingFace specialist\n"
-                "- minions_protocol: Use both remote model AND minion together (hybrid)\n\n"
+                "- minion: Use only the designated HuggingFace specialist\n\n"
                 "Please output the JSON object directly, with no additional text or "
                 "explanations."
             )
