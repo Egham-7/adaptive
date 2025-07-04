@@ -1,6 +1,8 @@
+"use client";
+
 import { SignUpButton } from "@clerk/nextjs";
 import { Check, Zap } from "lucide-react";
-import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -11,21 +13,53 @@ import {
 } from "@/components/ui/card";
 
 export default function Pricing() {
+	const [isAnnual, setIsAnnual] = useState(true);
 	return (
-		<section className="overflow-hidden py-16 md:py-32">
+		<section id="pricing" className="overflow-hidden py-16 md:py-32">
 			<div className="mx-auto max-w-6xl px-6">
 				<div className="mx-auto max-w-2xl space-y-6 text-center">
-					<h1 className="text-balance text-center font-display font-semibold text-4xl lg:text-5xl">
-						Pay Only for What You Use
-					</h1>
+					<h2 className="text-balance text-center font-display font-semibold text-4xl lg:text-5xl">
+						API Pricing
+					</h2>
 					<p className="text-muted-foreground">
-						Adaptive&apos;s usage-based pricing ensures you only pay for the
-						resources you consume. Scale up or down instantly with no upfront
-						commitments or hidden fees.
+						Simple, transparent pricing for our AI routing API. Chatbot pricing
+						available in the chat app.
 					</p>
+
+					{/* Billing Toggle */}
+					<div className="mt-8 flex items-center justify-center gap-4">
+						<span
+							className={`text-sm ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}
+						>
+							Monthly
+						</span>
+						<button
+							type="button"
+							onClick={() => setIsAnnual(!isAnnual)}
+							className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+								isAnnual ? "bg-primary" : "bg-muted"
+							}`}
+						>
+							<span
+								className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+									isAnnual ? "translate-x-6" : "translate-x-1"
+								}`}
+							/>
+						</button>
+						<span
+							className={`text-sm ${isAnnual ? "text-foreground" : "text-muted-foreground"}`}
+						>
+							Annual
+						</span>
+						{isAnnual && (
+							<span className="rounded-full border bg-accent px-2 py-1 text-accent-foreground text-xs">
+								Save 20%
+							</span>
+						)}
+					</div>
 				</div>
 
-				<div className="mt-8 grid gap-6 md:mt-20 md:grid-cols-3">
+				<div className="mx-auto mt-8 grid max-w-4xl gap-6 md:mt-20 md:grid-cols-2">
 					<Card>
 						<CardHeader>
 							<CardTitle className="font-medium">Developer</CardTitle>
@@ -36,7 +70,7 @@ export default function Pricing() {
 								</span>
 							</div>
 							<CardDescription className="text-sm">
-								No minimum spend, pay as you go
+								Perfect for development and testing
 							</CardDescription>
 							<Button asChild variant="outline" className="mt-4 w-full">
 								<SignUpButton />
@@ -51,7 +85,9 @@ export default function Pricing() {
 									"Standard API access",
 									"Community support",
 									"$10 free credit to start",
-									"No credit card required",
+									"No minimum commitment",
+									"Rate limiting: 1K req/hour",
+									"Email support",
 								].map((item, _index) => (
 									<li key={item} className="flex items-center gap-2">
 										<Check className="size-3 text-primary" />
@@ -69,13 +105,16 @@ export default function Pricing() {
 						<CardHeader>
 							<CardTitle className="font-medium">Business</CardTitle>
 							<div className="my-3 flex items-baseline">
-								<span className="font-semibold text-2xl">$0.004</span>
+								<span className="font-semibold text-2xl">
+									${isAnnual ? "200" : "20"}
+								</span>
 								<span className="ml-1 text-muted-foreground text-sm">
-									/ 1K tokens
+									/ member / {isAnnual ? "year" : "month"}
 								</span>
 							</div>
 							<CardDescription className="text-sm">
-								$100 minimum monthly spend
+								{isAnnual ? "Annual" : "Monthly"} licensing fee per team member
+								{isAnnual && " (20% savings vs monthly)"}
 							</CardDescription>
 							<Button
 								asChild
@@ -93,57 +132,18 @@ export default function Pricing() {
 							<hr className="border-dashed" />
 							<ul className="list-outside space-y-3 text-sm">
 								{[
-									"20% volume discount",
-									"Advanced LLM routing",
-									"Multi-model fallbacks",
+									"Everything in Developer",
+									"Advanced smart routing",
+									"Multi-provider failover",
 									"Priority email support",
-									"Usage analytics dashboard",
+									"Analytics & observability",
+									"Team management dashboard",
 									"Custom API keys",
-									"Request caching",
+									"Advanced caching",
 									"Webhook integrations",
-									"Team access controls",
 									"99.9% uptime SLA",
-								].map((item, _index) => (
-									<li key={item} className="flex items-center gap-2">
-										<Check className="size-3 text-primary" />
-										{item}
-									</li>
-								))}
-							</ul>
-						</CardContent>
-					</Card>
-
-					<Card className="flex flex-col">
-						<CardHeader>
-							<CardTitle className="font-medium">Enterprise</CardTitle>
-							<div className="my-3 flex items-baseline">
-								<span className="font-semibold text-2xl">Custom</span>
-							</div>
-							<CardDescription className="text-sm">
-								Volume-based discounts available
-							</CardDescription>
-							<Button
-								asChild
-								variant="outline"
-								className="mt-4 w-full border-primary text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
-							>
-								<Link href="/">Contact Sales</Link>
-							</Button>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							<hr className="border-dashed" />
-							<ul className="list-outside space-y-3 text-sm">
-								{[
-									"Volume-based pricing",
+									"Higher rate limits (10K req/hour)",
 									"Dedicated account manager",
-									"Custom SLAs and support",
-									"Advanced cost optimization",
-									"Private model deployment",
-									"Custom model fine-tuning",
-									"Enterprise SSO",
-									"Audit logs & compliance",
-									"On-premise deployment options",
-									"MSA and custom contracts",
 								].map((item, _index) => (
 									<li key={item} className="flex items-center gap-2">
 										<Check className="size-3 text-primary" />
@@ -153,36 +153,6 @@ export default function Pricing() {
 							</ul>
 						</CardContent>
 					</Card>
-				</div>
-
-				<div className="mx-auto mt-16 max-w-3xl ">
-					<div className="rounded-xl border bg-card p-6">
-						<h3 className="mb-4 font-medium text-lg">Volume Discounts</h3>
-						<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-							<div className="rounded-md border bg-background p-4">
-								<div className="font-medium text-muted-foreground text-sm">
-									1M - 10M tokens/month
-								</div>
-								<div className="mt-2 font-semibold text-xl">10% off</div>
-							</div>
-							<div className="rounded-md border bg-background p-4">
-								<div className="font-medium text-muted-foreground text-sm">
-									10M - 50M tokens/month
-								</div>
-								<div className="mt-2 font-semibold text-xl">20% off</div>
-							</div>
-							<div className="rounded-md border bg-background p-4">
-								<div className="font-medium text-muted-foreground text-sm">
-									50M+ tokens/month
-								</div>
-								<div className="mt-2 font-semibold text-xl">Contact us</div>
-							</div>
-						</div>
-						<p className="mt-4 text-muted-foreground text-sm">
-							All plans include access to our core infrastructure. Volume
-							discounts are applied automatically based on your monthly usage.
-						</p>
-					</div>
 				</div>
 			</div>
 		</section>
