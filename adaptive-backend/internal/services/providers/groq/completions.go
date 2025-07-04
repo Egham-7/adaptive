@@ -57,16 +57,16 @@ func mapToGroqModel(requestedModel string) string {
 	// Map of supported production models
 	supportedModels := map[string]bool{
 		// Production Models
-		"distil-whisper-large-v3-en":        true,
-		"gemma2-9b-it":                      true,
-		"llama-3.1-8b-instant":              true,
-		"llama-3.3-70b-versatile":           true,
-		"meta-llama/llama-guard-4-12b":      true,
-		"whisper-large-v3":                  true,
-		"whisper-large-v3-turbo":            true,
-		
+		"distil-whisper-large-v3-en":   true,
+		"gemma2-9b-it":                 true,
+		"llama-3.1-8b-instant":         true,
+		"llama-3.3-70b-versatile":      true,
+		"meta-llama/llama-guard-4-12b": true,
+		"whisper-large-v3":             true,
+		"whisper-large-v3-turbo":       true,
+
 		// Preview Models
-		"deepseek-r1-distill-llama-70b":               true,
+		"deepseek-r1-distill-llama-70b":                 true,
 		"meta-llama/llama-4-maverick-17b-128e-instruct": true,
 		"meta-llama/llama-4-scout-17b-16e-instruct":     true,
 		"meta-llama/llama-prompt-guard-2-22m":           true,
@@ -76,7 +76,7 @@ func mapToGroqModel(requestedModel string) string {
 		"playai-tts-arabic":                             true,
 		"qwen-qwq-32b":                                  true,
 		"qwen/qwen3-32b":                                true,
-		
+
 		// Preview Systems
 		"compound-beta":      true,
 		"compound-beta-mini": true,

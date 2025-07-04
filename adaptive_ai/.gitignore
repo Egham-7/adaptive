@@ -64,3 +64,4 @@ Thumbs.db
 *.ckpt
 data/
 hf_cache/
+.ipynb_checkpoints/

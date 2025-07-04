@@ -14,7 +14,6 @@ import (
 	"adaptive-backend/internal/services/protocol_manager"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -131,18 +130,13 @@ func (h *CompletionHandler) selectProtocol(
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	prompt, err := utils.FindLastUserMessage(req.Messages)
-	if err != nil {
-		return nil, fmt.Errorf("invalid message format: %w", err)
-	}
-
 	var costBias *float32
 	if req.CostBias != 0 {
 		costBias = &req.CostBias
 	}
 
 	selReq := models.ModelSelectionRequest{
-		Prompt:             prompt,
+		Messages:           req.Messages,
 		ProviderConstraint: req.ProviderConstraint,
 		CostBias:           costBias,
 	}

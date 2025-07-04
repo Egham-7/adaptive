@@ -7,19 +7,19 @@ import (
 
 // StreamingMetrics holds all Prometheus metrics related to streaming operations
 type StreamingMetrics struct {
-	StreamDuration        *prometheus.HistogramVec
-	StreamsActive         prometheus.Gauge
-	StreamsTotal          *prometheus.CounterVec
-	BytesStreamed         *prometheus.CounterVec
-	StreamErrors          *prometheus.CounterVec
-	BufferPoolSize        *prometheus.GaugeVec
-	BufferPoolHits        *prometheus.CounterVec
-	BufferPoolMisses      *prometheus.CounterVec
-	ChunkSize             prometheus.Histogram
-	FlushFrequency        prometheus.Histogram
-	ConnectionDrops       *prometheus.CounterVec
-	BackpressureEvents    prometheus.Counter
-	MemoryUsage           prometheus.Gauge
+	StreamDuration     *prometheus.HistogramVec
+	StreamsActive      prometheus.Gauge
+	StreamsTotal       *prometheus.CounterVec
+	BytesStreamed      *prometheus.CounterVec
+	StreamErrors       *prometheus.CounterVec
+	BufferPoolSize     *prometheus.GaugeVec
+	BufferPoolHits     *prometheus.CounterVec
+	BufferPoolMisses   *prometheus.CounterVec
+	ChunkSize          prometheus.Histogram
+	FlushFrequency     prometheus.Histogram
+	ConnectionDrops    *prometheus.CounterVec
+	BackpressureEvents prometheus.Counter
+	MemoryUsage        prometheus.Gauge
 }
 
 // NewStreamingMetrics initializes and registers all streaming-related Prometheus metrics

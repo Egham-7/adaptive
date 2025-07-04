@@ -66,10 +66,10 @@ type ModelCapability struct {
 
 // ModelSelectionRequest represents an incoming selection request.
 type ModelSelectionRequest struct {
-	Prompt             string   `json:"prompt"`
-	UserID             *string  `json:"user_id,omitempty"`
-	ProviderConstraint []string `json:"provider_constraint,omitempty"`
-	CostBias           *float32 `json:"cost_bias,omitempty"`
+	Messages           []openai.ChatCompletionMessageParamUnion `json:"messages"`
+	UserID             *string                                  `json:"user_id,omitempty"`
+	ProviderConstraint []string                                 `json:"provider_constraint,omitempty"`
+	CostBias           *float32                                 `json:"cost_bias,omitempty"`
 }
 
 // OpenAIParameters aliases the ChatCompletion params type from OpenAI Go SDK.

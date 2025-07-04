@@ -155,7 +155,7 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 		if attempt > 0 {
 			// Record retry
 			c.metrics.RecordRetry(method, "network_error")
-			
+
 			// Wait before retry with exponential backoff
 			delay := time.Duration(attempt) * opts.RetryDelay
 			time.Sleep(delay)

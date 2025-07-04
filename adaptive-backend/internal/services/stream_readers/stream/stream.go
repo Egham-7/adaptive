@@ -75,7 +75,6 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 	return nil
 }
 
-
 func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, startTime time.Time, totalBytesPtr *int64) error {
 	// Get buffer from pool - start with medium size for typical streaming
 	buffer := bufferManager.GetBuffer(4096)
