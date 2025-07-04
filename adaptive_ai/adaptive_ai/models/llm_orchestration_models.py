@@ -1,5 +1,6 @@
+from typing import Any
+
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, Union, Any
 
 from .llm_enums import ProtocolType  # Import enum
 
@@ -8,12 +9,12 @@ from .llm_enums import ProtocolType  # Import enum
 class LogprobsContent(BaseModel):
     token: str
     logprob: float
-    bytes: Optional[list[int]] = None
-    top_logprobs: Optional[list[dict[str, Any]]] = None
+    bytes: list[int] | None = None
+    top_logprobs: list[dict[str, Any]] | None = None
 
 
 class Logprobs(BaseModel):
-    content: Optional[list[LogprobsContent]] = None
+    content: list[LogprobsContent] | None = None
 
 
 class OpenAIParameters(BaseModel):
