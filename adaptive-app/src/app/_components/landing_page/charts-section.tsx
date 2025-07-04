@@ -1,4 +1,4 @@
-import ComparisonChart from "./ComparisonChart";
+import ComparisonChart from "./comparison-chart";
 
 export default function ChartsSection() {
 	return (

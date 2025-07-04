@@ -1,8 +1,8 @@
 "use client";
 
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Book, ChevronDown, Github, Menu, X } from "lucide-react";
-import Link from "next/link";
+import { Book, ChevronDown, Github, Loader2, Menu, X } from "lucide-react";
+import Link, { useLinkStatus } from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,23 @@ const iconMenuItems = [
 		external: true,
 	},
 ];
+
+function LoadingLink({
+	href,
+	children,
+}: {
+	href: string;
+	children: React.ReactNode;
+}) {
+	const { pending } = useLinkStatus();
+
+	return (
+		<Link href={href} className="flex items-center gap-2">
+			{pending && <Loader2 className="h-4 w-4 animate-spin" />}
+			{children}
+		</Link>
+	);
+}
 
 export default function Header() {
 	const [menuState, setMenuState] = useState(false);
@@ -88,12 +105,17 @@ export default function Header() {
 												<span>{item.name}</span>
 											</a>
 										) : (
-											<Link
+											<a
 												href={item.href}
-												className="text-muted-foreground duration-150 hover:text-accent-foreground"
+												className="cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
+												onClick={(e) => {
+													e.preventDefault();
+													const target = document.querySelector(item.href);
+													target?.scrollIntoView({ behavior: "smooth" });
+												}}
 											>
 												<span>{item.name}</span>
-											</Link>
+											</a>
 										)}
 									</li>
 								))}
@@ -186,10 +208,14 @@ export default function Header() {
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
 										<DropdownMenuItem asChild>
-											<Link href="/chat-platform">Chatbot App</Link>
+											<LoadingLink href="/chat-platform">
+												Chatbot App
+											</LoadingLink>
 										</DropdownMenuItem>
 										<DropdownMenuItem asChild>
-											<Link href="/api-platform">API Platform</Link>
+											<LoadingLink href="/api-platform">
+												API Platform
+											</LoadingLink>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
@@ -214,12 +240,18 @@ export default function Header() {
 													<span>{item.name}</span>
 												</a>
 											) : (
-												<Link
+												<a
 													href={item.href}
-													className="block text-muted-foreground duration-150 hover:text-accent-foreground"
+													className="block cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
+													onClick={(e) => {
+														e.preventDefault();
+														const target = document.querySelector(item.href);
+														target?.scrollIntoView({ behavior: "smooth" });
+														setMenuState(false);
+													}}
 												>
 													<span>{item.name}</span>
-												</Link>
+												</a>
 											)}
 										</li>
 									))}
@@ -311,10 +343,14 @@ export default function Header() {
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
 											<DropdownMenuItem asChild>
-												<Link href="/chat-platform">Chatbot App</Link>
+												<LoadingLink href="/chat-platform">
+													Chatbot App
+												</LoadingLink>
 											</DropdownMenuItem>
 											<DropdownMenuItem asChild>
-												<Link href="/api-platform">API Platform</Link>
+												<LoadingLink href="/api-platform">
+													API Platform
+												</LoadingLink>
 											</DropdownMenuItem>
 										</DropdownMenuContent>
 									</DropdownMenu>
