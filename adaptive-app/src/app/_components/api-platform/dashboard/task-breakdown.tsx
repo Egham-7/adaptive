@@ -1,7 +1,6 @@
 "use client";
 
 import { Code, FileText, Globe, HelpCircle, TrendingUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
@@ -65,12 +64,8 @@ export function TaskBreakdown({
 											<h3 className="font-medium text-foreground">
 												{task.name}
 											</h3>
-											<div className="mt-1 flex items-center gap-2 text-muted-foreground text-xs">
-												<span>{task.requests} requests</span>
-												<span>•</span>
-												<span>{task.inputTokens} in</span>
-												<span>•</span>
-												<span>{task.outputTokens} out</span>
+											<div className="mt-1 text-muted-foreground text-xs">
+												{task.requests} requests
 											</div>
 										</div>
 									</div>
@@ -78,25 +73,24 @@ export function TaskBreakdown({
 										<div className="font-semibold text-foreground text-lg">
 											{task.cost}
 										</div>
-										<Badge variant="secondary" className="text-xs">
-											{task.percentage}% saved
-										</Badge>
+										<div className="text-green-600 text-xs dark:text-green-400">
+											{task.savings} saved vs {currentProvider?.name || "Single Provider"}
+										</div>
 									</div>
 								</div>
 
-								{/* Simple progress bar */}
+								{/* Comparison info */}
 								<div className="space-y-2">
 									<div className="flex justify-between text-muted-foreground text-xs">
 										<span>Adaptive: {task.cost}</span>
 										<span>
-											{currentProvider?.name || "Single provider"}:{" "}
-											{task.comparisonCost}
+											{currentProvider?.name || "Single Provider"}: {task.comparisonCost}
 										</span>
 									</div>
 									<div className="h-2 overflow-hidden rounded-full bg-muted">
 										<div
-											className="h-full rounded-full bg-primary transition-all duration-300"
-											style={{ width: `${100 - task.percentage}%` }}
+											className="h-full rounded-full bg-green-600 transition-all duration-300"
+											style={{ width: `${task.percentage}%` }}
 										/>
 									</div>
 								</div>

@@ -7,15 +7,12 @@ import { useDateRange } from "@/hooks/use-date-range";
 import type { DashboardFilters } from "@/types/api-platform/dashboard";
 import { DashboardHeader } from "../_components/api-platform/dashboard/dashboard-header";
 import { MetricsOverview } from "../_components/api-platform/dashboard/metrics-overview";
-import { ProviderComparisonChart } from "../_components/api-platform/dashboard/provider-comparison-chart";
-import { SavingsEfficiencyChart } from "../_components/api-platform/dashboard/savings-efficiency-chart";
-import { TaskBreakdown } from "../_components/api-platform/dashboard/task-breakdown";
 import { TaskDistributionChart } from "../_components/api-platform/dashboard/task-distribution-chart";
 import { UsageSection } from "../_components/api-platform/dashboard/usage-section";
 
 export default function DashboardPage() {
 	const { dateRange, setDateRange } = useDateRange();
-	const [selectedProvider, setSelectedProvider] = useState("openai-gpt4");
+	const [selectedProvider, setSelectedProvider] = useState("openai");
 
 	const filters: DashboardFilters = {
 		dateRange,
@@ -105,59 +102,24 @@ export default function DashboardPage() {
 						Usage Analytics
 					</h2>
 					<div className="text-gray-500 text-sm dark:text-gray-400">
-						Spend trends and budget tracking
+						Spend trends over time
 					</div>
 				</div>
-				<UsageSection
-					data={data}
-					loading={loading}
-					selectedProvider={selectedProvider}
-					providers={data?.providers || []}
-				/>
-			</section>
-
-			{/* Divider */}
-			<div className="border-gray-200 border-t dark:border-gray-800" />
-
-			{/* Task Analysis Section */}
-			<section className="space-y-4">
-				<div className="flex items-center justify-between">
-					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
-						Task Analysis
-					</h2>
-					<div className="text-gray-500 text-sm dark:text-gray-400">
-						Performance breakdown by task type
+				<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+					<div className="lg:col-span-2">
+						<UsageSection
+							data={data}
+							loading={loading}
+							selectedProvider={selectedProvider}
+							providers={data?.providers || []}
+						/>
 					</div>
-				</div>
-				<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-					<TaskBreakdown
-						data={data}
-						loading={loading}
-						selectedProvider={selectedProvider}
-						providers={data?.providers || []}
-					/>
 					<TaskDistributionChart data={data} loading={loading} />
 				</div>
 			</section>
 
 			{/* Divider */}
 			<div className="border-gray-200 border-t dark:border-gray-800" />
-
-			{/* Provider Comparison Section */}
-			<section className="space-y-4">
-				<div className="flex items-center justify-between">
-					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
-						Provider Comparison
-					</h2>
-					<div className="text-gray-500 text-sm dark:text-gray-400">
-						Cost analysis across providers
-					</div>
-				</div>
-				<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-					<ProviderComparisonChart data={data} loading={loading} />
-					<SavingsEfficiencyChart data={data} loading={loading} />
-				</div>
-			</section>
 		</div>
 	);
 }

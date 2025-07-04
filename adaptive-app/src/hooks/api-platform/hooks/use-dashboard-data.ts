@@ -124,28 +124,46 @@ const generateMockData = (filters: DashboardFilters): DashboardData => {
 
 	const providers = [
 		{
-			id: "openai-gpt4",
-			name: "OpenAI GPT-4",
+			id: "openai",
+			name: "OpenAI",
 			icon: "/logos/openai.svg",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 2.3 },
 		},
 		{
-			id: "anthropic-claude",
-			name: "Anthropic Claude",
+			id: "anthropic",
+			name: "Anthropic",
 			icon: "/logos/anthropic.svg",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.98 },
 		},
 		{
-			id: "google-gemini",
-			name: "Google Gemini",
+			id: "gemini",
+			name: "Gemini",
 			icon: "/logos/google.svg",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.71 },
 		},
 		{
-			id: "cohere-command",
-			name: "Cohere Command",
+			id: "cohere",
+			name: "Cohere",
 			icon: "/logos/cohere.svg",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.61 },
+		},
+		{
+			id: "grok",
+			name: "Grok",
+			icon: "/logos/grok.svg",
+			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 2.1 },
+		},
+		{
+			id: "groq",
+			name: "Groq",
+			icon: "/logos/groq.svg",
+			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.85 },
+		},
+		{
+			id: "deepseek",
+			name: "Deepseek",
+			icon: "/logos/deepseek.svg",
+			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.45 },
 		},
 	];
 
@@ -183,12 +201,7 @@ export function useDashboardData(filters: DashboardFilters) {
 		} finally {
 			setLoading(false);
 		}
-	}, [
-		filters.dateRange?.from,
-		filters.dateRange?.to,
-		filters.provider,
-		filters,
-	]);
+	}, [filters.dateRange?.from, filters.dateRange?.to, filters.provider]);
 
 	useEffect(() => {
 		fetchData();

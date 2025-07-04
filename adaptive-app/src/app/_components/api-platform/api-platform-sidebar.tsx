@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import { ModeToggle } from "../mode-toggle";
 
 export function APIPlatformSidebar() {
 	const links = [
@@ -49,7 +50,7 @@ export function APIPlatformSidebar() {
 						))}
 					</div>
 				</div>
-				<div>
+				<div className="flex items-center justify-between gap-2">
 					<SidebarLink
 						link={{
 							label: "Manu Arora",
@@ -65,6 +66,7 @@ export function APIPlatformSidebar() {
 							),
 						}}
 					/>
+					<ModeToggle />
 				</div>
 			</SidebarBody>
 		</Sidebar>

@@ -30,11 +30,11 @@ export function UsageChart({
 			config={{
 				adaptive: {
 					label: "Adaptive Cost",
-					color: "#8b5cf6",
+					color: "#b45309", // Coffee brown
 				},
 				singleProvider: {
-					label: providerName,
-					color: "#6b7280",
+					label: `${providerName} Cost`,
+					color: "#78716c", // Espresso brown (lighter for comparison)
 				},
 			}}
 			className="h-[300px] w-full"
@@ -62,25 +62,19 @@ export function UsageChart({
 						tickLine={false}
 						tickFormatter={(value) => `$${value}`}
 					/>
-					<ChartTooltip
-						content={<ChartTooltipContent />}
-						formatter={(value: number | string, name: string) => [
-							`$${value}`,
-							name === "adaptive" ? "Adaptive" : providerName,
-						]}
-					/>
+					<ChartTooltip content={<ChartTooltipContent />} />
 					<Legend />
 					<Bar
 						dataKey="adaptive"
-						fill="#8b5cf6"
+						fill="#b45309"
 						radius={[2, 2, 0, 0]}
 						name="Adaptive Cost"
 					/>
 					<Bar
 						dataKey="singleProvider"
-						fill="#6b7280"
+						fill="#78716c"
 						radius={[2, 2, 0, 0]}
-						opacity={0.3}
+						opacity={0.6}
 						name={`${providerName} Cost`}
 					/>
 				</BarChart>
