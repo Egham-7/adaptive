@@ -49,7 +49,7 @@ func extractTextFromParts(parts []openai.ChatCompletionContentPartUnionParam) st
 }
 
 // ExtractLastMessage extracts content from the last message for cache key generation.
-// This supports all message roles (user, assistant, system, developer, tool, function).
+// This supports all message roles (user, assistant, system, developer, tool).
 func ExtractLastMessage(messages []openai.ChatCompletionMessageParamUnion) (string, error) {
 	if len(messages) == 0 {
 		return "", fmt.Errorf("no messages provided")
