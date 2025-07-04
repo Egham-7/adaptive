@@ -104,4 +104,3 @@ func (m *APIClientMetrics) UpdateActiveConnections(count int) {
 func (m *APIClientMetrics) RecordNewConnection() {
 	m.ConnectionsTotal.Inc()
 }
-

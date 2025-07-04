@@ -10,24 +10,24 @@ import (
 
 // SystemMetrics holds all Prometheus metrics related to system-level operations
 type SystemMetrics struct {
-	MemoryUsage          *prometheus.GaugeVec
-	GoroutineCount       prometheus.Gauge
-	GCDuration           prometheus.Histogram
-	GCFrequency          prometheus.Counter
-	CPUUsage             prometheus.Gauge
-	HeapObjects          prometheus.Gauge
-	StackInuse           prometheus.Gauge
-	NextGC               prometheus.Gauge
-	LastGC               prometheus.Gauge
-	Uptime               prometheus.Gauge
-	GoVersion            *prometheus.GaugeVec
-	NumCPU               prometheus.Gauge
-	CGOCalls             prometheus.Counter
-	ThreadsCreated       prometheus.Counter
-	MemoryAllocations    prometheus.Counter
-	MemoryDeallocations  prometheus.Counter
-	LookupLatency        prometheus.Histogram
-	MutexContention      prometheus.Counter
+	MemoryUsage         *prometheus.GaugeVec
+	GoroutineCount      prometheus.Gauge
+	GCDuration          prometheus.Histogram
+	GCFrequency         prometheus.Counter
+	CPUUsage            prometheus.Gauge
+	HeapObjects         prometheus.Gauge
+	StackInuse          prometheus.Gauge
+	NextGC              prometheus.Gauge
+	LastGC              prometheus.Gauge
+	Uptime              prometheus.Gauge
+	GoVersion           *prometheus.GaugeVec
+	NumCPU              prometheus.Gauge
+	CGOCalls            prometheus.Counter
+	ThreadsCreated      prometheus.Counter
+	MemoryAllocations   prometheus.Counter
+	MemoryDeallocations prometheus.Counter
+	LookupLatency       prometheus.Histogram
+	MutexContention     prometheus.Counter
 }
 
 var startTime = time.Now()

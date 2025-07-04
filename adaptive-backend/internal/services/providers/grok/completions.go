@@ -56,9 +56,9 @@ func mapToGrokModel(requestedModel string) string {
 
 	// Map of supported models
 	supportedModels := map[string]bool{
-		"grok-beta":    true,
-		"grok-3":       true,
-		"grok-3-mini":  true,
+		"grok-beta":   true,
+		"grok-3":      true,
+		"grok-3-mini": true,
 	}
 
 	// If the requested model is supported, use it

@@ -1,9 +1,11 @@
 "use client";
 
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { ChevronDown, Menu, X } from "lucide-react";
-import Link from "next/link";
+import { ChevronDown, Loader2, Menu, X } from "lucide-react";
+import Link, { useLinkStatus } from "next/link";
 import { useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import { HiOutlineDocumentText } from "react-icons/hi2";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -14,12 +16,50 @@ import {
 import { Logo } from "../logo";
 import { ModeToggle } from "../mode-toggle";
 
-const menuItems = [
+const menuItems: MenuItem[] = [
 	{ name: "Features", href: "#features" },
 	{ name: "Solution", href: "#solution" },
 	{ name: "Pricing", href: "#pricing" },
 	{ name: "About", href: "#about" },
 ];
+
+type MenuItem = {
+	name: string;
+	href: string;
+	external?: boolean;
+};
+
+const iconMenuItems = [
+	{
+		name: "Docs",
+		href: "https://docs.adaptive.dev",
+		icon: HiOutlineDocumentText,
+		external: true,
+	},
+	{
+		name: "GitHub",
+		href: "https://github.com/Egham-7/adaptive",
+		icon: FaGithub,
+		external: true,
+	},
+];
+
+function LoadingLink({
+	href,
+	children,
+}: {
+	href: string;
+	children: React.ReactNode;
+}) {
+	const { pending } = useLinkStatus();
+
+	return (
+		<Link href={href} className="flex items-center gap-2">
+			{pending && <Loader2 className="h-4 w-4 animate-spin" />}
+			{children}
+		</Link>
+	);
+}
 
 export default function Header() {
 	const [menuState, setMenuState] = useState(false);
@@ -57,15 +97,51 @@ export default function Header() {
 							<ul className="flex gap-8 text-sm">
 								{menuItems.map((item) => (
 									<li key={item.name}>
-										<Link
-											href={item.href}
-											className="text-muted-foreground duration-150 hover:text-accent-foreground"
-										>
-											<span>{item.name}</span>
-										</Link>
+										{item.external ? (
+											<a
+												href={item.href}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="text-muted-foreground duration-150 hover:text-accent-foreground"
+											>
+												<span>{item.name}</span>
+											</a>
+										) : (
+											<a
+												href={item.href}
+												className="cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
+												onClick={(e) => {
+													e.preventDefault();
+													const target = document.querySelector(item.href);
+													target?.scrollIntoView({ behavior: "smooth" });
+												}}
+											>
+												<span>{item.name}</span>
+											</a>
+										)}
 									</li>
 								))}
 							</ul>
+						</div>
+
+						{/* Icon links - docs and GitHub */}
+						<div className="hidden lg:flex lg:items-center lg:gap-3">
+							{iconMenuItems.map((item) => {
+								const Icon = item.icon;
+								return (
+									<a
+										key={item.name}
+										href={item.href}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="flex items-center gap-2 text-muted-foreground duration-150 hover:text-accent-foreground"
+										title={item.name}
+									>
+										<Icon size={20} />
+										<span className="text-sm">{item.name}</span>
+									</a>
+								);
+							})}
 						</div>
 
 						{/* Buttons section - hidden on mobile, shown on desktop */}
@@ -135,10 +211,14 @@ export default function Header() {
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
 										<DropdownMenuItem asChild>
-											<Link href="/chat-platform">Chatbot App</Link>
+											<LoadingLink href="/chat-platform">
+												Chatbot App
+											</LoadingLink>
 										</DropdownMenuItem>
 										<DropdownMenuItem asChild>
-											<Link href="/api-platform">API Platform</Link>
+											<LoadingLink href="/api-platform">
+												API Platform
+											</LoadingLink>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
@@ -153,15 +233,51 @@ export default function Header() {
 								<ul className="space-y-6 text-base lg:flex lg:justify-center lg:gap-8 lg:space-y-0 lg:text-sm">
 									{menuItems.map((item) => (
 										<li key={item.name}>
-											<Link
-												href={item.href}
-												className="block text-muted-foreground duration-150 hover:text-accent-foreground"
-											>
-												<span>{item.name}</span>
-											</Link>
+											{item.external ? (
+												<a
+													href={item.href}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="block text-muted-foreground duration-150 hover:text-accent-foreground"
+												>
+													<span>{item.name}</span>
+												</a>
+											) : (
+												<a
+													href={item.href}
+													className="block cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
+													onClick={(e) => {
+														e.preventDefault();
+														const target = document.querySelector(item.href);
+														target?.scrollIntoView({ behavior: "smooth" });
+														setMenuState(false);
+													}}
+												>
+													<span>{item.name}</span>
+												</a>
+											)}
 										</li>
 									))}
 								</ul>
+
+								{/* Icon links for mobile */}
+								<div className="flex justify-center gap-6 pt-4">
+									{iconMenuItems.map((item) => {
+										const Icon = item.icon;
+										return (
+											<a
+												key={item.name}
+												href={item.href}
+												target="_blank"
+												rel="noopener noreferrer"
+												className="flex items-center gap-2 text-muted-foreground duration-150 hover:text-accent-foreground"
+											>
+												<Icon size={20} />
+												<span>{item.name}</span>
+											</a>
+										);
+									})}
+								</div>
 							</div>
 
 							<div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:border-l lg:pl-6">
@@ -230,10 +346,14 @@ export default function Header() {
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
 											<DropdownMenuItem asChild>
-												<Link href="/chat-platform">Chatbot App</Link>
+												<LoadingLink href="/chat-platform">
+													Chatbot App
+												</LoadingLink>
 											</DropdownMenuItem>
 											<DropdownMenuItem asChild>
-												<Link href="/api-platform">API Platform</Link>
+												<LoadingLink href="/api-platform">
+													API Platform
+												</LoadingLink>
 											</DropdownMenuItem>
 										</DropdownMenuContent>
 									</DropdownMenu>

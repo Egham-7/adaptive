@@ -17,7 +17,7 @@ const logos2 = [
 
 export default function ContentSection() {
 	return (
-		<section className="py-16 md:py-32">
+		<section id="solution" className="py-16 md:py-32">
 			<div className="mx-auto max-w-5xl space-y-8 px-6 md:space-y-16">
 				<h2 className="relative z-10 max-w-xl font-medium text-4xl lg:text-5xl">
 					The Adaptive ecosystem brings together our powerful models.

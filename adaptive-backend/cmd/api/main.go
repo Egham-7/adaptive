@@ -28,7 +28,7 @@ import (
 // SetupRoutes configures all the application routes for the Fiber app.
 func SetupRoutes(app *fiber.App) {
 	chatCompletionHandler := api.NewCompletionHandler()
-	
+
 	// Apply API key authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.APIKeyAuth())
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)

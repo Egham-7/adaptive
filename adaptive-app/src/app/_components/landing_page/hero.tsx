@@ -1,128 +1,126 @@
 "use client";
+
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { Rocket } from "lucide-react";
+import { motion } from "framer-motion";
+import { MessageSquare, Rocket, Zap } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { CodeComparison } from "@/components/magicui/code-comparison";
+import { forwardRef, useCallback, useRef, useState } from "react";
+import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { Button } from "@/components/ui/button";
-import ApiButton from "./new_infrastructure_button";
+import { TextRotate } from "@/components/ui/text-rotate";
+import { cn } from "@/lib/utils";
 
-const beforeCode = `from openai import OpenAI
-
-openai = OpenAI(
-    api_key="sk-your-api-key", 
-    base_url="https://api.openai.com/v1"
-)
-
-async def generate_text(prompt: str) -> str:
-    response = await openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7
-    )
-    return response.choices[0].message.content
-`;
-
-const afterCode = `from openai import OpenAI
-
-openai = OpenAI(
-    api_key="sk-your-api-key", 
-    base_url="https://api.adaptive.com/v1"
-)
-
-async def generate_text(prompt: str) -> str:
-    response = await openai.chat.completions.create(
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response.choices[0].message.content
-`;
-function FloatingPaths({ position }: { position: number }) {
-	const [hasCompletedInitialPass, setHasCompletedInitialPass] = useState(false);
-	const { scrollY } = useScroll();
-	const scrollProgress = useTransform(scrollY, [0, 1000], [1, 0]); // Reversed: scroll down = forward, scroll up = backward
-
-	const paths = Array.from({ length: 36 }, (_, i) => ({
-		id: i,
-		d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
-			380 - i * 5 * position
-		} -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${
-			152 - i * 5 * position
-		} ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${
-			684 - i * 5 * position
-		} ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
-		color: `rgba(15,23,42,${0.1 + i * 0.03})`,
-		width: 0.5 + i * 0.03,
-	}));
-
-	return (
-		<div className="pointer-events-none absolute inset-0">
-			<svg
-				className="h-full w-full text-slate-950 dark:text-white"
-				viewBox="0 0 696 316"
-				fill="none"
-			>
-				<title>Background Paths</title>
-				{paths.map((path) => (
-					<motion.path
-						key={path.id}
-						d={path.d}
-						stroke="currentColor"
-						strokeWidth={path.width}
-						strokeOpacity={0.1 + path.id * 0.03}
-						initial={{ pathLength: 0.3, opacity: 0.6 }}
-						animate={
-							hasCompletedInitialPass
-								? {} // No animation, just use style for scroll control
-								: {
-										pathLength: 1,
-										opacity: [0.3, 0.6, 0.3],
-										pathOffset: [0, 1],
-									}
-						}
-						style={
-							hasCompletedInitialPass
-								? {
-										pathOffset: scrollProgress, // Scroll controls pathOffset directly
-									}
-								: {}
-						}
-						transition={
-							hasCompletedInitialPass
-								? {}
-								: {
-										duration: 20 + Math.random() * 4,
-										delay: path.id * 0.001,
-										ease: "linear",
-										onComplete: () => {
-											if (path.id === paths.length - 1) {
-												setHasCompletedInitialPass(true);
-											}
-										},
-									}
-						}
-					/>
-				))}
-			</svg>
-		</div>
-	);
+interface CircleProps {
+	className?: string;
+	children?: React.ReactNode;
 }
 
+interface CircleState {
+	prompt: boolean;
+	adaptive: boolean;
+	openai: boolean;
+	anthropic: boolean;
+	google: boolean;
+	meta: boolean;
+}
+
+const Circle = forwardRef<HTMLDivElement, CircleProps>(
+	({ className, children }, ref) => {
+		return (
+			<div
+				ref={ref}
+				className={cn(
+					"z-10 flex size-16 items-center justify-center rounded-full border-2 bg-white/90 p-3 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)] backdrop-blur-sm dark:bg-neutral-800/90",
+					className,
+				)}
+			>
+				{children}
+			</div>
+		);
+	},
+);
+
+Circle.displayName = "Circle";
+
+const PromptCircle = forwardRef<HTMLDivElement, { className?: string }>(
+	({ className }, ref) => (
+		<div
+			ref={ref}
+			className={cn(
+				"z-10 flex size-20 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+				className,
+			)}
+		>
+			<MessageSquare className="h-8 w-8 text-primary-foreground" />
+		</div>
+	),
+);
+
+PromptCircle.displayName = "PromptCircle";
+
+const AdaptiveCircle = forwardRef<HTMLDivElement, { className?: string }>(
+	({ className }, ref) => (
+		<div
+			ref={ref}
+			className={cn(
+				"z-10 flex size-24 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+				className,
+			)}
+		>
+			<Zap className="h-10 w-10 text-white" />
+		</div>
+	),
+);
+
+AdaptiveCircle.displayName = "AdaptiveCircle";
+
 export default function HeroSection() {
+	// Rotating text options
+	const rotatingTexts = [
+		"Smart Model Routing",
+		"Tailored AI",
+		"Intelligent Model Selection",
+	];
+
+	// Refs for animated beams
+	const containerRef = useRef<HTMLDivElement>(null);
+	const promptRef = useRef<HTMLDivElement>(null);
+	const adaptiveRef = useRef<HTMLDivElement>(null);
+	const openaiRef = useRef<HTMLDivElement>(null);
+	const anthropicRef = useRef<HTMLDivElement>(null);
+	const googleRef = useRef<HTMLDivElement>(null);
+	const metaRef = useRef<HTMLDivElement>(null);
+
+	// State to track when circles are ready
+	const [circlesReady, setCirclesReady] = useState<CircleState>({
+		prompt: false,
+		adaptive: false,
+		openai: false,
+		anthropic: false,
+		google: false,
+		meta: false,
+	});
+
+	// Callback to mark circles as ready
+	const markCircleReady = useCallback((circleName: keyof CircleState) => {
+		setCirclesReady((prev) => ({ ...prev, [circleName]: true }));
+	}, []);
+
+	// Check if specific beam paths should be rendered
+	const shouldRenderBeam1 = circlesReady.prompt && circlesReady.adaptive;
+	const shouldRenderBeam2 = circlesReady.adaptive && circlesReady.openai;
+	const shouldRenderBeam3 = circlesReady.adaptive && circlesReady.anthropic;
+	const shouldRenderBeam4 = circlesReady.adaptive && circlesReady.google;
+	const shouldRenderBeam5 = circlesReady.adaptive && circlesReady.meta;
+
 	return (
 		<section className="relative flex min-h-screen items-center overflow-hidden bg-white dark:bg-neutral-950">
-			{/* Background Paths */}
-			<div className="absolute inset-0">
-				<FloatingPaths position={1} />
-				<FloatingPaths position={-1} />
-			</div>
-
 			<div className="relative z-10 w-full py-12">
 				<div className="mx-auto max-w-7xl px-6">
 					<div className="max-w-4xl text-center sm:mx-auto lg:mt-0 lg:mr-auto lg:w-full">
-						<ApiButton />
-						<h1 className="mt-8 text-balance font-display font-semibold text-4xl md:text-5xl xl:text-7xl xl:[line-height:1.125]">
-							{"We Provide the Best LLM Inference".split(" ").map((word) => (
+						<h1 className="mt-8 text-balance text-center font-display font-semibold text-4xl md:text-5xl xl:text-7xl xl:[line-height:1.125]">
+							{"We Provide ".split(" ").map((word, wordIndex) => (
 								<span key={word} className="mr-2 inline-block last:mr-0">
 									{word.split("").map((letter, letterIndex) => (
 										<motion.span
@@ -130,7 +128,7 @@ export default function HeroSection() {
 											initial={{ y: 100, opacity: 0 }}
 											animate={{ y: 0, opacity: 1 }}
 											transition={{
-												delay: letterIndex * 0.03,
+												delay: (wordIndex * 3 + letterIndex) * 0.03,
 												type: "spring",
 												stiffness: 150,
 												damping: 25,
@@ -142,19 +140,222 @@ export default function HeroSection() {
 									))}
 								</span>
 							))}
+
+							<TextRotate
+								texts={rotatingTexts}
+								rotationInterval={3000}
+								staggerDuration={0.02}
+								staggerFrom="first"
+								splitBy="characters"
+								mainClassName="bg-gradient-to-r flex items-center justify-center from-primary to-primary/80 bg-clip-text text-transparent"
+								elementLevelClassName="inline-block"
+								initial={{ y: 100, opacity: 0 }}
+								animate={{ y: 0, opacity: 1 }}
+								exit={{ y: -100, opacity: 0 }}
+								transition={{
+									type: "spring",
+									stiffness: 150,
+									damping: 25,
+								}}
+							/>
 						</h1>
 
-						<p className="mx-auto mt-8 hidden max-w-3xl text-wrap text-muted-foreground sm:block">
-							Optimize performance and cut costs with Adaptive's LLM-driven
-							infrastructure. Maximize efficiency and unleash the full potential
-							of your workloads, all while saving valuable resources.
-						</p>
-						<p className="mx-auto mt-6 max-w-3xl text-wrap text-muted-foreground sm:hidden">
-							Optimize performance and cut costs with Adaptive's LLM-driven
-							infrastructure.
+						<p className="mx-auto mt-8 max-w-3xl text-balance text-muted-foreground">
+							Adaptive intelligently routes your queries to the best AI model
+							for each task. Get optimal results while reducing costs by up to
+							90% compared to using premium models for everything.
 						</p>
 
-						<div className="mt-8 flex justify-center gap-4">
+						{/* Animated Beam Visualization */}
+						<div
+							className="relative mt-12 mb-8 flex h-[300px] w-full items-center justify-center overflow-hidden"
+							ref={containerRef}
+							role="img"
+							aria-label="Adaptive AI infrastructure connecting user prompts to various AI providers"
+						>
+							<div className="flex w-full items-center justify-between px-4 sm:px-0">
+								{/* Prompt Input */}
+								<motion.div
+									layout
+									initial={{ opacity: 0, x: -50 }}
+									animate={{ opacity: 1, x: 0 }}
+									transition={{
+										delay: 1,
+										duration: 0.6,
+										layout: { duration: 0.3 },
+									}}
+									onAnimationComplete={() => markCircleReady("prompt")}
+								>
+									<PromptCircle ref={promptRef} />
+								</motion.div>
+
+								{/* Adaptive Hub (Center) */}
+								<motion.div
+									layout
+									initial={{ opacity: 0, scale: 0.8 }}
+									animate={{ opacity: 1, scale: 1 }}
+									transition={{
+										delay: 1.5,
+										duration: 0.6,
+										layout: { duration: 0.3 },
+									}}
+									onAnimationComplete={() => markCircleReady("adaptive")}
+								>
+									<AdaptiveCircle ref={adaptiveRef} />
+								</motion.div>
+
+								{/* Provider Icons */}
+								<div className="flex flex-col gap-3">
+									<motion.div
+										layout
+										initial={{ opacity: 0, x: 50 }}
+										animate={{ opacity: 1, x: 0 }}
+										transition={{
+											delay: 2,
+											duration: 0.6,
+											layout: { duration: 0.3 },
+										}}
+										onAnimationComplete={() => markCircleReady("openai")}
+									>
+										<Circle ref={openaiRef}>
+											<Image
+												src="/logos/openai.webp"
+												alt="OpenAI"
+												width={32}
+												height={32}
+												className="h-8 w-8 object-contain mix-blend-multiply dark:mix-blend-normal dark:invert"
+											/>
+										</Circle>
+									</motion.div>
+									<motion.div
+										layout
+										initial={{ opacity: 0, x: 50 }}
+										animate={{ opacity: 1, x: 0 }}
+										transition={{
+											delay: 2.2,
+											duration: 0.6,
+											layout: { duration: 0.3 },
+										}}
+										onAnimationComplete={() => markCircleReady("anthropic")}
+									>
+										<Circle ref={anthropicRef}>
+											<Image
+												src="/logos/anthropic.jpeg"
+												alt="Anthropic"
+												width={32}
+												height={32}
+												className="h-8 w-8 rounded-sm object-contain"
+											/>
+										</Circle>
+									</motion.div>
+									<motion.div
+										layout
+										initial={{ opacity: 0, x: 50 }}
+										animate={{ opacity: 1, x: 0 }}
+										transition={{
+											delay: 2.4,
+											duration: 0.6,
+											layout: { duration: 0.3 },
+										}}
+										onAnimationComplete={() => markCircleReady("google")}
+									>
+										<Circle ref={googleRef}>
+											<Image
+												src="/logos/google.svg"
+												alt="Google"
+												width={32}
+												height={32}
+												className="h-8 w-8 object-contain"
+											/>
+										</Circle>
+									</motion.div>
+									<motion.div
+										layout
+										initial={{ opacity: 0, x: 50 }}
+										animate={{ opacity: 1, x: 0 }}
+										transition={{
+											delay: 2.6,
+											duration: 0.6,
+											layout: { duration: 0.3 },
+										}}
+										onAnimationComplete={() => markCircleReady("meta")}
+									>
+										<Circle ref={metaRef}>
+											<Image
+												src="/logos/meta.png"
+												alt="Meta"
+												width={32}
+												height={32}
+												className="h-8 w-8 object-contain"
+											/>
+										</Circle>
+									</motion.div>
+								</div>
+							</div>
+
+							{/* Animated Beams - Only render when circles are ready */}
+							{shouldRenderBeam1 && (
+								<AnimatedBeam
+									containerRef={containerRef as React.RefObject<HTMLElement>}
+									fromRef={promptRef as React.RefObject<HTMLElement>}
+									toRef={adaptiveRef as React.RefObject<HTMLElement>}
+									delay={0.2}
+									duration={2}
+									startXOffset={40}
+									endXOffset={-48}
+								/>
+							)}
+							{shouldRenderBeam2 && (
+								<AnimatedBeam
+									containerRef={containerRef as React.RefObject<HTMLElement>}
+									fromRef={adaptiveRef as React.RefObject<HTMLElement>}
+									toRef={openaiRef as React.RefObject<HTMLElement>}
+									delay={0.4}
+									duration={1.8}
+									curvature={-20}
+									startXOffset={48}
+									endXOffset={-32}
+								/>
+							)}
+							{shouldRenderBeam3 && (
+								<AnimatedBeam
+									containerRef={containerRef as React.RefObject<HTMLElement>}
+									fromRef={adaptiveRef as React.RefObject<HTMLElement>}
+									toRef={anthropicRef as React.RefObject<HTMLElement>}
+									delay={0.6}
+									duration={1.6}
+									curvature={-5}
+									startXOffset={48}
+									endXOffset={-32}
+								/>
+							)}
+							{shouldRenderBeam4 && (
+								<AnimatedBeam
+									containerRef={containerRef as React.RefObject<HTMLElement>}
+									fromRef={adaptiveRef as React.RefObject<HTMLElement>}
+									toRef={googleRef as React.RefObject<HTMLElement>}
+									delay={0.8}
+									duration={1.4}
+									curvature={5}
+									startXOffset={48}
+									endXOffset={-32}
+								/>
+							)}
+							{shouldRenderBeam5 && (
+								<AnimatedBeam
+									containerRef={containerRef as React.RefObject<HTMLElement>}
+									fromRef={adaptiveRef as React.RefObject<HTMLElement>}
+									toRef={metaRef as React.RefObject<HTMLElement>}
+									delay={1.0}
+									duration={1.2}
+									curvature={20}
+									startXOffset={48}
+									endXOffset={-32}
+								/>
+							)}
+						</div>
+
+						<div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
 							<SignedOut>
 								<SignUpButton signInForceRedirectUrl="/chat-platform">
 									<Button
@@ -189,20 +390,6 @@ export default function HeroSection() {
 								</a>
 							</Button>
 						</div>
-					</div>
-				</div>
-				{/* Code comparison section */}
-				<div className="relative mt-16 mb-12">
-					<div className="mx-auto max-w-4xl px-6">
-						<CodeComparison
-							beforeCode={beforeCode}
-							afterCode={afterCode}
-							language="python"
-							filename="llm.py"
-							lightTheme="github-light"
-							darkTheme="github-dark"
-							highlightColor="#ff6b6b"
-						/>
 					</div>
 				</div>
 			</div>
