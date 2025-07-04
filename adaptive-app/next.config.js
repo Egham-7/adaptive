@@ -11,7 +11,9 @@ const config = {
 		remotePatterns: [
 			{
 				protocol: "https",
-				hostname: "assets.aceternity.com",
+				hostname: "avatars.githubusercontent.com",
+				port: "",
+				pathname: "/**",
 			},
 		],
 	},
