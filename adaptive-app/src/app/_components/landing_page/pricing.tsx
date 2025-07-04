@@ -15,12 +15,12 @@ import {
 export default function Pricing() {
 	const [isAnnual, setIsAnnual] = useState(true);
 	return (
-		<section className="overflow-hidden py-16 md:py-32">
+		<section id="pricing" className="overflow-hidden py-16 md:py-32">
 			<div className="mx-auto max-w-6xl px-6">
 				<div className="mx-auto max-w-2xl space-y-6 text-center">
-					<h1 className="text-balance text-center font-display font-semibold text-4xl lg:text-5xl">
+					<h2 className="text-balance text-center font-display font-semibold text-4xl lg:text-5xl">
 						API Pricing
-					</h1>
+					</h2>
 					<p className="text-muted-foreground">
 						Simple, transparent pricing for our AI routing API. Chatbot pricing
 						available in the chat app.

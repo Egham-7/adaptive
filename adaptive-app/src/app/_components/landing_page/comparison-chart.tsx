@@ -1,7 +1,15 @@
 "use client";
 import { motion, useInView, useSpring, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis } from "recharts";
+import {
+	Bar,
+	BarChart,
+	CartesianGrid,
+	Cell,
+	Legend,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { Card } from "@/components/ui/card";
 import {
 	type ChartConfig,
@@ -12,32 +20,32 @@ import {
 
 interface ChartData {
 	name: string;
-	costSavedPercent: number;
+	costPerMillionTokens: number;
 }
 
 const baseData: ChartData[] = [
 	{
 		name: "Adaptive",
-		costSavedPercent: 78, // 78% cost savings per million tokens
+		costPerMillionTokens: 2.5, // $2.50 per million tokens (intelligent routing)
 	},
 	{
-		name: "OpenAI",
-		costSavedPercent: 35, // 35% cost savings with optimizations
+		name: "OpenAI GPT-4",
+		costPerMillionTokens: 15.0, // $15.00 per million tokens
 	},
 	{
-		name: "Anthropic",
-		costSavedPercent: 22, // 22% cost savings with optimizations
+		name: "Anthropic Claude",
+		costPerMillionTokens: 18.0, // $18.00 per million tokens
 	},
 	{
-		name: "Google",
-		costSavedPercent: 15, // 15% cost savings with optimizations
+		name: "Google Gemini",
+		costPerMillionTokens: 12.5, // $12.50 per million tokens
 	},
 ];
 
 const chartConfig = {
-	costSavedPercent: {
-		label: "Cost Saved %",
-		color: "#6366f1", // Primary color mapped from CSS vars
+	costPerMillionTokens: {
+		label: "Cost per Million Tokens ($)",
+		color: "hsl(var(--primary))",
 	},
 } satisfies ChartConfig;
 
@@ -63,7 +71,7 @@ export default function ComparisonChart() {
 	const [animatedData, setAnimatedData] = useState<ChartData[]>(
 		baseData.map((item) => ({
 			...item,
-			costSavedPercent: 0,
+			costPerMillionTokens: 0,
 		})),
 	);
 
@@ -82,7 +90,9 @@ export default function ComparisonChart() {
 					const baseItem = baseData[index];
 					return {
 						...item,
-						costSavedPercent: baseItem ? baseItem.costSavedPercent * latest : 0,
+						costPerMillionTokens: baseItem
+							? baseItem.costPerMillionTokens * latest
+							: 0,
 					};
 				}),
 			);
@@ -112,11 +122,10 @@ export default function ComparisonChart() {
 					initial={{ opacity: 0, x: -20 }}
 					animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
 					transition={{ delay: 0.2, duration: 0.6 }}
-					className="mb-4 font-semibold text-xl"
+					className="mb-4 font-semibold text-foreground text-xl"
 					id="chart-title"
-					style={{ color: "#0f172a" }}
 				>
-					Provider Cost Efficiency Comparison
+					Cost per Million Tokens Comparison
 				</motion.h4>
 
 				<motion.div
@@ -134,39 +143,68 @@ export default function ComparisonChart() {
 						<BarChart
 							data={animatedData}
 							layout="vertical"
-							margin={{ top: 16, right: 16, left: 120, bottom: 32 }}
+							margin={{ top: 16, right: 16, left: 120, bottom: 60 }}
 						>
 							<CartesianGrid
 								strokeDasharray="3 3"
 								horizontal={true}
 								vertical={false}
-								stroke="#e2e8f0"
+								stroke="hsl(var(--border))"
 								className="opacity-30"
 							/>
 							<XAxis
 								type="number"
-								domain={[0, 100]}
-								tickFormatter={(value) => `${value}%`}
-								tick={{ fill: "#64748b", fontSize: 12 }}
+								domain={[0, 20]}
+								tickFormatter={(value) => `$${value}`}
+								tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+								label={{
+									value: "Cost per Million Tokens ($)",
+									position: "insideBottom",
+									offset: -5,
+									style: {
+										textAnchor: "middle",
+										fill: "hsl(var(--muted-foreground))",
+									},
+								}}
 							/>
 							<YAxis
 								type="category"
 								dataKey="name"
 								width={120}
 								fontSize={12}
-								tick={{ fill: "#64748b", fontSize: 11 }}
+								tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+								label={{
+									value: "AI Provider",
+									angle: -90,
+									position: "insideLeft",
+									style: {
+										textAnchor: "middle",
+										fill: "hsl(var(--muted-foreground))",
+									},
+								}}
 							/>
 							<ChartTooltip
 								content={
 									<ChartTooltipContent
 										formatter={(value, _name) => [
-											`${Number(value).toFixed(0)}%`,
+											`$${Number(value).toFixed(2)}`,
+											"Cost per Million Tokens",
 										]}
 									/>
 								}
 							/>
+							<Legend
+								verticalAlign="bottom"
+								height={36}
+								wrapperStyle={{ paddingTop: "20px" }}
+								formatter={() => (
+									<span style={{ color: "hsl(var(--muted-foreground))" }}>
+										Cost per Million Tokens ($)
+									</span>
+								)}
+							/>
 							<Bar
-								dataKey="costSavedPercent"
+								dataKey="costPerMillionTokens"
 								radius={[0, 8, 8, 0]}
 								barSize={30}
 								isAnimationActive={false}
@@ -177,8 +215,8 @@ export default function ComparisonChart() {
 										key={`cost-cell-${entry.name}`}
 										fill={
 											entry.name === "Adaptive"
-												? "#059669" // Green for Adaptive (savings)
-												: "#64748b" // Muted gray for others
+												? "hsl(var(--primary))" // Primary color for Adaptive
+												: "hsl(var(--muted-foreground))" // Muted color for others
 										}
 									/>
 								))}

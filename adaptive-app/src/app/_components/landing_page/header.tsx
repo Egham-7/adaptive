@@ -1,9 +1,11 @@
 "use client";
 
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Book, ChevronDown, Github, Loader2, Menu, X } from "lucide-react";
+import { ChevronDown, Loader2, Menu, X } from "lucide-react";
 import Link, { useLinkStatus } from "next/link";
 import { useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import { HiOutlineDocumentText } from "react-icons/hi2";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -31,13 +33,13 @@ const iconMenuItems = [
 	{
 		name: "Docs",
 		href: "https://docs.adaptive.dev",
-		icon: Book,
+		icon: HiOutlineDocumentText,
 		external: true,
 	},
 	{
 		name: "GitHub",
 		href: "https://github.com/Egham-7/adaptive",
-		icon: Github,
+		icon: FaGithub,
 		external: true,
 	},
 ];
@@ -132,10 +134,11 @@ export default function Header() {
 										href={item.href}
 										target="_blank"
 										rel="noopener noreferrer"
-										className="text-muted-foreground duration-150 hover:text-accent-foreground"
+										className="flex items-center gap-2 text-muted-foreground duration-150 hover:text-accent-foreground"
 										title={item.name}
 									>
-										<Icon className="h-5 w-5" />
+										<Icon size={20} />
+										<span className="text-sm">{item.name}</span>
 									</a>
 								);
 							})}
@@ -269,7 +272,7 @@ export default function Header() {
 												rel="noopener noreferrer"
 												className="flex items-center gap-2 text-muted-foreground duration-150 hover:text-accent-foreground"
 											>
-												<Icon className="h-5 w-5" />
+												<Icon size={20} />
 												<span>{item.name}</span>
 											</a>
 										);

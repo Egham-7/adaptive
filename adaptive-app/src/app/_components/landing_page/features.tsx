@@ -6,8 +6,19 @@ import { ProviderDownloadChart } from "./provider-download-chart";
 
 export default function FeaturesSection() {
 	return (
-		<section className="bg-gray-50 py-16 md:py-32 dark:bg-transparent">
+		<section
+			id="features"
+			className="bg-muted/50 py-16 md:py-32 dark:bg-transparent"
+		>
 			<div className="mx-auto max-w-3xl px-6 lg:max-w-5xl">
+				<header className="mb-12 text-center">
+					<h2 className="font-display font-semibold text-4xl lg:text-5xl">
+						Features
+					</h2>
+					<p className="mt-4 text-muted-foreground">
+						Powerful AI infrastructure designed for modern applications
+					</p>
+				</header>
 				<div className="relative">
 					<div className="relative z-10 grid grid-cols-6 gap-3">
 						<Card className="relative col-span-full flex overflow-hidden lg:col-span-2">
@@ -30,7 +41,7 @@ export default function FeaturesSection() {
 									<Network className="h-12 w-12 text-primary" />
 								</div>
 								<div className="relative z-10 mt-6 space-y-2 text-center">
-									<h2 className="font-medium text-lg transition group-hover:text-secondary-950 dark:text-white">
+									<h2 className="font-medium text-lg transition hover:text-primary dark:text-white">
 										Resilience to Provider Outages
 									</h2>
 									<p className="text-foreground">
@@ -59,12 +70,12 @@ export default function FeaturesSection() {
 						</Card>
 						<Card className="relative col-span-full overflow-hidden lg:col-span-3">
 							<div className="grid pt-6 sm:grid-cols-2">
-								<div className="relative z-10 flex flex-col justify-between space-y-12 lg:space-y-6">
+								<div className="relative z-10 flex flex-col justify-between space-y-12 px-6 lg:space-y-6">
 									<div className="before:-inset-2 relative flex aspect-square size-12 rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
 										<Cpu className="m-auto size-5" strokeWidth={1} />
 									</div>
-									<div className="space-y-2">
-										<h2 className="font-medium text-lg text-zinc-800 transition group-hover:text-secondary-950 dark:text-white">
+									<div className="space-y-2 px-2">
+										<h2 className="font-medium text-foreground text-lg transition hover:text-primary dark:text-white">
 											Efficient LLM Inference
 										</h2>
 										<p className="text-foreground">
@@ -155,7 +166,7 @@ export default function FeaturesSection() {
 									<Code2 className="h-12 w-12 text-primary" />
 								</div>
 								<div className="relative z-10 mt-6 space-y-2 text-center">
-									<h2 className="font-medium text-lg transition group-hover:text-secondary-950 dark:text-white">
+									<h2 className="font-medium text-lg transition hover:text-primary dark:text-white">
 										Open Source & Transparent
 									</h2>
 									<p className="text-foreground">

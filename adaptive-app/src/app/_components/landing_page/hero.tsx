@@ -48,11 +48,11 @@ const PromptCircle = forwardRef<HTMLDivElement, { className?: string }>(
 		<div
 			ref={ref}
 			className={cn(
-				"z-10 flex size-20 items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-purple-600 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+				"z-10 flex size-20 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
 				className,
 			)}
 		>
-			<MessageSquare className="h-8 w-8 text-white" />
+			<MessageSquare className="h-8 w-8 text-primary-foreground" />
 		</div>
 	),
 );
@@ -301,8 +301,6 @@ export default function HeroSection() {
 									toRef={adaptiveRef as React.RefObject<HTMLElement>}
 									delay={0.2}
 									duration={2}
-									gradientStartColor="#3b82f6"
-									gradientStopColor="#8b5cf6"
 									startXOffset={40}
 									endXOffset={-48}
 								/>
