@@ -2,7 +2,7 @@ import { BarChart3, Code2, Cpu, Network, Timer } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function FeatureSection() {
+export default function FeaturesSection() {
 	return (
 		<section className="bg-gray-50 py-16 md:py-32 dark:bg-transparent">
 			<div className="mx-auto max-w-3xl px-6 lg:max-w-5xl">
