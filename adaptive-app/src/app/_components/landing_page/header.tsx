@@ -16,7 +16,7 @@ import {
 import { Logo } from "../logo";
 import { ModeToggle } from "../mode-toggle";
 
-const menuItems = [
+const menuItems: MenuItem[] = [
 	{ name: "Features", href: "#features" },
 	{ name: "Solution", href: "#solution" },
 	{ name: "Pricing", href: "#pricing" },
@@ -97,7 +97,7 @@ export default function Header() {
 							<ul className="flex gap-8 text-sm">
 								{menuItems.map((item) => (
 									<li key={item.name}>
-										{(item as MenuItem).external ? (
+										{item.external ? (
 											<a
 												href={item.href}
 												target="_blank"
@@ -233,7 +233,7 @@ export default function Header() {
 								<ul className="space-y-6 text-base lg:flex lg:justify-center lg:gap-8 lg:space-y-0 lg:text-sm">
 									{menuItems.map((item) => (
 										<li key={item.name}>
-											{(item as MenuItem).external ? (
+											{item.external ? (
 												<a
 													href={item.href}
 													target="_blank"
