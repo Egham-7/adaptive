@@ -97,7 +97,9 @@ export const subscriptionRouter = createTRPCRouter({
 		)
 		.mutation(async ({ input }) => {
 			try {
-				const session = await stripe.checkout.sessions.retrieve(input.sessionId);
+				const session = await stripe.checkout.sessions.retrieve(
+					input.sessionId,
+				);
 
 				return {
 					isValid: session.payment_status === "paid",

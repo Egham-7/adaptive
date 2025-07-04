@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { api } from "@/trpc/react";
 import { cn } from "@/lib/utils";
+import { api } from "@/trpc/react";
 
 type Props = {
 	children?: React.ReactNode;
@@ -18,7 +18,8 @@ function SubscribeButton({
 	disabled = false,
 }: Props) {
 	const router = useRouter();
-	const createCheckoutSession = api.subscription.createCheckoutSession.useMutation();
+	const createCheckoutSession =
+		api.subscription.createCheckoutSession.useMutation();
 
 	const handleClickSubscribeButton = async () => {
 		try {
@@ -46,7 +47,9 @@ function SubscribeButton({
 					className,
 				)}
 			>
-				{createCheckoutSession.isPending ? "Loading..." : children || "Upgrade to Pro"}
+				{createCheckoutSession.isPending
+					? "Loading..."
+					: children || "Upgrade to Pro"}
 			</button>
 		);
 	}

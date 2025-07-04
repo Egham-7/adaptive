@@ -1,95 +1,110 @@
 "use client";
 
-import { ChevronRight, Code, HelpCircle, FileText, Globe, Circle, BarChart, Send } from "lucide-react";
-import { TaskBreakdownSkeleton } from "./loading-skeleton";
+import { Code, FileText, Globe, HelpCircle, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
+import { TaskBreakdownSkeleton } from "./loading-skeleton";
 
 interface TaskBreakdownProps {
-  data: DashboardData | null;
-  loading: boolean;
-  selectedProvider: string;
-  providers: Provider[];
+	data: DashboardData | null;
+	loading: boolean;
+	selectedProvider: string;
+	providers: Provider[];
 }
 
+const getTaskIcon = (taskName: string) => {
+	switch (taskName) {
+		case "Code Generation":
+			return <Code className="h-5 w-5 text-blue-500" />;
+		case "Open Q&A":
+			return <HelpCircle className="h-5 w-5 text-green-500" />;
+		case "Summarization":
+			return <FileText className="h-5 w-5 text-orange-500" />;
+		case "Translation":
+			return <Globe className="h-5 w-5 text-purple-500" />;
+		default:
+			return <TrendingUp className="h-5 w-5 text-gray-500" />;
+	}
+};
+
 export function TaskBreakdown({
-  data,
-  loading,
-  selectedProvider,
-  providers,
+	data,
+	loading,
+	selectedProvider,
+	providers,
 }: TaskBreakdownProps) {
-  if (loading) {
-    return <TaskBreakdownSkeleton />;
-  }
+	if (loading) {
+		return <TaskBreakdownSkeleton />;
+	}
 
-  if (!data) return null;
+	if (!data) return null;
 
-  const currentProvider = providers.find((p) => p.id === selectedProvider);
+	const currentProvider = providers.find((p) => p.id === selectedProvider);
 
-  return (
-    <div className="bg-white dark:bg-[#0F0F12] rounded-xl p-6 border border-gray-200 dark:border-[#1F1F23]">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Task Type Performance
-        </h2>
-        <button className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-          View detailed breakdown
-        </button>
-      </div>
+	return (
+		<Card>
+			<CardHeader>
+				<div className="flex items-center justify-between">
+					<CardTitle>Task Type Performance</CardTitle>
+					<Button variant="ghost" size="sm">
+						View detailed breakdown
+					</Button>
+				</div>
+			</CardHeader>
+			<CardContent>
+				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+					{data.taskBreakdown.map((task, _index) => (
+						<Card key={task.name} className="border-border">
+							<CardContent className="p-4">
+								<div className="mb-3 flex items-center justify-between">
+									<div className="flex items-center gap-3">
+										{getTaskIcon(task.name)}
+										<div>
+											<h3 className="font-medium text-foreground">
+												{task.name}
+											</h3>
+											<div className="mt-1 flex items-center gap-2 text-muted-foreground text-xs">
+												<span>{task.requests} requests</span>
+												<span>•</span>
+												<span>{task.inputTokens} in</span>
+												<span>•</span>
+												<span>{task.outputTokens} out</span>
+											</div>
+										</div>
+									</div>
+									<div className="text-right">
+										<div className="font-semibold text-foreground text-lg">
+											{task.cost}
+										</div>
+										<Badge variant="secondary" className="text-xs">
+											{task.percentage}% saved
+										</Badge>
+									</div>
+								</div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {data.taskBreakdown.map((task, index) => (
-          <div
-            key={index}
-            className="border border-gray-200 dark:border-[#1F1F23] rounded-lg p-4"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <img src={task.icon} alt={task.name} className="w-5 h-5" />
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                    {task.name}
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                    <span className="flex items-center gap-1"><Circle className="w-3 h-3 text-blue-500 fill-current" /> {task.requests} requests</span>
-                    {task.inputTokens !== "0" && (
-                      <span className="flex items-center gap-1"><BarChart className="w-3 h-3 text-gray-500" /> {task.inputTokens} input tokens</span>
-                    )}
-                    {task.outputTokens !== "0" && (
-                      <span className="flex items-center gap-1"><Send className="w-3 h-3 text-gray-500" /> {task.outputTokens} output tokens</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {task.cost}
-                </div>
-                <div className="text-sm text-green-600 dark:text-green-400">
-                  {task.savings} saved ({task.percentage}%)
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">
-                  {currentProvider?.name || "Single provider"} cost
-                </span>
-                <span className="font-medium text-gray-500 dark:text-gray-400 line-through">
-                  {task.comparisonCost}
-                </span>
-              </div>
-              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-purple-600 rounded-full transition-all duration-300"
-                  style={{ width: `${100 - task.percentage}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+								{/* Simple progress bar */}
+								<div className="space-y-2">
+									<div className="flex justify-between text-muted-foreground text-xs">
+										<span>Adaptive: {task.cost}</span>
+										<span>
+											{currentProvider?.name || "Single provider"}:{" "}
+											{task.comparisonCost}
+										</span>
+									</div>
+									<div className="h-2 overflow-hidden rounded-full bg-muted">
+										<div
+											className="h-full rounded-full bg-primary transition-all duration-300"
+											style={{ width: `${100 - task.percentage}%` }}
+										/>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+					))}
+				</div>
+			</CardContent>
+		</Card>
+	);
 }

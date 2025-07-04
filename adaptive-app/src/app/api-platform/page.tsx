@@ -1,102 +1,163 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { useDashboardData } from "@/hooks/api-platform/hooks/use-dashboard-data";
+import { useDateRange } from "@/hooks/use-date-range";
+import type { DashboardFilters } from "@/types/api-platform/dashboard";
 import { DashboardHeader } from "../_components/api-platform/dashboard/dashboard-header";
 import { MetricsOverview } from "../_components/api-platform/dashboard/metrics-overview";
+import { ProviderComparisonChart } from "../_components/api-platform/dashboard/provider-comparison-chart";
+import { SavingsEfficiencyChart } from "../_components/api-platform/dashboard/savings-efficiency-chart";
 import { TaskBreakdown } from "../_components/api-platform/dashboard/task-breakdown";
+import { TaskDistributionChart } from "../_components/api-platform/dashboard/task-distribution-chart";
 import { UsageSection } from "../_components/api-platform/dashboard/usage-section";
-import { useDateRange } from "@/hooks/use-date-range";
-import { useDashboardData } from "@/hooks/api-platform/hooks/use-dashboard-data";
-import type { DashboardFilters } from "@/types/api-platform/dashboard";
 
 export default function DashboardPage() {
-  const { dateRange, setDateRange } = useDateRange();
-  const [selectedProvider, setSelectedProvider] = useState("openai-gpt4");
+	const { dateRange, setDateRange } = useDateRange();
+	const [selectedProvider, setSelectedProvider] = useState("openai-gpt4");
 
-  const filters: DashboardFilters = {
-    dateRange,
-    provider: selectedProvider,
-  };
+	const filters: DashboardFilters = {
+		dateRange,
+		provider: selectedProvider,
+	};
 
-  const { data, loading, error, refresh } = useDashboardData(filters);
+	const { data, loading, error, refresh } = useDashboardData(filters);
 
-  const handleExport = () => {
-    if (!data) return;
+	const handleExport = () => {
+		if (!data) return;
 
-    const exportData = {
-      dateRange,
-      provider: selectedProvider,
-      metrics: {
-        totalSpend: data.totalSpend,
-        totalSavings: data.totalSavings,
-        savingsPercentage: data.savingsPercentage,
-        totalTokens: data.totalTokens,
-        totalRequests: data.totalRequests,
-      },
-      usageData: data.usageData,
-      taskBreakdown: data.taskBreakdown,
-    };
+		const exportData = {
+			dateRange,
+			provider: selectedProvider,
+			metrics: {
+				totalSpend: data.totalSpend,
+				totalSavings: data.totalSavings,
+				savingsPercentage: data.savingsPercentage,
+				totalTokens: data.totalTokens,
+				totalRequests: data.totalRequests,
+			},
+			usageData: data.usageData,
+			taskBreakdown: data.taskBreakdown,
+		};
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `dashboard-export-${new Date().toISOString().split("T")[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+		const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+			type: "application/json",
+		});
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = `dashboard-export-${new Date().toISOString().split("T")[0]}.json`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	};
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            Failed to load dashboard data
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={refresh}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+	if (error) {
+		return (
+			<div className="flex min-h-[400px] items-center justify-center">
+				<div className="text-center">
+					<h3 className="mb-2 font-medium text-gray-900 text-lg dark:text-white">
+						Failed to load dashboard data
+					</h3>
+					<p className="mb-4 text-gray-600 dark:text-gray-400">{error}</p>
+					<Button onClick={refresh}>Try Again</Button>
+				</div>
+			</div>
+		);
+	}
 
-  return (
-    <div className="space-y-6">
-      <DashboardHeader
-        dateRange={dateRange}
-        onDateRangeChange={setDateRange}
-        selectedProvider={selectedProvider}
-        onProviderChange={setSelectedProvider}
-        providers={data?.providers || []}
-        onRefresh={refresh}
-        onExport={handleExport}
-        isLoading={loading}
-      />
+	return (
+		<div className="space-y-8">
+			{/* Header Section */}
+			<DashboardHeader
+				dateRange={dateRange}
+				onDateRangeChange={setDateRange}
+				selectedProvider={selectedProvider}
+				onProviderChange={setSelectedProvider}
+				providers={data?.providers || []}
+				onRefresh={refresh}
+				onExport={handleExport}
+				isLoading={loading}
+			/>
 
-      <MetricsOverview data={data} loading={loading} />
+			{/* Key Metrics Section */}
+			<section className="space-y-4">
+				<div className="flex items-center justify-between">
+					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
+						Key Performance Metrics
+					</h2>
+					<div className="text-gray-500 text-sm dark:text-gray-400">
+						Real-time insights
+					</div>
+				</div>
+				<MetricsOverview data={data} loading={loading} />
+			</section>
 
-      <UsageSection
-        data={data}
-        loading={loading}
-        selectedProvider={selectedProvider}
-        providers={data?.providers || []}
-      />
+			{/* Divider */}
+			<div className="border-gray-200 border-t dark:border-gray-800" />
 
-      <TaskBreakdown
-        data={data}
-        loading={loading}
-        selectedProvider={selectedProvider}
-        providers={data?.providers || []}
-      />
-    </div>
-  );
+			{/* Usage Analytics Section */}
+			<section className="space-y-4">
+				<div className="flex items-center justify-between">
+					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
+						Usage Analytics
+					</h2>
+					<div className="text-gray-500 text-sm dark:text-gray-400">
+						Spend trends and budget tracking
+					</div>
+				</div>
+				<UsageSection
+					data={data}
+					loading={loading}
+					selectedProvider={selectedProvider}
+					providers={data?.providers || []}
+				/>
+			</section>
+
+			{/* Divider */}
+			<div className="border-gray-200 border-t dark:border-gray-800" />
+
+			{/* Task Analysis Section */}
+			<section className="space-y-4">
+				<div className="flex items-center justify-between">
+					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
+						Task Analysis
+					</h2>
+					<div className="text-gray-500 text-sm dark:text-gray-400">
+						Performance breakdown by task type
+					</div>
+				</div>
+				<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<TaskBreakdown
+						data={data}
+						loading={loading}
+						selectedProvider={selectedProvider}
+						providers={data?.providers || []}
+					/>
+					<TaskDistributionChart data={data} loading={loading} />
+				</div>
+			</section>
+
+			{/* Divider */}
+			<div className="border-gray-200 border-t dark:border-gray-800" />
+
+			{/* Provider Comparison Section */}
+			<section className="space-y-4">
+				<div className="flex items-center justify-between">
+					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
+						Provider Comparison
+					</h2>
+					<div className="text-gray-500 text-sm dark:text-gray-400">
+						Cost analysis across providers
+					</div>
+				</div>
+				<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+					<ProviderComparisonChart data={data} loading={loading} />
+					<SavingsEfficiencyChart data={data} loading={loading} />
+				</div>
+			</section>
+		</div>
+	);
 }
