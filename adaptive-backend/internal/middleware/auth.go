@@ -58,7 +58,7 @@ func APIKeyAuth() fiber.Handler {
 
 		// Store API key in context for potential use in handlers
 		c.Locals("api_key", apiKey)
-		
+
 		return c.Next()
 	}
 }

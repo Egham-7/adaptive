@@ -94,13 +94,13 @@ func (a *GeminiStreamAdapter) convertGeminiResponseToOpenAIChunk(resp *genai.Gen
 
 	var content string
 	var finishReason string
-	
+
 	if len(resp.Candidates) > 0 {
 		candidate := resp.Candidates[0]
 		if len(candidate.Content.Parts) > 0 {
 			content = candidate.Content.Parts[0].Text
 		}
-		
+
 		// Map finish reason
 		switch candidate.FinishReason {
 		case genai.FinishReasonStop:
