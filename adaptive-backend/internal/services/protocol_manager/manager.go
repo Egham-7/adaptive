@@ -7,6 +7,7 @@ import (
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
+	"adaptive-backend/internal/utils"
 
 	"github.com/botirk38/semanticcache"
 )
@@ -58,8 +59,14 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 		req.CostBias = &bias
 	}
 
+	// Extract prompt from last message for cache key
+	prompt, err := utils.ExtractLastMessage(req.Messages)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to extract last message: %w", err)
+	}
+
 	// 1) Check semantic cache first
-	if hit, src, ok := pm.cache.Lookup(req.Prompt, userID); ok {
+	if hit, src, ok := pm.cache.Lookup(prompt, userID); ok {
 		log.Printf("[%s] cache hit (%s)", requestID, src)
 		return &hit, src, nil
 	}
@@ -70,7 +77,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	log.Printf("[%s] protocol selected: %s", requestID, resp.Protocol)
 
 	// 3) Store in cache for future use
-	pm.cache.Store(req.Prompt, userID, resp)
+	pm.cache.Store(prompt, userID, resp)
 
 	return &resp, string(resp.Protocol), nil
 }

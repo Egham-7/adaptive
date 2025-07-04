@@ -25,7 +25,7 @@ func NewHuggingFaceService(baseUrl *string) (*HuggingFaceService, error) {
 
 	// Default HuggingFace router base URL - using Llama 3.1 8B as it's widely available
 	defaultBaseUrl := "https://router.huggingface.co/hf-inference/models/meta-llama/Llama-3.1-8B-Instruct/v1"
-	
+
 	var client openai.Client
 	if baseUrl != nil {
 		client = openai.NewClient(
