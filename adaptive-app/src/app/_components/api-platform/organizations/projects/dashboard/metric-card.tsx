@@ -23,21 +23,17 @@ export function MetricCard({
 	};
 
 	const getChangeColor = () => {
-		if (changeType === "positive") return "text-green-600 dark:text-green-400";
-		if (changeType === "negative") return "text-red-600 dark:text-red-400";
-		return "text-gray-600 dark:text-gray-400";
+		if (changeType === "positive") return "text-green-600";
+		if (changeType === "negative") return "text-destructive";
+		return "text-muted-foreground";
 	};
 
 	return (
 		<div
-			className={`rounded-xl border border-gray-200 bg-white p-6 transition-shadow hover:shadow-lg dark:border-[#1F1F23] dark:bg-[#0F0F12] ${className}`}
+			className={`rounded-xl border border-border bg-card p-6 transition-shadow hover:shadow-lg ${className}`}
 		>
 			<div className="mb-4 flex items-center justify-between">
-				{icon && (
-					<div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
-						{icon}
-					</div>
-				)}
+				{icon && <div className="rounded-lg bg-muted p-2">{icon}</div>}
 				{change && (
 					<div
 						className={`flex items-center gap-1 font-medium text-sm ${getChangeColor()}`}
@@ -49,16 +45,10 @@ export function MetricCard({
 			</div>
 
 			<div className="space-y-1">
-				<h3 className="font-medium text-gray-600 text-sm dark:text-gray-400">
-					{title}
-				</h3>
-				<p className="font-bold text-2xl text-gray-900 dark:text-white">
-					{value}
-				</p>
+				<h3 className="font-medium text-muted-foreground text-sm">{title}</h3>
+				<p className="font-bold text-2xl text-foreground">{value}</p>
 				{description && (
-					<p className="text-gray-500 text-xs dark:text-gray-500">
-						{description}
-					</p>
+					<p className="text-muted-foreground text-xs">{description}</p>
 				)}
 			</div>
 		</div>

@@ -77,11 +77,7 @@ AdaptiveCircle.displayName = "AdaptiveCircle";
 
 export default function HeroSection() {
 	// Rotating text options
-	const rotatingTexts = [
-		"Smart Model Routing",
-		"Tailored AI",
-		"Intelligent Model Selection",
-	];
+	const rotatingTexts = ["Cost Effective AI", "Smart Model Selection"];
 
 	// Refs for animated beams
 	const containerRef = useRef<HTMLDivElement>(null);

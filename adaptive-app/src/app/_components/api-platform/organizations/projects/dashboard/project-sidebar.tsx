@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { MdDashboard, MdKey } from "react-icons/md";
+import { ModeToggle } from "@/app/_components/mode-toggle";
 import {
 	Sidebar,
 	SidebarContent,
@@ -12,9 +13,8 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { ModeToggle } from "../mode-toggle";
 
-export function APIPlatformSidebar() {
+export function ProjectSidebar() {
 	const links = [
 		{
 			label: "Dashboard",

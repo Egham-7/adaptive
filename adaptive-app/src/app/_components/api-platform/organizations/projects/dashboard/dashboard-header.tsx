@@ -35,9 +35,7 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
 	return (
 		<div className="flex items-center justify-between">
-			<h1 className="font-bold text-2xl text-gray-900 dark:text-white">
-				Usage Dashboard
-			</h1>
+			<h1 className="font-bold text-2xl text-foreground">Usage Dashboard</h1>
 			<div className="flex items-center gap-3">
 				<Select value={selectedProvider} onValueChange={onProviderChange}>
 					<SelectTrigger className="w-56">

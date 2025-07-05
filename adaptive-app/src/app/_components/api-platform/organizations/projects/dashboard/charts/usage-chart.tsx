@@ -60,7 +60,6 @@ export function UsageChart({
 						fontSize={12}
 						axisLine={false}
 						tickLine={false}
-						tickFormatter={(value) => `$${value}`}
 					/>
 					<ChartTooltip content={<ChartTooltipContent />} />
 					<Legend />

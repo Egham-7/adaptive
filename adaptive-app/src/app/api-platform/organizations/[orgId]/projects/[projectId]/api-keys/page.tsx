@@ -126,9 +126,7 @@ export default function ApiKeysPage() {
 		<div className="space-y-6">
 			{/* Header */}
 			<div className="flex items-center justify-between">
-				<h1 className="font-bold text-2xl text-foreground">
-					API keys
-				</h1>
+				<h1 className="font-bold text-2xl text-foreground">API keys</h1>
 				<Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
 					<DialogTrigger asChild>
 						<Button className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
@@ -238,10 +236,7 @@ export default function ApiKeysPage() {
 						</thead>
 						<tbody className="divide-y divide-border">
 							{apiKeys.map((apiKey) => (
-								<tr
-									key={apiKey.id}
-									className="hover:bg-muted/50"
-								>
+								<tr key={apiKey.id} className="hover:bg-muted/50">
 									<td className="whitespace-nowrap px-6 py-4 font-medium text-card-foreground text-sm">
 										{apiKey.name}
 									</td>
