@@ -1,8 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
-import { MdDashboard, MdKey } from "react-icons/md";
 import Image from "next/image";
 import Link from "next/link";
+import { MdDashboard, MdKey } from "react-icons/md";
 import {
 	Sidebar,
 	SidebarContent,
@@ -53,7 +53,7 @@ export function APIPlatformSidebar() {
 			<SidebarFooter>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<div className="flex items-center justify-between w-full">
+						<div className="flex w-full items-center justify-between">
 							<SidebarMenuButton asChild className="flex-1">
 								<Link href="#" className="flex items-center gap-2">
 									<Image

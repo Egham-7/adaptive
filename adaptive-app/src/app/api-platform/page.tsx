@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDashboardData } from "@/hooks/api-platform/hooks/use-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
@@ -14,10 +14,13 @@ export default function DashboardPage() {
 	const { dateRange, setDateRange } = useDateRange();
 	const [selectedProvider, setSelectedProvider] = useState("openai");
 
-	const filters: DashboardFilters = useMemo(() => ({
-		dateRange,
-		provider: selectedProvider,
-	}), [dateRange, selectedProvider]);
+	const filters: DashboardFilters = useMemo(
+		() => ({
+			dateRange,
+			provider: selectedProvider,
+		}),
+		[dateRange, selectedProvider],
+	);
 
 	const { data, loading, error, refresh } = useDashboardData(filters);
 

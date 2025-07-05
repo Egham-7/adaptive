@@ -83,9 +83,10 @@ export const subscriptionRouter = createTRPCRouter({
 				console.error("Checkout session creation error:", error);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: process.env.NODE_ENV === "development" 
-						? `Failed to create checkout session: ${error instanceof Error ? error.message : String(error)}`
-						: "Failed to create checkout session",
+					message:
+						process.env.NODE_ENV === "development"
+							? `Failed to create checkout session: ${error instanceof Error ? error.message : String(error)}`
+							: "Failed to create checkout session",
 				});
 			}
 		}),
