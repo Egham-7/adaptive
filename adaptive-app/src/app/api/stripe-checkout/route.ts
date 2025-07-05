@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
           session.payment_status === "paid" &&
           session.subscription &&
           session.customer &&
-          session.metadata?.userId
+          typeof session.metadata?.userId === "string" &&
+          session.metadata.userId.trim() !== ""
         ) {
           const subscriptionId = session.subscription as string;
 
@@ -180,6 +181,13 @@ export async function POST(request: NextRequest) {
               : line.subscription?.id;
 
           if (!subId) continue;
+          const existing = await db.subscription.findUnique({
+            where: { stripeSubscriptionId: subId },
+          });
+          if (!existing) {
+            console.warn("⚠️ Skipping update — subscription not found:", subId);
+            continue;
+          }
 
           await db.subscription.update({
             where: { stripeSubscriptionId: subId },
@@ -206,6 +214,7 @@ export async function POST(request: NextRequest) {
 
 // helper function
 function getSafeCurrentPeriodEnd(subscription: Stripe.Subscription): Date {
+  // Use subscription-level period data first, then item-level as fallback
   const item = subscription.items?.data?.[0];
 
   // Prefer the item's period end
@@ -217,13 +226,29 @@ function getSafeCurrentPeriodEnd(subscription: Stripe.Subscription): Date {
   }
 
   if (typeof start === "number" && !isNaN(start)) {
+    // Use subscription interval for accurate period calculation
+    const interval = subscription.items?.data?.[0]?.price?.recurring?.interval;
+    const intervalCount =
+      subscription.items?.data?.[0]?.price?.recurring?.interval_count || 1;
+
     const fallback = new Date(start * 1000);
-    fallback.setMonth(fallback.getMonth() + 1);
-    console.warn("⚠️ Fallback: used start date + 1 month");
+
+    if (interval === "month") {
+      fallback.setMonth(fallback.getMonth() + intervalCount);
+    } else if (interval === "year") {
+      fallback.setFullYear(fallback.getFullYear() + intervalCount);
+    } else {
+      // Default to 1 month if interval is unknown
+      fallback.setMonth(fallback.getMonth() + 1);
+    }
+
+    console.warn(
+      "⚠️ Fallback: calculated period end from start date and interval"
+    );
     return fallback;
   }
 
   throw new Error(
-    "❌ Unable to determine currentPeriodEnd — both start and end are invalid"
+    "❌ Unable to determine currentPeriodEnd — both current_period_start and current_period_end are invalid"
   );
 }
