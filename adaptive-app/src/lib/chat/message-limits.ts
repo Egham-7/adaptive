@@ -1,7 +1,9 @@
 import type { PrismaClient } from "@prisma/client";
 import { endOfDay, startOfDay } from "date-fns";
 
-export const DAILY_MESSAGE_LIMIT = 3;
+export const DAILY_MESSAGE_LIMIT = process.env.DAILY_MESSAGE_LIMIT
+  ? parseInt(process.env.DAILY_MESSAGE_LIMIT)
+  : 3;
 
 export async function getDailyMessageCount(
   db: PrismaClient,
