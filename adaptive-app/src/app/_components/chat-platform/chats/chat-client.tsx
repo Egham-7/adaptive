@@ -1,9 +1,9 @@
 "use client";
 
-import { type UIMessage, useChat } from "@ai-sdk/react";
+import { type UIMessage } from "ai";
 import { DefaultChatTransport } from "ai";
 import { useCallback, useState } from "react";
-
+import { useChat } from "@ai-sdk/react";
 import { Chat } from "@/components/ui/chat";
 import { useMessageLimits } from "@/hooks/messages/use-message-limits";
 import type { ConversationListItem, Message } from "@/types";
