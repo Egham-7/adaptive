@@ -7,7 +7,6 @@ import {
 	hasReachedDailyLimit,
 } from "@/lib/chat/message-limits";
 import { createMessageSchema, updateMessageSchema } from "@/lib/chat/schema";
-import { isUserSubscribed } from "@/lib/stripe/subscription-utils";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type CreateMessageInput = z.infer<typeof createMessageSchema>;
@@ -154,7 +153,13 @@ export const messageRouter = createTRPCRouter({
 			const userId = validateUserId(ctx.clerkAuth.userId);
 
 			// Check if user is subscribed
-			const isSubscribed = await isUserSubscribed(ctx.db, userId);
+			const subscription = await ctx.db.subscription.findFirst({
+				where: {
+					userId: userId,
+					status: "active",
+				},
+			});
+			const isSubscribed = !!subscription;
 
 			// If not subscribed, check daily limit
 			if (!isSubscribed) {
@@ -330,7 +335,13 @@ export const messageRouter = createTRPCRouter({
 		const userId = validateUserId(ctx.clerkAuth.userId);
 
 		// Check if user is subscribed
-		const isSubscribed = await isUserSubscribed(ctx.db, userId);
+		const subscription = await ctx.db.subscription.findFirst({
+			where: {
+				userId: userId,
+				status: "active",
+			},
+		});
+		const isSubscribed = !!subscription;
 
 		if (isSubscribed) {
 			return { unlimited: true, remaining: null };
