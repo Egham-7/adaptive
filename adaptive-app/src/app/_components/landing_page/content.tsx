@@ -5,14 +5,14 @@ const logos1 = [
 	{ name: "OpenAI", id: 1, img: "/logos/openai.webp" },
 	{ name: "Gemini", id: 2, img: "/logos/google.svg" },
 	{ name: "DeepSeek", id: 3, img: "/logos/deepseek.svg" },
-	{ name: "Llama", id: 2, img: "/logos/meta.png" },
+	{ name: "Anthropic", id: 4, img: "/logos/anthropic.jpeg" },
 ];
 
 const logos2 = [
-	{ name: "Anthropic", id: 1, img: "/logos/anthropic.jpeg" },
-	{ name: "Llama", id: 2, img: "/logos/meta.png" },
-	{ name: "Grok", id: 3, img: "/logos/grok.svg" },
-	{ name: "OpenAI", id: 4, img: "/logos/openai.webp" },
+	{ name: "Grok", id: 6, img: "/logos/grok.svg" },
+	{ name: "Mistral", id: 8, img: "/logos/mistral.png" },
+	{ name: "Cohere", id: 9, img: "/logos/cohere.png" },
+	{ name: "Hugging Face", id: 10, img: "/logos/huggingface.png" },
 ];
 
 export default function ContentSection() {

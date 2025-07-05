@@ -1,9 +1,9 @@
+import { ProjectSidebar } from "@/app/_components/api-platform/organizations/projects/dashboard/project-sidebar";
 import {
 	SidebarInset,
 	SidebarProvider,
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { APIPlatformSidebar } from "../_components/api-platform/api-platform-sidebar";
 
 export default async function APIPlatformLayout({
 	children,
@@ -12,7 +12,7 @@ export default async function APIPlatformLayout({
 }) {
 	return (
 		<SidebarProvider>
-			<APIPlatformSidebar />
+			<ProjectSidebar />
 			<SidebarInset>
 				<div className="flex h-16 shrink-0 items-center gap-2 px-4">
 					<SidebarTrigger className="-ml-1" />
