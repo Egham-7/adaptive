@@ -1,228 +1,229 @@
+// app/api/stripe/webhook/route.ts
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
-import type Stripe from "stripe";
+
+import Stripe from "stripe"; // ✅ types and Stripe class
 import { stripe } from "@/lib/stripe/stripe";
 import { db } from "@/server/db";
 
 export async function POST(request: NextRequest) {
-	const body = await request.text();
-	const headersList = await headers();
-	const signature = headersList.get("stripe-signature");
+  const body = await request.text();
+  const headersList = await headers();
+  const signature = headersList.get("stripe-signature");
 
-	let event: Stripe.Event;
+  if (!signature || !process.env.STRIPE_SIGNING_SECRET) {
+    return new NextResponse("Missing Stripe signature or secret", {
+      status: 400,
+    });
+  }
 
-	// Check if webhook signing is configured
-	if (!process.env.STRIPE_SIGNING_SECRET) {
-		console.error("❌ Webhook secret not configured");
-		return new NextResponse("Webhook secret not configured", { status: 500 });
-	}
+  let event: Stripe.Event;
 
-	if (!signature) {
-		console.error("❌ No stripe signature found");
-		return new NextResponse("No signature found", { status: 400 });
-	}
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_SIGNING_SECRET
+    );
+  } catch (err) {
+    console.error("❌ Webhook verification failed", err);
+    return new NextResponse("Invalid signature", { status: 400 });
+  }
 
-	try {
-		// Verify the webhook signature using the raw body and secret
-		event = stripe.webhooks.constructEvent(
-			body,
-			signature,
-			process.env.STRIPE_SIGNING_SECRET,
-		);
-	} catch (err) {
-		console.error("❌ Webhook signature verification failed:", err);
-		return new NextResponse("Webhook signature verification failed", {
-			status: 400,
-		});
-	}
+  const data = event.data;
+  const eventType = event.type;
 
-	// Extract the object from the event
-	const data = event.data;
-	const eventType = event.type;
+  const loggableEvents = new Set([
+    "checkout.session.completed",
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "invoice.payment_succeeded",
+  ]);
 
-	try {
-		switch (eventType) {
-			case "checkout.session.completed": {
-				const session = data.object as Stripe.Checkout.Session;
-				console.log("🔔 Payment received!");
+  try {
+    switch (eventType) {
+      case "checkout.session.completed": {
+        const session = data.object as Stripe.Checkout.Session;
 
-				if (session.payment_status === "paid") {
-					// Skip if missing required fields
-					if (
-						!session.metadata?.userId ||
-						!session.subscription ||
-						!session.customer
-					) {
-						console.log("⚠️ Missing required session data, skipping...");
-						break;
-					}
+        if (
+          session.payment_status === "paid" &&
+          session.subscription &&
+          session.customer &&
+          session.metadata?.userId
+        ) {
+          const subscriptionId = session.subscription as string;
 
-					// Get the subscription details from Stripe API
-					const subscription = await stripe.subscriptions.retrieve(
-						session.subscription as string,
-					);
-					const currentPeriodEnd = new Date(
-						// @ts-ignore - current_period_end exists in Stripe API but not in TS types
-						subscription.current_period_end * 1000,
-					);
-					const priceId = subscription.items.data[0]?.price.id;
+          const subscription: Stripe.Subscription =
+            await stripe.subscriptions.retrieve(subscriptionId);
 
-					if (!priceId) {
-						throw new Error("Subscription price ID is missing");
-					}
+          const currentPeriodEnd = getSafeCurrentPeriodEnd(subscription);
 
-					// Ensure customer ID is a string
-					const customerId =
-						typeof session.customer === "string"
-							? session.customer
-							: session.customer.id;
+          const priceId = subscription.items.data[0]?.price.id;
+          if (!priceId) throw new Error("Missing subscription price ID");
 
-					// Update or create subscription in database
-					await db.subscription.upsert({
-						where: {
-							userId: session.metadata.userId,
-						},
-						create: {
-							userId: session.metadata.userId,
-							stripeCustomerId: customerId,
-							stripePriceId: priceId,
-							stripeSubscriptionId: subscription.id,
-							status: subscription.status,
-							currentPeriodEnd,
-						},
-						update: {
-							stripeCustomerId: customerId,
-							stripePriceId: priceId,
-							stripeSubscriptionId: subscription.id,
-							status: subscription.status,
-							currentPeriodEnd,
-						},
-					});
+          const customerId =
+            typeof session.customer === "string"
+              ? session.customer
+              : session.customer.id;
 
-					console.log("✅ Subscription created/updated:", {
-						userId: session.metadata.userId,
-						subscriptionId: subscription.id,
-						status: subscription.status,
-					});
-				}
-				break;
-			}
+          await db.subscription.upsert({
+            where: { userId: session.metadata.userId },
+            create: {
+              userId: session.metadata.userId,
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              stripePriceId: priceId,
+              status: subscription.status,
+              currentPeriodEnd,
+            },
+            update: {
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscription.id,
+              stripePriceId: priceId,
+              status: subscription.status,
+              currentPeriodEnd,
+            },
+          });
 
-			case "customer.subscription.updated": {
-				const subscription = data.object as Stripe.Subscription;
-				console.log("🔄 Subscription updated");
+          console.log("✅ Subscription upserted:", subscription.id);
+        }
+        break;
+      }
 
-				const existingSub = await db.subscription.findUnique({
-					where: { stripeSubscriptionId: subscription.id },
-				});
+      case "customer.subscription.updated": {
+        const sub = data.object as Stripe.Subscription;
 
-				if (existingSub) {
-					// Get complete subscription data to ensure we have all properties
-					const fullSubscription = await stripe.subscriptions.retrieve(
-						subscription.id,
-					);
+        // 🔍 Make sure the subscription exists in the DB
+        const existing = await db.subscription.findUnique({
+          where: { stripeSubscriptionId: sub.id },
+        });
 
-					await db.subscription.update({
-						where: { stripeSubscriptionId: subscription.id },
-						data: {
-							status: subscription.status,
-							currentPeriodEnd: new Date(
-								// @ts-ignore - current_period_end exists in Stripe API but not in TS types
+        // ✅ Exit early if it doesn't exist (could have been deleted manually)
+        if (!existing) {
+          console.warn("⚠️ Tried to update non-existing subscription:", sub.id);
+          break; // ⛔ don't continue
+        }
 
-								fullSubscription.current_period_end * 1000,
-							),
-							stripePriceId:
-								subscription.items.data[0]?.price.id ||
-								existingSub.stripePriceId,
-						},
-					});
+        // 🔄 Get fresh subscription from Stripe to ensure full data
+        const full = await stripe.subscriptions.retrieve(sub.id);
 
-					console.log("✅ Subscription updated:", subscription.id);
-				}
-				break;
-			}
+        const currentPeriodEnd = getSafeCurrentPeriodEnd(full);
 
-			case "customer.subscription.deleted": {
-				const subscription = data.object as Stripe.Subscription;
-				console.log("🗑️ Subscription deleted");
+        await db.subscription.update({
+          where: { stripeSubscriptionId: sub.id },
+          data: {
+            status: full.status,
+            currentPeriodEnd,
+            stripePriceId:
+              full.items.data[0]?.price.id || existing.stripePriceId,
+          },
+        });
 
-				await db.subscription.update({
-					where: { stripeSubscriptionId: subscription.id },
-					data: {
-						status: "canceled",
-					},
-				});
+        console.log("🔄 Subscription updated:", sub.id);
+        break;
+      }
 
-				console.log("✅ Subscription canceled:", subscription.id);
-				break;
-			}
+      case "customer.subscription.deleted": {
+        const sub = data.object as Stripe.Subscription;
 
-			case "invoice.payment_succeeded": {
-				const invoice = data.object as Stripe.Invoice;
-				console.log("💰 Invoice payment succeeded");
+        await db.subscription.update({
+          where: { stripeSubscriptionId: sub.id },
+          data: { status: "canceled" },
+        });
 
-				// Handle successful invoice payment
-				if (invoice.lines?.data?.length > 0) {
-					for (const line of invoice.lines.data) {
-						if (line.subscription) {
-							const subscriptionId =
-								typeof line.subscription === "string"
-									? line.subscription
-									: line.subscription.id;
+        console.log("🗑️ Subscription canceled:", sub.id);
+        break;
+      }
 
-							await db.subscription.update({
-								where: { stripeSubscriptionId: subscriptionId },
-								data: {
-									status: "active",
-									currentPeriodEnd: new Date(invoice.period_end * 1000),
-								},
-							});
+      case "invoice.payment_succeeded": {
+        const invoice = data.object as Stripe.Invoice;
 
-							console.log("✅ Subscription activated:", subscriptionId);
-							break;
-						}
-					}
-				}
-				break;
-			}
+        for (const line of invoice.lines.data) {
+          const subId =
+            typeof line.subscription === "string"
+              ? line.subscription
+              : line.subscription?.id;
 
-			case "invoice.payment_failed": {
-				const invoice = data.object as Stripe.Invoice;
-				console.log("❌ Invoice payment failed");
+          if (!subId) continue;
 
-				// Handle failed invoice payment
-				if (invoice.lines?.data?.length > 0) {
-					for (const line of invoice.lines.data) {
-						if (line.subscription) {
-							const subscriptionId =
-								typeof line.subscription === "string"
-									? line.subscription
-									: line.subscription.id;
+          const existing = await db.subscription.findUnique({
+            where: { stripeSubscriptionId: subId },
+          });
 
-							await db.subscription.update({
-								where: { stripeSubscriptionId: subscriptionId },
-								data: {
-									status: "past_due",
-								},
-							});
+          if (!existing) {
+            console.warn("⚠️ Skipping update — subscription not found:", subId);
+            continue;
+          }
 
-							console.log("⚠️ Subscription marked past due:", subscriptionId);
-							break;
-						}
-					}
-				}
-				break;
-			}
+          await db.subscription.update({
+            where: { stripeSubscriptionId: subId },
+            data: {
+              status: "active",
+              currentPeriodEnd: new Date(invoice.period_end * 1000),
+            },
+          });
 
-			default:
-				console.log(`🤷‍♂️ Unhandled event type: ${eventType}`);
-		}
-	} catch (error) {
-		console.error("❌ Webhook handler error:", error);
-		return new NextResponse("Webhook handler error", { status: 500 });
-	}
+          console.log("💰 Payment succeeded:", subId);
+          break;
+        }
+        break;
+      }
 
-	revalidatePath("/", "layout");
-	return new NextResponse(null, { status: 200 });
+      case "invoice.payment_failed": {
+        const invoice = data.object as Stripe.Invoice;
+
+        for (const line of invoice.lines.data) {
+          const subId =
+            typeof line.subscription === "string"
+              ? line.subscription
+              : line.subscription?.id;
+
+          if (!subId) continue;
+
+          await db.subscription.update({
+            where: { stripeSubscriptionId: subId },
+            data: { status: "past_due" },
+          });
+
+          console.log("❌ Payment failed, subscription:", subId);
+          break;
+        }
+        break;
+      }
+
+      default:
+        console.log("🤷‍♂️ Unhandled event type:", eventType);
+    }
+  } catch (err) {
+    console.error("❌ Error in webhook handler:", err);
+    return new NextResponse("Webhook handler error", { status: 500 });
+  }
+
+  revalidatePath("/", "layout");
+  return new NextResponse(null, { status: 200 });
+}
+
+// helper function
+function getSafeCurrentPeriodEnd(subscription: Stripe.Subscription): Date {
+  const item = subscription.items?.data?.[0];
+
+  // Prefer the item's period end
+  const end = item?.current_period_end;
+  const start = item?.current_period_start;
+
+  if (typeof end === "number" && !isNaN(end)) {
+    return new Date(end * 1000);
+  }
+
+  if (typeof start === "number" && !isNaN(start)) {
+    const fallback = new Date(start * 1000);
+    fallback.setMonth(fallback.getMonth() + 1);
+    console.warn("⚠️ Fallback: used start date + 1 month");
+    return fallback;
+  }
+
+  throw new Error(
+    "❌ Unable to determine currentPeriodEnd — both start and end are invalid"
+  );
 }
