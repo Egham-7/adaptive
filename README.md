@@ -111,13 +111,14 @@ ADDR=:8080
 ```json
 {
   "choices": [...],
-  "usage": {...},
-  "adaptive": {
-    "selected_provider": "openai",
-    "selected_model": "gpt-4o",
-    "cost_saved": 0.35,
-    "reasoning": "Selected GPT-4o for complex reasoning task"
-  }
+  "usage": {
+    "prompt_tokens": 42,
+    "completion_tokens": 150,
+    "total_tokens": 192,
+    "cost_saved": 0.35
+  },
+  "provider": "openai",
+  "model": "gpt-4o"
 }
 ```
 
