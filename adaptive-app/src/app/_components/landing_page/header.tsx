@@ -159,14 +159,24 @@ export default function Header() {
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
-										<DropdownMenuItem>
+										<DropdownMenuItem asChild>
 											<SignInButton signUpForceRedirectUrl="/chat-platform">
-												Chatbot App
+												<Button
+													variant="ghost"
+													className="w-full justify-start"
+												>
+													Chatbot App
+												</Button>
 											</SignInButton>
 										</DropdownMenuItem>
-										<DropdownMenuItem>
-											<SignInButton signUpForceRedirectUrl="/api-platform">
-												API Platform
+										<DropdownMenuItem asChild>
+											<SignInButton signUpForceRedirectUrl="/api-platform/organizations">
+												<Button
+													variant="ghost"
+													className="w-full justify-start"
+												>
+													API Platform
+												</Button>
 											</SignInButton>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
@@ -183,14 +193,24 @@ export default function Header() {
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
-										<DropdownMenuItem>
+										<DropdownMenuItem asChild>
 											<SignUpButton signInForceRedirectUrl="/chat-platform">
-												Chatbot App
+												<Button
+													variant="ghost"
+													className="w-full justify-start"
+												>
+													Chatbot App
+												</Button>
 											</SignUpButton>
 										</DropdownMenuItem>
-										<DropdownMenuItem>
-											<SignUpButton signInForceRedirectUrl="/api-platform">
-												API Platform
+										<DropdownMenuItem asChild>
+											<SignUpButton signInForceRedirectUrl="/api-platform/organizations">
+												<Button
+													variant="ghost"
+													className="w-full justify-start"
+												>
+													API Platform
+												</Button>
 											</SignUpButton>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
@@ -212,12 +232,22 @@ export default function Header() {
 									<DropdownMenuContent align="end">
 										<DropdownMenuItem asChild>
 											<LoadingLink href="/chat-platform">
-												Chatbot App
+												<Button
+													variant="ghost"
+													className="w-full justify-start"
+												>
+													Chatbot App
+												</Button>
 											</LoadingLink>
 										</DropdownMenuItem>
 										<DropdownMenuItem asChild>
-											<LoadingLink href="/api-platform">
-												API Platform
+											<LoadingLink href="/api-platform/organizations">
+												<Button
+													variant="ghost"
+													className="w-full justify-start"
+												>
+													API Platform
+												</Button>
 											</LoadingLink>
 										</DropdownMenuItem>
 									</DropdownMenuContent>
@@ -294,14 +324,24 @@ export default function Header() {
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
-											<DropdownMenuItem>
+											<DropdownMenuItem asChild>
 												<SignInButton signUpForceRedirectUrl="/chat-platform">
-													Chatbot App
+													<Button
+														variant="ghost"
+														className="w-full justify-start"
+													>
+														Chatbot App
+													</Button>
 												</SignInButton>
 											</DropdownMenuItem>
-											<DropdownMenuItem>
-												<SignInButton signUpForceRedirectUrl="/api-platform">
-													API Platform
+											<DropdownMenuItem asChild>
+												<SignInButton signUpForceRedirectUrl="/api-platform/organizations">
+													<Button
+														variant="ghost"
+														className="w-full justify-start"
+													>
+														API Platform
+													</Button>
 												</SignInButton>
 											</DropdownMenuItem>
 										</DropdownMenuContent>
@@ -318,14 +358,24 @@ export default function Header() {
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
-											<DropdownMenuItem>
+											<DropdownMenuItem asChild>
 												<SignUpButton signInForceRedirectUrl="/chat-platform">
-													Chatbot App
+													<Button
+														variant="ghost"
+														className="w-full justify-start"
+													>
+														Chatbot App
+													</Button>
 												</SignUpButton>
 											</DropdownMenuItem>
-											<DropdownMenuItem>
-												<SignUpButton signInForceRedirectUrl="/api-platform">
-													API Platform
+											<DropdownMenuItem asChild>
+												<SignUpButton signInForceRedirectUrl="/api-platform/organizations">
+													<Button
+														variant="ghost"
+														className="w-full justify-start"
+													>
+														API Platform
+													</Button>
 												</SignUpButton>
 											</DropdownMenuItem>
 										</DropdownMenuContent>
@@ -347,12 +397,22 @@ export default function Header() {
 										<DropdownMenuContent align="end">
 											<DropdownMenuItem asChild>
 												<LoadingLink href="/chat-platform">
-													Chatbot App
+													<Button
+														variant="ghost"
+														className="w-full justify-start"
+													>
+														Chatbot App
+													</Button>
 												</LoadingLink>
 											</DropdownMenuItem>
 											<DropdownMenuItem asChild>
-												<LoadingLink href="/api-platform">
-													API Platform
+												<LoadingLink href="/api-platform/organizations">
+													<Button
+														variant="ghost"
+														className="w-full justify-start"
+													>
+														API Platform
+													</Button>
 												</LoadingLink>
 											</DropdownMenuItem>
 										</DropdownMenuContent>

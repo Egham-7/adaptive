@@ -63,14 +63,20 @@ export default function Pricing() {
 					<Card>
 						<CardHeader>
 							<CardTitle className="font-medium">Developer</CardTitle>
-							<div className="my-3 flex items-baseline">
-								<span className="font-semibold text-2xl">$0.005</span>
-								<span className="ml-1 text-muted-foreground text-sm">
-									/ 1K tokens
-								</span>
+							<div className="my-3 space-y-2">
+								<div className="flex items-baseline">
+									<span className="font-semibold text-2xl">+$0.10</span>
+									<span className="ml-1 text-muted-foreground text-sm">
+										per 1M tokens
+									</span>
+								</div>
+								<div className="text-muted-foreground text-xs">
+									Added to original model pricing (input + output)
+								</div>
 							</div>
 							<CardDescription className="text-sm">
-								Perfect for development and testing
+								Simple markup pricing - pay original model cost + $0.10 per
+								million tokens
 							</CardDescription>
 							<Button asChild variant="outline" className="mt-4 w-full">
 								<SignUpButton />

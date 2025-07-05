@@ -58,16 +58,9 @@ const SettingsPage: React.FC = () => {
 		updatePreferencesMutation.mutate({ providers: newProviders });
 	};
 
-	// Loading state
+	// Don't render anything if not loaded yet - loading.tsx will handle this
 	if (!isLoaded || isLoading) {
-		return (
-			<div className="flex min-h-screen items-center justify-center bg-background p-6">
-				<div className="text-center">
-					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-primary border-b-2" />
-					<p className="text-muted-foreground">Loading settings...</p>
-				</div>
-			</div>
-		);
+		return null;
 	}
 
 	return (

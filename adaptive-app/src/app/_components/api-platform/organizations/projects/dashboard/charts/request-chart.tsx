@@ -27,13 +27,7 @@ export function RequestsChart({ data }: RequestsChartProps) {
 				<BarChart data={data}>
 					<XAxis dataKey="date" hide />
 					<YAxis hide />
-					<ChartTooltip
-						content={<ChartTooltipContent />}
-						formatter={(value: number | string) => [
-							Number(value).toLocaleString(),
-							"Requests",
-						]}
-					/>
+					<ChartTooltip content={<ChartTooltipContent />} />
 					<Bar dataKey="requests" fill="#8b5cf6" radius={[1, 1, 0, 0]} />
 				</BarChart>
 			</ResponsiveContainer>

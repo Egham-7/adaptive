@@ -87,7 +87,6 @@ export function SavingsEfficiencyChart({
 									axisLine={false}
 									tickLine={false}
 									className="text-xs"
-									tickFormatter={(value) => `$${Number(value).toFixed(2)}`}
 								/>
 								<YAxis
 									type="number"
@@ -96,27 +95,8 @@ export function SavingsEfficiencyChart({
 									axisLine={false}
 									tickLine={false}
 									className="text-xs"
-									tickFormatter={(value) => `${Number(value).toFixed(0)}%`}
 								/>
-								<ChartTooltip
-									content={<ChartTooltipContent />}
-									formatter={(value, name, _props) => {
-										if (name === "cost") {
-											return [`$${Number(value).toFixed(2)}`, "Cost"];
-										}
-										if (name === "savingsPercentage") {
-											return [`${Number(value).toFixed(1)}%`, "Savings"];
-										}
-										return [value, name];
-									}}
-									labelFormatter={(label, payload) => {
-										if (payload?.[0]?.payload) {
-											const item = payload[0].payload;
-											return `${item.name} (${item.requests.toLocaleString()} requests)`;
-										}
-										return label;
-									}}
-								/>
+								<ChartTooltip content={<ChartTooltipContent />} />
 								<Scatter dataKey="savingsPercentage" fill="#3b82f6" />
 							</ScatterChart>
 						</ResponsiveContainer>

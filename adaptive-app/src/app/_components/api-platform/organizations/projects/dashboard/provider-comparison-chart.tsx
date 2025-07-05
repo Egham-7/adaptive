@@ -84,23 +84,8 @@ export function ProviderComparisonChart({
 									tickLine={false}
 									className="text-xs"
 								/>
-								<YAxis
-									axisLine={false}
-									tickLine={false}
-									className="text-xs"
-									tickFormatter={(value) => `$${Number(value).toFixed(2)}`}
-								/>
-								<ChartTooltip
-									content={<ChartTooltipContent />}
-									formatter={(value, name) => [
-										`$${Number(value).toFixed(2)}`,
-										name === "adaptive" ? "Adaptive" : "Single Provider",
-									]}
-									labelFormatter={(label) => {
-										const item = chartData.find((d) => d.name === label);
-										return item ? item.fullName : label;
-									}}
-								/>
+								<YAxis axisLine={false} tickLine={false} className="text-xs" />
+								<ChartTooltip content={<ChartTooltipContent />} />
 								<Bar dataKey="adaptive" fill="#3b82f6" radius={[4, 4, 0, 0]} />
 								<Bar dataKey="single" fill="#f59e0b" radius={[4, 4, 0, 0]} />
 							</BarChart>

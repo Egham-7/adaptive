@@ -1,16 +1,21 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
+import { MetricsOverview } from "@/app/_components/api-platform/organizations/projects/dashboard/metrics-overview";
+import { TaskDistributionChart } from "@/app/_components/api-platform/organizations/projects/dashboard/task-distribution-chart";
+import { UsageSection } from "@/app/_components/api-platform/organizations/projects/dashboard/usage-section";
 import { Button } from "@/components/ui/button";
 import { useDashboardData } from "@/hooks/api-platform/hooks/use-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
 import type { DashboardFilters } from "@/types/api-platform/dashboard";
-import { DashboardHeader } from "../_components/api-platform/dashboard/dashboard-header";
-import { MetricsOverview } from "../_components/api-platform/dashboard/metrics-overview";
-import { TaskDistributionChart } from "../_components/api-platform/dashboard/task-distribution-chart";
-import { UsageSection } from "../_components/api-platform/dashboard/usage-section";
 
 export default function DashboardPage() {
+	const params = useParams();
+	const orgId = params.orgId as string;
 	const { dateRange, setDateRange } = useDateRange();
 	const [selectedProvider, setSelectedProvider] = useState("openai");
 
@@ -58,10 +63,10 @@ export default function DashboardPage() {
 		return (
 			<div className="flex min-h-[400px] items-center justify-center">
 				<div className="text-center">
-					<h3 className="mb-2 font-medium text-gray-900 text-lg dark:text-white">
+					<h3 className="mb-2 font-medium text-foreground text-lg">
 						Failed to load dashboard data
 					</h3>
-					<p className="mb-4 text-gray-600 dark:text-gray-400">{error}</p>
+					<p className="mb-4 text-muted-foreground">{error}</p>
 					<Button onClick={refresh}>Try Again</Button>
 				</div>
 			</div>
@@ -70,6 +75,16 @@ export default function DashboardPage() {
 
 	return (
 		<div className="space-y-8">
+			{/* Back Navigation */}
+			<div className="mb-4">
+				<Link href={`/api-platform/organizations/${orgId}`}>
+					<Button variant="ghost" size="sm">
+						<ArrowLeft className="mr-2 h-4 w-4" />
+						Back to Projects
+					</Button>
+				</Link>
+			</div>
+
 			{/* Header Section */}
 			<DashboardHeader
 				dateRange={dateRange}
@@ -85,10 +100,10 @@ export default function DashboardPage() {
 			{/* Key Metrics Section */}
 			<section className="space-y-4">
 				<div className="flex items-center justify-between">
-					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
+					<h2 className="font-semibold text-foreground text-xl">
 						Key Performance Metrics
 					</h2>
-					<div className="text-gray-500 text-sm dark:text-gray-400">
+					<div className="text-muted-foreground text-sm">
 						Real-time insights
 					</div>
 				</div>
@@ -96,15 +111,15 @@ export default function DashboardPage() {
 			</section>
 
 			{/* Divider */}
-			<div className="border-gray-200 border-t dark:border-gray-800" />
+			<div className="border-border border-t" />
 
 			{/* Usage Analytics Section */}
 			<section className="space-y-4">
 				<div className="flex items-center justify-between">
-					<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
+					<h2 className="font-semibold text-foreground text-xl">
 						Usage Analytics
 					</h2>
-					<div className="text-gray-500 text-sm dark:text-gray-400">
+					<div className="text-muted-foreground text-sm">
 						Spend trends over time
 					</div>
 				</div>
@@ -122,7 +137,7 @@ export default function DashboardPage() {
 			</section>
 
 			{/* Divider */}
-			<div className="border-gray-200 border-t dark:border-gray-800" />
+			<div className="border-border border-t" />
 		</div>
 	);
 }

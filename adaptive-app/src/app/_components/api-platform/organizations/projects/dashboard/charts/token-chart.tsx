@@ -27,13 +27,7 @@ export function TokenChart({ data }: TokenChartProps) {
 				<LineChart data={data}>
 					<XAxis dataKey="date" hide />
 					<YAxis hide />
-					<ChartTooltip
-						content={<ChartTooltipContent />}
-						formatter={(value: number | string) => [
-							Number(value).toLocaleString(),
-							"Tokens",
-						]}
-					/>
+					<ChartTooltip content={<ChartTooltipContent />} />
 					<Line
 						type="monotone"
 						dataKey="tokens"
