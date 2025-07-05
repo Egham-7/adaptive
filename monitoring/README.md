@@ -4,12 +4,12 @@ Monitoring and observability setup for the Adaptive AI platform using Prometheus
 
 ## Overview
 
-This directory contains monitoring configuration for collecting metrics, alerting, and visualization across all Adaptive services.
+Complete monitoring solution for collecting metrics, alerting, and visualization across all Adaptive services.
 
-## Components
+### Components
 
 - **Prometheus**: Metrics collection and storage
-- **Grafana**: Visualization and dashboards
+- **Grafana**: Visualization and dashboards  
 - **Alert Manager**: Alert routing and notifications (optional)
 
 ## Quick Start
@@ -30,7 +30,6 @@ open http://localhost:9090  # Prometheus
 - Cache hit/miss rates
 - Model selection frequency
 - Database connection pool stats
-- Custom business metrics
 
 ### AI Service (Python)
 - Model inference latency
@@ -40,8 +39,7 @@ open http://localhost:9090  # Prometheus
 
 ### Frontend (React)
 - Web vitals (LCP, FID, CLS)
-- User interactions
-- Error rates
+- User interactions and error rates
 - Bundle size metrics
 
 ## Grafana Dashboards
@@ -49,42 +47,32 @@ open http://localhost:9090  # Prometheus
 ### System Overview
 - Service health status
 - Request rates and latency
-- Error rates across services
-- Resource utilization
+- Error rates and resource utilization
 
 ### Cost Analytics
 - Token usage by model/provider
 - Cost per request
 - Monthly spending trends
-- Optimization opportunities
 
 ### Business Metrics
 - Active users and conversations
 - Model selection distribution
 - Feature usage patterns
-- Performance benchmarks
 
-## Configuration Files
+## Configuration
 
 ```
 monitoring/
-├── prometheus.dev.yml      # Prometheus config for development
-├── prometheus.prod.yml     # Prometheus config for production
+├── prometheus.dev.yml      # Development config
+├── prometheus.prod.yml     # Production config
 ├── grafana/               # Grafana configuration
-│   ├── dashboards/       # Pre-built dashboards
-│   ├── datasources/      # Data source configs
-│   └── provisioning/     # Auto-provisioning setup
+│   └── plugins/          # Pre-installed plugins
 └── alerts/               # Alert rules
-    ├── infrastructure.yml
-    ├── application.yml
-    └── business.yml
 ```
 
 ## Custom Metrics
 
-### Adding New Metrics
-
-**Backend (Go):**
+### Backend (Go)
 ```go
 var customCounter = prometheus.NewCounterVec(
     prometheus.CounterOpts{
@@ -98,9 +86,9 @@ var customCounter = prometheus.NewCounterVec(
 customCounter.WithLabelValues("value1", "value2").Inc()
 ```
 
-**Frontend (JavaScript):**
+### Frontend (JavaScript)
 ```typescript
-// Send custom metric to backend endpoint
+// Send custom metric to backend
 await fetch('/api/metrics', {
   method: 'POST',
   body: JSON.stringify({
@@ -132,29 +120,18 @@ groups:
 ```
 
 ### Notification Channels
-
-Configure in Grafana or Alert Manager:
 - Slack notifications
 - Email alerts
 - PagerDuty integration
 - Discord webhooks
 
-## Performance Monitoring
-
-### Key Performance Indicators
+## Key Performance Indicators
 
 - **Response Time**: API endpoint latency percentiles
 - **Throughput**: Requests per second
 - **Error Rate**: 4xx/5xx response percentage
 - **Availability**: Service uptime percentage
 - **Cost Efficiency**: Cost per successful request
-
-### SLA Monitoring
-
-- 99.9% uptime target
-- <200ms average response time
-- <1% error rate
-- Cost optimization tracking
 
 ## Deployment
 
@@ -187,26 +164,7 @@ kubectl apply -f k8s/monitoring/
 - Network policies for service isolation
 - SSL/TLS for external access
 
-## Troubleshooting
-
-### Common Issues
-
-**Prometheus not scraping:**
-- Check network connectivity
-- Verify service discovery config
-- Check authentication credentials
-
-**Grafana dashboard empty:**
-- Verify Prometheus data source
-- Check time range selection
-- Confirm metric names and labels
-
-**High memory usage:**
-- Adjust retention policies
-- Optimize query performance
-- Scale Prometheus instances
-
-### Health Checks
+## Health Checks
 
 ```bash
 # Check Prometheus targets
