@@ -18,7 +18,7 @@ export function TokenChart({ data }: TokenChartProps) {
 			config={{
 				tokens: {
 					label: "Tokens",
-					color: "#f97316",
+					color: "#10b981",
 				},
 			}}
 			className="h-[60px] w-full"
@@ -37,7 +37,7 @@ export function TokenChart({ data }: TokenChartProps) {
 					<Line
 						type="monotone"
 						dataKey="tokens"
-						stroke="#f97316"
+						stroke="#10b981"
 						strokeWidth={2}
 						dot={false}
 					/>

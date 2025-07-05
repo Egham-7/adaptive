@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { LayoutDashboard, LogOut, Settings, UserCog } from "lucide-react";
+import { MdDashboard, MdKey } from "react-icons/md";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -18,30 +18,16 @@ export function APIPlatformSidebar() {
 	const links = [
 		{
 			label: "Dashboard",
-			href: "#",
+			href: "/api-platform",
 			icon: (
-				<LayoutDashboard className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
+				<MdDashboard className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
 			),
 		},
 		{
-			label: "Profile",
-			href: "#",
+			label: "API Keys",
+			href: "/api-platform/api-keys",
 			icon: (
-				<UserCog className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
-			),
-		},
-		{
-			label: "Settings",
-			href: "#",
-			icon: (
-				<Settings className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
-			),
-		},
-		{
-			label: "Logout",
-			href: "#",
-			icon: (
-				<LogOut className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
+				<MdKey className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
 			),
 		},
 	];
@@ -67,21 +53,23 @@ export function APIPlatformSidebar() {
 			<SidebarFooter>
 				<SidebarMenu>
 					<SidebarMenuItem>
-						<SidebarMenuButton asChild>
-							<Link href="#" className="flex items-center gap-2">
-								<Image
-									src="https://assets.aceternity.com/manu.png"
-									className="h-7 w-7 flex-shrink-0 rounded-full"
-									width={50}
-									height={50}
-									alt="Avatar"
-								/>
-								<span>Manu Arora</span>
-							</Link>
-						</SidebarMenuButton>
+						<div className="flex items-center justify-between w-full">
+							<SidebarMenuButton asChild className="flex-1">
+								<Link href="#" className="flex items-center gap-2">
+									<Image
+										src="https://assets.aceternity.com/manu.png"
+										className="h-7 w-7 flex-shrink-0 rounded-full"
+										width={50}
+										height={50}
+										alt="Avatar"
+									/>
+									<span>Manu Arora</span>
+								</Link>
+							</SidebarMenuButton>
+							<ModeToggle />
+						</div>
 					</SidebarMenuItem>
 				</SidebarMenu>
-				<ModeToggle />
 			</SidebarFooter>
 		</Sidebar>
 	);
@@ -99,7 +87,7 @@ export const Logo = () => {
 				animate={{ opacity: 1 }}
 				className="whitespace-pre font-medium text-black dark:text-white"
 			>
-				Acet Labs
+				Adaptive
 			</motion.span>
 		</Link>
 	);

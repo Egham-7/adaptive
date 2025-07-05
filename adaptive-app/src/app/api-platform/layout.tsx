@@ -1,15 +1,22 @@
 import { APIPlatformSidebar } from "../_components/api-platform/api-platform-sidebar";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+
 export default async function APIPlatformLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="flex min-h-screen w-full bg-background">
+		<SidebarProvider>
 			<APIPlatformSidebar />
-			<main className="w-full flex-1 overflow-hidden px-10 py-2 pt-10">
-				{children}
-			</main>
-		</div>
+			<SidebarInset>
+				<div className="flex h-16 shrink-0 items-center gap-2 px-4">
+					<SidebarTrigger className="-ml-1" />
+				</div>
+				<main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+					{children}
+				</main>
+			</SidebarInset>
+		</SidebarProvider>
 	);
 }

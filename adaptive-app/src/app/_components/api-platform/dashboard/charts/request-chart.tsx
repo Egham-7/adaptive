@@ -18,7 +18,7 @@ export function RequestsChart({ data }: RequestsChartProps) {
 			config={{
 				requests: {
 					label: "Requests",
-					color: "#3b82f6",
+					color: "#8b5cf6",
 				},
 			}}
 			className="h-[60px] w-full"
@@ -34,7 +34,7 @@ export function RequestsChart({ data }: RequestsChartProps) {
 							"Requests",
 						]}
 					/>
-					<Bar dataKey="requests" fill="#3b82f6" radius={[1, 1, 0, 0]} />
+					<Bar dataKey="requests" fill="#8b5cf6" radius={[1, 1, 0, 0]} />
 				</BarChart>
 			</ResponsiveContainer>
 		</ChartContainer>

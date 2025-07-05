@@ -59,7 +59,7 @@ export function useDateRange(initialRange?: DateRange) {
 				setDateRange(preset.range);
 			}
 		},
-		[presets.find],
+		[],
 	);
 
 	const formatDateRange = useCallback((range: DateRange) => {

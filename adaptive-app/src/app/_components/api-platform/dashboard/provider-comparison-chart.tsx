@@ -69,7 +69,7 @@ export function ProviderComparisonChart({
 							},
 							single: {
 								label: "Single Provider",
-								color: "#f97316",
+								color: "#f59e0b",
 							},
 						}}
 					>
@@ -102,7 +102,7 @@ export function ProviderComparisonChart({
 									}}
 								/>
 								<Bar dataKey="adaptive" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-								<Bar dataKey="single" fill="#f97316" radius={[4, 4, 0, 0]} />
+								<Bar dataKey="single" fill="#f59e0b" radius={[4, 4, 0, 0]} />
 							</BarChart>
 						</ResponsiveContainer>
 					</ChartContainer>
@@ -115,7 +115,7 @@ export function ProviderComparisonChart({
 							<span className="text-muted-foreground">Adaptive</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<div className="h-3 w-3 rounded-full bg-[#f97316]" />
+							<div className="h-3 w-3 rounded-full bg-[#f59e0b]" />
 							<span className="text-muted-foreground">Single Provider</span>
 						</div>
 					</div>

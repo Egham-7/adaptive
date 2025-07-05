@@ -126,13 +126,13 @@ const generateMockData = (filters: DashboardFilters): DashboardData => {
 		{
 			id: "openai",
 			name: "OpenAI",
-			icon: "/logos/openai.svg",
+			icon: "/logos/openai.webp",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 2.3 },
 		},
 		{
 			id: "anthropic",
 			name: "Anthropic",
-			icon: "/logos/anthropic.svg",
+			icon: "/logos/anthropic.jpeg",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.98 },
 		},
 		{
@@ -144,7 +144,7 @@ const generateMockData = (filters: DashboardFilters): DashboardData => {
 		{
 			id: "cohere",
 			name: "Cohere",
-			icon: "/logos/cohere.svg",
+			icon: "/logos/cohere.png",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.61 },
 		},
 		{
@@ -156,7 +156,7 @@ const generateMockData = (filters: DashboardFilters): DashboardData => {
 		{
 			id: "groq",
 			name: "Groq",
-			icon: "/logos/groq.svg",
+			icon: "/logos/groq.png",
 			comparisonCosts: { adaptive: totalSpend, single: totalSpend * 1.85 },
 		},
 		{
@@ -201,12 +201,7 @@ export function useDashboardData(filters: DashboardFilters) {
 		} finally {
 			setLoading(false);
 		}
-	}, [
-		filters.dateRange?.from,
-		filters.dateRange?.to,
-		filters.provider,
-		filters,
-	]);
+	}, [filters]);
 
 	useEffect(() => {
 		fetchData();

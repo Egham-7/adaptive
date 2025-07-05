@@ -30,11 +30,11 @@ export function UsageChart({
 			config={{
 				adaptive: {
 					label: "Adaptive Cost",
-					color: "#b45309", // Coffee brown
+					color: "#3b82f6",
 				},
 				singleProvider: {
 					label: `${providerName} Cost`,
-					color: "#78716c", // Espresso brown (lighter for comparison)
+					color: "#f59e0b",
 				},
 			}}
 			className="h-[300px] w-full"
@@ -66,13 +66,13 @@ export function UsageChart({
 					<Legend />
 					<Bar
 						dataKey="adaptive"
-						fill="#b45309"
+						fill="#3b82f6"
 						radius={[2, 2, 0, 0]}
 						name="Adaptive Cost"
 					/>
 					<Bar
 						dataKey="singleProvider"
-						fill="#78716c"
+						fill="#f59e0b"
 						radius={[2, 2, 0, 0]}
 						opacity={0.6}
 						name={`${providerName} Cost`}

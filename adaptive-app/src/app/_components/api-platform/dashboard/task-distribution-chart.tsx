@@ -34,7 +34,7 @@ export function TaskDistributionChart({
 
 	if (!data) return null;
 
-	const chartColors = ["#b45309", "#f59e0b", "#dc2626", "#78716c", "#059669"]; // Contrasting caffeine palette
+	const chartColors = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 	const chartData = data.taskBreakdown.map((task, index) => ({
 		name: task.name,
 		value: Number.parseInt(task.requests.replace(",", "")),
@@ -62,7 +62,7 @@ export function TaskDistributionChart({
 						},
 						"Code Generation": {
 							label: "Code Generation",
-							color: "#b45309",
+							color: "#3b82f6",
 						},
 						"Open Q&A": {
 							label: "Open Q&A",
@@ -70,11 +70,11 @@ export function TaskDistributionChart({
 						},
 						Summarization: {
 							label: "Summarization",
-							color: "#dc2626",
+							color: "#10b981",
 						},
 						Translation: {
 							label: "Translation",
-							color: "#78716c",
+							color: "#ef4444",
 						},
 					}}
 				>

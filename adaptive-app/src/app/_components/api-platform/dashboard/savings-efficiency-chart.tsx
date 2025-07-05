@@ -40,7 +40,7 @@ export function SavingsEfficiencyChart({
 
 	if (!data) return null;
 
-	const chartColors = ["#3b82f6", "#f97316", "#10b981", "#ef4444", "#8b5cf6"];
+	const chartColors = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 	const chartData = data.taskBreakdown.map((task, index) => ({
 		name: task.name,
 		cost: Number.parseFloat(task.cost.replace("$", "")),
@@ -71,7 +71,7 @@ export function SavingsEfficiencyChart({
 							},
 							savingsPercentage: {
 								label: "Savings %",
-								color: "#f97316",
+								color: "#f59e0b",
 							},
 						}}
 					>
