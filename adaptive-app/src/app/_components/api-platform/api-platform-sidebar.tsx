@@ -3,8 +3,15 @@ import { motion } from "framer-motion";
 import { LayoutDashboard, LogOut, Settings, UserCog } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { Sidebar, SidebarBody, SidebarLink } from "@/components/ui/sidebar";
+import {
+	Sidebar,
+	SidebarContent,
+	SidebarFooter,
+	SidebarHeader,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
 import { ModeToggle } from "../mode-toggle";
 
 export function APIPlatformSidebar() {
@@ -38,24 +45,30 @@ export function APIPlatformSidebar() {
 			),
 		},
 	];
-	const [open, setOpen] = useState(false);
 	return (
-		<Sidebar open={open} setOpen={setOpen}>
-			<SidebarBody className="justify-between gap-10">
-				<div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
-					{open ? <Logo /> : <LogoIcon />}
-					<div className="mt-8 flex flex-col gap-2">
-						{links.map((link) => (
-							<SidebarLink key={link.label} link={link} />
-						))}
-					</div>
-				</div>
-				<div className="flex items-center justify-between gap-2">
-					<SidebarLink
-						link={{
-							label: "Manu Arora",
-							href: "#",
-							icon: (
+		<Sidebar>
+			<SidebarHeader>
+				<Logo />
+			</SidebarHeader>
+			<SidebarContent>
+				<SidebarMenu>
+					{links.map((link) => (
+						<SidebarMenuItem key={link.label}>
+							<SidebarMenuButton asChild>
+								<Link href={link.href}>
+									{link.icon}
+									<span>{link.label}</span>
+								</Link>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					))}
+				</SidebarMenu>
+			</SidebarContent>
+			<SidebarFooter>
+				<SidebarMenu>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<Link href="#" className="flex items-center gap-2">
 								<Image
 									src="https://assets.aceternity.com/manu.png"
 									className="h-7 w-7 flex-shrink-0 rounded-full"
@@ -63,12 +76,13 @@ export function APIPlatformSidebar() {
 									height={50}
 									alt="Avatar"
 								/>
-							),
-						}}
-					/>
-					<ModeToggle />
-				</div>
-			</SidebarBody>
+								<span>Manu Arora</span>
+							</Link>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</SidebarMenu>
+				<ModeToggle />
+			</SidebarFooter>
 		</Sidebar>
 	);
 }

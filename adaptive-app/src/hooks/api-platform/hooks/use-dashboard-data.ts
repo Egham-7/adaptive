@@ -201,7 +201,12 @@ export function useDashboardData(filters: DashboardFilters) {
 		} finally {
 			setLoading(false);
 		}
-	}, [filters.dateRange?.from, filters.dateRange?.to, filters.provider]);
+	}, [
+		filters.dateRange?.from,
+		filters.dateRange?.to,
+		filters.provider,
+		filters,
+	]);
 
 	useEffect(() => {
 		fetchData();

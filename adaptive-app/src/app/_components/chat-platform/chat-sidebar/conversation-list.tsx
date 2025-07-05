@@ -38,21 +38,8 @@ export function ConversationList({
 				const titleMatch = c.title
 					.toLowerCase()
 					.includes(searchQuery.toLowerCase());
-				const messageMatch =
-					c.messages[0] && Array.isArray(c.messages[0].parts)
-						? (
-								c.messages[0].parts.find(
-									(p) =>
-										p &&
-										typeof p === "object" &&
-										"type" in p &&
-										p.type === "text",
-								) as { text: string }
-							)?.text
-								?.toLowerCase()
-								?.includes(searchQuery.toLowerCase()) || false
-						: false;
-				return titleMatch || messageMatch;
+
+				return titleMatch;
 			}) ?? [];
 
 		const pinned: ConversationListItem[] = [];

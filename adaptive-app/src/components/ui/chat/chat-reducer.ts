@@ -1,4 +1,4 @@
-import type { MessageAction, MessageState, MessageToolPart } from "./chat-types";
+import type { MessageAction, MessageState } from "./chat-types";
 
 export function messageReducer(
   state: MessageState,
@@ -17,15 +17,19 @@ export function messageReducer(
       let needsUpdate = false;
       const updatedParts = message.parts.map((part) => {
         if (
-          part.type.startsWith("tool-") &&
-          (part as MessageToolPart).state === "input-available"
+          part.type === "tool-invocation" &&
+          part.toolInvocation.state === "call"
         ) {
           needsUpdate = true;
           return {
             ...part,
-            state: "output-error",
-            errorText: "Tool execution was cancelled",
-          } as MessageToolPart;
+            toolInvocation: {
+              ...part.toolInvocation,
+              state: "result" as const,
+              result: "Tool execution was cancelled",
+              isError: true,
+            },
+          };
         }
         return part;
       });

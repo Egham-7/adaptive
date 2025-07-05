@@ -20,7 +20,7 @@ export function MessageList({
   messageOptions,
 }: MessageListProps) {
   return (
-    <div className="space-y-4 overflow-visible">
+    <div className="mx-auto max-w-3xl px-4 space-y-4 pb-2">
       {messages.map((message) => {
         const additionalOptions =
           typeof messageOptions === "function"
@@ -37,8 +37,8 @@ export function MessageList({
         );
       })}
       {isTyping && (
-        <div className="flex items-center justify-start p-4">
-          <div className="bg-muted rounded-lg px-3 py-2">
+        <div className="w-full">
+          <div className="bg-muted rounded-lg px-3 py-2 mr-auto max-w-3xl">
             <TypingLoader size="sm" className="opacity-70" />
           </div>
         </div>

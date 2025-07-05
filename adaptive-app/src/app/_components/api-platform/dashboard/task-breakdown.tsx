@@ -74,7 +74,8 @@ export function TaskBreakdown({
 											{task.cost}
 										</div>
 										<div className="text-green-600 text-xs dark:text-green-400">
-											{task.savings} saved vs {currentProvider?.name || "Single Provider"}
+											{task.savings} saved vs{" "}
+											{currentProvider?.name || "Single Provider"}
 										</div>
 									</div>
 								</div>
@@ -84,7 +85,8 @@ export function TaskBreakdown({
 									<div className="flex justify-between text-muted-foreground text-xs">
 										<span>Adaptive: {task.cost}</span>
 										<span>
-											{currentProvider?.name || "Single Provider"}: {task.comparisonCost}
+											{currentProvider?.name || "Single Provider"}:{" "}
+											{task.comparisonCost}
 										</span>
 									</div>
 									<div className="h-2 overflow-hidden rounded-full bg-muted">

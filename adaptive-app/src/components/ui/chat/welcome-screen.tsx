@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface WelcomeScreenProps {
   className?: string;
   suggestions: string[];
-  sendMessage: (message: { text: string }) => void;
+  onSuggestionClick: (text: string) => void;
   handleSubmit: (
     event?: { preventDefault?: () => void },
     options?: { files?: FileList },
@@ -35,7 +35,7 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({
   className,
   suggestions,
-  sendMessage,
+  onSuggestionClick,
   handleSubmit,
   input,
   handleInputChange,
@@ -64,7 +64,7 @@ export function WelcomeScreen({
       <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
         <PromptSuggestions
           label="Try these prompts ✨"
-          sendMessage={sendMessage}
+          onSuggestionClick={onSuggestionClick}
           suggestions={suggestions}
           enableCategories={true}
         />

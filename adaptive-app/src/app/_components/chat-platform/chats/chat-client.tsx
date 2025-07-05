@@ -1,7 +1,11 @@
 "use client";
 
 import { type UIMessage, useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import {
+	convertFileListToFileUIParts,
+	defaultChatStore,
+	type UIMessagePart,
+} from "ai";
 import { useCallback, useState } from "react";
 
 import { Chat } from "@/components/ui/chat";
@@ -29,23 +33,22 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 
 	const mappedMessages = initialMessages as unknown as UIMessage[];
 
-	const [input, setInput] = useState("");
-	const {
-		messages,
-		setMessages,
-		status,
-		stop,
-		error,
-		sendMessage,
-		regenerate,
-	} = useChat({
-		id: conversation.id.toString(),
-		messages: mappedMessages,
-		transport: new DefaultChatTransport({
-			api: "/api/chat",
-			credentials: "include",
-		}),
+	const chatStore = defaultChatStore({
+		api: "/api/chat",
+		credentials: "include",
+		chats: {
+			[conversation.id.toString()]: {
+				messages: mappedMessages,
+			},
+		},
 	});
+
+	const [input, setInput] = useState("");
+	const { messages, setMessages, status, stop, error, append, reload } =
+		useChat({
+			id: conversation.id.toString(),
+			chatStore,
+		});
 
 	const handleInputChange = useCallback(
 		(event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -55,29 +58,42 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 	);
 
 	const handleSubmit = useCallback(
-		(
+		async (
 			event?: { preventDefault?: () => void },
 			options?: { files?: FileList },
 		) => {
 			event?.preventDefault?.();
 
 			if (hasReachedLimit) {
-				alert(
-					"You've reached your daily message limit. Please upgrade to continue.",
-				);
 				return;
 			}
 
 			if (!input.trim()) return;
 
-			sendMessage({ text: input, files: options?.files });
+			const parts: UIMessagePart<Record<string, unknown>>[] = [
+				{ type: "text", text: input },
+			];
+
+			if (options?.files && options.files.length > 0) {
+				const fileParts = await convertFileListToFileUIParts(options.files);
+				parts.push(...fileParts);
+			}
+
+			append({
+				role: "user",
+				parts,
+			});
 			setInput("");
 		},
-		[sendMessage, hasReachedLimit, input],
+		[append, hasReachedLimit, input],
 	);
 
 	const isLoading = status === "streaming" || status === "submitted";
 	const isError = status === "error";
+
+	const regenerate = useCallback(() => {
+		reload();
+	}, [reload]);
 
 	return (
 		<div className="flex h-full flex-col">
@@ -91,7 +107,6 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 				setMessages={setMessages}
 				isGenerating={isLoading}
 				stop={stop}
-				sendMessage={(message) => sendMessage({ text: message.text })}
 				suggestions={CHAT_SUGGESTIONS as string[]}
 				isError={isError}
 				error={error}

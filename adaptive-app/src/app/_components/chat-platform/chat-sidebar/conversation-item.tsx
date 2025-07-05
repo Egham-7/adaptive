@@ -23,8 +23,6 @@ export function ConversationItem({
 	isActive,
 	onPin,
 }: ConversationItemProps) {
-	const lastMessage = conversation.messages[0];
-
 	return (
 		<SidebarMenuItem className="group relative">
 			<Link
@@ -34,7 +32,7 @@ export function ConversationItem({
 			>
 				<SidebarMenuButton
 					className={cn(
-						"group relative",
+						"relative",
 						isActive && "bg-accent text-accent-foreground",
 					)}
 				>
@@ -47,33 +45,14 @@ export function ConversationItem({
 								)}
 							</span>
 						</div>
-						{lastMessage && (
-							<p className="truncate text-muted-foreground text-xs">
-								{lastMessage.role === "user" ? "You: " : "AI: "}
-								{Array.isArray(lastMessage.parts)
-									? (
-											lastMessage.parts.find(
-												(p) =>
-													p &&
-													typeof p === "object" &&
-													"type" in p &&
-													p.type === "text",
-											) as { text: string }
-										)?.text || ""
-									: ""}
-							</p>
-						)}
 					</div>
 				</SidebarMenuButton>
 			</Link>
 
-			{/* Move the action buttons outside of SidebarMenuButton */}
 			<div
-				className={cn(
-					"-translate-y-1/2 absolute top-1/2 right-2 z-10 flex items-center gap-1 rounded bg-background/80 p-0.5 opacity-0 backdrop-blur-xs transition-opacity",
-					"group-hover:opacity-100",
-					isActive && "bg-accent/80 opacity-100",
-				)}
+				className={
+					"-translate-y-1/2 absolute top-1/2 right-2 z-10 flex items-center gap-1 rounded bg-background/80 p-0.5 opacity-0 backdrop-blur-xs transition-opacity hover:opacity-100"
+				}
 			>
 				<TooltipProvider>
 					<Tooltip>
