@@ -70,7 +70,7 @@ class ToolCall(BaseModel):
 
 
 class Message(BaseModel):
-    role: Literal["system", "user", "assistant", "tool", "function"]
+    role: Literal["system", "user", "assistant", "tool", "function", "developer"]
     content: str | list[ContentItem] | None = None
     name: str | None = None
     function_call: FunctionCall | None = None

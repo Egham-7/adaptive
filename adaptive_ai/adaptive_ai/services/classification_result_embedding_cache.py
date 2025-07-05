@@ -2,14 +2,21 @@ from collections import OrderedDict
 import json
 import threading
 from typing import Protocol
+from typing import Protocol as TypingProtocol
 import uuid
 
 from langchain_core.documents import Document
 from langchain_core.vectorstores import InMemoryVectorStore
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
+
+
+class EmbeddingsProtocol(TypingProtocol):
+    """Protocol for embeddings models."""
+
+    def embed_query(self, text: str) -> list[float]: ...
+    def embed_documents(self, texts: list[str]) -> list[list[float]]: ...
 
 
 class LitLoggerProtocol(Protocol):
@@ -19,13 +26,13 @@ class LitLoggerProtocol(Protocol):
 class EmbeddingCache:
     def __init__(
         self,
-        embeddings_model: HuggingFaceEmbeddings,
+        embeddings_model: EmbeddingsProtocol,
         similarity_threshold: float = 0.95,
         max_size: int = 1000,
         thread_safe: bool = True,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
-        self.vectorstore = InMemoryVectorStore(embeddings_model)
+        self.vectorstore = InMemoryVectorStore(embeddings_model)  # type: ignore[arg-type]
         self.similarity_threshold = similarity_threshold
         self.max_size = max_size
         self.thread_safe = thread_safe

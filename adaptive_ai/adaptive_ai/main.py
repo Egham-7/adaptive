@@ -1,6 +1,6 @@
 from typing import Any
 
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+# Removed HuggingFaceEmbeddings import to avoid model downloads
 import litserve as ls
 import tiktoken
 
@@ -30,9 +30,18 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.settings = get_settings()
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
 
-        self.embedding_model = HuggingFaceEmbeddings(
-            model_name=self.settings.embedding_cache.model_name
-        )
+        # Mock embedding model to avoid downloads
+        class MockEmbeddings:
+            model_name: str = "mock-embeddings"
+
+            def embed_query(self, text: str) -> list[float]:
+                # Return dummy embedding vector
+                return [0.1] * 384  # Standard embedding size
+
+            def embed_documents(self, texts: list[str]) -> list[list[float]]:
+                return [[0.1] * 384 for _ in texts]
+
+        self.embedding_model = MockEmbeddings()
         self.embedding_cache = EmbeddingCache(
             embeddings_model=self.embedding_model,
             similarity_threshold=self.settings.embedding_cache.similarity_threshold,
@@ -77,10 +86,17 @@ class ProtocolManagerAPI(ls.LitAPI):
             current_classification_result: ClassificationResult = (
                 all_classification_results[i]
             )
+            # Don't use cache for requests with tools/functions as they may need different routing
+            request_has_tools = bool(req.tools or req.functions)
+
             cache_t0 = time.perf_counter()
-            cached_orchestrator_response: OrchestratorResponse | None = (
-                self.embedding_cache.search_cache(current_classification_result)
-            )
+            cached_orchestrator_response: OrchestratorResponse | None = None
+            if not request_has_tools:
+                cached_orchestrator_response = self.embedding_cache.search_cache(
+                    current_classification_result
+                )
+            else:
+                self.log("cache_skipped_for_tools", 1)
             cache_t1 = time.perf_counter()
             self.log("cache_lookup_time", cache_t1 - cache_t0)
 
@@ -131,25 +147,32 @@ class ProtocolManagerAPI(ls.LitAPI):
                         minion_model=minion_model,
                         minion_alternatives=minion_alternatives,
                         classification_result=current_classification_result,
+                        token_count=prompt_token_count,
+                        request=req,
                     )
                 )
                 protocol_t1 = time.perf_counter()
                 self.log("protocol_selection_time", protocol_t1 - protocol_t0)
                 cache_add_t0 = time.perf_counter()
-                try:
-                    self.embedding_cache.add_to_cache(
-                        current_classification_result, orchestrator_response
-                    )
+                # Don't cache requests with tools/functions
+                if not request_has_tools:
+                    try:
+                        self.embedding_cache.add_to_cache(
+                            current_classification_result, orchestrator_response
+                        )
+                        cache_add_t1 = time.perf_counter()
+                        self.log("cache_add_time", cache_add_t1 - cache_add_t0)
+                    except Exception as e:
+                        cache_add_t1 = time.perf_counter()
+                        self.log(
+                            "cache_add_error",
+                            {"error": str(e), "time": cache_add_t1 - cache_add_t0},
+                        )
+                        # Don't suppress the error completely - log it but continue
+                        # The cache failure shouldn't break the prediction pipeline
+                else:
                     cache_add_t1 = time.perf_counter()
-                    self.log("cache_add_time", cache_add_t1 - cache_add_t0)
-                except Exception as e:
-                    cache_add_t1 = time.perf_counter()
-                    self.log(
-                        "cache_add_error",
-                        {"error": str(e), "time": cache_add_t1 - cache_add_t0},
-                    )
-                    # Don't suppress the error completely - log it but continue
-                    # The cache failure shouldn't break the prediction pipeline
+                    self.log("cache_add_skipped_for_tools", 1)
                 outputs.append(orchestrator_response)
 
         self.log("predict_completed", {"output_count": len(outputs)})
