@@ -1,17 +1,13 @@
 name: Backend CI/CD
-
 on:
   push:
     branches: [main]
-
   pull_request:
     branches: [main]
   workflow_dispatch:
-
 env:
   GO_VERSION: "1.24"
   WORKING_DIR: "./adaptive-backend"
-
 jobs:
   test:
     name: Test & Coverage
@@ -22,22 +18,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
-
       - name: Download dependencies
         run: go mod download
-
       - name: Verify dependencies
         run: go mod verify
-
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
-
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
@@ -45,7 +36,6 @@ jobs:
           flags: backend
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -55,20 +45,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
-
+      - name: Check formatting
+        run: |
+          if [ "$(gofmt -l .)" != "" ]; then
+            echo "The following files are not properly formatted:"
+            gofmt -l .
+            echo "Please run 'go fmt ./...' to fix formatting issues"
+            exit 1
+          fi
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
           working-directory: ${{ env.WORKING_DIR }}
           args: --timeout=5m
-
   security:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -78,22 +73,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
-
       - name: Download dependencies
         run: go mod download
-
       - name: Install Gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
-
       - name: Run Gosec
         run: gosec -exclude-dir=vendor -exclude-dir=testdata ./...
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -104,16 +94,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: ${{ env.WORKING_DIR }}/go.sum
-
       - name: Build
         run: go build -v ./...
-
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -125,14 +112,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.BACKEND_AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.BACKEND_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.BACKEND_AZURE_SUBSCRIPTION_ID }}
-
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:

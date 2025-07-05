@@ -15,7 +15,7 @@ export interface PromptCategory {
 
 interface PromptSuggestionsProps {
   label: string;
-  sendMessage: (message: { text: string }) => void;
+  onSuggestionClick: (text: string) => void;
   suggestions: string[];
   enableCategories?: boolean;
   categories?: PromptCategory[];
@@ -66,7 +66,7 @@ const defaultCategories: PromptCategory[] = [
 
 export function PromptSuggestions({
   label,
-  sendMessage,
+  onSuggestionClick,
   suggestions,
   enableCategories = false,
   categories = defaultCategories,
@@ -76,7 +76,7 @@ export function PromptSuggestions({
   >(null);
 
   const handleCommandSelect = (command: string) => {
-    sendMessage({ text: command });
+    onSuggestionClick(command);
     setActiveCommandCategory(null);
   };
 
@@ -210,7 +210,7 @@ export function PromptSuggestions({
           <button
             type="button"
             key={suggestion}
-            onClick={() => sendMessage({ text: suggestion })}
+            onClick={() => onSuggestionClick(suggestion)}
             className="h-max flex-1 rounded-xl border bg-background p-4 hover:bg-muted"
           >
             <p>{suggestion}</p>

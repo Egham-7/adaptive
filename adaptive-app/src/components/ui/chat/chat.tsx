@@ -23,7 +23,6 @@ export function Chat({
   handleInputChange,
   stop,
   isGenerating,
-  sendMessage,
   suggestions,
   className,
   onRateResponse,
@@ -46,7 +45,6 @@ export function Chat({
     initialMessages: messages,
     messages,
     setMessages,
-    sendMessage,
     deleteMessageMutation,
     isGenerating,
     stop,
@@ -111,12 +109,16 @@ export function Chat({
   };
 
   // Show welcome screen if configured and no messages
-  if (showWelcomeInterface && chatState.computed.isEmpty && sendMessage) {
+  if (showWelcomeInterface && chatState.computed.isEmpty) {
     return (
       <WelcomeScreen
         className={className}
         suggestions={suggestions ?? []}
-        sendMessage={sendMessage}
+        onSuggestionClick={(text) => {
+          // Set input and trigger handleSubmit
+          handleInputChange({ target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>);
+          handleSubmit();
+        }}
         handleSubmit={handleSubmit}
         input={input}
         handleInputChange={handleInputChange}
@@ -160,7 +162,7 @@ export function Chat({
       <ChatStatus {...chatStatusProps} />
 
       <MessageInputWrapper
-        className="mt-auto mb-6"
+        className="mt-2 mb-4"
         isPending={isGenerating || chatState.isTyping}
         handleSubmit={handleSubmit}
         hasReachedLimit={chatState.limits.hasReachedLimit}

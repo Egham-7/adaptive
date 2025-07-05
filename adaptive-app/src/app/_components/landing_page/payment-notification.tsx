@@ -1,7 +1,7 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { verifySession } from "@/actions/verify-session";
+import { api } from "@/trpc/react";
 import Notification from "../custom/notification";
 
 type Props = {
@@ -36,6 +36,7 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 		type: "success" | "error";
 		message: string;
 	} | null>(null);
+	const verifySessionMutation = api.subscription.verifySession.useMutation();
 
 	useEffect(() => {
 		const success = searchParams.get("success");
@@ -52,7 +53,9 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 				}
 
 				try {
-					const { isValid } = await verifySession(sessionId);
+					const { isValid } = await verifySessionMutation.mutateAsync({
+						sessionId,
+					});
 
 					if (isValid) {
 						setNotification({
@@ -98,7 +101,7 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 		} else if (canceled === "true") {
 			handleCancel();
 		}
-	}, [searchParams]);
+	}, [searchParams, verifySessionMutation.mutateAsync]);
 
 	return (
 		<>

@@ -77,10 +77,10 @@ func NewStreamBufferManagerWithMetrics(metrics *metrics.StreamingMetrics) *Strea
 		large:   NewBufferPool(16384), // 16KB
 		metrics: metrics,
 	}
-	
+
 	// Update initial pool sizes
 	manager.updatePoolSizeMetrics()
-	
+
 	return manager
 }
 

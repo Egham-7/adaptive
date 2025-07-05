@@ -129,4 +129,3 @@ func (m *CircuitBreakerMetrics) RecordRecoveryEvent(service, fromState string) {
 func (m *CircuitBreakerMetrics) RecordTimeout(service, state string) {
 	m.Timeouts.WithLabelValues(service, state).Inc()
 }
-

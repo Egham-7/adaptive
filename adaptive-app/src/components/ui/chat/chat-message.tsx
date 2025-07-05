@@ -33,12 +33,12 @@ type ToolInvocationUIPart = Extract<
 >;
 
 const chatBubbleVariants = cva(
-  "group/message relative w-full max-w-[50%] break-words rounded-lg p-3 text-sm shadow-sm transition-colors",
+  "relative max-w-3xl break-words rounded-lg p-4 text-sm transition-colors",
   {
     variants: {
       isUser: {
-        true: "bg-primary text-primary-foreground",
-        false: "bg-muted text-foreground",
+        true: "bg-primary text-primary-foreground ml-auto",
+        false: "text-foreground w-full max-w-none p-0 bg-transparent",
       },
       animation: {
         none: "",
@@ -47,28 +47,6 @@ const chatBubbleVariants = cva(
         fade: "fade-in-0 animate-in duration-500",
       },
     },
-    compoundVariants: [
-      {
-        isUser: true,
-        animation: "slide",
-        class: "slide-in-from-right",
-      },
-      {
-        isUser: false,
-        animation: "slide",
-        class: "slide-in-from-left",
-      },
-      {
-        isUser: true,
-        animation: "scale",
-        class: "origin-bottom-right",
-      },
-      {
-        isUser: false,
-        animation: "scale",
-        class: "origin-bottom-left",
-      },
-    ],
   },
 );
 
@@ -145,92 +123,92 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   if (isUser) {
     return (
-      <div
-        className={cn("flex flex-col", isUser ? "items-end" : "items-start")}
-      >
-        {userFiles && userFiles.length > 0 ? (
-          <div className="mb-1 flex flex-wrap gap-2">
-            {userFiles.map((file) => {
-              return (
-                <FilePreview key={`${file.name}-${file.size}`} file={file} />
-              );
-            })}
+      <div className="w-full">
+        {userFiles && userFiles.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2 justify-end">
+            {userFiles.map((file) => (
+              <FilePreview key={`${file.name}-${file.size}`} file={file} />
+            ))}
           </div>
-        ) : null}
+        )}
 
-        <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-          {isEditing ? (
-            <div className="space-y-2">
-              <Textarea
-                value={editingContent}
-                onChange={(e) => onEditingContentChange?.(e.target.value)}
-                className="min-h-[150px] resize-none border-0 bg-transparent text-primary-foreground placeholder:text-primary-foreground/70 focus-visible:ring-0"
-                placeholder="Edit your message..."
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={onSaveEdit}
-                  className="h-6 px-2"
-                >
-                  <Check className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={onCancelEdit}
-                  className="h-6 px-2"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+        <div className="relative group/message">
+          <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+            {isEditing ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={editingContent}
+                  onChange={(e) => onEditingContentChange?.(e.target.value)}
+                  className="min-h-[150px] resize-none border-0 bg-transparent text-primary-foreground placeholder:text-primary-foreground/70 focus-visible:ring-0"
+                  placeholder="Edit your message..."
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={onSaveEdit}
+                    className="h-6 px-2"
+                  >
+                    <Check className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={onCancelEdit}
+                    className="h-6 px-2"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <MarkdownRenderer>{content}</MarkdownRenderer>
-          )}
+            ) : (
+              <MarkdownRenderer>{content}</MarkdownRenderer>
+            )}
+          </div>
 
-          {actions && !isEditing ? (
-            <div className="-bottom-4 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+          {actions && !isEditing && (
+            <div className="absolute top-2 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
               {actions}
             </div>
-          ) : null}
+          )}
         </div>
 
-        {showTimeStamp && createdAt ? (
+        {showTimeStamp && createdAt && (
           <time
             dateTime={createdAt.toISOString()}
             className={cn(
-              "mt-1 block px-1 text-xs opacity-50",
+              "mt-1 block px-1 text-xs opacity-50 text-right",
               animation !== "none" && "fade-in-0 animate-in duration-500",
             )}
           >
             {formattedTime}
           </time>
-        ) : null}
+        )}
       </div>
     );
   }
 
   if (role === "assistant" && parts && parts.length > 0) {
     return (
-      <div className={cn("flex flex-col", "items-start")}>
+      <div className="w-full">
         {parts.map((part, index) => {
           if (part.type === "text") {
             const partAnimatedContent = useAnimatedText(part.text, " ");
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
               <React.Fragment key={`text-${index}`}>
-                <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-                  <MarkdownRenderer>{isStreaming ? partAnimatedContent : part.text}</MarkdownRenderer>
-                  {actions && index === parts.length - 1 ? (
-                    <div className="-bottom-4 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+                <div className="relative group/message w-full">
+                  <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+                    <MarkdownRenderer>{isStreaming ? partAnimatedContent : part.text}</MarkdownRenderer>
+                  </div>
+                  {actions && index === parts.length - 1 && (
+                    <div className="absolute top-0 right-0 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
                       {actions}
                     </div>
-                  ) : null}
+                  )}
                 </div>
-                {showTimeStamp && createdAt && index === parts.length - 1 ? (
+                {showTimeStamp && createdAt && index === parts.length - 1 && (
                   <time
                     dateTime={createdAt.toISOString()}
                     className={cn(
@@ -241,7 +219,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   >
                     {formattedTime}
                   </time>
-                ) : null}
+                )}
               </React.Fragment>
             );
           }
@@ -280,17 +258,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   if (role === "assistant" && content.length > 0) {
     return (
-      <div className={cn("flex flex-col", "items-start")}>
-        <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-          <MarkdownRenderer>{isStreaming ? animatedContent : content}</MarkdownRenderer>
-          {actions ? (
-            <div className="-bottom-2 absolute right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+      <div className="w-full">
+        <div className="relative group/message w-full">
+          <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+            <MarkdownRenderer>{isStreaming ? animatedContent : content}</MarkdownRenderer>
+          </div>
+          {actions && (
+            <div className="absolute top-0 right-0 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
               {actions}
             </div>
-          ) : null}
+          )}
         </div>
 
-        {showTimeStamp && createdAt ? (
+        {showTimeStamp && createdAt && (
           <time
             dateTime={createdAt.toISOString()}
             className={cn(
@@ -300,14 +280,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           >
             {formattedTime}
           </time>
-        ) : null}
+        )}
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className={cn("flex flex-col", "items-start")}>
+      <div className="w-full">
         <div 
           className={cn(chatBubbleVariants({ isUser: false, animation }), "border-destructive/20 bg-destructive/10 text-destructive-foreground")}
           role="alert"
@@ -373,7 +353,7 @@ const ReasoningBlock = ({ part }: { part: ReasoningUIPart }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="mb-2 flex flex-col items-start sm:max-w-[70%]">
+    <div className="mb-2 max-w-3xl">
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
@@ -416,7 +396,8 @@ interface ToolCallBlockProps {
 }
 
 function ToolCallBlock({ toolPart }: ToolCallBlockProps) {
-  const { toolName, state, result } = toolPart;
+  const { toolName, state } = toolPart.toolInvocation;
+  const result = toolPart.toolInvocation.state === "result" ? toolPart.toolInvocation.result : undefined;
 
   switch (state) {
     case "partial-call":

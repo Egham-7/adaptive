@@ -75,7 +75,6 @@ export interface ChatInputProps {
 export interface ChatMessageProps {
   messages: UIMessage[];
   setMessages: React.Dispatch<React.SetStateAction<UIMessage[]>>;
-  sendMessage: (message: { text: string }) => void;
   isGenerating: boolean;
   stop?: () => void;
 }

@@ -10,7 +10,11 @@ interface ChatMessagesProps {
   isStreaming?: boolean;
 }
 
-export function ChatMessages({ messages, children, isStreaming }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  children,
+  isStreaming,
+}: ChatMessagesProps) {
   const {
     containerRef,
     scrollToBottom,
@@ -21,29 +25,26 @@ export function ChatMessages({ messages, children, isStreaming }: ChatMessagesPr
 
   return (
     <div
-      className="grid grid-cols-1 overflow-y-auto pb-4"
+      className="flex-1 overflow-y-auto"
       ref={containerRef}
       onScroll={handleScroll}
       onTouchStart={handleTouchStart}
     >
-      <div className="max-w-full [grid-column:1/1] [grid-row:1/1]">
-        {children}
-      </div>
+      {children}
 
       {!shouldAutoScroll && (
-        <div className="pointer-events-none flex flex-1 items-end justify-end [grid-column:1/1] [grid-row:1/1]">
-          <div className="sticky bottom-0 left-0 flex w-full justify-end">
-            <Button
-              onClick={scrollToBottom}
-              className="fade-in-0 slide-in-from-bottom-1 pointer-events-auto h-8 w-8 animate-in rounded-full ease-in-out"
-              size="icon"
-              variant="ghost"
-            >
-              <ArrowDown className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
+          <Button
+            onClick={scrollToBottom}
+            className="fade-in-0 slide-in-from-bottom-1 h-8 w-8 animate-in rounded-full ease-in-out shadow-lg"
+            size="icon"
+            variant="ghost"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>
   );
 }
+

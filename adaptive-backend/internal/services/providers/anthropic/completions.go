@@ -362,7 +362,7 @@ func (c *AnthropicCompletions) convertBase64File(fileData, filename string) (ant
 	if err != nil {
 		return anthropic.ContentBlockParamUnion{}, fmt.Errorf("failed to decode base64 file data: %w", err)
 	}
-	
+
 	return anthropic.NewDocumentBlock(anthropic.PlainTextSourceParam{
 		Data:      string(decodedData),
 		MediaType: "text/plain",

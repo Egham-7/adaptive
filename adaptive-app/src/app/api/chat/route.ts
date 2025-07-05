@@ -5,7 +5,6 @@ import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import type { z } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
 import type { messageRoleSchema } from "@/lib/chat/schema";
-import { isUserSubscribed } from "@/lib/stripe/subscription-utils";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
 
@@ -42,7 +41,13 @@ export async function POST(req: Request) {
 		}
 
 		// Check if user is subscribed
-		const isSubscribed = await isUserSubscribed(db, userId);
+		const subscription = await db.subscription.findFirst({
+			where: {
+				userId: userId,
+				status: "active",
+			},
+		});
+		const isSubscribed = !!subscription;
 
 		// If not subscribed, check daily limit before processing
 		if (!isSubscribed) {

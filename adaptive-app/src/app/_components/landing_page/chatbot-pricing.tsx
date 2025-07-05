@@ -82,7 +82,7 @@ export default function ChatbotPricing() {
 							</CardDescription>
 							{user ? (
 								<div className="mt-4 w-full">
-									<SubscribeButton userId={user.id} />
+									<SubscribeButton />
 								</div>
 							) : (
 								<Button

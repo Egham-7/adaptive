@@ -221,7 +221,7 @@ If you cannot execute the instruction, explain why. Be concise but complete in y
 		},
 		Temperature: openai.Float(0.3),
 	}
-	
+
 	// Only set model if provided (for HuggingFace, model is embedded in BaseURL)
 	if minionModel != "" {
 		param.Model = shared.ChatModel(minionModel)
