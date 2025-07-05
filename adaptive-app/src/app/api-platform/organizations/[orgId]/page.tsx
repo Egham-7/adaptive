@@ -31,7 +31,6 @@ import { Input } from "@/components/ui/input";
 interface Organization {
 	name: string;
 	description: string;
-	gradient: string;
 }
 
 interface Project {
@@ -51,19 +50,16 @@ const organizations: Record<string, Organization> = {
 		name: "Acme AI Solutions",
 		description:
 			"Leading AI development company focused on enterprise solutions and machine learning platforms.",
-		gradient: "from-blue-500 to-purple-600",
 	},
 	"2": {
 		name: "TechCorp Research",
 		description:
 			"Research and development organization specializing in natural language processing and computer vision.",
-		gradient: "from-emerald-500 to-teal-600",
 	},
 	"3": {
 		name: "StartupLab",
 		description:
 			"Innovation hub for AI startups and experimental projects in machine learning and automation.",
-		gradient: "from-orange-500 to-red-600",
 	},
 };
 

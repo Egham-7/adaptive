@@ -1,6 +1,7 @@
 "use client";
 
 import { Edit, Plus, Trash2 } from "lucide-react";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,72 +14,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
-interface ApiKey {
-	id: string;
-	name: string;
-	key: string;
-	created: string;
-	lastUsed: string;
-	createdBy: string;
-	permissions: string;
-}
-
-const initialApiKeys: ApiKey[] = [
-	{
-		id: "1",
-		name: "production-api",
-		key: "sk-...wzKA",
-		created: "Jun 22, 2025",
-		lastUsed: "Jun 23, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "2",
-		name: "development-env",
-		key: "sk-...634A",
-		created: "Jun 20, 2025",
-		lastUsed: "Jun 20, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "3",
-		name: "analytics-service",
-		key: "sk-...Rr8A",
-		created: "Jun 15, 2025",
-		lastUsed: "Jun 22, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "4",
-		name: "mobile-app",
-		key: "sk-...WIA",
-		created: "Jun 4, 2025",
-		lastUsed: "Jun 24, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "5",
-		name: "data-pipeline",
-		key: "sk-...5k4A",
-		created: "May 20, 2025",
-		lastUsed: "Jun 3, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-];
+import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
+import { useDeleteProjectApiKey } from "@/hooks/api_keys/use-delete-project-api-key";
+import { useProjectApiKeys } from "@/hooks/api_keys/use-project-api-keys";
 
 export default function ApiKeysPage() {
-	const [apiKeys, setApiKeys] = useState<ApiKey[]>(initialApiKeys);
+	const params = useParams();
+	const projectId = params.projectId as string;
+
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [formData, setFormData] = useState({
 		name: "",
 		description: "",
 	});
+
+	const { data: apiKeys = [], isLoading, error } = useProjectApiKeys(projectId);
+	const createApiKey = useCreateProjectApiKey();
+	const deleteApiKey = useDeleteProjectApiKey();
 
 	const resetForm = () => {
 		setFormData({
@@ -87,40 +39,51 @@ export default function ApiKeysPage() {
 		});
 	};
 
-	const generateApiKey = () => {
-		const randomKey = Array.from(
-			{ length: 4 },
-			() =>
-				String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
-				String.fromCharCode(97 + Math.floor(Math.random() * 26)) +
-				Math.floor(Math.random() * 10),
-		).join("");
-		return `sk-...${randomKey.slice(0, 4)}`;
-	};
-
 	const handleCreateApiKey = () => {
-		const newKey: ApiKey = {
-			id: Date.now().toString(),
-			name: formData.name,
-			key: generateApiKey(),
-			created: new Date().toLocaleDateString("en-US", {
-				year: "numeric",
-				month: "short",
-				day: "numeric",
-			}),
-			lastUsed: "Never",
-			createdBy: "Sarah Chen",
-			permissions: "All",
-		};
+		if (!formData.name) return;
 
-		setApiKeys([newKey, ...apiKeys]);
-		setShowCreateDialog(false);
-		resetForm();
+		createApiKey.mutate(
+			{
+				name: formData.name,
+				projectId,
+				status: "active",
+			},
+			{
+				onSuccess: () => {
+					setShowCreateDialog(false);
+					resetForm();
+				},
+			},
+		);
 	};
 
 	const handleDeleteApiKey = (id: string) => {
-		setApiKeys(apiKeys.filter((key) => key.id !== id));
+		deleteApiKey.mutate({ id });
 	};
+
+	if (isLoading) {
+		return (
+			<div className="flex min-h-[400px] items-center justify-center">
+				<div className="text-center">
+					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+					<p className="text-muted-foreground">Loading API keys...</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="flex min-h-[400px] items-center justify-center">
+				<div className="text-center">
+					<h3 className="mb-2 font-medium text-foreground text-lg">
+						Failed to load API keys
+					</h3>
+					<p className="mb-4 text-muted-foreground">{error.message}</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
@@ -171,10 +134,10 @@ export default function ApiKeysPage() {
 								</Button>
 								<Button
 									onClick={handleCreateApiKey}
-									disabled={!formData.name}
+									disabled={!formData.name || createApiKey.isPending}
 									className="bg-primary hover:bg-primary/90"
 								>
-									Create secret key
+									{createApiKey.isPending ? "Creating..." : "Create secret key"}
 								</Button>
 							</div>
 						</div>
@@ -221,13 +184,13 @@ export default function ApiKeysPage() {
 									Created
 								</th>
 								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Last Used
+									Expires
 								</th>
 								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
 									Created By
 								</th>
 								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Permissions
+									Status
 								</th>
 								<th className="px-6 py-3 text-right font-medium text-gray-500 text-xs uppercase tracking-wider dark:text-gray-400">
 									Actions
@@ -241,19 +204,40 @@ export default function ApiKeysPage() {
 										{apiKey.name}
 									</td>
 									<td className="whitespace-nowrap px-6 py-4 font-mono text-muted-foreground text-sm">
-										{apiKey.key}
+										{apiKey.key_preview}
 									</td>
 									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.created}
+										{new Date(apiKey.created_at).toLocaleDateString("en-US", {
+											year: "numeric",
+											month: "short",
+											day: "numeric",
+										})}
 									</td>
 									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.lastUsed}
+										{apiKey.expires_at
+											? new Date(apiKey.expires_at).toLocaleDateString(
+													"en-US",
+													{
+														year: "numeric",
+														month: "short",
+														day: "numeric",
+													},
+												)
+											: "Never"}
 									</td>
 									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.createdBy}
+										{apiKey.user_id}
 									</td>
 									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.permissions}
+										<span
+											className={`inline-flex items-center rounded-full px-2 py-1 font-medium text-xs ${
+												apiKey.status === "active"
+													? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+													: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+											}`}
+										>
+											{apiKey.status}
+										</span>
 									</td>
 									<td className="whitespace-nowrap px-6 py-4 text-right font-medium text-sm">
 										<div className="flex items-center justify-end gap-2">
@@ -268,6 +252,7 @@ export default function ApiKeysPage() {
 												variant="ghost"
 												size="sm"
 												onClick={() => handleDeleteApiKey(apiKey.id)}
+												disabled={deleteApiKey.isPending}
 												className="h-auto p-1 text-muted-foreground hover:text-destructive"
 											>
 												<Trash2 className="h-4 w-4" />

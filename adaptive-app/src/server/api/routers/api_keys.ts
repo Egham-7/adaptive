@@ -11,6 +11,7 @@ const createAPIKeySchema = z.object({
 	name: z.string().min(1),
 	status: z.string(),
 	expires_at: z.string().optional(),
+	projectId: z.string().optional(),
 });
 
 const updateAPIKeySchema = z.object({
@@ -99,6 +100,27 @@ export const apiKeysRouter = createTRPCRouter({
 				? new Date(input.expires_at)
 				: undefined;
 
+			// If projectId is provided, verify user has access to the project
+			if (input.projectId) {
+				const project = await ctx.db.project.findFirst({
+					where: {
+						id: input.projectId,
+						OR: [
+							{ members: { some: { userId } } },
+							{ organization: { ownerId: userId } },
+							{ organization: { members: { some: { userId } } } },
+						],
+					},
+				});
+
+				if (!project) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "You don't have access to this project",
+					});
+				}
+			}
+
 			const k = await ctx.db.apiKey.create({
 				data: {
 					userId,
@@ -107,6 +129,7 @@ export const apiKeysRouter = createTRPCRouter({
 					keyPrefix: prefix,
 					keyHash: hash,
 					expiresAt,
+					projectId: input.projectId,
 				},
 			});
 
@@ -195,5 +218,124 @@ export const apiKeysRouter = createTRPCRouter({
 
 			const hash = crypto.createHash("sha256").update(apiKey).digest("hex");
 			return { valid: hash === record.keyHash };
+		}),
+
+	// Get API keys for a specific project
+	getByProject: protectedProcedure
+		.input(z.object({ projectId: z.string() }))
+		.query(async ({ ctx, input }): Promise<APIKey[]> => {
+			const userId = ctx.clerkAuth.userId;
+			if (!userId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+
+			// Verify user has access to the project
+			const project = await ctx.db.project.findFirst({
+				where: {
+					id: input.projectId,
+					OR: [
+						{ members: { some: { userId } } },
+						{ organization: { ownerId: userId } },
+						{ organization: { members: { some: { userId } } } },
+					],
+				},
+			});
+
+			if (!project) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You don't have access to this project",
+				});
+			}
+
+			const keys = await ctx.db.apiKey.findMany({
+				where: { projectId: input.projectId },
+				orderBy: { createdAt: "desc" },
+			});
+
+			return keys.map((k) => ({
+				id: k.id,
+				name: k.name,
+				status: k.status,
+				created_at: k.createdAt.toISOString(),
+				updated_at: (k.updatedAt ?? k.createdAt).toISOString(),
+				expires_at: k.expiresAt?.toISOString() ?? null,
+				user_id: k.userId,
+				key_preview: k.keyPrefix,
+			}));
+		}),
+
+	// Create API key for a specific project
+	createForProject: protectedProcedure
+		.input(
+			z.object({
+				name: z.string().min(1),
+				projectId: z.string(),
+				status: z.string().default("active"),
+				expires_at: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }): Promise<CreateAPIKeyResponse> => {
+			const userId = ctx.clerkAuth.userId;
+			if (!userId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+
+			// Verify user has permission to create API keys for this project
+			const project = await ctx.db.project.findFirst({
+				where: {
+					id: input.projectId,
+					OR: [
+						{ members: { some: { userId, role: { in: ["owner", "admin"] } } } },
+						{ organization: { ownerId: userId } },
+						{
+							organization: {
+								members: { some: { userId, role: { in: ["owner", "admin"] } } },
+							},
+						},
+					],
+				},
+			});
+
+			if (!project) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message:
+						"You don't have permission to create API keys for this project",
+				});
+			}
+
+			const fullKey = crypto.randomBytes(32).toString("hex");
+			const prefix = fullKey.slice(0, 8);
+			const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
+
+			const expiresAt = input.expires_at
+				? new Date(input.expires_at)
+				: undefined;
+
+			const k = await ctx.db.apiKey.create({
+				data: {
+					userId,
+					name: input.name,
+					status: input.status,
+					keyPrefix: prefix,
+					keyHash: hash,
+					expiresAt,
+					projectId: input.projectId,
+				},
+			});
+
+			const api_key: APIKey = {
+				id: k.id,
+				name: k.name,
+				status: k.status,
+				created_at: k.createdAt.toISOString(),
+				updated_at: (k.updatedAt ?? k.createdAt).toISOString(),
+				expires_at: k.expiresAt?.toISOString() ?? null,
+				user_id: k.userId,
+				key_preview: k.keyPrefix,
+			};
+
+			return { api_key, full_api_key: fullKey };
 		}),
 });

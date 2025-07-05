@@ -1,83 +1,26 @@
 "use client";
 
-import { Building2, ChevronRight, Search, Users } from "lucide-react";
+import { Building2, ChevronRight, Search } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
-	CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-// Mock data for organizations
-const organizations = [
-	{
-		id: "1",
-		name: "Acme AI Solutions",
-		description:
-			"Leading AI development company focused on enterprise solutions and machine learning platforms.",
-		memberCount: 24,
-		projectCount: 8,
-		role: "Admin",
-		color: "blue",
-	},
-	{
-		id: "2",
-		name: "TechCorp Research",
-		description:
-			"Research and development organization specializing in natural language processing and computer vision.",
-		memberCount: 12,
-		projectCount: 5,
-		role: "Developer",
-		color: "emerald",
-	},
-	{
-		id: "3",
-		name: "StartupLab",
-		description:
-			"Innovation hub for AI startups and experimental projects in machine learning and automation.",
-		memberCount: 8,
-		projectCount: 12,
-		role: "Contributor",
-		color: "orange",
-	},
-	{
-		id: "4",
-		name: "DataScience Collective",
-		description:
-			"Community-driven organization focused on open-source AI tools and collaborative research projects.",
-		memberCount: 156,
-		projectCount: 23,
-		role: "Member",
-		color: "violet",
-	},
-];
+import { useOrganizations } from "@/hooks/organizations/use-organizations";
 
 export default function OrganizationsPage() {
 	const [searchQuery, setSearchQuery] = useState("");
+	const { data: organizations = [] } = useOrganizations();
 
 	const filteredOrganizations = organizations.filter(
 		(org) =>
 			org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			org.description.toLowerCase().includes(searchQuery.toLowerCase()),
+			org.description?.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
-
-	const getRoleBadgeVariant = (role: string) => {
-		switch (role) {
-			case "Admin":
-				return "default";
-			case "Developer":
-				return "secondary";
-			case "Contributor":
-				return "outline";
-			default:
-				return "outline";
-		}
-	};
 
 	return (
 		<div className="min-h-screen bg-background">
@@ -113,15 +56,6 @@ export default function OrganizationsPage() {
 											<div className="rounded-lg bg-muted p-2">
 												<Building2 className="h-5 w-5 text-muted-foreground" />
 											</div>
-											<div>
-												<CardTitle className="text-lg">{org.name}</CardTitle>
-												<Badge
-													variant={getRoleBadgeVariant(org.role)}
-													className="mt-1"
-												>
-													{org.role}
-												</Badge>
-											</div>
 										</div>
 										<ChevronRight className="h-5 w-5 text-muted-foreground" />
 									</div>
@@ -130,15 +64,6 @@ export default function OrganizationsPage() {
 									<CardDescription className="mb-4 text-muted-foreground">
 										{org.description}
 									</CardDescription>
-									<div className="flex items-center gap-4 text-muted-foreground text-sm">
-										<div className="flex items-center gap-1">
-											<Users className="h-4 w-4" />
-											<span>{org.memberCount} members</span>
-										</div>
-										<div>
-											<span>{org.projectCount} projects</span>
-										</div>
-									</div>
 								</CardContent>
 							</Link>
 						</Card>

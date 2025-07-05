@@ -10,17 +10,23 @@ generator client {
 
 model ApiKey {
   id         String    @id @default(uuid())
-  userId     String
+  userId     String    // Clerk user ID
+  projectId  String?   // Optional project association
   name       String
   keyPrefix  String
   keyHash    String
-  status     String
+  status     String    // 'active' | 'inactive' | 'revoked'
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   expiresAt  DateTime?
   lastUsedAt DateTime?
 
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  usage      ApiUsage[]
+
   @@unique([keyPrefix, keyHash])
+  @@index([userId])
+  @@index([projectId])
 }
 
 model Conversation {
@@ -55,6 +61,95 @@ model Message {
   @@index([deletedAt])
   @@index([conversationId])
   @@index([role])
+}
+
+model Organization {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String    // Clerk user ID who owns this organization
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  projects    Project[]
+  members     OrganizationMember[]
+  
+  @@index([ownerId])
+  @@index([name])
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String       // Clerk user ID
+  organizationId String
+  role           String       // 'owner' | 'admin' | 'member'
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Project {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  status         String       @default("active") // 'active' | 'inactive' | 'paused'
+  progress       Int          @default(0)
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        ProjectMember[]
+  apiKeys        ApiKey[]
+  usage          ApiUsage[]
+  
+  @@index([organizationId])
+  @@index([status])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String   // Clerk user ID
+  projectId String
+  role      String   // 'owner' | 'admin' | 'member'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, projectId])
+  @@index([userId])
+  @@index([projectId])
+}
+
+model ApiUsage {
+  id                String   @id @default(cuid())
+  apiKeyId          String
+  projectId         String?
+  provider          String   // 'openai' | 'anthropic' | 'google' | 'groq' | 'deepseek' | 'huggingface'
+  model             String   // Model name used
+  requestType       String   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
+  inputTokens       Int      @default(0)
+  outputTokens      Int      @default(0)
+  totalTokens       Int      @default(0)
+  cost              Float    @default(0)
+  requestCount      Int      @default(1)
+  timestamp         DateTime @default(now())
+  metadata          Json?    // Additional request metadata
+  
+  apiKey            ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([apiKeyId])
+  @@index([projectId])
+  @@index([provider])
+  @@index([timestamp])
+  @@index([requestType])
 }
 
 model Subscription {
