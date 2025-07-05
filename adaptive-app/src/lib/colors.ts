@@ -46,11 +46,13 @@ export const designSystemColors = {
  * @returns Hex color value
  */
 export function getChartColor(
-	colorKey: Exclude<keyof typeof designSystemColors, 'dark'>,
+	colorKey: Exclude<keyof typeof designSystemColors, "dark">,
 	isDark = false,
 ): string {
 	if (isDark && colorKey in designSystemColors.dark) {
-		return designSystemColors.dark[colorKey as keyof typeof designSystemColors.dark];
+		return designSystemColors.dark[
+			colorKey as keyof typeof designSystemColors.dark
+		];
 	}
 	return designSystemColors[colorKey];
 }
@@ -81,7 +83,10 @@ export function getChartColorPalette(count: number): string[] {
  * @param isDark - Whether to use dark mode colors
  * @returns Hex color value
  */
-export function getComparisonChartColor(isPrimary: boolean, isDark = false): string {
+export function getComparisonChartColor(
+	isPrimary: boolean,
+	isDark = false,
+): string {
 	if (isDark) {
 		return isPrimary
 			? designSystemColors.dark.primary

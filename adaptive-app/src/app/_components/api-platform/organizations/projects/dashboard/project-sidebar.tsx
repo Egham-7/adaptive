@@ -17,7 +17,7 @@ import {
 
 export function ProjectSidebar() {
 	const { orgId, projectId } = useParams();
-	
+
 	const links = [
 		{
 			label: "Dashboard",
