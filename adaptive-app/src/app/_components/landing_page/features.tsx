@@ -1,83 +1,183 @@
-import { Cpu, Lock, Sparkles, Zap } from "lucide-react";
+import { BarChart3, Code2, Cpu, Network, Timer } from "lucide-react";
 import Image from "next/image";
+import { Card, CardContent } from "@/components/ui/card";
+import { PerformanceMetricsChart } from "./performance-metrics-chart";
+import { ProviderDownloadChart } from "./provider-download-chart";
 
 export default function FeaturesSection() {
-	const features = [
-		{
-			icon: <Zap className="size-4" />,
-			title: "Lightning Fast",
-			description: "Experience unparalleled speed with our optimized platform.",
-		},
-		{
-			icon: <Cpu className="size-4" />,
-			title: "Intuitive Interface",
-			description: "Navigate with ease through our user-friendly design.",
-		},
-		{
-			icon: <Lock className="size-4" />,
-			title: "Security",
-			description: "Work seamlessly with your team in real-time.",
-		},
-		{
-			icon: <Sparkles className="size-4" />,
-			title: "AI Powered",
-			description: "Experience the power of AI to enhance your workflow.",
-		},
-	];
-
 	return (
-		<section className="overflow-hidden py-16 md:py-32">
-			<div className="mx-auto max-w-5xl space-y-8 px-6 md:space-y-12">
-				<div className="relative z-10 max-w-2xl">
-					<h2 className="font-semibold text-4xl lg:text-5xl">
-						Built for Scaling teams
+		<section
+			id="features"
+			className="bg-muted/50 py-16 md:py-32 dark:bg-transparent"
+		>
+			<div className="mx-auto max-w-3xl px-6 lg:max-w-5xl">
+				<header className="mb-12 text-center">
+					<h2 className="font-display font-semibold text-4xl lg:text-5xl">
+						Features
 					</h2>
-
-					<div>
-						<p className="mt-6 text-lg">
-							Empower your team with workflows that adapt to your needs, whether
-							you prefer git synchronization or a AI Agents interface.
-						</p>
-					</div>
-				</div>
-
-				<div className="-mx-4 md:-mx-12 relative rounded-3xl p-3 lg:col-span-3">
-					<div className="perspective-midrange">
-						<div className="-skew-2 rotate-x-6">
-							<div className="relative aspect-88/36">
-								<div className="-inset-17 absolute z-1 bg-[radial-gradient(at_75%_25%,transparent_75%,var(--color-background))]" />
-
-								<Image
-									src="/adaptive-chat.png"
-									className="hidden dark:block"
-									alt="payments illustration dark"
-									width={1000}
-									height={409}
-								/>
-								<Image
-									src="/adaptive-chat-light.png"
-									className="dark:hidden"
-									alt="payments illustration light"
-									width={1000}
-									height={409}
-								/>
+					<p className="mt-4 text-muted-foreground">
+						Powerful AI infrastructure designed for modern applications
+					</p>
+				</header>
+				<div className="relative">
+					<div className="relative z-10 grid grid-cols-6 gap-3">
+						<Card className="relative col-span-full flex overflow-hidden lg:col-span-2">
+							<CardContent className="relative m-auto size-fit pt-6">
+								<div className="relative flex h-24 w-56 items-center justify-center">
+									<Timer className="h-16 w-16 text-primary" />
+								</div>
+								<h2 className="mt-6 text-center font-semibold text-3xl">
+									Lightning Fast Model Selection
+								</h2>
+								<p className="mt-2 text-center text-muted-foreground">
+									Choose the optimal AI model for each query in milliseconds
+									with our intelligent routing system.
+								</p>
+							</CardContent>
+						</Card>
+						<Card className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
+							<CardContent className="pt-6">
+								<div className="before:-inset-2 relative mx-auto flex aspect-square size-32 items-center justify-center rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
+									<Network className="h-12 w-12 text-primary" />
+								</div>
+								<div className="relative z-10 mt-6 space-y-2 text-center">
+									<h2 className="font-medium text-lg transition hover:text-primary dark:text-white">
+										Resilience to Provider Outages
+									</h2>
+									<p className="text-foreground">
+										Automatic failover to alternative providers ensures your
+										applications stay online even when individual AI services go
+										down.
+									</p>
+								</div>
+							</CardContent>
+						</Card>
+						<Card className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
+							<CardContent className="pt-6">
+								<div className="pt-6 lg:px-6">
+									<ProviderDownloadChart />
+								</div>
+								<div className="relative z-10 mt-14 space-y-2 text-center">
+									<h2 className="font-medium text-lg transition">
+										Universal Provider Support
+									</h2>
+									<p className="text-foreground">
+										Connect to OpenAI, Anthropic, Google, Meta, and more through
+										a single unified API with seamless provider switching.
+									</p>
+								</div>
+							</CardContent>
+						</Card>
+						<Card className="relative col-span-full overflow-hidden lg:col-span-3">
+							<div className="grid pt-6 sm:grid-cols-2">
+								<div className="relative z-10 flex flex-col justify-between space-y-12 px-6 lg:space-y-6">
+									<div className="before:-inset-2 relative flex aspect-square size-12 rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
+										<Cpu className="m-auto size-5" strokeWidth={1} />
+									</div>
+									<div className="space-y-2 px-2">
+										<h2 className="font-medium text-foreground text-lg transition hover:text-primary dark:text-white">
+											Efficient LLM Inference
+										</h2>
+										<p className="text-foreground">
+											Optimize performance with intelligent caching, request
+											batching, and model-specific optimizations for maximum
+											efficiency.
+										</p>
+									</div>
+								</div>
+								<div className="-mb-6 -mr-6 relative mt-6 h-fit rounded-tl-(--radius) border-t border-l p-6 py-6 sm:ml-6">
+									<div className="absolute top-2 left-3 flex gap-1">
+										<span className="block size-2 rounded-full border dark:border-white/10 dark:bg-white/10" />
+										<span className="block size-2 rounded-full border dark:border-white/10 dark:bg-white/10" />
+										<span className="block size-2 rounded-full border dark:border-white/10 dark:bg-white/10" />
+									</div>
+									<PerformanceMetricsChart />
+								</div>
 							</div>
-						</div>
+						</Card>
+						<Card className="relative col-span-full overflow-hidden lg:col-span-3">
+							<CardContent className="grid h-full pt-6 sm:grid-cols-2">
+								<div className="relative z-10 flex flex-col justify-between space-y-12 lg:space-y-6">
+									<div className="before:-inset-2 relative flex aspect-square size-12 rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
+										<BarChart3 className="m-auto size-6" strokeWidth={1} />
+									</div>
+									<div className="space-y-2">
+										<h2 className="font-medium text-lg transition">
+											Smart Analytics & Learning
+										</h2>
+										<p className="text-foreground">
+											Continuously improve model selection through online
+											learning based on evals and customer feedback, with full
+											observability into routing decisions.
+										</p>
+									</div>
+								</div>
+								<div className="sm:-my-6 sm:-mr-6 relative mt-6 before:absolute before:inset-0 before:mx-auto before:w-px before:bg-(--color-border)">
+									<div className="relative flex h-full flex-col justify-center space-y-6 py-6">
+										<div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
+											<span className="block h-fit rounded border px-2 py-1 text-xs shadow-sm">
+												Likeur
+											</span>
+											<div className="size-7 ring-4 ring-background">
+												<Image
+													className="size-full rounded-full"
+													src="https://avatars.githubusercontent.com/u/102558960?v=4"
+													alt="User avatar"
+													width={28}
+													height={28}
+												/>
+											</div>
+										</div>
+										<div className="relative ml-[calc(50%-1rem)] flex items-center gap-2">
+											<div className="size-8 ring-4 ring-background">
+												<Image
+													className="size-full rounded-full"
+													src="https://avatars.githubusercontent.com/u/47919550?v=4"
+													alt="User avatar"
+													width={32}
+													height={32}
+												/>
+											</div>
+											<span className="block h-fit rounded border px-2 py-1 text-xs shadow-sm">
+												M. Irung
+											</span>
+										</div>
+										<div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
+											<span className="block h-fit rounded border px-2 py-1 text-xs shadow-sm">
+												B. Ng
+											</span>
+											<div className="size-7 ring-4 ring-background">
+												<Image
+													className="size-full rounded-full"
+													src="https://avatars.githubusercontent.com/u/31113941?v=4"
+													alt="User avatar"
+													width={28}
+													height={28}
+												/>
+											</div>
+										</div>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+						<Card className="relative col-span-full overflow-hidden lg:col-span-2">
+							<CardContent className="pt-6">
+								<div className="before:-inset-2 relative mx-auto flex aspect-square size-32 items-center justify-center rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
+									<Code2 className="h-12 w-12 text-primary" />
+								</div>
+								<div className="relative z-10 mt-6 space-y-2 text-center">
+									<h2 className="font-medium text-lg transition hover:text-primary dark:text-white">
+										Open Source & Transparent
+									</h2>
+									<p className="text-foreground">
+										Built with transparency in mind. Our routing algorithms and
+										infrastructure are open source, giving you full visibility
+										and control.
+									</p>
+								</div>
+							</CardContent>
+						</Card>
 					</div>
-				</div>
-
-				<div className="relative mx-auto grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-8 lg:grid-cols-4">
-					{features.map((feature) => (
-						<div key={feature.title} className="space-y-2">
-							<div className="flex items-center gap-2">
-								{feature.icon}
-								<h3 className="font-medium text-sm">{feature.title}</h3>
-							</div>
-							<p className="text-muted-foreground text-sm">
-								{feature.description}
-							</p>
-						</div>
-					))}
 				</div>
 			</div>
 		</section>
