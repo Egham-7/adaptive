@@ -9,10 +9,14 @@ export interface DateRangePreset {
 	range: DateRange;
 }
 
+function getDaysAgo(days: number): Date {
+	return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
 export function useDateRange(initialRange?: DateRange) {
 	const [dateRange, setDateRange] = useState<DateRange>(
 		initialRange || {
-			from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+			from: getDaysAgo(7), // 7 days ago
 			to: new Date(),
 		},
 	);
@@ -22,7 +26,7 @@ export function useDateRange(initialRange?: DateRange) {
 			label: "Last 7 days",
 			value: "7d",
 			range: {
-				from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+				from: getDaysAgo(7),
 				to: new Date(),
 			},
 		},
@@ -30,7 +34,7 @@ export function useDateRange(initialRange?: DateRange) {
 			label: "Last 30 days",
 			value: "30d",
 			range: {
-				from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+				from: getDaysAgo(30),
 				to: new Date(),
 			},
 		},
@@ -38,7 +42,7 @@ export function useDateRange(initialRange?: DateRange) {
 			label: "Last 90 days",
 			value: "90d",
 			range: {
-				from: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+				from: getDaysAgo(90),
 				to: new Date(),
 			},
 		},
@@ -46,7 +50,7 @@ export function useDateRange(initialRange?: DateRange) {
 			label: "Last year",
 			value: "1y",
 			range: {
-				from: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+				from: getDaysAgo(365),
 				to: new Date(),
 			},
 		},

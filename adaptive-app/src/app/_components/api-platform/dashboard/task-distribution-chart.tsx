@@ -89,7 +89,7 @@ export function TaskDistributionChart({
 								fill="#8884d8"
 								dataKey="value"
 							>
-								{chartData.map((entry, _index) => (
+								{chartData.map((entry) => (
 									<Cell key={entry.name} fill={entry.fill} />
 								))}
 							</Pie>
