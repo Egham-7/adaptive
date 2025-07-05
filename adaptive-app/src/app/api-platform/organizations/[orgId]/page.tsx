@@ -27,8 +27,26 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+// TypeScript interfaces
+interface Organization {
+	name: string;
+	description: string;
+	gradient: string;
+}
+
+interface Project {
+	id: string;
+	name: string;
+	description: string;
+	status: "active" | "inactive" | "paused";
+	lastUpdated: string;
+	members: number;
+	createdAt: string;
+	progress: number;
+}
+
 // Mock data for organizations and projects
-const organizations = {
+const organizations: Record<string, Organization> = {
 	"1": {
 		name: "Acme AI Solutions",
 		description:
@@ -49,7 +67,7 @@ const organizations = {
 	},
 };
 
-const projects = {
+const projects: Record<string, Project[]> = {
 	"1": [
 		{
 			id: "1",
@@ -176,19 +194,11 @@ export default function OrganizationProjectsPage() {
 	const getStatusBadge = (status: string) => {
 		switch (status) {
 			case "active":
-				return (
-					<Badge className="border-green-200 bg-green-100 text-green-700 hover:bg-green-100">
-						Active
-					</Badge>
-				);
+				return <Badge variant="success">Active</Badge>;
 			case "inactive":
 				return <Badge variant="destructive">Inactive</Badge>;
 			case "paused":
-				return (
-					<Badge className="border-amber-200 bg-amber-100 text-amber-700 hover:bg-amber-100">
-						Paused
-					</Badge>
-				);
+				return <Badge variant="warning">Paused</Badge>;
 			default:
 				return <Badge variant="outline">Unknown</Badge>;
 		}

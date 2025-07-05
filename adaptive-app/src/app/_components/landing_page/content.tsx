@@ -10,9 +10,9 @@ const logos1 = [
 
 const logos2 = [
 	{ name: "Grok", id: 6, img: "/logos/grok.svg" },
-	{ name: "Mistral", id: 8, img: "/logos/mistral.svg" },
-	{ name: "Cohere", id: 9, img: "/logos/cohere.svg" },
-	{ name: "Hugging Face", id: 10, img: "/logos/huggingface.svg" },
+	{ name: "Mistral", id: 8, img: "/logos/mistral.png" },
+	{ name: "Cohere", id: 9, img: "/logos/cohere.png" },
+	{ name: "Hugging Face", id: 10, img: "/logos/huggingface.png" },
 ];
 
 export default function ContentSection() {
