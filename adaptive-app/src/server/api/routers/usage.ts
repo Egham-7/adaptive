@@ -278,8 +278,8 @@ export const usageRouter = createTRPCRouter({
 					>();
 					provider.models.forEach((model) => {
 						modelMap.set(model.name, {
-							inputTokenCost: model.inputTokenCost,
-							outputTokenCost: model.outputTokenCost,
+							inputTokenCost: model.inputTokenCost.toNumber(),
+							outputTokenCost: model.outputTokenCost.toNumber(),
 						});
 					});
 					providerModelMap.set(provider.name, modelMap);
