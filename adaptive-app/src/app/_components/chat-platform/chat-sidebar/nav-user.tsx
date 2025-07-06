@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import Link from "next/link";
+import { useAuth } from "@clerk/nextjs"; // Import Clerk's useAuth hook
 
 export function NavUser({
   user,
@@ -38,6 +39,7 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const { signOut } = useAuth(); // Access the signOut method
 
   return (
     <SidebarMenu>
@@ -92,7 +94,11 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                signOut(); // Trigger the log-out functionality
+              }}
+            >
               <LogOut />
               Log out
             </DropdownMenuItem>
