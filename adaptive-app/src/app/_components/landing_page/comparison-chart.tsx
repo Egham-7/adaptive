@@ -35,12 +35,16 @@ const baseData: ChartData[] = [
 ];
 
 const chartConfig = {
+	costPerMillionTokens: {
+		label: "Cost per Million Tokens",
+		color: "hsl(var(--chart-1))",
+	},
 	adaptive: {
 		label: "Adaptive",
 		color: "var(--chart-1)",
 	},
 	openai: {
-		label: "OpenAI",
+		label: "OpenAI", 
 		color: "var(--chart-2)",
 	},
 	anthropic: {
@@ -160,7 +164,10 @@ export default function ComparisonChart() {
 							/>
 							<ChartTooltip
 								cursor={false}
-								content={<ChartTooltipContent hideLabel />}
+								content={<ChartTooltipContent 
+									nameKey="name"
+									formatter={(value) => [`$${Number(value).toFixed(2)}`]}
+								/>}
 							/>
 							<Bar
 								dataKey="costPerMillionTokens"

@@ -2,6 +2,13 @@
 
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { Line, LineChart } from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
+
+const chartConfig = {
+	value: {
+		label: "Value",
+	},
+};
 
 interface MetricChartCardProps {
 	title: string;

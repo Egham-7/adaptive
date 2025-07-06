@@ -1,6 +1,5 @@
 "use client";
 
-import { TrendingDown, TrendingUp } from "lucide-react";
 import {
 	Area,
 	AreaChart,
@@ -27,8 +26,6 @@ interface MetricChartProps {
 	icon: React.ReactNode;
 	color: string;
 	totalValue: string;
-	change: string | null;
-	changeType: "positive" | "negative" | "neutral";
 }
 
 export function VersatileMetricChart({
@@ -36,10 +33,7 @@ export function VersatileMetricChart({
 	chartType,
 	data,
 	icon,
-	color,
 	totalValue,
-	change,
-	changeType,
 }: MetricChartProps) {
 	const chartConfig = {
 		value: {
@@ -47,18 +41,6 @@ export function VersatileMetricChart({
 			color: "var(--chart-1)",
 		},
 	} satisfies ChartConfig;
-
-	const getChangeIcon = () => {
-		if (changeType === "positive") return <TrendingUp className="h-4 w-4" />;
-		if (changeType === "negative") return <TrendingDown className="h-4 w-4" />;
-		return null;
-	};
-
-	const getChangeColor = () => {
-		if (changeType === "positive") return "text-success";
-		if (changeType === "negative") return "text-destructive";
-		return "text-muted-foreground";
-	};
 
 	const renderChart = () => {
 		const commonProps = {
@@ -160,14 +142,6 @@ export function VersatileMetricChart({
 						</div>
 						<CardTitle className="font-medium text-sm">{title}</CardTitle>
 					</div>
-					{change && (
-						<div
-							className={`flex items-center gap-1 font-medium text-sm ${getChangeColor()}`}
-						>
-							{getChangeIcon()}
-							{change}
-						</div>
-					)}
 				</div>
 				<div className="mt-2">
 					<div className="font-bold text-2xl text-gray-900 dark:text-white">
