@@ -25,6 +25,14 @@ export function UsageChart({
 	data,
 	providerName = "Single Provider",
 }: UsageChartProps) {
+	if (!data || data.length === 0) {
+		return (
+			<div className="flex h-[300px] w-full items-center justify-center text-muted-foreground text-sm">
+				No data available
+			</div>
+		);
+	}
+
 	return (
 		<ChartContainer
 			config={{

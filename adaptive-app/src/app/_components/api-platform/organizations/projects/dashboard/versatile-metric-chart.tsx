@@ -55,9 +55,9 @@ export function VersatileMetricChart({
 	};
 
 	const getChangeColor = () => {
-		if (changeType === "positive") return "text-green-600 dark:text-green-400";
-		if (changeType === "negative") return "text-red-600 dark:text-red-400";
-		return "text-gray-600 dark:text-gray-400";
+		if (changeType === "positive") return "text-success";
+		if (changeType === "negative") return "text-destructive";
+		return "text-muted-foreground";
 	};
 
 	const renderChart = () => {
@@ -169,9 +169,15 @@ export function VersatileMetricChart({
 			</CardHeader>
 			<CardContent>
 				<ChartContainer config={chartConfig} className="h-[120px] w-full">
-					<ResponsiveContainer width="100%" height="100%">
-						{renderChart()}
-					</ResponsiveContainer>
+					{!data || data.length === 0 ? (
+						<div className="flex h-full items-center justify-center text-muted-foreground text-sm">
+							No data available
+						</div>
+					) : (
+						<ResponsiveContainer width="100%" height="100%">
+							{renderChart()}
+						</ResponsiveContainer>
+					)}
 				</ChartContainer>
 			</CardContent>
 		</Card>

@@ -10,13 +10,13 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import type { Provider } from "@/types/api-platform/dashboard";
+import type { Provider, ProviderFilter } from "@/types/api-platform/dashboard";
 
 interface DashboardHeaderProps {
 	dateRange: DateRange;
 	onDateRangeChange: (range: DateRange) => void;
-	selectedProvider: string;
-	onProviderChange: (provider: string) => void;
+	selectedProvider: ProviderFilter;
+	onProviderChange: (provider: ProviderFilter) => void;
 	providers: Provider[];
 	onRefresh: () => void;
 	onExport: () => void;
