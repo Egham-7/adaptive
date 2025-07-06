@@ -154,10 +154,10 @@ class ProtocolManager:
         # Rule-based protocol selection
         should_use_standard = (
             request_has_tools
-            or complexity_score > 0.55
+            or complexity_score > 0.40
             or token_count > 3000
             or number_of_few_shots > 4
-            or reasoning > 0.80
+            or reasoning > 0.55
         )
 
         protocol_choice = "standard_llm" if should_use_standard else "minion"
@@ -174,10 +174,10 @@ class ProtocolManager:
                 "reasoning": reasoning,
                 "decision_factors": {
                     "request_has_tools": request_has_tools,
-                    "high_complexity": complexity_score > 0.55,
+                    "high_complexity": complexity_score > 0.50,
                     "long_input": token_count > 3000,
                     "many_few_shots": number_of_few_shots > 4,
-                    "high_reasoning": reasoning > 0.80,
+                    "high_reasoning": reasoning > 0.65,
                 },
             },
         )
