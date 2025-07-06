@@ -1,32 +1,26 @@
 import { TRPCError } from "@trpc/server";
+import type { Prisma } from "prisma/generated";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
-const _projectSchema = z.object({
-	id: z.string(),
-	name: z.string(),
-	description: z.string().nullable(),
-	status: z.enum(["active", "inactive", "paused"]),
-	progress: z.number(),
-	organizationId: z.string(),
-	createdAt: z.date(),
-	updatedAt: z.date(),
-});
+type ProjectWithMembers = Prisma.ProjectGetPayload<{
+	include: {
+		members: true;
+	};
+}>;
 
-const _projectMemberSchema = z.object({
-	id: z.string(),
-	userId: z.string(),
-	projectId: z.string(),
-	role: z.enum(["owner", "admin", "member"]),
-	createdAt: z.date(),
-	updatedAt: z.date(),
-});
+type ProjectWithMembersAndOrganization = Prisma.ProjectGetPayload<{
+	include: {
+		members: true;
+		organization: true;
+	};
+}>;
 
 export const projectsRouter = createTRPCRouter({
 	// Get all projects for an organization
 	getByOrganization: protectedProcedure
 		.input(z.object({ organizationId: z.string() }))
-		.query(async ({ ctx, input }) => {
+		.query(async ({ ctx, input }): Promise<ProjectWithMembers[]> => {
 			const userId = ctx.clerkAuth.userId;
 			if (!userId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
@@ -58,7 +52,7 @@ export const projectsRouter = createTRPCRouter({
 					orderBy: { createdAt: "desc" },
 				});
 
-				return projects;
+				return projects as ProjectWithMembers[];
 			} catch (error) {
 				console.error("Error fetching projects:", error);
 				throw new TRPCError({
@@ -71,42 +65,47 @@ export const projectsRouter = createTRPCRouter({
 	// Get a specific project by ID
 	getById: protectedProcedure
 		.input(z.object({ id: z.string() }))
-		.query(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
-
-			try {
-				const project = await ctx.db.project.findFirst({
-					where: {
-						id: input.id,
-						organization: {
-							OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-						},
-					},
-					include: {
-						members: true,
-						organization: true,
-					},
-				});
-
-				if (!project) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Project not found",
-					});
+		.query(
+			async ({
+				ctx,
+				input,
+			}): Promise<ProjectWithMembersAndOrganization | null> => {
+				const userId = ctx.clerkAuth.userId;
+				if (!userId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
 				}
 
-				return project;
-			} catch (error) {
-				console.error("Error fetching project:", error);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch project",
-				});
-			}
-		}),
+				try {
+					const project = await ctx.db.project.findFirst({
+						where: {
+							id: input.id,
+							organization: {
+								OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+							},
+						},
+						include: {
+							members: true,
+							organization: true,
+						},
+					});
+
+					if (!project) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Project not found",
+						});
+					}
+
+					return project;
+				} catch (error) {
+					console.error("Error fetching project:", error);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to fetch project",
+					});
+				}
+			},
+		),
 
 	// Create a new project
 	create: protectedProcedure
@@ -265,12 +264,29 @@ export const projectsRouter = createTRPCRouter({
 							{ organization: { ownerId: userId } },
 						],
 					},
+					include: {
+						organization: true,
+					},
 				});
 
 				if (!project) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "You don't have permission to delete this project",
+					});
+				}
+
+				// Check if this is the organization's last project
+				const organizationProjectCount = await ctx.db.project.count({
+					where: {
+						organizationId: project.organizationId,
+					},
+				});
+
+				if (organizationProjectCount <= 1) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Cannot delete the last project in an organization. Each organization must have at least one project.",
 					});
 				}
 

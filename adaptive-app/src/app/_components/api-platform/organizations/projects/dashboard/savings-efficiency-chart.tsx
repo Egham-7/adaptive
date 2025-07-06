@@ -38,7 +38,20 @@ export function SavingsEfficiencyChart({
 		);
 	}
 
-	if (!data) return null;
+	if (!data || !data.taskBreakdown || data.taskBreakdown.length === 0) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Savings Efficiency by Task</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex h-64 items-center justify-center text-muted-foreground">
+						No savings data available
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	const chartColors = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 	const chartData = data.taskBreakdown.map((task, index) => ({

@@ -32,13 +32,12 @@ func initMetrics() {
 }
 
 // HandleStream manages the streaming response to the client with optimized performance
-func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedModel string, comparisonProvider models.ComparisonProvider, providers []string) error {
+func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedModel string, comparisonProvider models.ComparisonProvider, provider string) error {
 	log.Printf("[%s] Starting stream handling", requestID)
 	// Initialize metrics if needed
 	initMetrics()
 
-	// Extract provider and model from context or headers
-	provider := c.Get("X-Provider", "unknown")
+	// Extract model from context or headers
 	model := c.Get("X-Model", "unknown")
 
 	promStreamMetrics.RecordStreamStart(provider, model)
@@ -48,7 +47,7 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 		var totalBytes int64
 		var status string
 
-		streamReader, err := sse.GetSSEStreamReader(resp, requestID, selectedModel, comparisonProvider, providers)
+		streamReader, err := sse.GetSSEStreamReader(resp, requestID, selectedModel, comparisonProvider, provider)
 		if err != nil {
 			status = "reader_error"
 			promStreamMetrics.RecordError("reader_creation", provider)

@@ -2,6 +2,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
+// Helper function to ensure we always return valid numbers
+const ensureNumber = (value: number | null | undefined): number => {
+	const num = Number(value ?? 0);
+	return Number.isNaN(num) || !Number.isFinite(num) ? 0 : num;
+};
+
 const recordUsageSchema = z.object({
 	apiKeyId: z.string(),
 	provider: z.string(),
@@ -231,30 +237,144 @@ export const usageRouter = createTRPCRouter({
 					}),
 				);
 
-				return {
-					totalSpend: totalMetrics._sum.cost ?? 0,
-					totalTokens: totalMetrics._sum.totalTokens ?? 0,
-					totalRequests: totalMetrics._sum.requestCount ?? 0,
-					totalApiCalls: totalMetrics._count.id ?? 0,
-					providerBreakdown: providerUsage.map((usage) => ({
+				// Calculate comparison costs using database provider pricing
+				const totalSpend = ensureNumber(totalMetrics._sum.cost);
+
+				// Get all providers with their pricing data
+				const providers = await ctx.db.provider.findMany({
+					where: { isActive: true },
+					include: {
+						models: {
+							where: { isActive: true },
+						},
+					},
+				});
+
+				// Create a map of provider models for quick lookup
+				const providerModelMap = new Map<
+					string,
+					Map<string, { inputTokenCost: number; outputTokenCost: number }>
+				>();
+				providers.forEach((provider) => {
+					const modelMap = new Map<
+						string,
+						{ inputTokenCost: number; outputTokenCost: number }
+					>();
+					provider.models.forEach((model) => {
+						modelMap.set(model.name, {
+							inputTokenCost: model.inputTokenCost,
+							outputTokenCost: model.outputTokenCost,
+						});
+					});
+					providerModelMap.set(provider.name, modelMap);
+				});
+
+				// Get detailed usage data with model information for cost calculations
+				const detailedUsage = await ctx.db.apiUsage.findMany({
+					where: whereClause,
+					select: {
+						provider: true,
+						model: true,
+						inputTokens: true,
+						outputTokens: true,
+						cost: true,
+					},
+				});
+
+				// Calculate what the cost would be if using only the most expensive provider
+				const calculateAlternativeProviderCost = (usage: {
+					provider: string;
+					model: string;
+					inputTokens: number;
+					outputTokens: number;
+				}) => {
+					let maxCost = 0;
+
+					// Check cost with each provider's equivalent model
+					for (const [providerName, models] of providerModelMap.entries()) {
+						if (providerName === usage.provider) continue; // Skip current provider
+
+						// Try to find the exact model or a similar one
+						const modelPricing =
+							models.get(usage.model) || models.values().next().value;
+						if (modelPricing) {
+							const cost =
+								(usage.inputTokens * modelPricing.inputTokenCost) / 1000000 +
+								(usage.outputTokens * modelPricing.outputTokenCost) / 1000000;
+							maxCost = Math.max(maxCost, cost);
+						}
+					}
+
+					return maxCost;
+				};
+
+				// Calculate savings for each provider
+				const providerBreakdownWithComparison = providerUsage.map((usage) => {
+					const spend = ensureNumber(usage._sum.cost);
+
+					// Calculate what this provider's usage would cost with the most expensive alternative
+					const relevantUsage = detailedUsage.filter(
+						(u) => u.provider === usage.provider,
+					);
+					const estimatedAlternativeCost = relevantUsage.reduce((sum, u) => {
+						return sum + calculateAlternativeProviderCost(u);
+					}, 0);
+
+					const savings = Math.max(0, estimatedAlternativeCost - spend);
+					const savingsPercentage =
+						estimatedAlternativeCost > 0
+							? (savings / estimatedAlternativeCost) * 100
+							: 0;
+
+					return {
 						provider: usage.provider,
-						spend: usage._sum.cost ?? 0,
-						tokens: usage._sum.totalTokens ?? 0,
-						requests: usage._sum.requestCount ?? 0,
-						calls: usage._count.id ?? 0,
-					})),
+						spend,
+						tokens: ensureNumber(usage._sum.totalTokens),
+						requests: ensureNumber(usage._sum.requestCount),
+						calls: ensureNumber(usage._count.id),
+						estimatedSingleProviderCost: estimatedAlternativeCost,
+						savings,
+						savingsPercentage,
+					};
+				});
+
+				// Calculate total comparison cost across all providers
+				const totalEstimatedSingleProviderCost =
+					providerBreakdownWithComparison.reduce(
+						(sum, provider) => sum + provider.estimatedSingleProviderCost,
+						0,
+					);
+
+				const totalSavings = Math.max(
+					0,
+					totalEstimatedSingleProviderCost - totalSpend,
+				);
+				const totalSavingsPercentage =
+					totalEstimatedSingleProviderCost > 0
+						? (totalSavings / totalEstimatedSingleProviderCost) * 100
+						: 0;
+
+				return {
+					totalSpend,
+					totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
+					totalRequests: ensureNumber(totalMetrics._sum.requestCount),
+					totalApiCalls: ensureNumber(totalMetrics._count.id),
+					totalEstimatedSingleProviderCost,
+					totalSavings,
+					totalSavingsPercentage,
+					providerBreakdown: providerBreakdownWithComparison,
 					requestTypeBreakdown: requestTypeUsage.map((usage) => ({
 						type: usage.requestType,
-						spend: usage._sum.cost ?? 0,
-						tokens: usage._sum.totalTokens ?? 0,
-						requests: usage._sum.requestCount ?? 0,
-						calls: usage._count.id ?? 0,
+						spend: ensureNumber(usage._sum.cost),
+						tokens: ensureNumber(usage._sum.totalTokens),
+						requests: ensureNumber(usage._sum.requestCount),
+						calls: ensureNumber(usage._count.id),
 					})),
 					dailyTrends: dailyUsage.map((usage) => ({
 						date: usage.timestamp,
-						spend: usage._sum.cost ?? 0,
-						tokens: usage._sum.totalTokens ?? 0,
-						requests: usage._sum.requestCount ?? 0,
+						spend: ensureNumber(usage._sum.cost),
+						tokens: ensureNumber(usage._sum.totalTokens),
+						requests: ensureNumber(usage._sum.requestCount),
 					})),
 				};
 			} catch (error) {
@@ -359,19 +479,19 @@ export const usageRouter = createTRPCRouter({
 				});
 
 				return {
-					totalSpend: totalMetrics._sum.cost ?? 0,
-					totalTokens: totalMetrics._sum.totalTokens ?? 0,
-					totalRequests: totalMetrics._sum.requestCount ?? 0,
-					totalApiCalls: totalMetrics._count.id ?? 0,
+					totalSpend: ensureNumber(totalMetrics._sum.cost),
+					totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
+					totalRequests: ensureNumber(totalMetrics._sum.requestCount),
+					totalApiCalls: ensureNumber(totalMetrics._count.id),
 					projectBreakdown: projectUsage.map((usage) => {
 						const project = projects.find((p) => p.id === usage.projectId);
 						return {
 							projectId: usage.projectId,
 							projectName: project?.name || "Unknown Project",
-							spend: usage._sum.cost ?? 0,
-							tokens: usage._sum.totalTokens ?? 0,
-							requests: usage._sum.requestCount ?? 0,
-							calls: usage._count.id ?? 0,
+							spend: ensureNumber(usage._sum.cost),
+							tokens: ensureNumber(usage._sum.totalTokens),
+							requests: ensureNumber(usage._sum.requestCount),
+							calls: ensureNumber(usage._count.id),
 						};
 					}),
 				};

@@ -166,3 +166,39 @@ model Subscription {
   @@index([userId])
   @@index([status])
 }
+
+model Provider {
+  id          String    @id @default(cuid())
+  name        String    @unique // 'openai' | 'anthropic' | 'google' | 'groq' | 'deepseek' | 'huggingface'
+  displayName String    // 'OpenAI' | 'Anthropic' | 'Google' | 'Groq' | 'DeepSeek' | 'Hugging Face'
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  models      ProviderModel[]
+  
+  @@index([name])
+  @@index([isActive])
+}
+
+model ProviderModel {
+  id              String    @id @default(cuid())
+  providerId      String
+  name            String    // Model name like 'gpt-4' | 'claude-3-opus' | 'gemini-pro'
+  displayName     String    // Human readable name
+  type            String    // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
+  inputTokenCost  Float     // Cost per 1M input tokens
+  outputTokenCost Float     // Cost per 1M output tokens
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  @@unique([providerId, name])
+  @@index([providerId])
+  @@index([name])
+  @@index([type])
+  @@index([isActive])
+}

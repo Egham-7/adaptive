@@ -48,8 +48,13 @@ export function useProjectDashboardData(
 				day: "numeric",
 			}),
 			adaptive: trend.spend,
-			singleProvider: trend.spend * 2.3, // Estimated single provider cost
+			singleProvider:
+				trend.spend +
+				analyticsData.totalSavings *
+					(trend.spend / analyticsData.totalSpend || 0), // Proportional alternative cost
 			requests: trend.requests,
+			spend: trend.spend,
+			tokens: trend.tokens,
 		}));
 
 		// Transform daily trends to token data
@@ -59,6 +64,8 @@ export function useProjectDashboardData(
 				day: "numeric",
 			}),
 			tokens: trend.tokens,
+			spend: trend.spend,
+			requests: trend.requests,
 		}));
 
 		// Transform daily trends to request data
@@ -68,24 +75,17 @@ export function useProjectDashboardData(
 				day: "numeric",
 			}),
 			requests: trend.requests,
+			spend: trend.spend,
+			tokens: trend.tokens,
 		}));
 
-		// Calculate savings based on estimated single provider costs
-		const estimatedSingleProviderCost = analyticsData.totalSpend * 2.3;
-		const totalSavings = estimatedSingleProviderCost - analyticsData.totalSpend;
-		const savingsPercentage =
-			estimatedSingleProviderCost > 0
-				? (totalSavings / estimatedSingleProviderCost) * 100
-				: 0;
+		// Use actual savings from API
+		const totalSavings = analyticsData.totalSavings;
+		const savingsPercentage = analyticsData.totalSavingsPercentage;
 
 		// Transform request type breakdown to task breakdown
 		const taskBreakdown = analyticsData.requestTypeBreakdown.map(
 			(requestType, index) => {
-				const estimatedSingleCost = requestType.spend * 2.3;
-				const savings = estimatedSingleCost - requestType.spend;
-				const savingsPercentage =
-					estimatedSingleCost > 0 ? (savings / estimatedSingleCost) * 100 : 0;
-
 				return {
 					id: index.toString(),
 					name:
@@ -96,17 +96,15 @@ export function useProjectDashboardData(
 					inputTokens: formatNumber(Math.floor(requestType.tokens * 0.6)), // Estimated input tokens
 					outputTokens: formatNumber(Math.floor(requestType.tokens * 0.4)), // Estimated output tokens
 					cost: `$${requestType.spend.toFixed(2)}`,
-					comparisonCost: `$${estimatedSingleCost.toFixed(2)}`,
-					savings: `$${savings.toFixed(2)}`,
-					percentage: savingsPercentage,
+					comparisonCost: `$${(requestType.spend + analyticsData.totalSavings * (requestType.spend / analyticsData.totalSpend || 0)).toFixed(2)}`,
+					savings: `$${(analyticsData.totalSavings * (requestType.spend / analyticsData.totalSpend || 0)).toFixed(2)}`,
+					percentage: analyticsData.totalSavingsPercentage || 0,
 				};
 			},
 		);
 
 		// Transform provider breakdown to providers
 		const providers = analyticsData.providerBreakdown.map((provider) => {
-			const estimatedSingleCost = provider.spend * 2.3;
-
 			return {
 				id: provider.provider,
 				name:
@@ -117,7 +115,7 @@ export function useProjectDashboardData(
 					"/logos/default.svg",
 				comparisonCosts: {
 					adaptive: provider.spend,
-					single: estimatedSingleCost,
+					single: provider.estimatedSingleProviderCost, // Use API-provided cost
 				},
 			};
 		});

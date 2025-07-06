@@ -232,8 +232,8 @@ export default function ApiKeysPage() {
 										<span
 											className={`inline-flex items-center rounded-full px-2 py-1 font-medium text-xs ${
 												apiKey.status === "active"
-													? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-													: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+													? "border border-success/20 bg-success/10 text-success"
+													: "border border-destructive/20 bg-destructive/10 text-destructive"
 											}`}
 										>
 											{apiKey.status}
@@ -265,24 +265,6 @@ export default function ApiKeysPage() {
 					</table>
 				</div>
 			</div>
-
-			{apiKeys.length === 0 && (
-				<div className="py-12 text-center">
-					<h3 className="mb-2 font-medium text-foreground text-lg">
-						No API keys
-					</h3>
-					<p className="mb-4 text-muted-foreground">
-						Create your first API key to get started with the Adaptive API.
-					</p>
-					<Button
-						onClick={() => setShowCreateDialog(true)}
-						className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-					>
-						<Plus className="h-4 w-4" />
-						Create new secret key
-					</Button>
-				</div>
-			)}
 		</div>
 	);
 }

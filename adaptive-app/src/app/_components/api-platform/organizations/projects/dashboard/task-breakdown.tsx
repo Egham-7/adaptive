@@ -38,7 +38,22 @@ export function TaskBreakdown({
 		return <TaskBreakdownSkeleton />;
 	}
 
-	if (!data) return null;
+	if (!data || !data.taskBreakdown || data.taskBreakdown.length === 0) {
+		return (
+			<Card>
+				<CardHeader>
+					<div className="flex items-center justify-between">
+						<CardTitle>Task Type Performance</CardTitle>
+					</div>
+				</CardHeader>
+				<CardContent>
+					<div className="flex h-64 items-center justify-center text-muted-foreground">
+						No task performance data available
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	const currentProvider = providers.find((p) => p.id === selectedProvider);
 

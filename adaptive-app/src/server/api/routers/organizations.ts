@@ -1,54 +1,31 @@
 import { TRPCError } from "@trpc/server";
+import type { Prisma } from "prisma/generated";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
+type OrganizationWithMembersAndCount = Prisma.OrganizationGetPayload<{
+	include: {
+		members: true;
+		_count: {
+			select: {
+				projects: true;
+			};
+		};
+	};
+}>;
+
 export const organizationsRouter = createTRPCRouter({
 	// Get all organizations for the current user
-	getAll: protectedProcedure.query(async ({ ctx }) => {
-		const userId = ctx.clerkAuth.userId;
-		if (!userId) {
-			throw new TRPCError({ code: "UNAUTHORIZED" });
-		}
-
-		try {
-			const organizations = await ctx.db.organization.findMany({
-				where: {
-					OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-				},
-				include: {
-					members: true,
-					_count: {
-						select: {
-							projects: true,
-						},
-					},
-				},
-				orderBy: { createdAt: "desc" },
-			});
-
-			return organizations;
-		} catch (error) {
-			console.error("Error fetching organizations:", error);
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Failed to fetch organizations",
-			});
-		}
-	}),
-
-	// Get a specific organization by ID
-	getById: protectedProcedure
-		.input(z.object({ id: z.string() }))
-		.query(async ({ ctx, input }) => {
+	getAll: protectedProcedure.query(
+		async ({ ctx }): Promise<OrganizationWithMembersAndCount[]> => {
 			const userId = ctx.clerkAuth.userId;
 			if (!userId) {
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
 
 			try {
-				const organization = await ctx.db.organization.findFirst({
+				const organizations = await ctx.db.organization.findMany({
 					where: {
-						id: input.id,
 						OR: [{ ownerId: userId }, { members: { some: { userId } } }],
 					},
 					include: {
@@ -59,24 +36,66 @@ export const organizationsRouter = createTRPCRouter({
 							},
 						},
 					},
+					orderBy: { createdAt: "desc" },
 				});
 
-				if (!organization) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Organization not found",
-					});
-				}
-
-				return organization;
+				return organizations as OrganizationWithMembersAndCount[];
 			} catch (error) {
-				console.error("Error fetching organization:", error);
+				console.error("Error fetching organizations:", error);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch organization",
+					message: "Failed to fetch organizations",
 				});
 			}
-		}),
+		},
+	),
+
+	// Get a specific organization by ID
+	getById: protectedProcedure
+		.input(z.object({ id: z.string() }))
+		.query(
+			async ({
+				ctx,
+				input,
+			}): Promise<OrganizationWithMembersAndCount | null> => {
+				const userId = ctx.clerkAuth.userId;
+				if (!userId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
+
+				try {
+					const organization = await ctx.db.organization.findFirst({
+						where: {
+							id: input.id,
+							OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+						},
+						include: {
+							members: true,
+							_count: {
+								select: {
+									projects: true,
+								},
+							},
+						},
+					});
+
+					if (!organization) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: "Organization not found",
+						});
+					}
+
+					return organization;
+				} catch (error) {
+					console.error("Error fetching organization:", error);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to fetch organization",
+					});
+				}
+			},
+		),
 
 	// Create a new organization
 	create: protectedProcedure
@@ -86,44 +105,46 @@ export const organizationsRouter = createTRPCRouter({
 				description: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
+		.mutation(
+			async ({ ctx, input }): Promise<OrganizationWithMembersAndCount> => {
+				const userId = ctx.clerkAuth.userId;
+				if (!userId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
+				}
 
-			try {
-				const organization = await ctx.db.organization.create({
-					data: {
-						name: input.name,
-						description: input.description,
-						ownerId: userId,
-						members: {
-							create: {
-								userId: userId,
-								role: "owner",
+				try {
+					const organization = await ctx.db.organization.create({
+						data: {
+							name: input.name,
+							description: input.description,
+							ownerId: userId,
+							members: {
+								create: {
+									userId: userId,
+									role: "owner",
+								},
 							},
 						},
-					},
-					include: {
-						members: true,
-						_count: {
-							select: {
-								projects: true,
+						include: {
+							members: true,
+							_count: {
+								select: {
+									projects: true,
+								},
 							},
 						},
-					},
-				});
+					});
 
-				return organization;
-			} catch (error) {
-				console.error("Error creating organization:", error);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to create organization",
-				});
-			}
-		}),
+					return organization;
+				} catch (error) {
+					console.error("Error creating organization:", error);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create organization",
+					});
+				}
+			},
+		),
 
 	// Update an organization
 	update: protectedProcedure
@@ -134,60 +155,64 @@ export const organizationsRouter = createTRPCRouter({
 				description: z.string().optional(),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
-
-			try {
-				// Check if user is owner or admin
-				const organization = await ctx.db.organization.findFirst({
-					where: {
-						id: input.id,
-						OR: [
-							{ ownerId: userId },
-							{
-								members: { some: { userId, role: { in: ["owner", "admin"] } } },
-							},
-						],
-					},
-				});
-
-				if (!organization) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You don't have permission to update this organization",
-					});
+		.mutation(
+			async ({ ctx, input }): Promise<OrganizationWithMembersAndCount> => {
+				const userId = ctx.clerkAuth.userId;
+				if (!userId) {
+					throw new TRPCError({ code: "UNAUTHORIZED" });
 				}
 
-				const updatedOrganization = await ctx.db.organization.update({
-					where: { id: input.id },
-					data: {
-						...(input.name && { name: input.name }),
-						...(input.description !== undefined && {
-							description: input.description,
-						}),
-					},
-					include: {
-						members: true,
-						_count: {
-							select: {
-								projects: true,
+				try {
+					// Check if user is owner or admin
+					const organization = await ctx.db.organization.findFirst({
+						where: {
+							id: input.id,
+							OR: [
+								{ ownerId: userId },
+								{
+									members: {
+										some: { userId, role: { in: ["owner", "admin"] } },
+									},
+								},
+							],
+						},
+					});
+
+					if (!organization) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You don't have permission to update this organization",
+						});
+					}
+
+					const updatedOrganization = await ctx.db.organization.update({
+						where: { id: input.id },
+						data: {
+							...(input.name && { name: input.name }),
+							...(input.description !== undefined && {
+								description: input.description,
+							}),
+						},
+						include: {
+							members: true,
+							_count: {
+								select: {
+									projects: true,
+								},
 							},
 						},
-					},
-				});
+					});
 
-				return updatedOrganization;
-			} catch (error) {
-				console.error("Error updating organization:", error);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to update organization",
-				});
-			}
-		}),
+					return updatedOrganization;
+				} catch (error) {
+					console.error("Error updating organization:", error);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to update organization",
+					});
+				}
+			},
+		),
 
 	// Delete an organization
 	delete: protectedProcedure
@@ -211,6 +236,20 @@ export const organizationsRouter = createTRPCRouter({
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "You don't have permission to delete this organization",
+					});
+				}
+
+				// Check if this is the user's last organization
+				const userOrganizationCount = await ctx.db.organization.count({
+					where: {
+						OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+					},
+				});
+
+				if (userOrganizationCount <= 1) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Cannot delete your last organization. You must have at least one organization.",
 					});
 				}
 
