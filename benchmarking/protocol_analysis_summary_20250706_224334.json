@@ -1,0 +1,15 @@
+{
+  "metadata": {
+    "timestamp": "20250706_224334",
+    "total_tests": 150,
+    "datasets_tested": 2,
+    "test_config": {
+      "sample_size": 100,
+      "rate_limit_delay": 0.05,
+      "progress_interval": 1000,
+      "tools_test_size": 50,
+      "max_consecutive_failures": 5
+    }
+  },
+  "protocol_distribution": {
+    "minion": 
