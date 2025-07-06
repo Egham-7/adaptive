@@ -6,7 +6,7 @@ export const useDeleteProjectApiKey = () => {
 
 	return api.api_keys.delete.useMutation({
 		onSuccess: (data) => {
-			toast.success("API key created successfully!");
+			toast.success("API key deleted successfully!");
 
 			utils.api_keys.list.invalidate();
 			return data;
