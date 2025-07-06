@@ -286,7 +286,8 @@ export const projectsRouter = createTRPCRouter({
 				if (organizationProjectCount <= 1) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Cannot delete the last project in an organization. Each organization must have at least one project.",
+						message:
+							"Cannot delete the last project in an organization. Each organization must have at least one project.",
 					});
 				}
 

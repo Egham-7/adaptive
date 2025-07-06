@@ -249,7 +249,8 @@ export const organizationsRouter = createTRPCRouter({
 				if (userOrganizationCount <= 1) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Cannot delete your last organization. You must have at least one organization.",
+						message:
+							"Cannot delete your last organization. You must have at least one organization.",
 					});
 				}
 
