@@ -22,9 +22,6 @@ export const projectsRouter = createTRPCRouter({
 		.input(z.object({ organizationId: z.string() }))
 		.query(async ({ ctx, input }): Promise<ProjectWithMembers[]> => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if user has access to the organization
@@ -71,9 +68,6 @@ export const projectsRouter = createTRPCRouter({
 				input,
 			}): Promise<ProjectWithMembersAndOrganization | null> => {
 				const userId = ctx.clerkAuth.userId;
-				if (!userId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
 
 				try {
 					const project = await ctx.db.project.findFirst({
@@ -119,9 +113,6 @@ export const projectsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if user has permission to create projects in this organization
@@ -187,9 +178,6 @@ export const projectsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if user has permission to update this project
@@ -250,9 +238,6 @@ export const projectsRouter = createTRPCRouter({
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if user has permission to delete this project
@@ -316,9 +301,6 @@ export const projectsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const currentUserId = ctx.clerkAuth.userId;
-			if (!currentUserId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if current user has permission to add members
@@ -401,9 +383,6 @@ export const projectsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const currentUserId = ctx.clerkAuth.userId;
-			if (!currentUserId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if current user has permission to remove members

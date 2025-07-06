@@ -19,9 +19,6 @@ export const organizationsRouter = createTRPCRouter({
 	getAll: protectedProcedure.query(
 		async ({ ctx }): Promise<OrganizationWithMembersAndCount[]> => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				const organizations = await ctx.db.organization.findMany({
@@ -59,9 +56,6 @@ export const organizationsRouter = createTRPCRouter({
 				input,
 			}): Promise<OrganizationWithMembersAndCount | null> => {
 				const userId = ctx.clerkAuth.userId;
-				if (!userId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
 
 				try {
 					const organization = await ctx.db.organization.findFirst({
@@ -108,9 +102,6 @@ export const organizationsRouter = createTRPCRouter({
 		.mutation(
 			async ({ ctx, input }): Promise<OrganizationWithMembersAndCount> => {
 				const userId = ctx.clerkAuth.userId;
-				if (!userId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
 
 				try {
 					const organization = await ctx.db.organization.create({
@@ -158,9 +149,6 @@ export const organizationsRouter = createTRPCRouter({
 		.mutation(
 			async ({ ctx, input }): Promise<OrganizationWithMembersAndCount> => {
 				const userId = ctx.clerkAuth.userId;
-				if (!userId) {
-					throw new TRPCError({ code: "UNAUTHORIZED" });
-				}
 
 				try {
 					// Check if user is owner or admin
@@ -219,9 +207,6 @@ export const organizationsRouter = createTRPCRouter({
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if user is owner
@@ -279,9 +264,6 @@ export const organizationsRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const currentUserId = ctx.clerkAuth.userId;
-			if (!currentUserId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Check if current user is owner or admin
