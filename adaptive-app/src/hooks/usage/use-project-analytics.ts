@@ -14,7 +14,7 @@ export const useProjectAnalytics = ({
 	endDate,
 	provider,
 }: ProjectAnalyticsParams) => {
-	return api.usage.getProjectAnalytics.useQuery(
+	const query = api.usage.getProjectAnalytics.useQuery(
 		{
 			projectId,
 			startDate,
@@ -27,4 +27,9 @@ export const useProjectAnalytics = ({
 			enabled: !!projectId,
 		},
 	);
+
+	return {
+		...query,
+		refetch: query.refetch,
+	};
 };

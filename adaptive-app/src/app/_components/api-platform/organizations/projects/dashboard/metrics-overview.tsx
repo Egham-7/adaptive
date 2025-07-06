@@ -38,42 +38,34 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 		{
 			title: "Cost Savings Trend",
 			chartType: "area" as const,
-			icon: <FaDollarSign className="h-5 w-5 text-amber-700" />,
+			icon: <FaDollarSign className="h-5 w-5 text-success" />,
 			data: savingsData,
-			color: "#b45309", // Coffee brown
+			color: "hsl(var(--chart-1))",
 			totalValue: `$${data.totalSavings.toFixed(2)}`,
-			change: `+${data.savingsPercentage.toFixed(1)}%`,
-			changeType: "positive" as const,
 		},
 		{
 			title: "Spending Over Time",
 			chartType: "line" as const,
-			icon: <FaChartLine className="h-5 w-5 text-orange-700" />,
+			icon: <FaChartLine className="h-5 w-5 text-chart-2" />,
 			data: spendData,
-			color: "#c2410c", // Burnt orange
+			color: "hsl(var(--chart-2))",
 			totalValue: `$${data.totalSpend.toFixed(2)}`,
-			change: "-31.2%",
-			changeType: "positive" as const,
 		},
 		{
 			title: "Token Usage",
 			chartType: "bar" as const,
-			icon: <FaCoins className="h-5 w-5 text-yellow-700" />,
+			icon: <FaCoins className="h-5 w-5 text-chart-3" />,
 			data: data.tokenData.map((d) => ({ date: d.date, value: d.tokens })),
-			color: "#a16207", // Golden coffee
+			color: "hsl(var(--chart-3))",
 			totalValue: data.totalTokens.toLocaleString(),
-			change: "+12.5%",
-			changeType: "positive" as const,
 		},
 		{
 			title: "Request Volume",
 			chartType: "area" as const,
-			icon: <FaServer className="h-5 w-5 text-stone-700" />,
+			icon: <FaServer className="h-5 w-5 text-chart-4" />,
 			data: data.requestData.map((d) => ({ date: d.date, value: d.requests })),
-			color: "#78716c", // Espresso brown
+			color: "hsl(var(--chart-4))",
 			totalValue: data.totalRequests.toLocaleString(),
-			change: "+8.3%",
-			changeType: "positive" as const,
 		},
 	];
 
@@ -88,8 +80,6 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 					icon={metric.icon}
 					color={metric.color}
 					totalValue={metric.totalValue}
-					change={metric.change}
-					changeType={metric.changeType}
 				/>
 			))}
 		</div>

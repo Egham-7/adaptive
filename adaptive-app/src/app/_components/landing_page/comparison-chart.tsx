@@ -1,15 +1,7 @@
 "use client";
 import { motion, useInView, useSpring, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import {
-	Bar,
-	BarChart,
-	CartesianGrid,
-	Cell,
-	Legend,
-	XAxis,
-	YAxis,
-} from "recharts";
+import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
 import {
 	type ChartConfig,
@@ -17,7 +9,6 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
-import { designSystemColors, getComparisonChartColor } from "@/lib/colors";
 
 interface ChartData {
 	name: string;
@@ -45,8 +36,24 @@ const baseData: ChartData[] = [
 
 const chartConfig = {
 	costPerMillionTokens: {
-		label: "Cost per Million Tokens ($)",
-		color: designSystemColors.primary,
+		label: "Cost per Million Tokens",
+		color: "hsl(var(--chart-1))",
+	},
+	adaptive: {
+		label: "Adaptive",
+		color: "var(--chart-1)",
+	},
+	openai: {
+		label: "OpenAI", 
+		color: "var(--chart-2)",
+	},
+	anthropic: {
+		label: "Anthropic",
+		color: "var(--chart-3)",
+	},
+	gemini: {
+		label: "Gemini",
+		color: "var(--chart-4)",
 	},
 } satisfies ChartConfig;
 
@@ -142,58 +149,25 @@ export default function ComparisonChart() {
 				>
 					<ChartContainer config={chartConfig} className="h-[400px] w-full">
 						<BarChart
+							accessibilityLayer
 							data={animatedData}
 							layout="vertical"
 							margin={{ top: 16, right: 16, left: 120, bottom: 60 }}
 						>
-							<CartesianGrid
-								strokeDasharray="3 3"
-								horizontal={true}
-								vertical={false}
-								stroke={designSystemColors.border}
-								className="opacity-30"
-							/>
-							<XAxis
-								type="number"
-								domain={[0, 20]}
-								tick={{
-									fill: designSystemColors.mutedForeground,
-									fontSize: 12,
-								}}
-								label={{
-									value: "Cost per Million Tokens ($)",
-									position: "insideBottom",
-									offset: -5,
-									style: {
-										textAnchor: "middle",
-										fill: designSystemColors.mutedForeground,
-									},
-								}}
-							/>
+							<XAxis type="number" dataKey="costPerMillionTokens" hide />
 							<YAxis
 								type="category"
 								dataKey="name"
-								width={120}
-								fontSize={12}
-								tick={{
-									fill: designSystemColors.mutedForeground,
-									fontSize: 11,
-								}}
-								label={{
-									value: "AI Provider",
-									angle: -90,
-									position: "insideLeft",
-									style: {
-										textAnchor: "middle",
-										fill: designSystemColors.mutedForeground,
-									},
-								}}
+								tickLine={false}
+								tickMargin={10}
+								axisLine={false}
 							/>
-							<ChartTooltip content={<ChartTooltipContent />} />
-							<Legend
-								verticalAlign="bottom"
-								height={36}
-								wrapperStyle={{ paddingTop: "20px" }}
+							<ChartTooltip
+								cursor={false}
+								content={<ChartTooltipContent 
+									nameKey="name"
+									formatter={(value) => [`$${Number(value).toFixed(2)}`]}
+								/>}
 							/>
 							<Bar
 								dataKey="costPerMillionTokens"
@@ -205,7 +179,7 @@ export default function ComparisonChart() {
 								{animatedData.map((entry) => (
 									<Cell
 										key={`cost-cell-${entry.name}`}
-										fill={getComparisonChartColor(entry.name === "Adaptive")}
+										fill={`var(--color-${entry.name.toLowerCase()})`}
 									/>
 								))}
 							</Bar>
