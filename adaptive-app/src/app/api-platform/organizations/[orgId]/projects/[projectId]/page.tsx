@@ -9,15 +9,20 @@ import { MetricsOverview } from "@/app/_components/api-platform/organizations/pr
 import { TaskDistributionChart } from "@/app/_components/api-platform/organizations/projects/dashboard/task-distribution-chart";
 import { UsageSection } from "@/app/_components/api-platform/organizations/projects/dashboard/usage-section";
 import { Button } from "@/components/ui/button";
-import { useDashboardData } from "@/hooks/api-platform/hooks/use-dashboard-data";
+import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
-import type { DashboardFilters } from "@/types/api-platform/dashboard";
+import type {
+	DashboardFilters,
+	ProviderFilter,
+} from "@/types/api-platform/dashboard";
 
 export default function DashboardPage() {
 	const params = useParams();
 	const orgId = params.orgId as string;
+	const projectId = params.projectId as string;
 	const { dateRange, setDateRange } = useDateRange();
-	const [selectedProvider, setSelectedProvider] = useState("openai");
+	const [selectedProvider, setSelectedProvider] =
+		useState<ProviderFilter>("all");
 
 	const filters: DashboardFilters = useMemo(
 		() => ({
@@ -27,7 +32,10 @@ export default function DashboardPage() {
 		[dateRange, selectedProvider],
 	);
 
-	const { data, loading, error, refresh } = useDashboardData(filters);
+	const { data, loading, error, refresh } = useProjectDashboardData(
+		projectId,
+		filters,
+	);
 
 	const handleExport = () => {
 		if (!data) return;
@@ -67,7 +75,7 @@ export default function DashboardPage() {
 						Failed to load dashboard data
 					</h3>
 					<p className="mb-4 text-muted-foreground">{error}</p>
-					<Button onClick={refresh}>Try Again</Button>
+					<Button onClick={() => refresh()}>Try Again</Button>
 				</div>
 			</div>
 		);

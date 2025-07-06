@@ -22,13 +22,29 @@ export function UsageSection({
 		return <ChartSkeleton />;
 	}
 
-	if (!data) return null;
+	if (!data || !data.usageData || data.usageData.length === 0) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Usage vs Single Provider Cost</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex h-64 items-center justify-center text-muted-foreground">
+						No usage data available
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	const currentProvider = providers.find((p) => p.id === selectedProvider);
 	const totalSpend = data.totalSpend;
 	const totalComparison = currentProvider?.comparisonCosts.single || 0;
 	const totalSavings = totalComparison - totalSpend;
-	const savingsPercentage = ((totalSavings / totalComparison) * 100).toFixed(1);
+	const savingsPercentage =
+		totalComparison > 0
+			? ((totalSavings / totalComparison) * 100).toFixed(1)
+			: "0.0";
 
 	return (
 		<Card>
@@ -45,7 +61,7 @@ export function UsageSection({
 							</span>
 						</div>
 						<div className="mt-2 flex items-center gap-2">
-							<span className="font-medium text-green-600 text-sm dark:text-green-400">
+							<span className="font-medium text-sm text-success">
 								${totalSavings.toFixed(2)} saved ({savingsPercentage}%)
 							</span>
 						</div>

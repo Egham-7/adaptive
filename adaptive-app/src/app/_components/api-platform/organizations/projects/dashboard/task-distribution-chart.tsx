@@ -32,7 +32,23 @@ export function TaskDistributionChart({
 		);
 	}
 
-	if (!data) return null;
+	if (!data || !data.taskBreakdown || data.taskBreakdown.length === 0) {
+		return (
+			<Card>
+				<CardHeader>
+					<div className="flex items-center justify-between">
+						<CardTitle>Task Distribution</CardTitle>
+						<Badge variant="secondary">0 total</Badge>
+					</div>
+				</CardHeader>
+				<CardContent>
+					<div className="flex h-64 items-center justify-center text-muted-foreground">
+						No task data available
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	const chartColors = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 	const chartData = data.taskBreakdown.map((task, index) => ({

@@ -26,11 +26,11 @@ export default function Notification({
 	const getStyles = () => {
 		switch (type) {
 			case "success":
-				return "bg-green-500 text-white";
+				return "bg-success text-success-foreground";
 			case "error":
-				return "bg-red-500 text-white";
+				return "bg-destructive text-destructive-foreground";
 			case "warning":
-				return "bg-yellow-500 text-white";
+				return "bg-warning text-warning-foreground";
 			case "info":
 				return "bg-blue-500 text-white";
 			default:

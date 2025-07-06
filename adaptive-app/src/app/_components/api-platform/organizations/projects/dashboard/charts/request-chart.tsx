@@ -13,6 +13,14 @@ interface RequestsChartProps {
 }
 
 export function RequestsChart({ data }: RequestsChartProps) {
+	if (!data || data.length === 0) {
+		return (
+			<div className="flex h-[60px] w-full items-center justify-center text-muted-foreground text-sm">
+				No data available
+			</div>
+		);
+	}
+
 	return (
 		<ChartContainer
 			config={{

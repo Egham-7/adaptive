@@ -1,3 +1,45 @@
+enum ApiKeyStatus {
+  active
+  inactive
+  revoked
+}
+
+enum OrganizationMemberRole {
+  owner
+  admin
+  member
+}
+
+enum ProjectStatus {
+  active
+  inactive
+  paused
+}
+
+enum ProjectMemberRole {
+  owner
+  admin
+  member
+}
+
+enum ProviderType {
+  openai
+  anthropic
+  gemini
+  groq
+  grok
+  deepseek
+  huggingface
+}
+
+enum RequestType {
+  completion
+  chat
+  embedding
+  image
+  audio
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -10,17 +52,23 @@ generator client {
 
 model ApiKey {
   id         String    @id @default(uuid())
-  userId     String
+  userId     String    // Clerk user ID
+  projectId  String?   // Optional project association
   name       String
   keyPrefix  String
   keyHash    String
-  status     String
+  status     ApiKeyStatus    // 'active' | 'inactive' | 'revoked'
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   expiresAt  DateTime?
   lastUsedAt DateTime?
 
+  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  usage      ApiUsage[]
+
   @@unique([keyPrefix, keyHash])
+  @@index([userId])
+  @@index([projectId])
 }
 
 model Conversation {
@@ -57,6 +105,95 @@ model Message {
   @@index([role])
 }
 
+model Organization {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String    // Clerk user ID who owns this organization
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  projects    Project[]
+  members     OrganizationMember[]
+  
+  @@index([ownerId])
+  @@index([name])
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String       // Clerk user ID
+  organizationId String
+  role           OrganizationMemberRole       // 'owner' | 'admin' | 'member'
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model Project {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  status         ProjectStatus       @default(active) // 'active' | 'inactive' | 'paused'
+  progress       Int          @default(0)
+  organizationId String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        ProjectMember[]
+  apiKeys        ApiKey[]
+  usage          ApiUsage[]
+  
+  @@index([organizationId])
+  @@index([status])
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  userId    String   // Clerk user ID
+  projectId String
+  role      ProjectMemberRole   // 'owner' | 'admin' | 'member'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, projectId])
+  @@index([userId])
+  @@index([projectId])
+}
+
+model ApiUsage {
+  id                String   @id @default(cuid())
+  apiKeyId          String
+  projectId         String?
+  provider          ProviderType   // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
+  model             String   // Model name used
+  requestType       RequestType   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
+  inputTokens       Int      @default(0)
+  outputTokens      Int      @default(0)
+  totalTokens       Int      @default(0)
+  cost              Decimal  @default(0) @db.Decimal(12,6)
+  requestCount      Int      @default(1)
+  timestamp         DateTime @default(now())
+  metadata          Json?    // Additional request metadata
+  
+  apiKey            ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([apiKeyId])
+  @@index([projectId])
+  @@index([provider])
+  @@index([timestamp])
+  @@index([requestType])
+}
+
 model Subscription {
   id                   String    @id @default(cuid())
   userId               String    @unique
@@ -71,3 +208,40 @@ model Subscription {
   @@index([userId])
   @@index([status])
 }
+
+model Provider {
+  id          String    @id @default(cuid())
+  name        String    @unique // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
+  displayName String    // 'OpenAI' | 'Anthropic' | 'Google' | 'Groq' | 'DeepSeek' | 'Hugging Face'
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  models      ProviderModel[]
+  
+  @@index([name])
+  @@index([isActive])
+}
+
+model ProviderModel {
+  id              String    @id @default(cuid())
+  providerId      String
+  name            String    // Model name like 'gpt-4' | 'claude-3-opus' | 'gemini-pro'
+  displayName     String    // Human readable name
+  type            String    // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
+  inputTokenCost  Decimal   @db.Decimal(12,6) // Cost per 1M input tokens
+  outputTokenCost Decimal   @db.Decimal(12,6) // Cost per 1M output tokens
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  
+  @@unique([providerId, name])
+  @@index([providerId])
+  @@index([name])
+  @@index([type])
+  @@index([isActive])
+}
+

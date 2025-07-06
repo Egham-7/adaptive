@@ -1,18 +1,19 @@
 import { toast } from "sonner";
 import { api } from "@/trpc/react";
 
-export const useDeleteApiKey = () => {
+export const useDeleteProjectApiKey = () => {
 	const utils = api.useUtils();
 
 	return api.api_keys.delete.useMutation({
-		onSuccess: (_, variables) => {
+		onSuccess: (data) => {
 			toast.success("API key deleted successfully!");
-			// Invalidate the list and remove the specific item from cache
+
 			utils.api_keys.list.invalidate();
-			utils.api_keys.getById.invalidate({ id: variables.id });
+
+			return data;
 		},
 		onError: (error) => {
-			toast.error(error.message || "Failed to delete API key");
+			toast.error(error.message || "Failed to create API key");
 		},
 	});
 };
