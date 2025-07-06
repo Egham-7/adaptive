@@ -35,7 +35,10 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateOrganization } from "@/hooks/organizations/use-create-organization";
 import { useCreateProject } from "@/hooks/projects/use-create-project";
-import type { OrganizationCreateResponse } from "@/types";
+import type {
+	OrganizationCreateResponse,
+	ProjectCreateResponse,
+} from "@/types";
 
 const organizationSchema = z.object({
 	name: z.string().min(1, "Organization name is required"),
@@ -53,6 +56,9 @@ export default function OnboardingPage() {
 	const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
 	const [createdOrganization, setCreatedOrganization] =
 		useState<OrganizationCreateResponse | null>(null);
+
+	const [createdProject, setCreatedProject] =
+		useState<ProjectCreateResponse | null>(null);
 	const router = useRouter();
 
 	const createOrganization = useCreateOrganization();
@@ -96,7 +102,8 @@ export default function OnboardingPage() {
 				organizationId: createdOrganization.id,
 			},
 			{
-				onSuccess: () => {
+				onSuccess: (data) => {
+					setCreatedProject(data);
 					setCurrentStep("complete");
 				},
 
@@ -128,8 +135,10 @@ export default function OnboardingPage() {
 	};
 
 	const handleComplete = () => {
-		if (createdOrganization) {
-			router.push(`/api-platform/organizations/${createdOrganization.id}`);
+		if (createdOrganization && createdProject) {
+			router.push(
+				`/api-platform/organizations/${createdOrganization.id}/projects/${createdProject.id}`,
+			);
 		} else {
 			router.push("/api-platform/organizations");
 		}
