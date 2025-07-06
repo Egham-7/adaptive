@@ -74,9 +74,14 @@ export const usageRouter = createTRPCRouter({
 				return usage;
 			} catch (error) {
 				console.error("Error recording usage:", error);
++				if (error instanceof TRPCError) {
++					throw error;
++				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to record usage",
+-					message: "Failed to record usage",
++					message: error instanceof Error ? error.message : "Failed to record usage",
++					cause: error,
 				});
 			}
 		}),
