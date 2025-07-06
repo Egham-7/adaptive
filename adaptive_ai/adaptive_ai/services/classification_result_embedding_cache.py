@@ -2,7 +2,6 @@ from collections import OrderedDict
 import json
 import threading
 from typing import Protocol
-from typing import Protocol as TypingProtocol
 import uuid
 
 from langchain_core.documents import Document
@@ -12,7 +11,7 @@ from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
 
 
-class EmbeddingsProtocol(TypingProtocol):
+class EmbeddingsProtocol(Protocol):
     """Protocol for embeddings models."""
 
     def embed_query(self, text: str) -> list[float]: ...
