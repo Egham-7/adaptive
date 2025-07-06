@@ -24,19 +24,17 @@ const (
 
 type OpenAIStreamReader struct {
 	stream_readers.BaseStreamReader
-	stream             *ssestream.Stream[openai.ChatCompletionChunk]
-	done               bool
-	buf                strings.Builder
-	selectedModel      string
-	comparisonProvider models.ComparisonProvider
-	provider           string
+	stream        *ssestream.Stream[openai.ChatCompletionChunk]
+	done          bool
+	buf           strings.Builder
+	selectedModel string
+	provider      string
 }
 
 func NewOpenAIStreamReader(
 	stream *ssestream.Stream[openai.ChatCompletionChunk],
 	requestID string,
 	selectedModel string,
-	comparisonProvider models.ComparisonProvider,
 	provider string,
 ) *OpenAIStreamReader {
 	r := &OpenAIStreamReader{
@@ -44,10 +42,9 @@ func NewOpenAIStreamReader(
 			Buffer:    make([]byte, 0, 1024),
 			RequestID: requestID,
 		},
-		stream:             stream,
-		selectedModel:      selectedModel,
-		comparisonProvider: comparisonProvider,
-		provider:           provider,
+		stream:        stream,
+		selectedModel: selectedModel,
+		provider:      provider,
 	}
 	r.buf.Grow(512)
 	return r

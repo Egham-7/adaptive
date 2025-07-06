@@ -200,9 +200,8 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProviderConstraint []string           `json:"provider_constraint,omitempty"`
-	CostBias           float32            `json:"cost_bias,omitempty"` // Bias towards cheaper providers
-	ComparisonProvider ComparisonProvider `json:"comparison_provider"` // Provider to compare costs against
+	ProviderConstraint []string `json:"provider_constraint,omitempty"`
+	CostBias           float32  `json:"cost_bias,omitempty"` // Bias towards cheaper providers
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
@@ -238,12 +237,6 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 		Tools:               r.Tools,
 		WebSearchOptions:    r.WebSearchOptions,
 	}
-}
-
-// ComparisonProvider represents a provider and model for cost comparison
-type ComparisonProvider struct {
-	Provider string `json:"provider"`
-	Model    string `json:"model"`
 }
 
 // CompletionUsage extends OpenAI's CompletionUsage with cost savings

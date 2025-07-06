@@ -123,7 +123,7 @@ func (s *ResponseService) handleProtocolGeneric(
 		s.setStreamHeaders(c)
 		// Pass comparison provider info for cost calculation in stream
 		provider := s.getProviderForProtocol(protocolName, prov)
-		return stream.HandleStream(c, streamResp, requestID, string(req.Model), req.ComparisonProvider, provider)
+		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
 	}
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
 	regResp, err := prov.Chat().
@@ -199,7 +199,7 @@ func (s *ResponseService) handleMinionsProtocol(
 		}
 		// Pass comparison provider info for cost calculation in stream
 		provider := s.getProviderForProtocol(protocolMinions, remoteProv)
-		return stream.HandleStream(c, streamResp, requestID, string(req.Model), req.ComparisonProvider, provider)
+		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
 	}
 
 	fiberlog.Infof("[%s] generating MinionS completion", requestID)
