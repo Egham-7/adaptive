@@ -81,7 +81,7 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
-                View Plans
+                <Link href="/chat-platform/settings?tab=plans">View Plans</Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

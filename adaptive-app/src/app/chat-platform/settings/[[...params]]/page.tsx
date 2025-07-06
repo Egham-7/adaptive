@@ -1,7 +1,8 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { Brain, Settings, Target, User } from "lucide-react";
+import { Brain, Settings, Target, User, CreditCard } from "lucide-react";
 import { PreferencesTab } from "@/app/_components/chat-platform/settings/preferences-tab";
 import { ProfileTab } from "@/app/_components/chat-platform/settings/profile-tab";
 import { ProvidersTab } from "@/app/_components/chat-platform/settings/providers-tab";
@@ -9,10 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/trpc/react";
 import type { Provider, UserPreferences } from "@/types/settings";
 import { PlansTab } from "@/app/_components/chat-platform/settings/plans-tab";
-import { CreditCard } from "lucide-react";
 
 const SettingsPage: React.FC = () => {
   const { user, isLoaded } = useUser();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get("tab") || "providers"; // Default to "providers"
 
   const { data: preferences, isLoading } = api.user.getPreferences.useQuery(
     undefined,
@@ -73,7 +75,7 @@ const SettingsPage: React.FC = () => {
           <h1 className="font-bold text-3xl text-foreground">Settings</h1>
         </div>
 
-        <Tabs defaultValue="providers" className="space-y-6">
+        <Tabs defaultValue={activeTab} className="space-y-6">
           <TabsList className="flex flex-wrap gap-2 w-full">
             <TabsTrigger
               value="providers"
