@@ -1,3 +1,45 @@
+enum ApiKeyStatus {
+  active
+  inactive
+  revoked
+}
+
+enum OrganizationMemberRole {
+  owner
+  admin
+  member
+}
+
+enum ProjectStatus {
+  active
+  inactive
+  paused
+}
+
+enum ProjectMemberRole {
+  owner
+  admin
+  member
+}
+
+enum ProviderType {
+  openai
+  anthropic
+  gemini
+  groq
+  grok
+  deepseek
+  huggingface
+}
+
+enum RequestType {
+  completion
+  chat
+  embedding
+  image
+  audio
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -15,7 +57,7 @@ model ApiKey {
   name       String
   keyPrefix  String
   keyHash    String
-  status     String    // 'active' | 'inactive' | 'revoked'
+  status     ApiKeyStatus    // 'active' | 'inactive' | 'revoked'
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   expiresAt  DateTime?
@@ -82,7 +124,7 @@ model OrganizationMember {
   id             String       @id @default(cuid())
   userId         String       // Clerk user ID
   organizationId String
-  role           String       // 'owner' | 'admin' | 'member'
+  role           OrganizationMemberRole       // 'owner' | 'admin' | 'member'
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   
@@ -97,7 +139,7 @@ model Project {
   id             String       @id @default(cuid())
   name           String
   description    String?
-  status         String       @default("active") // 'active' | 'inactive' | 'paused'
+  status         ProjectStatus       @default(active) // 'active' | 'inactive' | 'paused'
   progress       Int          @default(0)
   organizationId String
   createdAt      DateTime     @default(now())
@@ -116,7 +158,7 @@ model ProjectMember {
   id        String   @id @default(cuid())
   userId    String   // Clerk user ID
   projectId String
-  role      String   // 'owner' | 'admin' | 'member'
+  role      ProjectMemberRole   // 'owner' | 'admin' | 'member'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -131,13 +173,13 @@ model ApiUsage {
   id                String   @id @default(cuid())
   apiKeyId          String
   projectId         String?
-  provider          String   // 'openai' | 'anthropic' | 'google' | 'groq' | 'deepseek' | 'huggingface'
+  provider          ProviderType   // 'openai' | 'anthropic' | 'google' | 'groq' | 'deepseek' | 'huggingface'
   model             String   // Model name used
-  requestType       String   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
+  requestType       RequestType   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
   inputTokens       Int      @default(0)
   outputTokens      Int      @default(0)
   totalTokens       Int      @default(0)
-  cost              Float    @default(0)
+  cost              Decimal  @default(0) @db.Decimal(12,6)
   requestCount      Int      @default(1)
   timestamp         DateTime @default(now())
   metadata          Json?    // Additional request metadata
@@ -188,8 +230,8 @@ model ProviderModel {
   name            String    // Model name like 'gpt-4' | 'claude-3-opus' | 'gemini-pro'
   displayName     String    // Human readable name
   type            String    // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
-  inputTokenCost  Float     // Cost per 1M input tokens
-  outputTokenCost Float     // Cost per 1M output tokens
+  inputTokenCost  Decimal   @db.Decimal(12,6) // Cost per 1M input tokens
+  outputTokenCost Decimal   @db.Decimal(12,6) // Cost per 1M output tokens
   isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -202,3 +244,4 @@ model ProviderModel {
   @@index([type])
   @@index([isActive])
 }
+

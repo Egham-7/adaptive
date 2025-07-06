@@ -386,7 +386,7 @@ export const projectsRouter = createTRPCRouter({
 
 			try {
 				// Check if current user has permission to remove members
-				const project = await ctx.db.project.findFirst({
+				const project = (await ctx.db.project.findFirst({
 					where: {
 						id: input.projectId,
 						OR: [
@@ -414,7 +414,7 @@ export const projectsRouter = createTRPCRouter({
 					include: {
 						members: true,
 					},
-				});
+				})) as ProjectWithMembers;
 
 				if (!project) {
 					throw new TRPCError({

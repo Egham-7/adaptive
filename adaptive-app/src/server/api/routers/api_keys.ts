@@ -9,7 +9,7 @@ import {
 
 const createAPIKeySchema = z.object({
 	name: z.string().min(1),
-	status: z.string(),
+	status: z.enum(["active", "revoked", "inactive"]),
 	expires_at: z.string().optional(),
 	projectId: z.string().optional(),
 });
@@ -17,13 +17,13 @@ const createAPIKeySchema = z.object({
 const updateAPIKeySchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1),
-	status: z.string(),
+	status: z.enum(["active", "revoked", "inactive"]),
 });
 
 const apiKeySchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	status: z.string(),
+	status: z.enum(["active", "revoked", "inactive"]),
 	created_at: z.string(),
 	updated_at: z.string(),
 	expires_at: z.string().nullable(),
@@ -269,7 +269,7 @@ export const apiKeysRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				projectId: z.string(),
-				status: z.string().default("active"),
+				status: z.enum(["active", "revoked", "inactive"]).default("active"),
 				expires_at: z.string().optional(),
 			}),
 		)

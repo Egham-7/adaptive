@@ -1,10 +1,11 @@
 import { api } from "@/trpc/react";
+import type { ProviderType } from "@/types/api-platform/dashboard";
 
 interface ProjectAnalyticsParams {
 	projectId: string;
 	startDate?: Date;
 	endDate?: Date;
-	provider?: string;
+	provider?: ProviderType;
 }
 
 export const useProjectAnalytics = ({

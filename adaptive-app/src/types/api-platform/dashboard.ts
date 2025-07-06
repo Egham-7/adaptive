@@ -1,5 +1,5 @@
 import type { DateRange } from "react-day-picker";
-import type { RouterOutputs } from "../index";
+import type { RouterInputs, RouterOutputs } from "../index";
 
 // ---- tRPC-derived Types ----
 
@@ -69,6 +69,16 @@ export interface RequestDataPoint {
 // ---- UI-specific Types ----
 
 /**
+ * Provider type from tRPC schema
+ */
+export type ProviderType = RouterInputs["usage"]["getProjectAnalytics"]["provider"];
+
+/**
+ * Supported provider types for filtering - includes "all" option
+ */
+export type ProviderFilter = "all" | NonNullable<ProviderType>;
+
+/**
  * Complete dashboard data structure for UI components
  */
 export interface DashboardData {
@@ -109,7 +119,7 @@ export interface Provider {
 
 export interface DashboardFilters {
 	dateRange: DateRange | undefined;
-	provider: string;
+	provider: ProviderFilter;
 	refreshInterval?: number;
 }
 

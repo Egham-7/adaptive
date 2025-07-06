@@ -254,8 +254,8 @@ export default function OrganizationProjectsPage() {
 	}
 
 	const userRole = getUserRole(organization, user?.id || "");
-	const canCreateProject = userRole === "Owner" || userRole === "Admin";
-	const canEditProject = userRole === "Owner" || userRole === "Admin";
+	const canCreateProject = userRole === "Owner" || userRole === "admin";
+	const canEditProject = userRole === "Owner" || userRole === "admin";
 	const canDeleteProject = userRole === "Owner";
 
 	return (

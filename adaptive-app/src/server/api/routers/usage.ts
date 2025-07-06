@@ -10,9 +10,17 @@ const ensureNumber = (value: number | null | undefined): number => {
 
 const recordUsageSchema = z.object({
 	apiKeyId: z.string(),
-	provider: z.string(),
+	provider: z.enum([
+		"openai",
+		"anthropic",
+		"gemini",
+		"groq",
+		"deepseek",
+		"huggingface",
+		"grok",
+	]),
 	model: z.string(),
-	requestType: z.string(),
+	requestType: z.enum(["completion", "chat", "embedding", "image", "audio"]),
 	inputTokens: z.number().default(0),
 	outputTokens: z.number().default(0),
 	totalTokens: z.number().default(0),
@@ -27,9 +35,6 @@ export const usageRouter = createTRPCRouter({
 		.input(recordUsageSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Verify the API key belongs to the user
@@ -93,14 +98,20 @@ export const usageRouter = createTRPCRouter({
 				projectId: z.string(),
 				startDate: z.date().optional(),
 				endDate: z.date().optional(),
-				provider: z.string().optional(),
+				provider: z
+					.enum([
+						"openai",
+						"anthropic",
+						"gemini",
+						"groq",
+						"deepseek",
+						"huggingface",
+					])
+					.optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				// Verify user has access to the project
@@ -274,6 +285,24 @@ export const usageRouter = createTRPCRouter({
 					providerModelMap.set(provider.name, modelMap);
 				});
 
+				// Pre-compute maximum cost per model across all providers
+				const maxCostPerModel = new Map<string, { inputCost: number; outputCost: number }>();
+				
+				for (const [providerName, models] of providerModelMap.entries()) {
+					for (const [modelName, modelPricing] of models.entries()) {
+						const existing = maxCostPerModel.get(modelName);
+						const inputCost = Number(modelPricing.inputTokenCost);
+						const outputCost = Number(modelPricing.outputTokenCost);
+						
+						if (!existing || inputCost > existing.inputCost || outputCost > existing.outputCost) {
+							maxCostPerModel.set(modelName, {
+								inputCost: Math.max(inputCost, existing?.inputCost || 0),
+								outputCost: Math.max(outputCost, existing?.outputCost || 0),
+							});
+						}
+					}
+				}
+
 				// Get detailed usage data with model information for cost calculations
 				const detailedUsage = await ctx.db.apiUsage.findMany({
 					where: whereClause,
@@ -293,24 +322,11 @@ export const usageRouter = createTRPCRouter({
 					inputTokens: number;
 					outputTokens: number;
 				}) => {
-					let maxCost = 0;
-
-					// Check cost with each provider's equivalent model
-					for (const [providerName, models] of providerModelMap.entries()) {
-						if (providerName === usage.provider) continue; // Skip current provider
-
-						// Try to find the exact model or a similar one
-						const modelPricing =
-							models.get(usage.model) || models.values().next().value;
-						if (modelPricing) {
-							const cost =
-								(usage.inputTokens * modelPricing.inputTokenCost) / 1000000 +
-								(usage.outputTokens * modelPricing.outputTokenCost) / 1000000;
-							maxCost = Math.max(maxCost, cost);
-						}
-					}
-
-					return maxCost;
+					const maxCost = maxCostPerModel.get(usage.model);
+					if (!maxCost) return 0;
+					
+					return (usage.inputTokens * maxCost.inputCost) / 1000000 +
+						   (usage.outputTokens * maxCost.outputCost) / 1000000;
 				};
 
 				// Calculate savings for each provider
@@ -384,9 +400,14 @@ export const usageRouter = createTRPCRouter({
 				};
 			} catch (error) {
 				console.error("Error fetching project analytics:", error);
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch project analytics",
+					message:
+						error instanceof Error ? error.message : "Failed to fetch project analytics",
+					cause: error,
 				});
 			}
 		}),
@@ -397,14 +418,20 @@ export const usageRouter = createTRPCRouter({
 			z.object({
 				startDate: z.date().optional(),
 				endDate: z.date().optional(),
-				provider: z.string().optional(),
+				provider: z
+					.enum([
+						"openai",
+						"anthropic",
+						"gemini",
+						"groq",
+						"deepseek",
+						"huggingface",
+					])
+					.optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
 
 			try {
 				const startDate =
@@ -502,9 +529,14 @@ export const usageRouter = createTRPCRouter({
 				};
 			} catch (error) {
 				console.error("Error fetching user analytics:", error);
+				if (error instanceof TRPCError) {
+					throw error;
+				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch user analytics",
+					message:
+						error instanceof Error ? error.message : "Failed to fetch user analytics",
+					cause: error,
 				});
 			}
 		}),

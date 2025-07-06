@@ -11,14 +11,14 @@ import { UsageSection } from "@/app/_components/api-platform/organizations/proje
 import { Button } from "@/components/ui/button";
 import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
-import type { DashboardFilters } from "@/types/api-platform/dashboard";
+import type { DashboardFilters, ProviderFilter } from "@/types/api-platform/dashboard";
 
 export default function DashboardPage() {
 	const params = useParams();
 	const orgId = params.orgId as string;
 	const projectId = params.projectId as string;
 	const { dateRange, setDateRange } = useDateRange();
-	const [selectedProvider, setSelectedProvider] = useState("all");
+	const [selectedProvider, setSelectedProvider] = useState<ProviderFilter>("all");
 
 	const filters: DashboardFilters = useMemo(
 		() => ({

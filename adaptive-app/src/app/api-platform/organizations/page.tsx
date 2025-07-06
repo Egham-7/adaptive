@@ -329,7 +329,7 @@ export default function OrganizationsPage() {
 
 					{filteredOrganizations.map((org) => {
 						const userRole = getUserRole(org, user?.id || "");
-						const canEdit = userRole === "Owner" || userRole === "Admin";
+						const canEdit = userRole === "Owner" || userRole === "admin";
 						const canDelete = userRole === "Owner" && organizations.length > 1;
 
 						return (
