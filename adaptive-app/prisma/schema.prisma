@@ -173,7 +173,7 @@ model ApiUsage {
   id                String   @id @default(cuid())
   apiKeyId          String
   projectId         String?
-  provider          ProviderType   // 'openai' | 'anthropic' | 'google' | 'groq' | 'deepseek' | 'huggingface'
+  provider          ProviderType   // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
   model             String   // Model name used
   requestType       RequestType   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
   inputTokens       Int      @default(0)
@@ -211,7 +211,7 @@ model Subscription {
 
 model Provider {
   id          String    @id @default(cuid())
-  name        String    @unique // 'openai' | 'anthropic' | 'google' | 'groq' | 'deepseek' | 'huggingface'
+  name        String    @unique // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
   displayName String    // 'OpenAI' | 'Anthropic' | 'Google' | 'Groq' | 'DeepSeek' | 'Hugging Face'
   description String?
   isActive    Boolean   @default(true)
