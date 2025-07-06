@@ -94,6 +94,11 @@ export default function OnboardingPage() {
 				onSuccess: () => {
 					setCurrentStep("complete");
 				},
+
+				onError: (error) => {
+					console.error("Failed to create project: ", error);
+					toast.error(`Failed to create project: ${error.message}`);
+				},
 			},
 		);
 	};
