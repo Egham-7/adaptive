@@ -71,7 +71,8 @@ export interface RequestDataPoint {
 /**
  * Provider type from tRPC schema
  */
-export type ProviderType = RouterInputs["usage"]["getProjectAnalytics"]["provider"];
+export type ProviderType =
+	RouterInputs["usage"]["getProjectAnalytics"]["provider"];
 
 /**
  * Supported provider types for filtering - includes "all" option

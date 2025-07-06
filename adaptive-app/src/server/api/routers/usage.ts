@@ -286,15 +286,22 @@ export const usageRouter = createTRPCRouter({
 				});
 
 				// Pre-compute maximum cost per model across all providers
-				const maxCostPerModel = new Map<string, { inputCost: number; outputCost: number }>();
-				
-				for (const [providerName, models] of providerModelMap.entries()) {
+				const maxCostPerModel = new Map<
+					string,
+					{ inputCost: number; outputCost: number }
+				>();
+
+				for (const [_providerName, models] of providerModelMap.entries()) {
 					for (const [modelName, modelPricing] of models.entries()) {
 						const existing = maxCostPerModel.get(modelName);
 						const inputCost = Number(modelPricing.inputTokenCost);
 						const outputCost = Number(modelPricing.outputTokenCost);
-						
-						if (!existing || inputCost > existing.inputCost || outputCost > existing.outputCost) {
+
+						if (
+							!existing ||
+							inputCost > existing.inputCost ||
+							outputCost > existing.outputCost
+						) {
 							maxCostPerModel.set(modelName, {
 								inputCost: Math.max(inputCost, existing?.inputCost || 0),
 								outputCost: Math.max(outputCost, existing?.outputCost || 0),
@@ -324,9 +331,11 @@ export const usageRouter = createTRPCRouter({
 				}) => {
 					const maxCost = maxCostPerModel.get(usage.model);
 					if (!maxCost) return 0;
-					
-					return (usage.inputTokens * maxCost.inputCost) / 1000000 +
-						   (usage.outputTokens * maxCost.outputCost) / 1000000;
+
+					return (
+						(usage.inputTokens * maxCost.inputCost) / 1000000 +
+						(usage.outputTokens * maxCost.outputCost) / 1000000
+					);
 				};
 
 				// Calculate savings for each provider
@@ -406,7 +415,9 @@ export const usageRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message:
-						error instanceof Error ? error.message : "Failed to fetch project analytics",
+						error instanceof Error
+							? error.message
+							: "Failed to fetch project analytics",
 					cause: error,
 				});
 			}
@@ -535,7 +546,9 @@ export const usageRouter = createTRPCRouter({
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message:
-						error instanceof Error ? error.message : "Failed to fetch user analytics",
+						error instanceof Error
+							? error.message
+							: "Failed to fetch user analytics",
 					cause: error,
 				});
 			}
