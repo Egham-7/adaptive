@@ -34,6 +34,39 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 		value: d.adaptive,
 	}));
 
+	// Calculate trends based on actual data
+	const calculateTrend = (data: { date: string; value: number }[]) => {
+		if (data.length < 2)
+			return { change: null, changeType: "neutral" as const };
+
+		const firstValue = data[0]?.value || 0;
+		const lastValue = data[data.length - 1]?.value || 0;
+
+		if (firstValue === 0)
+			return { change: null, changeType: "neutral" as const };
+
+		const percentChange = ((lastValue - firstValue) / firstValue) * 100;
+		const changeType =
+			percentChange > 0
+				? ("positive" as const)
+				: percentChange < 0
+					? ("negative" as const)
+					: ("neutral" as const);
+
+		return {
+			change: `${percentChange >= 0 ? "+" : ""}${percentChange.toFixed(1)}%`,
+			changeType,
+		};
+	};
+
+	const spendTrend = calculateTrend(spendData);
+	const tokenTrend = calculateTrend(
+		data.tokenData.map((d) => ({ date: d.date, value: d.tokens })),
+	);
+	const requestTrend = calculateTrend(
+		data.requestData.map((d) => ({ date: d.date, value: d.requests })),
+	);
+
 	const allMetrics = [
 		{
 			title: "Cost Savings Trend",
@@ -52,8 +85,8 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 			data: spendData,
 			color: "#c2410c", // Burnt orange
 			totalValue: `$${data.totalSpend.toFixed(2)}`,
-			change: "-31.2%",
-			changeType: "positive" as const,
+			change: spendTrend.change,
+			changeType: spendTrend.changeType,
 		},
 		{
 			title: "Token Usage",
@@ -62,8 +95,8 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 			data: data.tokenData.map((d) => ({ date: d.date, value: d.tokens })),
 			color: "#a16207", // Golden coffee
 			totalValue: data.totalTokens.toLocaleString(),
-			change: "+12.5%",
-			changeType: "positive" as const,
+			change: tokenTrend.change,
+			changeType: tokenTrend.changeType,
 		},
 		{
 			title: "Request Volume",
@@ -72,8 +105,8 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 			data: data.requestData.map((d) => ({ date: d.date, value: d.requests })),
 			color: "#78716c", // Espresso brown
 			totalValue: data.totalRequests.toLocaleString(),
-			change: "+8.3%",
-			changeType: "positive" as const,
+			change: requestTrend.change,
+			changeType: requestTrend.changeType,
 		},
 	];
 

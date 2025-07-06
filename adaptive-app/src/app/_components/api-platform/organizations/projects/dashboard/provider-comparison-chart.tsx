@@ -1,9 +1,10 @@
 "use client";
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
@@ -14,6 +15,17 @@ interface ProviderComparisonChartProps {
 	data: DashboardData | null;
 	loading: boolean;
 }
+
+const chartConfig = {
+	adaptive: {
+		label: "Adaptive",
+		color: "var(--chart-1)",
+	},
+	single: {
+		label: "Single Provider",
+		color: "var(--chart-2)",
+	},
+} satisfies ChartConfig;
 
 export function ProviderComparisonChart({
 	data,
@@ -74,46 +86,54 @@ export function ProviderComparisonChart({
 			</CardHeader>
 			<CardContent>
 				<div className="mb-6 h-64">
-					<ChartContainer
-						config={{
-							adaptive: {
-								label: "Adaptive",
-								color: "#3b82f6",
-							},
-							single: {
-								label: "Single Provider",
-								color: "#f59e0b",
-							},
-						}}
-					>
-						<ResponsiveContainer width="100%" height="100%">
-							<BarChart
-								data={chartData}
-								margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-							>
-								<XAxis
-									dataKey="name"
-									axisLine={false}
-									tickLine={false}
-									className="text-xs"
-								/>
-								<YAxis axisLine={false} tickLine={false} className="text-xs" />
-								<ChartTooltip content={<ChartTooltipContent />} />
-								<Bar dataKey="adaptive" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-								<Bar dataKey="single" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-							</BarChart>
-						</ResponsiveContainer>
+					<ChartContainer config={chartConfig}>
+						<BarChart
+							accessibilityLayer
+							data={chartData}
+							margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+						>
+							<XAxis
+								dataKey="name"
+								axisLine={false}
+								tickLine={false}
+								tickMargin={10}
+								fontSize={12}
+							/>
+							<YAxis
+								axisLine={false}
+								tickLine={false}
+								tickMargin={10}
+								fontSize={12}
+							/>
+							<ChartTooltip content={<ChartTooltipContent />} />
+							<Bar
+								dataKey="adaptive"
+								fill="var(--color-adaptive)"
+								radius={[4, 4, 0, 0]}
+							/>
+							<Bar
+								dataKey="single"
+								fill="var(--color-single)"
+								radius={[4, 4, 0, 0]}
+							/>
+						</BarChart>
 					</ChartContainer>
 				</div>
 
 				<div className="space-y-3">
 					<div className="flex items-center justify-between text-sm">
 						<div className="flex items-center gap-2">
-							<div className="h-3 w-3 rounded-full bg-[#3b82f6]" />
+							<div
+								className="h-3 w-3 rounded-full"
+								style={{ backgroundColor: "var(--color-adaptive)" }}
+							/>
 							<span className="text-muted-foreground">Adaptive</span>
 						</div>
 						<div className="flex items-center gap-2">
-							<div className="h-3 w-3 rounded-full bg-[#f59e0b]" />
+							<div
+								className="h-3 w-3 rounded-full"
+								style={{ backgroundColor: "var(--color-single)" }}
+							/>
 							<span className="text-muted-foreground">Single Provider</span>
 						</div>
 					</div>
