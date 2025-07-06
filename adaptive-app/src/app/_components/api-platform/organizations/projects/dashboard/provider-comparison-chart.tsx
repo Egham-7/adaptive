@@ -32,7 +32,20 @@ export function ProviderComparisonChart({
 		);
 	}
 
-	if (!data) return null;
+	if (!data || !data.providers || data.providers.length === 0) {
+		return (
+			<Card>
+				<CardHeader>
+					<CardTitle>Provider Comparison</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="flex h-64 items-center justify-center text-muted-foreground">
+						No provider data available
+					</div>
+				</CardContent>
+			</Card>
+		);
+	}
 
 	const chartData = data.providers.map((provider, _index) => ({
 		name: provider.name.split(" ")[0], // Shortened name for chart display

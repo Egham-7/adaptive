@@ -8,6 +8,9 @@ import type { AppRouter } from "@/server/api/root";
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
 export type RouterInputs = inferRouterInputs<AppRouter>;
 
+export * from "./api_keys";
 // Re-export all domain-specific types for easy access
 export * from "./conversations";
 export * from "./messages";
+export * from "./organizations";
+export * from "./projects";

@@ -1,7 +1,11 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit, Plus, Trash2 } from "lucide-react";
+import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -10,117 +14,94 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
+import { useDeleteProjectApiKey } from "@/hooks/api_keys/use-delete-project-api-key";
+import { useProjectApiKeys } from "@/hooks/api_keys/use-project-api-keys";
 
-interface ApiKey {
-	id: string;
-	name: string;
-	key: string;
-	created: string;
-	lastUsed: string;
-	createdBy: string;
-	permissions: string;
-}
-
-const initialApiKeys: ApiKey[] = [
-	{
-		id: "1",
-		name: "production-api",
-		key: "sk-...wzKA",
-		created: "Jun 22, 2025",
-		lastUsed: "Jun 23, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "2",
-		name: "development-env",
-		key: "sk-...634A",
-		created: "Jun 20, 2025",
-		lastUsed: "Jun 20, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "3",
-		name: "analytics-service",
-		key: "sk-...Rr8A",
-		created: "Jun 15, 2025",
-		lastUsed: "Jun 22, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "4",
-		name: "mobile-app",
-		key: "sk-...WIA",
-		created: "Jun 4, 2025",
-		lastUsed: "Jun 24, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-	{
-		id: "5",
-		name: "data-pipeline",
-		key: "sk-...5k4A",
-		created: "May 20, 2025",
-		lastUsed: "Jun 3, 2025",
-		createdBy: "Sarah Chen",
-		permissions: "All",
-	},
-];
+const formSchema = z.object({
+	name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+	description: z.string().optional(),
+});
 
 export default function ApiKeysPage() {
-	const [apiKeys, setApiKeys] = useState<ApiKey[]>(initialApiKeys);
-	const [showCreateDialog, setShowCreateDialog] = useState(false);
-	const [formData, setFormData] = useState({
-		name: "",
-		description: "",
-	});
+	const params = useParams();
+	const projectId = params.projectId as string;
 
-	const resetForm = () => {
-		setFormData({
+	const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+	const { data: apiKeys = [], isLoading, error } = useProjectApiKeys(projectId);
+	const createApiKey = useCreateProjectApiKey();
+	const deleteApiKey = useDeleteProjectApiKey();
+
+	const form = useForm<z.infer<typeof formSchema>>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
 			name: "",
 			description: "",
-		});
-	};
+		},
+	});
 
-	const generateApiKey = () => {
-		const randomKey = Array.from(
-			{ length: 4 },
-			() =>
-				String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
-				String.fromCharCode(97 + Math.floor(Math.random() * 26)) +
-				Math.floor(Math.random() * 10),
-		).join("");
-		return `sk-...${randomKey.slice(0, 4)}`;
-	};
-
-	const handleCreateApiKey = () => {
-		const newKey: ApiKey = {
-			id: Date.now().toString(),
-			name: formData.name,
-			key: generateApiKey(),
-			created: new Date().toLocaleDateString("en-US", {
-				year: "numeric",
-				month: "short",
-				day: "numeric",
-			}),
-			lastUsed: "Never",
-			createdBy: "Sarah Chen",
-			permissions: "All",
-		};
-
-		setApiKeys([newKey, ...apiKeys]);
-		setShowCreateDialog(false);
-		resetForm();
+	const handleCreateApiKey = (values: z.infer<typeof formSchema>) => {
+		createApiKey.mutate(
+			{
+				name: values.name,
+				projectId,
+				status: "active",
+			},
+			{
+				onSuccess: () => {
+					setShowCreateDialog(false);
+					form.reset();
+				},
+			},
+		);
 	};
 
 	const handleDeleteApiKey = (id: string) => {
-		setApiKeys(apiKeys.filter((key) => key.id !== id));
+		deleteApiKey.mutate({ id });
 	};
+
+	if (isLoading) {
+		return (
+			<div className="flex min-h-[400px] items-center justify-center">
+				<div className="text-center">
+					<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+					<p className="text-muted-foreground">Loading API keys...</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="flex min-h-[400px] items-center justify-center">
+				<div className="text-center">
+					<h3 className="mb-2 font-medium text-foreground text-lg">
+						Failed to load API keys
+					</h3>
+					<p className="mb-4 text-muted-foreground">{error.message}</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="space-y-6">
@@ -139,44 +120,66 @@ export default function ApiKeysPage() {
 							<DialogTitle>Create new secret key</DialogTitle>
 						</DialogHeader>
 						<div className="space-y-4">
-							<div>
-								<Label htmlFor="name">Name</Label>
-								<Input
-									id="name"
-									value={formData.name}
-									onChange={(e) =>
-										setFormData({ ...formData, name: e.target.value })
-									}
-									placeholder="My test key"
-								/>
-							</div>
-							<div>
-								<Label htmlFor="description">Description (optional)</Label>
-								<Textarea
-									id="description"
-									value={formData.description}
-									onChange={(e) =>
-										setFormData({ ...formData, description: e.target.value })
-									}
-									placeholder="What's this key for?"
-									rows={3}
-								/>
-							</div>
-							<div className="flex justify-end gap-2">
-								<Button
-									variant="outline"
-									onClick={() => setShowCreateDialog(false)}
+							<Form {...form}>
+								<form
+									onSubmit={form.handleSubmit(handleCreateApiKey)}
+									className="space-y-4"
 								>
-									Cancel
-								</Button>
-								<Button
-									onClick={handleCreateApiKey}
-									disabled={!formData.name}
-									className="bg-primary hover:bg-primary/90"
-								>
-									Create secret key
-								</Button>
-							</div>
+									<FormField
+										control={form.control}
+										name="name"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Name</FormLabel>
+												<FormControl>
+													<Input
+														id="name"
+														placeholder="My test key"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="description"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Description (optional)</FormLabel>
+												<FormControl>
+													<Textarea
+														id="description"
+														placeholder="What's this key for?"
+														rows={3}
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<div className="flex justify-end gap-2">
+										<Button
+											variant="outline"
+											type="button"
+											onClick={() => setShowCreateDialog(false)}
+										>
+											Cancel
+										</Button>
+										<Button
+											type="submit"
+											disabled={!form.watch("name") || createApiKey.isPending}
+											className="bg-primary hover:bg-primary/90"
+										>
+											{createApiKey.isPending
+												? "Creating..."
+												: "Create secret key"}
+										</Button>
+									</div>
+								</form>
+							</Form>
 						</div>
 					</DialogContent>
 				</Dialog>
@@ -208,54 +211,59 @@ export default function ApiKeysPage() {
 			{/* Table */}
 			<div className="overflow-hidden rounded-lg border border-border bg-card">
 				<div className="overflow-x-auto">
-					<table className="w-full">
-						<thead className="bg-muted/50">
-							<tr>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Name
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Secret Key
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Created
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Last Used
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Created By
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Permissions
-								</th>
-								<th className="px-6 py-3 text-right font-medium text-gray-500 text-xs uppercase tracking-wider dark:text-gray-400">
-									Actions
-								</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-border">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Name</TableHead>
+								<TableHead>Secret Key</TableHead>
+								<TableHead>Created</TableHead>
+								<TableHead>Expires</TableHead>
+								<TableHead>Created By</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead className="text-right">Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
 							{apiKeys.map((apiKey) => (
-								<tr key={apiKey.id} className="hover:bg-muted/50">
-									<td className="whitespace-nowrap px-6 py-4 font-medium text-card-foreground text-sm">
-										{apiKey.name}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 font-mono text-muted-foreground text-sm">
-										{apiKey.key}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.created}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.lastUsed}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.createdBy}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
-										{apiKey.permissions}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-right font-medium text-sm">
+								<TableRow key={apiKey.id} className="hover:bg-muted/50">
+									<TableCell>{apiKey.name}</TableCell>
+									<TableCell className="font-mono text-muted-foreground text-sm">
+										{apiKey.key_preview}
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
+										{new Date(apiKey.created_at).toLocaleDateString("en-US", {
+											year: "numeric",
+											month: "short",
+											day: "numeric",
+										})}
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
+										{apiKey.expires_at
+											? new Date(apiKey.expires_at).toLocaleDateString(
+													"en-US",
+													{
+														year: "numeric",
+														month: "short",
+														day: "numeric",
+													},
+												)
+											: "Never"}
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
+										{apiKey.user_id}
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
+										<span
+											className={`inline-flex items-center rounded-full px-2 py-1 font-medium text-xs ${
+												apiKey.status === "active"
+													? "border border-success/20 bg-success/10 text-success"
+													: "border border-destructive/20 bg-destructive/10 text-destructive"
+											}`}
+										>
+											{apiKey.status}
+										</span>
+									</TableCell>
+									<TableCell className="text-right font-medium text-sm">
 										<div className="flex items-center justify-end gap-2">
 											<Button
 												variant="ghost"
@@ -268,36 +276,19 @@ export default function ApiKeysPage() {
 												variant="ghost"
 												size="sm"
 												onClick={() => handleDeleteApiKey(apiKey.id)}
+												disabled={deleteApiKey.isPending}
 												className="h-auto p-1 text-muted-foreground hover:text-destructive"
 											>
 												<Trash2 className="h-4 w-4" />
 											</Button>
 										</div>
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							))}
-						</tbody>
-					</table>
+						</TableBody>
+					</Table>
 				</div>
 			</div>
-
-			{apiKeys.length === 0 && (
-				<div className="py-12 text-center">
-					<h3 className="mb-2 font-medium text-foreground text-lg">
-						No API keys
-					</h3>
-					<p className="mb-4 text-muted-foreground">
-						Create your first API key to get started with the Adaptive API.
-					</p>
-					<Button
-						onClick={() => setShowCreateDialog(true)}
-						className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-					>
-						<Plus className="h-4 w-4" />
-						Create new secret key
-					</Button>
-				</div>
-			)}
 		</div>
 	);
 }

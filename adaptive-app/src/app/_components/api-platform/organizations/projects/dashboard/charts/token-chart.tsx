@@ -13,6 +13,14 @@ interface TokenChartProps {
 }
 
 export function TokenChart({ data }: TokenChartProps) {
+	if (!data || data.length === 0) {
+		return (
+			<div className="flex h-[60px] w-full items-center justify-center text-muted-foreground text-sm">
+				No data available
+			</div>
+		);
+	}
+
 	return (
 		<ChartContainer
 			config={{

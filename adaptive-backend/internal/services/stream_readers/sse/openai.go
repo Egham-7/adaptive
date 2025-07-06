@@ -2,7 +2,6 @@ package sse
 
 import (
 	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/pricing"
 	"adaptive-backend/internal/services/stream_readers"
 	"encoding/json"
 	"errors"
@@ -30,7 +29,7 @@ type OpenAIStreamReader struct {
 	buf                strings.Builder
 	selectedModel      string
 	comparisonProvider models.ComparisonProvider
-	providers          []string
+	provider           string
 }
 
 func NewOpenAIStreamReader(
@@ -38,7 +37,7 @@ func NewOpenAIStreamReader(
 	requestID string,
 	selectedModel string,
 	comparisonProvider models.ComparisonProvider,
-	providers []string,
+	provider string,
 ) *OpenAIStreamReader {
 	r := &OpenAIStreamReader{
 		BaseStreamReader: stream_readers.BaseStreamReader{
@@ -48,7 +47,7 @@ func NewOpenAIStreamReader(
 		stream:             stream,
 		selectedModel:      selectedModel,
 		comparisonProvider: comparisonProvider,
-		providers:          providers,
+		provider:           provider,
 	}
 	r.buf.Grow(512)
 	return r
@@ -117,25 +116,6 @@ func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 
 // processChunk orchestrates the transformation and buffering of a chunk.
 func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) error {
-	// Calculate cost saved if we have usage data and comparison provider
-	var costSaved float32 = 0.0
-	if r.comparisonProvider.Provider != "" && r.comparisonProvider.Model != "" &&
-		len(r.providers) > 0 && (chunk.Usage.CompletionTokens > 0 || chunk.Usage.PromptTokens > 0) {
-		var err error
-		costSaved, err = pricing.CalculateCostSaved(
-			strings.ToLower(r.providers[0]), // Use primary provider from providers array
-			r.selectedModel,
-			strings.ToLower(r.comparisonProvider.Provider),
-			r.comparisonProvider.Model,
-			chunk.Usage.PromptTokens,
-			chunk.Usage.CompletionTokens,
-		)
-		if err != nil {
-			log.Printf("[%s] Error calculating cost savings: %v", r.RequestID, err)
-			costSaved = 0.0 // Default to 0 savings on error
-		}
-	}
-
 	// Log original OpenAI chunk details
 	log.Printf("[%s] Original OpenAI chunk: ID=%s, Model=%s, Choices=%d",
 		r.RequestID, chunk.ID, chunk.Model, len(chunk.Choices))
@@ -147,7 +127,7 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	}
 
 	// Convert OpenAI chunk to our adaptive chunk with cost savings
-	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, costSaved, r.providers)
+	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, r.provider)
 
 	jsonData, err := json.Marshal(adaptiveChunk)
 	if err != nil {
@@ -158,8 +138,8 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	log.Printf("[%s] JSON output: %s", r.RequestID, string(jsonData))
 
 	// Log chunk details
-	log.Printf("[%s] Outputting chunk: ID=%s, Model=%s, Choices=%d, CostSaved=%.4f",
-		r.RequestID, adaptiveChunk.ID, adaptiveChunk.Model, len(adaptiveChunk.Choices), costSaved)
+	log.Printf("[%s] Outputting chunk: ID=%s, Model=%s, Choices=%d",
+		r.RequestID, adaptiveChunk.ID, adaptiveChunk.Model, len(adaptiveChunk.Choices))
 
 	// Log choice details if present
 	for i, choice := range adaptiveChunk.Choices {

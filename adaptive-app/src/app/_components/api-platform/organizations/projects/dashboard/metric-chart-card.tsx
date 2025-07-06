@@ -31,9 +31,9 @@ export function MetricChartCard({
 	};
 
 	const getChangeColor = () => {
-		if (changeType === "positive") return "text-green-600 dark:text-green-400";
-		if (changeType === "negative") return "text-red-600 dark:text-red-400";
-		return "text-gray-600 dark:text-gray-400";
+		if (changeType === "positive") return "text-success";
+		if (changeType === "negative") return "text-destructive";
+		return "text-muted-foreground";
 	};
 
 	const getLineColor = () => {
@@ -78,18 +78,24 @@ export function MetricChartCard({
 				</div>
 
 				<div className="h-16">
-					<ResponsiveContainer width="100%" height="100%">
-						<LineChart data={data}>
-							<Line
-								type="monotone"
-								dataKey="value"
-								stroke={getLineColor()}
-								strokeWidth={2}
-								dot={false}
-								activeDot={{ r: 4, fill: getLineColor() }}
-							/>
-						</LineChart>
-					</ResponsiveContainer>
+					{!data || data.length === 0 ? (
+						<div className="flex h-full items-center justify-center text-muted-foreground text-xs">
+							No data available
+						</div>
+					) : (
+						<ResponsiveContainer width="100%" height="100%">
+							<LineChart data={data}>
+								<Line
+									type="monotone"
+									dataKey="value"
+									stroke={getLineColor()}
+									strokeWidth={2}
+									dot={false}
+									activeDot={{ r: 4, fill: getLineColor() }}
+								/>
+							</LineChart>
+						</ResponsiveContainer>
+					)}
 				</div>
 			</div>
 		</div>
