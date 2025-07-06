@@ -23,7 +23,7 @@ export default function ContentSection() {
 					The Adaptive ecosystem brings together our powerful models.
 				</h2>
 
-				<div className="grid gap-6 sm:grid-cols-2 md:gap-12 lg:gap-24">
+				<div className="grid gap-6 md:grid-cols-2 md:gap-12 lg:gap-24">
 					<div className="relative space-y-4">
 						<p className="text-muted-foreground">
 							Adaptive is evolving to be more than just the models.{" "}
@@ -39,7 +39,7 @@ export default function ContentSection() {
 							needs
 						</p>
 
-						<div className="grid grid-cols-2 gap-3 pt-6 sm:gap-4">
+						<div className="grid grid-cols-2 gap-3 pt-6 md:gap-4">
 							<div className="space-y-3">
 								<div className="flex items-center gap-2">
 									<Zap className="size-4" />
@@ -61,12 +61,14 @@ export default function ContentSection() {
 						</div>
 					</div>
 
-					<div className="relative mt-6 sm:mt-0">
+					<div className="relative mt-6 md:mt-0">
 						<div className="rounded-2xl bg-[linear-gradient(to_bottom,var(--color-input),transparent)] p-px dark:bg-[linear-gradient(to_bottom,var(--color-card),transparent)]">
-							<LogoCarousel logos={logos1} columnCount={2} />
+							<div className="p-6 md:p-8">
+								<LogoCarousel logos={logos1} columnCount={3} />
+							</div>
 						</div>
-						<div className="">
-							<LogoCarousel logos={logos2} columnCount={2} />
+						<div className="p-6 md:p-8">
+							<LogoCarousel logos={logos2} columnCount={3} />
 						</div>
 					</div>
 				</div>

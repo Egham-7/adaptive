@@ -1,10 +1,13 @@
 "use client";
 
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { Cell, Pie, PieChart } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+	type ChartConfig,
 	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
@@ -14,6 +17,28 @@ interface TaskDistributionChartProps {
 	data: DashboardData | null;
 	loading: boolean;
 }
+
+const chartConfig = {
+	requests: {
+		label: "Requests",
+	},
+	"Code Generation": {
+		label: "Code Generation",
+		color: "var(--chart-1)",
+	},
+	"Open Q&A": {
+		label: "Open Q&A",
+		color: "var(--chart-2)",
+	},
+	Summarization: {
+		label: "Summarization",
+		color: "var(--chart-3)",
+	},
+	Translation: {
+		label: "Translation",
+		color: "var(--chart-4)",
+	},
+} satisfies ChartConfig;
 
 export function TaskDistributionChart({
 	data,
@@ -50,12 +75,18 @@ export function TaskDistributionChart({
 		);
 	}
 
-	const chartColors = ["#3b82f6", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
+	const chartColors = [
+		"var(--chart-1)",
+		"var(--chart-2)",
+		"var(--chart-3)",
+		"var(--chart-4)",
+		"var(--chart-5)",
+	];
 	const chartData = data.taskBreakdown.map((task, index) => ({
 		name: task.name,
 		value: Number.parseInt(task.requests.replace(",", "")),
 		percentage: task.percentage,
-		fill: chartColors[index] || "#6b7280",
+		fill: chartColors[index] || "var(--chart-1)",
 	}));
 
 	const totalRequests = chartData.reduce((sum, item) => sum + item.value, 0);
@@ -71,53 +102,27 @@ export function TaskDistributionChart({
 				</div>
 			</CardHeader>
 			<CardContent>
-				<ChartContainer
-					config={{
-						requests: {
-							label: "Requests",
-						},
-						"Code Generation": {
-							label: "Code Generation",
-							color: "#3b82f6",
-						},
-						"Open Q&A": {
-							label: "Open Q&A",
-							color: "#f59e0b",
-						},
-						Summarization: {
-							label: "Summarization",
-							color: "#10b981",
-						},
-						Translation: {
-							label: "Translation",
-							color: "#ef4444",
-						},
-					}}
-				>
-					<ResponsiveContainer width="100%" height="100%">
-						<PieChart>
-							<Pie
-								data={chartData}
-								cx="50%"
-								cy="50%"
-								labelLine={false}
-								outerRadius={80}
-								fill="#8884d8"
-								dataKey="value"
-							>
-								{chartData.map((entry) => (
-									<Cell key={entry.name} fill={entry.fill} />
-								))}
-							</Pie>
-							<ChartTooltip content={<ChartTooltipContent />} />
-							<Legend
-								verticalAlign="bottom"
-								height={36}
-								iconType="circle"
-								wrapperStyle={{ paddingTop: "20px" }}
-							/>
-						</PieChart>
-					</ResponsiveContainer>
+				<ChartContainer config={chartConfig}>
+					<PieChart accessibilityLayer>
+						<Pie
+							data={chartData}
+							cx="50%"
+							cy="50%"
+							labelLine={false}
+							outerRadius={80}
+							dataKey="value"
+						>
+							{chartData.map((entry) => (
+								<Cell key={entry.name} fill={entry.fill} />
+							))}
+						</Pie>
+						<ChartTooltip content={<ChartTooltipContent />} />
+						<ChartLegend
+							content={<ChartLegendContent />}
+							verticalAlign="bottom"
+							className="pt-4"
+						/>
+					</PieChart>
 				</ChartContainer>
 			</CardContent>
 		</Card>

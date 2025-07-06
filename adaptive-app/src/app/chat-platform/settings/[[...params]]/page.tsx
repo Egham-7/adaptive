@@ -1,7 +1,9 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { Brain, Settings, Target, User } from "lucide-react";
+import { Brain, CreditCard, Settings, Target, User } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { PlansTab } from "@/app/_components/chat-platform/settings/plans-tab";
 import { PreferencesTab } from "@/app/_components/chat-platform/settings/preferences-tab";
 import { ProfileTab } from "@/app/_components/chat-platform/settings/profile-tab";
 import { ProvidersTab } from "@/app/_components/chat-platform/settings/providers-tab";
@@ -11,6 +13,8 @@ import type { Provider, UserPreferences } from "@/types/settings";
 
 const SettingsPage: React.FC = () => {
 	const { user, isLoaded } = useUser();
+	const searchParams = useSearchParams();
+	const activeTab = searchParams.get("tab") || "providers"; // Default to "providers"
 
 	const { data: preferences, isLoading } = api.user.getPreferences.useQuery(
 		undefined,
@@ -71,22 +75,38 @@ const SettingsPage: React.FC = () => {
 					<h1 className="font-bold text-3xl text-foreground">Settings</h1>
 				</div>
 
-				<Tabs defaultValue="providers" className="space-y-6">
-					<TabsList className="grid w-full grid-cols-3">
-						<TabsTrigger value="providers" className="flex items-center gap-2">
-							<Brain className="h-4 w-4" />
+				<Tabs defaultValue={activeTab} className="space-y-6">
+					<TabsList className="flex w-full flex-wrap gap-2">
+						<TabsTrigger
+							value="providers"
+							className="flex items-center gap-2 truncate"
+						>
+							<Brain className="h-4 w-4 shrink-0" />
 							Providers
 						</TabsTrigger>
-						<TabsTrigger value="profile" className="flex items-center gap-2">
-							<User className="h-4 w-4" />
+
+						<TabsTrigger
+							value="profile"
+							className="flex items-center gap-2 truncate"
+						>
+							<User className="h-4 w-4 shrink-0" />
 							Profile
 						</TabsTrigger>
+
 						<TabsTrigger
 							value="preferences"
-							className="flex items-center gap-2"
+							className="flex items-center gap-2 truncate"
 						>
-							<Target className="h-4 w-4" />
+							<Target className="h-4 w-4 shrink-0" />
 							Preferences
+						</TabsTrigger>
+
+						<TabsTrigger
+							value="plans"
+							className="flex items-center gap-2 truncate"
+						>
+							<CreditCard className="h-4 w-4 shrink-0" />
+							Plans
 						</TabsTrigger>
 					</TabsList>
 
@@ -103,6 +123,10 @@ const SettingsPage: React.FC = () => {
 
 					<TabsContent value="preferences">
 						<PreferencesTab />
+					</TabsContent>
+
+					<TabsContent value="plans">
+						<PlansTab />
 					</TabsContent>
 				</Tabs>
 			</div>

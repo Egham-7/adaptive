@@ -1,7 +1,14 @@
 "use client";
 
 import { TrendingDown, TrendingUp } from "lucide-react";
-import { Line, LineChart, ResponsiveContainer } from "recharts";
+import { Line, LineChart } from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
+
+const chartConfig = {
+	value: {
+		label: "Value",
+	},
+};
 
 interface MetricChartCardProps {
 	title: string;
@@ -83,8 +90,8 @@ export function MetricChartCard({
 							No data available
 						</div>
 					) : (
-						<ResponsiveContainer width="100%" height="100%">
-							<LineChart data={data}>
+						<ChartContainer config={chartConfig} className="h-full w-full">
+							<LineChart accessibilityLayer data={data}>
 								<Line
 									type="monotone"
 									dataKey="value"
@@ -94,7 +101,7 @@ export function MetricChartCard({
 									activeDot={{ r: 4, fill: getLineColor() }}
 								/>
 							</LineChart>
-						</ResponsiveContainer>
+						</ChartContainer>
 					)}
 				</div>
 			</div>
