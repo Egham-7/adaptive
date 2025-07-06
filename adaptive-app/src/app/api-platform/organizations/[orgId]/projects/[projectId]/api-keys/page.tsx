@@ -1,8 +1,11 @@
 "use client";
 
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -11,47 +14,62 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
 import { useDeleteProjectApiKey } from "@/hooks/api_keys/use-delete-project-api-key";
 import { useProjectApiKeys } from "@/hooks/api_keys/use-project-api-keys";
+
+const formSchema = z.object({
+	name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+	description: z.string().optional(),
+});
 
 export default function ApiKeysPage() {
 	const params = useParams();
 	const projectId = params.projectId as string;
 
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
-	const [formData, setFormData] = useState({
-		name: "",
-		description: "",
-	});
 
 	const { data: apiKeys = [], isLoading, error } = useProjectApiKeys(projectId);
 	const createApiKey = useCreateProjectApiKey();
 	const deleteApiKey = useDeleteProjectApiKey();
 
-	const resetForm = () => {
-		setFormData({
+	const form = useForm<z.infer<typeof formSchema>>({
+		resolver: zodResolver(formSchema),
+		defaultValues: {
 			name: "",
 			description: "",
-		});
-	};
+		},
+	});
 
-	const handleCreateApiKey = () => {
-		if (!formData.name) return;
-
+	const handleCreateApiKey = (values: z.infer<typeof formSchema>) => {
 		createApiKey.mutate(
 			{
-				name: formData.name,
+				name: values.name,
 				projectId,
 				status: "active",
 			},
 			{
 				onSuccess: () => {
 					setShowCreateDialog(false);
-					resetForm();
+					form.reset();
 				},
 			},
 		);
@@ -102,44 +120,66 @@ export default function ApiKeysPage() {
 							<DialogTitle>Create new secret key</DialogTitle>
 						</DialogHeader>
 						<div className="space-y-4">
-							<div>
-								<Label htmlFor="name">Name</Label>
-								<Input
-									id="name"
-									value={formData.name}
-									onChange={(e) =>
-										setFormData({ ...formData, name: e.target.value })
-									}
-									placeholder="My test key"
-								/>
-							</div>
-							<div>
-								<Label htmlFor="description">Description (optional)</Label>
-								<Textarea
-									id="description"
-									value={formData.description}
-									onChange={(e) =>
-										setFormData({ ...formData, description: e.target.value })
-									}
-									placeholder="What's this key for?"
-									rows={3}
-								/>
-							</div>
-							<div className="flex justify-end gap-2">
-								<Button
-									variant="outline"
-									onClick={() => setShowCreateDialog(false)}
+							<Form {...form}>
+								<form
+									onSubmit={form.handleSubmit(handleCreateApiKey)}
+									className="space-y-4"
 								>
-									Cancel
-								</Button>
-								<Button
-									onClick={handleCreateApiKey}
-									disabled={!formData.name || createApiKey.isPending}
-									className="bg-primary hover:bg-primary/90"
-								>
-									{createApiKey.isPending ? "Creating..." : "Create secret key"}
-								</Button>
-							</div>
+									<FormField
+										control={form.control}
+										name="name"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Name</FormLabel>
+												<FormControl>
+													<Input
+														id="name"
+														placeholder="My test key"
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<FormField
+										control={form.control}
+										name="description"
+										render={({ field }) => (
+											<FormItem>
+												<FormLabel>Description (optional)</FormLabel>
+												<FormControl>
+													<Textarea
+														id="description"
+														placeholder="What's this key for?"
+														rows={3}
+														{...field}
+													/>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+									/>
+									<div className="flex justify-end gap-2">
+										<Button
+											variant="outline"
+											type="button"
+											onClick={() => setShowCreateDialog(false)}
+										>
+											Cancel
+										</Button>
+										<Button
+											type="submit"
+											disabled={!form.watch("name") || createApiKey.isPending}
+											className="bg-primary hover:bg-primary/90"
+										>
+											{createApiKey.isPending
+												? "Creating..."
+												: "Create secret key"}
+										</Button>
+									</div>
+								</form>
+							</Form>
 						</div>
 					</DialogContent>
 				</Dialog>
@@ -171,49 +211,33 @@ export default function ApiKeysPage() {
 			{/* Table */}
 			<div className="overflow-hidden rounded-lg border border-border bg-card">
 				<div className="overflow-x-auto">
-					<table className="w-full">
-						<thead className="bg-muted/50">
-							<tr>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Name
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Secret Key
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Created
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Expires
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Created By
-								</th>
-								<th className="px-6 py-3 text-left font-medium text-muted-foreground text-xs uppercase tracking-wider">
-									Status
-								</th>
-								<th className="px-6 py-3 text-right font-medium text-gray-500 text-xs uppercase tracking-wider dark:text-gray-400">
-									Actions
-								</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-border">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Name</TableHead>
+								<TableHead>Secret Key</TableHead>
+								<TableHead>Created</TableHead>
+								<TableHead>Expires</TableHead>
+								<TableHead>Created By</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead className="text-right">Actions</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
 							{apiKeys.map((apiKey) => (
-								<tr key={apiKey.id} className="hover:bg-muted/50">
-									<td className="whitespace-nowrap px-6 py-4 font-medium text-card-foreground text-sm">
-										{apiKey.name}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 font-mono text-muted-foreground text-sm">
+								<TableRow key={apiKey.id} className="hover:bg-muted/50">
+									<TableCell>{apiKey.name}</TableCell>
+									<TableCell className="font-mono text-muted-foreground text-sm">
 										{apiKey.key_preview}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
 										{new Date(apiKey.created_at).toLocaleDateString("en-US", {
 											year: "numeric",
 											month: "short",
 											day: "numeric",
 										})}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
 										{apiKey.expires_at
 											? new Date(apiKey.expires_at).toLocaleDateString(
 													"en-US",
@@ -224,11 +248,11 @@ export default function ApiKeysPage() {
 													},
 												)
 											: "Never"}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
 										{apiKey.user_id}
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-muted-foreground text-sm">
+									</TableCell>
+									<TableCell className="text-muted-foreground text-sm">
 										<span
 											className={`inline-flex items-center rounded-full px-2 py-1 font-medium text-xs ${
 												apiKey.status === "active"
@@ -238,8 +262,8 @@ export default function ApiKeysPage() {
 										>
 											{apiKey.status}
 										</span>
-									</td>
-									<td className="whitespace-nowrap px-6 py-4 text-right font-medium text-sm">
+									</TableCell>
+									<TableCell className="text-right font-medium text-sm">
 										<div className="flex items-center justify-end gap-2">
 											<Button
 												variant="ghost"
@@ -258,11 +282,11 @@ export default function ApiKeysPage() {
 												<Trash2 className="h-4 w-4" />
 											</Button>
 										</div>
-									</td>
-								</tr>
+									</TableCell>
+								</TableRow>
 							))}
-						</tbody>
-					</table>
+						</TableBody>
+					</Table>
 				</div>
 			</div>
 		</div>

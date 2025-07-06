@@ -183,9 +183,7 @@ export const apiKeysRouter = createTRPCRouter({
 		.input(z.object({ id: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({ code: "UNAUTHORIZED" });
-			}
+
 			const existing = await ctx.db.apiKey.findUnique({
 				where: { id: input.id },
 			});
