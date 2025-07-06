@@ -79,6 +79,10 @@ export default function OnboardingPage() {
 				setCreatedOrganization(data);
 				setCurrentStep("project");
 			},
+			onError: (error) => {
+				console.error("Failed to create organization: ", error);
+				toast.error(`Failed to create organization: ${error.message}`);
+			},
 		});
 	};
 
