@@ -15,7 +15,7 @@ export default function ChatbotPricing() {
 	const { user } = useUser();
 
 	return (
-		<section className="overflow-hidden py-16 md:py-32">
+		<section className="overflow-hidden py-4 md:py-8">
 			<div className="mx-auto max-w-6xl px-6">
 				<div className="mx-auto max-w-2xl space-y-6 text-center">
 					<h1 className="text-balance text-center font-display font-semibold text-4xl lg:text-5xl">
@@ -82,7 +82,7 @@ export default function ChatbotPricing() {
 							</CardDescription>
 							{user ? (
 								<div className="mt-4 w-full">
-									<SubscribeButton userId={user.id} />
+									<SubscribeButton />
 								</div>
 							) : (
 								<Button

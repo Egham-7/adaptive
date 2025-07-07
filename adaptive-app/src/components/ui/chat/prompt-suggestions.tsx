@@ -15,7 +15,7 @@ export interface PromptCategory {
 
 interface PromptSuggestionsProps {
   label: string;
-  sendMessage: (message: { text: string }) => void;
+  onSuggestionClick: (text: string) => void;
   suggestions: string[];
   enableCategories?: boolean;
   categories?: PromptCategory[];
@@ -66,7 +66,7 @@ const defaultCategories: PromptCategory[] = [
 
 export function PromptSuggestions({
   label,
-  sendMessage,
+  onSuggestionClick,
   suggestions,
   enableCategories = false,
   categories = defaultCategories,
@@ -76,18 +76,13 @@ export function PromptSuggestions({
   >(null);
 
   const handleCommandSelect = (command: string) => {
-    sendMessage({ text: command });
+    onSuggestionClick(command);
     setActiveCommandCategory(null);
   };
 
   if (enableCategories) {
     return (
       <div className="w-full space-y-6">
-        {/* Logo with animated gradient */}
-        <div className="mb-8">
-          <AnimatedLogo className="w-20 h-20" />
-        </div>
-
         <motion.div
           className="text-center"
           initial={{ opacity: 0, y: 20 }}
@@ -123,7 +118,9 @@ export function PromptSuggestions({
         <motion.div
           className={cn(
             "w-full grid gap-4 mb-4",
-            categories.length <= 3 ? "grid-cols-3" : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            categories.length <= 3
+              ? "grid-cols-3"
+              : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4",
           )}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -144,7 +141,9 @@ export function PromptSuggestions({
                   isActive={activeCommandCategory === category.id}
                   onClick={() =>
                     setActiveCommandCategory(
-                      activeCommandCategory === category.id ? null : category.id,
+                      activeCommandCategory === category.id
+                        ? null
+                        : category.id,
                     )
                   }
                 />
@@ -155,48 +154,51 @@ export function PromptSuggestions({
 
         {/* Command suggestions */}
         <AnimatePresence>
-          {activeCommandCategory && (() => {
-            const activeCategory = categories.find(cat => cat.id === activeCommandCategory);
-            if (!activeCategory) return null;
-            
-            const Icon = activeCategory.icon;
-            
-            return (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="w-full overflow-hidden"
-              >
-                <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
-                  <div className="p-3 border-b border-border">
-                    <h3 className="text-sm font-medium text-foreground">
-                      {activeCategory.title}
-                    </h3>
+          {activeCommandCategory &&
+            (() => {
+              const activeCategory = categories.find(
+                (cat) => cat.id === activeCommandCategory,
+              );
+              if (!activeCategory) return null;
+
+              const Icon = activeCategory.icon;
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="w-full overflow-hidden"
+                >
+                  <div className="bg-background rounded-xl border border-border shadow-sm overflow-hidden">
+                    <div className="p-3 border-b border-border">
+                      <h3 className="text-sm font-medium text-foreground">
+                        {activeCategory.title}
+                      </h3>
+                    </div>
+                    <ul className="divide-y divide-border">
+                      {activeCategory.suggestions.map((suggestion, index) => (
+                        <motion.li
+                          key={index}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: index * 0.03 }}
+                          onClick={() => handleCommandSelect(suggestion)}
+                          className="p-3 hover:bg-muted cursor-pointer transition-colors duration-75"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-4 h-4 text-primary" />
+                            <span className="text-sm text-foreground">
+                              {suggestion}
+                            </span>
+                          </div>
+                        </motion.li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="divide-y divide-border">
-                    {activeCategory.suggestions.map((suggestion, index) => (
-                      <motion.li
-                        key={index}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: index * 0.03 }}
-                        onClick={() => handleCommandSelect(suggestion)}
-                        className="p-3 hover:bg-muted cursor-pointer transition-colors duration-75"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-4 h-4 text-primary" />
-                          <span className="text-sm text-foreground">
-                            {suggestion}
-                          </span>
-                        </div>
-                      </motion.li>
-                    ))}
-                  </ul>
-                </div>
-              </motion.div>
-            );
-          })()}
+                </motion.div>
+              );
+            })()}
         </AnimatePresence>
       </div>
     );
@@ -210,7 +212,7 @@ export function PromptSuggestions({
           <button
             type="button"
             key={suggestion}
-            onClick={() => sendMessage({ text: suggestion })}
+            onClick={() => onSuggestionClick(suggestion)}
             className="h-max flex-1 rounded-xl border bg-background p-4 hover:bg-muted"
           >
             <p>{suggestion}</p>

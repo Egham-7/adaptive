@@ -1,15 +1,7 @@
 "use client";
 import { motion, useInView, useSpring, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import {
-	Bar,
-	BarChart,
-	CartesianGrid,
-	Cell,
-	Legend,
-	XAxis,
-	YAxis,
-} from "recharts";
+import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
 import {
 	type ChartConfig,
@@ -29,23 +21,39 @@ const baseData: ChartData[] = [
 		costPerMillionTokens: 2.5, // $2.50 per million tokens (intelligent routing)
 	},
 	{
-		name: "OpenAI GPT-4",
+		name: "OpenAI",
 		costPerMillionTokens: 15.0, // $15.00 per million tokens
 	},
 	{
-		name: "Anthropic Claude",
+		name: "Anthropic",
 		costPerMillionTokens: 18.0, // $18.00 per million tokens
 	},
 	{
-		name: "Google Gemini",
+		name: "Gemini",
 		costPerMillionTokens: 12.5, // $12.50 per million tokens
 	},
 ];
 
 const chartConfig = {
 	costPerMillionTokens: {
-		label: "Cost per Million Tokens ($)",
-		color: "hsl(var(--primary))",
+		label: "Cost per Million Tokens",
+		color: "hsl(var(--chart-1))",
+	},
+	adaptive: {
+		label: "Adaptive",
+		color: "var(--chart-1)",
+	},
+	openai: {
+		label: "OpenAI", 
+		color: "var(--chart-2)",
+	},
+	anthropic: {
+		label: "Anthropic",
+		color: "var(--chart-3)",
+	},
+	gemini: {
+		label: "Gemini",
+		color: "var(--chart-4)",
 	},
 } satisfies ChartConfig;
 
@@ -141,67 +149,25 @@ export default function ComparisonChart() {
 				>
 					<ChartContainer config={chartConfig} className="h-[400px] w-full">
 						<BarChart
+							accessibilityLayer
 							data={animatedData}
 							layout="vertical"
 							margin={{ top: 16, right: 16, left: 120, bottom: 60 }}
 						>
-							<CartesianGrid
-								strokeDasharray="3 3"
-								horizontal={true}
-								vertical={false}
-								stroke="hsl(var(--border))"
-								className="opacity-30"
-							/>
-							<XAxis
-								type="number"
-								domain={[0, 20]}
-								tickFormatter={(value) => `$${value}`}
-								tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-								label={{
-									value: "Cost per Million Tokens ($)",
-									position: "insideBottom",
-									offset: -5,
-									style: {
-										textAnchor: "middle",
-										fill: "hsl(var(--muted-foreground))",
-									},
-								}}
-							/>
+							<XAxis type="number" dataKey="costPerMillionTokens" hide />
 							<YAxis
 								type="category"
 								dataKey="name"
-								width={120}
-								fontSize={12}
-								tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
-								label={{
-									value: "AI Provider",
-									angle: -90,
-									position: "insideLeft",
-									style: {
-										textAnchor: "middle",
-										fill: "hsl(var(--muted-foreground))",
-									},
-								}}
+								tickLine={false}
+								tickMargin={10}
+								axisLine={false}
 							/>
 							<ChartTooltip
-								content={
-									<ChartTooltipContent
-										formatter={(value, _name) => [
-											`$${Number(value).toFixed(2)}`,
-											"Cost per Million Tokens",
-										]}
-									/>
-								}
-							/>
-							<Legend
-								verticalAlign="bottom"
-								height={36}
-								wrapperStyle={{ paddingTop: "20px" }}
-								formatter={() => (
-									<span style={{ color: "hsl(var(--muted-foreground))" }}>
-										Cost per Million Tokens ($)
-									</span>
-								)}
+								cursor={false}
+								content={<ChartTooltipContent 
+									nameKey="name"
+									formatter={(value) => [`$${Number(value).toFixed(2)}`]}
+								/>}
 							/>
 							<Bar
 								dataKey="costPerMillionTokens"
@@ -213,11 +179,7 @@ export default function ComparisonChart() {
 								{animatedData.map((entry) => (
 									<Cell
 										key={`cost-cell-${entry.name}`}
-										fill={
-											entry.name === "Adaptive"
-												? "hsl(var(--primary))" // Primary color for Adaptive
-												: "hsl(var(--muted-foreground))" // Muted color for others
-										}
+										fill={`var(--color-${entry.name.toLowerCase()})`}
 									/>
 								))}
 							</Bar>
