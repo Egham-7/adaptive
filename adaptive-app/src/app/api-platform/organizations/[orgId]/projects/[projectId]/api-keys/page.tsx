@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Check, Copy, Edit, Plus, Trash2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -35,6 +35,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
 import { useDeleteProjectApiKey } from "@/hooks/api_keys/use-delete-project-api-key";
 import { useProjectApiKeys } from "@/hooks/api_keys/use-project-api-keys";
+import { api } from "@/trpc/react";
 
 const formSchema = z.object({
 	name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -46,10 +47,14 @@ export default function ApiKeysPage() {
 	const projectId = params.projectId as string;
 
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
+	const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+	const [newApiKey, setNewApiKey] = useState<string | null>(null);
+	const [copiedApiKey, setCopiedApiKey] = useState(false);
 
 	const { data: apiKeys = [], isLoading, error } = useProjectApiKeys(projectId);
 	const createApiKey = useCreateProjectApiKey();
 	const deleteApiKey = useDeleteProjectApiKey();
+	const revealApiKey = api.api_keys.revealApiKey.useMutation();
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -67,12 +72,44 @@ export default function ApiKeysPage() {
 				status: "active",
 			},
 			{
-				onSuccess: () => {
+				onSuccess: (data) => {
 					setShowCreateDialog(false);
 					form.reset();
+
+					// Use the reveal token to get the full API key
+					revealApiKey.mutate(
+						{ token: data.reveal_token },
+						{
+							onSuccess: (revealData) => {
+								setNewApiKey(revealData.full_api_key);
+								setShowApiKeyModal(true);
+							},
+							onError: (error) => {
+								console.error("Failed to reveal API key:", error);
+							},
+						},
+					);
 				},
 			},
 		);
+	};
+
+	const handleCopyApiKey = async () => {
+		if (newApiKey) {
+			try {
+				await navigator.clipboard.writeText(newApiKey);
+				setCopiedApiKey(true);
+				setTimeout(() => setCopiedApiKey(false), 2000);
+			} catch (err) {
+				console.error("Failed to copy:", err);
+			}
+		}
+	};
+
+	const handleCloseApiKeyModal = () => {
+		setShowApiKeyModal(false);
+		setNewApiKey(null);
+		setCopiedApiKey(false);
 	};
 
 	const handleDeleteApiKey = (id: string) => {
@@ -228,7 +265,7 @@ export default function ApiKeysPage() {
 								<TableRow key={apiKey.id} className="hover:bg-muted/50">
 									<TableCell>{apiKey.name}</TableCell>
 									<TableCell className="font-mono text-muted-foreground text-sm">
-										{apiKey.key_preview}
+										{apiKey.key_preview}...
 									</TableCell>
 									<TableCell className="text-muted-foreground text-sm">
 										{new Date(apiKey.created_at).toLocaleDateString("en-US", {
@@ -268,7 +305,8 @@ export default function ApiKeysPage() {
 											<Button
 												variant="ghost"
 												size="sm"
-												className="h-auto p-1 text-muted-foreground hover:text-foreground"
+												disabled
+												className="h-auto cursor-not-allowed p-1 text-muted-foreground/50"
 											>
 												<Edit className="h-4 w-4" />
 											</Button>
@@ -289,6 +327,59 @@ export default function ApiKeysPage() {
 					</Table>
 				</div>
 			</div>
+
+			{/* API Key Display Modal */}
+			<Dialog open={showApiKeyModal} onOpenChange={setShowApiKeyModal}>
+				<DialogContent className="max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Save your API key</DialogTitle>
+					</DialogHeader>
+					<div className="space-y-4">
+						<div className="space-y-2">
+							<p className="text-muted-foreground text-sm">
+								Please save this API key somewhere safe and accessible. For
+								security reasons, you won't be able to view it again through
+								your account. If you lose this API key, you'll need to generate
+								a new one.
+							</p>
+						</div>
+						<div className="space-y-2">
+							<div className="flex items-center justify-between">
+								<span className="font-medium text-sm">API Key</span>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={handleCopyApiKey}
+									className="h-8 px-3 text-xs"
+								>
+									{copiedApiKey ? (
+										<>
+											<Check className="mr-1 h-3 w-3" />
+											Copied
+										</>
+									) : (
+										<>
+											<Copy className="mr-1 h-3 w-3" />
+											Copy
+										</>
+									)}
+								</Button>
+							</div>
+							<div className="rounded-md border bg-muted p-3">
+								<code className="break-all font-mono text-sm">{newApiKey}</code>
+							</div>
+						</div>
+						<div className="flex justify-end">
+							<Button
+								onClick={handleCloseApiKeyModal}
+								className="bg-primary hover:bg-primary/90"
+							>
+								Done
+							</Button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

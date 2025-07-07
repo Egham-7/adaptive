@@ -1,6 +1,11 @@
+import crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "@/server/api/trpc";
 
 // Helper function to ensure we always return valid numbers
 const ensureNumber = (value: number | null | undefined): number => {
@@ -8,40 +13,47 @@ const ensureNumber = (value: number | null | undefined): number => {
 	return Number.isNaN(num) || !Number.isFinite(num) ? 0 : num;
 };
 
-const recordUsageSchema = z.object({
-	apiKeyId: z.string(),
-	provider: z.enum([
-		"openai",
-		"anthropic",
-		"gemini",
-		"groq",
-		"deepseek",
-		"huggingface",
-		"grok",
-	]),
-	model: z.string(),
-	requestType: z.enum(["completion", "chat", "embedding", "image", "audio"]),
-	inputTokens: z.number().default(0),
-	outputTokens: z.number().default(0),
-	totalTokens: z.number().default(0),
-	cost: z.number().default(0),
-	requestCount: z.number().default(1),
-	metadata: z.record(z.any()).optional(),
-});
-
 export const usageRouter = createTRPCRouter({
-	// Record API usage
-	record: protectedProcedure
-		.input(recordUsageSchema)
+	// Record API usage for chat completions
+	recordApiUsage: publicProcedure
+		.input(
+			z.object({
+				apiKey: z.string(),
+				provider: z.enum([
+					"openai",
+					"anthropic",
+					"gemini",
+					"groq",
+					"deepseek",
+					"huggingface",
+					"grok",
+				]),
+				model: z.string(),
+				usage: z.object({
+					promptTokens: z.number(),
+					completionTokens: z.number(),
+					totalTokens: z.number(),
+				}),
+				duration: z.number(),
+				timestamp: z.date(),
+				cost: z.number().default(0),
+				requestCount: z.number().default(1),
+				metadata: z.record(z.any()).optional(),
+				error: z.string().optional(), // Add error field for failed requests
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
-
 			try {
-				// Verify the API key belongs to the user
+				// Hash the provided API key to compare with stored hash
+				const keyHash = crypto
+					.createHash("sha256")
+					.update(input.apiKey)
+					.digest("hex");
+
+				// Find the API key in the database by the key hash
 				const apiKey = await ctx.db.apiKey.findFirst({
 					where: {
-						id: input.apiKeyId,
-						userId,
+						keyHash,
 						status: "active",
 					},
 				});
@@ -56,29 +68,35 @@ export const usageRouter = createTRPCRouter({
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
 					data: {
-						apiKeyId: input.apiKeyId,
+						apiKeyId: apiKey.id,
 						projectId: apiKey.projectId,
 						provider: input.provider,
 						model: input.model,
-						requestType: input.requestType,
-						inputTokens: input.inputTokens,
-						outputTokens: input.outputTokens,
-						totalTokens: input.totalTokens,
+						requestType: "chat", // Default to chat for chat completions
+						inputTokens: input.usage.promptTokens,
+						outputTokens: input.usage.completionTokens,
+						totalTokens: input.usage.totalTokens,
 						cost: input.cost,
 						requestCount: input.requestCount,
-						metadata: input.metadata,
+						metadata: {
+							...input.metadata,
+							duration: input.duration,
+							timestamp: input.timestamp,
+							error: input.error, // Include error in metadata if present
+							userId: apiKey.userId, // Get userId from the API key
+						},
 					},
 				});
 
 				// Update the API key's last used timestamp
 				await ctx.db.apiKey.update({
-					where: { id: input.apiKeyId },
+					where: { id: apiKey.id },
 					data: { lastUsedAt: new Date() },
 				});
 
-				return usage;
+				return { success: true, usage };
 			} catch (error) {
-				console.error("Error recording usage:", error);
+				console.error("Failed to record API usage:", error);
 				if (error instanceof TRPCError) {
 					throw error;
 				}
@@ -88,6 +106,81 @@ export const usageRouter = createTRPCRouter({
 						error instanceof Error ? error.message : "Failed to record usage",
 					cause: error,
 				});
+			}
+		}),
+
+	// Record API errors
+	recordError: publicProcedure
+		.input(
+			z.object({
+				apiKey: z.string(),
+				provider: z
+					.enum([
+						"openai",
+						"anthropic",
+						"gemini",
+						"groq",
+						"deepseek",
+						"huggingface",
+						"grok",
+					])
+					.optional(),
+				model: z.string().optional(),
+				error: z.string(),
+				timestamp: z.date(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			try {
+				// Hash the provided API key to compare with stored hash
+				const keyHash = crypto
+					.createHash("sha256")
+					.update(input.apiKey)
+					.digest("hex");
+
+				// Find the API key in the database by the key hash
+				const apiKey = await ctx.db.apiKey.findFirst({
+					where: {
+						keyHash,
+						status: "active",
+					},
+				});
+
+				if (!apiKey) {
+					// For error recording, still try to record even with invalid key
+					console.warn("Invalid API key for error recording:", input.apiKey);
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Invalid API key",
+					});
+				}
+
+				// Record the error as usage with 0 tokens
+				const usage = await ctx.db.apiUsage.create({
+					data: {
+						apiKeyId: apiKey.id,
+						projectId: apiKey.projectId,
+						provider: input.provider || "openai",
+						model: input.model || "unknown",
+						requestType: "chat",
+						inputTokens: 0,
+						outputTokens: 0,
+						totalTokens: 0,
+						cost: 0,
+						requestCount: 1,
+						metadata: {
+							error: input.error,
+							errorOnly: true,
+							timestamp: input.timestamp,
+							userId: apiKey.userId, // Get userId from the API key
+						},
+					},
+				});
+
+				return { success: true, usage };
+			} catch (error) {
+				console.error("Failed to record API error:", error);
+				return { success: false, error: "Failed to record error" };
 			}
 		}),
 

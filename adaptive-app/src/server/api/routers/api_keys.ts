@@ -7,6 +7,31 @@ import {
 	publicProcedure,
 } from "@/server/api/trpc";
 
+// Simple encryption helper for storing full keys temporarily
+function encryptKey(key: string, secret: string): string {
+	const algorithm = "aes-256-cbc";
+	const keyHash = crypto.createHash("sha256").update(secret).digest();
+	const iv = crypto.randomBytes(16);
+	const cipher = crypto.createCipheriv(algorithm, keyHash, iv);
+	let encrypted = cipher.update(key, "utf8", "hex");
+	encrypted += cipher.final("hex");
+	return `${iv.toString("hex")}:${encrypted}`;
+}
+
+function decryptKey(encryptedKey: string, secret: string): string {
+	const algorithm = "aes-256-cbc";
+	const keyHash = crypto.createHash("sha256").update(secret).digest();
+	const [ivHex, encrypted] = encryptedKey.split(":");
+	if (!ivHex || !encrypted) {
+		throw new Error("Invalid encrypted key format");
+	}
+	const iv = Buffer.from(ivHex, "hex");
+	const decipher = crypto.createDecipheriv(algorithm, keyHash, iv);
+	let decrypted = decipher.update(encrypted, "hex", "utf8");
+	decrypted += decipher.final("utf8");
+	return decrypted;
+}
+
 const createAPIKeySchema = z.object({
 	name: z.string().min(1),
 	status: z.enum(["active", "revoked", "inactive"]),
@@ -34,7 +59,7 @@ const apiKeySchema = z.object({
 type APIKey = z.infer<typeof apiKeySchema>;
 type CreateAPIKeyResponse = {
 	api_key: APIKey;
-	full_api_key: string;
+	reveal_token: string;
 };
 
 export const apiKeysRouter = createTRPCRouter({
@@ -133,6 +158,24 @@ export const apiKeysRouter = createTRPCRouter({
 				},
 			});
 
+			// Create a one-time reveal token
+			const revealToken = crypto.randomBytes(32).toString("hex");
+			const encryptionSecret =
+				process.env.API_KEY_ENCRYPTION_SECRET ||
+				"default-secret-change-in-production";
+			const encryptedKey = encryptKey(fullKey, encryptionSecret);
+			const revealExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+			await ctx.db.apiKeyRevealToken.create({
+				data: {
+					apiKeyId: k.id,
+					userId,
+					token: revealToken,
+					fullKey: encryptedKey,
+					expiresAt: revealExpiresAt,
+				},
+			});
+
 			const api_key: APIKey = {
 				id: k.id,
 				name: k.name,
@@ -144,7 +187,7 @@ export const apiKeysRouter = createTRPCRouter({
 				key_preview: k.keyPrefix,
 			};
 
-			return { api_key, full_api_key: fullKey };
+			return { api_key, reveal_token: revealToken };
 		}),
 
 	update: protectedProcedure
@@ -323,6 +366,24 @@ export const apiKeysRouter = createTRPCRouter({
 				},
 			});
 
+			// Create a one-time reveal token
+			const revealToken = crypto.randomBytes(32).toString("hex");
+			const encryptionSecret =
+				process.env.API_KEY_ENCRYPTION_SECRET ||
+				"default-secret-change-in-production";
+			const encryptedKey = encryptKey(fullKey, encryptionSecret);
+			const revealExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+			await ctx.db.apiKeyRevealToken.create({
+				data: {
+					apiKeyId: k.id,
+					userId,
+					token: revealToken,
+					fullKey: encryptedKey,
+					expiresAt: revealExpiresAt,
+				},
+			});
+
 			const api_key: APIKey = {
 				id: k.id,
 				name: k.name,
@@ -334,6 +395,53 @@ export const apiKeysRouter = createTRPCRouter({
 				key_preview: k.keyPrefix,
 			};
 
-			return { api_key, full_api_key: fullKey };
+			return { api_key, reveal_token: revealToken };
+		}),
+
+	// Reveal API key using one-time token
+	revealApiKey: protectedProcedure
+		.input(z.object({ token: z.string() }))
+		.mutation(async ({ ctx, input }) => {
+			const userId = ctx.clerkAuth.userId;
+			if (!userId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
+
+			// Find the reveal token
+			const revealToken = await ctx.db.apiKeyRevealToken.findFirst({
+				where: {
+					token: input.token,
+					userId,
+					revealed: false,
+					expiresAt: { gt: new Date() },
+				},
+			});
+
+			if (!revealToken) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Invalid or expired reveal token",
+				});
+			}
+
+			// Mark as revealed and decrypt the key
+			await ctx.db.apiKeyRevealToken.update({
+				where: { id: revealToken.id },
+				data: { revealed: true },
+			});
+
+			const encryptionSecret =
+				process.env.API_KEY_ENCRYPTION_SECRET ||
+				"default-secret-change-in-production";
+			const fullKey = decryptKey(revealToken.fullKey, encryptionSecret);
+
+			// Clean up expired tokens periodically
+			await ctx.db.apiKeyRevealToken.deleteMany({
+				where: {
+					expiresAt: { lt: new Date() },
+				},
+			});
+
+			return { full_api_key: fullKey };
 		}),
 });
