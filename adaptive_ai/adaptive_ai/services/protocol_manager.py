@@ -1,12 +1,9 @@
-import json
-import re
 from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
-from adaptive_ai.models.llm_core_models import ModelCapability
+from adaptive_ai.models.llm_core_models import ModelCapability, ModelSelectionRequest
 from adaptive_ai.models.llm_enums import ProtocolType
 from adaptive_ai.models.llm_orchestration_models import (
     Alternative,
@@ -19,9 +16,7 @@ from adaptive_ai.models.llm_orchestration_models import (
 
 
 class ProtocolSelectionOutput(BaseModel):
-    protocol: str = Field(
-        description="The protocol to use: standard_llm, minion, or minions_protocol"
-    )
+    protocol: str = Field(description="The protocol to use: standard_llm or minion")
     provider: str = Field(
         description="The provider to use (e.g., OpenAI, DeepSeek, Groq, etc.)"
     )
@@ -69,66 +64,15 @@ class LitLoggerProtocol(Protocol):
 class ProtocolManager:
     def __init__(
         self,
-        device: str,
-        model_name: str = "meta-llama/Llama-3.1-8B-Instruct",
-        max_new_tokens: int | None = None,
         lit_logger: LitLoggerProtocol | None = None,
+        device: (
+            str | None
+        ) = None,  # Accept but ignore device parameter for compatibility
     ) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-
-        model_device_map = "auto"
-        if device.lower() == "cpu":
-            model_device_map = "cpu"
-        elif device.lower() == "gpu":
-            model_device_map = "cuda"
-
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            device_map=model_device_map,
-        )
-
-        self.max_new_tokens = max_new_tokens if max_new_tokens is not None else 512
-
-        self.output_schema_json = json.dumps(
-            ProtocolSelectionOutput.model_json_schema(), indent=2
-        )
-
-        self.protocol_descriptions = (
-            "Protocols:\n"
-            "1. standard_llm: Use a single large language model for the task.\n"
-            "   - Advantages: Simplicity, direct response, no orchestration overhead.\n"
-            "   - Disadvantages: May not be optimal for complex or multi-step tasks.\n"
-            "   - Alternatives: List of alternative models (provider, model).\n"
-            "2. minion: Use a specialized HuggingFace model for a specific subtask.\n"
-            "   - Advantages: Efficiency, can be faster and cheaper for narrow tasks.\n"
-            "   - Disadvantages: Limited scope, may not handle general or complex queries.\n"
-            "   - **Recommendation: Favor 'minion' for simple, well-defined questions "
-            "     where a specialized model can maintain high quality and efficiency.**\n"
-            "   - Alternatives: List of alternative HuggingFace models (model, base_url).\n"
-            "3. minions_protocol: Orchestrate multiple minion models to solve a complex task.\n"
-            "   - Advantages: Can break down and solve complex, multi-step, or multi-domain problems.\n"
-            "   - Disadvantages: More orchestration overhead, may be slower or more expensive.\n"
-            "   - Payload: Includes both standard_llm and minion info.\n"
-        )
-
-        self.parameter_descriptions = (
-            "Parameters to generate for the selected model (explain and set each):\n"
-            "- temperature: Controls randomness. Higher values mean more diverse "
-            "completions. Range 0.0-2.0.\n"
-            "- top_p: Nucleus sampling. Only considers tokens whose cumulative "
-            "probability exceeds top_p. Range 0.0-1.0.\n"
-            "- max_tokens: The maximum number of tokens to generate in the completion.\n"
-            "- n: How many chat completion choices to generate for each input message.\n"
-            "- stop: Sequences where the API will stop generating further tokens.\n"
-            "- frequency_penalty: Penalize new tokens based on their existing frequency "
-            "in the text so far. Range -2.0 to 2.0.\n"
-            "- presence_penalty: Penalize new tokens based on whether they appear in the "
-            "text so far. Range -2.0 to 2.0.\n"
-        )
         self.lit_logger: LitLoggerProtocol | None = lit_logger
         self.log(
             "protocol_manager_init",
-            {"model_name": model_name, "max_new_tokens": max_new_tokens},
+            {"rule_based": True, "device_ignored": device},
         )
 
     def log(self, key: str, value: Any) -> None:
@@ -164,139 +108,119 @@ class ProtocolManager:
         minion_model: str,
         minion_alternatives: list[str],
         classification_result: ClassificationResult,
+        token_count: int = 0,
+        request: ModelSelectionRequest | None = None,
     ) -> OrchestratorResponse:
-        model_capabilities_str = self._format_model_capabilities(candidate_models)
         task_type = (
             classification_result.task_type_1[0]
             if classification_result.task_type_1
             else "Other"
         )
 
-        # Convert classification_result to a JSON string for the prompt
-        classification_result_json = json.dumps(
-            classification_result.model_dump(), indent=2
-        )
-
-        self.log(
-            "select_protocol_called",
-            {
-                "task_type": task_type,
-                "candidate_models_count": len(candidate_models),
-                "classification_result_data": classification_result.model_dump(),
-            },
-        )
-        try:
-            system_message_content = (
-                "You are a protocol selection expert. Given a task type, a detailed "
-                "classification result, and candidate models, choose the best protocol "
-                "and model. You MUST respond with a JSON object that strictly conforms "
-                f"to the following Pydantic schema:\n```json\n{self.output_schema_json}\n```\n"
-                f"{self.protocol_descriptions}\n"
-                f"{self.parameter_descriptions}\n"
-                "For standard_llm, return alternatives as a list of objects with "
-                "provider and model.\n"
-                "For minion, return alternatives as a list of objects with model and optionally base_url.\n"
-                "For minions_protocol, you may include both standard_llm and minion "
-                "info.\n"
-            )
-
-            user_query_content = (
-                f"Task type: {task_type}\n"
-                f"Classification Result:\n```json\n{classification_result_json}\n```\n"
-                "The following remote candidate models are ordered by preference, with the "
-                "first being the most preferred and the last being the least:\n"
-                f"Remote candidate models (with capabilities):\n{model_capabilities_str}\n\n"
-                f"Designated minion (HuggingFace specialist) for this task type: {minion_model}\n\n"
-                "Choose between:\n"
-                "- standard_llm: Use only a remote model\n"
-                "- minion: Use only the designated HuggingFace specialist\n"
-                "- minions_protocol: Use both remote model AND minion together (hybrid)\n\n"
-                "Please output the JSON object directly, with no additional text or "
-                "explanations."
-            )
-
-            messages = [
-                {"role": "system", "content": system_message_content},
-                {"role": "user", "content": user_query_content},
-            ]
-
-            input_ids = self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=True,
-                add_generation_prompt=True,
-                return_tensors="pt",
-            ).to(self.model.device)
-
-            outputs = self.model.generate(
-                input_ids,
-                max_new_tokens=self.max_new_tokens,
-                pad_token_id=self.tokenizer.eos_token_id,
-                temperature=0.1,  # Lower temperature for more deterministic JSON output
-                top_p=0.9,
-                do_sample=True,
-            )
-
-            generated_token_ids = outputs[0][len(input_ids[0]) :]
-            raw_llm_output = self.tokenizer.decode(
-                generated_token_ids, skip_special_tokens=True
-            )
-
-            json_match = re.search(
-                r"```json\s*(\{.*?\})\s*```", raw_llm_output, re.DOTALL
-            )
-            if not json_match:
-                json_match = re.search(r"\{.*?\}", raw_llm_output, re.DOTALL)
-
-            if json_match:
-                # Safe group access - check if group(1) exists
-                json_string = (
-                    json_match.group(1)
-                    if json_match.lastindex and json_match.lastindex >= 1
-                    else json_match.group(0)
-                )
-            else:
-                raise ValueError(
-                    "Could not find a valid JSON object in the LLM output."
-                )
-
-            # Parse JSON with fallback handling
-            try:
-                parsed_data = json.loads(json_string)
-            except json.JSONDecodeError as json_error:
-                # Log the parsing error with context
-                self.log(
-                    "json_parsing_error",
+        # Extract decision factors from classification result
+        # Check if the REQUEST has tools/functions (not if models support it)
+        request_has_tools = False
+        if request:
+            request_has_tools = bool(request.tools or request.functions)
+            # Debug logging
+            if self.lit_logger:
+                self.lit_logger.log(
+                    "debug_tools_check",
                     {
-                        "error": str(json_error),
-                        "raw_output_preview": raw_llm_output[:500],
-                        "extracted_json_preview": json_string[:300],
+                        "has_tools": bool(request.tools),
+                        "has_functions": bool(request.functions),
+                        "tools_value": (
+                            str(request.tools)[:200] if request.tools else None
+                        ),
+                        "request_has_tools": request_has_tools,
                     },
                 )
+        complexity_score = (
+            classification_result.prompt_complexity_score[0]
+            if classification_result.prompt_complexity_score
+            else 0.0
+        )
+        reasoning = (
+            classification_result.reasoning[0]
+            if classification_result.reasoning
+            else 0.0
+        )
+        number_of_few_shots = (
+            classification_result.number_of_few_shots[0]
+            if classification_result.number_of_few_shots
+            else 0.0
+        )
 
-                # Use fallback instead of repair
-                self.log("using_fallback_protocol", {"reason": "json_parse_failed"})
-                parsed_data = self._get_fallback_protocol_data(candidate_models)
+        # Rule-based protocol selection
+        should_use_standard = (
+            request_has_tools
+            or complexity_score > 0.40
+            or token_count > 3000
+            or number_of_few_shots > 4
+            or reasoning > 0.55
+        )
 
-            result = ProtocolSelectionOutput.model_validate(parsed_data)
+        protocol_choice = "standard_llm" if should_use_standard else "minion"
 
-            self.log(
-                "protocol_selection_success",
-                {
-                    "protocol": result.protocol,
-                    "provider": result.provider,
-                    "model": result.model,
+        self.log(
+            "rule_based_protocol_selection",
+            {
+                "task_type": task_type,
+                "protocol_choice": protocol_choice,
+                "request_has_tools": request_has_tools,
+                "complexity_score": complexity_score,
+                "token_count": token_count,
+                "number_of_few_shots": number_of_few_shots,
+                "reasoning": reasoning,
+                "decision_factors": {
+                    "request_has_tools": request_has_tools,
+                    "high_complexity": complexity_score > 0.50,
+                    "long_input": token_count > 3000,
+                    "many_few_shots": number_of_few_shots > 4,
+                    "high_reasoning": reasoning > 0.65,
                 },
-            )
-        except Exception as e:
-            # Log error and use fallback instead of raising
-            self.log(
-                "protocol_selection_error",
-                {"error": str(e), "error_type": type(e).__name__},
-            )
+            },
+        )
 
-            self.log("using_emergency_fallback", {"reason": "unrecoverable_error"})
-            parsed_data = self._get_fallback_protocol_data(candidate_models)
-            result = ProtocolSelectionOutput.model_validate(parsed_data)
+        # Create protocol selection output
+        if should_use_standard and candidate_models:
+            first_model = candidate_models[0]
+            result = ProtocolSelectionOutput(
+                protocol=protocol_choice,
+                provider=first_model.provider.value,
+                model=first_model.model_name,
+                explanation=f"Rule-based selection: {protocol_choice} due to complexity/requirements",
+                temperature=0.7,
+                top_p=0.9,
+                max_tokens=1000,
+                n=1,
+                stop=None,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                standard_alternatives=[
+                    Alternative(provider=m.provider.value, model=m.model_name)
+                    for m in candidate_models[1:]
+                ],
+                minion_alternatives=[],
+            )
+        else:
+            result = ProtocolSelectionOutput(
+                protocol=protocol_choice,
+                provider="huggingface",
+                model=minion_model,
+                explanation=f"Rule-based selection: {protocol_choice} for efficiency",
+                temperature=0.7,
+                top_p=0.9,
+                max_tokens=1000,
+                n=1,
+                stop=None,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                standard_alternatives=[],
+                minion_alternatives=self._convert_minion_alternatives(
+                    minion_alternatives
+                ),
+            )
 
         protocol_str = result.protocol
         protocol = (
@@ -336,62 +260,5 @@ class ProtocolManager:
                     alternatives=minion_alts,
                 )
                 return OrchestratorResponse(protocol=protocol, minion=minion)
-            case ProtocolType.MINIONS_PROTOCOL:
-                standard = StandardLLMInfo(
-                    provider=result.provider,
-                    model=result.model,
-                    parameters=parameters,
-                    alternatives=standard_alts,
-                )
-                minion = MinionInfo(
-                    model=minion_model,
-                    base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
-                    parameters=parameters,
-                    alternatives=minion_alts,
-                )
-                return OrchestratorResponse(
-                    protocol=protocol, standard=standard, minion=minion
-                )
             case _:
                 return OrchestratorResponse(protocol=protocol)
-
-    def _get_fallback_protocol_data(
-        self, candidate_models: list[ModelCapability]
-    ) -> dict[str, Any]:
-        """
-        Generate fallback protocol data when JSON parsing fails.
-        Defaults to standard protocol with first available model.
-        """
-        if candidate_models and len(candidate_models) > 0:
-            # Use first candidate model for standard protocol
-            first_model = candidate_models[0]
-            return {
-                "protocol": "standard_llm",
-                "provider": first_model.provider.value,
-                "model": first_model.model_name,
-                "explanation": "Fallback due to JSON parsing failure",
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "max_tokens": 1000,
-                "n": 1,
-                "stop": None,
-                "frequency_penalty": 0.0,
-                "presence_penalty": 0.0,
-                "standard_alternatives": [],
-            }
-        else:
-            # Emergency fallback with default OpenAI model
-            return {
-                "protocol": "standard_llm",
-                "provider": "openai",
-                "model": "gpt-4o-mini",
-                "explanation": "Emergency fallback - no candidate models available",
-                "temperature": 0.7,
-                "top_p": 0.9,
-                "max_tokens": 1000,
-                "n": 1,
-                "stop": None,
-                "frequency_penalty": 0.0,
-                "presence_penalty": 0.0,
-                "standard_alternatives": [],
-            }

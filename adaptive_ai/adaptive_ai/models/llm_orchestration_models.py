@@ -1,9 +1,22 @@
+from typing import Any
+
 from pydantic import BaseModel, Field, model_validator
 
 from .llm_enums import ProtocolType  # Import enum
 
 
 # Strict definition for OpenAI ChatCompletion parameters
+class LogprobsContent(BaseModel):
+    token: str
+    logprob: float
+    bytes: list[int] | None = None
+    top_logprobs: list[dict[str, Any]] | None = None
+
+
+class Logprobs(BaseModel):
+    content: list[LogprobsContent] | None = None
+
+
 class OpenAIParameters(BaseModel):
     # Controls randomness: higher values mean more diverse completions.
     # Recommended range 0.2 to 0.8 as per your article.
