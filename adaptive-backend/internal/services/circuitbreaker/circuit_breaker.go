@@ -1,7 +1,6 @@
 package circuitbreaker
 
 import (
-	"adaptive-backend/internal/services/metrics"
 	"sync"
 	"time"
 )
@@ -29,7 +28,6 @@ type CircuitBreaker struct {
 	lastFailureTime time.Time
 	lastStateChange time.Time
 	config          Config
-	promMetrics     *metrics.CircuitBreakerMetrics
 	localMetrics    LocalMetrics
 	serviceName     string
 }
@@ -56,7 +54,6 @@ func NewWithConfig(config Config) *CircuitBreaker {
 	return &CircuitBreaker{
 		state:           Closed,
 		config:          config,
-		promMetrics:     metrics.NewCircuitBreakerMetrics(),
 		serviceName:     "ai_service",
 		lastStateChange: time.Now(),
 	}
@@ -67,7 +64,6 @@ func (cb *CircuitBreaker) CanExecute() bool {
 	defer cb.mu.Unlock()
 
 	cb.localMetrics.TotalRequests++
-	cb.promMetrics.RequestsTotal.WithLabelValues(cb.serviceName, cb.getStateString(), "attempted").Inc()
 
 	switch cb.state {
 	case Closed:
@@ -75,10 +71,8 @@ func (cb *CircuitBreaker) CanExecute() bool {
 	case Open:
 		if time.Since(cb.lastFailureTime) > cb.config.Timeout {
 			cb.transitionToState(HalfOpen)
-			cb.promMetrics.RecordHalfOpenAttempt(cb.serviceName, "transition")
 			return true
 		}
-		cb.promMetrics.RequestsTotal.WithLabelValues(cb.serviceName, "open", "rejected").Inc()
 		return false
 	case HalfOpen:
 		return true
@@ -94,11 +88,8 @@ func (cb *CircuitBreaker) RecordSuccess() {
 	cb.localMetrics.SuccessfulRequests++
 	cb.failureCount = 0
 
-	cb.promMetrics.RequestsTotal.WithLabelValues(cb.serviceName, cb.getStateString(), "success").Inc()
-
 	if cb.state == HalfOpen {
 		cb.successCount++
-		cb.promMetrics.RecordHalfOpenAttempt(cb.serviceName, "success")
 		if cb.successCount >= cb.config.SuccessThreshold {
 			cb.transitionToState(Closed)
 			cb.localMetrics.CircuitCloses++
@@ -114,17 +105,12 @@ func (cb *CircuitBreaker) RecordFailure() {
 	cb.failureCount++
 	cb.lastFailureTime = time.Now()
 
-	cb.promMetrics.RequestsTotal.WithLabelValues(cb.serviceName, cb.getStateString(), "failure").Inc()
-
 	if cb.state == Closed && cb.failureCount >= cb.config.FailureThreshold {
 		cb.transitionToState(Open)
 		cb.localMetrics.CircuitOpens++
-		cb.promMetrics.RecordTripEvent(cb.serviceName, "failure_threshold")
 	} else if cb.state == HalfOpen {
 		cb.transitionToState(Open)
 		cb.localMetrics.CircuitOpens++
-		cb.promMetrics.RecordTripEvent(cb.serviceName, "half_open_failure")
-		cb.promMetrics.RecordHalfOpenAttempt(cb.serviceName, "failure")
 	}
 }
 
@@ -149,9 +135,6 @@ func (cb *CircuitBreaker) GetSuccessRate() float64 {
 	}
 	rate := float64(cb.localMetrics.SuccessfulRequests) / float64(cb.localMetrics.TotalRequests)
 
-	cb.promMetrics.UpdateSuccessRate(cb.serviceName, rate)
-	cb.promMetrics.UpdateFailureRate(cb.serviceName, 1.0-rate)
-
 	return rate * 100.0
 }
 
@@ -159,37 +142,14 @@ func (cb *CircuitBreaker) Reset() {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
 
-	oldState := cb.getStateString()
 	cb.state = Closed
 	cb.failureCount = 0
 	cb.successCount = 0
 	cb.localMetrics = LocalMetrics{}
-
-	cb.promMetrics.RecordRecoveryEvent(cb.serviceName, oldState)
-	cb.promMetrics.UpdateCurrentState(cb.serviceName, int(cb.state))
 }
 
 func (cb *CircuitBreaker) RecordRequestDuration(duration time.Duration, success bool) {
-	state := cb.getStateString()
-	result := "failure"
-	if success {
-		result = "success"
-	}
-
-	cb.promMetrics.RecordRequest(cb.serviceName, state, result, duration.Seconds())
-}
-
-func (cb *CircuitBreaker) getStateString() string {
-	switch cb.state {
-	case Closed:
-		return "closed"
-	case Open:
-		return "open"
-	case HalfOpen:
-		return "half_open"
-	default:
-		return "unknown"
-	}
+	// Duration recording functionality removed with metrics
 }
 
 func (cb *CircuitBreaker) transitionToState(newState State) {
@@ -197,27 +157,6 @@ func (cb *CircuitBreaker) transitionToState(newState State) {
 		return
 	}
 
-	oldState := cb.getStateString()
-
-	timeInState := time.Since(cb.lastStateChange).Seconds()
-	cb.promMetrics.RecordTimeInState(cb.serviceName, oldState, timeInState)
-	cb.promMetrics.RecordStateChange(cb.serviceName, oldState, cb.stateToString(newState))
-
 	cb.state = newState
 	cb.lastStateChange = time.Now()
-
-	cb.promMetrics.UpdateCurrentState(cb.serviceName, int(cb.state))
-}
-
-func (cb *CircuitBreaker) stateToString(state State) string {
-	switch state {
-	case Closed:
-		return "closed"
-	case Open:
-		return "open"
-	case HalfOpen:
-		return "half_open"
-	default:
-		return "unknown"
-	}
 }

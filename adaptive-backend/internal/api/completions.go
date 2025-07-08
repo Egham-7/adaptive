@@ -1,19 +1,17 @@
 package api
 
 import (
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/chat/completions"
+	"adaptive-backend/internal/services/circuitbreaker"
+	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/providers"
+	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
 	"maps"
 	"strings"
 	"sync"
 	"time"
-
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/chat/completions"
-	"adaptive-backend/internal/services/circuitbreaker"
-	"adaptive-backend/internal/services/metrics"
-	"adaptive-backend/internal/services/protocol_manager"
-	"adaptive-backend/internal/services/providers"
-	"adaptive-backend/internal/services/providers/provider_interfaces"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -25,10 +23,6 @@ const (
 	defaultSuccessThreshold = 2
 	defaultTimeout          = 10 * time.Second
 	defaultResetAfter       = time.Minute
-
-	// HTTP status codes
-	statusBadRequest  = 400
-	statusServerError = 503
 )
 
 // candidate represents a model/provider/protocol candidate for completion.
@@ -46,7 +40,6 @@ type CompletionHandler struct {
 	respSvc     *completions.ResponseService
 	paramSvc    *completions.ParameterService
 	protocolMgr *protocol_manager.ProtocolManager
-	metricsSvc  *completions.MetricsService
 	raceSvc     *completions.RaceService
 
 	cbMu sync.RWMutex
@@ -59,14 +52,11 @@ func NewCompletionHandler() *CompletionHandler {
 	if err != nil {
 		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
 	}
-	chatMetrics := metrics.NewChatMetrics()
-
 	return &CompletionHandler{
 		reqSvc:      completions.NewRequestService(),
 		respSvc:     completions.NewResponseService(),
 		paramSvc:    completions.NewParameterService(),
 		protocolMgr: protocolMgr,
-		metricsSvc:  completions.NewMetricsService(chatMetrics),
 		raceSvc:     completions.NewRaceService(),
 		cbs:         make(map[string]*circuitbreaker.CircuitBreaker),
 	}
@@ -76,47 +66,33 @@ func NewCompletionHandler() *CompletionHandler {
 // It processes the request through provider selection, parameter configuration,
 // and response handling with circuit breaking for reliability.
 func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
-	start := time.Now()
 	reqID := h.reqSvc.GetRequestID(c)
 	userID := h.reqSvc.GetAPIKey(c)
 	fiberlog.Infof("[%s] starting chat completion request", reqID)
 
 	req, err := h.reqSvc.ParseChatCompletionRequest(c)
 	if err != nil {
-		h.metricsSvc.RecordError(start, fmt.Sprint(statusBadRequest), false, reqID, "")
 		return h.respSvc.HandleBadRequest(c, err.Error(), reqID)
 	}
 	isStream := req.Stream
-	h.metricsSvc.RecordRequestStart(reqID, isStream)
 
 	resp, err := h.selectProtocol(
 		req, userID, reqID, h.copyCBs(),
 	)
 	if err != nil {
-		h.metricsSvc.RecordError(start, fmt.Sprint(statusServerError), isStream, reqID, "")
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	// Pick parameters from the "standard" branch on MinionsProtocol
-	var params models.OpenAIParameters
-	switch resp.Protocol {
-	case models.ProtocolStandardLLM:
-		params = resp.Standard.Parameters
-	case models.ProtocolMinion:
-		params = resp.Minion.Parameters
-	case models.ProtocolMinionsProtocol:
-		params = resp.Standard.Parameters
-	default:
-		return h.respSvc.HandleInternalError(
-			c, fmt.Sprintf("unknown protocol: %s", resp.Protocol), reqID,
-		)
+	params, err := h.paramSvc.GetParams(resp)
+	if err != nil {
+		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
 	if err := h.paramSvc.ApplyModelParameters(req, params, reqID); err != nil {
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	return h.handleResponse(c, resp, req, start, reqID, isStream)
+	return h.handleResponse(c, resp, req, reqID, isStream)
 }
 
 // selectProtocol runs protocol selection and returns the chosen protocol response.
@@ -250,7 +226,6 @@ func (h *CompletionHandler) handleResponse(
 	c *fiber.Ctx,
 	resp *models.ProtocolResponse,
 	req *models.ChatCompletionRequest,
-	start time.Time,
 	reqID string,
 	isStream bool,
 ) error {
@@ -310,11 +285,9 @@ func (h *CompletionHandler) handleResponse(
 		}
 
 		cb.RecordSuccess()
-		h.metricsSvc.RecordSuccess(start, isStream, reqID, cand.Name)
 		return nil
 	}
 
-	h.metricsSvc.RecordError(start, fmt.Sprint(statusServerError), isStream, reqID, "all")
 	if lastErr != nil {
 		return lastErr
 	}

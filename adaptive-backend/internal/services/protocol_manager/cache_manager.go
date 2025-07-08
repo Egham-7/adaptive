@@ -1,11 +1,10 @@
 package protocol_manager
 
 import (
-	"log"
-
 	"adaptive-backend/internal/models"
 
 	"github.com/botirk38/semanticcache"
+	fiberlog "github.com/gofiber/fiber/v2/log"
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 
@@ -53,13 +52,13 @@ func (c *CacheManager) Lookup(prompt, userID string) (models.ProtocolResponse, s
 		if val, found, err := uc.Lookup(key, c.threshold); found {
 			return val, "user", true
 		} else if err != nil {
-			log.Printf("user cache lookup error for %s: %v", userID, err)
+			fiberlog.Errorf("user cache lookup error for %s: %v", userID, err)
 		}
 	}
 	if val, found, err := c.global.Lookup(key, c.threshold); found {
 		return val, "global", true
 	} else if err != nil {
-		log.Printf("global cache lookup error: %v", err)
+		fiberlog.Errorf("global cache lookup error: %v", err)
 	}
 	return models.ProtocolResponse{}, "", false
 }
@@ -80,7 +79,7 @@ func (c *CacheManager) getUserCache(userID string) *semanticcache.SemanticCache[
 		c.defaultSize, c.embProv, nil,
 	)
 	if err != nil {
-		log.Printf("user cache init failed for %s: %v", userID, err)
+		fiberlog.Errorf("user cache init failed for %s: %v", userID, err)
 		return nil
 	}
 	c.userPool.Add(userID, uc)
