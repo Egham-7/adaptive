@@ -243,7 +243,8 @@ export const apiKeysRouter = createTRPCRouter({
 		.input(z.object({ apiKey: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const apiKey = input.apiKey;
-			if (!apiKey.startsWith("sk-") || apiKey.length < 11) {
+			const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
+			if (!apiKeyRegex.test(apiKey)) {
 				return { valid: false };
 			}
 			const prefix = apiKey.slice(0, 11);
