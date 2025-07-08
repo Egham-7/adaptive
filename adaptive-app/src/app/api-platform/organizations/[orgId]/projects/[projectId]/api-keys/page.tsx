@@ -307,8 +307,13 @@ export default function ApiKeysPage() {
 												size="sm"
 												disabled
 												className="h-auto cursor-not-allowed p-1 text-muted-foreground/50"
+												aria-disabled="true"
+												aria-describedby="edit-button-disabled-description"
 											>
 												<Edit className="h-4 w-4" />
+												<span id="edit-button-disabled-description" className="sr-only">
+													Editing is disabled because the API key is inactive.
+												</span>
 											</Button>
 											<Button
 												variant="ghost"
