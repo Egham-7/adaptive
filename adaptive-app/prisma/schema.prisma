@@ -65,10 +65,28 @@ model ApiKey {
 
   project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   usage      ApiUsage[]
+  revealTokens ApiKeyRevealToken[]
 
   @@unique([keyPrefix, keyHash])
   @@index([userId])
   @@index([projectId])
+}
+
+model ApiKeyRevealToken {
+  id         String    @id @default(uuid())
+  apiKeyId   String
+  userId     String    // Clerk user ID for additional security
+  token      String    @unique
+  fullKey    String    // Encrypted full key
+  expiresAt  DateTime  // Short expiration (5 minutes)
+  revealed   Boolean   @default(false) // Track if already revealed
+  createdAt  DateTime  @default(now())
+
+  apiKey     ApiKey    @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([expiresAt])
+  @@index([userId])
 }
 
 model Conversation {
@@ -173,8 +191,8 @@ model ApiUsage {
   id                String   @id @default(cuid())
   apiKeyId          String
   projectId         String?
-  provider          ProviderType   // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
-  model             String   // Model name used
+  provider          ProviderType?   // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
+  model             String?   // Model name used
   requestType       RequestType   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
   inputTokens       Int      @default(0)
   outputTokens      Int      @default(0)

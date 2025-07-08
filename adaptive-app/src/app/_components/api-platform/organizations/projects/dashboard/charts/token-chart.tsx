@@ -1,12 +1,20 @@
 "use client";
 
-import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Line, LineChart, XAxis, YAxis } from "recharts";
 import {
+	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
 import type { TokenDataPoint } from "@/types/api-platform/dashboard";
+
+const chartConfig = {
+	tokens: {
+		label: "Tokens",
+		color: "var(--chart-2)",
+	},
+} satisfies ChartConfig;
 
 interface TokenChartProps {
 	data: TokenDataPoint[];
@@ -22,29 +30,19 @@ export function TokenChart({ data }: TokenChartProps) {
 	}
 
 	return (
-		<ChartContainer
-			config={{
-				tokens: {
-					label: "Tokens",
-					color: "#10b981",
-				},
-			}}
-			className="h-[60px] w-full"
-		>
-			<ResponsiveContainer width="100%" height="100%">
-				<LineChart data={data}>
-					<XAxis dataKey="date" hide />
-					<YAxis hide />
-					<ChartTooltip content={<ChartTooltipContent />} />
-					<Line
-						type="monotone"
-						dataKey="tokens"
-						stroke="#10b981"
-						strokeWidth={2}
-						dot={false}
-					/>
-				</LineChart>
-			</ResponsiveContainer>
+		<ChartContainer config={chartConfig} className="h-[60px] w-full">
+			<LineChart accessibilityLayer data={data}>
+				<XAxis dataKey="date" hide />
+				<YAxis hide />
+				<ChartTooltip content={<ChartTooltipContent />} />
+				<Line
+					type="monotone"
+					dataKey="tokens"
+					stroke="var(--color-tokens)"
+					strokeWidth={2}
+					dot={false}
+				/>
+			</LineChart>
 		</ChartContainer>
 	);
 }

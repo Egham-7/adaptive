@@ -6,22 +6,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
-	"sync"
 	"time"
 
-	"adaptive-backend/internal/services/metrics"
+	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// Client represents an optimized API client with connection pooling and metrics
+// Client represents an optimized API client with connection pooling
 type Client struct {
-	BaseURL     string
-	HTTPClient  *http.Client
-	Headers     map[string]string
-	metrics     *metrics.APIClientMetrics
-	metricsOnce sync.Once
+	BaseURL    string
+	HTTPClient *http.Client
+	Headers    map[string]string
 }
 
 // RequestOptions provides options for API requests
@@ -96,17 +92,7 @@ func NewClientWithConfig(config *ClientConfig) *Client {
 		},
 	}
 
-	// Initialize metrics
-	client.initMetrics()
-
 	return client
-}
-
-// initMetrics initializes API client metrics
-func (c *Client) initMetrics() {
-	c.metricsOnce.Do(func() {
-		c.metrics = metrics.NewAPIClientMetrics()
-	})
 }
 
 // Get performs a GET request
@@ -134,9 +120,8 @@ func (c *Client) Patch(path string, body any, result any, opts *RequestOptions) 
 	return c.doRequest(http.MethodPatch, path, body, result, opts)
 }
 
-// doRequest performs an HTTP request with retries and metrics
+// doRequest performs an HTTP request with retries
 func (c *Client) doRequest(method, path string, body any, result any, opts *RequestOptions) error {
-	start := time.Now()
 	url := c.BaseURL + path
 
 	// Set default options
@@ -153,9 +138,6 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 	var lastErr error
 	for attempt := 0; attempt <= opts.Retries; attempt++ {
 		if attempt > 0 {
-			// Record retry
-			c.metrics.RecordRetry(method, "network_error")
-
 			// Wait before retry with exponential backoff
 			delay := time.Duration(attempt) * opts.RetryDelay
 			time.Sleep(delay)
@@ -163,9 +145,6 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 
 		err := c.executeRequest(method, url, body, result, opts)
 		if err == nil {
-			// Success - record metrics
-			duration := time.Since(start)
-			c.metrics.RecordRequest(method, "200", duration.Seconds())
 			return nil
 		}
 
@@ -176,11 +155,6 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 			break
 		}
 	}
-
-	// All retries failed - record error
-	duration := time.Since(start)
-	c.metrics.RecordRequest(method, "error", duration.Seconds())
-	c.metrics.RecordError(method, c.categorizeError(lastErr))
 
 	return fmt.Errorf("request failed after %d attempts: %w", opts.Retries+1, lastErr)
 }
@@ -241,9 +215,6 @@ func (c *Client) executeRequest(method, url string, body any, result any, opts *
 		req.URL.RawQuery = q.Encode()
 	}
 
-	// Record request metrics
-	c.metrics.RecordRequestSize(bodySize)
-
 	// Execute request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -251,17 +222,13 @@ func (c *Client) executeRequest(method, url string, body any, result any, opts *
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			log.Printf("Error closing response body: %v", err)
+			fiberlog.Errorf("Error closing response body: %v", err)
 		}
 	}()
-
-	// Record response metrics
-	c.metrics.RecordResponse(method, fmt.Sprintf("%d", resp.StatusCode))
 
 	// Check response status
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		c.metrics.RecordResponseSize(int64(len(bodyBytes)))
 		return fmt.Errorf("API request failed with status code %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
@@ -302,8 +269,6 @@ func (c *Client) handleJSONResponse(resp *http.Response, result any) error {
 		return fmt.Errorf("error reading response body: %w", err)
 	}
 
-	c.metrics.RecordResponseSize(int64(len(bodyBytes)))
-
 	// Unmarshal the response
 	if err := json.Unmarshal(bodyBytes, result); err != nil {
 		return fmt.Errorf("error unmarshaling response: %w", err)
@@ -324,7 +289,6 @@ func (c *Client) handleTextResponse(resp *http.Response, result any) error {
 		return fmt.Errorf("error reading response body: %w", err)
 	}
 
-	c.metrics.RecordResponseSize(int64(len(bodyBytes)))
 	*stringResult = string(bodyBytes)
 	return nil
 }
@@ -341,7 +305,6 @@ func (c *Client) handleBinaryResponse(resp *http.Response, result any) error {
 		return fmt.Errorf("error reading response body: %w", err)
 	}
 
-	c.metrics.RecordResponseSize(int64(len(bodyBytes)))
 	*bytesResult = bodyBytes
 	return nil
 }
@@ -380,52 +343,9 @@ func containsStatusCode(errStr, statusCode string) bool {
 		fmt.Sprintf("status %s", statusCode) == errStr
 }
 
-// categorizeError categorizes an error for metrics
-func (c *Client) categorizeError(err error) string {
-	if err == nil {
-		return "none"
-	}
-
-	if netErr, ok := err.(net.Error); ok {
-		if netErr.Timeout() {
-			return "timeout"
-		}
-		return "network"
-	}
-
-	if err == context.DeadlineExceeded {
-		return "timeout"
-	}
-
-	errStr := err.Error()
-	if containsStatusCode(errStr, "400") {
-		return "client_error"
-	}
-	if containsStatusCode(errStr, "401") || containsStatusCode(errStr, "403") {
-		return "auth_error"
-	}
-	if containsStatusCode(errStr, "404") {
-		return "not_found"
-	}
-	if containsStatusCode(errStr, "429") {
-		return "rate_limit"
-	}
-	if containsStatusCode(errStr, "500") || containsStatusCode(errStr, "502") ||
-		containsStatusCode(errStr, "503") || containsStatusCode(errStr, "504") {
-		return "server_error"
-	}
-
-	return "unknown"
-}
-
 // Close closes the underlying HTTP client
 func (c *Client) Close() {
 	if transport, ok := c.HTTPClient.Transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
 	}
-}
-
-// GetMetrics returns the client metrics (for debugging/monitoring)
-func (c *Client) GetMetrics() *metrics.APIClientMetrics {
-	return c.metrics
 }

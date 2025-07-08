@@ -1,6 +1,6 @@
 from typing import Any
 
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+# Removed HuggingFaceEmbeddings import to avoid model downloads
 import litserve as ls
 import tiktoken
 
@@ -11,7 +11,8 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
 )
 from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
-from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
+
+# Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
 from adaptive_ai.services.model_selector import (
     ModelSelectionService,
 )
@@ -30,16 +31,8 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.settings = get_settings()
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
 
-        self.embedding_model = HuggingFaceEmbeddings(
-            model_name=self.settings.embedding_cache.model_name
-        )
-        self.embedding_cache = EmbeddingCache(
-            embeddings_model=self.embedding_model,
-            similarity_threshold=self.settings.embedding_cache.similarity_threshold,
-            max_size=self.settings.embedding_cache.max_size,
-            thread_safe=self.settings.embedding_cache.thread_safe,
-            lit_logger=self,
-        )
+        # Cache removed: rule-based routing is fast enough without caching
+        # No need for embedding models or cache infrastructure
 
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
@@ -77,80 +70,59 @@ class ProtocolManagerAPI(ls.LitAPI):
             current_classification_result: ClassificationResult = (
                 all_classification_results[i]
             )
-            cache_t0 = time.perf_counter()
-            cached_orchestrator_response: OrchestratorResponse | None = (
-                self.embedding_cache.search_cache(current_classification_result)
+            # Rule-based routing is fast enough - no caching needed
+            self.log("cache_disabled", "rule_based_routing_is_fast")
+
+            # Direct routing without cache
+            try:
+                prompt_token_count = len(self.tokenizer.encode(req.prompt))
+            except Exception as e:
+                prompt_token_count = len(req.prompt) // 4  # Rough approximation
+                self.log(
+                    "prompt_token_count_fallback",
+                    {"prompt": req.prompt, "error": str(e)},
+                )
+
+            select_t0 = time.perf_counter()
+            candidate_models: list[ModelCapability] = (
+                self.model_selection_service.select_candidate_models(
+                    request=req,
+                    classification_result=current_classification_result,
+                    prompt_token_count=prompt_token_count,
+                )
             )
-            cache_t1 = time.perf_counter()
-            self.log("cache_lookup_time", cache_t1 - cache_t0)
+            select_t1 = time.perf_counter()
+            self.log("model_selection_time", select_t1 - select_t0)
 
-            if cached_orchestrator_response:
-                self.log("cache_hit", 1)
-                outputs.append(cached_orchestrator_response)
-            else:
-                self.log("cache_hit", 0)
-                try:
-                    prompt_token_count = len(self.tokenizer.encode(req.prompt))
-                except Exception as e:
-                    prompt_token_count = len(req.prompt) // 4  # Rough approximation
-                    self.log(
-                        "prompt_token_count_fallback",
-                        {"prompt": req.prompt, "error": str(e)},
-                    )
+            # Get designated minion and alternatives
+            minion_model = self.model_selection_service.get_designated_minion(
+                classification_result=current_classification_result
+            )
+            minion_alternatives = self.model_selection_service.get_minion_alternatives(
+                primary_minion=minion_model
+            )
 
-                select_t0 = time.perf_counter()
-                candidate_models: list[ModelCapability] = (
-                    self.model_selection_service.select_candidate_models(
-                        request=req,
-                        classification_result=current_classification_result,
-                        prompt_token_count=prompt_token_count,
-                    )
+            if not candidate_models:
+                self.log("no_eligible_models", {"prompt": req.prompt})
+                raise ValueError(
+                    "No eligible models found after applying provider and task constraints"
                 )
-                select_t1 = time.perf_counter()
-                self.log("model_selection_time", select_t1 - select_t0)
+            protocol_t0 = time.perf_counter()
+            orchestrator_response: OrchestratorResponse = (
+                self.protocol_manager.select_protocol(
+                    candidate_models=candidate_models,
+                    minion_model=minion_model,
+                    minion_alternatives=minion_alternatives,
+                    classification_result=current_classification_result,
+                    token_count=prompt_token_count,
+                    request=req,
+                )
+            )
+            protocol_t1 = time.perf_counter()
+            self.log("protocol_selection_time", protocol_t1 - protocol_t0)
 
-                # Get designated minion and alternatives
-                minion_model = self.model_selection_service.get_designated_minion(
-                    classification_result=current_classification_result
-                )
-                minion_alternatives = (
-                    self.model_selection_service.get_minion_alternatives(
-                        primary_minion=minion_model
-                    )
-                )
-
-                if not candidate_models:
-                    self.log("no_eligible_models", {"prompt": req.prompt})
-                    raise ValueError(
-                        "No eligible models found after applying provider and task constraints"
-                    )
-                protocol_t0 = time.perf_counter()
-                orchestrator_response: OrchestratorResponse = (
-                    self.protocol_manager.select_protocol(
-                        candidate_models=candidate_models,
-                        minion_model=minion_model,
-                        minion_alternatives=minion_alternatives,
-                        classification_result=current_classification_result,
-                    )
-                )
-                protocol_t1 = time.perf_counter()
-                self.log("protocol_selection_time", protocol_t1 - protocol_t0)
-                cache_add_t0 = time.perf_counter()
-                try:
-                    self.embedding_cache.add_to_cache(
-                        current_classification_result, orchestrator_response
-                    )
-                    cache_add_t1 = time.perf_counter()
-                    self.log("cache_add_time", cache_add_t1 - cache_add_t0)
-                except Exception as e:
-                    cache_add_t1 = time.perf_counter()
-                    self.log(
-                        "cache_add_error",
-                        {"error": str(e), "time": cache_add_t1 - cache_add_t0},
-                    )
-                    # Don't suppress the error completely - log it but continue
-                    # The cache failure shouldn't break the prediction pipeline
-                outputs.append(orchestrator_response)
+            # No caching needed for fast rule-based routing
+            outputs.append(orchestrator_response)
 
         self.log("predict_completed", {"output_count": len(outputs)})
         return outputs

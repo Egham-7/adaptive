@@ -120,15 +120,25 @@ export function useProjectDashboardData(
 			};
 		});
 
+		const errorRateData = analyticsData.dailyTrends.map((trend) => ({
+			date: trend.date.toISOString().split("T")[0] || "",
+			errorRate:
+				trend.requests > 0 ? (trend.errorCount / trend.requests) * 100 : 0,
+			errorCount: trend.errorCount,
+		}));
+
 		return {
 			totalSpend: analyticsData.totalSpend,
 			totalSavings,
 			savingsPercentage,
 			totalTokens: analyticsData.totalTokens,
 			totalRequests: analyticsData.totalRequests,
+			errorRate: analyticsData.errorRate,
+			errorCount: analyticsData.errorCount,
 			usageData,
 			tokenData,
 			requestData,
+			errorRateData,
 			taskBreakdown,
 			providers,
 		};

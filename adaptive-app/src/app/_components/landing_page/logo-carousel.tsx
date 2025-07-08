@@ -78,7 +78,7 @@ const LogoColumn: React.FC<LogoColumnProps> = React.memo(
 					<motion.div
 						key={`${currentLogo.id}-${currentIndex}`}
 						className="absolute inset-0 flex items-center justify-center"
-						initial={{ y: "10%", opacity: 0, filter: "blur(8px)" }}
+						initial={{ y: "10%", opacity: 0 }}
 						animate={{
 							y: "0%",
 							opacity: 1,
@@ -102,6 +102,7 @@ const LogoColumn: React.FC<LogoColumnProps> = React.memo(
 								duration: 0.3,
 							},
 						}}
+						style={{ filter: "blur(8px)" }}
 					>
 						<Image
 							src={CurrentLogo}

@@ -1,16 +1,11 @@
 "use client";
 
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
-	Bar,
-	BarChart,
-	CartesianGrid,
-	Legend,
-	ResponsiveContainer,
-	XAxis,
-	YAxis,
-} from "recharts";
-import {
+	type ChartConfig,
 	ChartContainer,
+	ChartLegend,
+	ChartLegendContent,
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
@@ -20,6 +15,17 @@ interface UsageChartProps {
 	data: UsageDataPoint[];
 	providerName?: string;
 }
+
+const chartConfig = {
+	adaptive: {
+		label: "Adaptive Cost",
+		color: "var(--chart-1)",
+	},
+	singleProvider: {
+		label: "Single Provider Cost",
+		color: "var(--chart-2)",
+	},
+} satisfies ChartConfig;
 
 export function UsageChart({
 	data,
@@ -33,59 +39,49 @@ export function UsageChart({
 		);
 	}
 
+	const config = {
+		...chartConfig,
+		singleProvider: {
+			...chartConfig.singleProvider,
+			label: `${providerName} Cost`,
+		},
+	};
+
 	return (
-		<ChartContainer
-			config={{
-				adaptive: {
-					label: "Adaptive Cost",
-					color: "#3b82f6",
-				},
-				singleProvider: {
-					label: `${providerName} Cost`,
-					color: "#f59e0b",
-				},
-			}}
-			className="h-[300px] w-full"
-		>
-			<ResponsiveContainer width="100%" height="100%">
-				<BarChart
-					data={data}
-					margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-				>
-					<CartesianGrid
-						strokeDasharray="3 3"
-						className="stroke-gray-200 dark:stroke-gray-700"
-					/>
-					<XAxis
-						dataKey="date"
-						className="text-gray-600 dark:text-gray-400"
-						fontSize={12}
-						axisLine={false}
-						tickLine={false}
-					/>
-					<YAxis
-						className="text-gray-600 dark:text-gray-400"
-						fontSize={12}
-						axisLine={false}
-						tickLine={false}
-					/>
-					<ChartTooltip content={<ChartTooltipContent />} />
-					<Legend />
-					<Bar
-						dataKey="adaptive"
-						fill="#3b82f6"
-						radius={[2, 2, 0, 0]}
-						name="Adaptive Cost"
-					/>
-					<Bar
-						dataKey="singleProvider"
-						fill="#f59e0b"
-						radius={[2, 2, 0, 0]}
-						opacity={0.6}
-						name={`${providerName} Cost`}
-					/>
-				</BarChart>
-			</ResponsiveContainer>
+		<ChartContainer config={config} className="h-[300px] w-full">
+			<BarChart
+				accessibilityLayer
+				data={data}
+				margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+			>
+				<CartesianGrid vertical={false} />
+				<XAxis
+					dataKey="date"
+					tickLine={false}
+					axisLine={false}
+					tickMargin={10}
+					fontSize={12}
+				/>
+				<YAxis
+					tickLine={false}
+					axisLine={false}
+					tickMargin={10}
+					fontSize={12}
+				/>
+				<ChartTooltip content={<ChartTooltipContent />} />
+				<ChartLegend content={<ChartLegendContent />} />
+				<Bar
+					dataKey="adaptive"
+					fill="var(--color-adaptive)"
+					radius={[2, 2, 0, 0]}
+				/>
+				<Bar
+					dataKey="singleProvider"
+					fill="var(--color-singleProvider)"
+					radius={[2, 2, 0, 0]}
+					opacity={0.6}
+				/>
+			</BarChart>
 		</ChartContainer>
 	);
 }

@@ -59,7 +59,7 @@ export default function Pricing() {
 					</div>
 				</div>
 
-				<div className="mx-auto mt-8 grid max-w-4xl gap-6 md:mt-20 md:grid-cols-2">
+				<div className="mx-auto mt-8 grid max-w-6xl gap-6 md:mt-20 md:grid-cols-3">
 					<Card>
 						<CardHeader>
 							<CardTitle className="font-medium">Developer</CardTitle>
@@ -109,7 +109,7 @@ export default function Pricing() {
 							Popular
 						</span>
 						<CardHeader>
-							<CardTitle className="font-medium">Business</CardTitle>
+							<CardTitle className="font-medium">Team</CardTitle>
 							<div className="my-3 flex items-baseline">
 								<span className="font-semibold text-2xl">
 									${isAnnual ? "200" : "20"}
@@ -150,6 +150,50 @@ export default function Pricing() {
 									"99.9% uptime SLA",
 									"Higher rate limits (10K req/hour)",
 									"Dedicated account manager",
+								].map((item, _index) => (
+									<li key={item} className="flex items-center gap-2">
+										<Check className="size-3 text-primary" />
+										{item}
+									</li>
+								))}
+							</ul>
+						</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle className="font-medium">Enterprise</CardTitle>
+							<div className="my-3 space-y-2">
+								<div className="flex items-baseline">
+									<span className="font-semibold text-2xl">Custom</span>
+								</div>
+								<div className="text-muted-foreground text-xs">
+									Tailored pricing for your organization
+								</div>
+							</div>
+							<CardDescription className="text-sm">
+								Custom pricing based on usage volume and specific requirements
+							</CardDescription>
+							<Button variant="outline" className="mt-4 w-full">
+								Contact Us
+							</Button>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<hr className="border-dashed" />
+							<ul className="list-outside space-y-3 text-sm">
+								{[
+									"Everything in Team",
+									"Custom integrations",
+									"On-premise deployment",
+									"Dedicated infrastructure",
+									"24/7 phone support",
+									"Custom SLA agreements",
+									"Advanced security features",
+									"SOC 2 compliance",
+									"Custom rate limits",
+									"Professional services",
+									"Training & onboarding",
+									"Custom contract terms",
 								].map((item, _index) => (
 									<li key={item} className="flex items-center gap-2">
 										<Check className="size-3 text-primary" />
