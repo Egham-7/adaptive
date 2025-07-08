@@ -117,8 +117,9 @@ export const apiKeysRouter = createTRPCRouter({
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
 
-			const fullKey = crypto.randomBytes(32).toString("hex");
-			const prefix = fullKey.slice(0, 8);
+			const randomBytes = crypto.randomBytes(36);
+			const fullKey = `sk-${randomBytes.toString("base64url")}`;
+			const prefix = fullKey.slice(0, 11);
 			const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
 
 			const expiresAt = input.expires_at
@@ -242,10 +243,10 @@ export const apiKeysRouter = createTRPCRouter({
 		.input(z.object({ apiKey: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const apiKey = input.apiKey;
-			if (apiKey.length < 8) {
+			if (!apiKey.startsWith("sk-") || apiKey.length < 11) {
 				return { valid: false };
 			}
-			const prefix = apiKey.slice(0, 8);
+			const prefix = apiKey.slice(0, 11);
 			const record = await ctx.db.apiKey.findFirst({
 				where: { keyPrefix: prefix, status: "active" },
 			});
@@ -347,8 +348,9 @@ export const apiKeysRouter = createTRPCRouter({
 				});
 			}
 
-			const fullKey = crypto.randomBytes(32).toString("hex");
-			const prefix = fullKey.slice(0, 8);
+			const randomBytes = crypto.randomBytes(36);
+			const fullKey = `sk-${randomBytes.toString("base64url")}`;
+			const prefix = fullKey.slice(0, 11);
 			const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
 
 			const expiresAt = input.expires_at
