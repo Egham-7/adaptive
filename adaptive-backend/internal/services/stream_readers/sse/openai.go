@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"log"
 	"strings"
 
+	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
 	ssestream "github.com/openai/openai-go/packages/ssestream"
 )
@@ -63,16 +63,16 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 
 	// Check if we can advance to the next chunk
 	hasNext := r.stream.Next()
-	log.Printf("[%s] Stream.Next() returned: %v", r.RequestID, hasNext)
+	fiberlog.Debugf("[%s] Stream.Next() returned: %v", r.RequestID, hasNext)
 
 	if !hasNext {
 		// Check for stream errors
 		if err := r.stream.Err(); err != nil && !errors.Is(err, io.EOF) {
-			log.Printf("[%s] Stream error detected: %v", r.RequestID, err)
+			fiberlog.Errorf("[%s] Stream error detected: %v", r.RequestID, err)
 			return r.handleError(err, p)
 		}
 
-		log.Printf("[%s] No more chunks available - sending [DONE]", r.RequestID)
+		fiberlog.Infof("[%s] No more chunks available - sending [DONE]", r.RequestID)
 		r.Buffer = []byte(sseDoneMessage)
 		r.done = true
 		return r.Read(p)
@@ -80,7 +80,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 
 	// Get and process the current chunk
 	chunk := r.stream.Current()
-	log.Printf("[%s] Processing chunk: ID=%s, Choices=%d, Usage.TotalTokens=%d",
+	fiberlog.Debugf("[%s] Processing chunk: ID=%s, Choices=%d, Usage.TotalTokens=%d",
 		r.RequestID, chunk.ID, len(chunk.Choices), chunk.Usage.TotalTokens)
 
 	if err := r.processChunk(&chunk); err != nil {
@@ -89,7 +89,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 
 	// Check if this is the final usage chunk
 	if len(chunk.Choices) == 0 && chunk.Usage.TotalTokens > 0 {
-		log.Printf("[%s] ✓ FINAL USAGE CHUNK DETECTED - TotalTokens=%d", r.RequestID, chunk.Usage.TotalTokens)
+		fiberlog.Infof("[%s] ✓ FINAL USAGE CHUNK DETECTED - TotalTokens=%d", r.RequestID, chunk.Usage.TotalTokens)
 		r.done = true
 	}
 
@@ -97,7 +97,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 }
 
 func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
-	log.Printf("[%s] OpenAI stream error: %v", r.RequestID, err)
+	fiberlog.Errorf("[%s] OpenAI stream error: %v", r.RequestID, err)
 
 	r.buf.Reset()
 	r.buf.WriteString(sseDataPrefix)
@@ -114,12 +114,12 @@ func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 // processChunk orchestrates the transformation and buffering of a chunk.
 func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) error {
 	// Log original OpenAI chunk details
-	log.Printf("[%s] Original OpenAI chunk: ID=%s, Model=%s, Choices=%d",
+	fiberlog.Debugf("[%s] Original OpenAI chunk: ID=%s, Model=%s, Choices=%d",
 		r.RequestID, chunk.ID, chunk.Model, len(chunk.Choices))
 
 	// Log original choice details
 	for i, choice := range chunk.Choices {
-		log.Printf("[%s] Original Choice[%d]: Role='%s', Content='%s', FinishReason='%s'",
+		fiberlog.Debugf("[%s] Original Choice[%d]: Role='%s', Content='%s', FinishReason='%s'",
 			r.RequestID, i, choice.Delta.Role, choice.Delta.Content, choice.FinishReason)
 	}
 
@@ -132,15 +132,15 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	}
 
 	// Log the actual JSON being sent
-	log.Printf("[%s] JSON output: %s", r.RequestID, string(jsonData))
+	fiberlog.Debugf("[%s] JSON output: %s", r.RequestID, string(jsonData))
 
 	// Log chunk details
-	log.Printf("[%s] Outputting chunk: ID=%s, Model=%s, Choices=%d",
+	fiberlog.Debugf("[%s] Outputting chunk: ID=%s, Model=%s, Choices=%d",
 		r.RequestID, adaptiveChunk.ID, adaptiveChunk.Model, len(adaptiveChunk.Choices))
 
 	// Log choice details if present
 	for i, choice := range adaptiveChunk.Choices {
-		log.Printf("[%s] Choice[%d]: Role=%s, Content=%s, FinishReason=%s",
+		fiberlog.Debugf("[%s] Choice[%d]: Role=%s, Content=%s, FinishReason=%s",
 			r.RequestID, i, choice.Delta.Role, choice.Delta.Content, choice.FinishReason)
 	}
 
@@ -161,7 +161,7 @@ func (r *OpenAIStreamReader) Close() error {
 		if r.stream != nil {
 			err = r.stream.Close()
 		}
-		log.Printf("[%s] OpenAI stream closed", r.RequestID)
+		fiberlog.Infof("[%s] OpenAI stream closed", r.RequestID)
 	})
 	return err
 }

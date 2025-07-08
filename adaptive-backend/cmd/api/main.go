@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"runtime"
 	"strings"
@@ -11,12 +10,10 @@ import (
 
 	"adaptive-backend/internal/api"
 	"adaptive-backend/internal/middleware"
-	"adaptive-backend/internal/services/metrics"
-
-	"github.com/ansrivas/fiberprometheus/v2"
 	"github.com/joho/godotenv"
 
 	"github.com/gofiber/fiber/v2"
+	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
@@ -37,7 +34,6 @@ func SetupRoutes(app *fiber.App) {
 const (
 	defaultAppName    = "Adaptive v1.0"
 	defaultVersion    = "1.0.0"
-	metricsEndpoint   = "/metrics"
 	healthEndpoint    = "/health"
 	chatEndpoint      = "/v1/chat/completions"
 	allowedMethods    = "GET, POST, PUT, DELETE, OPTIONS"
@@ -49,21 +45,17 @@ const (
 // main is the entry point for the Adaptive backend server.
 func main() {
 	if err := godotenv.Load(".env.local"); err != nil {
-		log.Println("No .env.local file found, proceeding with environment variables")
+		fiberlog.Info("No .env.local file found, proceeding with environment variables")
 	}
-
-	systemMetrics := metrics.NewSystemMetrics()
-	systemMetrics.StartPeriodicUpdates(30 * time.Second)
-	log.Println("System metrics initialized and collection started")
 
 	port := os.Getenv(addrKey)
 	if port == "" {
-		log.Fatal("ADDR environment variable is required but not set")
+		fiberlog.Fatal("ADDR environment variable is required but not set")
 	}
 
 	allowedOrigins := os.Getenv(allowedHeadersKey)
 	if allowedOrigins == "" {
-		log.Fatal("ALLOWED_ORIGINS environment variable is required but not set")
+		fiberlog.Fatal("ALLOWED_ORIGINS environment variable is required but not set")
 	}
 
 	isProd := os.Getenv(envKey) == "production"
@@ -86,7 +78,7 @@ func main() {
 			if e, ok := err.(*fiber.Error); ok {
 				code = e.Code
 			}
-			log.Printf("Request error: %v (status: %d, path: %s)", err, code, c.Path())
+			fiberlog.Errorf("Request error: %v (status: %d, path: %s)", err, code, c.Path())
 			return c.Status(code).JSON(fiber.Map{
 				"error": err.Error(),
 				"code":  code,
@@ -104,7 +96,6 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"metrics":   metricsEndpoint,
 				"chat":      chatEndpoint,
 				"openai":    "/v1/openai/chat/completions",
 				"anthropic": "/v1/anthropic/chat/completions",
@@ -136,15 +127,15 @@ func main() {
 
 	go func() {
 		if err := app.Listen(port); err != nil {
-			log.Printf("Server startup error: %v", err)
+			fiberlog.Errorf("Server startup error: %v", err)
 			cancel()
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("Server shutting down...")
+	fiberlog.Info("Server shutting down...")
 	if err := app.Shutdown(); err != nil {
-		log.Printf("Server shutdown error: %v", err)
+		fiberlog.Errorf("Server shutdown error: %v", err)
 	}
 }
 
@@ -222,10 +213,6 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 		MaxAge:           86400,
 		ExposeHeaders:    "Content-Length, Content-Type, X-Request-ID",
 	}))
-
-	prometheus := fiberprometheus.New("adaptive-backend")
-	prometheus.RegisterAt(app, metricsEndpoint)
-	app.Use(prometheus.Middleware)
 
 	if !isProd {
 		app.Use(pprof.New())

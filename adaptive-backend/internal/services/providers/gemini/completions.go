@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 
+	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/packages/ssestream"
@@ -216,7 +216,7 @@ func convertAssistantContent(msg *openai.ChatCompletionAssistantMessageParam) []
 			err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args)
 
 			if err != nil {
-				log.Printf("Failed to unmarshal tool call arguments for function %s: %v", toolCall.Function.Name, err)
+				fiberlog.Errorf("Failed to unmarshal tool call arguments for function %s: %v", toolCall.Function.Name, err)
 				continue
 			}
 		}

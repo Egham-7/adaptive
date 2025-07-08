@@ -1,13 +1,13 @@
 package middleware
 
 import (
-	"log"
 	"os"
 	"strings"
 
 	"adaptive-backend/internal/services/auth"
 
 	"github.com/gofiber/fiber/v2"
+	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
 // APIKeyAuth creates middleware for API key authentication
@@ -42,7 +42,7 @@ func APIKeyAuth() fiber.Handler {
 		// Verify API key with frontend service
 		valid, err := apiKeyService.VerifyAPIKey(apiKey)
 		if err != nil {
-			log.Printf("API key verification error: %v", err)
+			fiberlog.Errorf("API key verification error: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Internal server error during authentication.",
 				"code":  fiber.StatusInternalServerError,
