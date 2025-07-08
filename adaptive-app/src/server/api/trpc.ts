@@ -66,7 +66,9 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
 
 export const publicProcedure = t.procedure.use(timingMiddleware);
 
-export const cacheablePublicProcedure = t.procedure.use(timingMiddleware);
+export const cacheablePublicProcedure = t.procedure
+	.use(timingMiddleware)
+	.meta({ cacheable: true });
 
 export const protectedProcedure = t.procedure
 	.use(timingMiddleware)
@@ -74,4 +76,5 @@ export const protectedProcedure = t.procedure
 
 export const cacheableProtectedProcedure = t.procedure
 	.use(timingMiddleware)
-	.use(enforceUserIsAuthed);
+	.use(enforceUserIsAuthed)
+	.meta({ cacheable: true });
