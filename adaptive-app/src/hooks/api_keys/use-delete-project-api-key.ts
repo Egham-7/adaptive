@@ -8,9 +8,11 @@ export const useDeleteProjectApiKey = () => {
 		onSuccess: (data) => {
 			toast.success("API key deleted successfully!");
 
-			utils.api_keys.list.invalidate();
-
 			return data;
+		},
+		onSettled: () => {
+			utils.api_keys.list.invalidate();
+			utils.api_keys.getByProject.invalidate();
 		},
 		onError: (error) => {
 			toast.error(error.message || "Failed to create API key");
