@@ -348,10 +348,7 @@ export const apiKeysRouter = createTRPCRouter({
 				});
 			}
 
-			const randomBytes = crypto.randomBytes(36);
-			const fullKey = `sk-${randomBytes.toString("base64url")}`;
-			const prefix = fullKey.slice(0, 11);
-			const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
+			const { fullKey, prefix, hash } = generateApiKey();
 
 			const expiresAt = input.expires_at
 				? new Date(input.expires_at)
