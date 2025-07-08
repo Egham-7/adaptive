@@ -30,7 +30,7 @@ const handler = (req: NextRequest) =>
 					}
 				: undefined,
 		responseMeta(opts) {
-			const { ctx, data, errors, type } = opts;
+			const { errors, type } = opts;
 			const allOk = errors.length === 0;
 			const isQuery = type === "query";
 
