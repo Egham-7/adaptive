@@ -7,6 +7,18 @@ import {
 	publicProcedure,
 } from "@/server/api/trpc";
 
+const API_KEY_BYTE_LENGTH = 36;
+const API_KEY_PREFIX_LENGTH = 11;
+
+// Helper to generate API key, prefix, and hash
+function generateApiKey() {
+	const randomBytes = crypto.randomBytes(API_KEY_BYTE_LENGTH);
+	const fullKey = `sk-${randomBytes.toString("base64url")}`;
+	const prefix = fullKey.slice(0, API_KEY_PREFIX_LENGTH);
+	const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
+	return { fullKey, prefix, hash };
+}
+
 // Simple encryption helper for storing full keys temporarily
 function encryptKey(key: string, secret: string): string {
 	const algorithm = "aes-256-cbc";
@@ -117,8 +129,9 @@ export const apiKeysRouter = createTRPCRouter({
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
 
-			const fullKey = crypto.randomBytes(32).toString("hex");
-			const prefix = fullKey.slice(0, 8);
+			const randomBytes = crypto.randomBytes(API_KEY_BYTE_LENGTH);
+			const fullKey = `sk-${randomBytes.toString("base64url")}`;
+			const prefix = fullKey.slice(0, API_KEY_PREFIX_LENGTH);
 			const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
 
 			const expiresAt = input.expires_at
@@ -161,7 +174,9 @@ export const apiKeysRouter = createTRPCRouter({
 			// Create a one-time reveal token
 			const revealToken = crypto.randomBytes(32).toString("hex");
 			if (!process.env.API_KEY_ENCRYPTION_SECRET) {
-				throw new Error("Environment variable API_KEY_ENCRYPTION_SECRET is required but not set.");
+				throw new Error(
+					"Environment variable API_KEY_ENCRYPTION_SECRET is required but not set.",
+				);
 			}
 			const encryptionSecret = process.env.API_KEY_ENCRYPTION_SECRET;
 			const encryptedKey = encryptKey(fullKey, encryptionSecret);
@@ -242,10 +257,11 @@ export const apiKeysRouter = createTRPCRouter({
 		.input(z.object({ apiKey: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const apiKey = input.apiKey;
-			if (apiKey.length < 8) {
+			const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
+			if (!apiKeyRegex.test(apiKey)) {
 				return { valid: false };
 			}
-			const prefix = apiKey.slice(0, 8);
+			const prefix = apiKey.slice(0, 11);
 			const record = await ctx.db.apiKey.findFirst({
 				where: { keyPrefix: prefix, status: "active" },
 			});
@@ -347,9 +363,7 @@ export const apiKeysRouter = createTRPCRouter({
 				});
 			}
 
-			const fullKey = crypto.randomBytes(32).toString("hex");
-			const prefix = fullKey.slice(0, 8);
-			const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
+			const { fullKey, prefix, hash } = generateApiKey();
 
 			const expiresAt = input.expires_at
 				? new Date(input.expires_at)
