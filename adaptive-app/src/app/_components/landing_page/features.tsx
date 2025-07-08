@@ -22,7 +22,7 @@ export default function FeaturesSection() {
 				<div className="relative">
 					<div className="relative z-10 grid grid-cols-6 gap-3">
 						<Card className="relative col-span-full flex overflow-hidden lg:col-span-2">
-							<CardContent className="relative m-auto size-fit pt-6 flex flex-col justify-center items-center text-center">
+							<CardContent className="relative m-auto flex size-fit flex-col items-center justify-center pt-6 text-center">
 								<Timer className="h-16 w-16 text-primary" />
 								<h2 className="mt-6 text-center font-semibold text-3xl">
 									Lightning Fast Model Selection

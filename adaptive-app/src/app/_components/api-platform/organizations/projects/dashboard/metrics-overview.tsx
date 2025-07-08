@@ -1,6 +1,12 @@
 "use client";
 
-import { FaChartLine, FaCoins, FaDollarSign, FaServer } from "react-icons/fa";
+import {
+	FaChartLine,
+	FaCoins,
+	FaDollarSign,
+	FaExclamationTriangle,
+	FaServer,
+} from "react-icons/fa";
 import type { DashboardData } from "@/types/api-platform/dashboard";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
@@ -13,8 +19,8 @@ interface MetricsOverviewProps {
 export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 	if (loading) {
 		return (
-			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-				{Array.from({ length: 4 }).map((_, i) => (
+			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+				{Array.from({ length: 5 }).map((_, i) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: Using index for skeleton components is acceptable
 					<MetricCardSkeleton key={`skeleton-${i}`} />
 				))}
@@ -67,10 +73,21 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 			color: "hsl(var(--chart-4))",
 			totalValue: data.totalRequests.toLocaleString(),
 		},
+		{
+			title: "Error Rate",
+			chartType: "area" as const,
+			icon: <FaExclamationTriangle className="h-5 w-5 text-destructive" />,
+			data: data.errorRateData.map((d) => ({
+				date: d.date,
+				value: d.errorRate,
+			})),
+			color: "hsl(var(--destructive))",
+			totalValue: `${data.errorRate.toFixed(2)}%`,
+		},
 	];
 
 	return (
-		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
 			{allMetrics.map((metric) => (
 				<VersatileMetricChart
 					key={metric.title}

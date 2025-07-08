@@ -44,7 +44,7 @@ const chartConfig = {
 		color: "var(--chart-1)",
 	},
 	openai: {
-		label: "OpenAI", 
+		label: "OpenAI",
 		color: "var(--chart-2)",
 	},
 	anthropic: {
@@ -164,10 +164,12 @@ export default function ComparisonChart() {
 							/>
 							<ChartTooltip
 								cursor={false}
-								content={<ChartTooltipContent 
-									nameKey="name"
-									formatter={(value) => [`$${Number(value).toFixed(2)}`]}
-								/>}
+								content={
+									<ChartTooltipContent
+										nameKey="name"
+										formatter={(value) => [`$${Number(value).toFixed(2)}`]}
+									/>
+								}
 							/>
 							<Bar
 								dataKey="costPerMillionTokens"
