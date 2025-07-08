@@ -31,11 +31,10 @@ const handler = (req: NextRequest) =>
 				: undefined,
 		responseMeta(opts) {
 			const { ctx, data, errors, type } = opts;
-			const allCacheable = data?.every((item) => item.meta?.cacheable === true);
 			const allOk = errors.length === 0;
 			const isQuery = type === "query";
 
-			if (allCacheable && allOk && isQuery) {
+			if (allOk && isQuery) {
 				const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
 				return {
 					headers: {
