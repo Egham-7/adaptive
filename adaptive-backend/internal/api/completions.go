@@ -83,19 +83,9 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	// Pick parameters from the "standard" branch on MinionsProtocol
-	var params models.OpenAIParameters
-	switch resp.Protocol {
-	case models.ProtocolStandardLLM:
-		params = resp.Standard.Parameters
-	case models.ProtocolMinion:
-		params = resp.Minion.Parameters
-	case models.ProtocolMinionsProtocol:
-		params = resp.Standard.Parameters
-	default:
-		return h.respSvc.HandleInternalError(
-			c, fmt.Sprintf("unknown protocol: %s", resp.Protocol), reqID,
-		)
+	params, err := h.paramSvc.GetParams(resp)
+	if err != nil {
+		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
 	if err := h.paramSvc.ApplyModelParameters(req, params, reqID); err != nil {
