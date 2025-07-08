@@ -1,7 +1,6 @@
 package protocol_manager
 
 import (
-	"log"
 	"os"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/circuitbreaker"
 
+	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go/packages/param"
 )
 
@@ -61,7 +61,7 @@ func (c *ProtocolManagerClient) SelectProtocol(
 	start := time.Now()
 
 	if !c.circuitBreaker.CanExecute() {
-		log.Printf("[CIRCUIT_BREAKER] Protocol Manager service unavailable (Open state). Using fallback.")
+		fiberlog.Warnf("[CIRCUIT_BREAKER] Protocol Manager service unavailable (Open state). Using fallback.")
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
 		return c.getFallbackProtocolResponse()
 	}

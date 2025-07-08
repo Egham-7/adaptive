@@ -2,6 +2,7 @@ package completions
 
 import (
 	"adaptive-backend/internal/models"
+	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go/packages/param"
@@ -24,10 +25,25 @@ func NewParameterService() *ParameterService {
 	return &ParameterService{}
 }
 
+func (s *ParameterService) GetParams(resp *models.ProtocolResponse) (*models.OpenAIParameters, error) {
+	// Pick parameters from the "standard" branch on MinionsProtocol
+	switch resp.Protocol {
+	case models.ProtocolStandardLLM:
+		return &resp.Standard.Parameters, nil
+	case models.ProtocolMinion:
+		return &resp.Standard.Parameters, nil
+	case models.ProtocolMinionsProtocol:
+		return &resp.Standard.Parameters, nil
+	default:
+		return nil, fmt.Errorf("unsupported protocol: %s", resp.Protocol)
+
+	}
+}
+
 // ApplyModelParameters applies OpenAI parameters to a chat completion request.
 func (s *ParameterService) ApplyModelParameters(
 	req *models.ChatCompletionRequest,
-	params models.OpenAIParameters,
+	params *models.OpenAIParameters,
 	requestID string,
 ) error {
 	fiberlog.Infof("[%s] Applying model parameters", requestID)
