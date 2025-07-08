@@ -160,9 +160,10 @@ export const apiKeysRouter = createTRPCRouter({
 
 			// Create a one-time reveal token
 			const revealToken = crypto.randomBytes(32).toString("hex");
-			const encryptionSecret =
-				process.env.API_KEY_ENCRYPTION_SECRET ||
-				"default-secret-change-in-production";
+			if (!process.env.API_KEY_ENCRYPTION_SECRET) {
+				throw new Error("Environment variable API_KEY_ENCRYPTION_SECRET is required but not set.");
+			}
+			const encryptionSecret = process.env.API_KEY_ENCRYPTION_SECRET;
 			const encryptedKey = encryptKey(fullKey, encryptionSecret);
 			const revealExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
