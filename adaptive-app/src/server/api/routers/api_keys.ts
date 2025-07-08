@@ -117,9 +117,9 @@ export const apiKeysRouter = createTRPCRouter({
 				throw new TRPCError({ code: "UNAUTHORIZED" });
 			}
 
-			const randomBytes = crypto.randomBytes(36);
+			const randomBytes = crypto.randomBytes(API_KEY_BYTE_LENGTH);
 			const fullKey = `sk-${randomBytes.toString("base64url")}`;
-			const prefix = fullKey.slice(0, 11);
+			const prefix = fullKey.slice(0, API_KEY_PREFIX_LENGTH);
 			const hash = crypto.createHash("sha256").update(fullKey).digest("hex");
 
 			const expiresAt = input.expires_at
