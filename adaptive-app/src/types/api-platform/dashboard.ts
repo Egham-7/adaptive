@@ -66,6 +66,16 @@ export interface RequestDataPoint {
 	tokens: number;
 }
 
+/**
+ * Data point for error rate charts
+ * Note: date is formatted as string for UI display
+ */
+export interface ErrorRateDataPoint {
+	date: string;
+	errorRate: number;
+	errorCount: number;
+}
+
 // ---- UI-specific Types ----
 
 /**
@@ -88,9 +98,12 @@ export interface DashboardData {
 	savingsPercentage: number;
 	totalTokens: number;
 	totalRequests: number;
+	errorRate: number;
+	errorCount: number;
 	usageData: UsageDataPoint[];
 	tokenData: TokenDataPoint[];
 	requestData: RequestDataPoint[];
+	errorRateData: ErrorRateDataPoint[];
 	taskBreakdown: TaskBreakdownItem[];
 	providers: Provider[];
 }

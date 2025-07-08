@@ -19,16 +19,18 @@ export const usageRouter = createTRPCRouter({
 		.input(
 			z.object({
 				apiKey: z.string(),
-				provider: z.enum([
-					"openai",
-					"anthropic",
-					"gemini",
-					"groq",
-					"deepseek",
-					"huggingface",
-					"grok",
-				]),
-				model: z.string(),
+				provider: z
+					.enum([
+						"openai",
+						"anthropic",
+						"gemini",
+						"groq",
+						"deepseek",
+						"huggingface",
+						"grok",
+					])
+					.nullable(),
+				model: z.string().nullable(),
 				usage: z.object({
 					promptTokens: z.number(),
 					completionTokens: z.number(),
@@ -36,7 +38,6 @@ export const usageRouter = createTRPCRouter({
 				}),
 				duration: z.number(),
 				timestamp: z.date(),
-				cost: z.number().default(0),
 				requestCount: z.number().default(1),
 				metadata: z.record(z.any()).optional(),
 				error: z.string().optional(), // Add error field for failed requests
@@ -65,6 +66,29 @@ export const usageRouter = createTRPCRouter({
 					});
 				}
 
+				// Calculate cost using provider cost table
+				const providerModel =
+					!input.provider || !input.model
+						? null
+						: await ctx.db.providerModel
+								.findFirst({
+									where: {
+										name: input.model,
+										provider: { name: input.provider, isActive: true },
+										isActive: true,
+									},
+									select: { inputTokenCost: true, outputTokenCost: true },
+								})
+								.catch(() => null);
+
+				const calculatedCost = providerModel
+					? (input.usage.promptTokens *
+							providerModel.inputTokenCost.toNumber() +
+							input.usage.completionTokens *
+								providerModel.outputTokenCost.toNumber()) /
+						1000000
+					: 0;
+
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
 					data: {
@@ -76,7 +100,7 @@ export const usageRouter = createTRPCRouter({
 						inputTokens: input.usage.promptTokens,
 						outputTokens: input.usage.completionTokens,
 						totalTokens: input.usage.totalTokens,
-						cost: input.cost,
+						cost: calculatedCost,
 						requestCount: input.requestCount,
 						metadata: {
 							...input.metadata,
@@ -417,11 +441,13 @@ export const usageRouter = createTRPCRouter({
 
 				// Calculate what the cost would be if using only the most expensive provider
 				const calculateAlternativeProviderCost = (usage: {
-					provider: string;
-					model: string;
+					provider: string | null;
+					model: string | null;
 					inputTokens: number;
 					outputTokens: number;
 				}) => {
+					if (!usage.model || !usage.provider) return 0;
+
 					const maxCost = maxCostPerModel.get(usage.model);
 					if (!maxCost) return 0;
 
@@ -477,14 +503,46 @@ export const usageRouter = createTRPCRouter({
 						? (totalSavings / totalEstimatedSingleProviderCost) * 100
 						: 0;
 
+				// Calculate error rate data - find all entries where metadata.error exists
+				const errorUsage = await ctx.db.apiUsage.findMany({
+					where: {
+						...whereClause,
+						metadata: {
+							path: ["error"],
+							not: undefined,
+						},
+					},
+					select: {
+						timestamp: true,
+					},
+				});
+
+				const totalCalls = ensureNumber(totalMetrics._count.id);
+				const errorCount = errorUsage.length;
+				const errorRate = totalCalls > 0 ? (errorCount / totalCalls) * 100 : 0;
+
+				// Group errors by day for trend analysis
+				const errorsByDay = errorUsage.reduce(
+					(acc, usage) => {
+						const dateKey = usage.timestamp.toISOString().split("T")[0];
+						if (dateKey) {
+							acc[dateKey] = (acc[dateKey] || 0) + 1;
+						}
+						return acc;
+					},
+					{} as Record<string, number>,
+				);
+
 				return {
 					totalSpend,
 					totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
 					totalRequests: ensureNumber(totalMetrics._sum.requestCount),
-					totalApiCalls: ensureNumber(totalMetrics._count.id),
+					totalApiCalls: totalCalls,
 					totalEstimatedSingleProviderCost,
 					totalSavings,
 					totalSavingsPercentage,
+					errorRate,
+					errorCount,
 					providerBreakdown: providerBreakdownWithComparison,
 					requestTypeBreakdown: requestTypeUsage.map((usage) => ({
 						type: usage.requestType,
@@ -493,12 +551,16 @@ export const usageRouter = createTRPCRouter({
 						requests: ensureNumber(usage._sum.requestCount),
 						calls: ensureNumber(usage._count.id),
 					})),
-					dailyTrends: dailyUsage.map((usage) => ({
-						date: usage.timestamp,
-						spend: ensureNumber(usage._sum.cost),
-						tokens: ensureNumber(usage._sum.totalTokens),
-						requests: ensureNumber(usage._sum.requestCount),
-					})),
+					dailyTrends: dailyUsage.map((usage) => {
+						const dateKey = usage.timestamp.toISOString().split("T")[0];
+						return {
+							date: usage.timestamp,
+							spend: ensureNumber(usage._sum.cost),
+							tokens: ensureNumber(usage._sum.totalTokens),
+							requests: ensureNumber(usage._sum.requestCount),
+							errorCount: dateKey ? errorsByDay[dateKey] || 0 : 0,
+						};
+					}),
 				};
 			} catch (error) {
 				console.error("Error fetching project analytics:", error);
