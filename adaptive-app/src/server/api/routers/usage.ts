@@ -203,7 +203,11 @@ export const usageRouter = createTRPCRouter({
 
 				return { success: true, usage };
 			} catch (error) {
-				console.error("Failed to record API error:", error);
+				console.error("Failed to record API error:", {
+					error: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
+					input,
+				});
 				return { success: false, error: "Failed to record error" };
 			}
 		}),
