@@ -19,6 +19,7 @@ import type { ChatProps } from "./chat-types";
 export function Chat({
   messages,
   handleSubmit,
+  handleSuggestionSubmit,
   input,
   handleInputChange,
   stop,
@@ -114,11 +115,10 @@ export function Chat({
       <WelcomeScreen
         className={className}
         suggestions={suggestions ?? []}
-        onSuggestionClick={(text) => {
-          // Set input and trigger handleSubmit
+        onSuggestionClick={handleSuggestionSubmit || ((text: string) => {
           handleInputChange({ target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>);
           handleSubmit();
-        }}
+        })}
         handleSubmit={handleSubmit}
         input={input}
         handleInputChange={handleInputChange}

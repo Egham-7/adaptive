@@ -57,6 +57,22 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 		[],
 	);
 
+	const handleSuggestionSubmit = useCallback(
+		async (text: string) => {
+			if (hasReachedLimit) {
+				return;
+			}
+
+			if (!text.trim()) return;
+
+			append({
+				role: "user",
+				parts: [{ type: "text", text }],
+			});
+		},
+		[append, hasReachedLimit],
+	);
+
 	const handleSubmit = useCallback(
 		async (
 			event?: { preventDefault?: () => void },
@@ -104,6 +120,7 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 				input={input}
 				handleInputChange={handleInputChange}
 				handleSubmit={handleSubmit}
+				handleSuggestionSubmit={handleSuggestionSubmit}
 				setMessages={setMessages}
 				isGenerating={isLoading}
 				stop={stop}
