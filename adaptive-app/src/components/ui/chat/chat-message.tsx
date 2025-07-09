@@ -334,11 +334,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   }
 
-  return (
-    <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-      <CircularLoader size="sm" className="text-muted-foreground" />
-    </div>
-  );
+  return <CircularLoader size="sm" className="text-muted-foreground" />;
 };
 
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -413,10 +409,10 @@ interface ToolCallBlockProps {
 
 function ToolCallBlock({ toolPart }: ToolCallBlockProps) {
   const { toolName, state } = toolPart.toolInvocation;
-  const result =
-    toolPart.toolInvocation.state === "result"
-      ? toolPart.toolInvocation.result
-      : undefined;
+  // Only get result when state is "result"
+  const result = toolPart.toolInvocation.state === "result" 
+    ? toolPart.toolInvocation.result 
+    : undefined;
 
   switch (state) {
     case "partial-call":
