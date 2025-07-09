@@ -29,26 +29,6 @@ const handler = (req: NextRequest) =>
 						);
 					}
 				: undefined,
-
-		responseMeta(opts) {
-			const { errors, type } = opts;
-
-			const allOk = errors.length === 0;
-
-			const isQuery = type === "query";
-
-			if (allOk && isQuery) {
-				const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
-
-				return {
-					headers: {
-						"cache-control": `s-maxage=1, stale-while-revalidate=${ONE_DAY_IN_SECONDS}`,
-					},
-				};
-			}
-
-			return {};
-		},
 	});
 
 export { handler as GET, handler as POST };
