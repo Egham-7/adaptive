@@ -20,6 +20,7 @@ export function Chat({
   messages,
   handleSubmit,
   handleSuggestionSubmit,
+  sendMessage,
   input,
   handleInputChange,
   stop,
@@ -49,6 +50,7 @@ export function Chat({
     deleteMessageMutation,
     isGenerating,
     stop,
+    sendMessage,
     limitsProps: {
       hasReachedLimit,
       remainingMessages,
@@ -69,7 +71,7 @@ export function Chat({
   const messageOptions = useCallback(
     (message: UIMessage) => {
       const options = chatState.createMessageOptions(message);
-      
+
       return {
         actions: (
           <MessageActions
@@ -115,10 +117,15 @@ export function Chat({
       <WelcomeScreen
         className={className}
         suggestions={suggestions ?? []}
-        onSuggestionClick={handleSuggestionSubmit || ((text: string) => {
-          handleInputChange({ target: { value: text } } as React.ChangeEvent<HTMLTextAreaElement>);
-          handleSubmit();
-        })}
+        onSuggestionClick={
+          handleSuggestionSubmit ||
+          ((text: string) => {
+            handleInputChange({
+              target: { value: text },
+            } as React.ChangeEvent<HTMLTextAreaElement>);
+            handleSubmit();
+          })
+        }
         handleSubmit={handleSubmit}
         input={input}
         handleInputChange={handleInputChange}
@@ -137,41 +144,49 @@ export function Chat({
 
   // Main chat interface
   return (
-    <ChatContainer className={cn("h-full", className)}>
-      {chatState.messages.length > 0 && (
-        <ChatMessages
-          messages={chatState.messages}
-          isStreaming={isGenerating}
-        >
-          <MessageList
-            messages={chatState.messages}
-            isTyping={chatState.isTyping}
-            messageOptions={messageOptions}
+    <ChatContainer className={cn("h-full relative", className)}>
+      {/* Messages container with proper scroll handling */}
+      <div className="absolute inset-0 flex flex-col">
+        <div className="flex-1 overflow-hidden">
+          {chatState.messages.length > 0 && (
+            <ChatMessages
+              messages={chatState.messages}
+              isStreaming={isGenerating}
+            >
+              <MessageList
+                messages={chatState.messages}
+                isTyping={chatState.isTyping}
+                messageOptions={messageOptions}
+              />
+            </ChatMessages>
+          )}
+
+          {/* Error feedback */}
+          {chatState.error.error && <ChatErrorDisplay />}
+          <ErrorDisplay
+            isError={chatState.error.isError}
+            error={chatState.error.error}
+            onRetry={onRetry}
           />
-        </ChatMessages>
-      )}
 
-      {/* Error feedback */}
-      {chatState.error.error && <ChatErrorDisplay />}
-      <ErrorDisplay 
-        isError={chatState.error.isError} 
-        error={chatState.error.error} 
-        onRetry={onRetry} 
-      />
+          <ChatStatus {...chatStatusProps} />
+        </div>
 
-      <ChatStatus {...chatStatusProps} />
-
-      <MessageInputWrapper
-        className="mt-2 mb-4"
-        isPending={isGenerating || chatState.isTyping}
-        handleSubmit={handleSubmit}
-        hasReachedLimit={chatState.limits.hasReachedLimit}
-        value={input}
-        onChange={handleInputChange}
-        stop={chatState.handleStop}
-        isGenerating={isGenerating}
-        transcribeAudio={transcribeAudio}
-      />
+        {/* Fixed input at bottom */}
+        <div className="flex-shrink-0 p-4 bg-background">
+          <MessageInputWrapper
+            className="mx-auto max-w-3xl"
+            isPending={isGenerating || chatState.isTyping}
+            handleSubmit={handleSubmit}
+            hasReachedLimit={chatState.limits.hasReachedLimit}
+            value={input}
+            onChange={handleInputChange}
+            stop={chatState.handleStop}
+            isGenerating={isGenerating}
+            transcribeAudio={transcribeAudio}
+          />
+        </div>
+      </div>
     </ChatContainer>
   );
 }

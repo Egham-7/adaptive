@@ -24,19 +24,23 @@ export function ChatMessages({
   } = useAutoScroll([messages], isStreaming);
 
   return (
-    <div
-      className="flex-1 overflow-y-auto"
-      ref={containerRef}
-      onScroll={handleScroll}
-      onTouchStart={handleTouchStart}
-    >
-      {children}
+    <div className="relative h-full">
+      <div
+        className="h-full overflow-y-auto"
+        ref={containerRef}
+        onScroll={handleScroll}
+        onTouchStart={handleTouchStart}
+      >
+        {children}
+      </div>
 
       {!shouldAutoScroll && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
           <Button
-            onClick={scrollToBottom}
-            className="fade-in-0 slide-in-from-bottom-1 h-8 w-8 animate-in rounded-full ease-in-out shadow-lg"
+            onClick={() => {
+              scrollToBottom();
+            }}
+            className="fade-in-0 slide-in-from-bottom-1 h-8 w-8 animate-in rounded-full ease-in-out shadow-lg bg-background border"
             size="icon"
             variant="ghost"
           >
@@ -47,4 +51,3 @@ export function ChatMessages({
     </div>
   );
 }
-

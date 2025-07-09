@@ -334,11 +334,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   }
 
-  return (
-    <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-      <CircularLoader size="sm" className="text-muted-foreground" />
-    </div>
-  );
+  return <CircularLoader size="sm" className="text-muted-foreground" />;
 };
 
 function base64ToUint8Array(base64: string): Uint8Array {

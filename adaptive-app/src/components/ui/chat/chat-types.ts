@@ -69,6 +69,7 @@ export interface ChatInputProps {
     options?: { files?: FileList },
   ) => void;
   handleSuggestionSubmit?: (text: string) => Promise<void>;
+  sendMessage?: (options: { text: string }) => Promise<void>;
   transcribeAudio?: (blob: Blob) => Promise<string>;
 }
 

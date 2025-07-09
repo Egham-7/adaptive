@@ -16,21 +16,24 @@ export function useAutoScroll(
 
 	const scrollToBottom = useCallback(() => {
 		if (containerRef.current) {
-			containerRef.current.scrollTop = containerRef.current.scrollHeight;
+			containerRef.current.scrollTo({
+				top: containerRef.current.scrollHeight,
+				behavior: 'smooth'
+			});
 		}
 	}, []);
 
 	const scrollToBottomSmooth = useCallback(() => {
 		if (containerRef.current && shouldAutoScroll) {
 			const container = containerRef.current;
-			const targetScrollTop = container.scrollHeight - container.clientHeight;
 
 			// Only auto-scroll if we're close to the bottom already
 			const distanceFromBottom = Math.abs(
 				container.scrollHeight - container.scrollTop - container.clientHeight,
 			);
 			if (distanceFromBottom < ACTIVATION_THRESHOLD * 2) {
-				container.scrollTop = targetScrollTop;
+				// Use instant scroll during streaming for better performance
+				container.scrollTop = container.scrollHeight;
 			}
 		}
 	}, [shouldAutoScroll]);
@@ -78,9 +81,12 @@ export function useAutoScroll(
 	// Effect for regular message updates
 	useEffect(() => {
 		if (shouldAutoScroll) {
-			scrollToBottom();
+			// Use instant scroll for new messages to avoid lag
+			if (containerRef.current) {
+				containerRef.current.scrollTop = containerRef.current.scrollHeight;
+			}
 		}
-	}, [shouldAutoScroll, scrollToBottom, ...dependencies]);
+	}, [shouldAutoScroll, ...dependencies]);
 
 	// Effect for streaming content - continuously scroll during streaming
 	useEffect(() => {
