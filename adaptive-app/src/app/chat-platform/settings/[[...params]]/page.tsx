@@ -99,7 +99,6 @@ const SettingsPage: React.FC = () => {
 							<Target className="h-4 w-4 shrink-0" />
 							Preferences
 						</TabsTrigger>
-
 					</TabsList>
 
 					<TabsContent value="providers">
@@ -116,7 +115,6 @@ const SettingsPage: React.FC = () => {
 					<TabsContent value="preferences">
 						<PreferencesTab />
 					</TabsContent>
-
 				</Tabs>
 			</div>
 		</div>

@@ -5,19 +5,18 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import ChatbotPricing from "../../landing_page/chatbot-pricing";
 
 interface PlansModalProps {
-  children: React.ReactNode;
+	children: React.ReactNode;
 }
 
 export function PlansModal({ children }: PlansModalProps) {
-  const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(false);
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="w-full">
-        <ChatbotPricing />
-      </DialogContent>
-    </Dialog>
-  );
+	return (
+		<Dialog open={open} onOpenChange={setOpen}>
+			<DialogTrigger asChild>{children}</DialogTrigger>
+			<DialogContent className="w-full">
+				<ChatbotPricing />
+			</DialogContent>
+		</Dialog>
+	);
 }
-
