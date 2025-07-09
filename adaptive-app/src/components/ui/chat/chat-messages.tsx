@@ -37,9 +37,7 @@ export function ChatMessages({
       {!shouldAutoScroll && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
           <Button
-            onClick={() => {
-              scrollToBottom();
-            }}
+            onClick={scrollToBottom}
             className="fade-in-0 slide-in-from-bottom-1 h-8 w-8 animate-in rounded-full ease-in-out shadow-lg bg-background border"
             size="icon"
             variant="ghost"

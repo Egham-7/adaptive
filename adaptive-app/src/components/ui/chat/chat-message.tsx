@@ -409,10 +409,10 @@ interface ToolCallBlockProps {
 
 function ToolCallBlock({ toolPart }: ToolCallBlockProps) {
   const { toolName, state } = toolPart.toolInvocation;
-  const result =
-    toolPart.toolInvocation.state === "result"
-      ? toolPart.toolInvocation.result
-      : undefined;
+  // Only get result when state is "result"
+  const result = toolPart.toolInvocation.state === "result" 
+    ? toolPart.toolInvocation.result 
+    : undefined;
 
   switch (state) {
     case "partial-call":
