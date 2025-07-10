@@ -328,7 +328,9 @@ class GenAIPerfAnalyzer:
 
 class GenAIPerfBenchmarker:
     def __init__(
-        self, router_url: str = "localhost:8080", model_name: str = "adaptive-go-api"
+        self,
+        router_url: str = "http://localhost:8080",
+        model_name: str = "adaptive-go-api",
     ):
         self.router_url = router_url
         self.model_name = model_name
@@ -337,8 +339,14 @@ class GenAIPerfBenchmarker:
 
     def check_api_health(self) -> bool:
         """Check if the Go API is accessible"""
-        response = requests.get(f"https://{self.router_url}/health", timeout=5)
-        return response.status_code == 200
+        try:
+            # Use the full URL as provided
+            health_url = f"{self.router_url.rstrip('/')}/health"
+            response = requests.get(health_url, timeout=5)
+            return response.status_code == 200
+        except (requests.RequestException, ConnectionError, requests.Timeout) as e:
+            console.print(f"[dim]Health check failed for {self.router_url}: {e}[/dim]")
+            return False
 
     def run_genai_perf_command(self, **kwargs) -> bool:
         """Run genai-perf command with given parameters"""
@@ -348,7 +356,7 @@ class GenAIPerfBenchmarker:
             "genai-perf",
             "profile",
             "-m",
-            self.model_name,
+"auto",  # Placeholder model name since API auto-selects
             "--endpoint-type",
             "chat",
             "--tokenizer",
@@ -368,15 +376,18 @@ class GenAIPerfBenchmarker:
             else:
                 cmd.extend([f"--{key.replace('_', '-')}", str(value)])
 
+        console.print(f"[dim]Running command: {' '.join(cmd)}[/dim]")
+
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
             if result.returncode != 0:
-                console.print(f"[red]Command failed with output: {result.stderr}[/red]")
+                console.print(f"[red]Command failed with stdout: {result.stdout}[/red]")
+                console.print(f"[red]Command failed with stderr: {result.stderr}[/red]")
             return result.returncode == 0
         except subprocess.TimeoutExpired:
             console.print("[red]Benchmark timed out[/red]")
             return False
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             console.print(f"[red]Error running benchmark: {e}[/red]")
             return False
 
@@ -423,7 +434,9 @@ class GenAIPerfBenchmarker:
 
 @app.command()
 def benchmark(
-    url: str = typer.Option("localhost:8080", "--url", "-u", help="Router URL"),
+    url: str = typer.Option(
+        "http://localhost:8080", "--url", "-u", help="Full Router URL with protocol"
+    ),
     model: str = typer.Option("adaptive-go-api", "--model", "-m", help="Model name"),
     concurrency: Optional[str] = typer.Option(
         None,
@@ -554,7 +567,9 @@ def status(
 
 @app.command()
 def run_all(
-    url: str = typer.Option("localhost:8080", "--url", "-u", help="Router URL"),
+    url: str = typer.Option(
+        "http://localhost:8080", "--url", "-u", help="Full Router URL with protocol"
+    ),
     model: str = typer.Option("adaptive-go-api", "--model", "-m", help="Model name"),
     concurrency: Optional[str] = typer.Option(
         None, "--concurrency", "-c", help="Comma-separated concurrency levels"

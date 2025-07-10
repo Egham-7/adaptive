@@ -255,7 +255,7 @@ class ProtocolManager:
             case ProtocolType.MINION:
                 minion = MinionInfo(
                     model=minion_model,
-                    base_url=f"https://router.huggingface.co/hf-inference/models/{minion_model}/v1",
+                    base_url="https://router.huggingface.co/groq/openai/v1",
                     parameters=parameters,
                     alternatives=minion_alts,
                 )
