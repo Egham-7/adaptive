@@ -97,7 +97,7 @@ class ProtocolManager:
         return [
             HuggingFaceAlternative(
                 model=model,
-                base_url=f"https://router.huggingface.co/groq/openai/v1",
+                base_url="https://router.huggingface.co/groq/openai/v1",
             )
             for model in minion_alternatives
         ]
