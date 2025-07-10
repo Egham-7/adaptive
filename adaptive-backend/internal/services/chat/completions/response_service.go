@@ -76,6 +76,7 @@ func (s *ResponseService) HandleProtocol(
 		}
 		// For HuggingFace providers, the model is embedded in the BaseURL, so don't set req.Model
 		if resp.Minion != nil {
+			req.Model = shared.ChatModel(resp.Minion.Model)
 			fiberlog.Infof("[%s] Using minion model: %s with BaseURL: %s", requestID, resp.Minion.Model, resp.Minion.BaseURL)
 		}
 		return s.handleMinion(c, *minionProv, req, requestID, isStream)
