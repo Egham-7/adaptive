@@ -31,7 +31,7 @@ func (s *ParameterService) GetParams(resp *models.ProtocolResponse) (*models.Ope
 	case models.ProtocolStandardLLM:
 		return &resp.Standard.Parameters, nil
 	case models.ProtocolMinion:
-		return &resp.Standard.Parameters, nil
+		return &resp.Minion.Parameters, nil
 	case models.ProtocolMinionsProtocol:
 		return &resp.Standard.Parameters, nil
 	default:
