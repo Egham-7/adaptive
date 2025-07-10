@@ -90,7 +90,7 @@ export const projectsRouter = createTRPCRouter({
 						});
 					}
 
-					return project;
+					return project as ProjectWithMembersAndOrganization;
 				} catch (error) {
 					console.error("Error fetching project:", error);
 					throw new TRPCError({
@@ -155,7 +155,7 @@ export const projectsRouter = createTRPCRouter({
 					},
 				});
 
-				return project;
+				return project as ProjectWithMembersAndOrganization;
 			} catch (error) {
 				console.error("Error creating project:", error);
 				throw new TRPCError({

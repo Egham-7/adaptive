@@ -2,7 +2,14 @@
 
 import { type VariantProps, cva } from "class-variance-authority";
 import { motion } from "framer-motion";
-import { Check, ChevronRight, Code2, RotateCcw, Terminal, X } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Code2,
+  RotateCcw,
+  Terminal,
+  X,
+} from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -33,11 +40,11 @@ type ToolInvocationUIPart = Extract<
 >;
 
 const chatBubbleVariants = cva(
-  "relative max-w-3xl break-words rounded-lg p-4 text-sm transition-colors",
+  "relative break-words text-sm transition-colors",
   {
     variants: {
       isUser: {
-        true: "bg-primary text-primary-foreground ml-auto",
+        true: "bg-primary text-primary-foreground  max-w-max rounded-lg p-4",
         false: "text-foreground w-full max-w-none p-0 bg-transparent",
       },
       animation: {
@@ -199,8 +206,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
               <React.Fragment key={`text-${index}`}>
                 <div className="relative group/message w-full">
-                  <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-                    <MarkdownRenderer>{isStreaming ? partAnimatedContent : part.text}</MarkdownRenderer>
+                  <div
+                    className={cn(chatBubbleVariants({ isUser, animation }))}
+                  >
+                    <MarkdownRenderer>
+                      {isStreaming ? partAnimatedContent : part.text}
+                    </MarkdownRenderer>
                   </div>
                   {actions && index === parts.length - 1 && (
                     <div className="absolute top-0 right-0 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
@@ -260,9 +271,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return (
       <div className="w-full">
         <div className="relative group/message w-full">
-          <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-            <MarkdownRenderer>{isStreaming ? animatedContent : content}</MarkdownRenderer>
-          </div>
+          <MarkdownRenderer>
+            {isStreaming ? animatedContent : content}
+          </MarkdownRenderer>
           {actions && (
             <div className="absolute top-0 right-0 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
               {actions}
@@ -288,15 +299,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   if (isError) {
     return (
       <div className="w-full">
-        <div 
-          className={cn(chatBubbleVariants({ isUser: false, animation }), "border-destructive/20 bg-destructive/10 text-destructive-foreground")}
+        <div
+          className={cn(
+            chatBubbleVariants({ isUser: false, animation }),
+            "border-destructive/20 bg-destructive/10 text-destructive-foreground",
+          )}
           role="alert"
           aria-live="polite"
         >
           <div className="flex items-start gap-3">
             <X className="h-4 w-4 mt-1 flex-shrink-0" aria-hidden="true" />
             <div className="flex-1">
-              <h4 className="font-medium text-sm mb-1">Error generating response</h4>
+              <h4 className="font-medium text-sm mb-1">
+                Error generating response
+              </h4>
               <p className="text-xs opacity-90 mb-2">
                 {error?.message || "Something went wrong. Please try again."}
               </p>
@@ -318,11 +334,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   }
 
-  return (
-    <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-      <CircularLoader size="sm" className="text-muted-foreground" />
-    </div>
-  );
+  return <CircularLoader size="sm" className="text-muted-foreground" />;
 };
 
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -397,7 +409,10 @@ interface ToolCallBlockProps {
 
 function ToolCallBlock({ toolPart }: ToolCallBlockProps) {
   const { toolName, state } = toolPart.toolInvocation;
-  const result = toolPart.toolInvocation.state === "result" ? toolPart.toolInvocation.result : undefined;
+  // Only get result when state is "result"
+  const result = toolPart.toolInvocation.state === "result" 
+    ? toolPart.toolInvocation.result 
+    : undefined;
 
   switch (state) {
     case "partial-call":

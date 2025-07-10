@@ -1,8 +1,9 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs"; // Import Clerk's useAuth hook
-import { BadgeCheck, ChevronsUpDown, LogOut, Sparkles } from "lucide-react";
+import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
 import Link from "next/link";
+import { FaCrown } from "react-icons/fa";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	DropdownMenu,
@@ -19,6 +20,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { PlansModal } from "./plans-modal";
 
 export function NavUser({
 	user,
@@ -72,10 +74,12 @@ export function NavUser({
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem>
-								<Sparkles />
-								<Link href="/chat-platform/settings?tab=plans">View Plans</Link>
-							</DropdownMenuItem>
+							<PlansModal>
+								<DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+									<FaCrown />
+									View Plans
+								</DropdownMenuItem>
+							</PlansModal>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>

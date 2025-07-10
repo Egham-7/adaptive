@@ -80,7 +80,7 @@ export const organizationsRouter = createTRPCRouter({
 						});
 					}
 
-					return organization;
+					return organization as OrganizationWithMembersAndCount;
 				} catch (error) {
 					console.error("Error fetching organization:", error);
 					throw new TRPCError({
@@ -126,7 +126,7 @@ export const organizationsRouter = createTRPCRouter({
 						},
 					});
 
-					return organization;
+					return organization as OrganizationWithMembersAndCount;
 				} catch (error) {
 					console.error("Error creating organization:", error);
 					throw new TRPCError({

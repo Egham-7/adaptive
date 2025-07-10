@@ -1,9 +1,8 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { Brain, CreditCard, Settings, Target, User } from "lucide-react";
+import { Brain, Settings, Target, User } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { PlansTab } from "@/app/_components/chat-platform/settings/plans-tab";
 import { PreferencesTab } from "@/app/_components/chat-platform/settings/preferences-tab";
 import { ProfileTab } from "@/app/_components/chat-platform/settings/profile-tab";
 import { ProvidersTab } from "@/app/_components/chat-platform/settings/providers-tab";
@@ -100,14 +99,6 @@ const SettingsPage: React.FC = () => {
 							<Target className="h-4 w-4 shrink-0" />
 							Preferences
 						</TabsTrigger>
-
-						<TabsTrigger
-							value="plans"
-							className="flex items-center gap-2 truncate"
-						>
-							<CreditCard className="h-4 w-4 shrink-0" />
-							Plans
-						</TabsTrigger>
 					</TabsList>
 
 					<TabsContent value="providers">
@@ -123,10 +114,6 @@ const SettingsPage: React.FC = () => {
 
 					<TabsContent value="preferences">
 						<PreferencesTab />
-					</TabsContent>
-
-					<TabsContent value="plans">
-						<PlansTab />
 					</TabsContent>
 				</Tabs>
 			</div>

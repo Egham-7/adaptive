@@ -1,6 +1,8 @@
 package main
 
 import (
+	"adaptive-backend/internal/api"
+	"adaptive-backend/internal/middleware"
 	"context"
 	"fmt"
 	"os"
@@ -8,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"adaptive-backend/internal/api"
-	"adaptive-backend/internal/middleware"
 	"github.com/joho/godotenv"
 
 	"github.com/gofiber/fiber/v2"
@@ -96,13 +96,7 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"chat":      chatEndpoint,
-				"openai":    "/v1/openai/chat/completions",
-				"anthropic": "/v1/anthropic/chat/completions",
-				"groq":      "/v1/groq/chat/completions",
-				"deepseek":  "/v1/deepseek/chat/completions",
-				"gemini":    "/v1/gemini/chat/completions",
-				"api_keys":  "/api/api_keys",
+				"chat": chatEndpoint,
 			},
 		})
 	})
