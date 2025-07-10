@@ -41,10 +41,6 @@ class Alternative(BaseModel):
     model: str
 
 
-class GroqAlternative(BaseModel):
-    model: str
-
-
 class StandardLLMInfo(BaseModel):
     provider: str
     model: str
@@ -53,9 +49,10 @@ class StandardLLMInfo(BaseModel):
 
 
 class MinionInfo(BaseModel):
+    provider: str
     model: str
     parameters: OpenAIParameters
-    alternatives: list[GroqAlternative]
+    alternatives: list[Alternative]
 
 
 # Extensible OrchestratorResponse for future protocols

@@ -7,7 +7,6 @@ from adaptive_ai.models.llm_core_models import ModelCapability, ModelSelectionRe
 from adaptive_ai.models.llm_enums import ProtocolType
 from adaptive_ai.models.llm_orchestration_models import (
     Alternative,
-    GroqAlternative,
     MinionInfo,
     OpenAIParameters,
     OrchestratorResponse,
@@ -51,9 +50,9 @@ class ProtocolSelectionOutput(BaseModel):
         description="Alternative models for standard_llm. Each should have provider "
         "and model.",
     )
-    minion_alternatives: list[GroqAlternative] = Field(
+    minion_alternatives: list[Alternative] = Field(
         default=[],
-        description="Alternative Groq models for minion protocol.",
+        description="Alternative models for minion protocol.",
     )
 
 
@@ -91,16 +90,19 @@ class ProtocolManager:
         return "\n".join(lines)
 
     def _convert_minion_alternatives(
-        self, minion_alternatives: list[str]
-    ) -> list[GroqAlternative]:
-        """Convert minion alternative model names to GroqAlternative objects."""
-        return [GroqAlternative(model=model) for model in minion_alternatives]
+        self, minion_alternatives: list[dict[str, str]]
+    ) -> list[Alternative]:
+        """Convert minion alternative objects to Alternative objects."""
+        return [
+            Alternative(provider=alt["provider"], model=alt["model"])
+            for alt in minion_alternatives
+        ]
 
     def select_protocol(
         self,
         candidate_models: list[ModelCapability],
         minion_model: str,
-        minion_alternatives: list[str],
+        minion_alternatives: list[dict[str, str]],
         classification_result: ClassificationResult,
         token_count: int = 0,
         request: ModelSelectionRequest | None = None,
@@ -200,7 +202,7 @@ class ProtocolManager:
         else:
             result = ProtocolSelectionOutput(
                 protocol=protocol_choice,
-                provider="huggingface",
+                provider="groq",
                 model=minion_model,
                 explanation=f"Rule-based selection: {protocol_choice} for efficiency",
                 temperature=0.7,
@@ -248,7 +250,8 @@ class ProtocolManager:
                 return OrchestratorResponse(protocol=protocol, standard=standard)
             case ProtocolType.MINION:
                 minion = MinionInfo(
-                    model=minion_model,
+                    provider=result.provider,
+                    model=result.model,
                     parameters=parameters,
                     alternatives=minion_alts,
                 )

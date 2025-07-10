@@ -77,7 +77,7 @@ func (s *ResponseService) HandleProtocol(
 		// For HuggingFace providers, the model is embedded in the BaseURL, so don't set req.Model
 		if resp.Minion != nil {
 			req.Model = shared.ChatModel(resp.Minion.Model)
-			fiberlog.Infof("[%s] Using minion model: %s with BaseURL: %s", requestID, resp.Minion.Model, resp.Minion.BaseURL)
+			fiberlog.Infof("[%s] Using minion model: %s with provider: %s", requestID, resp.Minion.Model, resp.Minion.Provider)
 		}
 		return s.handleMinion(c, *minionProv, req, requestID, isStream)
 
@@ -188,7 +188,7 @@ func (s *ResponseService) handleMinionsProtocol(
 
 	// Extract minion model for Groq HF inference router
 	minionModel := resp.Minion.Model
-	fiberlog.Infof("[%s] Using minion model: %s with BaseURL: %s", requestID, resp.Minion.Model, resp.Minion.BaseURL)
+	fiberlog.Infof("[%s] Using minion model: %s with provider: %s", requestID, resp.Minion.Model, resp.Minion.Provider)
 
 	if isStream {
 		fiberlog.Infof("[%s] streaming MinionS response", requestID)

@@ -165,27 +165,18 @@ func (h *CompletionHandler) buildMinionCandidates(
 ) ([]candidate, error) {
 	var out []candidate
 
-	var baseURL *string
-	if min.BaseURL != "" {
-		baseURL = &min.BaseURL
-	}
-
-	svc, err := providers.NewLLMProviderWithBaseURL("huggingface", baseURL)
+	svc, err := providers.NewLLMProviderWithBaseURL(min.Provider, nil)
 	if err != nil {
-		return nil, fmt.Errorf("huggingface model %s: %w", min.Model, err)
+		return nil, fmt.Errorf("%s model %s: %w", min.Provider, min.Model, err)
 	}
-	out = append(out, candidate{"huggingface", svc, models.ProtocolMinion})
+	out = append(out, candidate{min.Provider, svc, models.ProtocolMinion})
 
 	for _, alt := range min.Alternatives {
-		var altBaseURL *string
-		if alt.BaseURL != "" {
-			altBaseURL = &alt.BaseURL
-		}
-		svc, err := providers.NewLLMProviderWithBaseURL("huggingface", altBaseURL)
+		svc, err := providers.NewLLMProviderWithBaseURL(alt.Provider, nil)
 		if err != nil {
-			return nil, fmt.Errorf("huggingface alternative model %s: %w", alt.Model, err)
+			return nil, fmt.Errorf("%s alternative model %s: %w", alt.Provider, alt.Model, err)
 		}
-		out = append(out, candidate{alt.Model, svc, models.ProtocolMinion})
+		out = append(out, candidate{alt.Provider, svc, models.ProtocolMinion})
 	}
 	return out, nil
 }
