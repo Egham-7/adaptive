@@ -33,8 +33,8 @@ func (s *ResponseService) getProviderForProtocol(protocolName string, prov provi
 		// Standard protocol: just the provider name
 		return prov.GetProviderName()
 	case protocolMinion:
-		// Minion protocol: huggingface (minionProvider is always HF for now)
-		return "huggingface"
+		// Minion protocol: use groq provider for minion models
+		return "groq"
 	case protocolMinions:
 		// MinionsProtocol: use the remote provider
 		return prov.GetProviderName()

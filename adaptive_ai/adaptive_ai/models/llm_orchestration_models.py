@@ -41,9 +41,8 @@ class Alternative(BaseModel):
     model: str
 
 
-class HuggingFaceAlternative(BaseModel):
+class GroqAlternative(BaseModel):
     model: str
-    base_url: str | None = Field(None, alias="base_url")
 
 
 class StandardLLMInfo(BaseModel):
@@ -55,9 +54,8 @@ class StandardLLMInfo(BaseModel):
 
 class MinionInfo(BaseModel):
     model: str
-    base_url: str | None = Field(None, alias="base_url")
     parameters: OpenAIParameters
-    alternatives: list[HuggingFaceAlternative]
+    alternatives: list[GroqAlternative]
 
 
 # Extensible OrchestratorResponse for future protocols

@@ -7,7 +7,7 @@ from adaptive_ai.models.llm_core_models import ModelCapability, ModelSelectionRe
 from adaptive_ai.models.llm_enums import ProtocolType
 from adaptive_ai.models.llm_orchestration_models import (
     Alternative,
-    HuggingFaceAlternative,
+    GroqAlternative,
     MinionInfo,
     OpenAIParameters,
     OrchestratorResponse,
@@ -51,9 +51,9 @@ class ProtocolSelectionOutput(BaseModel):
         description="Alternative models for standard_llm. Each should have provider "
         "and model.",
     )
-    minion_alternatives: list[HuggingFaceAlternative] = Field(
+    minion_alternatives: list[GroqAlternative] = Field(
         default=[],
-        description="Alternative HuggingFace models. Each should have model and optionally base_url.",
+        description="Alternative Groq models for minion protocol.",
     )
 
 
@@ -92,15 +92,9 @@ class ProtocolManager:
 
     def _convert_minion_alternatives(
         self, minion_alternatives: list[str]
-    ) -> list[HuggingFaceAlternative]:
-        """Convert minion alternative model names to HuggingFaceAlternative objects."""
-        return [
-            HuggingFaceAlternative(
-                model=model,
-                base_url="https://router.huggingface.co/groq/openai/v1",
-            )
-            for model in minion_alternatives
-        ]
+    ) -> list[GroqAlternative]:
+        """Convert minion alternative model names to GroqAlternative objects."""
+        return [GroqAlternative(model=model) for model in minion_alternatives]
 
     def select_protocol(
         self,
@@ -255,7 +249,6 @@ class ProtocolManager:
             case ProtocolType.MINION:
                 minion = MinionInfo(
                     model=minion_model,
-                    base_url="https://router.huggingface.co/groq/openai/v1",
                     parameters=parameters,
                     alternatives=minion_alts,
                 )
