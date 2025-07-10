@@ -337,7 +337,7 @@ class GenAIPerfBenchmarker:
 
     def check_api_health(self) -> bool:
         """Check if the Go API is accessible"""
-        response = requests.get(f"http://{self.router_url}/health", timeout=5)
+        response = requests.get(f"https://{self.router_url}/health", timeout=5)
         return response.status_code == 200
 
     def run_genai_perf_command(self, **kwargs) -> bool:
@@ -351,8 +351,8 @@ class GenAIPerfBenchmarker:
             self.model_name,
             "--endpoint-type",
             "chat",
-            "--service-kind",
-            "openai",
+            "--tokenizer",
+            "gpt2",
             "-u",
             self.router_url,
         ]
@@ -370,6 +370,8 @@ class GenAIPerfBenchmarker:
 
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            if result.returncode != 0:
+                console.print(f"[red]Command failed with output: {result.stderr}[/red]")
             return result.returncode == 0
         except subprocess.TimeoutExpired:
             console.print("[red]Benchmark timed out[/red]")
@@ -402,8 +404,7 @@ class GenAIPerfBenchmarker:
                     extra_inputs_max_tokens=max_tokens,
                     extra_inputs_temperature=0.7,
                     measurement_interval=8000,
-                    profile_export_file=self.results_dir
-                    / f"simple_{test_name}_c{concurrency}.json",
+                    profile_export_file=f"simple_{test_name}_c{concurrency}.json",
                     artifact_dir=self.results_dir
                     / f"simple_{test_name}_c{concurrency}_artifacts",
                 )
