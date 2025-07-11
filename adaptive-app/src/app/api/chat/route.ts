@@ -1,4 +1,4 @@
-import { createOpenAI } from "@ai-sdk/openai";
+import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { convertToModelMessages, streamText, type UIMessage } from "ai";
@@ -89,11 +89,6 @@ export async function POST(req: Request) {
 		};
 
 		await api.messages.create(userMessage);
-
-		const adaptive = createOpenAI({
-			baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
-			name: "Adaptive AI",
-		});
 
 		const result = streamText({
 			model: adaptive.chat(""),
