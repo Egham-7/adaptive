@@ -19,7 +19,6 @@ const (
 	sseDoneMessage = "data: [DONE]\n\n"
 )
 
-
 type OpenAIStreamReader struct {
 	stream_readers.BaseStreamReader
 	stream        *ssestream.Stream[openai.ChatCompletionChunk]
