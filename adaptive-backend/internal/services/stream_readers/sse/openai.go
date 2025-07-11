@@ -19,9 +19,6 @@ const (
 	sseDoneMessage = "data: [DONE]\n\n"
 )
 
-// TODO: Remove chunk cleaning logic once AI SDK integration is complete.
-// The SDK should provide clean chunks without empty fields by default.
-
 type OpenAIStreamReader struct {
 	stream_readers.BaseStreamReader
 	stream        *ssestream.Stream[openai.ChatCompletionChunk]
