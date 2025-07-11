@@ -293,4 +293,3 @@ func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo) ([]Cand
 	}
 	return out, nil
 }
-

@@ -138,7 +138,7 @@ func (s *ResponseService) handleStandard(
 	prov, err := providers.NewLLMProvider(standardInfo.Provider)
 	if err != nil {
 		fiberlog.Warnf("[%s] Primary standard provider %s failed: %v", requestID, standardInfo.Provider, err)
-		
+
 		// Primary failed, try alternatives
 		if len(standardInfo.Alternatives) > 0 {
 			fiberlog.Infof("[%s] Trying %d standard alternatives", requestID, len(standardInfo.Alternatives))
@@ -163,7 +163,6 @@ func (s *ResponseService) handleStandard(
 	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolStandard)
 }
 
-
 // handleMinion handles both streaming and regular minion flows with fallback.
 func (s *ResponseService) handleMinion(
 	c *fiber.Ctx,
@@ -181,7 +180,7 @@ func (s *ResponseService) handleMinion(
 	prov, err := providers.NewLLMProvider(minionInfo.Provider)
 	if err != nil {
 		fiberlog.Warnf("[%s] Primary minion provider %s failed: %v", requestID, minionInfo.Provider, err)
-		
+
 		// Primary failed, try alternatives
 		if len(minionInfo.Alternatives) > 0 {
 			fiberlog.Infof("[%s] Trying %d minion alternatives", requestID, len(minionInfo.Alternatives))
@@ -226,7 +225,7 @@ func (s *ResponseService) handleMinionsProtocol(
 	remoteProv, err := providers.NewLLMProvider(resp.Standard.Provider)
 	if err != nil {
 		fiberlog.Warnf("[%s] Primary standard provider %s failed: %v", requestID, resp.Standard.Provider, err)
-		
+
 		// Primary failed, try alternatives
 		if len(resp.Standard.Alternatives) > 0 {
 			fallbackSvc := NewFallbackService()
@@ -246,13 +245,13 @@ func (s *ResponseService) handleMinionsProtocol(
 		req.Model = shared.ChatModel(resp.Standard.Model)
 		fiberlog.Infof("[%s] Using primary standard provider: %s (%s)", requestID, resp.Standard.Provider, resp.Standard.Model)
 	}
-	
+
 	// Try minion provider first
 	minionProv, err := providers.NewLLMProvider(resp.Minion.Provider)
 	var minionModel string
 	if err != nil {
 		fiberlog.Warnf("[%s] Primary minion provider %s failed: %v", requestID, resp.Minion.Provider, err)
-		
+
 		// Primary failed, try alternatives
 		if len(resp.Minion.Alternatives) > 0 {
 			fallbackSvc := NewFallbackService()
