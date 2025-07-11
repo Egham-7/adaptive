@@ -1,6 +1,3 @@
 .env.*
 .env
 *.csv
-adaptive_ai/adaptive_ai/benchmark_testing/
-benchmarks/
-benchmarking/api_testing.ipynb

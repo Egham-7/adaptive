@@ -3,8 +3,10 @@ package completions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/minions"
+	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -33,8 +35,8 @@ func (s *ResponseService) getProviderForProtocol(protocolName string, prov provi
 		// Standard protocol: just the provider name
 		return prov.GetProviderName()
 	case protocolMinion:
-		// Minion protocol: huggingface (minionProvider is always HF for now)
-		return "huggingface"
+		// Minion protocol: use groq provider for minion models
+		return "groq"
 	case protocolMinions:
 		// MinionsProtocol: use the remote provider
 		return prov.GetProviderName()
@@ -50,8 +52,6 @@ func (s *ResponseService) getProviderForProtocol(protocolName string, prov provi
 func (s *ResponseService) HandleProtocol(
 	c *fiber.Ctx,
 	protocol models.ProtocolType,
-	remoteProv *provider_interfaces.LLMProvider,
-	minionProv *provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
 	resp *models.ProtocolResponse,
 	requestID string,
@@ -59,41 +59,21 @@ func (s *ResponseService) HandleProtocol(
 ) error {
 	switch protocol {
 	case models.ProtocolStandardLLM:
-		if remoteProv == nil {
-			return s.HandleError(c, fiber.StatusInternalServerError,
-				"Failed to get remote provider: remoteProv is nil", requestID)
-		}
 		if resp.Standard != nil {
 			req.Model = shared.ChatModel(resp.Standard.Model)
 			fiberlog.Infof("[%s] Set standard model to: %s", requestID, resp.Standard.Model)
 		}
-		return s.handleStandard(c, *remoteProv, req, requestID, isStream)
+		return s.handleStandard(c, req, resp.Standard, requestID, isStream)
 
 	case models.ProtocolMinion:
-		if minionProv == nil {
-			return s.HandleError(c, fiber.StatusInternalServerError,
-				"Failed to get minion provider: minionProv is nil", requestID)
-		}
-		// For HuggingFace providers, the model is embedded in the BaseURL, so don't set req.Model
 		if resp.Minion != nil {
-			fiberlog.Infof("[%s] Using minion model: %s with BaseURL: %s", requestID, resp.Minion.Model, resp.Minion.BaseURL)
+			req.Model = shared.ChatModel(resp.Minion.Model)
+			fiberlog.Infof("[%s] Using minion model: %s with provider: %s", requestID, resp.Minion.Model, resp.Minion.Provider)
 		}
-		return s.handleMinion(c, *minionProv, req, requestID, isStream)
+		return s.handleMinion(c, req, resp.Minion, requestID, isStream)
 
 	case models.ProtocolMinionsProtocol:
-		if remoteProv == nil || minionProv == nil {
-			msg := "Failed to get providers for MinionsProtocol: "
-			if remoteProv == nil {
-				msg += "remoteProv is nil; "
-			}
-			if minionProv == nil {
-				msg += "minionProv is nil; "
-			}
-			return s.HandleError(c, fiber.StatusInternalServerError, msg, requestID)
-		}
-		return s.handleMinionsProtocol(
-			c, *remoteProv, *minionProv, req, resp, requestID, isStream,
-		)
+		return s.handleMinionsProtocol(c, req, resp, requestID, isStream)
 
 	default:
 		return s.HandleError(c, fiber.StatusInternalServerError,
@@ -141,33 +121,93 @@ func (s *ResponseService) handleProtocolGeneric(
 	return c.JSON(adaptiveResp)
 }
 
-// handleStandard handles both streaming and regular standard-LLM flows.
+// handleStandard handles both streaming and regular standard-LLM flows with fallback.
 func (s *ResponseService) handleStandard(
 	c *fiber.Ctx,
-	prov provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	standardInfo *models.StandardLLMInfo,
 	requestID string,
 	isStream bool,
 ) error {
+	if standardInfo == nil {
+		return s.HandleError(c, fiber.StatusInternalServerError,
+			"Standard info is nil", requestID)
+	}
+
+	// Try primary provider first
+	prov, err := providers.NewLLMProvider(standardInfo.Provider)
+	if err != nil {
+		fiberlog.Warnf("[%s] Primary standard provider %s failed: %v", requestID, standardInfo.Provider, err)
+
+		// Primary failed, try alternatives
+		if len(standardInfo.Alternatives) > 0 {
+			fiberlog.Infof("[%s] Trying %d standard alternatives", requestID, len(standardInfo.Alternatives))
+			fallbackSvc := NewFallbackService()
+			result, err := fallbackSvc.SelectAlternative(c.Context(), standardInfo.Alternatives, requestID)
+			if err != nil {
+				return s.HandleError(c, fiber.StatusInternalServerError,
+					fmt.Sprintf("All standard providers failed: %v", err), requestID)
+			}
+			prov = result.Provider
+			req.Model = shared.ChatModel(result.ModelName)
+			fiberlog.Infof("[%s] Using standard alternative: %s (%s)", requestID, result.ProviderName, result.ModelName)
+		} else {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("Primary standard provider failed and no alternatives: %v", err), requestID)
+		}
+	} else {
+		req.Model = shared.ChatModel(standardInfo.Model)
+		fiberlog.Infof("[%s] Using primary standard provider: %s (%s)", requestID, standardInfo.Provider, standardInfo.Model)
+	}
+
 	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolStandard)
 }
 
-// handleMinion handles both streaming and regular minion flows.
+// handleMinion handles both streaming and regular minion flows with fallback.
 func (s *ResponseService) handleMinion(
 	c *fiber.Ctx,
-	prov provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
+	minionInfo *models.MinionInfo,
 	requestID string,
 	isStream bool,
 ) error {
+	if minionInfo == nil {
+		return s.HandleError(c, fiber.StatusInternalServerError,
+			"Minion info is nil", requestID)
+	}
+
+	// Try primary provider first
+	prov, err := providers.NewLLMProvider(minionInfo.Provider)
+	if err != nil {
+		fiberlog.Warnf("[%s] Primary minion provider %s failed: %v", requestID, minionInfo.Provider, err)
+
+		// Primary failed, try alternatives
+		if len(minionInfo.Alternatives) > 0 {
+			fiberlog.Infof("[%s] Trying %d minion alternatives", requestID, len(minionInfo.Alternatives))
+			fallbackSvc := NewFallbackService()
+			result, err := fallbackSvc.SelectAlternative(c.Context(), minionInfo.Alternatives, requestID)
+			if err != nil {
+				return s.HandleError(c, fiber.StatusInternalServerError,
+					fmt.Sprintf("All minion providers failed: %v", err), requestID)
+			}
+			prov = result.Provider
+			req.Model = shared.ChatModel(result.ModelName)
+			fiberlog.Infof("[%s] Using minion alternative: %s (%s)", requestID, result.ProviderName, result.ModelName)
+		} else {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("Primary minion provider failed and no alternatives: %v", err), requestID)
+		}
+	} else {
+		req.Model = shared.ChatModel(minionInfo.Model)
+		fiberlog.Infof("[%s] Using primary minion provider: %s (%s)", requestID, minionInfo.Provider, minionInfo.Model)
+	}
+
 	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolMinion)
 }
 
 // handleMinionsProtocol handles the MinionS protocol, both stream and non-stream.
 func (s *ResponseService) handleMinionsProtocol(
 	c *fiber.Ctx,
-	remoteProv provider_interfaces.LLMProvider,
-	minionProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
 	resp *models.ProtocolResponse,
 	requestID string,
@@ -175,22 +215,68 @@ func (s *ResponseService) handleMinionsProtocol(
 ) error {
 	orchestrator := minions.NewMinionsOrchestrationService()
 
-	// Set the remote model for remote provider calls
-	if resp.Standard != nil {
-		req.Model = shared.ChatModel(resp.Standard.Model)
-		fiberlog.Infof("[%s] Set remote model to: %s", requestID, resp.Standard.Model)
+	// Both models are required for MinionsProtocol
+	if resp.Standard == nil || resp.Minion == nil {
+		return s.HandleError(c, fiber.StatusInternalServerError,
+			"MinionsProtocol requires both standard and minion models", requestID)
 	}
 
-	// For HuggingFace minions, don't pass model name since it's embedded in BaseURL
-	if resp.Minion != nil {
-		fiberlog.Infof("[%s] Using minion model: %s with BaseURL: %s", requestID, resp.Minion.Model, resp.Minion.BaseURL)
+	// Try standard provider first
+	remoteProv, err := providers.NewLLMProvider(resp.Standard.Provider)
+	if err != nil {
+		fiberlog.Warnf("[%s] Primary standard provider %s failed: %v", requestID, resp.Standard.Provider, err)
+
+		// Primary failed, try alternatives
+		if len(resp.Standard.Alternatives) > 0 {
+			fallbackSvc := NewFallbackService()
+			result, err := fallbackSvc.SelectAlternative(c.Context(), resp.Standard.Alternatives, requestID)
+			if err != nil {
+				return s.HandleError(c, fiber.StatusInternalServerError,
+					fmt.Sprintf("All standard providers failed: %v", err), requestID)
+			}
+			remoteProv = result.Provider
+			req.Model = shared.ChatModel(result.ModelName)
+			fiberlog.Infof("[%s] Using standard alternative: %s (%s)", requestID, result.ProviderName, result.ModelName)
+		} else {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("Primary standard provider failed and no alternatives: %v", err), requestID)
+		}
+	} else {
+		req.Model = shared.ChatModel(resp.Standard.Model)
+		fiberlog.Infof("[%s] Using primary standard provider: %s (%s)", requestID, resp.Standard.Provider, resp.Standard.Model)
+	}
+
+	// Try minion provider first
+	minionProv, err := providers.NewLLMProvider(resp.Minion.Provider)
+	var minionModel string
+	if err != nil {
+		fiberlog.Warnf("[%s] Primary minion provider %s failed: %v", requestID, resp.Minion.Provider, err)
+
+		// Primary failed, try alternatives
+		if len(resp.Minion.Alternatives) > 0 {
+			fallbackSvc := NewFallbackService()
+			result, err := fallbackSvc.SelectAlternative(c.Context(), resp.Minion.Alternatives, requestID)
+			if err != nil {
+				return s.HandleError(c, fiber.StatusInternalServerError,
+					fmt.Sprintf("All minion providers failed: %v", err), requestID)
+			}
+			minionProv = result.Provider
+			minionModel = result.ModelName
+			fiberlog.Infof("[%s] Using minion alternative: %s (%s)", requestID, result.ProviderName, result.ModelName)
+		} else {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("Primary minion provider failed and no alternatives: %v", err), requestID)
+		}
+	} else {
+		minionModel = resp.Minion.Model
+		fiberlog.Infof("[%s] Using primary minion provider: %s (%s)", requestID, resp.Minion.Provider, resp.Minion.Model)
 	}
 
 	if isStream {
 		fiberlog.Infof("[%s] streaming MinionS response", requestID)
 		s.setStreamHeaders(c)
 		streamResp, err := orchestrator.OrchestrateMinionSStream(
-			c.Context(), remoteProv, minionProv, req, "",
+			c.Context(), remoteProv, minionProv, req, minionModel,
 		)
 		if err != nil {
 			fiberlog.Errorf("[%s] MinionS stream failed: %v", requestID, err)
@@ -204,7 +290,7 @@ func (s *ResponseService) handleMinionsProtocol(
 
 	fiberlog.Infof("[%s] generating MinionS completion", requestID)
 	result, err := orchestrator.OrchestrateMinionS(
-		c.Context(), remoteProv, minionProv, req, "",
+		c.Context(), remoteProv, minionProv, req, minionModel,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] MinionS create failed: %v", requestID, err)
