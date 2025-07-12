@@ -23,7 +23,14 @@ async function webSearch(query: string): Promise<
 	}>
 > {
 	try {
-		const exa = new Exa(process.env.EXA_API_KEY);
+		const exaApiKey = process.env.EXA_API_KEY;
+		if (!exaApiKey || exaApiKey.trim() === "") {
+			throw new Error(
+				"EXA_API_KEY environment variable is not defined or empty. Please configure your Exa API key.",
+			);
+		}
+
+		const exa = new Exa(exaApiKey);
 
 		const searchResponse = await exa.searchAndContents(query, {
 			type: "neural",

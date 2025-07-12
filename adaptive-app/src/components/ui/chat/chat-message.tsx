@@ -441,7 +441,7 @@ function WebSearchBlock({ toolPart }: WebSearchBlockProps) {
   const args =
     toolPart.toolInvocation.state === "call" ||
     toolPart.toolInvocation.state === "result"
-      ? (toolPart.toolInvocation as any).args
+      ? toolPart.toolInvocation.args
       : undefined;
 
   switch (state) {
@@ -470,7 +470,7 @@ function WebSearchBlock({ toolPart }: WebSearchBlockProps) {
         </div>
       );
 
-    case "result":
+    case "result": {
       if (!result) return null;
 
       const searchData = result as {
@@ -524,6 +524,7 @@ function WebSearchBlock({ toolPart }: WebSearchBlockProps) {
           </div>
         </div>
       );
+    }
 
     default:
       return null;
