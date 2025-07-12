@@ -7,7 +7,6 @@ import {
 	type UIMessagePart,
 } from "ai";
 import { useCallback, useState } from "react";
-
 import { Chat } from "@/components/ui/chat";
 import { useMessageLimits } from "@/hooks/messages/use-message-limits";
 import type { ConversationListItem, Message } from "@/types";
@@ -58,17 +57,22 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 	);
 
 	const handleSuggestionSubmit = useCallback(
-		async (text: string) => {
+		async (text: string, searchEnabled?: boolean) => {
 			if (hasReachedLimit) {
 				return;
 			}
 
 			if (!text.trim()) return;
 
-			append({
-				role: "user",
-				parts: [{ type: "text", text }],
-			});
+			append(
+				{
+					role: "user",
+					parts: [{ type: "text", text }],
+				},
+				{
+					body: { searchEnabled: searchEnabled || false },
+				},
+			);
 		},
 		[append, hasReachedLimit],
 	);
@@ -76,7 +80,7 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 	const handleSubmit = useCallback(
 		async (
 			event?: { preventDefault?: () => void },
-			options?: { files?: FileList },
+			options?: { files?: FileList; searchEnabled?: boolean },
 		) => {
 			event?.preventDefault?.();
 
@@ -95,10 +99,15 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 				parts.push(...fileParts);
 			}
 
-			append({
-				role: "user",
-				parts,
-			});
+			append(
+				{
+					role: "user",
+					parts,
+				},
+				{
+					body: { searchEnabled: options?.searchEnabled || false },
+				},
+			);
 			setInput("");
 		},
 		[append, hasReachedLimit, input],
@@ -111,6 +120,16 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 		reload();
 	}, [reload]);
 
+	const sendMessage = useCallback(
+		async (message: { text: string }) => {
+			append({
+				role: "user",
+				parts: [{ type: "text", text: message.text }],
+			});
+		},
+		[append],
+	);
+
 	return (
 		<Chat
 			className="flex-1"
@@ -121,6 +140,7 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 			handleSubmit={handleSubmit}
 			handleSuggestionSubmit={handleSuggestionSubmit}
 			setMessages={setMessages}
+			sendMessage={sendMessage}
 			isGenerating={isLoading}
 			stop={stop}
 			suggestions={CHAT_SUGGESTIONS as string[]}

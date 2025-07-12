@@ -20,7 +20,7 @@
 		"stripe": "stripe listen --forward-to localhost:3000/api/stripe-checkout"
 	},
 	"dependencies": {
-		"@adaptive-llm/adaptive-ai-provider": "^0.1.0",
+		"@adaptive-llm/adaptive-ai-provider": "^1.1.0",
 		"@ai-sdk/openai": "^2.0.0-canary.20",
 		"@ai-sdk/react": "^2.0.0-canary.23",
 		"@clerk/nextjs": "^6.24.0",
@@ -44,7 +44,7 @@
 		"@radix-ui/react-tooltip": "^1.2.7",
 		"@shikijs/transformers": "^3.7.0",
 		"@t3-oss/env-nextjs": "^0.13.8",
-		"@tanstack/react-query": "^5.82.0",
+		"@tanstack/react-query": "^5.83.0",
 		"@trpc/client": "^11.4.3",
 		"@trpc/react-query": "^11.4.3",
 		"@trpc/server": "^11.4.3",
@@ -54,6 +54,7 @@
 		"clsx": "^2.1.1",
 		"cobe": "^0.6.4",
 		"date-fns": "^4.1.0",
+		"exa-js": "^1.8.20",
 		"framer-motion": "^12.23.3",
 		"install": "^0.13.0",
 		"lucide-react": "^0.525.0",

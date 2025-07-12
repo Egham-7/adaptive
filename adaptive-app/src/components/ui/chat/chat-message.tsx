@@ -5,10 +5,12 @@ import { motion } from "framer-motion";
 import {
   Check,
   ChevronRight,
-  Code2,
   RotateCcw,
   Terminal,
   X,
+  Search,
+  ExternalLink,
+  Globe,
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
@@ -101,6 +103,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     typeof message.metadata.timestamp === "number"
       ? new Date(message.metadata.timestamp)
       : undefined;
+
   const userFiles = useMemo(() => {
     if (role === "user" && parts) {
       return parts
@@ -175,8 +178,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
 
           {actions && !isEditing && (
-            <div className="absolute top-2 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
-              {actions}
+            <div className="mt-2 flex justify-start">
+              <div className="flex space-x-1 p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
+                {actions}
+              </div>
             </div>
           )}
         </div>
@@ -201,7 +206,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
       <div className="w-full">
         {parts.map((part, index) => {
           if (part.type === "text") {
-            const partAnimatedContent = useAnimatedText(part.text, " ");
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
               <React.Fragment key={`text-${index}`}>
@@ -210,7 +214,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     className={cn(chatBubbleVariants({ isUser, animation }))}
                   >
                     <MarkdownRenderer>
-                      {isStreaming ? partAnimatedContent : part.text}
+                      {isStreaming ? animatedContent : part.text}
                     </MarkdownRenderer>
                   </div>
                   {actions && index === parts.length - 1 && (
@@ -239,12 +243,33 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             return <ReasoningBlock key={`reasoning-${index}`} part={part} />;
           }
           if (part.type === "tool-invocation") {
-            return (
-              <ToolCallBlock
+            const toolInvocation = part as ToolInvocationUIPart;
+            const { toolName, state } = toolInvocation.toolInvocation;
+
+            // Render tool-specific UI based on tool name
+            if (toolName === "webSearch") {
+              return (
                 // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
+                <WebSearchBlock
+                  key={`websearch-${index}`}
+                  toolPart={toolInvocation}
+                />
+              );
+            }
+
+            // Default fallback for unknown tools
+            return (
+              // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
+              <div
                 key={`tool-${index}`}
-                toolPart={part as ToolInvocationUIPart}
-              />
+                className="mb-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
+              >
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Terminal className="h-4 w-4" />
+                  <span>Tool: {toolName}</span>
+                  {state === "call" && <DotsLoader size="sm" />}
+                </div>
+              </div>
             );
           }
           if (part.type === "file") {
@@ -403,54 +428,103 @@ const ReasoningBlock = ({ part }: { part: ReasoningUIPart }) => {
   );
 };
 
-interface ToolCallBlockProps {
+interface WebSearchBlockProps {
   toolPart: ToolInvocationUIPart;
 }
 
-function ToolCallBlock({ toolPart }: ToolCallBlockProps) {
-  const { toolName, state } = toolPart.toolInvocation;
-  // Only get result when state is "result"
-  const result = toolPart.toolInvocation.state === "result" 
-    ? toolPart.toolInvocation.result 
-    : undefined;
+function WebSearchBlock({ toolPart }: WebSearchBlockProps) {
+  const { state } = toolPart.toolInvocation;
+  const result =
+    toolPart.toolInvocation.state === "result"
+      ? toolPart.toolInvocation.result
+      : undefined;
+  const args =
+    toolPart.toolInvocation.state === "call" ||
+    toolPart.toolInvocation.state === "result"
+      ? (toolPart.toolInvocation as any).args
+      : undefined;
 
   switch (state) {
     case "partial-call":
     case "call":
       return (
-        <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-muted-foreground text-sm">
-          <Terminal className="h-4 w-4" />
-          <span>
-            Calling{" "}
-            <span className="font-mono">
-              {"`"}
-              {toolName}
-              {"`"}
-            </span>
-            ...
-          </span>
-          <DotsLoader size="sm" />
-        </div>
-      );
-    case "result":
-      return (
-        <div className="flex flex-col gap-1.5 rounded-lg border bg-muted/50 px-3 py-2 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Code2 className="h-4 w-4" />
-            <span>
-              Result from{" "}
-              <span className="font-mono">
-                {"`"}
-                {toolName}
-                {"`"}
-              </span>
-            </span>
+        <div className="mb-3 rounded-lg border bg-muted/50 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+              <Search className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  Searching the web
+                </span>
+                <DotsLoader size="sm" />
+              </div>
+              {args?.query && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  "{args.query}"
+                </p>
+              )}
+            </div>
           </div>
-          <pre className="overflow-x-auto whitespace-pre-wrap text-foreground">
-            {JSON.stringify(result || {}, null, 2)}
-          </pre>
         </div>
       );
+
+    case "result":
+      if (!result) return null;
+
+      const searchData = result as {
+        query: string;
+        results: Array<{ title: string; url: string; snippet: string }>;
+      };
+
+      return (
+        <div className="mb-3 rounded-lg border bg-muted/50 px-4 py-3">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
+              <Globe className="h-4 w-4 text-success" />
+            </div>
+            <div className="flex-1">
+              <span className="text-sm font-medium text-foreground">
+                Web Search Results
+              </span>
+              <p className="text-xs text-muted-foreground">
+                "{searchData.query}"
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {searchData.results.map((item, idx) => (
+              <div
+                key={idx}
+                className="rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                    >
+                      <span className="line-clamp-1">{item.title}</span>
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </a>
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                      {item.snippet}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground font-mono">
+                      {new URL(item.url).hostname}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
     default:
       return null;
   }

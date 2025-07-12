@@ -9,8 +9,6 @@ import {
   Square,
   Search,
   Plus,
-  Telescope,
-  Zap,
 } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +33,7 @@ interface MessageInputBaseProps
   enableInterrupt?: boolean;
   transcribeAudio?: (blob: Blob) => Promise<string>;
   enableAdvancedFeatures?: boolean;
+  onSearchToggle?: (enabled: boolean) => void;
 }
 
 interface MessageInputWithoutAttachmentProps extends MessageInputBaseProps {
@@ -61,13 +60,12 @@ export function MessageInput({
   enableInterrupt = true,
   transcribeAudio,
   enableAdvancedFeatures = false,
+  onSearchToggle,
   ...props
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showInterruptPrompt, setShowInterruptPrompt] = useState(false);
   const [searchEnabled, setSearchEnabled] = useState(false);
-  const [deepResearchEnabled, setDeepResearchEnabled] = useState(false);
-  const [reasonEnabled, setReasonEnabled] = useState(false);
 
   const {
     isSpeechSupported,
@@ -238,22 +236,11 @@ export function MessageInput({
                 icon={Search}
                 label="Search"
                 isEnabled={searchEnabled}
-                onToggle={() => setSearchEnabled(!searchEnabled)}
+                onToggle={() => {
+                  setSearchEnabled(!searchEnabled);
+                  onSearchToggle?.(!searchEnabled);
+                }}
                 ariaLabel="Toggle Search"
-              />
-              <FeatureToggle
-                icon={Telescope}
-                label="Deep Research"
-                isEnabled={deepResearchEnabled}
-                onToggle={() => setDeepResearchEnabled(!deepResearchEnabled)}
-                ariaLabel="Toggle Deep Research"
-              />
-              <FeatureToggle
-                icon={Zap}
-                label="Reason"
-                isEnabled={reasonEnabled}
-                onToggle={() => setReasonEnabled(!reasonEnabled)}
-                ariaLabel="Toggle Reasoning"
               />
             </div>
             {props.allowAttachments && (
