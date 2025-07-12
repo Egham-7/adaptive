@@ -15,5 +15,5 @@ dependencies = [
     "ipywidgets",
     "ruff",
     "black[jupyter]",
-    "mypy"
+    "mypy",
 ]
