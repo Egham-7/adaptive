@@ -39,7 +39,7 @@ export const usageRouter = createTRPCRouter({
 				duration: z.number(),
 				timestamp: z.date(),
 				requestCount: z.number().default(1),
-				metadata: z.record(z.any()).optional(),
+				metadata: z.record(z.string(), z.any()).optional(),
 				error: z.string().optional(), // Add error field for failed requests
 			}),
 		)
