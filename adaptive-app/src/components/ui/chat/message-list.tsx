@@ -2,22 +2,25 @@ import { ChatMessage, type ChatMessageProps } from "./chat-message";
 import { TypingLoader } from "./loader";
 import type { UIMessage } from "@ai-sdk/react";
 
-type AdditionalMessageOptions = Omit<ChatMessageProps, keyof UIMessage>;
+type AdditionalMessageOptions = Omit<
+  ChatMessageProps,
+  keyof UIMessage
+>;
 
 interface MessageListProps {
   messages: UIMessage[];
   showTimeStamps?: boolean;
-  isTyping?: boolean;
   messageOptions:
     | AdditionalMessageOptions
     | ((message: UIMessage) => AdditionalMessageOptions);
+  isTyping?: boolean;
 }
 
 export function MessageList({
   messages,
   showTimeStamps = true,
-  isTyping = false,
   messageOptions,
+  isTyping = false,
 }: MessageListProps) {
   return (
     <div className="mx-auto max-w-3xl px-4 space-y-6 py-4">
@@ -36,11 +39,7 @@ export function MessageList({
           />
         );
       })}
-      {isTyping && (
-        <div className="bg-muted rounded-lg px-3 py-2 mr-auto max-w-3xl">
-          <TypingLoader size="sm" className="opacity-70" />
-        </div>
-      )}
+      {isTyping && <TypingLoader size="sm" className="opacity-70" />}
     </div>
   );
 }

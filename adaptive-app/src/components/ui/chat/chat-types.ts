@@ -66,7 +66,7 @@ export interface ChatInputProps {
   handleInputChange: React.ChangeEventHandler<HTMLTextAreaElement>;
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    options?: { files?: FileList },
+    options?: { files?: FileList; searchEnabled?: boolean },
   ) => void;
   handleSuggestionSubmit?: (text: string) => Promise<void>;
   sendMessage?: (options: { text: string }) => Promise<void>;
@@ -139,11 +139,13 @@ export interface ChatFormProps {
   isPending: boolean;
   handleSubmit: (
     event?: { preventDefault?: () => void },
-    options?: { files?: FileList },
+    options?: { files?: FileList; searchEnabled?: boolean },
   ) => void;
   children: (props: {
     files: File[] | null;
     setFiles: React.Dispatch<React.SetStateAction<File[] | null>>;
+    searchEnabled: boolean;
+    setSearchEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   }) => ReactElement;
   hasReachedLimit?: boolean;
 }
