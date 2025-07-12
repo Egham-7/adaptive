@@ -1,6 +1,6 @@
 import type { UIMessage } from "@ai-sdk/react";
 import type { ReactElement } from "react";
-import type { ChatStatus, RatingType, AnimationType } from "./constants/chat-constants";
+import type { ChatStatus, RatingType } from "./constants/chat-constants";
 
 // Message part types
 export type MessageTextPart = Extract<
@@ -68,6 +68,8 @@ export interface ChatInputProps {
     event?: { preventDefault?: () => void },
     options?: { files?: FileList },
   ) => void;
+  handleSuggestionSubmit?: (text: string) => Promise<void>;
+  sendMessage?: (options: { text: string }) => Promise<void>;
   transcribeAudio?: (blob: Blob) => Promise<string>;
 }
 
@@ -122,13 +124,13 @@ export interface ChatRatingProps {
 }
 
 // Main chat component props
-export interface ChatProps 
-  extends ChatConfig, 
-          ChatInputProps, 
-          ChatMessageProps, 
-          ChatLimitsProps, 
-          ChatErrorProps, 
-          ChatRatingProps {
+export interface ChatProps
+  extends ChatConfig,
+    ChatInputProps,
+    ChatMessageProps,
+    ChatLimitsProps,
+    ChatErrorProps,
+    ChatRatingProps {
   className?: string;
 }
 
@@ -145,4 +147,3 @@ export interface ChatFormProps {
   }) => ReactElement;
   hasReachedLimit?: boolean;
 }
-

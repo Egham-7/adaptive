@@ -2,9 +2,8 @@
 package models
 
 import (
-	"time"
-
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"time"
 
 	"github.com/openai/openai-go"
 )
@@ -81,12 +80,6 @@ type Alternative struct {
 	Model    string `json:"model"`
 }
 
-// HuggingFaceAlternative represents a HuggingFace model alternative.
-type HuggingFaceAlternative struct {
-	Model   string `json:"model"`
-	BaseURL string `json:"base_url,omitempty"`
-}
-
 // StandardLLMInfo holds the chosen remote model details.
 type StandardLLMInfo struct {
 	Provider     string           `json:"provider"`
@@ -97,10 +90,10 @@ type StandardLLMInfo struct {
 
 // MinionInfo holds the chosen HuggingFace model details.
 type MinionInfo struct {
-	Model        string                   `json:"model"`
-	BaseURL      string                   `json:"base_url,omitempty"`
-	Parameters   OpenAIParameters         `json:"parameters"`
-	Alternatives []HuggingFaceAlternative `json:"alternatives,omitempty"`
+	Provider     string           `json:"provider"`
+	Model        string           `json:"model"`
+	Parameters   OpenAIParameters `json:"parameters"`
+	Alternatives []Alternative    `json:"alternatives,omitempty"`
 }
 
 // ProtocolResponse is the union of standard and/or minion info.

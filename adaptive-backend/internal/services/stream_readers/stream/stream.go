@@ -2,73 +2,42 @@ package stream
 
 import (
 	"adaptive-backend/internal/services/cache"
-	"adaptive-backend/internal/services/metrics"
 	"adaptive-backend/internal/services/stream_readers/sse"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/ssestream"
 	"github.com/valyala/fasthttp"
 )
 
 var (
-	bufferManager     = cache.GetGlobalBufferManager()
-	promStreamMetrics *metrics.StreamingMetrics
-	metricsInitOnce   sync.Once
+	bufferManager = cache.GetGlobalBufferManager()
 )
-
-func initMetrics() {
-	metricsInitOnce.Do(func() {
-		promStreamMetrics = metrics.NewStreamingMetrics()
-	})
-}
 
 // HandleStream manages the streaming response to the client with optimized performance
 func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedModel string, provider string) error {
-	log.Printf("[%s] Starting stream handling", requestID)
-	// Initialize metrics if needed
-	initMetrics()
-
-	// Extract model from context or headers
-	model := c.Get("X-Model", "unknown")
-
-	promStreamMetrics.RecordStreamStart(provider, model)
+	fiberlog.Infof("[%s] Starting stream handling", requestID)
 
 	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		startTime := time.Now()
 		var totalBytes int64
-		var status string
 
 		streamReader, err := sse.GetSSEStreamReader(resp, requestID, selectedModel, provider)
 		if err != nil {
-			status = "reader_error"
-			promStreamMetrics.RecordError("reader_creation", provider)
 			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
-			// Record completion metrics
-			duration := time.Since(startTime)
-			promStreamMetrics.RecordStreamEnd(provider, model, status, duration.Seconds(), totalBytes)
 			return
 		}
 		defer closeStreamReader(streamReader, requestID)
 
 		if err := pumpStreamData(w, streamReader, requestID, startTime, &totalBytes); err != nil {
-			status = "stream_error"
-			promStreamMetrics.RecordError("streaming", provider)
 			sendErrorEvent(w, requestID, "Stream error", err)
-		} else {
-			status = "success"
 		}
-
-		// Record completion metrics
-		duration := time.Since(startTime)
-		promStreamMetrics.RecordStreamEnd(provider, model, status, duration.Seconds(), totalBytes)
 	}))
 	return nil
 }
@@ -78,8 +47,6 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 	buffer := bufferManager.GetBuffer(4096)
 	defer bufferManager.PutBuffer(buffer)
 
-	promStreamMetrics.RecordBufferPoolHit("medium")
-
 	var totalBytes int64
 	lastFlushTime := time.Now()
 
@@ -87,7 +54,7 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 		// Set read deadline to prevent hanging
 		if rc, ok := streamReader.(interface{ SetReadDeadline(time.Time) error }); ok {
 			if err := rc.SetReadDeadline(time.Now().Add(30 * time.Second)); err != nil {
-				log.Printf("[%s] Warning: failed to set read deadline: %v", requestID, err)
+				fiberlog.Warnf("[%s] Warning: failed to set read deadline: %v", requestID, err)
 			}
 		}
 
@@ -95,7 +62,6 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 
 		if n > 0 {
 			totalBytes += int64(n)
-			promStreamMetrics.RecordChunkSize(n)
 
 			if writeErr := writeChunk(w, buffer[:n], requestID); writeErr != nil {
 				return writeErr
@@ -109,7 +75,6 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 					return fmt.Errorf("[%s] flushing data: %w", requestID, flushErr)
 				}
 
-				promStreamMetrics.RecordFlushInterval(flushInterval.Seconds())
 				lastFlushTime = now
 			}
 		}
@@ -117,7 +82,7 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 		if err == io.EOF {
 			// Final flush
 			if flushErr := w.Flush(); flushErr != nil {
-				log.Printf("[%s] Error in final flush: %v", requestID, flushErr)
+				fiberlog.Errorf("[%s] Error in final flush: %v", requestID, flushErr)
 			}
 
 			duration := time.Since(startTime)
@@ -127,7 +92,7 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 				*totalBytesPtr = totalBytes
 			}
 
-			log.Printf("[%s] Stream completed: %d bytes in %v (%.2f KB/s)",
+			fiberlog.Infof("[%s] Stream completed: %d bytes in %v (%.2f KB/s)",
 				requestID, totalBytes, duration, float64(totalBytes)/duration.Seconds()/1024)
 			return nil
 		}
@@ -153,18 +118,17 @@ func writeChunk(w *bufio.Writer, data []byte, requestID string) error {
 
 func closeStreamReader(streamReader io.ReadCloser, requestID string) {
 	if err := streamReader.Close(); err != nil {
-		log.Printf("[%s] Error closing stream reader: %v", requestID, err)
+		fiberlog.Errorf("[%s] Error closing stream reader: %v", requestID, err)
 	}
 }
 
 func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) {
 	if err == nil {
-		log.Printf("[%s] Warning: sendErrorEvent called with nil error", requestID)
+		fiberlog.Warnf("[%s] Warning: sendErrorEvent called with nil error", requestID)
 		return
 	}
 
-	log.Printf("[%s] %s: %v", requestID, message, err)
-	promStreamMetrics.RecordError("send_error", "unknown")
+	fiberlog.Errorf("[%s] %s: %v", requestID, message, err)
 
 	// Use proper JSON marshaling for safe escaping
 	errorResponse := map[string]string{
@@ -174,18 +138,18 @@ func sendErrorEvent(w *bufio.Writer, requestID, message string, err error) {
 
 	errorJSON, jsonErr := json.Marshal(errorResponse)
 	if jsonErr != nil {
-		log.Printf("[%s] Failed to marshal error JSON: %v", requestID, jsonErr)
+		fiberlog.Errorf("[%s] Failed to marshal error JSON: %v", requestID, jsonErr)
 		return
 	}
 
 	errorData := fmt.Sprintf("data: %s\n\n", string(errorJSON))
 
 	if _, writeErr := w.WriteString(errorData); writeErr != nil {
-		log.Printf("[%s] Failed to write error event: %v", requestID, writeErr)
+		fiberlog.Errorf("[%s] Failed to write error event: %v", requestID, writeErr)
 		return
 	}
 
 	if flushErr := w.Flush(); flushErr != nil {
-		log.Printf("[%s] Failed to flush error event: %v", requestID, flushErr)
+		fiberlog.Errorf("[%s] Failed to flush error event: %v", requestID, flushErr)
 	}
 }

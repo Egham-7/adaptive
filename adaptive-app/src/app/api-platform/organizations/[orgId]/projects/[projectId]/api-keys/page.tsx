@@ -311,7 +311,10 @@ export default function ApiKeysPage() {
 												aria-describedby="edit-button-disabled-description"
 											>
 												<Edit className="h-4 w-4" />
-												<span id="edit-button-disabled-description" className="sr-only">
+												<span
+													id="edit-button-disabled-description"
+													className="sr-only"
+												>
 													Editing is disabled because the API key is inactive.
 												</span>
 											</Button>

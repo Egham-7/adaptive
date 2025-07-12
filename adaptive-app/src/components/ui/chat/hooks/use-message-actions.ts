@@ -7,7 +7,7 @@ interface MessageActionsHookProps {
   messageState: MessageState;
   externalMessages: UIMessage[];
   setMessages: React.Dispatch<React.SetStateAction<UIMessage[]>>;
-  sendMessage?: (message: { text: string }) => void;
+  sendMessage?: (message: { text: string }) => Promise<void>;
   deleteMessageMutation: { mutate: (params: { id: string }) => void };
   isGenerating: boolean;
   onClearEditing: () => void;

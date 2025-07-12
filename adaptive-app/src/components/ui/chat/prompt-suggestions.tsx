@@ -3,7 +3,6 @@ import type { LucideIcon } from "lucide-react";
 import { BookOpen, Code, PenTool } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { AnimatedLogo } from "./animated-logo";
 
 export interface PromptCategory {
   id: string;
@@ -77,7 +76,7 @@ export function PromptSuggestions({
 
   const handleCommandSelect = (command: string) => {
     onSuggestionClick(command);
-    setActiveCommandCategory(null);
+    // Don't close the category immediately - let the parent component handle hiding suggestions
   };
 
   if (enableCategories) {

@@ -170,14 +170,14 @@ class ModelSelectionService:
     def get_minion_alternatives(
         self,
         primary_minion: str,
-    ) -> list[str]:
+    ) -> list[dict[str, str]]:
         """Generate fallback minion alternatives by using other capable minions."""
         alternatives = []
 
         # Get all other minions from the mapping that could potentially handle the task
         for _task, model in minion_task_model_mappings.items():
             if model != primary_minion:  # Exclude the primary minion
-                alternatives.append(model)
+                alternatives.append({"provider": "groq", "model": model})
 
         # Limit to top 3 alternatives to avoid overwhelming
         return alternatives[:3]

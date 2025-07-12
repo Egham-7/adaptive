@@ -507,16 +507,17 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
 # --- Minion Task Model Mappings (HuggingFace Models) ---
 # This maps each TaskType to a SINGLE designated HuggingFace specialist model,
 # each optimized for specific task types and available via HuggingFace Inference API
+
 minion_task_model_mappings: dict[TaskType, str] = {
-    TaskType.OPEN_QA: "Qwen/Qwen2.5-14B-Instruct",
-    TaskType.CODE_GENERATION: "codellama/CodeLlama-13b-Instruct-hf",
-    TaskType.SUMMARIZATION: "google/flan-t5-xl",
-    TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
-    TaskType.CHATBOT: "mistralai/Mistral-7B-Instruct-v0.3",
-    TaskType.CLASSIFICATION: "microsoft/deberta-v3-large",
-    TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
-    TaskType.REWRITE: "Qwen/Qwen2.5-14B-Instruct",
-    TaskType.BRAINSTORMING: "Qwen/Qwen2.5-14B-Instruct",
-    TaskType.EXTRACTION: "microsoft/deberta-v3-large",
-    TaskType.OTHER: "meta-llama/Llama-3.1-8B-Instruct",
+    TaskType.OPEN_QA: "llama-3.2-3b-preview",
+    TaskType.CODE_GENERATION: "llama-3-groq-8b-tool-use",
+    TaskType.SUMMARIZATION: "llama-3.2-1b-preview",
+    TaskType.TEXT_GENERATION: "llama-3.1-8b-instant",
+    TaskType.CHATBOT: "gemma2-9b-it",
+    TaskType.CLASSIFICATION: "llama-3.2-1b-preview",
+    TaskType.CLOSED_QA: "llama-3.2-3b-preview",
+    TaskType.REWRITE: "llama-3.1-8b-instant",
+    TaskType.BRAINSTORMING: "llama-3.3-70b-versatile",
+    TaskType.EXTRACTION: "llama-3.2-1b-preview",
+    TaskType.OTHER: "llama-3.2-1b-preview",
 }
