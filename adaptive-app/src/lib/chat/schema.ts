@@ -2,21 +2,25 @@ import { z } from "zod";
 
 export const messageRoleSchema = z.enum(["system", "user", "assistant"]);
 
-// JSON value schema for Prisma compatibility
+// JSON value schema for Prisma compatibility (extended to support undefined and Date)
 type JsonValue =
 	| string
 	| number
 	| boolean
 	| null
+	| undefined
+	| Date
 	| JsonValue[]
 	| { [key: string]: JsonValue };
 
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
 	z.union([
 		z.null(),
+		z.undefined(),
 		z.string(),
 		z.number(),
 		z.boolean(),
+		z.date(),
 		z.array(jsonValueSchema),
 		z.record(z.string(), jsonValueSchema),
 	]),

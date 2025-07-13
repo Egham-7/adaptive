@@ -13,6 +13,7 @@ import {
   Globe,
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,10 +22,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { FilePreview } from "./file-preview";
-import { CircularLoader, DotsLoader } from "./loader";
+import { DotsLoader, TypingLoader } from "./loader";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { Textarea } from "@/components/ui/textarea";
 import { useAnimatedText } from "@/components/ui/animated-text";
+import { getProviderLogo, getProviderDisplayName } from "@/lib/providers";
 import { cn } from "@/lib/utils";
 
 import type { UIMessage } from "@ai-sdk/react";
@@ -96,6 +98,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const content =
     (parts?.find((p) => p.type === "text") as TextUIPart)?.text || "";
   const animatedContent = useAnimatedText(content, " ");
+
+  const provider = (message.metadata as any)?.providerMetadata?.adaptive
+    ?.provider;
+  const modelId = (message.metadata as any)?.response?.modelId;
+
   const createdAt =
     message.metadata &&
     typeof message.metadata === "object" &&
@@ -103,6 +110,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     typeof message.metadata.timestamp === "number"
       ? new Date(message.metadata.timestamp)
       : undefined;
+
+  console.log("Message metadata:", message.metadata);
 
   const userFiles = useMemo(() => {
     if (role === "user" && parts) {
@@ -217,8 +226,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {isStreaming ? animatedContent : part.text}
                     </MarkdownRenderer>
                   </div>
-                  {actions && index === parts.length - 1 && (
-                    <div className="absolute top-0 right-0 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
+                  {index === parts.length - 1 && (
+                    <div className="mt-2 opacity-0 transition-opacity group-hover/message:opacity-100 z-20">
                       {actions}
                     </div>
                   )}
@@ -299,11 +308,33 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           <MarkdownRenderer>
             {isStreaming ? animatedContent : content}
           </MarkdownRenderer>
-          {actions && (
-            <div className="absolute top-0 right-0 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100 z-20 shadow-sm">
-              {actions}
-            </div>
-          )}
+
+          <>
+            {(provider || modelId) && (
+              <div className="flex justify-between items-center mt-4 text-xs text-muted-foreground gap-3">
+                <div className="flex items-center gap-3">
+                  {provider && (
+                    <div className="flex items-center gap-1">
+                      {getProviderLogo(provider) && (
+                        <Image
+                          src={getProviderLogo(provider)!}
+                          alt={provider}
+                          width={16}
+                          height={16}
+                          className="rounded-sm"
+                        />
+                      )}
+                      <span>{getProviderDisplayName(provider)}</span>
+                    </div>
+                  )}
+                  {modelId && <span>Model: {modelId}</span>}
+                </div>
+                <div className="flex justify-end items-center  opacity-0 transition-opacity group-hover/message:opacity-100 z-20 ">
+                  {actions}
+                </div>
+              </div>
+            )}
+          </>
         </div>
 
         {showTimeStamp && createdAt && (
@@ -359,7 +390,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     );
   }
 
-  return <CircularLoader size="sm" className="text-muted-foreground" />;
+  return <TypingLoader size="sm" className="text-muted-foreground" />;
 };
 
 function base64ToUint8Array(base64: string): Uint8Array {

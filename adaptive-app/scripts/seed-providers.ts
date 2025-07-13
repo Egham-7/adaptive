@@ -71,7 +71,7 @@ const globalPricing = {
 		},
 	},
 	gemini: {
-		displayName: "Google Gemini",
+		displayName: "Gemini",
 		description: "Google's advanced multimodal AI models",
 		models: {
 			"gemini-2.5-pro": {

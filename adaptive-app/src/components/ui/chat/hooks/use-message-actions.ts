@@ -25,12 +25,10 @@ export function useMessageActions({
   setMessages,
   sendMessage,
   deleteMessageMutation,
-  isGenerating,
   onClearEditing,
   onRetryMessage,
   onDeleteMessageAndAfter,
 }: MessageActionsHookProps) {
-  
   const handleSaveEdit = useCallback(
     (messageId: string) => {
       if (!messageState.editingContent.trim()) return;
@@ -72,12 +70,12 @@ export function useMessageActions({
       messagesToDelete.forEach((msg) => {
         deleteMessageMutation.mutate({ id: msg.id });
       });
-      
+
       // Keep messages before the one being retried
       const messagesBeforeRetry = externalMessages.slice(0, messageIndex);
       setMessages(messagesBeforeRetry);
       onRetryMessage(message.id);
-      
+
       const content = getMessageText(message);
       sendMessage({ text: content });
     },
@@ -99,7 +97,7 @@ export function useMessageActions({
       messagesToDelete.forEach((msg) => {
         deleteMessageMutation.mutate({ id: msg.id });
       });
-      
+
       setMessages(externalMessages.slice(0, messageIndex));
       onDeleteMessageAndAfter(messageId);
     },
@@ -127,3 +125,4 @@ export function useMessageActions({
     handleStop,
   };
 }
+
