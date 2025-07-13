@@ -7,7 +7,7 @@ import type {
 } from "@/types/chat-completion";
 
 const openai = new OpenAI({
-	apiKey: process.env.OPENAI_API_KEY,
+	apiKey: process.env.ADAPTIVE_API_KEY,
 	baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
 });
 

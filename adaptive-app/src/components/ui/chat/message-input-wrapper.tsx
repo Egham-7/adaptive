@@ -38,7 +38,7 @@ export function MessageInputWrapper({
         handleSubmit={handleSubmit}
         hasReachedLimit={hasReachedLimit}
       >
-        {({ files, setFiles }) => (
+        {({ files, setFiles, searchEnabled, setSearchEnabled }) => (
           <MessageInput
             value={value}
             onChange={onChange}
@@ -50,6 +50,7 @@ export function MessageInputWrapper({
             transcribeAudio={transcribeAudio}
             disabled={hasReachedLimit}
             enableAdvancedFeatures={true}
+            onSearchToggle={setSearchEnabled}
             placeholder={
               hasReachedLimit
                 ? "Daily message limit reached - upgrade to continue"
