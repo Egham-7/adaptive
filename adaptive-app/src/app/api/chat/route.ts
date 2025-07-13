@@ -155,11 +155,14 @@ export async function POST(req: Request) {
 
 		console.log("Tools: ", tools);
 
+		let provider: string | undefined;
+		let modelId: string | undefined;
+
 		const result = streamText({
 			model: adaptive.chat(),
 			messages: coreMessages,
 			tools,
-			async onFinish({ text }) {
+			async onFinish({ text, providerMetadata, response, usage }) {
 				// Create the assistant response message
 				const assistantMessage = {
 					id: crypto.randomUUID(),
@@ -167,16 +170,35 @@ export async function POST(req: Request) {
 					content: text,
 					conversationId: numericConversationId,
 					parts: [{ type: "text" as const, text }],
-					metadata: null,
+					metadata: {
+						providerMetadata,
+						response,
+						usage,
+					},
 					annotations: null,
 				};
 
 				await api.messages.create(assistantMessage);
+
+				provider = providerMetadata?.adaptive?.provider as string | undefined;
+				modelId = response.modelId || undefined;
 			},
 			maxSteps: 10,
 		});
 
-		const data = result.toUIMessageStreamResponse();
+		const data = result.toUIMessageStreamResponse({
+			sendReasoning: true,
+			sendSources: true,
+			experimental_sendFinish: true,
+			experimental_sendStart: true,
+			messageMetadata: ({ part }) => {
+				return {
+					...part,
+					provider,
+					modelId,
+				};
+			},
+		});
 
 		return data;
 	} catch (error) {
