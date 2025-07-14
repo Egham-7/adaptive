@@ -1,14 +1,55 @@
-import { createOpenAI } from "@ai-sdk/openai";
+import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
-import { convertToModelMessages, streamText, type UIMessage } from "ai";
+import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
 import type { z } from "zod";
+import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
 import type { messageRoleSchema } from "@/lib/chat/schema";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
+
+import { Exa } from "exa-js";
+
+// Web search function using Exa API
+async function webSearch(query: string): Promise<
+	Array<{
+		title: string;
+		url: string;
+		snippet: string;
+		publishedDate?: string;
+	}>
+> {
+	try {
+		const exaApiKey = process.env.EXA_API_KEY;
+		if (!exaApiKey || exaApiKey.trim() === "") {
+			throw new Error(
+				"EXA_API_KEY environment variable is not defined or empty. Please configure your Exa API key.",
+			);
+		}
+
+		const exa = new Exa(exaApiKey);
+
+		const searchResponse = await exa.searchAndContents(query, {
+			type: "neural",
+			useAutoprompt: true,
+			numResults: 5,
+			text: true,
+		});
+
+		return searchResponse.results.map((result) => ({
+			title: result.title || "Untitled",
+			url: result.url,
+			snippet: result.text || result.title || "No snippet available",
+			publishedDate: result.publishedDate,
+		}));
+	} catch (error) {
+		console.error("Web search error:", error);
+		throw error;
+	}
+}
 
 export async function POST(req: Request) {
 	try {
@@ -20,7 +61,7 @@ export async function POST(req: Request) {
 
 		const body = await req.json();
 		console.log("Received body:", body);
-		const { messages, id: conversationId } = body;
+		const { messages, id: conversationId, searchEnabled = false } = body;
 
 		const numericConversationId = Number(conversationId);
 
@@ -49,8 +90,9 @@ export async function POST(req: Request) {
 		});
 		const isSubscribed = !!subscription;
 
-		// If not subscribed, check daily limit before processing
-		if (!isSubscribed) {
+		// If not subscribed, check daily limit before processing (skip in development)
+		const isDevelopment = process.env.NODE_ENV === "development";
+		if (!isSubscribed && !isDevelopment) {
 			const hasReachedLimit = await hasReachedDailyLimit(db, userId);
 			if (hasReachedLimit) {
 				return new Response(
@@ -90,15 +132,37 @@ export async function POST(req: Request) {
 
 		await api.messages.create(userMessage);
 
-		const adaptive = createOpenAI({
-			baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
-			name: "Adaptive AI",
-		});
+		const tools = searchEnabled
+			? {
+					webSearch: tool({
+						description:
+							"Search the web for current information, news, facts, or any topic that requires up-to-date information",
+						parameters: zodSchema.object({
+							query: zodSchema
+								.string()
+								.describe("The search query to look up on the web"),
+						}),
+						execute: async ({ query }) => {
+							const searchResults = await webSearch(query);
+							return {
+								query,
+								results: searchResults,
+							};
+						},
+					}),
+				}
+			: undefined;
+
+		console.log("Tools: ", tools);
+
+		let provider: string | undefined;
+		let modelId: string | undefined;
 
 		const result = streamText({
-			model: adaptive.chat(""),
+			model: adaptive.chat(),
 			messages: coreMessages,
-			async onFinish({ text }) {
+			tools,
+			async onFinish({ text, providerMetadata, response, usage }) {
 				// Create the assistant response message
 				const assistantMessage = {
 					id: crypto.randomUUID(),
@@ -106,15 +170,35 @@ export async function POST(req: Request) {
 					content: text,
 					conversationId: numericConversationId,
 					parts: [{ type: "text" as const, text }],
-					metadata: null,
+					metadata: {
+						providerMetadata,
+						response,
+						usage,
+					},
 					annotations: null,
 				};
 
 				await api.messages.create(assistantMessage);
+
+				provider = providerMetadata?.adaptive?.provider as string | undefined;
+				modelId = response.modelId || undefined;
 			},
+			maxSteps: 10,
 		});
 
-		const data = result.toUIMessageStreamResponse();
+		const data = result.toUIMessageStreamResponse({
+			sendReasoning: true,
+			sendSources: true,
+			experimental_sendFinish: true,
+			experimental_sendStart: true,
+			messageMetadata: ({ part }) => {
+				return {
+					...part,
+					provider,
+					modelId,
+				};
+			},
+		});
 
 		return data;
 	} catch (error) {

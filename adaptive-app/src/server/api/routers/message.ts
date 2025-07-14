@@ -151,12 +151,13 @@ export const messageRouter = createTRPCRouter({
 			});
 			const isSubscribed = !!subscription;
 
-			// If not subscribed, check daily limit
-			if (!isSubscribed) {
+			// If not subscribed, check daily limit before creating message (skip in development)
+			const isDevelopment = process.env.NODE_ENV === "development";
+			if (!isSubscribed && !isDevelopment && input.role === "user") {
 				const hasReachedLimit = await hasReachedDailyLimit(ctx.db, userId);
 				if (hasReachedLimit) {
 					throw new TRPCError({
-						code: "FORBIDDEN",
+						code: "TOO_MANY_REQUESTS",
 						message: "Daily message limit reached. Please upgrade to continue.",
 					});
 				}

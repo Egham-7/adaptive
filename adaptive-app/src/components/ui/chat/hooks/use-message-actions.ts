@@ -25,32 +25,31 @@ export function useMessageActions({
   setMessages,
   sendMessage,
   deleteMessageMutation,
-  isGenerating,
   onClearEditing,
   onRetryMessage,
   onDeleteMessageAndAfter,
 }: MessageActionsHookProps) {
-  
   const handleSaveEdit = useCallback(
     (messageId: string) => {
       if (!messageState.editingContent.trim()) return;
 
-      const messageIndex = findMessageIndex(messageState.messages, messageId);
+      const messageIndex = findMessageIndex(externalMessages, messageId);
       if (messageIndex === -1) return;
 
-      // Delete subsequent messages
-      const messagesToDelete = messageState.messages.slice(messageIndex);
+      // Delete subsequent messages from database
+      const messagesToDelete = externalMessages.slice(messageIndex);
       messagesToDelete.forEach((msg) => {
         deleteMessageMutation.mutate({ id: msg.id });
       });
 
-      setMessages(externalMessages.slice(0, messageIndex));
+      // Keep messages up to the edited one, then send new message
+      const messagesBeforeEdit = externalMessages.slice(0, messageIndex);
+      setMessages(messagesBeforeEdit);
       sendMessage?.({ text: messageState.editingContent.trim() });
       onClearEditing();
     },
     [
       messageState.editingContent,
-      messageState.messages,
       deleteMessageMutation,
       setMessages,
       externalMessages,
@@ -63,23 +62,25 @@ export function useMessageActions({
     (message: UIMessage) => {
       if (!sendMessage) return;
 
-      const messageIndex = findMessageIndex(messageState.messages, message.id);
-      if (messageIndex !== -1) {
-        const messagesToDelete = messageState.messages.slice(messageIndex);
-        messagesToDelete.forEach((msg) => {
-          deleteMessageMutation.mutate({ id: msg.id });
-        });
-      }
-      
-      setMessages(externalMessages.slice(0, messageIndex));
+      const messageIndex = findMessageIndex(externalMessages, message.id);
+      if (messageIndex === -1) return;
+
+      // Delete this message and all subsequent messages from database
+      const messagesToDelete = externalMessages.slice(messageIndex);
+      messagesToDelete.forEach((msg) => {
+        deleteMessageMutation.mutate({ id: msg.id });
+      });
+
+      // Keep messages before the one being retried
+      const messagesBeforeRetry = externalMessages.slice(0, messageIndex);
+      setMessages(messagesBeforeRetry);
       onRetryMessage(message.id);
-      
+
       const content = getMessageText(message);
       sendMessage({ text: content });
     },
     [
       sendMessage,
-      messageState.messages,
       deleteMessageMutation,
       externalMessages,
       setMessages,
@@ -89,18 +90,18 @@ export function useMessageActions({
 
   const handleDeleteMessage = useCallback(
     (messageId: string) => {
-      const messageIndex = findMessageIndex(messageState.messages, messageId);
-      if (messageIndex !== -1) {
-        const messagesToDelete = messageState.messages.slice(messageIndex);
-        messagesToDelete.forEach((msg) => {
-          deleteMessageMutation.mutate({ id: msg.id });
-        });
-      }
+      const messageIndex = findMessageIndex(externalMessages, messageId);
+      if (messageIndex === -1) return;
+
+      const messagesToDelete = externalMessages.slice(messageIndex);
+      messagesToDelete.forEach((msg) => {
+        deleteMessageMutation.mutate({ id: msg.id });
+      });
+
       setMessages(externalMessages.slice(0, messageIndex));
       onDeleteMessageAndAfter(messageId);
     },
     [
-      messageState.messages,
       deleteMessageMutation,
       externalMessages,
       setMessages,
@@ -124,3 +125,4 @@ export function useMessageActions({
     handleStop,
   };
 }
+

@@ -44,9 +44,11 @@ export function Chat({
 
   // Initialize unified chat state
   const chatState = useChatState({
-    initialMessages: messages,
-    messages,
-    setMessages,
+    initialMessages: messages as UIMessage[],
+    messages: messages as UIMessage[],
+    setMessages: setMessages as React.Dispatch<
+      React.SetStateAction<UIMessage[]>
+    >,
     deleteMessageMutation,
     isGenerating,
     stop,
@@ -155,8 +157,8 @@ export function Chat({
             >
               <MessageList
                 messages={chatState.messages}
-                isTyping={chatState.isTyping}
                 messageOptions={messageOptions}
+                isTyping={chatState.isTyping}
               />
             </ChatMessages>
           )}
