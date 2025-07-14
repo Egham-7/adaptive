@@ -236,7 +236,6 @@ export const usageRouter = createTRPCRouter({
 
 			try {
 				// Verify user has access to the project
-				// Add this temporarily to see what's available:
 				const project = await ctx.db.project.findFirst({
 					where: {
 						id: input.projectId,
