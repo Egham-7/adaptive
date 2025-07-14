@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
-import { Prisma } from "prisma/generated";
 import { z } from "zod";
 import {
 	createTRPCRouter,
@@ -237,6 +236,7 @@ export const usageRouter = createTRPCRouter({
 
 			try {
 				// Verify user has access to the project
+				// Add this temporarily to see what's available:
 				const project = await ctx.db.project.findFirst({
 					where: {
 						id: input.projectId,
@@ -514,7 +514,7 @@ export const usageRouter = createTRPCRouter({
 						...whereClause,
 						metadata: {
 							path: ["error"],
-							not: Prisma.JsonNull,
+							not: "null",
 						},
 					},
 					select: {
