@@ -513,7 +513,7 @@ export const usageRouter = createTRPCRouter({
 						...whereClause,
 						metadata: {
 							path: ["error"],
-							not: undefined,
+							not: "null",
 						},
 					},
 					select: {
