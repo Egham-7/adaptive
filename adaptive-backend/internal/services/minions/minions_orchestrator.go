@@ -400,16 +400,6 @@ func (s *MinionsOrchestrationService) buildAggregationPrompt(
 	return sb.String()
 }
 
-func extractResultsForNextRound(results []*InstructionResult) []string {
-	var summaries []string
-	for _, result := range results {
-		if result.Success {
-			summaries = append(summaries, result.Result)
-		}
-	}
-	return summaries
-}
-
 func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
 	schema := map[string]any{
 		"type": "object",
