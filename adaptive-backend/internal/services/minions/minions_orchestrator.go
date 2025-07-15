@@ -86,9 +86,8 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 				}
 			}
 		} else {
-			// If no specific indices, prepare for next round with full decomposition
-			previousResults = extractResultsForNextRound(currentRound.Results)
-			currentRound = nil
+			// If no specific indices to redraft, we can't improve further - exit
+			break
 		}
 	}
 
@@ -404,16 +403,6 @@ func (s *MinionsOrchestrationService) buildAggregationPrompt(
 	sb.WriteString("Determine if you have sufficient information for a complete answer.")
 
 	return sb.String()
-}
-
-func extractResultsForNextRound(results []*InstructionResult) []string {
-	var summaries []string
-	for _, result := range results {
-		if result.Success {
-			summaries = append(summaries, result.Result)
-		}
-	}
-	return summaries
 }
 
 func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
