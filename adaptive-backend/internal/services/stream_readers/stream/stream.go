@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/stream_readers/sse"
 	"bufio"
 	"encoding/json"
@@ -13,11 +12,8 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/ssestream"
+	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
-)
-
-var (
-	bufferManager = cache.GetGlobalBufferManager()
 )
 
 // HandleStream manages the streaming response to the client with optimized performance
@@ -43,9 +39,18 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 }
 
 func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, startTime time.Time, totalBytesPtr *int64) error {
-	// Get buffer from pool - start with medium size for typical streaming
-	buffer := bufferManager.GetBuffer(4096)
-	defer bufferManager.PutBuffer(buffer)
+	// Get buffer from bytebufferpool - automatically sized and managed
+	bb := bytebufferpool.Get()
+	defer bytebufferpool.Put(bb)
+
+	// Reset buffer and ensure 4KB capacity for streaming
+	bb.Reset()
+	if cap(bb.B) < 4096 {
+		bb.B = make([]byte, 0, 4096)
+	}
+	// Set buffer length to 4KB for reading
+	bb.B = bb.B[:4096]
+	buffer := bb.B
 
 	var totalBytes int64
 	lastFlushTime := time.Now()
