@@ -278,14 +278,14 @@ func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo) ([]Cand
 
 	var out []Candidate
 
-	svc, err := providers.NewLLMProviderWithBaseURL(min.Provider, nil)
+	svc, err := providers.NewLLMProvider(min.Provider)
 	if err != nil {
 		return nil, fmt.Errorf("%s model %s: %w", min.Provider, min.Model, err)
 	}
 	out = append(out, Candidate{min.Provider, svc, models.ProtocolMinion})
 
 	for _, alt := range min.Alternatives {
-		svc, err := providers.NewLLMProviderWithBaseURL(alt.Provider, nil)
+		svc, err := providers.NewLLMProvider(alt.Provider)
 		if err != nil {
 			return nil, fmt.Errorf("%s alternative model %s: %w", alt.Provider, alt.Model, err)
 		}
