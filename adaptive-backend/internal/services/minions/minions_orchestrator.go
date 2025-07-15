@@ -143,20 +143,6 @@ type AggregationResult struct {
 	Feedback       string
 }
 
-// OrchestrationRound represents a single round of the MinionS protocol
-type OrchestrationRound struct {
-	Instructions []string
-	Results      []*InstructionResult
-}
-
-// AggregationResult contains the detailed response from aggregation
-type AggregationResult struct {
-	Complete       bool
-	Answer         string
-	RedraftIndices []int
-	Feedback       string
-}
-
 // remoteDecompose asks the remote LLM to break down the query into atomic instructions
 func (s *MinionsOrchestrationService) remoteDecompose(
 	ctx context.Context,
