@@ -419,8 +419,14 @@ func (s *MinionsOrchestrationService) streamFinalAnswer(
 	// This only happens AFTER the remote orchestrator has approved all chunks
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage("You are a helpful assistant. The orchestrator has approved all instruction results. Draft a well-formatted final response based on the following approved aggregated information."),
-			openai.UserMessage(finalAnswer),
+			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
+
+IMPORTANT: Your role is to either:
+1. APPROVE: If results are sufficient, set complete=true and provide the final answer
+2. REQUEST REDRAFT: If results are insufficient, set complete=false and specify which instruction indices need redrafting
+
+For incomplete answers, provide specific feedback and the exact indices that need improvement.`),
+			openai.UserMessage(aggregationPrompt),
 		},
 		Temperature: openai.Float(0.3),
 	}
@@ -430,7 +436,38 @@ func (s *MinionsOrchestrationService) streamFinalAnswer(
 		param.Model = shared.ChatModel(minionModel)
 	}
 
-	return localProv.Chat().Completions().StreamCompletion(ctx, &param)
+	var (
+		chunks         []*openai.ChatCompletionChunk
+		contentBuilder strings.Builder
+	)
+
+	for origStream.Next() {
+		chunk := origStream.Current()
+		chunks = append(chunks, &chunk)
+		if len(chunk.Choices) > 0 {
+			contentBuilder.WriteString(chunk.Choices[0].Delta.Content)
+		}
+	}
+
+	if err := origStream.Err(); err != nil {
+		return nil, false, err
+	}
+
+	var parsed struct {
+		Complete       bool   `json:"complete"`
+		Answer         string `json:"answer,omitempty"`
+		RedraftIndices []int  `json:"redraft_indices,omitempty"`
+		Feedback       string `json:"feedback,omitempty"`
+	}
+
+	if err := json.Unmarshal([]byte(contentBuilder.String()), &parsed); err != nil {
+		return nil, false, fmt.Errorf("failed to parse streaming aggregation: %w", err)
+	}
+
+	decoder := newMemoryChunkDecoder(chunks)
+	stream := ssestream.NewStream[openai.ChatCompletionChunk](decoder, nil)
+
+	return stream, parsed.Complete, nil
 }
 
 // Helper functions
