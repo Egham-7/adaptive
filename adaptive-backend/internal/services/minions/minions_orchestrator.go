@@ -3,6 +3,7 @@ package minions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"adaptive-backend/internal/utils"
 	"context"
 	"encoding/json"
 	"errors"
@@ -34,6 +35,8 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 	req *models.ChatCompletionRequest,
 	minionModel string,
 ) (*openai.ChatCompletion, error) {
+	const maxRounds = 5
+
 	userQuery, err := utils.ExtractLastMessage(req.Messages)
 	if err != nil {
 		return nil, errors.New("no user query found")
@@ -101,10 +104,11 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 	req *models.ChatCompletionRequest,
 	minionModel string,
 ) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
-	// Run the entire MinionS protocol non-streaming to get final result
-	finalResponse, err := s.OrchestrateMinionS(ctx, remoteProv, localProv, req, minionModel)
+	const maxRounds = 5
+
+	userQuery, err := utils.ExtractLastMessage(req.Messages)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("no user query found")
 	}
 
 	// Extract the final answer from the response
@@ -464,15 +468,6 @@ func extractResultsForNextRound(results []*InstructionResult) []string {
 		}
 	}
 	return summaries
-}
-
-func getUserQuery(req *models.ChatCompletionRequest) string {
-	for _, msg := range req.Messages {
-		if msg.OfUser != nil {
-			return msg.OfUser.Content.OfString.Value
-		}
-	}
-	return ""
 }
 
 func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
