@@ -287,7 +287,7 @@ func (s *MinionsOrchestrationService) remoteAggregate(
 	req *models.ChatCompletionRequest,
 	results []*InstructionResult,
 ) (*openai.ChatCompletion, *AggregationResult, error) {
-	aggregationPrompt := s.buildAggregationPrompt(req, results)
+	aggregationPrompt := s.buildAggregationPrompt(results)
 
 	// Start with system prompt, then copy existing messages, then add instruction results
 	messages := []openai.ChatCompletionMessageParamUnion{
@@ -378,7 +378,6 @@ func (s *MinionsOrchestrationService) streamFinalAnswer(
 // Helper functions
 
 func (s *MinionsOrchestrationService) buildAggregationPrompt(
-	req *models.ChatCompletionRequest,
 	results []*InstructionResult,
 ) string {
 	var sb strings.Builder
