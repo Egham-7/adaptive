@@ -1,9 +1,6 @@
 package providers
 
 import (
-	"errors"
-	"strings"
-
 	"adaptive-backend/internal/services/providers/anthropic"
 	"adaptive-backend/internal/services/providers/deepseek"
 	"adaptive-backend/internal/services/providers/gemini"
@@ -12,16 +9,14 @@ import (
 	"adaptive-backend/internal/services/providers/huggingface"
 	"adaptive-backend/internal/services/providers/openai"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"errors"
+	"strings"
 )
 
 func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error) {
-	return NewLLMProviderWithBaseURL(providerName, nil)
-}
-
-func NewLLMProviderWithBaseURL(providerName string, baseURL *string) (provider_interfaces.LLMProvider, error) {
 	switch strings.ToLower(providerName) {
 	case "openai":
-		service, err := openai.NewOpenAIService(nil)
+		service, err := openai.NewOpenAIService()
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +42,7 @@ func NewLLMProviderWithBaseURL(providerName string, baseURL *string) (provider_i
 		return service, nil
 
 	case "huggingface":
-		service, err := huggingface.NewHuggingFaceService(baseURL)
+		service, err := huggingface.NewHuggingFaceService()
 		if err != nil {
 			return nil, err
 		}
