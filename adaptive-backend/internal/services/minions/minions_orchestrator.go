@@ -45,7 +45,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 		currentRound    *OrchestrationRound
 	)
 
-	for round := 0; round < maxRounds; round++ {
+	for range maxRounds {
 		// Step 1: Decompose into instructions (only if no current round or complete redraft needed)
 		if currentRound == nil {
 			instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
