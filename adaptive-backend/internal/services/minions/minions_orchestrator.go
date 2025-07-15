@@ -3,6 +3,7 @@ package minions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"adaptive-backend/internal/utils"
 	"context"
 	"encoding/json"
 	"errors"
@@ -35,8 +36,8 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 ) (*openai.ChatCompletion, error) {
 	const maxRounds = 5
 
-	userQuery := getUserQuery(req)
-	if userQuery == "" {
+	userQuery, err := utils.ExtractLastMessage(req.Messages)
+	if err != nil {
 		return nil, errors.New("no user query found")
 	}
 
@@ -83,8 +84,8 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 ) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	const maxRounds = 5
 
-	userQuery := getUserQuery(req)
-	if userQuery == "" {
+	userQuery, err := utils.ExtractLastMessage(req.Messages)
+	if err != nil {
 		return nil, errors.New("no user query found")
 	}
 
@@ -474,15 +475,6 @@ func extractResultsForNextRound(results []*InstructionResult) []string {
 		}
 	}
 	return summaries
-}
-
-func getUserQuery(req *models.ChatCompletionRequest) string {
-	for _, msg := range req.Messages {
-		if msg.OfUser != nil {
-			return msg.OfUser.Content.OfString.Value
-		}
-	}
-	return ""
 }
 
 func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
