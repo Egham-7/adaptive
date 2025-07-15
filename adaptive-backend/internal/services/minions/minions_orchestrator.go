@@ -115,18 +115,18 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 	}
 
 	finalAnswer := finalResponse.Choices[0].Message.Content
-	
+
 	// Have a minion draft and stream the final response
 	return s.streamFinalAnswer(ctx, localProv, finalAnswer, minionModel)
 }
 
 // InstructionResult represents the result of executing an instruction
 type InstructionResult struct {
-	Index        int
-	Instruction  string
-	Result       string
-	Success      bool
-	Error        error
+	Index       int
+	Instruction string
+	Result      string
+	Success     bool
+	Error       error
 }
 
 // OrchestrationRound represents a single round of the MinionS protocol
@@ -379,7 +379,6 @@ func (s *MinionsOrchestrationService) streamFinalAnswer(
 	return localProv.Chat().Completions().StreamCompletion(ctx, &param)
 }
 
-
 // Helper functions
 
 func (s *MinionsOrchestrationService) buildAggregationPrompt(
@@ -416,7 +415,6 @@ func extractResultsForNextRound(results []*InstructionResult) []string {
 	}
 	return summaries
 }
-
 
 func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
 	schema := map[string]any{
