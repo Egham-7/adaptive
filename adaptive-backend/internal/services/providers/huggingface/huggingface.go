@@ -23,11 +23,11 @@ func NewHuggingFaceService() (*HuggingFaceService, error) {
 		return nil, fmt.Errorf("HF_TOKEN environment variable not set")
 	}
 
-	baseUrl := "https://router.huggingface.co/v1"
+	baseURL := "https://router.huggingface.co/v1"
 
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
-		option.WithBaseURL(baseUrl),
+		option.WithBaseURL(baseURL),
 	)
 
 	chatService := chat.NewHuggingFaceChat(&client)
