@@ -126,6 +126,24 @@ type InstructionResult struct {
 	Result      string
 	Success     bool
 	Error       error
+	NeedsRedraft bool
+}
+
+// WorkerPool manages a pool of workers for executing instructions
+type WorkerPool struct {
+	workerCount int
+	jobChan     chan WorkerJob
+	resultChan  chan *InstructionResult
+	wg          sync.WaitGroup
+}
+
+// WorkerJob represents a job to be executed by a worker
+type WorkerJob struct {
+	Index       int
+	Instruction string
+	Ctx         context.Context
+	LocalProv   provider_interfaces.LLMProvider
+	MinionModel string
 }
 
 // OrchestrationRound represents a single round of the MinionS protocol
@@ -197,46 +215,122 @@ Return your response as JSON with an array of instruction strings.`
 	return parsed.Instructions, nil
 }
 
-// executeInstructionsParallel executes multiple instructions concurrently using pond worker pool
+// NewWorkerPool creates a new worker pool with the specified number of workers
+func NewWorkerPool(workerCount int) *WorkerPool {
+	return &WorkerPool{
+		workerCount: workerCount,
+		jobChan:     make(chan WorkerJob, workerCount*2),
+		resultChan:  make(chan *InstructionResult, workerCount*2),
+	}
+}
+
+// Start initializes and starts the worker pool
+func (wp *WorkerPool) Start(s *MinionsOrchestrationService) {
+	for i := 0; i < wp.workerCount; i++ {
+		wp.wg.Add(1)
+		go wp.worker(s)
+	}
+}
+
+// Stop shuts down the worker pool
+func (wp *WorkerPool) Stop() {
+	close(wp.jobChan)
+	wp.wg.Wait()
+	close(wp.resultChan)
+}
+
+// worker processes jobs from the job channel
+func (wp *WorkerPool) worker(s *MinionsOrchestrationService) {
+	defer wp.wg.Done()
+	for job := range wp.jobChan {
+		result := s.executeInstruction(job.Ctx, job.LocalProv, job.Instruction, job.MinionModel)
+		result.Index = job.Index
+		wp.resultChan <- result
+	}
+}
+
+// executeInstructionsParallel executes multiple instructions concurrently using worker pool
 func (s *MinionsOrchestrationService) executeInstructionsParallel(
 	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instructions []string,
 	minionModel string,
 ) []*InstructionResult {
-	// Create a pond result pool with limited concurrency
-	pool := pond.NewResultPool[*InstructionResult](int(math.Min(float64(len(instructions)), 10)), pond.WithContext(ctx))
-	defer pool.StopAndWait()
-
-	// Submit all instructions as tasks
-	tasks := make([]pond.ResultTask[*InstructionResult], len(instructions))
-	for i, instruction := range instructions {
-		i, instruction := i, instruction // capture loop variables
-		tasks[i] = pool.Submit(func() *InstructionResult {
-			result := s.executeInstruction(ctx, localProv, instruction, minionModel)
-			result.Index = i
-			return result
-		})
+	workerFunc := func(ctx context.Context, instruction string) (string, error) {
+		result := s.executeInstruction(ctx, localProv, instruction, minionModel)
+		if !result.Success {
+			return "", result.Error
+		}
+		return result.Result, nil
 	}
 
-	// Wait for all tasks to complete and collect results
-	results := make([]*InstructionResult, len(instructions))
-	for i, task := range tasks {
-		result, err := task.Wait()
-		if err != nil {
-			// Handle task execution error
-			results[i] = &InstructionResult{
-				Index:       i,
-				Instruction: instructions[i],
-				Success:     false,
-				Error:       err,
-			}
-		} else {
-			results[i] = result
+	workerPool := utils.NewWorkerPool(int(math.Min(float64(len(instructions)), 10)), workerFunc)
+	results := workerPool.ProcessJobs(ctx, instructions)
+
+	// Convert to InstructionResult format
+	instructionResults := make([]*InstructionResult, len(results))
+	for i, result := range results {
+		instructionResults[i] = &InstructionResult{
+			Index:       result.Index,
+			Instruction: instructions[result.Index],
+			Result:      result.Data,
+			Success:     result.Success,
+			Error:       result.Error,
 		}
 	}
 
-	return results
+	return instructionResults
+}
+
+// executeSelectiveInstructions executes only specified instruction indices
+func (s *MinionsOrchestrationService) executeSelectiveInstructions(
+	ctx context.Context,
+	localProv provider_interfaces.LLMProvider,
+	instructions []string,
+	indices []int,
+	minionModel string,
+	previousResults []*InstructionResult,
+) []*InstructionResult {
+	if len(indices) == 0 {
+		return previousResults
+	}
+
+	workerFunc := func(ctx context.Context, instruction string) (string, error) {
+		result := s.executeInstruction(ctx, localProv, instruction, minionModel)
+		if !result.Success {
+			return "", result.Error
+		}
+		return result.Result, nil
+	}
+
+	workerPool := utils.NewWorkerPool(int(math.Min(float64(len(indices)), 10)), workerFunc)
+	
+	// Convert previous results to utils.Result format
+	prevResults := make([]utils.Result[string], len(previousResults))
+	for i, result := range previousResults {
+		prevResults[i] = utils.Result[string]{
+			Index:   result.Index,
+			Data:    result.Result,
+			Success: result.Success,
+			Error:   result.Error,
+		}
+	}
+
+	results := workerPool.ProcessSelectiveJobs(ctx, instructions, indices, prevResults)
+
+	// Convert back to InstructionResult format
+	instructionResults := make([]*InstructionResult, len(results))
+	for i, result := range results {
+		instructionResults[i] = &InstructionResult{
+			Index:       result.Index,
+			Instruction: instructions[result.Index],
+			Result:      result.Data,
+			Success:     result.Success,
+			Error:       result.Error,
+		}
+	}
+
+	return instructionResults
 }
 
 // executeInstruction executes a single instruction
@@ -403,6 +497,26 @@ func (s *MinionsOrchestrationService) buildAggregationPrompt(
 	sb.WriteString("Determine if you have sufficient information for a complete answer.")
 
 	return sb.String()
+}
+
+func extractResultsForNextRound(results []*InstructionResult) []string {
+	var summaries []string
+	for _, result := range results {
+		if result.Success {
+			summaries = append(summaries, result.Result)
+		}
+	}
+	return summaries
+}
+
+
+func getUserQuery(req *models.ChatCompletionRequest) string {
+	for _, msg := range req.Messages {
+		if msg.OfUser != nil {
+			return msg.OfUser.Content.OfString.Value
+		}
+	}
+	return ""
 }
 
 func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
