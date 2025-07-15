@@ -37,6 +37,7 @@ require (
 )
 
 require (
+	github.com/alitto/pond/v2 v2.5.0 // indirect
 	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 )

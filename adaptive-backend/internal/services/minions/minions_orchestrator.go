@@ -3,17 +3,21 @@ package minions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"adaptive-backend/internal/utils"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
-	"sync"
 
+	"github.com/alitto/pond/v2"
 	openai "github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/ssestream"
 	"github.com/openai/openai-go/shared"
 )
+
+const maxRounds = 5
 
 // MinionsOrchestrationService coordinates the MinionS protocol loop.
 type MinionsOrchestrationService struct{}
@@ -31,41 +35,61 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 	req *models.ChatCompletionRequest,
 	minionModel string,
 ) (*openai.ChatCompletion, error) {
-	const maxRounds = 5
-
-	userQuery := getUserQuery(req)
-	if userQuery == "" {
+	userQuery, err := utils.ExtractLastMessage(req.Messages)
+	if err != nil {
 		return nil, errors.New("no user query found")
 	}
 
-	var previousResults []string
+	var (
+		previousResults []string
+		currentRound    *OrchestrationRound
+	)
 
 	for range maxRounds {
-		// Step 1: Decompose into instructions
-		instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
-		if err != nil {
-			return nil, fmt.Errorf("decomposition failed: %w", err)
-		}
+		// Step 1: Decompose into instructions (only if no current round or complete redraft needed)
+		if currentRound == nil {
+			instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
+			if err != nil {
+				return nil, fmt.Errorf("decomposition failed: %w", err)
+			}
 
-		if len(instructions) == 0 {
-			return nil, errors.New("no instructions generated")
-		}
+			if len(instructions) == 0 {
+				return nil, errors.New("no instructions generated")
+			}
 
-		// Step 2: Execute instructions in parallel
-		results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
+			// Step 2: Execute all instructions in parallel
+			results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
+			currentRound = &OrchestrationRound{
+				Instructions: instructions,
+				Results:      results,
+			}
+		}
 
 		// Step 3: Aggregate results
-		response, isComplete, err := s.remoteAggregate(ctx, remoteProv, userQuery, results, req.Model)
+		response, aggregation, err := s.remoteAggregate(ctx, remoteProv, userQuery, currentRound.Results, req.Model)
 		if err != nil {
 			return nil, fmt.Errorf("aggregation failed: %w", err)
 		}
 
-		if isComplete {
+		if aggregation.Complete {
 			return response, nil
 		}
 
-		// Prepare for next round
-		previousResults = extractResultsForNextRound(results)
+		// Step 4: Selective redrafting based on indices
+		if len(aggregation.RedraftIndices) > 0 {
+			// Re-execute only the specified indices
+			for _, idx := range aggregation.RedraftIndices {
+				if idx >= 0 && idx < len(currentRound.Instructions) {
+					result := s.executeInstruction(ctx, localProv, currentRound.Instructions[idx], minionModel)
+					result.Index = idx
+					currentRound.Results[idx] = result
+				}
+			}
+		} else {
+			// If no specific indices, prepare for next round with full decomposition
+			previousResults = extractResultsForNextRound(currentRound.Results)
+			currentRound = nil
+		}
 	}
 
 	return nil, errors.New("MinionS protocol did not converge within maximum rounds")
@@ -81,39 +105,61 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 ) (*ssestream.Stream[openai.ChatCompletionChunk], error) {
 	const maxRounds = 5
 
-	userQuery := getUserQuery(req)
-	if userQuery == "" {
+	userQuery, err := utils.ExtractLastMessage(req.Messages)
+	if err != nil {
 		return nil, errors.New("no user query found")
 	}
 
-	var previousResults []string
+	var (
+		previousResults []string
+		currentRound    *OrchestrationRound
+	)
 
 	for range maxRounds {
-		// Step 1: Decompose into instructions
-		instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
-		if err != nil {
-			return nil, fmt.Errorf("decomposition failed: %w", err)
-		}
+		// Step 1: Decompose into instructions (only if no current round)
+		if currentRound == nil {
+			instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
+			if err != nil {
+				return nil, fmt.Errorf("decomposition failed: %w", err)
+			}
 
-		if len(instructions) == 0 {
-			return nil, errors.New("no instructions generated")
-		}
+			if len(instructions) == 0 {
+				return nil, errors.New("no instructions generated")
+			}
 
-		// Step 2: Execute instructions in parallel
-		results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
+			// Step 2: Execute all instructions in parallel
+			results := s.executeInstructionsParallel(ctx, localProv, instructions, minionModel)
+			currentRound = &OrchestrationRound{
+				Instructions: instructions,
+				Results:      results,
+			}
+		}
 
 		// Step 3: Aggregate results (streaming)
-		stream, isComplete, err := s.remoteAggregateStream(ctx, remoteProv, userQuery, results, req.Model)
+		stream, aggregation, err := s.remoteAggregateStream(ctx, remoteProv, userQuery, currentRound.Results, req.Model)
 		if err != nil {
 			return nil, fmt.Errorf("streaming aggregation failed: %w", err)
 		}
 
-		if isComplete {
+		if aggregation.Complete {
 			return stream, nil
 		}
 
-		// Prepare for next round
-		previousResults = extractResultsForNextRound(results)
+		// Step 4: Selective redrafting based on indices
+		if len(aggregation.RedraftIndices) > 0 {
+			// Re-execute only the specified indices
+			for _, idx := range aggregation.RedraftIndices {
+				if idx >= 0 && idx < len(currentRound.Instructions) {
+					result := s.executeInstruction(ctx, localProv, currentRound.Instructions[idx], minionModel)
+					result.Index = idx
+					currentRound.Results[idx] = result
+				}
+			}
+		} else {
+			// If no specific indices, prepare for next round with full decomposition
+			previousResults = extractResultsForNextRound(currentRound.Results)
+			currentRound = nil
+		}
 	}
 
 	return nil, errors.New("MinionS streaming protocol did not converge within maximum rounds")
@@ -121,10 +167,26 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 
 // InstructionResult represents the result of executing an instruction
 type InstructionResult struct {
-	Instruction string
-	Result      string
-	Success     bool
-	Error       error
+	Index        int
+	Instruction  string
+	Result       string
+	Success      bool
+	Error        error
+	NeedsRedraft bool
+}
+
+// OrchestrationRound represents a single round of the MinionS protocol
+type OrchestrationRound struct {
+	Instructions []string
+	Results      []*InstructionResult
+}
+
+// AggregationResult contains the detailed response from aggregation
+type AggregationResult struct {
+	Complete       bool
+	Answer         string
+	RedraftIndices []int
+	Feedback       string
 }
 
 // remoteDecompose asks the remote LLM to break down the query into atomic instructions
@@ -182,25 +244,45 @@ Return your response as JSON with an array of instruction strings.`
 	return parsed.Instructions, nil
 }
 
-// executeInstructionsParallel executes multiple instructions concurrently
+// executeInstructionsParallel executes multiple instructions concurrently using pond worker pool
 func (s *MinionsOrchestrationService) executeInstructionsParallel(
 	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instructions []string,
 	minionModel string,
 ) []*InstructionResult {
-	results := make([]*InstructionResult, len(instructions))
-	var wg sync.WaitGroup
+	// Create a pond result pool with limited concurrency
+	pool := pond.NewResultPool[*InstructionResult](int(math.Min(float64(len(instructions)), 10)), pond.WithContext(ctx))
+	defer pool.StopAndWait()
 
+	// Submit all instructions as tasks
+	tasks := make([]pond.ResultTask[*InstructionResult], len(instructions))
 	for i, instruction := range instructions {
-		wg.Add(1)
-		go func(index int, instr string) {
-			defer wg.Done()
-			results[index] = s.executeInstruction(ctx, localProv, instr, minionModel)
-		}(i, instruction)
+		i, instruction := i, instruction // capture loop variables
+		tasks[i] = pool.Submit(func() *InstructionResult {
+			result := s.executeInstruction(ctx, localProv, instruction, minionModel)
+			result.Index = i
+			return result
+		})
 	}
 
-	wg.Wait()
+	// Wait for all tasks to complete and collect results
+	results := make([]*InstructionResult, len(instructions))
+	for i, task := range tasks {
+		result, err := task.Wait()
+		if err != nil {
+			// Handle task execution error
+			results[i] = &InstructionResult{
+				Index:       i,
+				Instruction: instructions[i],
+				Success:     false,
+				Error:       err,
+			}
+		} else {
+			results[i] = result
+		}
+	}
+
 	return results
 }
 
@@ -258,14 +340,18 @@ func (s *MinionsOrchestrationService) remoteAggregate(
 	userQuery string,
 	results []*InstructionResult,
 	model string,
-) (*openai.ChatCompletion, bool, error) {
+) (*openai.ChatCompletion, *AggregationResult, error) {
 	aggregationPrompt := s.buildAggregationPrompt(userQuery, results)
 
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
-Determine if you have enough information to provide a complete answer.
-Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
+
+IMPORTANT: Your role is to either:
+1. APPROVE: If results are sufficient, set complete=true and provide the final answer
+2. REQUEST REDRAFT: If results are insufficient, set complete=false and specify which instruction indices need redrafting
+
+For incomplete answers, provide specific feedback and the exact indices that need improvement.`),
 			openai.UserMessage(aggregationPrompt),
 		},
 		Model:          model,
@@ -275,20 +361,22 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 
 	resp, err := remoteProv.Chat().Completions().CreateCompletion(ctx, &param)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, err
 	}
 
 	if len(resp.Choices) == 0 {
-		return nil, false, errors.New("no response choices")
+		return nil, nil, errors.New("no response choices")
 	}
 
 	var parsed struct {
-		Complete bool   `json:"complete"`
-		Answer   string `json:"answer"`
+		Complete       bool   `json:"complete"`
+		Answer         string `json:"answer,omitempty"`
+		RedraftIndices []int  `json:"redraft_indices,omitempty"`
+		Feedback       string `json:"feedback,omitempty"`
 	}
 
 	if err := json.Unmarshal([]byte(resp.Choices[0].Message.Content), &parsed); err != nil {
-		return nil, false, fmt.Errorf("failed to parse aggregation: %w", err)
+		return nil, nil, fmt.Errorf("failed to parse aggregation: %w", err)
 	}
 
 	finalResp := &openai.ChatCompletion{
@@ -302,7 +390,14 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 		},
 	}
 
-	return finalResp, parsed.Complete, nil
+	aggregation := &AggregationResult{
+		Complete:       parsed.Complete,
+		Answer:         parsed.Answer,
+		RedraftIndices: parsed.RedraftIndices,
+		Feedback:       parsed.Feedback,
+	}
+
+	return finalResp, aggregation, nil
 }
 
 // remoteAggregateStream performs streaming aggregation
@@ -312,14 +407,18 @@ func (s *MinionsOrchestrationService) remoteAggregateStream(
 	userQuery string,
 	results []*InstructionResult,
 	model string,
-) (*ssestream.Stream[openai.ChatCompletionChunk], bool, error) {
+) (*ssestream.Stream[openai.ChatCompletionChunk], *AggregationResult, error) {
 	aggregationPrompt := s.buildAggregationPrompt(userQuery, results)
 
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
-Determine if you have enough information to provide a complete answer.
-Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
+
+IMPORTANT: Your role is to either:
+1. APPROVE: If results are sufficient, set complete=true and provide the final answer
+2. REQUEST REDRAFT: If results are insufficient, set complete=false and specify which instruction indices need redrafting
+
+For incomplete answers, provide specific feedback and the exact indices that need improvement.`),
 			openai.UserMessage(aggregationPrompt),
 		},
 		Model:          model,
@@ -329,7 +428,7 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 
 	origStream, err := remoteProv.Chat().Completions().StreamCompletion(ctx, &param)
 	if err != nil {
-		return nil, false, err
+		return nil, nil, err
 	}
 
 	var (
@@ -346,22 +445,31 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 	}
 
 	if err := origStream.Err(); err != nil {
-		return nil, false, err
+		return nil, nil, err
 	}
 
 	var parsed struct {
-		Complete bool   `json:"complete"`
-		Answer   string `json:"answer"`
+		Complete       bool   `json:"complete"`
+		Answer         string `json:"answer,omitempty"`
+		RedraftIndices []int  `json:"redraft_indices,omitempty"`
+		Feedback       string `json:"feedback,omitempty"`
 	}
 
 	if err := json.Unmarshal([]byte(contentBuilder.String()), &parsed); err != nil {
-		return nil, false, fmt.Errorf("failed to parse streaming aggregation: %w", err)
+		return nil, nil, fmt.Errorf("failed to parse streaming aggregation: %w", err)
 	}
 
 	decoder := newMemoryChunkDecoder(chunks)
 	stream := ssestream.NewStream[openai.ChatCompletionChunk](decoder, nil)
 
-	return stream, parsed.Complete, nil
+	aggregation := &AggregationResult{
+		Complete:       parsed.Complete,
+		Answer:         parsed.Answer,
+		RedraftIndices: parsed.RedraftIndices,
+		Feedback:       parsed.Feedback,
+	}
+
+	return stream, aggregation, nil
 }
 
 // Helper functions
@@ -401,15 +509,6 @@ func extractResultsForNextRound(results []*InstructionResult) []string {
 	return summaries
 }
 
-func getUserQuery(req *models.ChatCompletionRequest) string {
-	for _, msg := range req.Messages {
-		if msg.OfUser != nil {
-			return msg.OfUser.Content.OfString.Value
-		}
-	}
-	return ""
-}
-
 func (s *MinionsOrchestrationService) createDecomposeSchema() openai.ChatCompletionNewParamsResponseFormatUnion {
 	schema := map[string]any{
 		"type": "object",
@@ -443,14 +542,25 @@ func (s *MinionsOrchestrationService) createAggregateSchema() openai.ChatComplet
 		"properties": map[string]any{
 			"complete": map[string]any{
 				"type":        "boolean",
-				"description": "Whether the answer is complete",
+				"description": "Whether the answer is complete and ready for final approval",
 			},
 			"answer": map[string]any{
 				"type":        "string",
-				"description": "The aggregated answer",
+				"description": "The aggregated answer (only if complete=true)",
+			},
+			"redraft_indices": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "integer",
+				},
+				"description": "Array of instruction indices that need to be redrafted (only if complete=false)",
+			},
+			"feedback": map[string]any{
+				"type":        "string",
+				"description": "Feedback on what needs improvement for incomplete answers",
 			},
 		},
-		"required": []string{"complete", "answer"},
+		"required": []string{"complete"},
 	}
 
 	return openai.ChatCompletionNewParamsResponseFormatUnion{
