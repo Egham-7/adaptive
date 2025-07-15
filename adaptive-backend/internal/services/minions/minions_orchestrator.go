@@ -3,10 +3,12 @@ package minions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"adaptive-backend/internal/utils"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 
@@ -121,10 +123,29 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 
 // InstructionResult represents the result of executing an instruction
 type InstructionResult struct {
+	Index       int
 	Instruction string
 	Result      string
 	Success     bool
 	Error       error
+	NeedsRedraft bool
+}
+
+// WorkerPool manages a pool of workers for executing instructions
+type WorkerPool struct {
+	workerCount int
+	jobChan     chan WorkerJob
+	resultChan  chan *InstructionResult
+	wg          sync.WaitGroup
+}
+
+// WorkerJob represents a job to be executed by a worker
+type WorkerJob struct {
+	Index       int
+	Instruction string
+	Ctx         context.Context
+	LocalProv   provider_interfaces.LLMProvider
+	MinionModel string
 }
 
 // remoteDecompose asks the remote LLM to break down the query into atomic instructions
@@ -182,26 +203,122 @@ Return your response as JSON with an array of instruction strings.`
 	return parsed.Instructions, nil
 }
 
-// executeInstructionsParallel executes multiple instructions concurrently
+// NewWorkerPool creates a new worker pool with the specified number of workers
+func NewWorkerPool(workerCount int) *WorkerPool {
+	return &WorkerPool{
+		workerCount: workerCount,
+		jobChan:     make(chan WorkerJob, workerCount*2),
+		resultChan:  make(chan *InstructionResult, workerCount*2),
+	}
+}
+
+// Start initializes and starts the worker pool
+func (wp *WorkerPool) Start(s *MinionsOrchestrationService) {
+	for i := 0; i < wp.workerCount; i++ {
+		wp.wg.Add(1)
+		go wp.worker(s)
+	}
+}
+
+// Stop shuts down the worker pool
+func (wp *WorkerPool) Stop() {
+	close(wp.jobChan)
+	wp.wg.Wait()
+	close(wp.resultChan)
+}
+
+// worker processes jobs from the job channel
+func (wp *WorkerPool) worker(s *MinionsOrchestrationService) {
+	defer wp.wg.Done()
+	for job := range wp.jobChan {
+		result := s.executeInstruction(job.Ctx, job.LocalProv, job.Instruction, job.MinionModel)
+		result.Index = job.Index
+		wp.resultChan <- result
+	}
+}
+
+// executeInstructionsParallel executes multiple instructions concurrently using worker pool
 func (s *MinionsOrchestrationService) executeInstructionsParallel(
 	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instructions []string,
 	minionModel string,
 ) []*InstructionResult {
-	results := make([]*InstructionResult, len(instructions))
-	var wg sync.WaitGroup
-
-	for i, instruction := range instructions {
-		wg.Add(1)
-		go func(index int, instr string) {
-			defer wg.Done()
-			results[index] = s.executeInstruction(ctx, localProv, instr, minionModel)
-		}(i, instruction)
+	workerFunc := func(ctx context.Context, instruction string) (string, error) {
+		result := s.executeInstruction(ctx, localProv, instruction, minionModel)
+		if !result.Success {
+			return "", result.Error
+		}
+		return result.Result, nil
 	}
 
-	wg.Wait()
-	return results
+	workerPool := utils.NewWorkerPool(int(math.Min(float64(len(instructions)), 10)), workerFunc)
+	results := workerPool.ProcessJobs(ctx, instructions)
+
+	// Convert to InstructionResult format
+	instructionResults := make([]*InstructionResult, len(results))
+	for i, result := range results {
+		instructionResults[i] = &InstructionResult{
+			Index:       result.Index,
+			Instruction: instructions[result.Index],
+			Result:      result.Data,
+			Success:     result.Success,
+			Error:       result.Error,
+		}
+	}
+
+	return instructionResults
+}
+
+// executeSelectiveInstructions executes only specified instruction indices
+func (s *MinionsOrchestrationService) executeSelectiveInstructions(
+	ctx context.Context,
+	localProv provider_interfaces.LLMProvider,
+	instructions []string,
+	indices []int,
+	minionModel string,
+	previousResults []*InstructionResult,
+) []*InstructionResult {
+	if len(indices) == 0 {
+		return previousResults
+	}
+
+	workerFunc := func(ctx context.Context, instruction string) (string, error) {
+		result := s.executeInstruction(ctx, localProv, instruction, minionModel)
+		if !result.Success {
+			return "", result.Error
+		}
+		return result.Result, nil
+	}
+
+	workerPool := utils.NewWorkerPool(int(math.Min(float64(len(indices)), 10)), workerFunc)
+	
+	// Convert previous results to utils.Result format
+	prevResults := make([]utils.Result[string], len(previousResults))
+	for i, result := range previousResults {
+		prevResults[i] = utils.Result[string]{
+			Index:   result.Index,
+			Data:    result.Result,
+			Success: result.Success,
+			Error:   result.Error,
+		}
+	}
+
+	results := workerPool.ProcessSelectiveJobs(ctx, instructions, indices, prevResults)
+
+	// Convert back to InstructionResult format
+	instructionResults := make([]*InstructionResult, len(results))
+	for i, result := range results {
+		instructionResults[i] = &InstructionResult{
+			Index:       result.Index,
+			Instruction: instructions[result.Index],
+			Result:      result.Data,
+			Success:     result.Success,
+			Error:       result.Error,
+		}
+	}
+
+	return instructionResults
 }
 
 // executeInstruction executes a single instruction
@@ -400,6 +517,7 @@ func extractResultsForNextRound(results []*InstructionResult) []string {
 	}
 	return summaries
 }
+
 
 func getUserQuery(req *models.ChatCompletionRequest) string {
 	for _, msg := range req.Messages {
