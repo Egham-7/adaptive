@@ -3,7 +3,6 @@ package minions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"adaptive-backend/internal/utils"
 	"context"
 	"encoding/json"
 	"errors"
@@ -121,11 +120,11 @@ func (s *MinionsOrchestrationService) OrchestrateMinionSStream(
 
 // InstructionResult represents the result of executing an instruction
 type InstructionResult struct {
-	Index       int
-	Instruction string
-	Result      string
-	Success     bool
-	Error       error
+	Index        int
+	Instruction  string
+	Result       string
+	Success      bool
+	Error        error
 	NeedsRedraft bool
 }
 
@@ -249,88 +248,46 @@ func (wp *WorkerPool) worker(s *MinionsOrchestrationService) {
 	}
 }
 
-// executeInstructionsParallel executes multiple instructions concurrently using worker pool
+// executeInstructionsParallel executes multiple instructions concurrently using pond worker pool
 func (s *MinionsOrchestrationService) executeInstructionsParallel(
 	ctx context.Context,
 	localProv provider_interfaces.LLMProvider,
 	instructions []string,
 	minionModel string,
 ) []*InstructionResult {
-	workerFunc := func(ctx context.Context, instruction string) (string, error) {
-		result := s.executeInstruction(ctx, localProv, instruction, minionModel)
-		if !result.Success {
-			return "", result.Error
-		}
-		return result.Result, nil
+	// Create a pond result pool with limited concurrency
+	pool := pond.NewResultPool[*InstructionResult](int(math.Min(float64(len(instructions)), 10)), pond.WithContext(ctx))
+	defer pool.StopAndWait()
+
+	// Submit all instructions as tasks
+	tasks := make([]pond.ResultTask[*InstructionResult], len(instructions))
+	for i, instruction := range instructions {
+		i, instruction := i, instruction // capture loop variables
+		tasks[i] = pool.Submit(func() *InstructionResult {
+			result := s.executeInstruction(ctx, localProv, instruction, minionModel)
+			result.Index = i
+			return result
+		})
 	}
 
-	workerPool := utils.NewWorkerPool(int(math.Min(float64(len(instructions)), 10)), workerFunc)
-	results := workerPool.ProcessJobs(ctx, instructions)
-
-	// Convert to InstructionResult format
-	instructionResults := make([]*InstructionResult, len(results))
-	for i, result := range results {
-		instructionResults[i] = &InstructionResult{
-			Index:       result.Index,
-			Instruction: instructions[result.Index],
-			Result:      result.Data,
-			Success:     result.Success,
-			Error:       result.Error,
-		}
-	}
-
-	return instructionResults
-}
-
-// executeSelectiveInstructions executes only specified instruction indices
-func (s *MinionsOrchestrationService) executeSelectiveInstructions(
-	ctx context.Context,
-	localProv provider_interfaces.LLMProvider,
-	instructions []string,
-	indices []int,
-	minionModel string,
-	previousResults []*InstructionResult,
-) []*InstructionResult {
-	if len(indices) == 0 {
-		return previousResults
-	}
-
-	workerFunc := func(ctx context.Context, instruction string) (string, error) {
-		result := s.executeInstruction(ctx, localProv, instruction, minionModel)
-		if !result.Success {
-			return "", result.Error
-		}
-		return result.Result, nil
-	}
-
-	workerPool := utils.NewWorkerPool(int(math.Min(float64(len(indices)), 10)), workerFunc)
-	
-	// Convert previous results to utils.Result format
-	prevResults := make([]utils.Result[string], len(previousResults))
-	for i, result := range previousResults {
-		prevResults[i] = utils.Result[string]{
-			Index:   result.Index,
-			Data:    result.Result,
-			Success: result.Success,
-			Error:   result.Error,
+	// Wait for all tasks to complete and collect results
+	results := make([]*InstructionResult, len(instructions))
+	for i, task := range tasks {
+		result, err := task.Wait()
+		if err != nil {
+			// Handle task execution error
+			results[i] = &InstructionResult{
+				Index:       i,
+				Instruction: instructions[i],
+				Success:     false,
+				Error:       err,
+			}
+		} else {
+			results[i] = result
 		}
 	}
 
-	results := workerPool.ProcessSelectiveJobs(ctx, instructions, indices, prevResults)
-
-	// Convert back to InstructionResult format
-	instructionResults := make([]*InstructionResult, len(results))
-	for i, result := range results {
-		instructionResults[i] = &InstructionResult{
-			Index:       result.Index,
-			Instruction: instructions[result.Index],
-			Result:      result.Data,
-			Success:     result.Success,
-			Error:       result.Error,
-		}
-	}
-
-	return instructionResults
+	return results
 }
 
 // executeInstruction executes a single instruction
@@ -508,7 +465,6 @@ func extractResultsForNextRound(results []*InstructionResult) []string {
 	}
 	return summaries
 }
-
 
 func getUserQuery(req *models.ChatCompletionRequest) string {
 	for _, msg := range req.Messages {
