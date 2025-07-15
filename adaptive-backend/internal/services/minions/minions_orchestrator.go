@@ -3,7 +3,6 @@ package minions
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"adaptive-backend/internal/utils"
 	"context"
 	"encoding/json"
 	"errors"
@@ -35,20 +34,15 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 	req *models.ChatCompletionRequest,
 	minionModel string,
 ) (*openai.ChatCompletion, error) {
-	userQuery, err := utils.ExtractLastMessage(req.Messages)
-	if err != nil {
-		return nil, errors.New("no user query found")
-	}
-
 	var (
 		previousResults []string
 		currentRound    *OrchestrationRound
 	)
 
-	for round := 0; round < maxRounds; round++ {
+	for range maxRounds {
 		// Step 1: Decompose into instructions (only if no current round or complete redraft needed)
 		if currentRound == nil {
-			instructions, err := s.remoteDecompose(ctx, remoteProv, userQuery, previousResults, req.Model)
+			instructions, err := s.remoteDecompose(ctx, remoteProv, req, previousResults)
 			if err != nil {
 				return nil, fmt.Errorf("decomposition failed: %w", err)
 			}
@@ -66,7 +60,7 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 		}
 
 		// Step 3: Aggregate results
-		response, aggregation, err := s.remoteAggregate(ctx, remoteProv, userQuery, currentRound.Results, req.Model)
+		response, aggregation, err := s.remoteAggregate(ctx, remoteProv, req, currentRound.Results)
 		if err != nil {
 			return nil, fmt.Errorf("aggregation failed: %w", err)
 		}
@@ -86,9 +80,8 @@ func (s *MinionsOrchestrationService) OrchestrateMinionS(
 				}
 			}
 		} else {
-			// If no specific indices, prepare for next round with full decomposition
-			previousResults = extractResultsForNextRound(currentRound.Results)
-			currentRound = nil
+			// If no specific indices to redraft, we can't improve further - exit
+			break
 		}
 	}
 
@@ -147,33 +140,33 @@ type AggregationResult struct {
 func (s *MinionsOrchestrationService) remoteDecompose(
 	ctx context.Context,
 	remoteProv provider_interfaces.LLMProvider,
-	userQuery string,
+	req *models.ChatCompletionRequest,
 	previousResults []string,
-	model string,
 ) ([]string, error) {
 	systemPrompt := `You are an expert at breaking down complex queries into simple, atomic instructions.
-Analyze the user query and decompose it into specific, actionable instructions that can be executed independently.
+Analyze the conversation and decompose the user's request into specific, actionable instructions that can be executed independently.
 Each instruction should be clear, focused, and require no additional context.
 Return your response as JSON with an array of instruction strings.`
 
-	var userPrompt strings.Builder
-	userPrompt.WriteString("User Query: ")
-	userPrompt.WriteString(userQuery)
+	// Start with system prompt, then copy existing messages
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage(systemPrompt),
+	}
+	messages = append(messages, req.Messages...)
 
 	if len(previousResults) > 0 {
-		userPrompt.WriteString("\n\nPrevious Results:\n")
+		var prevResultsPrompt strings.Builder
+		prevResultsPrompt.WriteString("Previous Results:\n")
 		for i, result := range previousResults {
-			userPrompt.WriteString(fmt.Sprintf("%d. %s\n", i+1, result))
+			prevResultsPrompt.WriteString(fmt.Sprintf("%d. %s\n", i+1, result))
 		}
-		userPrompt.WriteString("\nBased on these previous results, what additional instructions are needed to fully answer the query?")
+		prevResultsPrompt.WriteString("\nBased on these previous results, what additional instructions are needed to fully answer the latest user request?")
+		messages = append(messages, openai.UserMessage(prevResultsPrompt.String()))
 	}
 
 	param := openai.ChatCompletionNewParams{
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt),
-			openai.UserMessage(userPrompt.String()),
-		},
-		Model:          model,
+		Messages:       messages,
+		Model:          req.Model,
 		ResponseFormat: s.createDecomposeSchema(),
 		Temperature:    openai.Float(0.1),
 	}
@@ -291,24 +284,27 @@ If you cannot execute the instruction, explain why. Be concise but complete in y
 func (s *MinionsOrchestrationService) remoteAggregate(
 	ctx context.Context,
 	remoteProv provider_interfaces.LLMProvider,
-	userQuery string,
+	req *models.ChatCompletionRequest,
 	results []*InstructionResult,
-	model string,
 ) (*openai.ChatCompletion, *AggregationResult, error) {
-	aggregationPrompt := s.buildAggregationPrompt(userQuery, results)
+	aggregationPrompt := s.buildAggregationPrompt(req, results)
 
-	param := openai.ChatCompletionNewParams{
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
+	// Start with system prompt, then copy existing messages, then add instruction results
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
 
 IMPORTANT: Your role is to either:
 1. APPROVE: If results are sufficient, set complete=true and provide the final answer
 2. REQUEST REDRAFT: If results are insufficient, set complete=false and specify which instruction indices need redrafting
 
 For incomplete answers, provide specific feedback and the exact indices that need improvement.`),
-			openai.UserMessage(aggregationPrompt),
-		},
-		Model:          model,
+	}
+	messages = append(messages, req.Messages...)
+	messages = append(messages, openai.UserMessage(aggregationPrompt))
+
+	param := openai.ChatCompletionNewParams{
+		Messages:       messages,
+		Model:          req.Model,
 		ResponseFormat: s.createAggregateSchema(),
 		Temperature:    openai.Float(0.2),
 	}
@@ -382,14 +378,12 @@ func (s *MinionsOrchestrationService) streamFinalAnswer(
 // Helper functions
 
 func (s *MinionsOrchestrationService) buildAggregationPrompt(
-	userQuery string,
+	req *models.ChatCompletionRequest,
 	results []*InstructionResult,
 ) string {
 	var sb strings.Builder
 
-	sb.WriteString("Original User Query: ")
-	sb.WriteString(userQuery)
-	sb.WriteString("\n\nInstruction Results:\n")
+	sb.WriteString("Instruction Results:\n")
 
 	for i, result := range results {
 		sb.WriteString(fmt.Sprintf("\nInstruction %d: %s\n", i+1, result.Instruction))
@@ -400,7 +394,7 @@ func (s *MinionsOrchestrationService) buildAggregationPrompt(
 		}
 	}
 
-	sb.WriteString("\nPlease aggregate these results to answer the original query. ")
+	sb.WriteString("\nPlease aggregate these results to answer the user's request in the conversation above. ")
 	sb.WriteString("Determine if you have sufficient information for a complete answer.")
 
 	return sb.String()
