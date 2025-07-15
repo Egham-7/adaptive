@@ -5,7 +5,11 @@ import litserve as ls
 import tiktoken
 
 from adaptive_ai.core.config import get_settings
-from adaptive_ai.models.llm_classification_models import ClassificationResult
+from adaptive_ai.models.llm_classification_models import (
+    ClassificationResult,
+    DomainClassificationResult,
+    EnhancedClassificationResult,
+)
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
     ModelSelectionRequest,
@@ -13,6 +17,7 @@ from adaptive_ai.models.llm_core_models import (
 from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
 
 # Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
+from adaptive_ai.services.domain_classifier import get_domain_classifier
 from adaptive_ai.services.model_selector import (
     ModelSelectionService,
 )
@@ -30,6 +35,7 @@ class ProtocolManagerAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         self.settings = get_settings()
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
+        self.domain_classifier = get_domain_classifier(lit_logger=self)
 
         # Cache removed: rule-based routing is fast enough without caching
         # No need for embedding models or cache infrastructure
@@ -51,18 +57,33 @@ class ProtocolManagerAPI(ls.LitAPI):
 
         prompts: list[str] = [req.prompt for req in requests]
 
+        # Run both task and domain classification in parallel  
         t0 = time.perf_counter()
         all_classification_results: list[ClassificationResult] = (
             self.prompt_classifier.classify_prompts(prompts)
         )
         t1 = time.perf_counter()
-        self.log("classification_time", t1 - t0)
+        self.log("task_classification_time", t1 - t0)
+
+        # Domain classification
+        t2 = time.perf_counter()
+        all_domain_results: list[DomainClassificationResult] = (
+            self.domain_classifier.classify_domains(prompts)
+        )
+        t3 = time.perf_counter()
+        self.log("domain_classification_time", t3 - t2)
 
         self.log("predict_called", {"batch_size": len(requests)})
 
         if len(all_classification_results) != len(requests):
             raise ValueError(
-                f"Classification results count ({len(all_classification_results)}) "
+                f"Task classification results count ({len(all_classification_results)}) "
+                f"doesn't match requests count ({len(requests)})"
+            )
+
+        if len(all_domain_results) != len(requests):
+            raise ValueError(
+                f"Domain classification results count ({len(all_domain_results)}) "
                 f"doesn't match requests count ({len(requests)})"
             )
 
@@ -70,6 +91,20 @@ class ProtocolManagerAPI(ls.LitAPI):
             current_classification_result: ClassificationResult = (
                 all_classification_results[i]
             )
+            current_domain_result: DomainClassificationResult = all_domain_results[i]
+            
+            # Log both classifications for this request
+            self.log(
+                "combined_classification_results",
+                {
+                    "task_type": current_classification_result.task_type_1[0]
+                    if current_classification_result.task_type_1
+                    else "Other",
+                    "domain": current_domain_result.domain.value,
+                    "domain_confidence": current_domain_result.confidence,
+                },
+            )
+            
             # Rule-based routing is fast enough - no caching needed
             self.log("cache_disabled", "rule_based_routing_is_fast")
 
@@ -89,14 +124,16 @@ class ProtocolManagerAPI(ls.LitAPI):
                     request=req,
                     classification_result=current_classification_result,
                     prompt_token_count=prompt_token_count,
+                    domain_classification=current_domain_result,
                 )
             )
             select_t1 = time.perf_counter()
             self.log("model_selection_time", select_t1 - select_t0)
 
-            # Get designated minion and alternatives
+            # Get designated minion and alternatives with domain awareness
             minion_model = self.model_selection_service.get_designated_minion(
-                classification_result=current_classification_result
+                classification_result=current_classification_result,
+                domain_classification=current_domain_result,
             )
             minion_alternatives = self.model_selection_service.get_minion_alternatives(
                 primary_minion=minion_model

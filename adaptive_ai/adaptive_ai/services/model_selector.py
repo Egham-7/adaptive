@@ -2,11 +2,18 @@ from typing import Any
 
 from adaptive_ai.config.model_catalog import (
     ACTIVE_PROVIDERS,
+    domain_fallback_preferences,
+    domain_minion_model_preferences,
+    domain_task_model_matrix,
     minion_task_model_mappings,
     provider_model_capabilities,
     task_model_mappings_data,
 )
-from adaptive_ai.models.llm_classification_models import ClassificationResult
+from adaptive_ai.models.llm_classification_models import (
+    ClassificationResult,
+    DomainClassificationResult,
+    DomainType,
+)
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
     ModelSelectionRequest,
@@ -57,6 +64,7 @@ class ModelSelectionService:
         request: ModelSelectionRequest,
         classification_result: ClassificationResult,
         prompt_token_count: int,
+        domain_classification: DomainClassificationResult | None = None,
     ) -> list[ModelCapability]:
         self.log(
             "select_candidate_models_called",
@@ -93,6 +101,33 @@ class ModelSelectionService:
 
         self.log("primary_task_type", primary_task_type.value)
 
+        # NEW 2D MATRIX APPROACH: Check for specific domain-task combination first
+        matrix_key = (domain_classification.domain, primary_task_type) if domain_classification else None
+        domain_task_specific_models: list[TaskModelEntry] = []
+        domain_fallback_models: list[TaskModelEntry] = []
+        
+        if domain_classification:
+            # 1. Try to get specific domain-task combination
+            domain_task_specific_models = domain_task_model_matrix.get(matrix_key, [])
+            
+            # 2. Get domain fallback preferences
+            domain_fallback_models = domain_fallback_preferences.get(
+                domain_classification.domain, []
+            )
+            
+            self.log(
+                "2d_matrix_selection",
+                {
+                    "domain": domain_classification.domain.value,
+                    "task_type": primary_task_type.value,
+                    "confidence": domain_classification.confidence,
+                    "matrix_specific_count": len(domain_task_specific_models),
+                    "domain_fallback_count": len(domain_fallback_models),
+                    "has_specific_mapping": len(domain_task_specific_models) > 0,
+                },
+            )
+
+        # Get task-specific preferences
         task_mapping_data = task_model_mappings_data.get(primary_task_type)
         task_specific_model_entries: list[TaskModelEntry] = (
             task_mapping_data.model_entries
@@ -100,10 +135,21 @@ class ModelSelectionService:
             else self._default_task_specific_model_entries
         )
 
+        # COMBINE IN PRIORITY ORDER:
+        # 1. Domain-Task specific models (highest priority)
+        # 2. Domain fallback models (if no specific combination)
+        # 3. Task-specific models (traditional approach)
+        # 4. Default models (fallback)
+        combined_model_entries = (
+            domain_task_specific_models + 
+            domain_fallback_models + 
+            task_specific_model_entries
+        )
+
         seen_model_identifiers: set[tuple[ProviderType, str]] = set()
         candidate_models: list[ModelCapability] = []
 
-        for task_model_entry in task_specific_model_entries:
+        for task_model_entry in combined_model_entries:
             model_identifier = (
                 task_model_entry.provider,
                 task_model_entry.model_name,
@@ -144,6 +190,7 @@ class ModelSelectionService:
     def get_designated_minion(
         self,
         classification_result: ClassificationResult,
+        domain_classification: DomainClassificationResult | None = None,
     ) -> str:
         """Get the designated HuggingFace minion specialist for the task type."""
         primary_task_type: TaskType = (
@@ -152,18 +199,33 @@ class ModelSelectionService:
             else TaskType.OTHER
         )
 
-        minion_model = minion_task_model_mappings.get(
-            primary_task_type,
-            minion_task_model_mappings[TaskType.OTHER],  # Fallback to OTHER
-        )
+        # Check for domain-specific minion preference first
+        minion_model = None
+        if domain_classification:
+            minion_model = domain_minion_model_preferences.get(domain_classification.domain)
+            if minion_model:
+                self.log(
+                    "domain_specific_minion_selected",
+                    {
+                        "domain": domain_classification.domain.value,
+                        "confidence": domain_classification.confidence,
+                        "minion_model": minion_model,
+                    },
+                )
 
-        self.log(
-            "designated_minion_selected",
-            {
-                "task_type": primary_task_type.value,
-                "minion_model": minion_model,
-            },
-        )
+        # Fallback to task-specific minion if no domain preference
+        if not minion_model:
+            minion_model = minion_task_model_mappings.get(
+                primary_task_type,
+                minion_task_model_mappings[TaskType.OTHER],  # Fallback to OTHER
+            )
+            self.log(
+                "task_specific_minion_selected",
+                {
+                    "task_type": primary_task_type.value,
+                    "minion_model": minion_model,
+                },
+            )
 
         return minion_model
 
