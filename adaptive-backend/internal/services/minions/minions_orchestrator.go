@@ -340,8 +340,12 @@ func (s *MinionsOrchestrationService) remoteAggregate(
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
-Determine if you have enough information to provide a complete answer.
-Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
+
+IMPORTANT: Your role is to either:
+1. APPROVE: If results are sufficient, set complete=true and provide the final answer
+2. REQUEST REDRAFT: If results are insufficient, set complete=false and specify which instruction indices need redrafting
+
+For incomplete answers, provide specific feedback and the exact indices that need improvement.`),
 			openai.UserMessage(aggregationPrompt),
 		},
 		Model:          model,
@@ -359,8 +363,10 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 	}
 
 	var parsed struct {
-		Complete bool   `json:"complete"`
-		Answer   string `json:"answer"`
+		Complete       bool   `json:"complete"`
+		Answer         string `json:"answer,omitempty"`
+		RedraftIndices []int  `json:"redraft_indices,omitempty"`
+		Feedback       string `json:"feedback,omitempty"`
 	}
 
 	if err := json.Unmarshal([]byte(resp.Choices[0].Message.Content), &parsed); err != nil {
@@ -394,8 +400,12 @@ func (s *MinionsOrchestrationService) remoteAggregateStream(
 	param := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(`You are an expert aggregator. Combine the instruction results to answer the user's query.
-Determine if you have enough information to provide a complete answer.
-Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
+
+IMPORTANT: Your role is to either:
+1. APPROVE: If results are sufficient, set complete=true and provide the final answer
+2. REQUEST REDRAFT: If results are insufficient, set complete=false and specify which instruction indices need redrafting
+
+For incomplete answers, provide specific feedback and the exact indices that need improvement.`),
 			openai.UserMessage(aggregationPrompt),
 		},
 		Model:          model,
@@ -426,8 +436,10 @@ Return JSON with 'complete' (boolean) and 'answer' (string) fields.`),
 	}
 
 	var parsed struct {
-		Complete bool   `json:"complete"`
-		Answer   string `json:"answer"`
+		Complete       bool   `json:"complete"`
+		Answer         string `json:"answer,omitempty"`
+		RedraftIndices []int  `json:"redraft_indices,omitempty"`
+		Feedback       string `json:"feedback,omitempty"`
 	}
 
 	if err := json.Unmarshal([]byte(contentBuilder.String()), &parsed); err != nil {
@@ -510,14 +522,25 @@ func (s *MinionsOrchestrationService) createAggregateSchema() openai.ChatComplet
 		"properties": map[string]any{
 			"complete": map[string]any{
 				"type":        "boolean",
-				"description": "Whether the answer is complete",
+				"description": "Whether the answer is complete and ready for final approval",
 			},
 			"answer": map[string]any{
 				"type":        "string",
-				"description": "The aggregated answer",
+				"description": "The aggregated answer (only if complete=true)",
+			},
+			"redraft_indices": map[string]any{
+				"type": "array",
+				"items": map[string]any{
+					"type": "integer",
+				},
+				"description": "Array of instruction indices that need to be redrafted (only if complete=false)",
+			},
+			"feedback": map[string]any{
+				"type":        "string",
+				"description": "Feedback on what needs improvement for incomplete answers",
 			},
 		},
-		"required": []string{"complete", "answer"},
+		"required": []string{"complete"},
 	}
 
 	return openai.ChatCompletionNewParamsResponseFormatUnion{
