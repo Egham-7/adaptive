@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
+import { invalidateProjectCache, withCache } from "@/lib/cache-utils";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type ProjectWithMembers = Prisma.ProjectGetPayload<{
@@ -22,41 +23,44 @@ export const projectsRouter = createTRPCRouter({
 		.input(z.object({ organizationId: z.string() }))
 		.query(async ({ ctx, input }): Promise<ProjectWithMembers[]> => {
 			const userId = ctx.clerkAuth.userId;
+			const cacheKey = `projects:${userId}:${input.organizationId}`;
 
-			try {
-				// Check if user has access to the organization
-				const organization = await ctx.db.organization.findFirst({
-					where: {
-						id: input.organizationId,
-						OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-					},
-				});
+			return withCache(cacheKey, async () => {
+				try {
+					// Check if user has access to the organization
+					const organization = await ctx.db.organization.findFirst({
+						where: {
+							id: input.organizationId,
+							OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+						},
+					});
 
-				if (!organization) {
+					if (!organization) {
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message: "You don't have access to this organization",
+						});
+					}
+
+					const projects = await ctx.db.project.findMany({
+						where: {
+							organizationId: input.organizationId,
+						},
+						include: {
+							members: true,
+						},
+						orderBy: { createdAt: "desc" },
+					});
+
+					return projects as ProjectWithMembers[];
+				} catch (error) {
+					console.error("Error fetching projects:", error);
 					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "You don't have access to this organization",
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to fetch projects",
 					});
 				}
-
-				const projects = await ctx.db.project.findMany({
-					where: {
-						organizationId: input.organizationId,
-					},
-					include: {
-						members: true,
-					},
-					orderBy: { createdAt: "desc" },
-				});
-
-				return projects as ProjectWithMembers[];
-			} catch (error) {
-				console.error("Error fetching projects:", error);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch projects",
-				});
-			}
+			});
 		}),
 
 	// Get a specific project by ID
@@ -68,36 +72,39 @@ export const projectsRouter = createTRPCRouter({
 				input,
 			}): Promise<ProjectWithMembersAndOrganization | null> => {
 				const userId = ctx.clerkAuth.userId;
+				const cacheKey = `project:${userId}:${input.id}`;
 
-				try {
-					const project = await ctx.db.project.findFirst({
-						where: {
-							id: input.id,
-							organization: {
-								OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+				return withCache(cacheKey, async () => {
+					try {
+						const project = await ctx.db.project.findFirst({
+							where: {
+								id: input.id,
+								organization: {
+									OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+								},
 							},
-						},
-						include: {
-							members: true,
-							organization: true,
-						},
-					});
+							include: {
+								members: true,
+								organization: true,
+							},
+						});
 
-					if (!project) {
+						if (!project) {
+							throw new TRPCError({
+								code: "NOT_FOUND",
+								message: "Project not found",
+							});
+						}
+
+						return project as ProjectWithMembersAndOrganization;
+					} catch (error) {
+						console.error("Error fetching project:", error);
 						throw new TRPCError({
-							code: "NOT_FOUND",
-							message: "Project not found",
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to fetch project",
 						});
 					}
-
-					return project as ProjectWithMembersAndOrganization;
-				} catch (error) {
-					console.error("Error fetching project:", error);
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: "Failed to fetch project",
-					});
-				}
+				});
 			},
 		),
 
@@ -154,6 +161,9 @@ export const projectsRouter = createTRPCRouter({
 						organization: true,
 					},
 				});
+
+				// Invalidate project cache
+				await invalidateProjectCache(userId);
 
 				return project as ProjectWithMembersAndOrganization;
 			} catch (error) {
@@ -223,6 +233,9 @@ export const projectsRouter = createTRPCRouter({
 					},
 				});
 
+				// Invalidate project cache
+				await invalidateProjectCache(userId, input.id);
+
 				return updatedProject;
 			} catch (error) {
 				console.error("Error updating project:", error);
@@ -279,6 +292,9 @@ export const projectsRouter = createTRPCRouter({
 				await ctx.db.project.delete({
 					where: { id: input.id },
 				});
+
+				// Invalidate project cache
+				await invalidateProjectCache(userId, input.id);
 
 				return { success: true };
 			} catch (error) {
@@ -363,6 +379,10 @@ export const projectsRouter = createTRPCRouter({
 					},
 				});
 
+				// Invalidate project cache for all affected users
+				await invalidateProjectCache(currentUserId, input.projectId);
+				await invalidateProjectCache(input.userId, input.projectId);
+
 				return member;
 			} catch (error) {
 				console.error("Error adding project member:", error);
@@ -443,6 +463,10 @@ export const projectsRouter = createTRPCRouter({
 						},
 					},
 				});
+
+				// Invalidate project cache for all affected users
+				await invalidateProjectCache(currentUserId, input.projectId);
+				await invalidateProjectCache(input.userId, input.projectId);
 
 				return { success: true };
 			} catch (error) {

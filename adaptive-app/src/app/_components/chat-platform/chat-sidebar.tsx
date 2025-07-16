@@ -56,7 +56,7 @@ export function ChatbotSidebar({
 				searchQuery={searchQuery}
 				onSearchChange={(e) => setSearchQuery(e.target.value)}
 				onCreateClick={() =>
-					createConversationMutation.mutate({ title: "New Conversation" })
+					createConversationMutation.mutate({ title: "New Chat" })
 				}
 				isCreatePending={createConversationMutation.isPending}
 			/>
