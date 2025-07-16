@@ -55,6 +55,9 @@ export const projectsRouter = createTRPCRouter({
 					return projects as ProjectWithMembers[];
 				} catch (error) {
 					console.error("Error fetching projects:", error);
+					if (error instanceof TRPCError) {
+						throw error;
+					}
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
 						message: "Failed to fetch projects",
@@ -99,6 +102,9 @@ export const projectsRouter = createTRPCRouter({
 						return project as ProjectWithMembersAndOrganization;
 					} catch (error) {
 						console.error("Error fetching project:", error);
+						if (error instanceof TRPCError) {
+							throw error;
+						}
 						throw new TRPCError({
 							code: "INTERNAL_SERVER_ERROR",
 							message: "Failed to fetch project",

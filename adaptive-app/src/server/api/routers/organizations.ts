@@ -89,6 +89,9 @@ export const organizationsRouter = createTRPCRouter({
 						return organization as OrganizationWithMembersAndCount;
 					} catch (error) {
 						console.error("Error fetching organization:", error);
+						if (error instanceof TRPCError) {
+							throw error;
+						}
 						throw new TRPCError({
 							code: "INTERNAL_SERVER_ERROR",
 							message: "Failed to fetch organization",

@@ -6,21 +6,24 @@ export const useUpdateMessage = () => {
 
 	return api.messages.update.useMutation({
 		onMutate: async (variables) => {
-			// Cancel any outgoing refetches
-			await utils.messages.listByConversation.cancel();
-			await utils.messages.getById.cancel({ id: variables.id });
-
-			// Snapshot the previous values
+			// First, get the previous message to check if it exists
 			const previousMessage = utils.messages.getById.getData({
 				id: variables.id,
 			});
-			const previousMessages = previousMessage
-				? utils.messages.listByConversation.getData({
-						conversationId: previousMessage.conversationId,
-					})
-				: undefined;
 
+			// Early return if no previous message exists
 			if (!previousMessage) return;
+
+			// Cancel any outgoing refetches
+			await utils.messages.listByConversation.cancel({
+				conversationId: previousMessage.conversationId,
+			});
+			await utils.messages.getById.cancel({ id: variables.id });
+
+			// Snapshot the previous values
+			const previousMessages = utils.messages.listByConversation.getData({
+				conversationId: previousMessage.conversationId,
+			});
 
 			// Optimistically update the specific message
 			const optimisticMessage = {
