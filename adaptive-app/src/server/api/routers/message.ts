@@ -75,12 +75,10 @@ const findMessageWithConversationAccess = (
 			deletedAt: null,
 			conversation: { userId, deletedAt: null },
 		},
-	});
-
-const _getMessagesByConversation = (db: PrismaClient, conversationId: number) =>
-	db.message.findMany({
-		where: { conversationId, deletedAt: null },
-		orderBy: { createdAt: "asc" },
+		cacheStrategy: {
+			ttl: 60,
+			swr: 300,
+		},
 	});
 
 // Composed operations
@@ -214,17 +212,11 @@ export const messageRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
 
-			const message = await ctx.db.message.findFirst({
-				where: {
-					id: input.id,
-					deletedAt: null,
-					conversation: { userId, deletedAt: null },
-				},
-				cacheStrategy: {
-					ttl: 60,
-					swr: 300,
-				},
-			});
+			const message = await findMessageWithConversationAccess(
+				ctx.db,
+				input.id,
+				userId,
+			);
 			return validateMessageAccess(message);
 		}),
 
