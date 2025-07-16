@@ -1,0 +1,24 @@
+name: Create PR from dev to main
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create PR from dev to main
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: dev
+          destination_branch: main
+          pr_title: "Sync dev to main"
+          pr_body: "Automated PR to promote changes from dev to main"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pr_allow_empty: false
