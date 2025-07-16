@@ -32,10 +32,7 @@ export default function DashboardPage() {
 		[dateRange, selectedProvider],
 	);
 
-	const { data, loading, error, refresh } = useProjectDashboardData(
-		projectId,
-		filters,
-	);
+	const { data, loading, error } = useProjectDashboardData(projectId, filters);
 
 	const handleExport = () => {
 		if (!data) return;
@@ -75,7 +72,7 @@ export default function DashboardPage() {
 						Failed to load dashboard data
 					</h3>
 					<p className="mb-4 text-muted-foreground">{error}</p>
-					<Button onClick={() => refresh()}>Try Again</Button>
+					<Button onClick={() => window.location.reload()}>Try Again</Button>
 				</div>
 			</div>
 		);
@@ -100,9 +97,7 @@ export default function DashboardPage() {
 				selectedProvider={selectedProvider}
 				onProviderChange={setSelectedProvider}
 				providers={data?.providers || []}
-				onRefresh={refresh}
 				onExport={handleExport}
-				isLoading={loading}
 			/>
 
 			{/* Key Metrics Section */}

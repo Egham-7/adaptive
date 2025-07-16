@@ -23,10 +23,7 @@ export const useUpdateProject = () => {
 
 			// Optimistically update to the new values
 			const optimisticProject = { ...previousProject, ...variables };
-			utils.projects.getById.setData(
-				{ id: variables.id },
-				optimisticProject,
-			);
+			utils.projects.getById.setData({ id: variables.id }, optimisticProject);
 
 			utils.projects.getByOrganization.setData(
 				{ organizationId: previousProject.organizationId },

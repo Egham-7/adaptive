@@ -1,7 +1,13 @@
 import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
-import { convertToModelMessages, generateText, streamText, tool, type UIMessage } from "ai";
+import {
+	convertToModelMessages,
+	generateText,
+	streamText,
+	tool,
+	type UIMessage,
+} from "ai";
 import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
@@ -192,7 +198,8 @@ export async function POST(req: Request) {
 							messages: [
 								{
 									role: "system",
-									content: "Generate a concise, descriptive title (2-6 words) for the following conversation based on the user's message. Return only the title, no quotes or extra text.",
+									content:
+										"Generate a concise, descriptive title (2-6 words) for the following conversation based on the user's message. Return only the title, no quotes or extra text.",
 								},
 								{
 									role: "user",
@@ -202,8 +209,13 @@ export async function POST(req: Request) {
 						});
 
 						// Clean up the title and ensure it's not too long
-						const cleanTitle = titleResult.text.trim().replace(/^["']|["']$/g, '');
-						const finalTitle = cleanTitle.length > 50 ? cleanTitle.slice(0, 50) + "..." : cleanTitle;
+						const cleanTitle = titleResult.text
+							.trim()
+							.replace(/^["']|["']$/g, "");
+						const finalTitle =
+							cleanTitle.length > 50
+								? `${cleanTitle.slice(0, 50)}...`
+								: cleanTitle;
 
 						// Update the conversation with the generated title
 						if (finalTitle) {
