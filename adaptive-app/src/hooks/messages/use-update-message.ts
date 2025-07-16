@@ -50,20 +50,8 @@ export const useUpdateMessage = () => {
 				conversationId: previousMessage.conversationId,
 			};
 		},
-		onSuccess: (updatedMessage, variables) => {
-			// Update the specific message in cache
-			utils.messages.getById.setData({ id: variables.id }, updatedMessage);
-
-			// Update the message in the conversation list cache
-			utils.messages.listByConversation.setData(
-				{ conversationId: updatedMessage.conversationId },
-				(oldData) => {
-					if (!oldData) return oldData;
-					return oldData.map((msg) =>
-						msg.id === variables.id ? updatedMessage : msg,
-					);
-				},
-			);
+		onSuccess: () => {
+			// Cache invalidation is handled in onSettled
 		},
 		onError: (_err, variables, context) => {
 			// If the mutation fails, use the context returned from onMutate to roll back

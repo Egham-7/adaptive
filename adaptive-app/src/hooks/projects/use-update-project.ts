@@ -8,10 +8,10 @@ export const useUpdateProject = () => {
 		onMutate: async (variables) => {
 			// Cancel any outgoing refetches
 			await utils.projects.getByOrganization.cancel();
-			await utils.projects.getById?.cancel?.({ id: variables.id });
+			await utils.projects.getById.cancel({ id: variables.id });
 
 			// Snapshot the previous values
-			const previousProject = utils.projects.getById?.getData?.({
+			const previousProject = utils.projects.getById.getData({
 				id: variables.id,
 			});
 
@@ -23,7 +23,7 @@ export const useUpdateProject = () => {
 
 			// Optimistically update to the new values
 			const optimisticProject = { ...previousProject, ...variables };
-			utils.projects.getById?.setData?.(
+			utils.projects.getById.setData(
 				{ id: variables.id },
 				optimisticProject,
 			);
@@ -49,7 +49,7 @@ export const useUpdateProject = () => {
 			toast.success("Project updated successfully!");
 			// Invalidate and refetch related queries
 			utils.projects.getByOrganization.invalidate();
-			utils.projects.getById?.invalidate?.({ id: variables.id });
+			utils.projects.getById.invalidate({ id: variables.id });
 			utils.organizations.getAll.invalidate();
 		},
 		onError: (error, variables, context) => {
@@ -62,7 +62,7 @@ export const useUpdateProject = () => {
 				);
 			}
 			if (context?.previousProject) {
-				utils.projects.getById?.setData?.(
+				utils.projects.getById.setData(
 					{ id: variables.id },
 					context.previousProject,
 				);
@@ -71,7 +71,7 @@ export const useUpdateProject = () => {
 		onSettled: (_data, _error, variables) => {
 			// Always refetch after error or success to ensure consistency
 			utils.projects.getByOrganization.invalidate();
-			utils.projects.getById?.invalidate?.({ id: variables.id });
+			utils.projects.getById.invalidate({ id: variables.id });
 			utils.organizations.getAll.invalidate();
 		},
 	});
