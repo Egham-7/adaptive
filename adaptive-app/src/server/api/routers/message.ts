@@ -7,7 +7,11 @@ import {
 	hasReachedDailyLimit,
 } from "@/lib/chat/message-limits";
 import { createMessageSchema, updateMessageSchema } from "@/lib/chat/schema";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	cacheableProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 
 type CreateMessageInput = z.infer<typeof createMessageSchema>;
 type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
@@ -77,7 +81,7 @@ const findMessageWithConversationAccess = (
 		},
 	});
 
-const getMessagesByConversation = (db: PrismaClient, conversationId: number) =>
+const _getMessagesByConversation = (db: PrismaClient, conversationId: number) =>
 	db.message.findMany({
 		where: { conversationId, deletedAt: null },
 		orderBy: { createdAt: "asc" },
@@ -148,6 +152,10 @@ export const messageRouter = createTRPCRouter({
 					userId: userId,
 					status: "active",
 				},
+				cacheStrategy: {
+					ttl: 60,
+					swr: 300,
+				},
 			});
 			const isSubscribed = !!subscription;
 
@@ -183,7 +191,7 @@ export const messageRouter = createTRPCRouter({
 			);
 		}),
 
-	listByConversation: protectedProcedure
+	listByConversation: cacheableProcedure
 		.input(z.object({ conversationId: z.number() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
@@ -195,19 +203,32 @@ export const messageRouter = createTRPCRouter({
 			);
 			validateConversationAccess(conversation);
 
-			return getMessagesByConversation(ctx.db, input.conversationId);
+			return ctx.db.message.findMany({
+				where: { conversationId: input.conversationId, deletedAt: null },
+				orderBy: { createdAt: "asc" },
+				cacheStrategy: {
+					ttl: 60,
+					swr: 300,
+				},
+			});
 		}),
 
-	getById: protectedProcedure
+	getById: cacheableProcedure
 		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
 
-			const message = await findMessageWithConversationAccess(
-				ctx.db,
-				input.id,
-				userId,
-			);
+			const message = await ctx.db.message.findFirst({
+				where: {
+					id: input.id,
+					deletedAt: null,
+					conversation: { userId, deletedAt: null },
+				},
+				cacheStrategy: {
+					ttl: 60,
+					swr: 300,
+				},
+			});
 			return validateMessageAccess(message);
 		}),
 
@@ -322,7 +343,7 @@ export const messageRouter = createTRPCRouter({
 			return { count: results.length };
 		}),
 
-	getRemainingDaily: protectedProcedure.query(async ({ ctx }) => {
+	getRemainingDaily: cacheableProcedure.query(async ({ ctx }) => {
 		const userId = ctx.clerkAuth.userId;
 
 		// Check if user is subscribed

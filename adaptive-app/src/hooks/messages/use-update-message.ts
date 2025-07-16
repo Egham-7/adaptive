@@ -1,5 +1,4 @@
 import { api } from "@/trpc/react";
-import type { Message } from "@/types";
 
 export const useUpdateMessage = () => {
 	const utils = api.useUtils();
@@ -12,7 +11,7 @@ export const useUpdateMessage = () => {
 			// Update the message in the conversation list cache
 			utils.messages.listByConversation.setData(
 				{ conversationId: updatedMessage.conversationId },
-				(oldData: Message[]) => {
+				(oldData) => {
 					if (!oldData) return oldData;
 					return oldData.map((msg) =>
 						msg.id === variables.id ? updatedMessage : msg,

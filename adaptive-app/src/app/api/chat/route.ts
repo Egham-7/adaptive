@@ -109,7 +109,7 @@ export async function POST(req: Request) {
 
 		const previousMessages = (await api.messages.listByConversation({
 			conversationId: numericConversationId,
-		})) as UIMessage[];
+		})) as unknown as UIMessage[];
 
 		// Convert UI messages to core messages for the AI model
 		const coreMessages = convertToModelMessages([

@@ -1,5 +1,4 @@
 import { api } from "@/trpc/react";
-import type { Message } from "@/types";
 
 export const useDeleteMessage = () => {
 	const utils = api.useUtils();
@@ -9,7 +8,7 @@ export const useDeleteMessage = () => {
 			// Remove from conversation messages cache
 			utils.messages.listByConversation.setData(
 				{ conversationId: deletedMessage.conversationId },
-				(oldData: Message[]) => {
+				(oldData) => {
 					if (!oldData) return oldData;
 					return oldData.filter((msg) => msg.id !== variables.id);
 				},

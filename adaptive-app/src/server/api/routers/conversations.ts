@@ -7,7 +7,11 @@ import {
 	getConversationsOptionsSchema,
 	updateConversationSchema,
 } from "@/lib/chat/schema";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import {
+	cacheableProcedure,
+	createTRPCRouter,
+	protectedProcedure,
+} from "@/server/api/trpc";
 
 export const conversationRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -23,7 +27,7 @@ export const conversationRouter = createTRPCRouter({
 			});
 		}),
 
-	getById: protectedProcedure
+	getById: cacheableProcedure
 		.input(z.object({ id: z.number() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
@@ -34,6 +38,10 @@ export const conversationRouter = createTRPCRouter({
 						where: { deletedAt: null },
 						orderBy: { createdAt: "asc" },
 					},
+				},
+				cacheStrategy: {
+					ttl: 60,
+					swr: 300,
 				},
 			});
 
@@ -46,7 +54,7 @@ export const conversationRouter = createTRPCRouter({
 			return conversation;
 		}),
 
-	list: protectedProcedure
+	list: cacheableProcedure
 		.input(getConversationsOptionsSchema.optional())
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
@@ -65,6 +73,10 @@ export const conversationRouter = createTRPCRouter({
 					},
 				},
 				orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+				cacheStrategy: {
+					ttl: 60,
+					swr: 300,
+				},
 			});
 		}),
 

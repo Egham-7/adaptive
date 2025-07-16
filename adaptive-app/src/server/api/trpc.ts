@@ -5,6 +5,12 @@ import { ZodError } from "zod";
 
 import { db } from "@/server/db";
 
+interface Meta {
+	cacheable?: boolean;
+	cacheConfig?: string;
+	invalidates?: string[];
+}
+
 export const createTRPCContext = async (opts: { headers: Headers }) => {
 	const clerkAuthResult = await getClerkAuth();
 
@@ -18,19 +24,23 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
 
 export type Context = Awaited<ReturnType<typeof createTRPCContext>>;
 
-const t = initTRPC.context<Context>().create({
-	transformer: superjson,
-	errorFormatter({ shape, error }) {
-		return {
-			...shape,
-			data: {
-				...shape.data,
-				zodError:
-					error.cause instanceof ZodError ? error.cause.flatten() : null,
-			},
-		};
-	},
-});
+const t = initTRPC
+	.context<Context>()
+	.meta<Meta>()
+	.create({
+		transformer: superjson,
+		defaultMeta: { cacheable: false },
+		errorFormatter({ shape, error }) {
+			return {
+				...shape,
+				data: {
+					...shape.data,
+					zodError:
+						error.cause instanceof ZodError ? error.cause.flatten() : null,
+				},
+			};
+		},
+	});
 
 export const createCallerFactory = t.createCallerFactory;
 
@@ -69,3 +79,9 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure
 	.use(timingMiddleware)
 	.use(enforceUserIsAuthed);
+
+// Base procedure for cacheable queries
+export const cacheableProcedure = t.procedure
+	.use(timingMiddleware)
+	.use(enforceUserIsAuthed)
+	.meta({ cacheable: true });
