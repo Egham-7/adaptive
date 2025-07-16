@@ -1,30 +1,36 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { invalidateSubscriptionCache, withCache } from "@/lib/cache-utils";
 import { stripe } from "@/lib/stripe/stripe";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 export const subscriptionRouter = createTRPCRouter({
 	// Get current user's subscription status
 	getSubscription: protectedProcedure.query(async ({ ctx }) => {
-		const subscription = await ctx.db.subscription.findFirst({
-			where: {
-				userId: ctx.clerkAuth.userId,
-			},
+		const userId = ctx.clerkAuth.userId;
+		const cacheKey = `subscription:${userId}`;
+
+		return withCache(cacheKey, async () => {
+			const subscription = await ctx.db.subscription.findFirst({
+				where: {
+					userId: userId,
+				},
+			});
+
+			if (!subscription) {
+				return { subscribed: false, subscription: null };
+			}
+
+			return {
+				subscribed: subscription.status === "active",
+				subscription: {
+					id: subscription.id,
+					status: subscription.status,
+					currentPeriodEnd: subscription.currentPeriodEnd,
+					stripePriceId: subscription.stripePriceId,
+				},
+			};
 		});
-
-		if (!subscription) {
-			return { subscribed: false, subscription: null };
-		}
-
-		return {
-			subscribed: subscription.status === "active",
-			subscription: {
-				id: subscription.id,
-				status: subscription.status,
-				currentPeriodEnd: subscription.currentPeriodEnd,
-				stripePriceId: subscription.stripePriceId,
-			},
-		};
 	}),
 
 	// Create Stripe checkout session
@@ -161,6 +167,9 @@ export const subscriptionRouter = createTRPCRouter({
 				},
 			});
 
+			// Invalidate subscription cache
+			await invalidateSubscriptionCache(ctx.clerkAuth.userId);
+
 			return {
 				success: true,
 				message: "Subscription canceled successfully",
@@ -176,13 +185,18 @@ export const subscriptionRouter = createTRPCRouter({
 
 	// Check if user is subscribed (utility function)
 	isSubscribed: protectedProcedure.query(async ({ ctx }) => {
-		const subscription = await ctx.db.subscription.findFirst({
-			where: {
-				userId: ctx.clerkAuth.userId,
-				status: "active",
-			},
-		});
+		const userId = ctx.clerkAuth.userId;
+		const cacheKey = `subscription-status:${userId}`;
 
-		return !!subscription;
+		return withCache(cacheKey, async () => {
+			const subscription = await ctx.db.subscription.findFirst({
+				where: {
+					userId: userId,
+					status: "active",
+				},
+			});
+
+			return !!subscription;
+		});
 	}),
 });

@@ -2,6 +2,7 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { invalidateConversationCache, withCache } from "@/lib/cache-utils";
 import {
 	createConversationSchema,
 	getConversationsOptionsSchema,
@@ -14,57 +15,70 @@ export const conversationRouter = createTRPCRouter({
 		.input(createConversationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			return ctx.db.conversation.create({
+			const result = await ctx.db.conversation.create({
 				data: {
 					...input,
 					userId: userId,
 					pinned: input.pinned ?? false,
 				},
 			});
+
+			// Invalidate conversation list cache
+			await invalidateConversationCache(userId);
+
+			return result;
 		}),
 
 	getById: protectedProcedure
 		.input(z.object({ id: z.number() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			const conversation = await ctx.db.conversation.findUnique({
-				where: { id: input.id, userId: userId, deletedAt: null },
-				include: {
-					messages: {
-						where: { deletedAt: null },
-						orderBy: { createdAt: "asc" },
-					},
-				},
-			});
+			const cacheKey = `conversation:${userId}:${input.id}`;
 
-			if (!conversation) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Conversation not found or you do not have access.",
+			return withCache(cacheKey, async () => {
+				const conversation = await ctx.db.conversation.findUnique({
+					where: { id: input.id, userId: userId, deletedAt: null },
+					include: {
+						messages: {
+							where: { deletedAt: null },
+							orderBy: { createdAt: "asc" },
+						},
+					},
 				});
-			}
-			return conversation;
+
+				if (!conversation) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Conversation not found or you do not have access.",
+					});
+				}
+				return conversation;
+			});
 		}),
 
 	list: protectedProcedure
 		.input(getConversationsOptionsSchema.optional())
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			return ctx.db.conversation.findMany({
-				where: {
-					userId: userId,
-					deletedAt: null,
-					...(input?.pinned !== undefined && { pinned: input.pinned }),
-				},
-				// We include the last message to display in the sidebar
-				include: {
-					messages: {
-						where: { deletedAt: null },
-						orderBy: { updatedAt: "desc" },
-						take: 1,
+			const cacheKey = `conversations:${userId}:${JSON.stringify(input || {})}`;
+
+			return withCache(cacheKey, async () => {
+				return ctx.db.conversation.findMany({
+					where: {
+						userId: userId,
+						deletedAt: null,
+						...(input?.pinned !== undefined && { pinned: input.pinned }),
 					},
-				},
-				orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+					// We include the last message to display in the sidebar
+					include: {
+						messages: {
+							where: { deletedAt: null },
+							orderBy: { updatedAt: "desc" },
+							take: 1,
+						},
+					},
+					orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
+				});
 			});
 		}),
 
@@ -74,7 +88,7 @@ export const conversationRouter = createTRPCRouter({
 			const userId = ctx.clerkAuth.userId;
 			const { id, ...dataToUpdate } = input;
 
-			return ctx.db.$transaction(async (tx) => {
+			const result = await ctx.db.$transaction(async (tx) => {
 				const existingConversation = await tx.conversation.findFirst({
 					where: { id: id, userId: userId, deletedAt: null },
 				});
@@ -95,6 +109,11 @@ export const conversationRouter = createTRPCRouter({
 					},
 				});
 			});
+
+			// Invalidate conversation cache
+			await invalidateConversationCache(userId, id);
+
+			return result;
 		}),
 
 	delete: protectedProcedure
@@ -102,7 +121,7 @@ export const conversationRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
 
-			return ctx.db.$transaction(async (tx) => {
+			const result = await ctx.db.$transaction(async (tx) => {
 				const conversationToDelete = await tx.conversation.findFirst({
 					where: { id: input.id, userId: userId, deletedAt: null },
 				});
@@ -127,6 +146,11 @@ export const conversationRouter = createTRPCRouter({
 
 				return deletedConversation;
 			});
+
+			// Invalidate conversation cache
+			await invalidateConversationCache(userId, input.id);
+
+			return result;
 		}),
 
 	setPinStatus: protectedProcedure
@@ -135,7 +159,7 @@ export const conversationRouter = createTRPCRouter({
 			const userId = ctx.clerkAuth.userId;
 			const { id, pinned } = input;
 
-			return ctx.db.$transaction(async (tx) => {
+			const result = await ctx.db.$transaction(async (tx) => {
 				const existingConversation = await tx.conversation.findFirst({
 					where: { id, userId, deletedAt: null },
 				});
@@ -152,5 +176,10 @@ export const conversationRouter = createTRPCRouter({
 					data: { pinned, updatedAt: new Date() },
 				});
 			});
+
+			// Invalidate conversation cache
+			await invalidateConversationCache(userId, id);
+
+			return result;
 		}),
 });

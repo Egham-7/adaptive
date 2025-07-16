@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
+import { invalidateOrganizationCache, withCache } from "@/lib/cache-utils";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type OrganizationWithMembersAndCount = Prisma.OrganizationGetPayload<{
@@ -19,31 +20,34 @@ export const organizationsRouter = createTRPCRouter({
 	getAll: protectedProcedure.query(
 		async ({ ctx }): Promise<OrganizationWithMembersAndCount[]> => {
 			const userId = ctx.clerkAuth.userId;
+			const cacheKey = `organizations:${userId}`;
 
-			try {
-				const organizations = await ctx.db.organization.findMany({
-					where: {
-						OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-					},
-					include: {
-						members: true,
-						_count: {
-							select: {
-								projects: true,
+			return withCache(cacheKey, async () => {
+				try {
+					const organizations = await ctx.db.organization.findMany({
+						where: {
+							OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+						},
+						include: {
+							members: true,
+							_count: {
+								select: {
+									projects: true,
+								},
 							},
 						},
-					},
-					orderBy: { createdAt: "desc" },
-				});
+						orderBy: { createdAt: "desc" },
+					});
 
-				return organizations as OrganizationWithMembersAndCount[];
-			} catch (error) {
-				console.error("Error fetching organizations:", error);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch organizations",
-				});
-			}
+					return organizations as OrganizationWithMembersAndCount[];
+				} catch (error) {
+					console.error("Error fetching organizations:", error);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to fetch organizations",
+					});
+				}
+			});
 		},
 	),
 
@@ -56,38 +60,44 @@ export const organizationsRouter = createTRPCRouter({
 				input,
 			}): Promise<OrganizationWithMembersAndCount | null> => {
 				const userId = ctx.clerkAuth.userId;
+				const cacheKey = `organization:${userId}:${input.id}`;
 
-				try {
-					const organization = await ctx.db.organization.findFirst({
-						where: {
-							id: input.id,
-							OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-						},
-						include: {
-							members: true,
-							_count: {
-								select: {
-									projects: true,
+				return withCache(cacheKey, async () => {
+					try {
+						const organization = await ctx.db.organization.findFirst({
+							where: {
+								id: input.id,
+								OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+							},
+							include: {
+								members: true,
+								_count: {
+									select: {
+										projects: true,
+									},
 								},
 							},
-						},
-					});
+						});
 
-					if (!organization) {
+						if (!organization) {
+							throw new TRPCError({
+								code: "NOT_FOUND",
+								message: "Organization not found",
+							});
+						}
+
+						return organization as OrganizationWithMembersAndCount;
+					} catch (error) {
+						console.error("Error fetching organization:", error);
+						if (error instanceof TRPCError) {
+							throw error;
+						}
 						throw new TRPCError({
-							code: "NOT_FOUND",
-							message: "Organization not found",
+							code: "INTERNAL_SERVER_ERROR",
+							message: "Failed to fetch organization",
 						});
 					}
-
-					return organization as OrganizationWithMembersAndCount;
-				} catch (error) {
-					console.error("Error fetching organization:", error);
-					throw new TRPCError({
-						code: "INTERNAL_SERVER_ERROR",
-						message: "Failed to fetch organization",
-					});
-				}
+				});
 			},
 		),
 
@@ -125,6 +135,9 @@ export const organizationsRouter = createTRPCRouter({
 							},
 						},
 					});
+
+					// Invalidate organization cache
+					await invalidateOrganizationCache(userId);
 
 					return organization as OrganizationWithMembersAndCount;
 				} catch (error) {
@@ -191,6 +204,9 @@ export const organizationsRouter = createTRPCRouter({
 						},
 					});
 
+					// Invalidate organization cache
+					await invalidateOrganizationCache(userId, input.id);
+
 					return updatedOrganization;
 				} catch (error) {
 					console.error("Error updating organization:", error);
@@ -242,6 +258,9 @@ export const organizationsRouter = createTRPCRouter({
 				await ctx.db.organization.delete({
 					where: { id: input.id },
 				});
+
+				// Invalidate organization cache
+				await invalidateOrganizationCache(userId, input.id);
 
 				return { success: true };
 			} catch (error) {
@@ -317,6 +336,10 @@ export const organizationsRouter = createTRPCRouter({
 					},
 				});
 
+				// Invalidate organization cache for all affected users
+				await invalidateOrganizationCache(currentUserId, input.organizationId);
+				await invalidateOrganizationCache(input.userId, input.organizationId);
+
 				return member;
 			} catch (error) {
 				console.error("Error adding member:", error);
@@ -384,6 +407,10 @@ export const organizationsRouter = createTRPCRouter({
 						},
 					},
 				});
+
+				// Invalidate organization cache for all affected users
+				await invalidateOrganizationCache(currentUserId, input.organizationId);
+				await invalidateOrganizationCache(input.userId, input.organizationId);
 
 				return { success: true };
 			} catch (error) {
