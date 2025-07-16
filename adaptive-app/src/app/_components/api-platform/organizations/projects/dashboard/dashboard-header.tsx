@@ -1,4 +1,4 @@
-import { Download, RefreshCw } from "lucide-react";
+import { Download } from "lucide-react";
 import Image from "next/image";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,7 @@ interface DashboardHeaderProps {
 	selectedProvider: ProviderFilter;
 	onProviderChange: (provider: ProviderFilter) => void;
 	providers: Provider[];
-	onRefresh: () => void;
 	onExport: () => void;
-	isLoading?: boolean;
 }
 
 export function DashboardHeader({
@@ -29,9 +27,7 @@ export function DashboardHeader({
 	selectedProvider,
 	onProviderChange,
 	providers,
-	onRefresh,
 	onExport,
-	isLoading = false,
 }: DashboardHeaderProps) {
 	return (
 		<div className="flex items-center justify-between">
@@ -54,7 +50,9 @@ export function DashboardHeader({
 										/>
 										<span>{selected.name}</span>
 									</div>
-								) : null;
+								) : (
+									<span>All Providers</span>
+								);
 							})()}
 						</SelectValue>
 					</SelectTrigger>
@@ -193,17 +191,6 @@ export function DashboardHeader({
 						}
 					}}
 				/>
-
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={onRefresh}
-					disabled={isLoading}
-					className="flex items-center gap-2 bg-transparent"
-				>
-					<RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-					Refresh
-				</Button>
 
 				<Button
 					variant="outline"

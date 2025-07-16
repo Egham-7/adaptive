@@ -12,6 +12,5 @@ export const useCreateConversation = () => {
 			// Navigate to the newly created chat
 			router.push(`/chat-platform/chats/${newConversation.id}`);
 		},
-		// You could add an onError callback here to show a toast notification
 	});
 };

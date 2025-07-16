@@ -1,7 +1,13 @@
 import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
-import { convertToModelMessages, streamText, tool, type UIMessage } from "ai";
+import {
+	convertToModelMessages,
+	generateText,
+	streamText,
+	tool,
+	type UIMessage,
+} from "ai";
 import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
@@ -109,7 +115,7 @@ export async function POST(req: Request) {
 
 		const previousMessages = (await api.messages.listByConversation({
 			conversationId: numericConversationId,
-		})) as UIMessage[];
+		})) as unknown as UIMessage[];
 
 		// Convert UI messages to core messages for the AI model
 		const coreMessages = convertToModelMessages([
@@ -131,6 +137,10 @@ export async function POST(req: Request) {
 		};
 
 		await api.messages.create(userMessage);
+
+		// Check if this is the first message in the conversation to generate a title
+		const isFirstMessage = previousMessages.length === 0;
+		const shouldGenerateTitle = isFirstMessage && message.content;
 
 		const tools = searchEnabled
 			? {
@@ -179,6 +189,46 @@ export async function POST(req: Request) {
 				};
 
 				await api.messages.create(assistantMessage);
+
+				// Generate title for the first message
+				if (shouldGenerateTitle) {
+					try {
+						const titleResult = await generateText({
+							model: adaptive.chat(),
+							messages: [
+								{
+									role: "system",
+									content:
+										"Generate a concise, descriptive title (2-6 words) for the following conversation based on the user's message. Return only the title, no quotes or extra text.",
+								},
+								{
+									role: "user",
+									content: message.content as string,
+								},
+							],
+						});
+
+						// Clean up the title and ensure it's not too long
+						const cleanTitle = titleResult.text
+							.trim()
+							.replace(/^["']|["']$/g, "");
+						const finalTitle =
+							cleanTitle.length > 50
+								? `${cleanTitle.slice(0, 50)}...`
+								: cleanTitle;
+
+						// Update the conversation with the generated title
+						if (finalTitle) {
+							await api.conversations.update({
+								id: numericConversationId,
+								title: finalTitle,
+							});
+						}
+					} catch (error) {
+						console.error("Error generating conversation title:", error);
+						// Title generation failure shouldn't affect the chat response
+					}
+				}
 
 				provider = providerMetadata?.adaptive?.provider as string | undefined;
 				modelId = response.modelId || undefined;
