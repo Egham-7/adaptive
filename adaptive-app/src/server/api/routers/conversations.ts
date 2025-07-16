@@ -35,10 +35,6 @@ export const conversationRouter = createTRPCRouter({
 						orderBy: { createdAt: "asc" },
 					},
 				},
-				cacheStrategy: {
-					ttl: 60,
-					swr: 300,
-				},
 			});
 
 			if (!conversation) {
@@ -69,10 +65,6 @@ export const conversationRouter = createTRPCRouter({
 					},
 				},
 				orderBy: [{ pinned: "desc" }, { updatedAt: "desc" }],
-				cacheStrategy: {
-					ttl: 60,
-					swr: 300,
-				},
 			});
 		}),
 

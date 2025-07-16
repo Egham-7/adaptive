@@ -75,10 +75,6 @@ const findMessageWithConversationAccess = (
 			deletedAt: null,
 			conversation: { userId, deletedAt: null },
 		},
-		cacheStrategy: {
-			ttl: 60,
-			swr: 300,
-		},
 	});
 
 // Composed operations
@@ -146,10 +142,6 @@ export const messageRouter = createTRPCRouter({
 					userId: userId,
 					status: "active",
 				},
-				cacheStrategy: {
-					ttl: 60,
-					swr: 300,
-				},
 			});
 			const isSubscribed = !!subscription;
 
@@ -200,10 +192,6 @@ export const messageRouter = createTRPCRouter({
 			return ctx.db.message.findMany({
 				where: { conversationId: input.conversationId, deletedAt: null },
 				orderBy: { createdAt: "asc" },
-				cacheStrategy: {
-					ttl: 60,
-					swr: 300,
-				},
 			});
 		}),
 

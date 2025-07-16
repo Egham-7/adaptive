@@ -30,10 +30,6 @@ export const projectsRouter = createTRPCRouter({
 						id: input.organizationId,
 						OR: [{ ownerId: userId }, { members: { some: { userId } } }],
 					},
-					cacheStrategy: {
-						ttl: 60,
-						swr: 300,
-					},
 				});
 
 				if (!organization) {
@@ -51,10 +47,6 @@ export const projectsRouter = createTRPCRouter({
 						members: true,
 					},
 					orderBy: { createdAt: "desc" },
-					cacheStrategy: {
-						ttl: 60,
-						swr: 300,
-					},
 				});
 
 				return projects as ProjectWithMembers[];
@@ -88,10 +80,6 @@ export const projectsRouter = createTRPCRouter({
 						include: {
 							members: true,
 							organization: true,
-						},
-						cacheStrategy: {
-							ttl: 60,
-							swr: 300,
 						},
 					});
 
