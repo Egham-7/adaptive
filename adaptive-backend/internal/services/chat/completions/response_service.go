@@ -28,24 +28,6 @@ func NewResponseService() *ResponseService {
 	return &ResponseService{}
 }
 
-// getProviderForProtocol returns the provider based on the protocol and provider
-func (s *ResponseService) getProviderForProtocol(protocolName string, prov provider_interfaces.LLMProvider) string {
-	switch protocolName {
-	case protocolStandard:
-		// Standard protocol: just the provider name
-		return prov.GetProviderName()
-	case protocolMinion:
-		// Minion protocol: use groq provider for minion models
-		return "groq"
-	case protocolMinions:
-		// MinionsProtocol: use the remote provider
-		return prov.GetProviderName()
-	default:
-		// Default to just the provider name
-		return prov.GetProviderName()
-	}
-}
-
 // HandleProtocol routes to the correct response flow based on protocol.
 // remoteProv is the standard-LLM provider, minionProv is used for minion or
 // MinionS protocols. req is the original ChatCompletionRequest.
@@ -102,7 +84,7 @@ func (s *ResponseService) handleProtocolGeneric(
 		}
 		s.setStreamHeaders(c)
 		// Pass comparison provider info for cost calculation in stream
-		provider := s.getProviderForProtocol(protocolName, prov)
+		provider := prov.GetProviderName()
 		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
 	}
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
@@ -116,7 +98,7 @@ func (s *ResponseService) handleProtocolGeneric(
 	}
 
 	// No comparison provider, but still add provider info
-	provider := s.getProviderForProtocol(protocolName, prov)
+	provider := prov.GetProviderName()
 	adaptiveResp := models.ConvertToAdaptive(regResp, provider)
 	return c.JSON(adaptiveResp)
 }
@@ -284,7 +266,7 @@ func (s *ResponseService) handleMinionsProtocol(
 				"MinionS streaming failed: "+err.Error(), requestID)
 		}
 		// Pass comparison provider info for cost calculation in stream
-		provider := s.getProviderForProtocol(protocolMinions, remoteProv)
+		provider := minionProv.GetProviderName()
 		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
 	}
 
