@@ -8,7 +8,11 @@ on:
 jobs:
   create-pr:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Create PR from dev to main
         uses: repo-sync/pull-request@v2
         with:
