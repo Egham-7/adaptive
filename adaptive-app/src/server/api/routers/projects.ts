@@ -1,11 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
-import {
-	cacheableProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type ProjectWithMembers = Prisma.ProjectGetPayload<{
 	include: {
@@ -22,7 +18,7 @@ type ProjectWithMembersAndOrganization = Prisma.ProjectGetPayload<{
 
 export const projectsRouter = createTRPCRouter({
 	// Get all projects for an organization
-	getByOrganization: cacheableProcedure
+	getByOrganization: protectedProcedure
 		.input(z.object({ organizationId: z.string() }))
 		.query(async ({ ctx, input }): Promise<ProjectWithMembers[]> => {
 			const userId = ctx.clerkAuth.userId;
@@ -72,7 +68,7 @@ export const projectsRouter = createTRPCRouter({
 		}),
 
 	// Get a specific project by ID
-	getById: cacheableProcedure
+	getById: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.query(
 			async ({

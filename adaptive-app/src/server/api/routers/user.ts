@@ -1,11 +1,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import {
-	cacheableProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 const providerSchema = z.object({
 	id: z.string(),
@@ -79,7 +75,7 @@ const defaultProviders = [
 ];
 
 export const userRouter = createTRPCRouter({
-	getPreferences: cacheableProcedure.query(async ({ ctx }) => {
+	getPreferences: protectedProcedure.query(async ({ ctx }) => {
 		const userId = ctx.clerkAuth.userId;
 		if (!userId) {
 			throw new TRPCError({ code: "UNAUTHORIZED" });

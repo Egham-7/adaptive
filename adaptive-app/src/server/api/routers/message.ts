@@ -7,11 +7,7 @@ import {
 	hasReachedDailyLimit,
 } from "@/lib/chat/message-limits";
 import { createMessageSchema, updateMessageSchema } from "@/lib/chat/schema";
-import {
-	cacheableProcedure,
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type CreateMessageInput = z.infer<typeof createMessageSchema>;
 type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
@@ -191,7 +187,7 @@ export const messageRouter = createTRPCRouter({
 			);
 		}),
 
-	listByConversation: cacheableProcedure
+	listByConversation: protectedProcedure
 		.input(z.object({ conversationId: z.number() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
@@ -213,7 +209,7 @@ export const messageRouter = createTRPCRouter({
 			});
 		}),
 
-	getById: cacheableProcedure
+	getById: protectedProcedure
 		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
@@ -343,7 +339,7 @@ export const messageRouter = createTRPCRouter({
 			return { count: results.length };
 		}),
 
-	getRemainingDaily: cacheableProcedure.query(async ({ ctx }) => {
+	getRemainingDaily: protectedProcedure.query(async ({ ctx }) => {
 		const userId = ctx.clerkAuth.userId;
 
 		// Check if user is subscribed
