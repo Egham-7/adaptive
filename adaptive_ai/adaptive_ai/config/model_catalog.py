@@ -780,7 +780,146 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
     ],
+    
+    # --- SYSTEMATIC COMPLETION OF MISSING COMBINATIONS ---
+    
+    # ADULT DOMAIN - requires careful, balanced models
+    (DomainType.ADULT, TaskType.OPEN_QA): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.CLOSED_QA): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.SUMMARIZATION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.TEXT_GENERATION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.CODE_GENERATION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
+    (DomainType.ADULT, TaskType.CHATBOT): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.REWRITE): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.BRAINSTORMING): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.EXTRACTION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    (DomainType.ADULT, TaskType.OTHER): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+    ],
+    
+    # ARTS_AND_ENTERTAINMENT - creative, visual models
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.OPEN_QA): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.CLOSED_QA): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.SUMMARIZATION): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.TEXT_GENERATION): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.CODE_GENERATION): [
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.CHATBOT): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.REWRITE): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.BRAINSTORMING): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.EXTRACTION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+    ],
+    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.OTHER): [
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    
+    # AUTOS_AND_VEHICLES - practical, informational models
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.OPEN_QA): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.CLOSED_QA): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.SUMMARIZATION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.TEXT_GENERATION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.CODE_GENERATION): [
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.CHATBOT): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.REWRITE): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.BRAINSTORMING): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.EXTRACTION): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+    ],
+    (DomainType.AUTOS_AND_VEHICLES, TaskType.OTHER): [
+        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+    ],
 }
+
+# Generate comprehensive matrix for all remaining combinations
+from adaptive_ai.config.domain_matrix_generator import generate_comprehensive_domain_task_matrix
+
+# Add generated combinations to the existing matrix
+_generated_matrix = generate_comprehensive_domain_task_matrix()
+
+# Merge with existing manual definitions (manual definitions take precedence)
+for key, models in _generated_matrix.items():
+    if key not in domain_task_model_matrix:
+        domain_task_model_matrix[key] = models
 
 # --- FALLBACK DOMAIN PREFERENCES (when no specific domain-task combination exists) ---
 domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
@@ -939,7 +1078,7 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
 }
 
 # --- MINION MODEL MAPPINGS (keeping the existing structure for now) ---
-domain_minion_model_preferences: dict[DomainType, str] = {
+minion_domain_mappings: dict[DomainType, str] = {
     # Technical domains get specialized models
     DomainType.COMPUTERS_AND_ELECTRONICS: "codellama/CodeLlama-13b-Instruct-hf",
     DomainType.SCIENCE: "Qwen/Qwen2.5-14B-Instruct",

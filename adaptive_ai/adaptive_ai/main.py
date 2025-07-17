@@ -8,6 +8,7 @@ from adaptive_ai.core.config import get_settings
 from adaptive_ai.models.llm_classification_models import (
     ClassificationResult,
     DomainClassificationResult,
+    DomainType,
     EnhancedClassificationResult,
 )
 from adaptive_ai.models.llm_core_models import (
@@ -67,11 +68,32 @@ class ProtocolManagerAPI(ls.LitAPI):
 
         # Domain classification
         t2 = time.perf_counter()
-        all_domain_results: list[DomainClassificationResult] = (
-            self.domain_classifier.classify_domains(prompts)
-        )
-        t3 = time.perf_counter()
-        self.log("domain_classification_time", t3 - t2)
+        try:
+            all_domain_results: list[DomainClassificationResult] = (
+                self.domain_classifier.classify_domains(prompts)
+            )
+            t3 = time.perf_counter()
+            self.log("domain_classification_time", t3 - t2)
+            self.log("domain_classification_success", {
+                "batch_size": len(all_domain_results),
+                "sample_domain": all_domain_results[0].domain.value if all_domain_results else None,
+                "sample_confidence": all_domain_results[0].confidence if all_domain_results else None,
+            })
+        except Exception as e:
+            t3 = time.perf_counter()
+            self.log("domain_classification_failed", {
+                "error": str(e),
+                "time_taken": t3 - t2,
+                "batch_size": len(prompts),
+            })
+            # Create fallback domain results
+            all_domain_results = []
+            for prompt in prompts:
+                all_domain_results.append(DomainClassificationResult(
+                    domain=DomainType.REFERENCE,
+                    confidence=0.5,
+                    domain_probabilities={domain.value: 1.0 / len(DomainType) for domain in DomainType}
+                ))
 
         self.log("predict_called", {"batch_size": len(requests)})
 
