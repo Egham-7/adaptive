@@ -11,6 +11,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -29,6 +30,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -47,6 +49,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 5
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -57,7 +60,6 @@ updates:
       prefix: "deps(ai)"
       include: "scope"
 
-
   # Prompt classifier
   - package-ecosystem: "pip"
     directory: "/prompt-task-complexity-classifier-quantized"
@@ -66,6 +68,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -84,6 +87,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -102,6 +106,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -120,6 +125,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -137,6 +143,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -154,6 +161,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -171,6 +179,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
@@ -189,6 +198,7 @@ updates:
       day: "monday"
       time: "09:00"
     open-pull-requests-limit: 3
+    target-branch: "dev"
     reviewers:
       - "@botirkhaltaev"
     labels:
