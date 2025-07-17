@@ -1,260 +1,271 @@
-# Go LLM API Benchmarking with GenAI-Perf
+# GenAI Performance Benchmarking Tool
 
-This directory contains a complete benchmarking solution for your Go LLM API using NVIDIA's GenAI-Perf tool. The setup is designed to be replicable and provides comprehensive performance analysis.
-
-## 📁 Directory Structure
-
-```
-benchmarks/genai-perf/
-├── docker-compose.yml          # GenAI-Perf container configuration
-├── run_benchmarks.sh           # Complete workflow script
-├── scripts/
-│   ├── benchmark_go_api.sh     # Main benchmarking script
-│   └── analyze_results.py      # Results analysis script
-├── results/                    # Generated benchmark results
-│   ├── plots/                  # Performance visualization plots
-│   ├── benchmark_summary_report.txt
-│   └── go_api_benchmark_results.csv
-└── README.md                   # This file
-```
+A comprehensive, type-safe Python CLI tool for benchmarking LLM APIs using NVIDIA's GenAI-Perf. This tool provides a clean interface to all GenAI-Perf parameters with automatic analysis and visualization.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-1. **Docker**: Ensure Docker is installed and running
-2. **Go API**: Your Go LLM API should be running and accessible
-3. **NVIDIA GPU**: Required for GenAI-Perf (with NVIDIA drivers)
+1. **Python 3.13+** with `uv` package manager
+2. **GenAI-Perf**: Install via `pip install genai-perf>=0.0.15`
+3. **LLM API**: Your API should be running and accessible
 
-### Basic Usage
+### Installation
 
 ```bash
-# Navigate to benchmarks directory
+# Navigate to the benchmarks directory
 cd benchmarks/genai-perf
 
-# Run benchmarks with default settings
-./run_benchmarks.sh
-
-# Run with custom API URL
-./run_benchmarks.sh -u localhost:8080
-
-# Run all benchmark modes
-./run_benchmarks.sh -b 4
-```
-
-### Configuration Options
-
-```bash
-./run_benchmarks.sh [OPTIONS]
-
-Options:
-  -u, --url URL          Router URL (default: localhost:8080)
-  -m, --model MODEL      Model name (default: adaptive-go-api)
-  -b, --benchmark MODE   Benchmark mode (default: 2)
-  -h, --help             Show help message
-
-Benchmark Modes:
-  1: Full benchmark with synthetic tokens (requires tokenizer)
-  2: Simple benchmark (no tokenizer required) - RECOMMENDED
-  3: Load test only
-  4: All tests
-```
-
-## 📊 Benchmark Modes
-
-### Mode 1: Full Benchmark
-- Uses synthetic token generation
-- Tests various input/output token combinations
-- Requires tokenizer support
-- Best for comprehensive analysis
-
-### Mode 2: Simple Benchmark (Default)
-- No tokenizer dependencies
-- Tests different response lengths
-- Faster execution
-- Recommended for most use cases
-
-### Mode 3: Load Test Only
-- Sustained load testing
-- Single comprehensive test
-- Good for capacity planning
-
-### Mode 4: All Tests
-- Runs all above modes
-- Most comprehensive analysis
-- Longest execution time
-
-## 🔧 Manual Execution
-
-If you prefer to run components manually:
-
-### 1. Start Container
-```bash
-docker-compose up -d
-```
-
-### 2. Run Benchmarks
-```bash
 # Install dependencies
-docker-compose exec genai-perf pip install matplotlib seaborn pandas numpy
+uv sync
 
-# Run benchmark script
-docker-compose exec genai-perf bash scripts/benchmark_go_api.sh 2
-
-# Analyze results
-docker-compose exec genai-perf python scripts/analyze_results.py
+# Run basic benchmark
+uv run main.py benchmark --url "https://your-api-endpoint.com"
 ```
 
-### 3. Cleanup
+## 🛠️ Commands
+
+### `benchmark` - Run Performance Tests
+
 ```bash
-docker-compose down
+uv run main.py benchmark [OPTIONS]
 ```
 
-## 📈 Understanding Results
+**Core Options:**
+- `--url, -u`: API endpoint URL (default: `http://localhost:8080`)
+- `--model, -m`: Model name (default: `adaptive-go-api`)
+- `--concurrency, -c`: Comma-separated concurrency levels (default: `1,5,10,25`)
+- `--check-health/--no-check-health`: Enable/disable health check (default: enabled)
+
+**Advanced Options:**
+
+*Audio Input:*
+- `--audio-length-mean`: Mean audio length in seconds
+- `--audio-length-stddev`: Audio length standard deviation
+- `--audio-format`: Audio format (`wav`, `mp3`)
+- `--audio-depths`: Comma-separated audio bit depths
+- `--audio-sample-rates`: Comma-separated sample rates
+- `--audio-num-channels`: Number of audio channels (1 or 2)
+
+*Image Input:*
+- `--image-width-mean/--image-width-stddev`: Image width parameters
+- `--image-height-mean/--image-height-stddev`: Image height parameters
+- `--image-format`: Image format (`png`, `jpeg`)
+
+*Input Configuration:*
+- `--num-dataset-entries, --num-prompts`: Number of unique prompts
+- `--batch-size-text/--batch-size-audio/--batch-size-image`: Batch sizes
+- `--extra-inputs`: Extra inputs in `key:value` format
+- `--input-file`: Custom input file path
+- `--synthetic-input-tokens-mean/--synthetic-input-tokens-stddev`: Synthetic token parameters
+
+*Output Configuration:*
+- `--output-tokens-mean`: Mean number of output tokens
+- `--output-tokens-stddev`: Output tokens standard deviation
+- `--output-tokens-mean-deterministic`: Enable deterministic output tokens
+
+*Profiling:*
+- `--measurement-interval`: Measurement interval in milliseconds
+- `--request-count`: Total number of requests
+- `--request-rate`: Request rate limit
+- `--stability-percentage`: Stability threshold percentage
+
+*Session Management:*
+- `--num-sessions`: Number of concurrent sessions
+- `--session-concurrency`: Session-level concurrency
+- `--session-turns-mean/--session-turns-stddev`: Session turn parameters
+- `--session-turn-delay-mean/--session-turn-delay-stddev`: Turn delay parameters
+
+*Advanced Features:*
+- `--streaming`: Enable streaming API
+- `--verbose`: Enable verbose output
+- `--generate-plots`: Generate performance plots
+- `--enable-checkpointing`: Enable state checkpointing
+- `--tokenizer`: Custom tokenizer name or path
+- `--backend`: Backend type (`tensorrtllm`, `vllm`)
+
+### `analyze` - Analyze Results
+
+```bash
+uv run main.py analyze [OPTIONS]
+```
+
+- `--results-dir, -r`: Results directory (default: `./results`)
+- `--plots-only`: Generate only plots
+- `--summary-only`: Generate only summary report
+
+### `status` - Check Results Status
+
+```bash
+uv run main.py status [--results-dir DIRECTORY]
+```
+
+### `run-all` - Complete Pipeline
+
+```bash
+uv run main.py run-all [ALL_BENCHMARK_OPTIONS]
+```
+
+Runs benchmarks and analysis in sequence.
+
+## 📊 Example Usage
+
+### Basic Benchmark
+```bash
+uv run main.py benchmark \
+  --url "https://api.example.com" \
+  --concurrency "1,5,10" \
+  --num-prompts 50
+```
+
+### Advanced Benchmark with Custom Parameters
+```bash
+uv run main.py benchmark \
+  --url "https://api.example.com" \
+  --concurrency "1,5,10,25,50" \
+  --num-prompts 100 \
+  --output-tokens-mean 200 \
+  --measurement-interval 10000 \
+  --streaming \
+  --verbose
+```
+
+### Complete Pipeline
+```bash
+uv run main.py run-all \
+  --url "https://api.example.com" \
+  --concurrency "1,10,25" \
+  --num-prompts 30
+```
+
+## 📈 Output and Results
+
+### Generated Files
+
+- **JSON Results**: `simple_{test_type}_c{concurrency}_genai_perf.json`
+- **CSV Results**: `simple_{test_type}_c{concurrency}_genai_perf.csv`
+- **Plots**: `results/plots/` directory
+  - `throughput_vs_concurrency.png`
+  - `latency_metrics.png`
+- **Summary**: `benchmark_summary_report.txt`
+- **Raw Data**: `go_api_benchmark_results.csv`
 
 ### Key Metrics
 
-- **Throughput (TPS)**: Tokens per second your API can process
-- **TTFT**: Time to First Token - critical for user experience
-- **ITL**: Inter-Token Latency - affects streaming quality
-- **E2E Latency**: End-to-end request latency
+- **Throughput**: Tokens per second (TPS)
+- **TTFT**: Time to First Token (ms)
+- **ITL**: Inter-Token Latency (ms)  
+- **E2E Latency**: End-to-end request latency (ms)
 
-### Generated Outputs
+## 🏗️ Architecture
 
-1. **Performance Plots**: Visual charts showing performance curves
-2. **Summary Report**: Text-based analysis with recommendations
-3. **CSV Data**: Raw benchmark data for further analysis
+### Type-Safe Design
 
-### Result Files
+The tool uses a `BenchmarkParameters` dataclass for type safety:
 
-- `benchmark_summary_report.txt`: Comprehensive performance analysis
-- `go_api_benchmark_results.csv`: Raw benchmark data
-- `plots/`: Directory containing performance visualizations
-  - `throughput_vs_concurrency.png`
-  - `latency_metrics.png`
-  - `latency_vs_throughput.png`
-  - `performance_heatmap.png`
+```python
+@dataclass
+class BenchmarkParameters:
+    url: str
+    model: str
+    concurrency: Optional[str] = None
+    # ... all other parameters with proper types
+```
 
-## 🛠️ Customization
+### Modular Structure
 
-### API Endpoint Configuration
+- **Parameter Management**: `create_benchmark_params()` for clean parameter collection
+- **Shared Logic**: `_run_benchmark_with_params()` eliminates code duplication
+- **Type Safety**: Full mypy compatibility with proper type hints
+- **Error Handling**: Comprehensive error checking and user feedback
 
-Edit the environment variables in `docker-compose.yml`:
+## 🔧 Development
 
-```yaml
-environment:
-  - ROUTER_URL=localhost:8080    # Your API URL
-  - MODEL_NAME=adaptive-go-api   # Model identifier
+### Code Quality
+
+```bash
+# Type checking
+uv run mypy .
+
+# Code formatting
+uv run black .
+
+# Linting  
+uv run ruff .
 ```
 
 ### Test Scenarios
 
-Modify test cases in `scripts/benchmark_go_api.sh`:
+The tool runs three default test scenarios:
+- **Quick Response**: 50 max tokens
+- **Medium Response**: 150 max tokens  
+- **Long Response**: 300 max tokens
 
-```bash
-declare -A testCases
-testCases["Quick_Chat"]="50/25"
-testCases["Code_Generation"]="100/200"
-testCases["Custom_Test"]="150/300"
-```
+Each scenario tests across all specified concurrency levels.
 
-### Concurrency Levels
-
-Adjust concurrency testing in the benchmark script:
-
-```bash
-for concurrency in 1 2 5 10 20 50; do
-    # Add or remove concurrency levels as needed
-done
-```
-
-## 🔍 Troubleshooting
+## 🛠️ Troubleshooting
 
 ### Common Issues
 
-1. **API Not Accessible**
+1. **API Health Check Fails**
    ```bash
-   # Check if your Go API is running
-   curl -s http://localhost:8080/health
-   
-   # Update ROUTER_URL if needed
-   export ROUTER_URL=localhost:3000
+   # Verify API is accessible
+   curl -s https://your-api-endpoint.com/health
    ```
 
-2. **Docker Issues**
+2. **Invalid Concurrency Format**
    ```bash
-   # Ensure Docker is running
-   docker info
-   
-   # Check container logs
-   docker-compose logs genai-perf
+   # Use comma-separated values
+   --concurrency "1,5,10,25"
    ```
 
-3. **NVIDIA GPU Issues**
+3. **GenAI-Perf Not Found**
    ```bash
-   # Check GPU availability
-   nvidia-smi
-   
-   # Verify Docker can access GPU
-   docker run --gpus all nvidia/cuda:11.0-base nvidia-smi
+   # Install GenAI-Perf
+   pip install genai-perf>=0.0.15
    ```
 
-### Performance Issues
+### Performance Tips
 
-- **Low Throughput**: Check API scaling, database connections, or model loading
-- **High Latency**: Examine network latency, API processing time, or resource constraints
-- **Memory Issues**: Monitor container memory usage and adjust limits
+- Use `--measurement-interval` ≥ 8000ms for stable results
+- Start with low concurrency levels and increase gradually
+- Monitor API resource usage during benchmarks
+- Use `--num-prompts` 30+ for statistical significance
 
-## 📝 Best Practices
+## 📚 Advanced Features
 
-### Before Benchmarking
+### Custom Input Files
 
-1. **Warm up your API**: Ensure it's fully loaded and ready
-2. **Stable environment**: Close unnecessary applications
-3. **Consistent hardware**: Use the same machine for comparative tests
-4. **Network stability**: Ensure stable network connection
+```bash
+uv run main.py benchmark \
+  --input-file "custom_prompts.jsonl" \
+  --url "https://api.example.com"
+```
 
-### During Benchmarking
+### Streaming API Testing
 
-1. **Monitor resources**: Watch CPU, memory, and GPU usage
-2. **Consistent load**: Avoid other heavy operations
-3. **Multiple runs**: Run benchmarks multiple times for accuracy
+```bash
+uv run main.py benchmark \
+  --streaming \
+  --url "https://api.example.com"
+```
 
-### After Benchmarking
+### Session-Based Testing
 
-1. **Compare results**: Look for patterns across different runs
-2. **Identify bottlenecks**: Focus on metrics that matter most
-3. **Document findings**: Save results with context and environment details
-
-## 🔄 Reproducibility
-
-To ensure reproducible results:
-
-1. **Version control**: Document API version, GenAI-Perf version
-2. **Environment documentation**: Record hardware specs, OS version
-3. **Seed values**: Use consistent random seeds where possible
-4. **Test isolation**: Run tests in isolated environments
-
-## 📚 Additional Resources
-
-- [GenAI-Perf Documentation](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/perf_toolkit.html)
-- [NVIDIA Triton Inference Server](https://github.com/triton-inference-server/server)
-- [Performance Optimization Guide](https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/user_guide/optimization.html)
+```bash
+uv run main.py benchmark \
+  --num-sessions 10 \
+  --session-turns-mean 3 \
+  --url "https://api.example.com"
+```
 
 ## 🤝 Contributing
 
-To improve this benchmarking setup:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+1. Follow the existing code style and type hints
+2. Add tests for new features
+3. Update documentation for new parameters
+4. Ensure mypy passes: `uv run mypy .`
 
 ## 📄 License
 
-This benchmarking setup is part of the adaptive project. Please refer to the main project license.
-
----
-
-**Note**: This benchmarking setup is designed for development and testing purposes. For production benchmarking, consider additional factors like security, compliance, and enterprise-grade monitoring.
+Part of the adaptive project. See main project license.

@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/stream_readers/sse"
 	"bufio"
 	"encoding/json"
@@ -13,11 +12,8 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/ssestream"
+	"github.com/valyala/bytebufferpool"
 	"github.com/valyala/fasthttp"
-)
-
-var (
-	bufferManager = cache.GetGlobalBufferManager()
 )
 
 // HandleStream manages the streaming response to the client with optimized performance
@@ -43,12 +39,19 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 }
 
 func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, startTime time.Time, totalBytesPtr *int64) error {
-	// Get buffer from pool - start with medium size for typical streaming
-	buffer := bufferManager.GetBuffer(4096)
-	defer bufferManager.PutBuffer(buffer)
+	// Get buffer from bytebufferpool - reuse for better performance
+	bb := bytebufferpool.Get()
+	defer bytebufferpool.Put(bb)
+
+	// Use smaller buffer for lower latency - 512 bytes for immediate forwarding
+	bb.Reset()
+	if cap(bb.B) < 512 {
+		bb.B = make([]byte, 0, 512)
+	}
+	bb.B = bb.B[:512]
+	buffer := bb.B
 
 	var totalBytes int64
-	lastFlushTime := time.Now()
 
 	for {
 		// Set read deadline to prevent hanging
@@ -63,28 +66,13 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 		if n > 0 {
 			totalBytes += int64(n)
 
+			// Write and flush immediately for minimal latency
 			if writeErr := writeChunk(w, buffer[:n], requestID); writeErr != nil {
 				return writeErr
-			}
-
-			// Flush periodically or when buffer gets large
-			now := time.Now()
-			flushInterval := now.Sub(lastFlushTime)
-			if flushInterval >= 100*time.Millisecond || w.Buffered() >= 1024 {
-				if flushErr := w.Flush(); flushErr != nil {
-					return fmt.Errorf("[%s] flushing data: %w", requestID, flushErr)
-				}
-
-				lastFlushTime = now
 			}
 		}
 
 		if err == io.EOF {
-			// Final flush
-			if flushErr := w.Flush(); flushErr != nil {
-				fiberlog.Errorf("[%s] Error in final flush: %v", requestID, flushErr)
-			}
-
 			duration := time.Since(startTime)
 
 			// Update the pointer for the caller
@@ -103,15 +91,13 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 	}
 }
 
-// writeChunk writes data efficiently with error handling
+// writeChunk writes data and flushes immediately for minimal latency
 func writeChunk(w *bufio.Writer, data []byte, requestID string) error {
-	written := 0
-	for written < len(data) {
-		n, err := w.Write(data[written:])
-		if err != nil {
-			return fmt.Errorf("[%s] writing chunk (offset %d): %w", requestID, written, err)
-		}
-		written += n
+	if _, err := w.Write(data); err != nil {
+		return fmt.Errorf("[%s] writing chunk: %w", requestID, err)
+	}
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("[%s] flushing chunk: %w", requestID, err)
 	}
 	return nil
 }

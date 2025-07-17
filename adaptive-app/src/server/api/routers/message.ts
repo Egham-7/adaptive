@@ -77,12 +77,6 @@ const findMessageWithConversationAccess = (
 		},
 	});
 
-const getMessagesByConversation = (db: PrismaClient, conversationId: number) =>
-	db.message.findMany({
-		where: { conversationId, deletedAt: null },
-		orderBy: { createdAt: "asc" },
-	});
-
 // Composed operations
 const createMessageWithTimestampUpdate = async (
 	db: PrismaClient,
@@ -195,7 +189,10 @@ export const messageRouter = createTRPCRouter({
 			);
 			validateConversationAccess(conversation);
 
-			return getMessagesByConversation(ctx.db, input.conversationId);
+			return ctx.db.message.findMany({
+				where: { conversationId: input.conversationId, deletedAt: null },
+				orderBy: { createdAt: "asc" },
+			});
 		}),
 
 	getById: protectedProcedure

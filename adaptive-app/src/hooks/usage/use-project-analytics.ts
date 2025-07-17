@@ -28,8 +28,5 @@ export const useProjectAnalytics = ({
 		},
 	);
 
-	return {
-		...query,
-		refetch: query.refetch,
-	};
+	return query;
 };

@@ -1,22 +1,23 @@
 package protocol_manager
 
 import (
-	"fmt"
-	"os"
-
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/utils"
+	"fmt"
+	"os"
 
-	"github.com/botirk38/semanticcache"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 const defaultCostBiasFactor = 0.15
 
 // ProtocolManager coordinates protocol selection and caching for model selection.
 type ProtocolManager struct {
-	cache  *CacheManager
+	cache  *SemanticCache
 	client *ProtocolManagerClient
 }
 
@@ -29,20 +30,24 @@ func NewProtocolManager(
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is not set")
 	}
-	embProv, err := semanticcache.NewOpenAIProvider(apiKey, "")
+	// Create OpenAI client
+	openaiClient := openai.NewClient(
+		option.WithAPIKey(apiKey),
+	)
+
+	// Create Redis client
+	redisClient, err := config.NewRedisClientFromEnv()
 	if err != nil {
-		return nil, fmt.Errorf("init embedding provider: %w", err)
+		return nil, fmt.Errorf("init redis client: %w", err)
 	}
 
-	cacheMgr, err := NewCacheManager(embProv)
-	if err != nil {
-		return nil, fmt.Errorf("init cache manager: %w", err)
-	}
+	// Create Redis-backed semantic cache
+	cache := NewSemanticCache(redisClient, &openaiClient)
 
 	client := NewProtocolManagerClient()
 
 	return &ProtocolManager{
-		cache:  cacheMgr,
+		cache:  cache,
 		client: client,
 	}, nil
 }
@@ -90,10 +95,18 @@ func (pm *ProtocolManager) GetClientMetrics() circuitbreaker.LocalMetrics {
 // ValidateContext ensures dependencies are set.
 func (pm *ProtocolManager) ValidateContext() error {
 	if pm.cache == nil {
-		return fmt.Errorf("cache manager is required")
+		return fmt.Errorf("semantic cache is required")
 	}
 	if pm.client == nil {
 		return fmt.Errorf("protocol manager client is required")
+	}
+	return nil
+}
+
+// Close properly closes the Redis client during shutdown
+func (pm *ProtocolManager) Close() error {
+	if pm.cache != nil {
+		return pm.cache.Close()
 	}
 	return nil
 }

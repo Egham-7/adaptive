@@ -18,7 +18,8 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.panel import Panel
-from typing import Optional, List
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
 
 # Set style for better looking plots
 plt.style.use("seaborn-v0_8")
@@ -26,6 +27,95 @@ sns.set_palette("husl")
 
 app = typer.Typer(help="GenAI Performance Benchmarking Tool")
 console = Console()
+
+
+@dataclass
+class BenchmarkParameters:
+    """Data class to hold all benchmark parameters"""
+
+    # Core parameters
+    url: str
+    model: str
+    concurrency: Optional[str] = None
+    check_health: bool = True
+
+    # Audio Input
+    audio_length_mean: Optional[float] = None
+    audio_length_stddev: Optional[float] = None
+    audio_format: Optional[str] = None
+    audio_depths: Optional[str] = None
+    audio_sample_rates: Optional[str] = None
+    audio_num_channels: Optional[int] = None
+
+    # Endpoint
+    model_selection_strategy: Optional[str] = None
+    backend: Optional[str] = None
+    endpoint: Optional[str] = None
+    endpoint_type: Optional[str] = None
+    server_metrics_url: Optional[str] = None
+    streaming: bool = False
+
+    # Image Input
+    image_width_mean: Optional[int] = None
+    image_width_stddev: Optional[int] = None
+    image_height_mean: Optional[int] = None
+    image_height_stddev: Optional[int] = None
+    image_format: Optional[str] = None
+
+    # Input
+    batch_size_audio: Optional[int] = None
+    batch_size_image: Optional[int] = None
+    batch_size_text: Optional[int] = None
+    extra_inputs: Optional[str] = None
+    goodput: Optional[str] = None
+    header: Optional[str] = None
+    input_file: Optional[str] = None
+    num_dataset_entries: Optional[int] = None
+    num_prefix_prompts: Optional[int] = None
+    output_tokens_mean: Optional[int] = None
+    output_tokens_mean_deterministic: bool = False
+    output_tokens_stddev: Optional[int] = None
+    random_seed: Optional[int] = None
+    grpc_method: Optional[str] = None
+    synthetic_input_tokens_mean: Optional[int] = None
+    synthetic_input_tokens_stddev: Optional[int] = None
+    prefix_prompt_length: Optional[int] = None
+    warmup_request_count: Optional[int] = None
+
+    # Other
+    verbose: bool = False
+
+    # Output
+    artifact_dir: Optional[str] = None
+    checkpoint_dir: Optional[str] = None
+    generate_plots: bool = False
+    enable_checkpointing: bool = False
+    profile_export_file: Optional[str] = None
+
+    # Profiling
+    measurement_interval: Optional[int] = None
+    request_count: Optional[int] = None
+    request_rate: Optional[float] = None
+    fixed_schedule: Optional[str] = None
+    stability_percentage: Optional[float] = None
+
+    # Session
+    num_sessions: Optional[int] = None
+    session_concurrency: Optional[int] = None
+    session_delay_ratio: Optional[float] = None
+    session_turn_delay_mean: Optional[float] = None
+    session_turn_delay_stddev: Optional[float] = None
+    session_turns_mean: Optional[int] = None
+    session_turns_stddev: Optional[int] = None
+
+    # Tokenizer
+    tokenizer: Optional[str] = None
+    tokenizer_revision: Optional[str] = None
+    tokenizer_trust_remote_code: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for easy parameter passing"""
+        return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
 class GenAIPerfAnalyzer:
@@ -62,7 +152,23 @@ class GenAIPerfAnalyzer:
             with open(json_path, "r") as f:
                 data = json.load(f)
             metrics = {}
-            if "service_kind" in data:
+
+            # Handle new GenAI-Perf JSON format
+            if "request_throughput" in data:
+                metrics["throughput_tps"] = data["request_throughput"].get("avg", 0)
+            if "time_to_first_token" in data:
+                metrics["ttft_ms"] = data["time_to_first_token"].get("avg", 0)
+            if "inter_token_latency" in data:
+                metrics["itl_ms"] = data["inter_token_latency"].get("avg", 0)
+            if "request_latency" in data:
+                metrics["e2e_latency_ms"] = data["request_latency"].get("avg", 0)
+            if "time_per_output_token" in data:
+                metrics["time_per_output_token_ms"] = data["time_per_output_token"].get(
+                    "avg", 0
+                )
+
+            # Fallback for older format
+            if not metrics and "service_kind" in data:
                 for key, value in data.items():
                     if key == "request_throughput":
                         metrics["throughput_tps"] = value
@@ -72,8 +178,11 @@ class GenAIPerfAnalyzer:
                         metrics["itl_ms"] = value.get("mean", 0)
                     elif key == "request_latency":
                         metrics["e2e_latency_ms"] = value.get("mean", 0)
-            else:
+
+            # If still no metrics, use the data as-is
+            if not metrics:
                 metrics = data
+
             return metrics
         except Exception as e:
             console.print(f"[red]Error parsing {json_path}: {e}[/red]")
@@ -117,14 +226,14 @@ class GenAIPerfAnalyzer:
                 result = {**metrics, **test_info, "source_file": str(csv_file)}
                 results.append(result)
 
-        json_files = list(self.results_dir.rglob("*.json"))
+        # Look for GenAI-Perf JSON files
+        json_files = list(self.results_dir.rglob("*_genai_perf.json"))
         for json_file in json_files:
-            if "genai_perf" not in json_file.stem:
-                metrics = self.parse_genai_perf_json(json_file)
-                if metrics:
-                    test_info = self.extract_test_info(json_file)
-                    result = {**metrics, **test_info, "source_file": str(json_file)}
-                    results.append(result)
+            metrics = self.parse_genai_perf_json(json_file)
+            if metrics:
+                test_info = self.extract_test_info(json_file)
+                result = {**metrics, **test_info, "source_file": str(json_file)}
+                results.append(result)
 
         return pd.DataFrame(results)
 
@@ -326,6 +435,102 @@ class GenAIPerfAnalyzer:
         console.print(f"📊 CSV Data: {self.results_dir}/go_api_benchmark_results.csv")
 
 
+def _run_benchmark_with_params(params: BenchmarkParameters) -> None:
+    """Run benchmark with given parameters"""
+    console.print(f"Router URL: {params.url}")
+    console.print(f"Model: {params.model}")
+
+    benchmarker = GenAIPerfBenchmarker(params.url, params.model)
+
+    if params.check_health:
+        console.print("\n[yellow]Checking API health...[/yellow]")
+        if not benchmarker.check_api_health():
+            console.print(f"[red]API not accessible at {params.url}[/red]")
+            console.print("Please ensure your API is running and accessible.")
+            raise typer.Exit(1)
+        console.print("[green]✓ API is accessible[/green]")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Running benchmarks...", total=None)
+        benchmarker.run_simple_benchmark(params)
+        progress.update(task, description="Benchmarks completed")
+
+    console.print("\n[green]Benchmarking completed![/green]")
+    console.print(f"Results saved in: {benchmarker.results_dir}")
+
+
+def create_benchmark_params(**kwargs) -> BenchmarkParameters:
+    """Create BenchmarkParameters from keyword arguments"""
+    return BenchmarkParameters(
+        url=kwargs.get("url", "http://localhost:8080"),
+        model=kwargs.get("model", "adaptive-go-api"),
+        concurrency=kwargs.get("concurrency"),
+        check_health=kwargs.get("check_health", True),
+        audio_length_mean=kwargs.get("audio_length_mean"),
+        audio_length_stddev=kwargs.get("audio_length_stddev"),
+        audio_format=kwargs.get("audio_format"),
+        audio_depths=kwargs.get("audio_depths"),
+        audio_sample_rates=kwargs.get("audio_sample_rates"),
+        audio_num_channels=kwargs.get("audio_num_channels"),
+        model_selection_strategy=kwargs.get("model_selection_strategy"),
+        backend=kwargs.get("backend"),
+        endpoint=kwargs.get("endpoint"),
+        endpoint_type=kwargs.get("endpoint_type"),
+        server_metrics_url=kwargs.get("server_metrics_url"),
+        streaming=kwargs.get("streaming", False),
+        image_width_mean=kwargs.get("image_width_mean"),
+        image_width_stddev=kwargs.get("image_width_stddev"),
+        image_height_mean=kwargs.get("image_height_mean"),
+        image_height_stddev=kwargs.get("image_height_stddev"),
+        image_format=kwargs.get("image_format"),
+        batch_size_audio=kwargs.get("batch_size_audio"),
+        batch_size_image=kwargs.get("batch_size_image"),
+        batch_size_text=kwargs.get("batch_size_text"),
+        extra_inputs=kwargs.get("extra_inputs"),
+        goodput=kwargs.get("goodput"),
+        header=kwargs.get("header"),
+        input_file=kwargs.get("input_file"),
+        num_dataset_entries=kwargs.get("num_dataset_entries"),
+        num_prefix_prompts=kwargs.get("num_prefix_prompts"),
+        output_tokens_mean=kwargs.get("output_tokens_mean"),
+        output_tokens_mean_deterministic=kwargs.get(
+            "output_tokens_mean_deterministic", False
+        ),
+        output_tokens_stddev=kwargs.get("output_tokens_stddev"),
+        random_seed=kwargs.get("random_seed"),
+        grpc_method=kwargs.get("grpc_method"),
+        synthetic_input_tokens_mean=kwargs.get("synthetic_input_tokens_mean"),
+        synthetic_input_tokens_stddev=kwargs.get("synthetic_input_tokens_stddev"),
+        prefix_prompt_length=kwargs.get("prefix_prompt_length"),
+        warmup_request_count=kwargs.get("warmup_request_count"),
+        verbose=kwargs.get("verbose", False),
+        artifact_dir=kwargs.get("artifact_dir"),
+        checkpoint_dir=kwargs.get("checkpoint_dir"),
+        generate_plots=kwargs.get("generate_plots", False),
+        enable_checkpointing=kwargs.get("enable_checkpointing", False),
+        profile_export_file=kwargs.get("profile_export_file"),
+        measurement_interval=kwargs.get("measurement_interval"),
+        request_count=kwargs.get("request_count"),
+        request_rate=kwargs.get("request_rate"),
+        fixed_schedule=kwargs.get("fixed_schedule"),
+        stability_percentage=kwargs.get("stability_percentage"),
+        num_sessions=kwargs.get("num_sessions"),
+        session_concurrency=kwargs.get("session_concurrency"),
+        session_delay_ratio=kwargs.get("session_delay_ratio"),
+        session_turn_delay_mean=kwargs.get("session_turn_delay_mean"),
+        session_turn_delay_stddev=kwargs.get("session_turn_delay_stddev"),
+        session_turns_mean=kwargs.get("session_turns_mean"),
+        session_turns_stddev=kwargs.get("session_turns_stddev"),
+        tokenizer=kwargs.get("tokenizer"),
+        tokenizer_revision=kwargs.get("tokenizer_revision"),
+        tokenizer_trust_remote_code=kwargs.get("tokenizer_trust_remote_code", False),
+    )
+
+
 class GenAIPerfBenchmarker:
     def __init__(
         self,
@@ -356,7 +561,7 @@ class GenAIPerfBenchmarker:
             "genai-perf",
             "profile",
             "-m",
-"auto",  # Placeholder model name since API auto-selects
+            "auto",  # Placeholder model name since API auto-selects
             "--endpoint-type",
             "chat",
             "--tokenizer",
@@ -365,15 +570,46 @@ class GenAIPerfBenchmarker:
             self.router_url,
         ]
 
-        # Add optional parameters
+        # Handle parameters that need special processing
         for key, value in kwargs.items():
+            if value is None:
+                continue
+
             if key.startswith("extra_inputs_"):
                 cmd.extend(["--extra-inputs", f"{key[13:]}:{value}"])
             elif key == "profile_export_file":
                 cmd.extend(["--profile-export-file", str(value)])
             elif key == "artifact_dir":
                 cmd.extend(["--artifact-dir", str(value)])
-            else:
+            elif key in [
+                "streaming",
+                "verbose",
+                "generate_plots",
+                "enable_checkpointing",
+                "output_tokens_mean_deterministic",
+                "tokenizer_trust_remote_code",
+            ]:
+                # Boolean flags - only add if True
+                if value:
+                    cmd.append(f"--{key.replace('_', '-')}")
+            elif key in [
+                "audio_depths",
+                "audio_sample_rates",
+                "server_metrics_url",
+                "goodput",
+                "header",
+            ]:
+                # Parameters that can have multiple values
+                if isinstance(value, str) and "," in value:
+                    for item in value.split(","):
+                        cmd.extend([f"--{key.replace('_', '-')}", item.strip()])
+                else:
+                    cmd.extend([f"--{key.replace('_', '-')}", str(value)])
+            elif key not in [
+                "url",
+                "model",
+                "check_health",
+            ]:  # Skip these as they're handled elsewhere
                 cmd.extend([f"--{key.replace('_', '-')}", str(value)])
 
         console.print(f"[dim]Running command: {' '.join(cmd)}[/dim]")
@@ -391,9 +627,21 @@ class GenAIPerfBenchmarker:
             console.print(f"[red]Error running benchmark: {e}[/red]")
             return False
 
-    def run_simple_benchmark(self, concurrency_levels: List[int] = [1, 5, 10, 25]):
+    def run_simple_benchmark(self, params: BenchmarkParameters):
         """Run simple benchmark without tokenizer dependencies"""
         console.print("[blue]Running Simple Benchmark (No Tokenizer)[/blue]")
+
+        # Extract concurrency levels from params
+        if params.concurrency:
+            try:
+                concurrency_levels = [
+                    int(c.strip()) for c in params.concurrency.split(",")
+                ]
+            except ValueError:
+                console.print("[red]Invalid concurrency levels format[/red]")
+                concurrency_levels = [1, 5, 10, 25]
+        else:
+            concurrency_levels = [1, 5, 10, 25]
 
         test_scenarios = [
             ("quick_response", 50),
@@ -406,26 +654,39 @@ class GenAIPerfBenchmarker:
                 f"\n[bold]Testing: {test_name} (max_tokens: {max_tokens})[/bold]"
             )
 
-            for concurrency in concurrency_levels:
-                console.print(f"  Concurrency: {concurrency}")
+            for concurrency_level in concurrency_levels:
+                console.print(f"  Concurrency: {concurrency_level}")
 
-                success = self.run_genai_perf_command(
-                    num_prompts=30,
-                    concurrency=concurrency,
-                    extra_inputs_max_tokens=max_tokens,
-                    extra_inputs_temperature=0.7,
-                    measurement_interval=8000,
-                    profile_export_file=f"simple_{test_name}_c{concurrency}.json",
-                    artifact_dir=self.results_dir
-                    / f"simple_{test_name}_c{concurrency}_artifacts",
-                )
+                # Build command parameters, starting with defaults
+                cmd_params = {
+                    "num_dataset_entries": 30,
+                    "concurrency": concurrency_level,
+                    "extra_inputs_max_tokens": max_tokens,
+                    "extra_inputs_temperature": 0.7,
+                    "measurement_interval": 8000,
+                    "profile_export_file": f"simple_{test_name}_c{concurrency_level}.json",
+                    "artifact_dir": self.results_dir
+                    / f"simple_{test_name}_c{concurrency_level}_artifacts",
+                }
+
+                # Override with any CLI parameters provided
+                params_dict = params.to_dict()
+                for key, value in params_dict.items():
+                    if (
+                        key != "concurrency"
+                    ):  # Skip concurrency as we handle it specially
+                        cmd_params[key] = value
+
+                success = self.run_genai_perf_command(**cmd_params)
 
                 if success:
                     console.print(
-                        f"    [green]✓ Completed concurrency {concurrency}[/green]"
+                        f"    [green]✓ Completed concurrency {concurrency_level}[/green]"
                     )
                 else:
-                    console.print(f"    [red]✗ Failed concurrency {concurrency}[/red]")
+                    console.print(
+                        f"    [red]✗ Failed concurrency {concurrency_level}[/red]"
+                    )
 
                 time.sleep(2)  # Small delay between tests
 
@@ -447,45 +708,196 @@ def benchmark(
     check_health: bool = typer.Option(
         True, "--check-health/--no-check-health", help="Check API health before running"
     ),
+    # Audio Input
+    audio_length_mean: Optional[float] = typer.Option(
+        None, help="Mean length of audio data in seconds"
+    ),
+    audio_length_stddev: Optional[float] = typer.Option(
+        None, help="Standard deviation of audio length"
+    ),
+    audio_format: Optional[str] = typer.Option(None, help="Audio format (wav, mp3)"),
+    audio_depths: Optional[str] = typer.Option(
+        None, help="Comma-separated audio bit depths"
+    ),
+    audio_sample_rates: Optional[str] = typer.Option(
+        None, help="Comma-separated audio sample rates"
+    ),
+    audio_num_channels: Optional[int] = typer.Option(
+        None, help="Number of audio channels (1 or 2)"
+    ),
+    # Endpoint
+    model_selection_strategy: Optional[str] = typer.Option(
+        None, help="Model selection strategy (round_robin, random)"
+    ),
+    backend: Optional[str] = typer.Option(None, help="Backend (tensorrtllm, vllm)"),
+    endpoint: Optional[str] = typer.Option(None, help="Custom endpoint"),
+    endpoint_type: Optional[str] = typer.Option(None, help="Endpoint type"),
+    server_metrics_url: Optional[str] = typer.Option(
+        None, help="Comma-separated server metrics URLs"
+    ),
+    streaming: bool = typer.Option(False, help="Enable streaming API"),
+    # Image Input
+    image_width_mean: Optional[int] = typer.Option(None, help="Mean width of images"),
+    image_width_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of image width"
+    ),
+    image_height_mean: Optional[int] = typer.Option(None, help="Mean height of images"),
+    image_height_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of image height"
+    ),
+    image_format: Optional[str] = typer.Option(None, help="Image format (png, jpeg)"),
+    # Input
+    batch_size_audio: Optional[int] = typer.Option(None, help="Audio batch size"),
+    batch_size_image: Optional[int] = typer.Option(None, help="Image batch size"),
+    batch_size_text: Optional[int] = typer.Option(None, help="Text batch size"),
+    extra_inputs: Optional[str] = typer.Option(
+        None, help="Extra inputs in 'key:value' format"
+    ),
+    goodput: Optional[str] = typer.Option(None, help="Goodput constraints"),
+    header: Optional[str] = typer.Option(None, help="Custom headers"),
+    input_file: Optional[str] = typer.Option(None, help="Input file path"),
+    num_dataset_entries: Optional[int] = typer.Option(
+        None, "--num-dataset-entries", "--num-prompts", help="Number of unique payloads"
+    ),
+    num_prefix_prompts: Optional[int] = typer.Option(
+        None, help="Number of prefix prompts"
+    ),
+    output_tokens_mean: Optional[int] = typer.Option(
+        None, help="Mean number of output tokens"
+    ),
+    output_tokens_mean_deterministic: bool = typer.Option(
+        False, help="Enable deterministic output tokens"
+    ),
+    output_tokens_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of output tokens"
+    ),
+    random_seed: Optional[int] = typer.Option(None, help="Random seed"),
+    grpc_method: Optional[str] = typer.Option(None, help="gRPC method name"),
+    synthetic_input_tokens_mean: Optional[int] = typer.Option(
+        None, help="Mean synthetic input tokens"
+    ),
+    synthetic_input_tokens_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of synthetic input tokens"
+    ),
+    prefix_prompt_length: Optional[int] = typer.Option(
+        None, help="Prefix prompt length"
+    ),
+    warmup_request_count: Optional[int] = typer.Option(
+        None, help="Number of warmup requests"
+    ),
+    # Other
+    verbose: bool = typer.Option(False, help="Enable verbose mode"),
+    # Output
+    artifact_dir: Optional[str] = typer.Option(None, help="Artifact directory"),
+    checkpoint_dir: Optional[str] = typer.Option(None, help="Checkpoint directory"),
+    generate_plots: bool = typer.Option(False, help="Generate plots"),
+    enable_checkpointing: bool = typer.Option(False, help="Enable checkpointing"),
+    profile_export_file: Optional[str] = typer.Option(
+        None, help="Profile export file path"
+    ),
+    # Profiling
+    measurement_interval: Optional[int] = typer.Option(
+        None, help="Measurement interval in milliseconds"
+    ),
+    request_count: Optional[int] = typer.Option(None, help="Number of requests"),
+    request_rate: Optional[float] = typer.Option(None, help="Request rate"),
+    fixed_schedule: Optional[str] = typer.Option(None, help="Fixed schedule file"),
+    stability_percentage: Optional[float] = typer.Option(
+        None, help="Stability percentage"
+    ),
+    # Session
+    num_sessions: Optional[int] = typer.Option(None, help="Number of sessions"),
+    session_concurrency: Optional[int] = typer.Option(None, help="Session concurrency"),
+    session_delay_ratio: Optional[float] = typer.Option(
+        None, help="Session delay ratio"
+    ),
+    session_turn_delay_mean: Optional[float] = typer.Option(
+        None, help="Mean session turn delay"
+    ),
+    session_turn_delay_stddev: Optional[float] = typer.Option(
+        None, help="Standard deviation of session turn delay"
+    ),
+    session_turns_mean: Optional[int] = typer.Option(None, help="Mean session turns"),
+    session_turns_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of session turns"
+    ),
+    # Tokenizer
+    tokenizer: Optional[str] = typer.Option(None, help="Tokenizer name or path"),
+    tokenizer_revision: Optional[str] = typer.Option(None, help="Tokenizer revision"),
+    tokenizer_trust_remote_code: bool = typer.Option(
+        False, help="Trust remote tokenizer code"
+    ),
 ):
     """Run GenAI-Perf benchmarks"""
     console.print(
         Panel("[bold blue]GenAI-Perf Benchmarking Tool[/bold blue]", expand=False)
     )
-    console.print(f"Router URL: {url}")
-    console.print(f"Model: {model}")
 
-    benchmarker = GenAIPerfBenchmarker(url, model)
+    # Create benchmark parameters
+    params = create_benchmark_params(
+        url=url,
+        model=model,
+        concurrency=concurrency,
+        check_health=check_health,
+        audio_length_mean=audio_length_mean,
+        audio_length_stddev=audio_length_stddev,
+        audio_format=audio_format,
+        audio_depths=audio_depths,
+        audio_sample_rates=audio_sample_rates,
+        audio_num_channels=audio_num_channels,
+        model_selection_strategy=model_selection_strategy,
+        backend=backend,
+        endpoint=endpoint,
+        endpoint_type=endpoint_type,
+        server_metrics_url=server_metrics_url,
+        streaming=streaming,
+        image_width_mean=image_width_mean,
+        image_width_stddev=image_width_stddev,
+        image_height_mean=image_height_mean,
+        image_height_stddev=image_height_stddev,
+        image_format=image_format,
+        batch_size_audio=batch_size_audio,
+        batch_size_image=batch_size_image,
+        batch_size_text=batch_size_text,
+        extra_inputs=extra_inputs,
+        goodput=goodput,
+        header=header,
+        input_file=input_file,
+        num_dataset_entries=num_dataset_entries,
+        num_prefix_prompts=num_prefix_prompts,
+        output_tokens_mean=output_tokens_mean,
+        output_tokens_mean_deterministic=output_tokens_mean_deterministic,
+        output_tokens_stddev=output_tokens_stddev,
+        random_seed=random_seed,
+        grpc_method=grpc_method,
+        synthetic_input_tokens_mean=synthetic_input_tokens_mean,
+        synthetic_input_tokens_stddev=synthetic_input_tokens_stddev,
+        prefix_prompt_length=prefix_prompt_length,
+        warmup_request_count=warmup_request_count,
+        verbose=verbose,
+        artifact_dir=artifact_dir,
+        checkpoint_dir=checkpoint_dir,
+        generate_plots=generate_plots,
+        enable_checkpointing=enable_checkpointing,
+        profile_export_file=profile_export_file,
+        measurement_interval=measurement_interval,
+        request_count=request_count,
+        request_rate=request_rate,
+        fixed_schedule=fixed_schedule,
+        stability_percentage=stability_percentage,
+        num_sessions=num_sessions,
+        session_concurrency=session_concurrency,
+        session_delay_ratio=session_delay_ratio,
+        session_turn_delay_mean=session_turn_delay_mean,
+        session_turn_delay_stddev=session_turn_delay_stddev,
+        session_turns_mean=session_turns_mean,
+        session_turns_stddev=session_turns_stddev,
+        tokenizer=tokenizer,
+        tokenizer_revision=tokenizer_revision,
+        tokenizer_trust_remote_code=tokenizer_trust_remote_code,
+    )
 
-    if check_health:
-        console.print("\n[yellow]Checking API health...[/yellow]")
-        if not benchmarker.check_api_health():
-            console.print(f"[red]API not accessible at {url}[/red]")
-            console.print("Please ensure your API is running and accessible.")
-            raise typer.Exit(1)
-        console.print("[green]✓ API is accessible[/green]")
-
-    concurrency_levels = [1, 5, 10, 25]
-    if concurrency:
-        try:
-            concurrency_levels = [int(c.strip()) for c in concurrency.split(",")]
-        except ValueError:
-            console.print("[red]Invalid concurrency levels format[/red]")
-            raise typer.Exit(1)
-
-    console.print(f"\nConcurrency levels: {concurrency_levels}")
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Running benchmarks...", total=None)
-        benchmarker.run_simple_benchmark(concurrency_levels)
-        progress.update(task, description="Benchmarks completed")
-
-    console.print("\n[green]Benchmarking completed![/green]")
-    console.print(f"Results saved in: {benchmarker.results_dir}")
+    _run_benchmark_with_params(params)
 
 
 @app.command()
@@ -574,6 +986,125 @@ def run_all(
     concurrency: Optional[str] = typer.Option(
         None, "--concurrency", "-c", help="Comma-separated concurrency levels"
     ),
+    # Audio Input
+    audio_length_mean: Optional[float] = typer.Option(
+        None, help="Mean length of audio data in seconds"
+    ),
+    audio_length_stddev: Optional[float] = typer.Option(
+        None, help="Standard deviation of audio length"
+    ),
+    audio_format: Optional[str] = typer.Option(None, help="Audio format (wav, mp3)"),
+    audio_depths: Optional[str] = typer.Option(
+        None, help="Comma-separated audio bit depths"
+    ),
+    audio_sample_rates: Optional[str] = typer.Option(
+        None, help="Comma-separated audio sample rates"
+    ),
+    audio_num_channels: Optional[int] = typer.Option(
+        None, help="Number of audio channels (1 or 2)"
+    ),
+    # Endpoint
+    model_selection_strategy: Optional[str] = typer.Option(
+        None, help="Model selection strategy (round_robin, random)"
+    ),
+    backend: Optional[str] = typer.Option(None, help="Backend (tensorrtllm, vllm)"),
+    endpoint: Optional[str] = typer.Option(None, help="Custom endpoint"),
+    endpoint_type: Optional[str] = typer.Option(None, help="Endpoint type"),
+    server_metrics_url: Optional[str] = typer.Option(
+        None, help="Comma-separated server metrics URLs"
+    ),
+    streaming: bool = typer.Option(False, help="Enable streaming API"),
+    # Image Input
+    image_width_mean: Optional[int] = typer.Option(None, help="Mean width of images"),
+    image_width_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of image width"
+    ),
+    image_height_mean: Optional[int] = typer.Option(None, help="Mean height of images"),
+    image_height_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of image height"
+    ),
+    image_format: Optional[str] = typer.Option(None, help="Image format (png, jpeg)"),
+    # Input
+    batch_size_audio: Optional[int] = typer.Option(None, help="Audio batch size"),
+    batch_size_image: Optional[int] = typer.Option(None, help="Image batch size"),
+    batch_size_text: Optional[int] = typer.Option(None, help="Text batch size"),
+    extra_inputs: Optional[str] = typer.Option(
+        None, help="Extra inputs in 'key:value' format"
+    ),
+    goodput: Optional[str] = typer.Option(None, help="Goodput constraints"),
+    header: Optional[str] = typer.Option(None, help="Custom headers"),
+    input_file: Optional[str] = typer.Option(None, help="Input file path"),
+    num_dataset_entries: Optional[int] = typer.Option(
+        None, "--num-dataset-entries", "--num-prompts", help="Number of unique payloads"
+    ),
+    num_prefix_prompts: Optional[int] = typer.Option(
+        None, help="Number of prefix prompts"
+    ),
+    output_tokens_mean: Optional[int] = typer.Option(
+        None, help="Mean number of output tokens"
+    ),
+    output_tokens_mean_deterministic: bool = typer.Option(
+        False, help="Enable deterministic output tokens"
+    ),
+    output_tokens_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of output tokens"
+    ),
+    random_seed: Optional[int] = typer.Option(None, help="Random seed"),
+    grpc_method: Optional[str] = typer.Option(None, help="gRPC method name"),
+    synthetic_input_tokens_mean: Optional[int] = typer.Option(
+        None, help="Mean synthetic input tokens"
+    ),
+    synthetic_input_tokens_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of synthetic input tokens"
+    ),
+    prefix_prompt_length: Optional[int] = typer.Option(
+        None, help="Prefix prompt length"
+    ),
+    warmup_request_count: Optional[int] = typer.Option(
+        None, help="Number of warmup requests"
+    ),
+    # Other
+    verbose: bool = typer.Option(False, help="Enable verbose mode"),
+    # Output
+    artifact_dir: Optional[str] = typer.Option(None, help="Artifact directory"),
+    checkpoint_dir: Optional[str] = typer.Option(None, help="Checkpoint directory"),
+    generate_plots: bool = typer.Option(False, help="Generate plots"),
+    enable_checkpointing: bool = typer.Option(False, help="Enable checkpointing"),
+    profile_export_file: Optional[str] = typer.Option(
+        None, help="Profile export file path"
+    ),
+    # Profiling
+    measurement_interval: Optional[int] = typer.Option(
+        None, help="Measurement interval in milliseconds"
+    ),
+    request_count: Optional[int] = typer.Option(None, help="Number of requests"),
+    request_rate: Optional[float] = typer.Option(None, help="Request rate"),
+    fixed_schedule: Optional[str] = typer.Option(None, help="Fixed schedule file"),
+    stability_percentage: Optional[float] = typer.Option(
+        None, help="Stability percentage"
+    ),
+    # Session
+    num_sessions: Optional[int] = typer.Option(None, help="Number of sessions"),
+    session_concurrency: Optional[int] = typer.Option(None, help="Session concurrency"),
+    session_delay_ratio: Optional[float] = typer.Option(
+        None, help="Session delay ratio"
+    ),
+    session_turn_delay_mean: Optional[float] = typer.Option(
+        None, help="Mean session turn delay"
+    ),
+    session_turn_delay_stddev: Optional[float] = typer.Option(
+        None, help="Standard deviation of session turn delay"
+    ),
+    session_turns_mean: Optional[int] = typer.Option(None, help="Mean session turns"),
+    session_turns_stddev: Optional[int] = typer.Option(
+        None, help="Standard deviation of session turns"
+    ),
+    # Tokenizer
+    tokenizer: Optional[str] = typer.Option(None, help="Tokenizer name or path"),
+    tokenizer_revision: Optional[str] = typer.Option(None, help="Tokenizer revision"),
+    tokenizer_trust_remote_code: bool = typer.Option(
+        False, help="Trust remote tokenizer code"
+    ),
 ):
     """Run benchmarks and analyze results in one command"""
     console.print(
@@ -582,13 +1113,77 @@ def run_all(
         )
     )
 
+    # Create benchmark parameters
+    params = create_benchmark_params(
+        url=url,
+        model=model,
+        concurrency=concurrency,
+        check_health=True,  # Always check health in run_all
+        audio_length_mean=audio_length_mean,
+        audio_length_stddev=audio_length_stddev,
+        audio_format=audio_format,
+        audio_depths=audio_depths,
+        audio_sample_rates=audio_sample_rates,
+        audio_num_channels=audio_num_channels,
+        model_selection_strategy=model_selection_strategy,
+        backend=backend,
+        endpoint=endpoint,
+        endpoint_type=endpoint_type,
+        server_metrics_url=server_metrics_url,
+        streaming=streaming,
+        image_width_mean=image_width_mean,
+        image_width_stddev=image_width_stddev,
+        image_height_mean=image_height_mean,
+        image_height_stddev=image_height_stddev,
+        image_format=image_format,
+        batch_size_audio=batch_size_audio,
+        batch_size_image=batch_size_image,
+        batch_size_text=batch_size_text,
+        extra_inputs=extra_inputs,
+        goodput=goodput,
+        header=header,
+        input_file=input_file,
+        num_dataset_entries=num_dataset_entries,
+        num_prefix_prompts=num_prefix_prompts,
+        output_tokens_mean=output_tokens_mean,
+        output_tokens_mean_deterministic=output_tokens_mean_deterministic,
+        output_tokens_stddev=output_tokens_stddev,
+        random_seed=random_seed,
+        grpc_method=grpc_method,
+        synthetic_input_tokens_mean=synthetic_input_tokens_mean,
+        synthetic_input_tokens_stddev=synthetic_input_tokens_stddev,
+        prefix_prompt_length=prefix_prompt_length,
+        warmup_request_count=warmup_request_count,
+        verbose=verbose,
+        artifact_dir=artifact_dir,
+        checkpoint_dir=checkpoint_dir,
+        generate_plots=generate_plots,
+        enable_checkpointing=enable_checkpointing,
+        profile_export_file=profile_export_file,
+        measurement_interval=measurement_interval,
+        request_count=request_count,
+        request_rate=request_rate,
+        fixed_schedule=fixed_schedule,
+        stability_percentage=stability_percentage,
+        num_sessions=num_sessions,
+        session_concurrency=session_concurrency,
+        session_delay_ratio=session_delay_ratio,
+        session_turn_delay_mean=session_turn_delay_mean,
+        session_turn_delay_stddev=session_turn_delay_stddev,
+        session_turns_mean=session_turns_mean,
+        session_turns_stddev=session_turns_stddev,
+        tokenizer=tokenizer,
+        tokenizer_revision=tokenizer_revision,
+        tokenizer_trust_remote_code=tokenizer_trust_remote_code,
+    )
+
     # Run benchmarks
     console.print("\n[blue]Step 1: Running benchmarks[/blue]")
-    benchmark(url=url, model=model, concurrency=concurrency)
+    _run_benchmark_with_params(params)
 
     # Analyze results
     console.print("\n[blue]Step 2: Analyzing results[/blue]")
-    analyze()
+    analyze(results_dir="./results")
 
     console.print("\n[green]Complete pipeline finished![/green]")
 
