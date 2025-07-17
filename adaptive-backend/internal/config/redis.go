@@ -67,7 +67,12 @@ func NewRedisConfig() (*RedisConfig, error) {
 	// Configure TLS if enabled
 	if tlsEnabled {
 		config.TLSConfig = &tls.Config{
-			InsecureSkipVerify: tlsSkipVerify,
+			InsecureSkipVerify: tlsSkipVerify, // #nosec G402 - Configurable via environment variable for testing
+		}
+		
+		// Log security warning if certificate verification is disabled
+		if tlsSkipVerify {
+			fiberlog.Warn("Redis TLS certificate verification is disabled - this should only be used for testing")
 		}
 	}
 
