@@ -8,7 +8,7 @@ require (
 	github.com/alitto/pond/v2 v2.5.0
 	github.com/anthropics/anthropic-sdk-go v1.2.1
 	github.com/gofiber/fiber/v2 v2.52.6
-	github.com/openai/openai-go v1.1.0
+	github.com/openai/openai-go v1.11.0
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/valyala/fasthttp v1.59.0
 	google.golang.org/genai v1.7.0
