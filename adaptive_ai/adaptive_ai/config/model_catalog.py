@@ -1,5 +1,8 @@
 # config/model_catalog.py
 
+from adaptive_ai.config.domain_matrix_generator import (
+    generate_comprehensive_domain_task_matrix,
+)
 from adaptive_ai.models import (
     ModelCapability,
     ProviderType,
@@ -485,7 +488,7 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
             TaskModelEntry(
                 provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
             ),
-        ] 
+        ]
     ),
     TaskType.EXTRACTION: TaskModelMapping(
         model_entries=[
@@ -539,7 +542,6 @@ domain_standard_model_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    
     # Business domains favor balanced, reliable models
     DomainType.BUSINESS_AND_INDUSTRIAL: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -556,7 +558,6 @@ domain_standard_model_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"),
     ],
-    
     # Creative domains favor creative and fast models
     DomainType.ARTS_AND_ENTERTAINMENT: [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
@@ -568,7 +569,6 @@ domain_standard_model_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     # Communication domains favor fast, efficient models
     DomainType.NEWS: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -580,7 +580,6 @@ domain_standard_model_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # Educational domains favor reasoning models
     DomainType.JOBS_AND_EDUCATION: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -613,7 +612,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     (DomainType.SCIENCE, TaskType.BRAINSTORMING): [
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
@@ -628,7 +626,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # BUSINESS DOMAINS
     (DomainType.FINANCE, TaskType.CLASSIFICATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -643,7 +640,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"),
     ],
-    
     (DomainType.LAW_AND_GOVERNMENT, TaskType.EXTRACTION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -656,7 +652,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
     ],
-    
     # CREATIVE DOMAINS
     (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.TEXT_GENERATION): [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
@@ -672,7 +667,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    
     (DomainType.GAMES, TaskType.CHATBOT): [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
@@ -682,7 +676,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    
     # LIFESTYLE DOMAINS
     (DomainType.FOOD_AND_DRINK, TaskType.TEXT_GENERATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -693,7 +686,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     (DomainType.HEALTH, TaskType.CLASSIFICATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
@@ -706,7 +698,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
     ],
-    
     # COMMERCIAL DOMAINS
     (DomainType.SHOPPING, TaskType.CLASSIFICATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -716,7 +707,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     (DomainType.REAL_ESTATE, TaskType.CLASSIFICATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -725,7 +715,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
     ],
-    
     # NEWS AND COMMUNICATION
     (DomainType.NEWS, TaskType.SUMMARIZATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -736,7 +725,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     # SENSITIVE DOMAINS
     (DomainType.SENSITIVE_SUBJECTS, TaskType.CLASSIFICATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
@@ -746,12 +734,10 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    
     (DomainType.ADULT, TaskType.CLASSIFICATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    
     # SPORTS AND ENTERTAINMENT
     (DomainType.SPORTS, TaskType.CHATBOT): [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
@@ -761,7 +747,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     # EDUCATIONAL DOMAINS
     (DomainType.JOBS_AND_EDUCATION, TaskType.CODE_GENERATION): [
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
@@ -771,7 +756,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"),
     ],
-    
     (DomainType.BOOKS_AND_LITERATURE, TaskType.TEXT_GENERATION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
@@ -780,9 +764,7 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
     ],
-    
     # --- SYSTEMATIC COMPLETION OF MISSING COMBINATIONS ---
-    
     # ADULT DOMAIN - requires careful, balanced models
     (DomainType.ADULT, TaskType.OPEN_QA): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -824,7 +806,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
     ],
-    
     # ARTS_AND_ENTERTAINMENT - creative, visual models
     (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.OPEN_QA): [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
@@ -838,10 +819,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.TEXT_GENERATION): [
-        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-    ],
     (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.CODE_GENERATION): [
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -849,14 +826,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
     (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.CHATBOT): [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-    ],
-    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.REWRITE): [
-        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-    ],
-    (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.BRAINSTORMING): [
-        TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-        TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
     (DomainType.ARTS_AND_ENTERTAINMENT, TaskType.EXTRACTION): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -866,7 +835,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    
     # AUTOS_AND_VEHICLES - practical, informational models
     (DomainType.AUTOS_AND_VEHICLES, TaskType.OPEN_QA): [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -911,7 +879,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
 }
 
 # Generate comprehensive matrix for all remaining combinations
-from adaptive_ai.config.domain_matrix_generator import generate_comprehensive_domain_task_matrix
 
 # Add generated combinations to the existing matrix
 _generated_matrix = generate_comprehensive_domain_task_matrix()
@@ -934,7 +901,6 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
     ],
-    
     # Business domains favor balanced, reliable models
     DomainType.BUSINESS_AND_INDUSTRIAL: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -951,7 +917,6 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"),
     ],
-    
     # Creative domains favor creative and fast models
     DomainType.ARTS_AND_ENTERTAINMENT: [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
@@ -963,7 +928,6 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     # Lifestyle domains favor conversational, cost-effective models
     DomainType.FOOD_AND_DRINK: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -988,7 +952,6 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
     ],
-    
     # Commercial domains favor reliable, balanced models
     DomainType.SHOPPING: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -1004,7 +967,6 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # Communication domains favor fast, efficient models
     DomainType.NEWS: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
@@ -1020,7 +982,6 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # Educational domains favor reasoning models
     DomainType.JOBS_AND_EDUCATION: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
@@ -1037,35 +998,30 @@ domain_fallback_preferences: dict[DomainType, list[TaskModelEntry]] = {
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # Health domain favors accuracy and reasoning
     DomainType.HEALTH: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"),
     ],
-    
     # Social domains favor conversational models
     DomainType.PEOPLE_AND_SOCIETY: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # Sports domain favors fast, engaging models
     DomainType.SPORTS: [
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # Travel domain favors practical, helpful models
     DomainType.TRAVEL_AND_TRANSPORTATION: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
         TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
         TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
     ],
-    
     # Sensitive domains favor high-accuracy, careful models
     DomainType.SENSITIVE_SUBJECTS: [
         TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
@@ -1082,50 +1038,39 @@ minion_domain_mappings: dict[DomainType, str] = {
     # Technical domains get specialized models
     DomainType.COMPUTERS_AND_ELECTRONICS: "codellama/CodeLlama-13b-Instruct-hf",
     DomainType.SCIENCE: "Qwen/Qwen2.5-14B-Instruct",
-    
     # Business domains get reliable general models
     DomainType.BUSINESS_AND_INDUSTRIAL: "meta-llama/Llama-3.1-8B-Instruct",
     DomainType.FINANCE: "Qwen/Qwen2.5-14B-Instruct",
     DomainType.LAW_AND_GOVERNMENT: "meta-llama/Llama-3.1-8B-Instruct",
-    
     # Creative domains get conversational models
     DomainType.ARTS_AND_ENTERTAINMENT: "mistralai/Mistral-7B-Instruct-v0.3",
     DomainType.GAMES: "mistralai/Mistral-7B-Instruct-v0.3",
-    
     # Lifestyle domains get conversational models
     DomainType.FOOD_AND_DRINK: "mistralai/Mistral-7B-Instruct-v0.3",
     DomainType.BEAUTY_AND_FITNESS: "mistralai/Mistral-7B-Instruct-v0.3",
     DomainType.HOBBIES_AND_LEISURE: "mistralai/Mistral-7B-Instruct-v0.3",
     DomainType.HOME_AND_GARDEN: "mistralai/Mistral-7B-Instruct-v0.3",
     DomainType.PETS_AND_ANIMALS: "mistralai/Mistral-7B-Instruct-v0.3",
-    
     # Commercial domains get efficient models
     DomainType.SHOPPING: "microsoft/deberta-v3-large",
     DomainType.REAL_ESTATE: "meta-llama/Llama-3.1-8B-Instruct",
     DomainType.AUTOS_AND_VEHICLES: "meta-llama/Llama-3.1-8B-Instruct",
-    
     # Communication domains get fast, efficient models
     DomainType.NEWS: "google/flan-t5-xl",
     DomainType.ONLINE_COMMUNITIES: "mistralai/Mistral-7B-Instruct-v0.3",
     DomainType.INTERNET_AND_TELECOM: "meta-llama/Llama-3.1-8B-Instruct",
-    
     # Educational domains get instruction-following models
     DomainType.JOBS_AND_EDUCATION: "meta-llama/Llama-3.1-8B-Instruct",
     DomainType.REFERENCE: "Qwen/Qwen2.5-14B-Instruct",
     DomainType.BOOKS_AND_LITERATURE: "meta-llama/Llama-3.1-8B-Instruct",
-    
     # Health domain gets classification-optimized models
     DomainType.HEALTH: "microsoft/deberta-v3-large",
-    
     # Social domains get conversational models
     DomainType.PEOPLE_AND_SOCIETY: "mistralai/Mistral-7B-Instruct-v0.3",
-    
     # Sports domain gets fast models
     DomainType.SPORTS: "google/flan-t5-xl",
-    
     # Travel domain gets practical models
     DomainType.TRAVEL_AND_TRANSPORTATION: "meta-llama/Llama-3.1-8B-Instruct",
-    
     # Sensitive domains get accurate classification models
     DomainType.SENSITIVE_SUBJECTS: "microsoft/deberta-v3-large",
     DomainType.ADULT: "microsoft/deberta-v3-large",

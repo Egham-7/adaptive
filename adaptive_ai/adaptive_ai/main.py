@@ -9,7 +9,6 @@ from adaptive_ai.models.llm_classification_models import (
     ClassificationResult,
     DomainClassificationResult,
     DomainType,
-    EnhancedClassificationResult,
 )
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
@@ -58,7 +57,7 @@ class ProtocolManagerAPI(ls.LitAPI):
 
         prompts: list[str] = [req.prompt for req in requests]
 
-        # Run both task and domain classification in parallel  
+        # Run both task and domain classification in parallel
         t0 = time.perf_counter()
         all_classification_results: list[ClassificationResult] = (
             self.prompt_classifier.classify_prompts(prompts)
@@ -74,26 +73,42 @@ class ProtocolManagerAPI(ls.LitAPI):
             )
             t3 = time.perf_counter()
             self.log("domain_classification_time", t3 - t2)
-            self.log("domain_classification_success", {
-                "batch_size": len(all_domain_results),
-                "sample_domain": all_domain_results[0].domain.value if all_domain_results else None,
-                "sample_confidence": all_domain_results[0].confidence if all_domain_results else None,
-            })
+            self.log(
+                "domain_classification_success",
+                {
+                    "batch_size": len(all_domain_results),
+                    "sample_domain": (
+                        all_domain_results[0].domain.value
+                        if all_domain_results
+                        else None
+                    ),
+                    "sample_confidence": (
+                        all_domain_results[0].confidence if all_domain_results else None
+                    ),
+                },
+            )
         except Exception as e:
             t3 = time.perf_counter()
-            self.log("domain_classification_failed", {
-                "error": str(e),
-                "time_taken": t3 - t2,
-                "batch_size": len(prompts),
-            })
+            self.log(
+                "domain_classification_failed",
+                {
+                    "error": str(e),
+                    "time_taken": t3 - t2,
+                    "batch_size": len(prompts),
+                },
+            )
             # Create fallback domain results
             all_domain_results = []
-            for prompt in prompts:
-                all_domain_results.append(DomainClassificationResult(
-                    domain=DomainType.REFERENCE,
-                    confidence=0.5,
-                    domain_probabilities={domain.value: 1.0 / len(DomainType) for domain in DomainType}
-                ))
+            for _prompt in prompts:
+                all_domain_results.append(
+                    DomainClassificationResult(
+                        domain=DomainType.REFERENCE,
+                        confidence=0.5,
+                        domain_probabilities={
+                            domain.value: 1.0 / len(DomainType) for domain in DomainType
+                        },
+                    )
+                )
 
         self.log("predict_called", {"batch_size": len(requests)})
 
@@ -114,19 +129,21 @@ class ProtocolManagerAPI(ls.LitAPI):
                 all_classification_results[i]
             )
             current_domain_result: DomainClassificationResult = all_domain_results[i]
-            
+
             # Log both classifications for this request
             self.log(
                 "combined_classification_results",
                 {
-                    "task_type": current_classification_result.task_type_1[0]
-                    if current_classification_result.task_type_1
-                    else "Other",
+                    "task_type": (
+                        current_classification_result.task_type_1[0]
+                        if current_classification_result.task_type_1
+                        else "Other"
+                    ),
                     "domain": current_domain_result.domain.value,
                     "domain_confidence": current_domain_result.confidence,
                 },
             )
-            
+
             # Rule-based routing is fast enough - no caching needed
             self.log("cache_disabled", "rule_based_routing_is_fast")
 
