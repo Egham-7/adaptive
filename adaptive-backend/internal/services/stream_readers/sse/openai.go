@@ -133,7 +133,7 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	bb.WriteString(sseDataPrefix)
 	bb.Write(jsonData)
 	bb.WriteString(sseLineSuffix)
-	
+
 	// Copy to our buffer efficiently
 	if cap(r.Buffer) < bb.Len() {
 		r.Buffer = make([]byte, bb.Len())

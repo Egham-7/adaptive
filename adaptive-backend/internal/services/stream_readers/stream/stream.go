@@ -42,7 +42,7 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 	// Get buffer from bytebufferpool - reuse for better performance
 	bb := bytebufferpool.Get()
 	defer bytebufferpool.Put(bb)
-	
+
 	// Use smaller buffer for lower latency - 512 bytes for immediate forwarding
 	bb.Reset()
 	if cap(bb.B) < 512 {
@@ -50,7 +50,7 @@ func pumpStreamData(w *bufio.Writer, streamReader io.Reader, requestID string, s
 	}
 	bb.B = bb.B[:512]
 	buffer := bb.B
-	
+
 	var totalBytes int64
 
 	for {
