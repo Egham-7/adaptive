@@ -25,9 +25,9 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "numpy~=1.26",
+    "numpy~=2.2",
     "scikit-learn>=1.7.0,<2",
-    "huggingface-hub>=0.32.0,<0.33",
+    "huggingface-hub>=0.32.0,<0.34",
     "transformers>=4.52.4,<5",
     "torch==2.7.1",
     "litserve>=0.2.10,<0.3",
@@ -43,7 +43,7 @@ dependencies = [
     "pytest-cov>=6.2.1,<7",
     "langchain>=0.3.26,<0.4",
     "langchain-huggingface>=0.3.0,<0.4",
-    "sentence-transformers>=4.1.0,<5",
+    "sentence-transformers>=4.1.0,<6",
     "langchain-core>=0.3.66,<0.4",
     "protobuf>=6.31.1,<7",
     "sentencepiece>=0.2.0,<0.3",
