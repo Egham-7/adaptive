@@ -11,6 +11,7 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
 	ssestream "github.com/openai/openai-go/packages/ssestream"
+	"github.com/valyala/bytebufferpool"
 )
 
 const (
@@ -23,7 +24,6 @@ type OpenAIStreamReader struct {
 	stream_readers.BaseStreamReader
 	stream        *ssestream.Stream[openai.ChatCompletionChunk]
 	done          bool
-	buf           strings.Builder
 	selectedModel string
 	provider      string
 }
@@ -34,17 +34,15 @@ func NewOpenAIStreamReader(
 	selectedModel string,
 	provider string,
 ) *OpenAIStreamReader {
-	r := &OpenAIStreamReader{
+	return &OpenAIStreamReader{
 		BaseStreamReader: stream_readers.BaseStreamReader{
-			Buffer:    make([]byte, 0, 1024),
+			Buffer:    make([]byte, 0, 2048), // Larger initial capacity
 			RequestID: requestID,
 		},
 		stream:        stream,
 		selectedModel: selectedModel,
 		provider:      provider,
 	}
-	r.buf.Grow(512)
-	return r
 }
 
 func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
@@ -96,30 +94,29 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 	fiberlog.Errorf("[%s] OpenAI stream error: %v", r.RequestID, err)
 
-	r.buf.Reset()
-	r.buf.WriteString(sseDataPrefix)
-	r.buf.WriteString(`{"error": "`)
-	r.buf.WriteString(strings.ReplaceAll(strings.ReplaceAll(err.Error(), "\"", "\\\""), "\n", "\\n"))
-	r.buf.WriteString(`"}`)
-	r.buf.WriteString(sseLineSuffix)
+	// Use bytebufferpool for error message building
+	bb := bytebufferpool.Get()
+	defer bytebufferpool.Put(bb)
 
-	r.Buffer = []byte(r.buf.String())
+	bb.WriteString(sseDataPrefix)
+	bb.WriteString(`{"error": "`)
+	bb.WriteString(strings.ReplaceAll(strings.ReplaceAll(err.Error(), "\"", "\\\""), "\n", "\\n"))
+	bb.WriteString(`"}`)
+	bb.WriteString(sseLineSuffix)
+
+	// Copy to our buffer efficiently
+	if cap(r.Buffer) < bb.Len() {
+		r.Buffer = make([]byte, bb.Len())
+	}
+	r.Buffer = r.Buffer[:bb.Len()]
+	copy(r.Buffer, bb.B)
+
 	r.done = true
 	return r.Read(p)
 }
 
 // processChunk orchestrates the transformation and buffering of a chunk.
 func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) error {
-	// Log original OpenAI chunk details
-	fiberlog.Debugf("[%s] Original OpenAI chunk: ID=%s, Model=%s, Choices=%d",
-		r.RequestID, chunk.ID, chunk.Model, len(chunk.Choices))
-
-	// Log original choice details
-	for i, choice := range chunk.Choices {
-		fiberlog.Debugf("[%s] Original Choice[%d]: Role='%s', Content='%s', FinishReason='%s'",
-			r.RequestID, i, choice.Delta.Role, choice.Delta.Content, choice.FinishReason)
-	}
-
 	// Convert OpenAI chunk to our adaptive chunk with cost savings
 	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, r.provider)
 
@@ -128,24 +125,21 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 		return err
 	}
 
-	// Log the actual JSON being sent
-	fiberlog.Debugf("[%s] JSON output: %s", r.RequestID, string(jsonData))
+	// Use bytebufferpool for efficient buffer management
+	bb := bytebufferpool.Get()
+	defer bytebufferpool.Put(bb)
 
-	// Log chunk details
-	fiberlog.Debugf("[%s] Outputting chunk: ID=%s, Model=%s, Choices=%d",
-		r.RequestID, adaptiveChunk.ID, adaptiveChunk.Model, len(adaptiveChunk.Choices))
-
-	// Log choice details if present
-	for i, choice := range adaptiveChunk.Choices {
-		fiberlog.Debugf("[%s] Choice[%d]: Role=%s, Content=%s, FinishReason=%s",
-			r.RequestID, i, choice.Delta.Role, choice.Delta.Content, choice.FinishReason)
+	// Build SSE message efficiently
+	bb.WriteString(sseDataPrefix)
+	bb.Write(jsonData)
+	bb.WriteString(sseLineSuffix)
+	
+	// Copy to our buffer efficiently
+	if cap(r.Buffer) < bb.Len() {
+		r.Buffer = make([]byte, bb.Len())
 	}
-
-	r.buf.Reset()
-	r.buf.WriteString(sseDataPrefix)
-	r.buf.Write(jsonData)
-	r.buf.WriteString(sseLineSuffix)
-	r.Buffer = []byte(r.buf.String())
+	r.Buffer = r.Buffer[:bb.Len()]
+	copy(r.Buffer, bb.B)
 
 	return nil
 }
