@@ -97,12 +97,28 @@ func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 	// Use bytebufferpool for error message building
 	bb := bytebufferpool.Get()
 	defer bytebufferpool.Put(bb)
+	bb.Reset() // Clear any leftover data
 
-	bb.WriteString(sseDataPrefix)
-	bb.WriteString(`{"error": "`)
-	bb.WriteString(strings.ReplaceAll(strings.ReplaceAll(err.Error(), "\"", "\\\""), "\n", "\\n"))
-	bb.WriteString(`"}`)
-	bb.WriteString(sseLineSuffix)
+	if _, writeErr := bb.WriteString(sseDataPrefix); writeErr != nil {
+		fiberlog.Errorf("[%s] Failed to write SSE prefix: %v", r.RequestID, writeErr)
+		return 0, writeErr
+	}
+	if _, writeErr := bb.WriteString(`{"error": "`); writeErr != nil {
+		fiberlog.Errorf("[%s] Failed to write error prefix: %v", r.RequestID, writeErr)
+		return 0, writeErr
+	}
+	if _, writeErr := bb.WriteString(strings.ReplaceAll(strings.ReplaceAll(err.Error(), "\"", "\\\""), "\n", "\\n")); writeErr != nil {
+		fiberlog.Errorf("[%s] Failed to write error message: %v", r.RequestID, writeErr)
+		return 0, writeErr
+	}
+	if _, writeErr := bb.WriteString(`"}`); writeErr != nil {
+		fiberlog.Errorf("[%s] Failed to write error suffix: %v", r.RequestID, writeErr)
+		return 0, writeErr
+	}
+	if _, writeErr := bb.WriteString(sseLineSuffix); writeErr != nil {
+		fiberlog.Errorf("[%s] Failed to write SSE suffix: %v", r.RequestID, writeErr)
+		return 0, writeErr
+	}
 
 	// Copy to our buffer efficiently
 	if cap(r.Buffer) < bb.Len() {
@@ -128,11 +144,18 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	// Use bytebufferpool for efficient buffer management
 	bb := bytebufferpool.Get()
 	defer bytebufferpool.Put(bb)
+	bb.Reset() // Clear any leftover data
 
 	// Build SSE message efficiently
-	bb.WriteString(sseDataPrefix)
-	bb.Write(jsonData)
-	bb.WriteString(sseLineSuffix)
+	if _, writeErr := bb.WriteString(sseDataPrefix); writeErr != nil {
+		return writeErr
+	}
+	if _, writeErr := bb.Write(jsonData); writeErr != nil {
+		return writeErr
+	}
+	if _, writeErr := bb.WriteString(sseLineSuffix); writeErr != nil {
+		return writeErr
+	}
 
 	// Copy to our buffer efficiently
 	if cap(r.Buffer) < bb.Len() {
