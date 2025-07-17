@@ -36,7 +36,7 @@ jobs:
         run: uv run pytest --cov=. --cov-report=xml
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ${{ env.WORKING_DIR }}/coverage.xml
           flags: backend-python
