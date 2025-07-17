@@ -2,8 +2,10 @@ package config
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -11,16 +13,18 @@ import (
 )
 
 const (
-	defaultRedisAddr     = "localhost:6379"
-	defaultRedisPassword = ""
-	defaultRedisDB       = 0
-	defaultPoolSize      = 10
-	defaultConnTimeout   = 5 * time.Second
-	defaultReadTimeout   = 3 * time.Second
-	defaultWriteTimeout  = 3 * time.Second
-	defaultIdleTimeout   = 5 * time.Minute
-	defaultMinIdleConns  = 2
-	defaultMaxRetries    = 3
+	defaultRedisAddr         = "localhost:6379"
+	defaultRedisPassword     = ""
+	defaultRedisDB           = 0
+	defaultPoolSize          = 10
+	defaultConnTimeout       = 5 * time.Second
+	defaultReadTimeout       = 3 * time.Second
+	defaultWriteTimeout      = 3 * time.Second
+	defaultIdleTimeout       = 5 * time.Minute
+	defaultMinIdleConns      = 2
+	defaultMaxRetries        = 3
+	defaultTLSEnabled        = false
+	defaultTLSSkipVerify     = false
 )
 
 // RedisConfig holds Redis connection configuration
@@ -35,21 +39,36 @@ type RedisConfig struct {
 	IdleTimeout  time.Duration
 	MinIdleConns int
 	MaxRetries   int
+	TLSEnabled   bool
+	TLSSkipVerify bool
+	TLSConfig    *tls.Config
 }
 
 // NewRedisConfig creates a new Redis configuration from environment variables
 func NewRedisConfig() (*RedisConfig, error) {
+	tlsEnabled := getBoolEnvOrDefault("REDIS_TLS_ENABLED", defaultTLSEnabled)
+	tlsSkipVerify := getBoolEnvOrDefault("REDIS_TLS_SKIP_VERIFY", defaultTLSSkipVerify)
+	
 	config := &RedisConfig{
-		Addr:         getEnvOrDefault("REDIS_ADDR", defaultRedisAddr),
-		Password:     getEnvOrDefault("REDIS_PASSWORD", defaultRedisPassword),
-		DB:           0, // Default DB
-		PoolSize:     defaultPoolSize,
-		ConnTimeout:  defaultConnTimeout,
-		ReadTimeout:  defaultReadTimeout,
-		WriteTimeout: defaultWriteTimeout,
-		IdleTimeout:  defaultIdleTimeout,
-		MinIdleConns: defaultMinIdleConns,
-		MaxRetries:   defaultMaxRetries,
+		Addr:          getEnvOrDefault("REDIS_ADDR", defaultRedisAddr),
+		Password:      getEnvOrDefault("REDIS_PASSWORD", defaultRedisPassword),
+		DB:            0, // Default DB
+		PoolSize:      defaultPoolSize,
+		ConnTimeout:   defaultConnTimeout,
+		ReadTimeout:   defaultReadTimeout,
+		WriteTimeout:  defaultWriteTimeout,
+		IdleTimeout:   defaultIdleTimeout,
+		MinIdleConns:  defaultMinIdleConns,
+		MaxRetries:    defaultMaxRetries,
+		TLSEnabled:    tlsEnabled,
+		TLSSkipVerify: tlsSkipVerify,
+	}
+
+	// Configure TLS if enabled
+	if tlsEnabled {
+		config.TLSConfig = &tls.Config{
+			InsecureSkipVerify: tlsSkipVerify,
+		}
 	}
 
 	// Support REDIS_URL format (redis://password@host:port/db)
@@ -69,7 +88,7 @@ func NewRedisConfig() (*RedisConfig, error) {
 
 // NewRedisClient creates a new Redis client with the given configuration
 func NewRedisClient(config *RedisConfig) (*redis.Client, error) {
-	client := redis.NewClient(&redis.Options{
+	options := &redis.Options{
 		Addr:            config.Addr,
 		Password:        config.Password,
 		DB:              config.DB,
@@ -88,7 +107,15 @@ func NewRedisClient(config *RedisConfig) (*redis.Client, error) {
 			fiberlog.Info("Redis connection established")
 			return nil
 		},
-	})
+	}
+
+	// Configure TLS if enabled
+	if config.TLSEnabled && config.TLSConfig != nil {
+		options.TLSConfig = config.TLSConfig
+		fiberlog.Info("Redis TLS configuration enabled")
+	}
+
+	client := redis.NewClient(options)
 
 	// Test the connection
 	ctx, cancel := context.WithTimeout(context.Background(), config.ConnTimeout)
@@ -116,6 +143,16 @@ func NewRedisClientFromEnv() (*redis.Client, error) {
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// getBoolEnvOrDefault returns the environment variable value as a boolean or a default value
+func getBoolEnvOrDefault(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := strconv.ParseBool(value); err == nil {
+			return parsed
+		}
 	}
 	return defaultValue
 }
