@@ -102,3 +102,11 @@ func (pm *ProtocolManager) ValidateContext() error {
 	}
 	return nil
 }
+
+// Close properly closes the Redis client during shutdown
+func (pm *ProtocolManager) Close() error {
+	if pm.cache != nil {
+		return pm.cache.Close()
+	}
+	return nil
+}

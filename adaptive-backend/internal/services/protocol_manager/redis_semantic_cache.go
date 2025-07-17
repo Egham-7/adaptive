@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 	"time"
 
@@ -25,6 +26,7 @@ const (
 	embeddingDimensions    = 1536 // OpenAI text-embedding-3-small dimension
 	defaultGlobalCacheSize = 2000
 	defaultUserCacheSize   = 150
+	cleanupInterval        = 5 * time.Minute
 )
 
 // SemanticCache provides Redis-backed semantic caching using RediSearch vector search
@@ -34,6 +36,8 @@ type SemanticCache struct {
 	threshold float32
 	ttl       time.Duration
 	ctx       context.Context
+	cancel    context.CancelFunc
+	ticker    *time.Ticker
 }
 
 // cacheDocument represents a cached item stored in Redis
@@ -46,18 +50,40 @@ type cacheDocument struct {
 
 // NewSemanticCache creates a new Redis-backed semantic cache
 func NewSemanticCache(redisClient *redis.Client, openaiClient *openai.Client) *SemanticCache {
+	ctx, cancel := context.WithCancel(context.Background())
+	ticker := time.NewTicker(cleanupInterval)
+
 	cache := &SemanticCache{
 		redis:     redisClient,
 		openai:    openaiClient,
 		threshold: defaultThreshold,
 		ttl:       defaultCacheTTL,
-		ctx:       context.Background(),
+		ctx:       ctx,
+		cancel:    cancel,
+		ticker:    ticker,
 	}
 
 	// Initialize vector search indices
 	cache.initializeIndices()
 
+	// Start periodic cleanup goroutine
+	go cache.startPeriodicCleanup()
+
 	return cache
+}
+
+// startPeriodicCleanup runs periodic cleanup for both cache prefixes
+func (s *SemanticCache) startPeriodicCleanup() {
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-s.ticker.C:
+			// Clean up both global and user caches
+			s.cleanupOldEntries(globalCachePrefix)
+			s.cleanupOldEntries(userCachePrefix)
+		}
+	}
 }
 
 // initializeIndices creates the Redis vector search indices if they don't exist
@@ -275,9 +301,6 @@ func (s *SemanticCache) storeDocument(prefix string, doc cacheDocument, embeddin
 
 	// Set TTL
 	s.redis.Expire(s.ctx, key, s.ttl)
-
-	// Cleanup old entries periodically
-	go s.cleanupOldEntries(prefix)
 }
 
 // cleanupOldEntries removes old entries to maintain cache size limits using SCAN
@@ -350,13 +373,9 @@ func (s *SemanticCache) cleanupOldEntries(prefix string) {
 		}
 
 		// Sort by timestamp (oldest first)
-		for i := 0; i < len(entries)-1; i++ {
-			for j := 0; j < len(entries)-i-1; j++ {
-				if entries[j].timestamp > entries[j+1].timestamp {
-					entries[j], entries[j+1] = entries[j+1], entries[j]
-				}
-			}
-		}
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].timestamp < entries[j].timestamp
+		})
 
 		// Remove oldest entries
 		toRemove := len(entries) - maxSize
@@ -475,4 +494,18 @@ func (s *SemanticCache) countKeysByPattern(pattern string) (int, error) {
 	}
 
 	return count, nil
+}
+
+// Close cancels the context and cleans up resources
+func (s *SemanticCache) Close() error {
+	if s.cancel != nil {
+		s.cancel()
+	}
+	if s.ticker != nil {
+		s.ticker.Stop()
+	}
+	if s.redis != nil {
+		return s.redis.Close()
+	}
+	return nil
 }

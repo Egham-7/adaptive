@@ -19,6 +19,8 @@ const (
 	defaultReadTimeout   = 3 * time.Second
 	defaultWriteTimeout  = 3 * time.Second
 	defaultIdleTimeout   = 5 * time.Minute
+	defaultMinIdleConns  = 2
+	defaultMaxRetries    = 3
 )
 
 // RedisConfig holds Redis connection configuration
@@ -31,10 +33,12 @@ type RedisConfig struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
+	MinIdleConns int
+	MaxRetries   int
 }
 
 // NewRedisConfig creates a new Redis configuration from environment variables
-func NewRedisConfig() *RedisConfig {
+func NewRedisConfig() (*RedisConfig, error) {
 	config := &RedisConfig{
 		Addr:         getEnvOrDefault("REDIS_ADDR", defaultRedisAddr),
 		Password:     getEnvOrDefault("REDIS_PASSWORD", defaultRedisPassword),
@@ -44,6 +48,8 @@ func NewRedisConfig() *RedisConfig {
 		ReadTimeout:  defaultReadTimeout,
 		WriteTimeout: defaultWriteTimeout,
 		IdleTimeout:  defaultIdleTimeout,
+		MinIdleConns: defaultMinIdleConns,
+		MaxRetries:   defaultMaxRetries,
 	}
 
 	// Support REDIS_URL format (redis://password@host:port/db)
@@ -51,15 +57,14 @@ func NewRedisConfig() *RedisConfig {
 		// Parse Redis URL if provided
 		opt, err := redis.ParseURL(redisURL)
 		if err != nil {
-			fiberlog.Errorf("failed to parse REDIS_URL: %v", err)
-		} else {
-			config.Addr = opt.Addr
-			config.Password = opt.Password
-			config.DB = opt.DB
+			return nil, fmt.Errorf("failed to parse REDIS_URL: %w", err)
 		}
+		config.Addr = opt.Addr
+		config.Password = opt.Password
+		config.DB = opt.DB
 	}
 
-	return config
+	return config, nil
 }
 
 // NewRedisClient creates a new Redis client with the given configuration
@@ -75,8 +80,8 @@ func NewRedisClient(config *RedisConfig) (*redis.Client, error) {
 		ConnMaxIdleTime: config.IdleTimeout,
 
 		// Connection pool settings
-		MinIdleConns: 2,
-		MaxRetries:   3,
+		MinIdleConns: config.MinIdleConns,
+		MaxRetries:   config.MaxRetries,
 
 		// Health check
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
@@ -100,7 +105,10 @@ func NewRedisClient(config *RedisConfig) (*redis.Client, error) {
 
 // NewRedisClientFromEnv creates a Redis client using environment variables
 func NewRedisClientFromEnv() (*redis.Client, error) {
-	config := NewRedisConfig()
+	config, err := NewRedisConfig()
+	if err != nil {
+		return nil, err
+	}
 	return NewRedisClient(config)
 }
 
