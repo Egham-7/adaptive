@@ -72,8 +72,12 @@ func (s *ResponseService) handleProtocolGeneric(
 	isStream bool,
 	protocolName string,
 ) error {
+	provider := prov.GetProviderName() // Get provider name once
+
 	if isStream {
 		fiberlog.Infof("[%s] streaming %s response", requestID, protocolName)
+		s.setStreamHeaders(c) // Set headers early
+
 		streamResp, err := prov.Chat().
 			Completions().
 			StreamCompletion(c.Context(), req.ToOpenAIParams())
@@ -82,11 +86,10 @@ func (s *ResponseService) handleProtocolGeneric(
 			return s.HandleError(c, fiber.StatusInternalServerError,
 				protocolName+" stream failed: "+err.Error(), requestID)
 		}
-		s.setStreamHeaders(c)
-		// Pass comparison provider info for cost calculation in stream
-		provider := prov.GetProviderName()
+
 		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
 	}
+
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
 	regResp, err := prov.Chat().
 		Completions().
@@ -97,8 +100,6 @@ func (s *ResponseService) handleProtocolGeneric(
 			protocolName+" create failed: "+err.Error(), requestID)
 	}
 
-	// No comparison provider, but still add provider info
-	provider := prov.GetProviderName()
 	adaptiveResp := models.ConvertToAdaptive(regResp, provider)
 	return c.JSON(adaptiveResp)
 }
@@ -257,6 +258,7 @@ func (s *ResponseService) handleMinionsProtocol(
 	if isStream {
 		fiberlog.Infof("[%s] streaming MinionS response", requestID)
 		s.setStreamHeaders(c)
+
 		streamResp, err := orchestrator.OrchestrateMinionSStream(
 			c.Context(), remoteProv, minionProv, req, minionModel,
 		)
@@ -265,7 +267,7 @@ func (s *ResponseService) handleMinionsProtocol(
 			return s.HandleError(c, fiber.StatusInternalServerError,
 				"MinionS streaming failed: "+err.Error(), requestID)
 		}
-		// Pass comparison provider info for cost calculation in stream
+
 		provider := minionProv.GetProviderName()
 		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
 	}
