@@ -11,7 +11,7 @@ require (
 	github.com/openai/openai-go v1.1.0
 	github.com/redis/go-redis/v9 v9.11.0
 	github.com/valyala/fasthttp v1.59.0
-	google.golang.org/genai v1.7.0
+	google.golang.org/genai v1.16.0
 )
 
 require (
