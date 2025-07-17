@@ -1,4 +1,5 @@
 from enum import Enum
+
 from pydantic import BaseModel, Field
 
 
@@ -34,8 +35,12 @@ class DomainType(str, Enum):
 
 class DomainClassificationResult(BaseModel):
     domain: DomainType = Field(description="Primary classified domain")
-    confidence: float = Field(description="Confidence score for domain classification (0.0-1.0)")
-    domain_probabilities: dict[str, float] = Field(description="Probability scores for all domains")
+    confidence: float = Field(
+        description="Confidence score for domain classification (0.0-1.0)"
+    )
+    domain_probabilities: dict[str, float] = Field(
+        description="Probability scores for all domains"
+    )
 
 
 class ClassificationResult(BaseModel):
@@ -53,5 +58,9 @@ class ClassificationResult(BaseModel):
 
 
 class EnhancedClassificationResult(BaseModel):
-    task_classification: ClassificationResult = Field(description="Task-based classification results")
-    domain_classification: DomainClassificationResult = Field(description="Domain-based classification results")
+    task_classification: ClassificationResult = Field(
+        description="Task-based classification results"
+    )
+    domain_classification: DomainClassificationResult = Field(
+        description="Domain-based classification results"
+    )
