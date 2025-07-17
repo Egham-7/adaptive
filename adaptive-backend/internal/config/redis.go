@@ -13,42 +13,42 @@ import (
 )
 
 const (
-	defaultRedisAddr         = "localhost:6379"
-	defaultRedisPassword     = ""
-	defaultRedisDB           = 0
-	defaultPoolSize          = 10
-	defaultConnTimeout       = 5 * time.Second
-	defaultReadTimeout       = 3 * time.Second
-	defaultWriteTimeout      = 3 * time.Second
-	defaultIdleTimeout       = 5 * time.Minute
-	defaultMinIdleConns      = 2
-	defaultMaxRetries        = 3
-	defaultTLSEnabled        = false
-	defaultTLSSkipVerify     = false
+	defaultRedisAddr     = "localhost:6379"
+	defaultRedisPassword = ""
+	defaultRedisDB       = 0
+	defaultPoolSize      = 10
+	defaultConnTimeout   = 5 * time.Second
+	defaultReadTimeout   = 3 * time.Second
+	defaultWriteTimeout  = 3 * time.Second
+	defaultIdleTimeout   = 5 * time.Minute
+	defaultMinIdleConns  = 2
+	defaultMaxRetries    = 3
+	defaultTLSEnabled    = false
+	defaultTLSSkipVerify = false
 )
 
 // RedisConfig holds Redis connection configuration
 type RedisConfig struct {
-	Addr         string
-	Password     string
-	DB           int
-	PoolSize     int
-	ConnTimeout  time.Duration
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
-	MinIdleConns int
-	MaxRetries   int
-	TLSEnabled   bool
+	Addr          string
+	Password      string
+	DB            int
+	PoolSize      int
+	ConnTimeout   time.Duration
+	ReadTimeout   time.Duration
+	WriteTimeout  time.Duration
+	IdleTimeout   time.Duration
+	MinIdleConns  int
+	MaxRetries    int
+	TLSEnabled    bool
 	TLSSkipVerify bool
-	TLSConfig    *tls.Config
+	TLSConfig     *tls.Config
 }
 
 // NewRedisConfig creates a new Redis configuration from environment variables
 func NewRedisConfig() (*RedisConfig, error) {
 	tlsEnabled := getBoolEnvOrDefault("REDIS_TLS_ENABLED", defaultTLSEnabled)
 	tlsSkipVerify := getBoolEnvOrDefault("REDIS_TLS_SKIP_VERIFY", defaultTLSSkipVerify)
-	
+
 	config := &RedisConfig{
 		Addr:          getEnvOrDefault("REDIS_ADDR", defaultRedisAddr),
 		Password:      getEnvOrDefault("REDIS_PASSWORD", defaultRedisPassword),
