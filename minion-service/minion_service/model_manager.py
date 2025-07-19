@@ -14,16 +14,12 @@ class ModelManager:
         inactivity_timeout_minutes: int = 30,
         memory_threshold_percent: float = 85.0,
         memory_reserve_gb: float = 2.0,
-        avg_model_memory_gb: float = 6.0,  # Average memory per model
     ):
-        # Calculate dynamic max models based on available memory
-        self.avg_model_memory_gb = avg_model_memory_gb
         self.memory_threshold_percent = memory_threshold_percent
         self.memory_reserve_gb = memory_reserve_gb
-        max_models = self._calculate_max_models()
 
-        # Use LRUCache for automatic eviction
-        self.models: LRUCache[str, litgpt.LLM] = LRUCache(maxsize=max_models)
+        # Start with a reasonable maxsize, we'll resize dynamically if needed
+        self.models: LRUCache[str, litgpt.LLM] = LRUCache(maxsize=10)
         self.last_used: Dict[str, datetime] = {}
         self.failed_models: Dict[str, str] = {}  # Track models that failed to load
         self._loading_locks: Dict[str, threading.Lock] = {}
@@ -40,30 +36,10 @@ class ModelManager:
         # Start background cleanup task
         self._start_cleanup_task()
 
-    def _calculate_max_models(self) -> int:
-        """Calculate maximum number of models based on available memory."""
-        memory = psutil.virtual_memory()
-        total_gb = memory.total / (1024**3)
-
-        # Reserve memory for system and other processes
-        usable_gb = (
-            total_gb * (self.memory_threshold_percent / 100) - self.memory_reserve_gb
-        )
-
-        # Calculate how many models can fit
-        max_models = max(1, int(usable_gb / self.avg_model_memory_gb))
-
-        self._log(
-            "memory_calculation",
-            {
-                "total_memory_gb": round(total_gb, 2),
-                "usable_memory_gb": round(usable_gb, 2),
-                "avg_model_memory_gb": self.avg_model_memory_gb,
-                "calculated_max_models": max_models,
-            },
-        )
-
-        return max_models
+    def _should_evict_models(self) -> bool:
+        """Check if we should evict models due to memory pressure."""
+        used_percent, available_gb, has_enough_memory = self._get_memory_info()
+        return not has_enough_memory
 
     def set_logger_callback(self, callback):
         """Set callback function for logging metrics."""
@@ -183,44 +159,30 @@ class ModelManager:
                 },
             )
 
-            # If not enough memory, clear some space (LRUCache will auto-evict on new inserts)
+            # If not enough memory, reduce cache size to force eviction
             if not has_enough_memory and len(self.models) > 0:
                 self._log(
-                    "memory_full_will_evict",
-                    f"Memory at {used_percent:.1f}%, LRU cache will auto-evict on next load",
+                    "memory_pressure_reducing_cache",
+                    f"Memory at {used_percent:.1f}%, reducing cache size to force LRU eviction",
                 )
 
-                # If memory is critically low, manually clear some models
-                if used_percent > 90.0:  # Critical memory threshold
-                    self._log(
-                        "critical_memory_cleanup",
-                        "Manually clearing models due to critical memory",
-                    )
+                # Reduce maxsize to current size - 1 to force eviction of LRU item
+                new_maxsize = max(1, len(self.models) - 1)
+                old_models = dict(self.models)  # Save current models
+                self.models = LRUCache(maxsize=new_maxsize)
 
-                    # Clear oldest models from LRU cache
-                    models_to_clear = min(
-                        2, len(self.models) // 2
-                    )  # Clear up to half, max 2
-                    cleared_models = []
+                # Re-add models (LRUCache will keep only the most recent ones)
+                for model_name, model in old_models.items():
+                    self.models[model_name] = model
 
-                    # Get list of models and clear from end (oldest in LRU)
-                    model_keys = list(self.models.keys())
-                    for i in range(models_to_clear):
-                        if model_keys:
-                            oldest_key = model_keys[0]  # First key is oldest in LRU
-                            del self.models[oldest_key]
-                            if oldest_key in self.last_used:
-                                del self.last_used[oldest_key]
-                            cleared_models.append(oldest_key)
-                            model_keys.remove(oldest_key)
-
-                    self._log(
-                        "critical_cleanup_result",
-                        {
-                            "cleared_models": cleared_models,
-                            "models_remaining": len(self.models),
-                        },
-                    )
+                self._log(
+                    "cache_size_reduced",
+                    {
+                        "old_size": len(old_models),
+                        "new_maxsize": new_maxsize,
+                        "current_size": len(self.models),
+                    },
+                )
 
             # Attempt to load the requested model
             try:

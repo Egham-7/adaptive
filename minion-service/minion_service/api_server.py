@@ -18,7 +18,6 @@ class LitGPTOpenAIAPI(ls.LitAPI):
             inactivity_timeout_minutes=30,
             memory_threshold_percent=85.0,
             memory_reserve_gb=2.0,
-            avg_model_memory_gb=6.0,  # Average memory per model
         )
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 

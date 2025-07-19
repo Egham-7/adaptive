@@ -29,7 +29,7 @@ ENV PATH="/root/.local/bin:/root/.cargo/bin:$PATH"
 WORKDIR /app
 
 # Copy dependency files first for better caching
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 
 # Install project dependencies
 RUN uv pip install --system -e .
