@@ -33,7 +33,7 @@ def main() -> None:
         loggers=loggers,
     )
 
-    server.run(num_api_servers=4)
+    server.run()
 
 
 if __name__ == "__main__":
