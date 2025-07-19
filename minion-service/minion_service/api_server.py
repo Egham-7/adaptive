@@ -10,7 +10,9 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         super().__init__(spec=ls.OpenAISpec(), max_batch_size=8, batch_timeout=0.05)
 
     def setup(self, device: str) -> None:
-        supported_models = ["Trelis/Llama-2-7b-chat-hf-function-calling-v2"]
+        supported_models = [
+            "Trelis/Llama-2-7b-chat-hf-function-calling-v2",  # Primary model (requires HF token)
+        ]
 
         # Auto-unload models after 30 minutes of inactivity with memory management
         self.model_manager = ModelManager(
