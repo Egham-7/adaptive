@@ -1,5 +1,5 @@
 import litserve as ls  # type:ignore
-from .model_manager import ModelManager
+from minion_service.model_manager import ModelManager
 import time
 from typing import Any, Dict, Generator, List
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletion
@@ -10,11 +10,15 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         super().__init__(spec=ls.OpenAISpec(), max_batch_size=8, batch_timeout=0.05)
 
     def setup(self, device: str) -> None:
-        supported_models = ["meta-llama/Meta-Llama-3-8B-Instruct"]
+        supported_models = ["Trelis/Llama-2-7b-chat-hf-function-calling-v2"]
 
-        # Auto-unload models after 30 minutes of inactivity
+        # Auto-unload models after 30 minutes of inactivity with memory management
         self.model_manager = ModelManager(
-            preload_models=supported_models, inactivity_timeout_minutes=30
+            preload_models=supported_models,
+            inactivity_timeout_minutes=30,
+            memory_threshold_percent=85.0,
+            memory_reserve_gb=2.0,
+            avg_model_memory_gb=6.0,  # Average memory per model
         )
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
@@ -65,8 +69,7 @@ class LitGPTOpenAIAPI(ls.LitAPI):
             self.log("generated_tokens", total_tokens)
 
             # Yield tokens for streaming
-            for word in generated_text.split():
-                yield word + " "
+            yield from (word + " " for word in generated_text.split())
         else:
             yield "I apologize, but I couldn't generate a response."
 

@@ -17,10 +17,16 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "cachetools>=5.5.0",
     "hf-transfer>=0.1.9",
     "litgpt>=0.5.9",
     "litserve>=0.2.13",
     "openai>=1.97.0",
+    "psutil>=6.1.0",
+    "python-dotenv>=1.0.0",
+    "types-cachetools>=6.1.0.20250717",
+    "types-psutil>=7.0.0.20250601",
+    "types-requests>=2.32.4.20250611",
 ]
 
 [project.optional-dependencies]
@@ -39,5 +45,15 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["minion_service"]
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "mypy>=1.17.0",
+    "ruff>=0.12.4",
+    "types-psutil>=6.1.0",
+    "types-cachetools>=5.5.0",
+    "types-requests>=2.32.0",
+]
 
 

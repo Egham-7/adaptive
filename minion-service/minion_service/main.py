@@ -1,6 +1,10 @@
 import litserve as ls  # type:ignore
 import time
-from .api_server import LitGPTOpenAIAPI
+from dotenv import load_dotenv
+from minion_service.api_server import LitGPTOpenAIAPI
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class AppLifecycleLogger(ls.Logger):
