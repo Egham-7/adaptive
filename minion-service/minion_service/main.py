@@ -29,7 +29,7 @@ def main() -> None:
     server = ls.LitServer(
         api,
         devices="auto",
-        workers_per_device=2,
+        workers_per_device=1,
         loggers=loggers,
     )
 
