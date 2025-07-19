@@ -31,6 +31,7 @@ class DomainType(str, Enum):
     SHOPPING = "Shopping"
     SPORTS = "Sports"
     TRAVEL_AND_TRANSPORTATION = "Travel_and_Transportation"
+    OTHERDOMAINS = "Otherdomains"
 
 
 class DomainClassificationResult(BaseModel):

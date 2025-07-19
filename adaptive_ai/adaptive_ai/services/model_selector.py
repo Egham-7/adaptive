@@ -1,19 +1,16 @@
 # mypy: disable-error-code=import
 from typing import Any
 
-from adaptive_ai.config.domain_matrix_generator import validate_matrix_coverage
 from adaptive_ai.config.model_catalog import (
     ACTIVE_PROVIDERS,
-    domain_fallback_preferences,
-    domain_task_model_matrix,
-    minion_domain_mappings,
-    minion_task_model_mappings,
+    minion_domains,
     provider_model_capabilities,
     task_model_mappings_data,
 )
 from adaptive_ai.models.llm_classification_models import (
     ClassificationResult,
     DomainClassificationResult,
+    DomainType,
 )
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
@@ -40,10 +37,6 @@ class ModelSelectionService:
         # Performance metrics
         self.selection_metrics: dict[str, Any] = {
             "total_selections": 0,
-            "domain_matrix_hits": 0,
-            "domain_fallback_hits": 0,
-            "task_fallback_hits": 0,
-            "default_fallback_hits": 0,
             "domain_usage": {},
             "task_usage": {},
             "model_usage": {},
@@ -60,17 +53,17 @@ class ModelSelectionService:
             TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
         ]
         self.lit_logger: LitLoggerProtocol | None = lit_logger
-        # Validate matrix coverage on startup
-        matrix_report = validate_matrix_coverage(domain_task_model_matrix)
         self.log(
             "model_selection_service_init",
             {
                 "default_models": [
                     e.model_name for e in self._default_task_specific_model_entries
                 ],
-                "matrix_coverage": matrix_report["coverage_percentage"],
-                "matrix_complete": matrix_report["is_complete"],
-                "total_combinations": matrix_report["total_combinations"],
+                "task_mappings_loaded": len(task_model_mappings_data),
+                "minion_domains_loaded": len(minion_domains),
+                "total_minion_domain_task_combinations": sum(
+                    len(tasks) for tasks in minion_domains.values()
+                ),
             },
         )
 
@@ -121,100 +114,39 @@ class ModelSelectionService:
 
         self.log("primary_task_type", primary_task_type.value)
 
-        # NEW 2D MATRIX APPROACH: Check for specific domain-task combination first
-        domain_task_specific_models: list[TaskModelEntry] = []
-        domain_fallback_models: list[TaskModelEntry] = []
+        # Standard protocol: Use task-based selection only (no domain routing)
+        # Direct lookup: task_model_mappings_data[task_type] - fail fast if missing
+        task_mapping = task_model_mappings_data.get(primary_task_type)
+        if not task_mapping:
+            raise ValueError(
+                f"No task mapping found for task type: {primary_task_type}"
+            )
 
-        if domain_classification:
-            try:
-                # 1. Try to get specific domain-task combination
-                domain_task_specific_models = domain_task_model_matrix.get(
-                    (domain_classification.domain, primary_task_type), []
-                )
+        candidate_model_entries: list[TaskModelEntry] = task_mapping.model_entries
 
-                # 2. Get domain fallback preferences
-                domain_fallback_models = domain_fallback_preferences.get(
-                    domain_classification.domain, []
-                )
-
-                # 3. Log missing combinations for future optimization
-                if not domain_task_specific_models:
-                    self.log(
-                        "missing_domain_task_combination",
-                        {
-                            "domain": domain_classification.domain.value,
-                            "task_type": primary_task_type.value,
-                            "confidence": domain_classification.confidence,
-                            "fallback_available": len(domain_fallback_models) > 0,
-                        },
-                    )
-
-                self.log(
-                    "2d_matrix_selection",
-                    {
-                        "domain": domain_classification.domain.value,
-                        "task_type": primary_task_type.value,
-                        "confidence": domain_classification.confidence,
-                        "matrix_specific_count": len(domain_task_specific_models),
-                        "domain_fallback_count": len(domain_fallback_models),
-                        "has_specific_mapping": len(domain_task_specific_models) > 0,
-                        "matrix_key": f"{domain_classification.domain.value}_{primary_task_type.value}",
-                    },
-                )
-
-            except Exception as e:
-                self.log(
-                    "domain_matrix_error",
-                    {
-                        "error": str(e),
-                        "domain": (
-                            domain_classification.domain.value
-                            if domain_classification
-                            else None
-                        ),
-                        "task_type": primary_task_type.value,
-                    },
-                )
-                # Reset to empty lists on error
-                domain_task_specific_models = []
-                domain_fallback_models = []
-
-        # Get task-specific preferences
-        task_mapping_data = task_model_mappings_data.get(primary_task_type)
-        task_specific_model_entries: list[TaskModelEntry] = (
-            task_mapping_data.model_entries
-            if task_mapping_data
-            else self._default_task_specific_model_entries
-        )
-
-        # COMBINE IN PRIORITY ORDER and track metrics:
-        # 1. Domain-Task specific models (highest priority)
-        # 2. Domain fallback models (if no specific combination)
-        # 3. Task-specific models (traditional approach)
-        # 4. Default models (fallback)
-        combined_model_entries: list[TaskModelEntry] = (
-            domain_task_specific_models
-            + domain_fallback_models
-            + task_specific_model_entries
+        self.log(
+            "task_only_selection",
+            {
+                "task_type": primary_task_type.value,
+                "models_count": len(candidate_model_entries),
+                "top_model": (
+                    candidate_model_entries[0].model_name
+                    if candidate_model_entries
+                    else None
+                ),
+                "domain_info": (
+                    domain_classification.domain.value
+                    if domain_classification
+                    else "not_used"
+                ),
+            },
         )
 
         # Track metrics
         self.selection_metrics["total_selections"] += 1
-        if domain_task_specific_models:
-            self.selection_metrics["domain_matrix_hits"] += 1
-        elif domain_fallback_models:
-            self.selection_metrics["domain_fallback_hits"] += 1
-        elif task_specific_model_entries:
-            self.selection_metrics["task_fallback_hits"] += 1
-        else:
-            self.selection_metrics["default_fallback_hits"] += 1
 
-        # Track domain and task usage
-        if domain_classification:
-            domain_key: str = domain_classification.domain.value
-            self.selection_metrics["domain_usage"][domain_key] = (
-                self.selection_metrics["domain_usage"].get(domain_key, 0) + 1
-            )
+        # Track task usage only (no domain tracking for standard protocol)
+        # if domain_classification:  # Commented out - no domain tracking for standard
 
         task_key: str = primary_task_type.value
         self.selection_metrics["task_usage"][task_key] = (
@@ -224,7 +156,7 @@ class ModelSelectionService:
         seen_model_identifiers: set[tuple[ProviderType, str]] = set()
         candidate_models: list[ModelCapability] = []
 
-        for task_model_entry in combined_model_entries:
+        for task_model_entry in candidate_model_entries:
             model_identifier: tuple[ProviderType, str] = (
                 task_model_entry.provider,
                 task_model_entry.model_name,
@@ -278,15 +210,10 @@ class ModelSelectionService:
                 "model_selection_metrics",
                 {
                     "total_selections": self.selection_metrics["total_selections"],
-                    "domain_matrix_efficiency": (
-                        self.selection_metrics["domain_matrix_hits"]
-                        / self.selection_metrics["total_selections"]
+                    "task_coverage_rate": (
+                        len(self.selection_metrics["task_usage"])
+                        / max(1, self.selection_metrics["total_selections"])
                     ),
-                    "top_domains": sorted(
-                        self.selection_metrics["domain_usage"].items(),
-                        key=lambda x: x[1],
-                        reverse=True,
-                    )[:5],
                     "top_tasks": sorted(
                         self.selection_metrics["task_usage"].items(),
                         key=lambda x: x[1],
@@ -307,57 +234,48 @@ class ModelSelectionService:
         classification_result: ClassificationResult,
         domain_classification: DomainClassificationResult | None = None,
     ) -> str:
-        """Get the designated HuggingFace minion specialist for the task type."""
+        """Get the designated HuggingFace minion specialist for the domain-task combination."""
         primary_task_type: TaskType = (
             TaskType(classification_result.task_type_1[0])
             if classification_result.task_type_1
             else TaskType.OTHER
         )
 
-        # Check for domain-specific minion preference first
-        minion_model: str | None = None
-        if domain_classification:
-            minion_model = minion_domain_mappings.get(domain_classification.domain)
-            if minion_model:
-                self.log(
-                    "domain_specific_minion_selected",
-                    {
-                        "domain": domain_classification.domain.value,
-                        "confidence": domain_classification.confidence,
-                        "minion_model": minion_model,
-                    },
-                )
-
-        # Fallback to task-specific minion if no domain preference
-        if not minion_model:
-            minion_model = minion_task_model_mappings.get(
-                primary_task_type,
-                minion_task_model_mappings[TaskType.OTHER],  # Fallback to OTHER
-            )
-            self.log(
-                "task_specific_minion_selected",
-                {
-                    "task_type": primary_task_type.value,
-                    "minion_model": minion_model,
-                },
+        # REQUIRE domain classification - strict enforcement
+        if not domain_classification:
+            raise ValueError(
+                "Domain classification is required for minion selection"
             )
 
-        return minion_model if minion_model is not None else ""
+        # Direct lookup - require exact domain/task match
+        domain = domain_classification.domain
+        if domain not in minion_domains:
+            raise ValueError(
+                f"Domain {domain.value} not supported in minion domains"
+            )
+        if primary_task_type not in minion_domains[domain]:
+            raise ValueError(
+                f"Task {primary_task_type.value} not supported for domain {domain.value}"
+            )
+        minion_model = minion_domains[domain][primary_task_type]
 
-    def get_minion_alternatives(
-        self,
-        primary_minion: str,
-    ) -> list[dict[str, str]]:
-        """Generate fallback minion alternatives by using other capable minions."""
-        alternatives: list[dict[str, str]] = []
+        self.log(
+            "minion_domain_task_selected",
+            {
+                "domain": domain.value,
+                "task_type": primary_task_type.value,
+                "confidence": domain_classification.confidence,
+                "minion_model": minion_model,
+            },
+        )
+        return minion_model
 
-        # Get all other minions from the mapping that could potentially handle the task
-        for _task, model in minion_task_model_mappings.items():
-            if model != primary_minion:  # Exclude the primary minion
-                alternatives.append({"provider": "groq", "model": model})
-
-        # Limit to top 3 alternatives to avoid overwhelming
-        return alternatives[:3]
+    def get_available_minions(self) -> list[str]:
+        """Get all available minion models from the domain matrix."""
+        minions: set[str] = set()
+        for domain_tasks in minion_domains.values():
+            minions.update(domain_tasks.values())
+        return sorted(list(minions))
 
     def get_performance_metrics(self) -> dict[str, Any]:
         """Get comprehensive performance metrics for model selection."""
@@ -374,17 +292,10 @@ class ModelSelectionService:
         return {
             "total_selections": total,
             "efficiency_rates": {
-                "domain_matrix_hit_rate": self.selection_metrics["domain_matrix_hits"]
-                / total,
-                "domain_fallback_rate": self.selection_metrics["domain_fallback_hits"]
-                / total,
-                "task_fallback_rate": self.selection_metrics["task_fallback_hits"]
-                / total,
-                "default_fallback_rate": self.selection_metrics["default_fallback_hits"]
-                / total,
+                "task_coverage_rate": len(self.selection_metrics["task_usage"]) / total,
+                "model_diversity_rate": len(self.selection_metrics["model_usage"]) / total,
             },
             "usage_stats": {
-                "domain_distribution": self.selection_metrics["domain_usage"],
                 "task_distribution": self.selection_metrics["task_usage"],
                 "model_distribution": self.selection_metrics["model_usage"],
             },
@@ -399,23 +310,23 @@ class ModelSelectionService:
         if total == 0:
             return recommendations
 
-        # Check domain matrix efficiency
-        domain_efficiency: float = self.selection_metrics["domain_matrix_hits"] / total
-        if domain_efficiency < 0.7:
+        # Check task coverage
+        task_coverage_rate: float = len(self.selection_metrics["task_usage"]) / total
+        if task_coverage_rate < 0.8:
             recommendations.append(
-                f"Domain matrix efficiency is {domain_efficiency:.1%}. "
-                "Consider adding more domain-task specific combinations."
+                f"Task coverage rate is {task_coverage_rate:.1%}. "
+                "Consider adding more diverse task-specific model mappings."
             )
 
-        # Check for skewed domain usage
-        domain_usage: dict[str, int] = self.selection_metrics["domain_usage"]
-        if domain_usage:
-            max_domain_usage: int = max(domain_usage.values())
-            if max_domain_usage > total * 0.6:
-                top_domain: str = max(domain_usage, key=lambda k: domain_usage[k])
+        # Check for skewed task usage
+        task_usage: dict[str, int] = self.selection_metrics["task_usage"]
+        if task_usage:
+            max_task_usage: int = max(task_usage.values())
+            if max_task_usage > total * 0.6:
+                top_task: str = max(task_usage, key=lambda k: task_usage[k])
                 recommendations.append(
-                    f"Domain '{top_domain}' accounts for {max_domain_usage/total:.1%} of requests. "
-                    "Consider optimizing models for this domain."
+                    f"Task '{top_task}' accounts for {max_task_usage/total:.1%} of requests. "
+                    "Consider optimizing models for this task type."
                 )
 
         # Check for unused models

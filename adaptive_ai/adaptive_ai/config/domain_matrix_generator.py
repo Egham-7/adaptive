@@ -3,8 +3,6 @@ Domain-Task Matrix Generator
 Automatically generates comprehensive domain-task model combinations.
 """
 
-from typing import Any
-
 from adaptive_ai.models.llm_classification_models import DomainType
 from adaptive_ai.models.llm_core_models import TaskModelEntry
 from adaptive_ai.models.llm_enums import ProviderType, TaskType
@@ -105,106 +103,13 @@ def generate_comprehensive_domain_task_matrix() -> (
         DomainType.TRAVEL_AND_TRANSPORTATION: "fast",
     }
 
-    # Task-specific model adjustments
-    task_adjustments = {
-        TaskType.CODE_GENERATION: {
-            "prefer": [
-                TaskModelEntry(
-                    provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"
-                ),
-                TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            ],
-            "avoid": [],
-        },
-        TaskType.BRAINSTORMING: {
-            "prefer": [
-                TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-                TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            ],
-            "avoid": [
-                TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini")
-            ],
-        },
-        TaskType.CLASSIFICATION: {
-            "prefer": [
-                TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-                TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-            ],
-            "avoid": [],
-        },
-        TaskType.EXTRACTION: {
-            "prefer": [
-                TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-                TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-            ],
-            "avoid": [],
-        },
-    }
-
     # Generate all combinations
     for domain in DomainType:
         for task in TaskType:
-            # Get base template
-            template_name = domain_mappings.get(domain, "business")
+            # Get base template - no fallback to ensure all domains are explicitly mapped
+            template_name = domain_mappings[domain]
             base_models = domain_templates[template_name].copy()
 
-            # Apply task-specific adjustments
-            if task in task_adjustments:
-                adjustment = task_adjustments[task]
-                # Add preferred models to front
-                final_models = adjustment["prefer"] + base_models
-                # Remove avoided models
-                final_models = [m for m in final_models if m not in adjustment["avoid"]]
-                # Remove duplicates while preserving order
-                seen = set()
-                unique_models = []
-                for model in final_models:
-                    key = (model.provider, model.model_name)
-                    if key not in seen:
-                        seen.add(key)
-                        unique_models.append(model)
-                final_models = unique_models
-            else:
-                final_models = base_models
-
-            # Limit to top 3 models per combination
-            matrix[(domain, task)] = final_models[:3]
+            matrix[(domain, task)] = base_models
 
     return matrix
-
-
-def validate_matrix_coverage(
-    matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]],
-) -> dict[str, Any]:
-    """
-    Validate that the matrix covers all domain-task combinations.
-
-    Args:
-        matrix: The domain-task matrix to validate
-
-    Returns:
-        Validation report
-    """
-    total_combinations = len(DomainType) * len(TaskType)
-    covered_combinations = len(matrix)
-
-    missing_combinations = []
-    for domain in DomainType:
-        for task in TaskType:
-            if (domain, task) not in matrix:
-                missing_combinations.append((domain, task))
-
-    # Check for empty model lists
-    empty_combinations = []
-    for key, models in matrix.items():
-        if not models:
-            empty_combinations.append(key)
-
-    return {
-        "total_combinations": total_combinations,
-        "covered_combinations": covered_combinations,
-        "coverage_percentage": (covered_combinations / total_combinations) * 100,
-        "missing_combinations": missing_combinations,
-        "empty_combinations": empty_combinations,
-        "is_complete": len(missing_combinations) == 0 and len(empty_combinations) == 0,
-    }

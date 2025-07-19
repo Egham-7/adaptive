@@ -8,7 +8,6 @@ from adaptive_ai.core.config import get_settings
 from adaptive_ai.models.llm_classification_models import (
     ClassificationResult,
     DomainClassificationResult,
-    DomainType,
 )
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
@@ -97,18 +96,8 @@ class ProtocolManagerAPI(ls.LitAPI):
                     "batch_size": len(prompts),
                 },
             )
-            # Create fallback domain results
-            all_domain_results = []
-            for _prompt in prompts:
-                all_domain_results.append(
-                    DomainClassificationResult(
-                        domain=DomainType.REFERENCE,
-                        confidence=0.5,
-                        domain_probabilities={
-                            domain.value: 1.0 / len(DomainType) for domain in DomainType
-                        },
-                    )
-                )
+            # Re-raise the exception instead of creating fallback results
+            raise RuntimeError(f"Domain classification failed: {e!s}") from e
 
         self.log("predict_called", {"batch_size": len(requests)})
 
