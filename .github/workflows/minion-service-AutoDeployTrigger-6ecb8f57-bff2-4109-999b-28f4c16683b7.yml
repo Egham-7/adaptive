@@ -1,0 +1,49 @@
+name: Trigger auto deployment for minion-service
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/minion-service-AutoDeployTrigger-6ecb8f57-bff2-4109-999b-28f4c16683b7.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.MINIONSERVICE_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.MINIONSERVICE_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.MINIONSERVICE_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}/minion-service
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: llmadaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.MINIONSERVICE_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.MINIONSERVICE_REGISTRY_PASSWORD }}
+          containerAppName: minion-service
+          resourceGroup: adaptive
+          imageToBuild: llmadaptiveregistry.azurecr.io/minion-service:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
