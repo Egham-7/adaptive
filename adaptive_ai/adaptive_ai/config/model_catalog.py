@@ -878,8 +878,6 @@ domain_task_model_matrix: dict[tuple[DomainType, TaskType], list[TaskModelEntry]
 # Note: Old domain_task_model_matrix generation removed - replaced by new domains structure
 
 
-
-
 # --- UNIFIED DOMAIN-TASK MODEL MAPPING ---
 # Structure: domains[domain][task_type] -> list[TaskModelEntry]
 # Used for standard LLM protocol routing

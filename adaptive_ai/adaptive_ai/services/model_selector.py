@@ -10,7 +10,6 @@ from adaptive_ai.config.model_catalog import (
 from adaptive_ai.models.llm_classification_models import (
     ClassificationResult,
     DomainClassificationResult,
-    DomainType,
 )
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
@@ -243,16 +242,12 @@ class ModelSelectionService:
 
         # REQUIRE domain classification - strict enforcement
         if not domain_classification:
-            raise ValueError(
-                "Domain classification is required for minion selection"
-            )
+            raise ValueError("Domain classification is required for minion selection")
 
         # Direct lookup - require exact domain/task match
         domain = domain_classification.domain
         if domain not in minion_domains:
-            raise ValueError(
-                f"Domain {domain.value} not supported in minion domains"
-            )
+            raise ValueError(f"Domain {domain.value} not supported in minion domains")
         if primary_task_type not in minion_domains[domain]:
             raise ValueError(
                 f"Task {primary_task_type.value} not supported for domain {domain.value}"
@@ -275,7 +270,25 @@ class ModelSelectionService:
         minions: set[str] = set()
         for domain_tasks in minion_domains.values():
             minions.update(domain_tasks.values())
-        return sorted(list(minions))
+        return sorted(minions)
+
+    def get_minion_alternatives(self, primary_minion: str) -> list[dict[str, str]]:
+        """Get alternative minion models excluding the primary minion."""
+        all_minions = self.get_available_minions()
+        alternatives = [
+            {"provider": "huggingface", "model": minion}
+            for minion in all_minions
+            if minion != primary_minion
+        ]
+        self.log(
+            "minion_alternatives_selected",
+            {
+                "primary_minion": primary_minion,
+                "alternatives_count": len(alternatives),
+                "alternatives": alternatives[:3],  # Log first 3 for debugging
+            },
+        )
+        return alternatives
 
     def get_performance_metrics(self) -> dict[str, Any]:
         """Get comprehensive performance metrics for model selection."""
@@ -293,7 +306,8 @@ class ModelSelectionService:
             "total_selections": total,
             "efficiency_rates": {
                 "task_coverage_rate": len(self.selection_metrics["task_usage"]) / total,
-                "model_diversity_rate": len(self.selection_metrics["model_usage"]) / total,
+                "model_diversity_rate": len(self.selection_metrics["model_usage"])
+                / total,
             },
             "usage_stats": {
                 "task_distribution": self.selection_metrics["task_usage"],
