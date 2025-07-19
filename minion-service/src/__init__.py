@@ -1,1 +1,0 @@
-# Minion Service Package

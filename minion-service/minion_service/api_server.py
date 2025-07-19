@@ -1,5 +1,5 @@
 import litserve as ls  # type:ignore
-from model_manager import ModelManager
+from .model_manager import ModelManager
 import time
 from typing import Any, Dict, Generator, List
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletion
@@ -7,17 +7,10 @@ from openai.types.chat import ChatCompletionMessageParam, ChatCompletion
 
 class LitGPTOpenAIAPI(ls.LitAPI):
     def __init__(self):
-        super().__init__(
-            spec=ls.OpenAISpec(),
-            max_batch_size=8,
-            batch_timeout=0.05
-        )
-    
+        super().__init__(spec=ls.OpenAISpec(), max_batch_size=8, batch_timeout=0.05)
+
     def setup(self, device: str) -> None:
-        supported_models = [
-            "microsoft/phi-2",
-            "meta-llama/Meta-Llama-3-8B-Instruct",
-        ]
+        supported_models = ["meta-llama/Meta-Llama-3-8B-Instruct"]
 
         # Auto-unload models after 30 minutes of inactivity
         self.model_manager = ModelManager(

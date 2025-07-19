@@ -1,6 +1,6 @@
 import litserve as ls  # type:ignore
 import time
-from api_server import LitGPTOpenAIAPI
+from .api_server import LitGPTOpenAIAPI
 
 
 class AppLifecycleLogger(ls.Logger):
