@@ -268,13 +268,9 @@ func (c *AnthropicCompletions) convertAssistantMessage(msg *openai.ChatCompletio
 
 // convertToolMessage converts OpenAI tool message to Anthropic tool result
 func (c *AnthropicCompletions) convertToolMessage(msg *openai.ChatCompletionToolMessageParam) anthropic.MessageParam {
-	content := c.extractToolMessageContent(msg)
-
 	// Create tool result block
 	toolResultBlock := anthropic.NewToolResultBlock(
 		msg.ToolCallID,
-		content,
-		false, // isError
 	)
 
 	return anthropic.NewUserMessage(toolResultBlock)
@@ -471,27 +467,6 @@ func (c *AnthropicCompletions) extractContentFromSystemMessage(msg *openai.ChatC
 
 // extractContentFromDeveloperMessage extracts content from OpenAI developer message
 func (c *AnthropicCompletions) extractContentFromDeveloperMessage(msg *openai.ChatCompletionDeveloperMessageParam) string {
-	contentUnion := msg.Content
-
-	// Handle string content
-	if contentUnion.OfString.Valid() {
-		return contentUnion.OfString.Value
-	}
-
-	// Handle array of content parts
-	if len(contentUnion.OfArrayOfContentParts) > 0 {
-		var textParts []string
-		for _, part := range contentUnion.OfArrayOfContentParts {
-			textParts = append(textParts, part.Text)
-		}
-		return strings.Join(textParts, "\n")
-	}
-
-	return ""
-}
-
-// extractToolMessageContent extracts content from OpenAI tool message
-func (c *AnthropicCompletions) extractToolMessageContent(msg *openai.ChatCompletionToolMessageParam) string {
 	contentUnion := msg.Content
 
 	// Handle string content

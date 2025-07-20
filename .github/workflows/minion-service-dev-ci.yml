@@ -1,16 +1,23 @@
-name: AI Service CI/CD
+name: Minion Service Dev CI/CD
 
 on:
   push:
-    branches: [main]
-
+    branches: [dev]
+    paths:
+      - "minion-service/**"
+      - ".github/workflows/minion-service-dev-ci.yml"
+      - ".github/scripts/**"
   pull_request:
-    branches: [main]
+    branches: [dev]
+    paths:
+      - "minion-service/**"
+      - ".github/workflows/minion-service-dev-ci.yml"
+      - ".github/scripts/**"
   workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.11"
-  WORKING_DIR: "./adaptive_ai"
+  WORKING_DIR: "./minion-service"
 
 jobs:
   test:
@@ -75,7 +82,7 @@ jobs:
     name: Deploy
     runs-on: ubuntu-latest
     needs: [test, lint]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       id-token: write
       contents: read
@@ -86,17 +93,17 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.MINIONSERVICEDEV_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.MINIONSERVICEDEV_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.MINIONSERVICEDEV_AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
-          appSourcePath: adaptive_ai
-          registryUrl: llmadaptiveregistry.azurecr.io
-          registryUsername: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_PASSWORD }}
-          containerAppName: prompt-classifier
+          appSourcePath: ${{ github.workspace }}/minion-service
+          containerAppName: minion-service-dev
           resourceGroup: adaptive
-          imageToBuild: llmadaptiveregistry.azurecr.io/prompt-classifier:${{ github.sha }}
+          imageToBuild: llmadaptiveregistry.azurecr.io/minion-service-dev:${{ github.sha }}
+          registryUrl: llmadaptiveregistry.azurecr.io
+          registryUsername: ${{ secrets.MINIONSERVICEDEV_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.MINIONSERVICEDEV_REGISTRY_PASSWORD }}
