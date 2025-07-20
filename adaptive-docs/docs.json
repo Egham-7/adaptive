@@ -5,9 +5,9 @@
   "description": "Adaptive is an AI-powered platform offering cost-optimized and intelligent routing for LLMs.",
   "root": "index",
   "colors": {
-    "primary": "#2563EB",
-    "light": "#3B82F6",
-    "dark": "#1D4ED8"
+    "primary": "oklch(0.6588 0.1216 85.8742)",
+    "light": "oklch(0.7647 0.0654 85.2041)",
+    "dark": "oklch(0.6275 0.1294 85.3177)"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -31,11 +31,7 @@
           },
           {
             "group": "Key Features",
-            "pages": [
-              "features/intelligent-routing",
-              "features/cost-optimization",
-              "features/provider-constraints"
-            ]
+            "pages": ["features/intelligent-routing"]
           }
         ]
       },
@@ -46,11 +42,7 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": [
-              "api-reference/chat-completions",
-              "api-reference/models",
-              "api-reference/errors"
-            ]
+            "pages": ["api-reference/chat-completions"]
           },
           {
             "group": "OpenAPI",
@@ -75,8 +67,8 @@
     ]
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg",
+    "light": "/logo/logo.png",
+    "dark": "/logo/logo-dark.png",
     "href": "https://adaptive.app"
   },
   "navbar": {
@@ -152,4 +144,3 @@
     }
   }
 }
-

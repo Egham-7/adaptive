@@ -1,53 +1,36 @@
 ---
-title: 'Welcome to Adaptive'
-description: 'The intelligent LLM gateway that saves you money while maintaining performance'
+title: "Welcome to Adaptive"
+description: "The intelligent LLM gateway that saves you money while maintaining performance"
 ---
-
-<img
-  className="block dark:hidden"
-  src="/images/hero-light.png"
-  alt="Adaptive - Intelligent LLM Gateway"
-/>
-<img
-  className="hidden dark:block"
-  src="/images/hero-dark.png"
-  alt="Adaptive - Intelligent LLM Gateway"
-/>
 
 ## What is Adaptive?
 
 Adaptive is an **intelligent LLM gateway** that automatically routes your requests to the best AI model for each task. Simply swap your OpenAI base URL and start saving up to **80% on AI costs** without changing a single line of code.
 
 <Note>
-**Perfect for developers who:** Want to reduce AI costs, need reliable fallbacks, or want access to multiple AI providers without managing separate APIs.
+  **Perfect for developers who:** Want to reduce AI costs, need reliable
+  fallbacks, or want access to multiple AI providers without managing separate
+  APIs.
 </Note>
 
 ## Why Choose Adaptive?
 
 <CardGroup cols={2}>
-  <Card
-    title="Drop-in Replacement"
-    href="/quickstart"
-  >
-    **5-minute setup:** Just change your base URL. Works with OpenAI SDK, Vercel AI SDK, LangChain, and any HTTP client.
+  <Card title="Drop-in Replacement" href="/quickstart">
+    **5-minute setup:** Just change your base URL. Works with OpenAI SDK, Vercel
+    AI SDK, LangChain, and any HTTP client.
   </Card>
-  <Card
-    title="Smart Model Selection"
-    href="/features/intelligent-routing"
-  >
-    **AI-powered routing:** Automatically chooses the best model for each request based on content, cost, and performance.
+  <Card title="Smart Model Selection" href="/features/intelligent-routing">
+    **AI-powered routing:** Automatically chooses the best model for each
+    request based on content, cost, and performance.
   </Card>
-  <Card
-    title="Massive Cost Savings"
-    href="/features/cost-optimization"
-  >
-    **Up to 80% cheaper:** Route simple tasks to efficient models, complex tasks to premium models.
+  <Card title="Massive Cost Savings" href="/features/cost-optimization">
+    **Up to 80% cheaper:** Route simple tasks to efficient models, complex tasks
+    to premium models.
   </Card>
-  <Card
-    title="Multi-Provider Access"
-    href="/features/provider-constraints"
-  >
-    **6+ AI providers:** OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok through one unified API.
+  <Card title="Multi-Provider Access" href="/features/provider-constraints">
+    **6+ AI providers:** OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok
+    through one unified API.
   </Card>
 </CardGroup>
 
@@ -63,37 +46,38 @@ Adaptive is an **intelligent LLM gateway** that automatically routes your reques
   <Step title="Get Response">
     Receive OpenAI-format responses regardless of the underlying provider
   </Step>
-  <Step title="Save Money">
-    Monitor usage and savings in your dashboard
-  </Step>
+  <Step title="Save Money">Monitor usage and savings in your dashboard</Step>
 </Steps>
 
 ## Quick Example
 
 **Before (OpenAI only):**
+
 ```javascript
 const openai = new OpenAI({
-  apiKey: 'sk-...',
-  baseURL: 'https://api.openai.com/v1'
+  apiKey: "sk-...",
+  baseURL: "https://api.openai.com/v1",
 });
 ```
 
 **After (Adaptive with 6+ providers):**
+
 ```javascript
 const openai = new OpenAI({
-  apiKey: 'your-adaptive-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'  // Only change!
+  apiKey: "your-adaptive-key",
+  baseURL: "https://llmadaptive.uk/api/v1", // Only change!
 });
 
 // Everything else stays exactly the same
 const response = await openai.chat.completions.create({
-  model: '', // Leave empty for intelligent routing
-  messages: [{ role: 'user', content: 'Hello!' }],
+  model: "", // Leave empty for intelligent routing
+  messages: [{ role: "user", content: "Hello!" }],
 });
 ```
 
 <Tip>
-**That's it!** Your existing code works immediately with intelligent routing and cost savings.
+  **That's it!** Your existing code works immediately with intelligent routing
+  and cost savings.
 </Tip>
 
 ## Supported Models & Providers
@@ -101,21 +85,27 @@ const response = await openai.chat.completions.create({
 <Accordion title="View All Supported Models">
 
 ### OpenAI
+
 - **GPT-4o** • **GPT-4o Mini** • **GPT-4 Turbo** • **GPT-3.5 Turbo**
 
 ### Anthropic
+
 - **Claude 4 Sonnet** • **Claude 3.5 Sonnet** • **Claude 3.5 Haiku** • **Claude 3 Opus**
 
 ### Google Gemini
+
 - **Gemini 2.5 Pro** • **Gemini 2.5 Pro Large** • **Gemini 2.0 Flash** • **Gemini 1.5 Flash**
 
 ### Groq (Ultra-fast inference)
+
 - **Llama 4 Scout 17B** • **Llama 4 Maverick 17B** • **Llama 3.3 70B** • **DeepSeek R1 Distill** • **Qwen QwQ 32B** • **Mixtral 8x7B**
 
 ### DeepSeek (Advanced reasoning)
+
 - **DeepSeek Reasoner** • **DeepSeek Chat**
 
 ### Grok (xAI)
+
 - **Grok 3** • **Grok 3 Fast** • **Grok 3 Mini** • **Grok Beta**
 
 </Accordion>
@@ -155,18 +145,10 @@ const response = await openai.chat.completions.create({
 </Steps>
 
 <CardGroup cols={2}>
-  <Card
-    title="Quick Start Guide"
-    icon="rocket"
-    href="/quickstart"
-  >
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
     Get up and running in 5 minutes with code examples
   </Card>
-  <Card
-    title="Integration Guides"
-    icon="book"
-    href="/guides/openai-sdk"
-  >
+  <Card title="Integration Guides" icon="book" href="/guides/openai-sdk">
     Detailed guides for OpenAI SDK, Vercel AI, LangChain
   </Card>
   <Card
@@ -176,11 +158,8 @@ const response = await openai.chat.completions.create({
   >
     Complete API documentation and parameters
   </Card>
-  <Card
-    title="Examples"
-    icon="lightbulb"
-    href="/examples/basic-chat"
-  >
+  <Card title="Examples" icon="lightbulb" href="/examples/basic-chat">
     Working code examples and use cases
   </Card>
 </CardGroup>
+
