@@ -5,9 +5,9 @@
   "description": "Adaptive is an AI-powered platform offering cost-optimized and intelligent routing for LLMs.",
   "root": "index",
   "colors": {
-    "primary": "oklch(0.6588 0.1216 85.8742)",
-    "light": "oklch(0.7647 0.0654 85.2041)",
-    "dark": "oklch(0.6275 0.1294 85.3177)"
+    "primary": "#10b981",
+    "light": "#34d399", 
+    "dark": "#059669"
   },
   "favicon": "/favicon.svg",
   "navigation": {
