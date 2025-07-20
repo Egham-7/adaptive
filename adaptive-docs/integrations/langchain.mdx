@@ -41,7 +41,7 @@ print(response.content)
 import { ChatOpenAI } from "@langchain/openai";
 const llm = new ChatOpenAI({
   apiKey: "ADAPTIVE_KEY",
-  configuration: { baseURL: "https://llmadaptive.uk/api/v1" },
+  baseURL: "https://llmadaptive.uk/api/v1",
   model: "",
 });
 const res = await llm.invoke("Explain quantum computing");
@@ -60,7 +60,7 @@ for chunk in llm.stream("Tell me a story"):
 ### Cost & Provider Constraints
 
 ```python
-llm = ChatOpenAI(..., model_kwargs={"provider_constraints":["openai","anthropic"], "cost_bias":0.2})
+llm = ChatOpenAI(..., model_kwargs={"provider_constraint":["openai","anthropic"], "cost_bias":0.2})
 ```
 
 ## Extras
@@ -83,6 +83,6 @@ Simply switch:
 | ------------------------------ | ------------------------------------- |
 | **Leave `model=""`**           | Enables intelligent routing           |
 | **Use `cost_bias`**            | Adjusts performance vs cost           |
-| **Add `provider_constraints`** | Controls which API providers are used |
+| **Add `provider_constraint`** | Controls which API providers are used |
 | **Handle errors**              | Wrap calls in try/catch or retries    |
 

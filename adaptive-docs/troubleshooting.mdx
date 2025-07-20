@@ -34,7 +34,7 @@ description: 'Common issues and solutions when using Adaptive API'
 
     4. **Test with curl:**
        ```bash
-       curl -H "Authorization: Bearer your-adaptive-api-key" \
+       curl -H "X-Stainless-API-Key: your-adaptive-api-key" \
             -H "Content-Type: application/json" \
             https://llmadaptive.uk/api/v1/chat/completions \
             -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
@@ -428,7 +428,7 @@ description: 'Common issues and solutions when using Adaptive API'
        const completion = await openai.chat.completions.create({
          model: "",
          messages: [...],
-         provider_constraints: ["groq", "gemini"] // Fast providers
+         provider_constraint: ["groq", "gemini"] // Fast providers
        });
        ```
   </Accordion>
@@ -611,7 +611,7 @@ When reporting issues, please include:
    {
      "model": "",
      "messages": [...],
-     "provider_constraints": [...],
+     "provider_constraint": [...],
      "cost_bias": 0.5
    }
    ```
@@ -671,7 +671,7 @@ When reporting issues, please include:
    ```bash
    # Verify API access outside your application
    curl -X POST https://llmadaptive.uk/api/v1/chat/completions \
-     -H "Authorization: Bearer $ADAPTIVE_API_KEY" \
+     -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
      -H "Content-Type: application/json" \
      -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
    ```
@@ -686,7 +686,7 @@ When reporting issues, please include:
 
 <AccordionGroup>
   <Accordion title="Why am I not getting responses from certain providers?">
-    This could be due to provider constraints, cost bias settings, or the specific requirements of your request. Check your `provider_constraints` parameter and try adjusting your `cost_bias` setting.
+    This could be due to provider constraints, cost bias settings, or the specific requirements of your request. Check your `provider_constraint` parameter and try adjusting your `cost_bias` setting.
   </Accordion>
 
   <Accordion title="How do I know which provider was selected?">
@@ -697,7 +697,7 @@ When reporting issues, please include:
   </Accordion>
 
   <Accordion title="Can I force a specific model?">
-    While you can use `provider_constraints` to limit options, we recommend letting intelligent routing optimize for you. Manual model selection typically results in higher costs and lower performance.
+    While you can use `provider_constraint` to limit options, we recommend letting intelligent routing optimize for you. Manual model selection typically results in higher costs and lower performance.
   </Accordion>
 
   <Accordion title="Why are my costs higher than expected?">

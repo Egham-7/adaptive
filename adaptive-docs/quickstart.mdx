@@ -75,7 +75,7 @@ print(completion.choices[0].message.content)
 ```bash cURL
 curl https://llmadaptive.uk/api/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-adaptive-api-key" \
+  -H "X-Stainless-API-Key: your-adaptive-api-key" \
   -d '{
     "model": "",
     "messages": [

@@ -63,7 +63,7 @@ The chat completions endpoint is fully compatible with OpenAI's API while adding
 
 ### Adaptive-Specific Parameters
 
-<ParamField body="provider_constraints" type="array">
+<ParamField body="provider_constraint" type="array">
   Array of provider names to limit selection. Available: `["openai", "anthropic", "gemini", "groq", "deepseek", "grok"]`
 </ParamField>
 
@@ -174,7 +174,7 @@ print(completion.choices[0].message.content)
 ```bash cURL
 curl https://llmadaptive.uk/api/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ADAPTIVE_API_KEY" \
+  -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
   -d '{
     "model": "",
     "messages": [
@@ -193,7 +193,7 @@ const completion = await openai.chat.completions.create({
   messages: [
     { role: 'user', content: 'Write a Python function to sort a list' }
   ],
-  provider_constraints: ['anthropic', 'deepseek'], // Only use these providers
+  provider_constraint: ['anthropic', 'deepseek'], // Only use these providers
   cost_bias: 0.2 // Prefer cost savings
 });
 ```
@@ -316,7 +316,7 @@ Rate limits are applied per API key and reset every minute.
     Use `cost_bias` parameter to balance cost vs performance for your use case
   </Card>
   <Card title="Provider Limits" icon="filter">
-    Use `provider_constraints` to limit which providers can be selected
+    Use `provider_constraint` to limit which providers can be selected
   </Card>
   <Card title="Error Handling" icon="shield-check">
     Always implement proper error handling for network and API failures
