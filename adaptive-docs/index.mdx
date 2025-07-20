@@ -1,71 +1,165 @@
 ---
-title: Introduction
-description: "Welcome to the home of your new documentation"
+title: "Welcome to Adaptive"
+description: "The intelligent LLM gateway that saves you money while maintaining performance"
 ---
 
-<img
-  className="block dark:hidden"
-  src="/images/hero-light.png"
-  alt="Hero Light"
-/>
-<img
-  className="hidden dark:block"
-  src="/images/hero-dark.png"
-  alt="Hero Dark"
-/>
+## What is Adaptive?
 
-## Setting up
+Adaptive is an **intelligent LLM gateway** that automatically routes your requests to the best AI model for each task. Simply swap your OpenAI base URL and start saving up to **80% on AI costs** without changing a single line of code.
 
-The first step to world-class documentation is setting up your editing environments.
+<Note>
+  **Perfect for developers who:** Want to reduce AI costs, need reliable
+  fallbacks, or want access to multiple AI providers without managing separate
+  APIs.
+</Note>
+
+## Why Choose Adaptive?
 
 <CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
+  <Card title="Drop-in Replacement" href="/quickstart">
+    **5-minute setup:** Just change your base URL. Works with OpenAI SDK, Vercel
+    AI SDK, LangChain, and any HTTP client.
   </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
+  <Card title="Smart Model Selection" href="/features/intelligent-routing">
+    **AI-powered routing:** Automatically chooses the best model for each
+    request based on content, cost, and performance.
+  </Card>
+  <Card title="Massive Cost Savings" href="/features/cost-optimization">
+    **Up to 80% cheaper:** Route simple tasks to efficient models, complex tasks
+    to premium models.
+  </Card>
+  <Card title="Multi-Provider Access" href="/features/provider-constraints">
+    **6+ AI providers:** OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok
+    through one unified API.
   </Card>
 </CardGroup>
 
-## Make it yours
+## How It Works
 
-Update your docs to your brand and add valuable content for the best user conversion.
+<Steps>
+  <Step title="Send Request">
+    Your app sends an OpenAI-compatible request to Adaptive
+  </Step>
+  <Step title="AI Analyzes">
+    Our routing AI analyzes your prompt and selects the optimal model/provider
+  </Step>
+  <Step title="Get Response">
+    Receive OpenAI-format responses regardless of the underlying provider
+  </Step>
+  <Step title="Save Money">Monitor usage and savings in your dashboard</Step>
+</Steps>
 
-<CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
+## Quick Example
+
+**Before (OpenAI only):**
+
+```javascript
+const openai = new OpenAI({
+  apiKey: "sk-...",
+  baseURL: "https://api.openai.com/v1",
+});
+```
+
+**After (Adaptive with 6+ providers):**
+
+```javascript
+const openai = new OpenAI({
+  apiKey: "your-adaptive-key",
+  baseURL: "https://llmadaptive.uk/api/v1", // Only change!
+});
+
+// Everything else stays exactly the same
+const response = await openai.chat.completions.create({
+  model: "", // Leave empty for intelligent routing
+  messages: [{ role: "user", content: "Hello!" }],
+});
+```
+
+<Tip>
+  **That's it!** Your existing code works immediately with intelligent routing
+  and cost savings.
+</Tip>
+
+## Supported Models & Providers
+
+<Accordion title="View All Supported Models">
+
+### OpenAI
+
+- **GPT-4o** • **GPT-4o Mini** • **GPT-4 Turbo** • **GPT-3.5 Turbo**
+
+### Anthropic
+
+- **Claude 4 Sonnet** • **Claude 3.5 Sonnet** • **Claude 3.5 Haiku** • **Claude 3 Opus**
+
+### Google Gemini
+
+- **Gemini 2.5 Pro** • **Gemini 2.5 Pro Large** • **Gemini 2.0 Flash** • **Gemini 1.5 Flash**
+
+### Groq (Ultra-fast inference)
+
+- **Llama 4 Scout 17B** • **Llama 4 Maverick 17B** • **Llama 3.3 70B** • **DeepSeek R1 Distill** • **Qwen QwQ 32B** • **Mixtral 8x7B**
+
+### DeepSeek (Advanced reasoning)
+
+- **DeepSeek Reasoner** • **DeepSeek Chat**
+
+### Grok (xAI)
+
+- **Grok 3** • **Grok 3 Fast** • **Grok 3 Mini** • **Grok Beta**
+
+</Accordion>
+
+## Real Cost Savings Examples
+
+<CardGroup cols={3}>
+  <Card title="Simple Chat">
+    **90-95% savings**  
+    "Hello, how are you?" → Routes to Gemini 2.0 Flash  
+    **$0.10** vs **$3.00** per 1M tokens
   </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
+  <Card title="Math Problems">
+    **60-80% savings**  
+    Complex reasoning → Routes to DeepSeek Reasoner  
+    **$2.19** vs **$15.00** per 1M tokens
   </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/content/components/accordions"
-  >
-    Build interactive features and designs to guide your users
-  </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
+  <Card title="Code Generation">
+    **70-85% savings**  
+    Programming tasks → Routes to Llama 4 or DeepSeek  
+    **$0.34** vs **$10.00** per 1M tokens
   </Card>
 </CardGroup>
+
+## Get Started in 2 Minutes
+
+<Steps>
+  <Step title="Get Your API Key">
+    [Sign up for free](https://adaptive.app) and generate your API key
+  </Step>
+  <Step title="Update Your Code">
+    Change `baseURL` to `https://llmadaptive.uk/api/v1`
+  </Step>
+  <Step title="Start Saving">
+    Use `model: ""` to enable intelligent routing
+  </Step>
+</Steps>
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Get up and running in 5 minutes with code examples
+  </Card>
+  <Card title="Integration Guides" icon="book" href="/guides/openai-sdk">
+    Detailed guides for OpenAI SDK, Vercel AI, LangChain
+  </Card>
+  <Card
+    title="API Reference"
+    icon="gear"
+    href="/api-reference/chat-completions"
+  >
+    Complete API documentation and parameters
+  </Card>
+  <Card title="Examples" icon="lightbulb" href="/examples/basic-chat">
+    Working code examples and use cases
+  </Card>
+</CardGroup>
+

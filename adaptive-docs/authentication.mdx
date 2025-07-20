@@ -1,0 +1,123 @@
+---
+title: "Authentication"
+description: "How to authenticate with the Adaptive API"
+---
+
+## API Key Authentication
+
+Adaptive uses API key authentication with Bearer tokens. You'll need to include your API key in the `Authorization` header for all requests.
+
+## Getting Your API Key
+
+1. Sign up at [llmadaptive.uk](https://adaptive.app)
+2. Create a new project in your dashboard
+3. Navigate to API Keys section
+4. Generate a new API key
+
+<Warning>
+  Keep your API key secure and never expose it in client-side code or public
+  repositories.
+</Warning>
+
+## Using Your API Key
+
+### In Headers
+
+Include your API key in the `X-Stainless-API-Key` header:
+
+```bash
+curl https://llmadaptive.uk/api/v1/chat/completions \
+  -H "X-Stainless-API-Key: your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+### With OpenAI SDK
+
+```javascript
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: "your-adaptive-api-key",
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+```
+
+### Environment Variables
+
+Store your API key in environment variables:
+
+```bash
+# .env
+ADAPTIVE_API_KEY=your-adaptive-api-key
+```
+
+```javascript
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+```
+
+## API Key Permissions
+
+API keys provide access to:
+
+- Chat completions endpoint
+- Model listing endpoint
+- Usage analytics (for your account)
+
+## Rate Limits
+
+Rate limits are applied per API key:
+
+- **Free Tier**: 100 requests per minute
+- **Pro Tier**: 1,000 requests per minute
+- **Enterprise**: Custom limits
+
+## Error Responses
+
+### Invalid API Key
+
+```json
+{
+  "error": {
+    "message": "Invalid API key",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key"
+  }
+}
+```
+
+### Rate Limit Exceeded
+
+```json
+{
+  "error": {
+    "message": "Rate limit exceeded",
+    "type": "rate_limit_error",
+    "code": "rate_limit_exceeded"
+  }
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Secure Storage" icon="lock">
+    Store API keys in environment variables, never in code
+  </Card>
+  <Card title="Key Rotation" icon="rotate">
+    Regularly rotate your API keys for security
+  </Card>
+  <Card title="Monitoring" icon="chart-line">
+    Monitor usage in your dashboard to track costs
+  </Card>
+  <Card title="Error Handling" icon="shield-check">
+    Implement proper error handling for auth failures
+  </Card>
+</CardGroup>
+
