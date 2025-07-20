@@ -11,7 +11,16 @@ class LitGPTOpenAIAPI(ls.LitAPI):
 
     def setup(self, device: str) -> None:
         supported_models = [
-            "Trelis/Llama-2-7b-chat-hf-function-calling-v2",  # Primary model (requires HF token)
+            "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+            "Qwen/Qwen2.5-14B-Instruct",  # BUSINESS_AND_INDUSTRIAL/HEALTH
+            "Qwen/Qwen2.5-7B-Instruct", #NEWS / OTHERDOMAINS / REAL_ESTATE
+            "codellama/CodeLlama-7b-Instruct-hf",  # COMPUTERS_AND_ELECTRONICS/INTERNET_AND_TELECOM
+            "Qwen/Qwen2.5-Math-7B-Instruct",  # FINANCE/SCIENCE
+            "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION
+            "microsoft/Phi-4-mini-reasoning",  # LAW_AND_GOVERNMENT
+            "meta-llama/Meta-Llama-3-8B-Instruct " # SENSITIVE_SUBJECTS
+            
+
         ]
 
         # Auto-unload models after 30 minutes of inactivity with memory management

@@ -16,6 +16,7 @@ ACTIVE_PROVIDERS = {
     ProviderType.GROQ,  # Fast inference provider
     ProviderType.GROK,  # X.AI's models (grok-3, grok-3-mini)
     ProviderType.DEEPSEEK,
+    ProviderType.ADAPTIVE,  # Adaptive minion models
 }
 
 # --- In-memory map of model capabilities aggregated by provider ---
@@ -509,15 +510,190 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
 # each optimized for specific task types and available via HuggingFace Inference API
 
 minion_task_model_mappings: dict[TaskType, str] = {
-    TaskType.OPEN_QA: "llama-3.1-8b-instant",
-    TaskType.CODE_GENERATION: "meta-llama/llama-4-scout-17b-16e-instruct",
-    TaskType.SUMMARIZATION: "gemma2-9b-it",
-    TaskType.TEXT_GENERATION: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.CHATBOT: "gemma2-9b-it",
-    TaskType.CLASSIFICATION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.CLOSED_QA: "llama-3.1-8b-instant",
-    TaskType.REWRITE: "gemma2-9b-it",
-    TaskType.BRAINSTORMING: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.EXTRACTION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.OTHER: "llama-3.1-8b-instant",
+    TaskType.OPEN_QA: "Qwen/Qwen2.5-14B-Instruct",  # BUSINESS_AND_INDUSTRIAL/HEALTH
+    TaskType.CODE_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",  # COMPUTERS_AND_ELECTRONICS/INTERNET_AND_TELECOM
+    TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",  # NEWS/OTHERDOMAINS/REAL_ESTATE
+    TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",  # BUSINESS_AND_INDUSTRIAL/HEALTH
+    TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",  # NEWS/OTHERDOMAINS/REAL_ESTATE
+    TaskType.CLASSIFICATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION
+    TaskType.CLOSED_QA: "microsoft/Phi-4-mini-reasoning",  # LAW_AND_GOVERNMENT
+    TaskType.REWRITE: "Qwen/Qwen2.5-7B-Instruct",  # NEWS/OTHERDOMAINS/REAL_ESTATE
+    TaskType.BRAINSTORMING: "Qwen/Qwen2.5-Math-7B-Instruct",  # FINANCE/SCIENCE
+    TaskType.EXTRACTION: "meta-llama/Meta-Llama-3-8B-Instruct",  # SENSITIVE_SUBJECTS
+    TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",  # NEWS/OTHERDOMAINS/REAL_ESTATE
+}
+
+# --- Domain-specific Minion Model Mappings ---
+# Maps each domain to specific models for each task type
+from adaptive_ai.models.llm_classification_models import DomainType
+
+minion_domains: dict[DomainType, dict[TaskType, str]] = {
+    # Business and Industrial - Qwen/Qwen2.5-14B-Instruct
+    DomainType.BUSINESS_AND_INDUSTRIAL: {
+        TaskType.CODE_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.CHATBOT: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.CLASSIFICATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.REWRITE: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.EXTRACTION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.OTHER: "Qwen/Qwen2.5-14B-Instruct",
+    },
+    # Computers and Electronics - codellama/CodeLlama-7b-Instruct-hf
+    DomainType.COMPUTERS_AND_ELECTRONICS: {
+        TaskType.CODE_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.OPEN_QA: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.SUMMARIZATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.TEXT_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.CHATBOT: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.CLASSIFICATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.CLOSED_QA: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.REWRITE: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.BRAINSTORMING: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.EXTRACTION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.OTHER: "codellama/CodeLlama-7b-Instruct-hf",
+    },
+    # Finance - Qwen/Qwen2.5-Math-7B-Instruct
+    DomainType.FINANCE: {
+        TaskType.CODE_GENERATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.CHATBOT: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.CLASSIFICATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.CLOSED_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.REWRITE: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.EXTRACTION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.OTHER: "Qwen/Qwen2.5-Math-7B-Instruct",
+    },
+    # Health - Qwen/Qwen2.5-14B-Instruct
+    DomainType.HEALTH: {
+        TaskType.CODE_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.CHATBOT: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.CLASSIFICATION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.REWRITE: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.EXTRACTION: "Qwen/Qwen2.5-14B-Instruct",
+        TaskType.OTHER: "Qwen/Qwen2.5-14B-Instruct",
+    },
+    # Internet and Telecom - codellama/CodeLlama-7b-Instruct-hf
+    DomainType.INTERNET_AND_TELECOM: {
+        TaskType.CODE_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.OPEN_QA: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.SUMMARIZATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.TEXT_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.CHATBOT: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.CLASSIFICATION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.CLOSED_QA: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.REWRITE: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.BRAINSTORMING: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.EXTRACTION: "codellama/CodeLlama-7b-Instruct-hf",
+        TaskType.OTHER: "codellama/CodeLlama-7b-Instruct-hf",
+    },
+    # Jobs and Education - HuggingFaceTB/SmolLM2-1.7B-Instruct
+    DomainType.JOBS_AND_EDUCATION: {
+        TaskType.CODE_GENERATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.OPEN_QA: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.SUMMARIZATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.TEXT_GENERATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.CHATBOT: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.CLASSIFICATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.CLOSED_QA: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.REWRITE: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.BRAINSTORMING: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.EXTRACTION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+        TaskType.OTHER: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    },
+    # Law and Government - microsoft/Phi-4-mini-reasoning
+    DomainType.LAW_AND_GOVERNMENT: {
+        TaskType.CODE_GENERATION: "microsoft/Phi-4-mini-reasoning",
+        TaskType.OPEN_QA: "microsoft/Phi-4-mini-reasoning",
+        TaskType.SUMMARIZATION: "microsoft/Phi-4-mini-reasoning",
+        TaskType.TEXT_GENERATION: "microsoft/Phi-4-mini-reasoning",
+        TaskType.CHATBOT: "microsoft/Phi-4-mini-reasoning",
+        TaskType.CLASSIFICATION: "microsoft/Phi-4-mini-reasoning",
+        TaskType.CLOSED_QA: "microsoft/Phi-4-mini-reasoning",
+        TaskType.REWRITE: "microsoft/Phi-4-mini-reasoning",
+        TaskType.BRAINSTORMING: "microsoft/Phi-4-mini-reasoning",
+        TaskType.EXTRACTION: "microsoft/Phi-4-mini-reasoning",
+        TaskType.OTHER: "microsoft/Phi-4-mini-reasoning",
+    },
+    # News - Qwen/Qwen2.5-7B-Instruct
+    DomainType.NEWS: {
+        TaskType.CODE_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CLASSIFICATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CLOSED_QA: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.REWRITE: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.EXTRACTION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
+    },
+    # Real Estate - Qwen/Qwen2.5-7B-Instruct
+    DomainType.REAL_ESTATE: {
+        TaskType.CODE_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CLASSIFICATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CLOSED_QA: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.REWRITE: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.EXTRACTION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
+    },
+    # Science - Qwen/Qwen2.5-Math-7B-Instruct
+    DomainType.SCIENCE: {
+        TaskType.CODE_GENERATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.CHATBOT: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.CLASSIFICATION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.CLOSED_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.REWRITE: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.EXTRACTION: "Qwen/Qwen2.5-Math-7B-Instruct",
+        TaskType.OTHER: "Qwen/Qwen2.5-Math-7B-Instruct",
+    },
+    # Sensitive Subjects - meta-llama/Meta-Llama-3-8B-Instruct
+    DomainType.SENSITIVE_SUBJECTS: {
+        TaskType.CODE_GENERATION: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.OPEN_QA: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.SUMMARIZATION: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.TEXT_GENERATION: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.CHATBOT: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.CLASSIFICATION: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.CLOSED_QA: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.REWRITE: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.BRAINSTORMING: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.EXTRACTION: "meta-llama/Meta-Llama-3-8B-Instruct",
+        TaskType.OTHER: "meta-llama/Meta-Llama-3-8B-Instruct",
+    },
+    # Other Domains - Qwen/Qwen2.5-7B-Instruct
+    DomainType.OTHERDOMAINS: {
+        TaskType.CODE_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CLASSIFICATION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.CLOSED_QA: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.REWRITE: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.EXTRACTION: "Qwen/Qwen2.5-7B-Instruct",
+        TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
+    },
 }
