@@ -15,6 +15,7 @@ export const conversationRouter = createTRPCRouter({
 		.input(createConversationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 			const result = await ctx.db.conversation.create({
 				data: {
 					...input,
@@ -33,6 +34,7 @@ export const conversationRouter = createTRPCRouter({
 		.input(z.object({ id: z.number() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 			const cacheKey = `conversation:${userId}:${input.id}`;
 
 			return withCache(cacheKey, async () => {
@@ -60,6 +62,7 @@ export const conversationRouter = createTRPCRouter({
 		.input(getConversationsOptionsSchema.optional())
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 			const cacheKey = `conversations:${userId}:${JSON.stringify(input || {})}`;
 
 			return withCache(cacheKey, async () => {
@@ -86,6 +89,7 @@ export const conversationRouter = createTRPCRouter({
 		.input(updateConversationSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 			const { id, ...dataToUpdate } = input;
 
 			const result = await ctx.db.$transaction(async (tx) => {
@@ -120,6 +124,7 @@ export const conversationRouter = createTRPCRouter({
 		.input(z.object({ id: z.number() }))
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
 			const result = await ctx.db.$transaction(async (tx) => {
 				const conversationToDelete = await tx.conversation.findFirst({
@@ -157,6 +162,7 @@ export const conversationRouter = createTRPCRouter({
 		.input(z.object({ id: z.number(), pinned: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 			const { id, pinned } = input;
 
 			const result = await ctx.db.$transaction(async (tx) => {
