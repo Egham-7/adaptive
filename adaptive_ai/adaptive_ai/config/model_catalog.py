@@ -526,7 +526,6 @@ minion_task_model_mappings: dict[TaskType, str] = {
 
 # --- Domain-Based Model Mappings for Adaptive Service ---
 # This maps domain types to specialized models based on domain expertise
-from adaptive_ai.models.llm_classification_models import DomainType
 
 minion_domain_model_mappings: dict[DomainType, str] = {
     DomainType.BUSINESS_AND_INDUSTRIAL: "Qwen/Qwen2.5-14B-Instruct",
