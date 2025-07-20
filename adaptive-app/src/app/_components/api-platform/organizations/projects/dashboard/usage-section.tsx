@@ -54,15 +54,15 @@ export function UsageSection({
 						<CardTitle className="mb-1">Total Spend</CardTitle>
 						<div className="flex items-baseline gap-4">
 							<span className="font-bold text-3xl text-foreground">
-								${totalSpend.toFixed(2)}
+								${totalSpend}
 							</span>
 							<span className="text-muted-foreground text-sm">
-								vs ${totalComparison.toFixed(2)} ({currentProvider?.name})
+								vs ${totalComparison} ({currentProvider?.name})
 							</span>
 						</div>
 						<div className="mt-2 flex items-center gap-2">
 							<span className="font-medium text-sm text-success">
-								${totalSavings.toFixed(2)} saved ({savingsPercentage}%)
+								${totalSavings} saved ({savingsPercentage}%)
 							</span>
 						</div>
 					</div>
