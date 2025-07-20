@@ -32,7 +32,7 @@ type MenuItem = {
 const iconMenuItems = [
 	{
 		name: "Docs",
-		href: "https://docs.adaptive.dev",
+		href: "https://docs.llmadaptive.uk/",
 		icon: HiOutlineDocumentText,
 		external: true,
 	},
