@@ -153,9 +153,11 @@ class GenericTypedCache(Generic[K, V]):
 
                 # Check TTL expiration
                 if self.ttl and time.time() - timestamp > self.ttl:
-                    del self._cache[cache_key]
-                    del self._key_mapping[key]
-                    self.stats.misses += 1
+                 if self.ttl and time.time() - timestamp > self.ttl:
+                     del self._cache[cache_key]
+                     if key in self._key_mapping:
+                         del self._key_mapping[key]
+                     self.stats.misses += 1
                     return None
 
                 # Move to end (mark as recently used)
