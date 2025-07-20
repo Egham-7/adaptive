@@ -1,0 +1,799 @@
+---
+title: 'LangChain RAG Chatbot'
+description: 'Build an intelligent RAG chatbot using LangChain and Adaptive routing'
+---
+
+## Overview
+
+This example demonstrates how to build a Retrieval-Augmented Generation (RAG) chatbot using LangChain with Adaptive's intelligent routing. The system combines document retrieval with conversational AI for accurate, context-aware responses.
+
+## Prerequisites
+
+- Python 3.8+ or Node.js 18+
+- Adaptive API key
+- OpenAI API key (for embeddings)
+- Vector database (we'll use FAISS for simplicity)
+
+## Document Q&A Chatbot
+
+### Python Implementation
+
+<CodeGroup>
+
+```bash Installation
+pip install langchain langchain-openai faiss-cpu pypdf python-dotenv
+```
+
+```python rag_chatbot.py
+import os
+import logging
+from pathlib import Path
+from typing import List, Dict, Any
+
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import PyPDFLoader, TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+from langchain_core.prompts import PromptTemplate
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class AdaptiveRAGChatbot:
+    def __init__(self, documents_path: str = "./documents"):
+        """Initialize the RAG chatbot with Adaptive LLM."""
+        
+        # Set up Adaptive LLM
+        self.llm = ChatOpenAI(
+            api_key=os.getenv("ADAPTIVE_API_KEY"),
+            base_url="https://llmadaptive.uk/api/v1",
+            model="",  # Enable intelligent routing
+            temperature=0.1,  # Lower temperature for factual responses
+        )
+        
+        # Set up OpenAI embeddings (still using OpenAI for embeddings)
+        self.embeddings = OpenAIEmbeddings(
+            api_key=os.getenv("OPENAI_API_KEY")
+        )
+        
+        # Initialize components
+        self.vectorstore = None
+        self.qa_chain = None
+        self.memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+            output_key="answer"
+        )
+        
+        self.documents_path = Path(documents_path)
+        
+        # Custom prompt template for RAG
+        self.custom_prompt = PromptTemplate(
+            template="""You are a helpful AI assistant that answers questions based on the provided context and conversation history.
+
+Context from documents:
+{context}
+
+Chat History:
+{chat_history}
+
+Human Question: {question}
+
+Please provide a comprehensive answer based on the context. If the information isn't in the provided context, say so clearly. Be specific and cite relevant details from the documents when possible.
+
+Answer:""",
+            input_variables=["context", "chat_history", "question"]
+        )
+    
+    def load_documents(self) -> List:
+        """Load and process documents from the specified directory."""
+        documents = []
+        
+        if not self.documents_path.exists():
+            raise FileNotFoundError(f"Documents directory {self.documents_path} not found")
+        
+        print(f"Loading documents from {self.documents_path}")
+        
+        for file_path in self.documents_path.rglob("*"):
+            if file_path.is_file():
+                try:
+                    if file_path.suffix.lower() == ".pdf":
+                        loader = PyPDFLoader(str(file_path))
+                    elif file_path.suffix.lower() in [".txt", ".md"]:
+                        loader = TextLoader(str(file_path), encoding="utf-8")
+                    else:
+                        continue
+                    
+                    docs = loader.load()
+                    for doc in docs:
+                        doc.metadata["source"] = str(file_path.name)
+                    documents.extend(docs)
+                    print(f"Loaded {len(docs)} chunks from {file_path.name}")
+                    
+                except Exception as e:
+                    print(f"Error loading {file_path}: {e}")
+        
+        if not documents:
+            raise ValueError("No documents were loaded. Check your documents directory.")
+        
+        return documents
+    
+    def create_vectorstore(self) -> None:
+        """Create vector store from loaded documents."""
+        print("Creating vector store...")
+        
+        # Load documents
+        documents = self.load_documents()
+        
+        # Split documents into chunks
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len,
+        )
+        
+        texts = text_splitter.split_documents(documents)
+        print(f"Split {len(documents)} documents into {len(texts)} chunks")
+        
+        # Create vector store
+        self.vectorstore = FAISS.from_documents(texts, self.embeddings)
+        print("Vector store created successfully")
+        
+        # Save vector store for later use
+        self.vectorstore.save_local("faiss_index")
+        print("Vector store saved to faiss_index/")
+    
+    def load_vectorstore(self) -> None:
+        """Load existing vector store."""
+        try:
+            self.vectorstore = FAISS.load_local(
+                "faiss_index", 
+                self.embeddings,
+                allow_dangerous_deserialization=True
+            )
+            print("Loaded existing vector store")
+        except Exception as e:
+            print(f"Failed to load vector store: {e}")
+            print("Creating new vector store...")
+            self.create_vectorstore()
+    
+    def setup_qa_chain(self) -> None:
+        """Set up the conversational retrieval chain."""
+        if self.vectorstore is None:
+            raise ValueError("Vector store not initialized. Call create_vectorstore() or load_vectorstore() first.")
+        
+        # Create retrieval chain
+        self.qa_chain = ConversationalRetrievalChain.from_llm(
+            llm=self.llm,
+            retriever=self.vectorstore.as_retriever(
+                search_type="similarity",
+                search_kwargs={"k": 4}  # Retrieve top 4 most relevant chunks
+            ),
+            memory=self.memory,
+            return_source_documents=True,
+            verbose=True,
+            combine_docs_chain_kwargs={"prompt": self.custom_prompt}
+        )
+        print("QA chain initialized")
+    
+    def chat(self, question: str) -> Dict[str, Any]:
+        """Get response from the RAG chatbot."""
+        if self.qa_chain is None:
+            raise ValueError("QA chain not initialized. Call setup_qa_chain() first.")
+        
+        print(f"\n🔵 User: {question}")
+        
+        # Get response
+        response = self.qa_chain.invoke({"question": question})
+        
+        answer = response["answer"]
+        source_docs = response.get("source_documents", [])
+        
+        print(f"🤖 Assistant: {answer}")
+        
+        # Print sources
+        if source_docs:
+            print(f"\n📚 Sources:")
+            for i, doc in enumerate(source_docs, 1):
+                source = doc.metadata.get("source", "Unknown")
+                content_preview = doc.page_content[:100] + "..." if len(doc.page_content) > 100 else doc.page_content
+                print(f"  {i}. {source}: {content_preview}")
+        
+        return {
+            "answer": answer,
+            "sources": [doc.metadata.get("source", "Unknown") for doc in source_docs],
+            "source_documents": source_docs
+        }
+    
+    def start_interactive_chat(self) -> None:
+        """Start an interactive chat session."""
+        print("\n🚀 Adaptive RAG Chatbot")
+        print("Ask questions about your documents. Type 'quit' to exit.\n")
+        
+        while True:
+            try:
+                question = input("You: ").strip()
+                
+                if question.lower() in ['quit', 'exit', 'bye']:
+                    print("👋 Goodbye!")
+                    break
+                
+                if not question:
+                    continue
+                
+                self.chat(question)
+                print("\n" + "-" * 50 + "\n")
+                
+            except KeyboardInterrupt:
+                print("\n👋 Goodbye!")
+                break
+            except Exception as e:
+                print(f"❌ Error: {e}")
+
+def main():
+    """Main function to run the RAG chatbot."""
+    chatbot = AdaptiveRAGChatbot("./documents")
+    
+    try:
+        # Load or create vector store
+        chatbot.load_vectorstore()
+        
+        # Set up QA chain
+        chatbot.setup_qa_chain()
+        
+        # Start interactive chat
+        chatbot.start_interactive_chat()
+        
+    except Exception as e:
+        print(f"❌ Failed to initialize chatbot: {e}")
+
+if __name__ == "__main__":
+    main()
+```
+
+```bash .env
+ADAPTIVE_API_KEY=your-adaptive-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+</CodeGroup>
+
+### JavaScript/TypeScript Implementation
+
+<CodeGroup>
+
+```bash Installation
+npm install langchain @langchain/openai @langchain/community faiss-node pdf-parse dotenv
+```
+
+```typescript rag-chatbot.ts
+import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { FaissStore } from "@langchain/community/vectorstores/faiss";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import { TextLoader } from "langchain/document_loaders/fs/text";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { ConversationalRetrievalQAChain } from "langchain/chains";
+import { BufferMemory } from "langchain/memory";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { Document } from "@langchain/core/documents";
+import * as fs from "fs";
+import * as path from "path";
+import { createInterface } from "readline";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+interface ChatResponse {
+  answer: string;
+  sources: string[];
+  sourceDocuments: Document[];
+}
+
+class AdaptiveRAGChatbot {
+  private llm: ChatOpenAI;
+  private embeddings: OpenAIEmbeddings;
+  private vectorStore: FaissStore | null = null;
+  private qaChain: ConversationalRetrievalQAChain | null = null;
+  private memory: BufferMemory;
+  private documentsPath: string;
+
+  constructor(documentsPath: string = "./documents") {
+    // Set up Adaptive LLM
+    this.llm = new ChatOpenAI({
+      apiKey: process.env.ADAPTIVE_API_KEY,
+      configuration: {
+        baseURL: "https://llmadaptive.uk/api/v1",
+      },
+      model: "", // Enable intelligent routing
+      temperature: 0.1, // Lower temperature for factual responses
+    });
+
+    // Set up OpenAI embeddings
+    this.embeddings = new OpenAIEmbeddings({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    this.memory = new BufferMemory({
+      memoryKey: "chat_history",
+      returnMessages: true,
+      outputKey: "text",
+    });
+
+    this.documentsPath = documentsPath;
+  }
+
+  async loadDocuments(): Promise<Document[]> {
+    const documents: Document[] = [];
+
+    if (!fs.existsSync(this.documentsPath)) {
+      throw new Error(`Documents directory ${this.documentsPath} not found`);
+    }
+
+    console.log(`Loading documents from ${this.documentsPath}`);
+
+    const files = fs.readdirSync(this.documentsPath, { recursive: true });
+
+    for (const file of files) {
+      const filePath = path.join(this.documentsPath, file as string);
+      
+      if (!fs.statSync(filePath).isFile()) continue;
+
+      try {
+        let loader;
+        const ext = path.extname(filePath).toLowerCase();
+
+        if (ext === ".pdf") {
+          loader = new PDFLoader(filePath);
+        } else if ([".txt", ".md"].includes(ext)) {
+          loader = new TextLoader(filePath);
+        } else {
+          continue;
+        }
+
+        const docs = await loader.load();
+        docs.forEach(doc => {
+          doc.metadata.source = path.basename(filePath);
+        });
+        
+        documents.push(...docs);
+        console.log(`Loaded ${docs.length} chunks from ${path.basename(filePath)}`);
+
+      } catch (error) {
+        console.error(`Error loading ${filePath}:`, error);
+      }
+    }
+
+    if (documents.length === 0) {
+      throw new Error("No documents were loaded. Check your documents directory.");
+    }
+
+    return documents;
+  }
+
+  async createVectorStore(): Promise<void> {
+    console.log("Creating vector store...");
+
+    // Load documents
+    const documents = await this.loadDocuments();
+
+    // Split documents into chunks
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+    });
+
+    const texts = await textSplitter.splitDocuments(documents);
+    console.log(`Split ${documents.length} documents into ${texts.length} chunks`);
+
+    // Create vector store
+    this.vectorStore = await FaissStore.fromDocuments(texts, this.embeddings);
+    console.log("Vector store created successfully");
+
+    // Save vector store
+    await this.vectorStore.save("./faiss_index");
+    console.log("Vector store saved to ./faiss_index");
+  }
+
+  async loadVectorStore(): Promise<void> {
+    try {
+      this.vectorStore = await FaissStore.load("./faiss_index", this.embeddings);
+      console.log("Loaded existing vector store");
+    } catch (error) {
+      console.log("Failed to load vector store:", error);
+      console.log("Creating new vector store...");
+      await this.createVectorStore();
+    }
+  }
+
+  async setupQAChain(): Promise<void> {
+    if (!this.vectorStore) {
+      throw new Error("Vector store not initialized. Call createVectorStore() or loadVectorStore() first.");
+    }
+
+    const customPrompt = PromptTemplate.fromTemplate(`
+You are a helpful AI assistant that answers questions based on the provided context and conversation history.
+
+Context from documents:
+{context}
+
+Chat History:
+{chat_history}
+
+Human Question: {question}
+
+Please provide a comprehensive answer based on the context. If the information isn't in the provided context, say so clearly. Be specific and cite relevant details from the documents when possible.
+
+Answer:`);
+
+    this.qaChain = ConversationalRetrievalQAChain.fromLLM(
+      this.llm,
+      this.vectorStore.asRetriever({ k: 4 }),
+      {
+        memory: this.memory,
+        returnSourceDocuments: true,
+        questionGeneratorChainOptions: {
+          template: customPrompt,
+        },
+      }
+    );
+
+    console.log("QA chain initialized");
+  }
+
+  async chat(question: string): Promise<ChatResponse> {
+    if (!this.qaChain) {
+      throw new Error("QA chain not initialized. Call setupQAChain() first.");
+    }
+
+    console.log(`\n🔵 User: ${question}`);
+
+    const response = await this.qaChain.call({
+      question: question,
+    });
+
+    const answer = response.text;
+    const sourceDocuments = response.sourceDocuments || [];
+
+    console.log(`🤖 Assistant: ${answer}`);
+
+    // Print sources
+    if (sourceDocuments.length > 0) {
+      console.log(`\n📚 Sources:`);
+      sourceDocuments.forEach((doc: Document, i: number) => {
+        const source = doc.metadata.source || "Unknown";
+        const preview = doc.pageContent.length > 100 
+          ? doc.pageContent.substring(0, 100) + "..."
+          : doc.pageContent;
+        console.log(`  ${i + 1}. ${source}: ${preview}`);
+      });
+    }
+
+    return {
+      answer,
+      sources: sourceDocuments.map((doc: Document) => doc.metadata.source || "Unknown"),
+      sourceDocuments,
+    };
+  }
+
+  async startInteractiveChat(): Promise<void> {
+    console.log("\n🚀 Adaptive RAG Chatbot");
+    console.log("Ask questions about your documents. Type 'quit' to exit.\n");
+
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    const askQuestion = (): void => {
+      rl.question("You: ", async (question) => {
+        question = question.trim();
+
+        if (["quit", "exit", "bye"].includes(question.toLowerCase())) {
+          console.log("👋 Goodbye!");
+          rl.close();
+          return;
+        }
+
+        if (!question) {
+          askQuestion();
+          return;
+        }
+
+        try {
+          await this.chat(question);
+          console.log("\n" + "-".repeat(50) + "\n");
+        } catch (error) {
+          console.error("❌ Error:", error);
+        }
+
+        askQuestion();
+      });
+    };
+
+    askQuestion();
+  }
+}
+
+async function main() {
+  const chatbot = new AdaptiveRAGChatbot("./documents");
+
+  try {
+    // Load or create vector store
+    await chatbot.loadVectorStore();
+
+    // Set up QA chain
+    await chatbot.setupQAChain();
+
+    // Start interactive chat
+    await chatbot.startInteractiveChat();
+
+  } catch (error) {
+    console.error("❌ Failed to initialize chatbot:", error);
+  }
+}
+
+// Run if this file is executed directly
+if (require.main === module) {
+  main();
+}
+
+export { AdaptiveRAGChatbot };
+```
+
+```bash .env
+ADAPTIVE_API_KEY=your-adaptive-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+</CodeGroup>
+
+## Advanced RAG Features
+
+### Multi-Agent RAG System
+
+```python advanced_rag_agents.py
+from langchain.agents import create_openai_functions_agent, AgentExecutor
+from langchain_core.tools import tool
+from langchain_core.prompts import ChatPromptTemplate
+from adaptive_ai.examples.rag_chatbot import AdaptiveRAGChatbot
+
+class MultiAgentRAGSystem:
+    def __init__(self, documents_path: str):
+        self.rag_chatbot = AdaptiveRAGChatbot(documents_path)
+        self.setup_agents()
+    
+    @tool
+    def search_documents(query: str) -> str:
+        """Search through the document knowledge base for relevant information."""
+        # This would be connected to your RAG system
+        return f"Found relevant information about: {query}"
+    
+    @tool
+    def summarize_findings(content: str) -> str:
+        """Summarize key findings from search results."""
+        return f"Summary of findings: {content}"
+    
+    @tool
+    def generate_report(data: str) -> str:
+        """Generate a structured report from analyzed data."""
+        return f"Generated report based on: {data}"
+    
+    def setup_agents(self):
+        """Set up specialized agents for different tasks."""
+        
+        # Research Agent
+        research_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are a research specialist. Use the search tool to find relevant information."),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ])
+        
+        self.research_agent = create_openai_functions_agent(
+            self.rag_chatbot.llm,
+            [self.search_documents],
+            research_prompt
+        )
+        
+        # Analysis Agent
+        analysis_prompt = ChatPromptTemplate.from_messages([
+            ("system", "You are an analysis specialist. Summarize and analyze information."),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ])
+        
+        self.analysis_agent = create_openai_functions_agent(
+            self.rag_chatbot.llm,
+            [self.summarize_findings],
+            analysis_prompt
+        )
+        
+        # Create executors
+        self.research_executor = AgentExecutor(
+            agent=self.research_agent,
+            tools=[self.search_documents],
+            verbose=True
+        )
+        
+        self.analysis_executor = AgentExecutor(
+            agent=self.analysis_agent,
+            tools=[self.summarize_findings, self.generate_report],
+            verbose=True
+        )
+    
+    async def process_complex_query(self, query: str):
+        """Process complex queries using multiple specialized agents."""
+        print(f"🔍 Processing complex query: {query}")
+        
+        # Step 1: Research
+        research_result = self.research_executor.invoke({"input": f"Research: {query}"})
+        
+        # Step 2: Analysis
+        analysis_result = self.analysis_executor.invoke({
+            "input": f"Analyze this research: {research_result['output']}"
+        })
+        
+        return {
+            "research": research_result['output'],
+            "analysis": analysis_result['output']
+        }
+```
+
+### Contextual Chat Memory
+
+```python enhanced_memory.py
+from langchain.memory import ConversationSummaryBufferMemory
+from langchain_core.prompts import PromptTemplate
+
+class EnhancedRAGChatbot(AdaptiveRAGChatbot):
+    def __init__(self, documents_path: str):
+        super().__init__(documents_path)
+        
+        # Enhanced memory with summarization
+        self.memory = ConversationSummaryBufferMemory(
+            llm=self.llm,
+            memory_key="chat_history",
+            return_messages=True,
+            output_key="answer",
+            max_token_limit=2000,  # Summarize when history gets too long
+        )
+        
+        # Enhanced prompt with persona and context awareness
+        self.custom_prompt = PromptTemplate(
+            template="""You are an expert AI assistant with deep knowledge of the provided documents. You maintain context across conversations and provide detailed, accurate responses.
+
+DOCUMENT CONTEXT:
+{context}
+
+CONVERSATION HISTORY:
+{chat_history}
+
+CURRENT QUESTION: {question}
+
+Instructions:
+1. Answer based primarily on the provided document context
+2. Reference specific documents or sections when possible
+3. If the question relates to previous conversation, acknowledge that context
+4. If information is not in the documents, clearly state this
+5. Provide actionable insights when appropriate
+
+RESPONSE:""",
+            input_variables=["context", "chat_history", "question"]
+        )
+```
+
+## Usage Examples
+
+### Setup and Basic Usage
+
+```python usage_example.py
+# Create documents directory and add your files
+import os
+os.makedirs("./documents", exist_ok=True)
+
+# Initialize and use the chatbot
+chatbot = AdaptiveRAGChatbot("./documents")
+
+# One-time setup (creates vector index)
+chatbot.load_vectorstore()  # or chatbot.create_vectorstore() for new setup
+chatbot.setup_qa_chain()
+
+# Interactive chat
+chatbot.start_interactive_chat()
+
+# Or programmatic usage
+response = chatbot.chat("What are the main themes in the documents?")
+print(f"Answer: {response['answer']}")
+print(f"Sources: {response['sources']}")
+```
+
+### Integration with Web Frameworks
+
+```python flask_integration.py
+from flask import Flask, request, jsonify
+from adaptive_rag_chatbot import AdaptiveRAGChatbot
+
+app = Flask(__name__)
+
+# Initialize chatbot once
+chatbot = AdaptiveRAGChatbot("./documents")
+chatbot.load_vectorstore()
+chatbot.setup_qa_chain()
+
+@app.route('/chat', methods=['POST'])
+def chat_endpoint():
+    data = request.json
+    question = data.get('question')
+    
+    if not question:
+        return jsonify({'error': 'Question is required'}), 400
+    
+    try:
+        response = chatbot.chat(question)
+        return jsonify({
+            'answer': response['answer'],
+            'sources': response['sources']
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Document Preparation" icon="file-text">
+    Clean and structure your documents well. Use clear headings, remove unnecessary formatting, and ensure text is readable.
+  </Card>
+  <Card title="Chunk Size Optimization" icon="scissors">
+    Experiment with chunk sizes (500-1500 characters) based on your document types and query complexity.
+  </Card>
+  <Card title="Memory Management" icon="brain">
+    Use conversation summarization for long chats to maintain context while controlling memory usage.
+  </Card>
+  <Card title="Cost Optimization" icon="dollar-sign">
+    Use Adaptive's cost_bias parameter to balance quality vs cost based on query importance.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Poor retrieval quality">
+    - Adjust chunk size and overlap parameters
+    - Try different embedding models or similarity search parameters
+    - Improve document preprocessing and cleaning
+  </Accordion>
+
+  <Accordion title="Memory issues with long conversations">
+    - Use ConversationSummaryBufferMemory instead of ConversationBufferMemory
+    - Set appropriate token limits for memory
+    - Implement conversation reset functionality
+  </Accordion>
+
+  <Accordion title="Slow response times">
+    - Reduce the number of retrieved documents (k parameter)
+    - Use Adaptive's provider constraints to prefer faster models
+    - Consider caching frequently asked questions
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Multi-Agent RAG" icon="users" href="/examples/langchain-agents">
+    Build collaborative agent systems with specialized roles
+  </Card>
+  <Card title="Vercel AI RAG" icon="zap" href="/examples/vercel-rag">
+    Implement RAG with Vercel AI SDK and streaming
+  </Card>
+  <Card title="Advanced Retrieval" icon="search" href="/examples/advanced-retrieval">
+    Hybrid search, reranking, and query expansion techniques
+  </Card>
+  <Card title="Production Deployment" icon="server" href="/examples/production-rag">
+    Scale RAG systems for production workloads
+  </Card>
+</CardGroup>

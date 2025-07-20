@@ -1,216 +1,553 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
+    "title": "Adaptive API",
+    "description": "OpenAI-compatible API with intelligent model selection and cost optimization. Automatically routes requests to the optimal LLM for each task.",
     "license": {
-      "name": "MIT"
+      "name": "Business Source License 1.1",
+      "url": "https://github.com/your-org/adaptive/blob/main/LICENSE"
     },
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "contact": {
+      "name": "Adaptive Support",
+      "url": "https://docs.adaptive.ai",
+      "email": "support@adaptive.ai"
+    }
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://api.adaptive.ai",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
     }
   ],
   "security": [
     {
-      "bearerAuth": []
+      "apiKeyAuth": []
     }
   ],
   "paths": {
-    "/plants": {
-      "get": {
-        "description": "Returns all plants from the system that the user has access to",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
+    "/v1/chat/completions": {
       "post": {
-        "description": "Creates a new plant in the store",
+        "summary": "Create chat completion",
+        "description": "Creates a chat completion response with intelligent model selection and cost optimization. Compatible with OpenAI's chat completions API with additional features for provider constraints and cost optimization.\n\n**Requirements:**\n- Valid API key (obtain from your Adaptive dashboard)\n- Active billing plan or available free credits",
+        "operationId": "createChatCompletion",
         "requestBody": {
-          "description": "Plant to add to the store",
+          "description": "Chat completion request with OpenAI-compatible parameters and Adaptive extensions",
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Plant"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "ID of plant to delete",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
-          },
-          "400": {
-            "description": "unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "webhooks": {
-    "/plant/webhook": {
-      "post": {
-        "description": "Information about a new plant added to the store",
-        "requestBody": {
-          "description": "Plant added to the store",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/ChatCompletionRequest"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Return a 200 status to indicate that the data was received successfully"
+            "description": "Chat completion response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletion"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionChunk"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment required - insufficient credits or billing not enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Stainless-API-Key",
+        "description": "API key for authentication. Obtain from your Adaptive dashboard. Must have active billing or available free credits."
+      }
+    },
     "schemas": {
-      "Plant": {
-        "required": [
-          "name"
-        ],
+      "ChatCompletionRequest": {
         "type": "object",
+        "required": ["messages", "model"],
         "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+          "messages": {
+            "type": "array",
+            "description": "A list of messages comprising the conversation so far",
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionMessage"
+            },
+            "minItems": 1
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
+          "model": {
+            "type": "string",
+            "description": "ID of the model to use. Use 'adaptive' for automatic model selection, or specify a specific model like 'gpt-4o', 'claude-3-5-sonnet', etc.",
+            "example": "adaptive"
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "If set, partial message deltas will be sent as data-only server-sent events",
+            "default": false
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "What sampling temperature to use, between 0 and 2",
+            "example": 0.7
+          },
+          "max_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The maximum number of tokens to generate",
+            "example": 1000
+          },
+          "max_completion_tokens": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "An upper bound for the number of tokens that can be generated for a completion"
+          },
+          "top_p": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "An alternative to sampling with temperature",
+            "example": 1
+          },
+          "frequency_penalty": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency",
+            "default": 0
+          },
+          "presence_penalty": {
+            "type": "number",
+            "minimum": -2,
+            "maximum": 2,
+            "description": "Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far",
+            "default": 0
+          },
+          "n": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 128,
+            "description": "How many chat completion choices to generate for each input message",
+            "default": 1
+          },
+          "stop": {
+            "oneOf": [
+              {"type": "string"},
+              {"type": "array", "items": {"type": "string"}, "maxItems": 4}
+            ],
+            "description": "Up to 4 sequences where the API will stop generating further tokens"
+          },
+          "tools": {
+            "type": "array",
+            "description": "A list of tools the model may call",
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionTool"
+            }
+          },
+          "tool_choice": {
+            "oneOf": [
+              {"type": "string", "enum": ["none", "auto", "required"]},
+              {"$ref": "#/components/schemas/ChatCompletionNamedToolChoice"}
+            ],
+            "description": "Controls which (if any) tool is called by the model"
+          },
+          "user": {
+            "type": "string",
+            "description": "A unique identifier representing your end-user"
+          },
+          "provider_constraint": {
+            "type": "array",
+            "description": "Limit model selection to specific providers. Available providers: openai, anthropic, groq, deepseek, google, grok, huggingface",
+            "items": {
+              "type": "string",
+              "enum": ["openai", "anthropic", "groq", "deepseek", "google", "grok", "huggingface"]
+            },
+            "example": ["openai", "anthropic"]
+          },
+          "cost_bias": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Bias towards cost optimization. 0.0 = cost-optimized, 1.0 = performance-optimized",
+            "default": 0.5,
+            "example": 0.3
           }
         }
       },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
+      "ChatCompletionMessage": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["system", "user", "assistant", "tool"],
+            "description": "The role of the messages author"
           },
-          {
-            "required": [
-              "id"
+          "content": {
+            "oneOf": [
+              {"type": "string"},
+              {"type": "array", "items": {"$ref": "#/components/schemas/ChatCompletionMessageContentPart"}}
             ],
+            "description": "The contents of the message"
+          },
+          "name": {
+            "type": "string",
+            "description": "An optional name for the participant"
+          },
+          "tool_calls": {
+            "type": "array",
+            "description": "The tool calls generated by the model",
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionMessageToolCall"
+            }
+          },
+          "tool_call_id": {
+            "type": "string",
+            "description": "Tool call that this message is responding to"
+          }
+        }
+      },
+      "ChatCompletionMessageContentPart": {
+        "oneOf": [
+          {
             "type": "object",
             "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
+              "type": {"type": "string", "enum": ["text"]},
+              "text": {"type": "string"}
+            },
+            "required": ["type", "text"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {"type": "string", "enum": ["image_url"]},
+              "image_url": {
+                "type": "object",
+                "properties": {
+                  "url": {"type": "string"},
+                  "detail": {"type": "string", "enum": ["auto", "low", "high"]}
+                },
+                "required": ["url"]
               }
-            }
+            },
+            "required": ["type", "image_url"]
           }
         ]
       },
-      "Error": {
-        "required": [
-          "error",
-          "message"
-        ],
+      "ChatCompletionTool": {
         "type": "object",
+        "required": ["type", "function"],
         "properties": {
-          "error": {
-            "type": "integer",
-            "format": "int32"
+          "type": {
+            "type": "string",
+            "enum": ["function"]
           },
-          "message": {
-            "type": "string"
+          "function": {
+            "$ref": "#/components/schemas/FunctionDefinition"
           }
         }
-      }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer"
+      },
+      "FunctionDefinition": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the function to be called"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of what the function does"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "The parameters the functions accepts, described as a JSON Schema object"
+          }
+        }
+      },
+      "ChatCompletionNamedToolChoice": {
+        "type": "object",
+        "required": ["type", "function"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["function"]
+          },
+          "function": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the function to call"
+              }
+            }
+          }
+        }
+      },
+      "ChatCompletionMessageToolCall": {
+        "type": "object",
+        "required": ["id", "type", "function"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the tool call"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["function"]
+          },
+          "function": {
+            "type": "object",
+            "required": ["name", "arguments"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The name of the function to call"
+              },
+              "arguments": {
+                "type": "string",
+                "description": "The arguments to call the function with, as generated by the model in JSON format"
+              }
+            }
+          }
+        }
+      },
+      "ChatCompletion": {
+        "type": "object",
+        "required": ["id", "object", "created", "model", "choices"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A unique identifier for the chat completion",
+            "example": "chatcmpl-123"
+          },
+          "object": {
+            "type": "string",
+            "enum": ["chat.completion"],
+            "description": "The object type, which is always 'chat.completion'"
+          },
+          "created": {
+            "type": "integer",
+            "description": "The Unix timestamp (in seconds) of when the chat completion was created",
+            "example": 1677652288
+          },
+          "model": {
+            "type": "string",
+            "description": "The model used for the chat completion",
+            "example": "gpt-4o"
+          },
+          "choices": {
+            "type": "array",
+            "description": "A list of chat completion choices",
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionChoice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/CompletionUsage"
+          },
+          "system_fingerprint": {
+            "type": "string",
+            "description": "This fingerprint represents the backend configuration that the model runs with"
+          },
+          "provider": {
+            "type": "string",
+            "description": "The provider that was selected for this completion",
+            "example": "openai"
+          }
+        }
+      },
+      "ChatCompletionChoice": {
+        "type": "object",
+        "required": ["index", "message", "finish_reason"],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "description": "The index of the choice in the list of choices"
+          },
+          "message": {
+            "$ref": "#/components/schemas/ChatCompletionMessage"
+          },
+          "finish_reason": {
+            "type": "string",
+            "enum": ["stop", "length", "tool_calls", "content_filter", "function_call"],
+            "description": "The reason the model stopped generating tokens"
+          }
+        }
+      },
+      "ChatCompletionChunk": {
+        "type": "object",
+        "required": ["id", "object", "created", "model", "choices"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A unique identifier for the chat completion chunk"
+          },
+          "object": {
+            "type": "string",
+            "enum": ["chat.completion.chunk"],
+            "description": "The object type, which is always 'chat.completion.chunk'"
+          },
+          "created": {
+            "type": "integer",
+            "description": "The Unix timestamp (in seconds) of when the chat completion was created"
+          },
+          "model": {
+            "type": "string",
+            "description": "The model used for the chat completion"
+          },
+          "choices": {
+            "type": "array",
+            "description": "A list of chat completion choices",
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionChunkChoice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/CompletionUsage"
+          },
+          "provider": {
+            "type": "string",
+            "description": "The provider that was selected for this completion"
+          }
+        }
+      },
+      "ChatCompletionChunkChoice": {
+        "type": "object",
+        "required": ["index", "delta"],
+        "properties": {
+          "index": {
+            "type": "integer",
+            "description": "The index of the choice in the list of choices"
+          },
+          "delta": {
+            "$ref": "#/components/schemas/ChatCompletionChunkDelta"
+          },
+          "finish_reason": {
+            "type": "string",
+            "enum": ["stop", "length", "tool_calls", "content_filter", "function_call"],
+            "description": "The reason the model stopped generating tokens"
+          }
+        }
+      },
+      "ChatCompletionChunkDelta": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["assistant"],
+            "description": "The role of the author of this message"
+          },
+          "content": {
+            "type": "string",
+            "description": "The contents of the chunk message"
+          },
+          "tool_calls": {
+            "type": "array",
+            "description": "The tool calls generated by the model",
+            "items": {
+              "$ref": "#/components/schemas/ChatCompletionMessageToolCall"
+            }
+          }
+        }
+      },
+      "CompletionUsage": {
+        "type": "object",
+        "required": ["prompt_tokens", "completion_tokens", "total_tokens"],
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "description": "Number of tokens in the prompt"
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "description": "Number of tokens in the generated completion"
+          },
+          "total_tokens": {
+            "type": "integer",
+            "description": "Total number of tokens used in the request (prompt + completion)"
+          },
+          "cost_saved": {
+            "type": "number",
+            "description": "Estimated cost savings compared to using the most expensive provider",
+            "example": 0.35
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "A human-readable error message"
+          }
+        }
       }
     }
   }

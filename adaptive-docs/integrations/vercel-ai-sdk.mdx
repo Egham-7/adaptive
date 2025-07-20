@@ -1,0 +1,150 @@
+title: "Vercel AI SDK Integration"
+description: "Use Adaptive with the Vercel AI SDK for streamlined AI applications"
+sidebarTitle: "Vercel AI SDK"
+
+---
+
+## Overview
+
+The Vercel AI SDK works seamlessly with Adaptive through two methods:
+
+- **Adaptive Provider (Recommended):** Use the native `@adaptive-llm/adaptive` provider for built-in support.
+- **OpenAI Provider:** Use Adaptive via `@ai-sdk/openai` with a custom base URL.
+
+---
+
+## Method 1: OpenAI Provider
+
+### Installation
+
+```bash
+npm install ai @ai-sdk/openai
+```
+
+### Configuration
+
+```ts
+import { openai } from "@ai-sdk/openai";
+
+const adaptiveOpenAI = openai({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+```
+
+### Usage
+
+```ts
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: adaptiveOpenAI(""), // Empty string enables intelligent routing
+  prompt: "Explain quantum computing simply",
+});
+```
+
+---
+
+## Method 2: Adaptive Provider
+
+### Installation
+
+```bash
+npm install @adaptive-llm/adaptive
+```
+
+### Basic Setup
+
+```ts
+import { adaptive } from "@adaptive-llm/adaptive";
+
+// Or customize:
+import { createAdaptive } from "@adaptive-llm/adaptive";
+
+const customAdaptive = createAdaptive({
+  baseURL: "https://llmadaptive.uk/api/v1",
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  headers: {
+    "User-Agent": "MyApp/1.0",
+  },
+});
+```
+
+---
+
+## Generating Text
+
+```ts
+import { generateText } from "ai";
+
+const { text } = await generateText({
+  model: adaptive(),
+  prompt: "Write a vegetarian lasagna recipe for 4 people.",
+});
+```
+
+---
+
+## Streaming Example
+
+```ts
+import { streamText } from "ai";
+
+const { textStream } = await streamText({
+  model: adaptive(),
+  prompt: "Explain machine learning.",
+});
+
+for await (const delta of textStream) {
+  process.stdout.write(delta);
+}
+```
+
+---
+
+## Provider Options
+
+```ts
+await generateText({
+  model: adaptive(),
+  prompt: "Summarize this article",
+  providerOptions: {
+    costBias: 0.8, // Value from 0 to 1, higher = prioritize cost savings
+  },
+});
+```
+
+---
+
+## Tool Use Example
+
+```ts
+import { generateText, tool } from "ai";
+import { z } from "zod";
+
+const { text } = await generateText({
+  model: adaptive(),
+  prompt: "What's the weather in New York?",
+  tools: {
+    getWeather: tool({
+      description: "Get weather for a location",
+      parameters: z.object({
+        location: z.string(),
+      }),
+      execute: async ({ location }) => {
+        return `Weather in ${location} is sunny and 72°F`;
+      },
+    }),
+  },
+});
+```
+
+---
+
+## Environment Setup
+
+```bash
+# .env.local
+ADAPTIVE_API_KEY=your-adaptive-api-key
+```
+

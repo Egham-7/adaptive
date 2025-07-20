@@ -1,0 +1,755 @@
+---
+title: "Basic Chat Application"
+description: "Build a simple chat application with Adaptive intelligent routing"
+---
+
+## Overview
+
+This example demonstrates how to build a basic chat application using Adaptive's intelligent routing. The application will automatically select the best AI model for each conversation turn.
+
+## Prerequisites
+
+- Node.js 18+ or Python 3.8+
+- Adaptive API key
+
+## Quick Start
+
+### JavaScript/TypeScript
+
+<CodeGroup>
+
+```bash Installation
+npm install openai
+```
+
+```typescript chat.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+async function chatWithAdaptive(message: string) {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "", // Empty string enables intelligent routing
+      messages: [{ role: "user", content: message }],
+      temperature: 0.7,
+    });
+
+    return {
+      response: completion.choices[0].message.content,
+      provider: completion.provider, // Shows which provider was selected
+      model: completion.model,
+    };
+  } catch (error) {
+    console.error("Chat error:", error);
+    throw error;
+  }
+}
+
+// Example usage
+async function main() {
+  const examples = [
+    "What is the capital of France?",
+    "Explain quantum computing in simple terms",
+    "Write a Python function to sort a list",
+    "Tell me a creative story about a robot",
+  ];
+
+  for (const message of examples) {
+    console.log(`\n🔵 User: ${message}`);
+
+    const result = await chatWithAdaptive(message);
+
+    console.log(
+      `🤖 Assistant (${result.provider}/${result.model}): ${result.response}`,
+    );
+  }
+}
+
+main().catch(console.error);
+```
+
+```bash .env
+ADAPTIVE_API_KEY=your-adaptive-api-key
+```
+
+</CodeGroup>
+
+### Python
+
+<CodeGroup>
+
+```bash Installation
+pip install openai
+```
+
+```python chat.py
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("ADAPTIVE_API_KEY"),
+    base_url="https://llmadaptive.uk/api/v1"
+)
+
+def chat_with_adaptive(message: str):
+    try:
+        completion = client.chat.completions.create(
+            model="",  # Empty string enables intelligent routing
+            messages=[
+                {"role": "user", "content": message}
+            ],
+            temperature=0.7
+        )
+
+        return {
+            "response": completion.choices[0].message.content,
+            "provider": completion.provider,  # Shows which provider was selected
+            "model": completion.model
+        }
+    except Exception as error:
+        print(f"Chat error: {error}")
+        raise error
+
+def main():
+    examples = [
+        "What is the capital of France?",
+        "Explain quantum computing in simple terms",
+        "Write a Python function to sort a list",
+        "Tell me a creative story about a robot"
+    ]
+
+    for message in examples:
+        print(f"\n🔵 User: {message}")
+
+        result = chat_with_adaptive(message)
+
+        print(f"🤖 Assistant ({result['provider']}/{result['model']}): {result['response']}")
+
+if __name__ == "__main__":
+    main()
+```
+
+```bash .env
+ADAPTIVE_API_KEY=your-adaptive-api-key
+```
+
+</CodeGroup>
+
+## Interactive Chat Application
+
+### Node.js with Readline
+
+```typescript interactive-chat.ts
+import OpenAI from "openai";
+import * as readline from "readline";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const conversation: Array<{ role: "user" | "assistant"; content: string }> = [];
+
+async function chat(message: string) {
+  // Add user message to conversation
+  conversation.push({ role: "user", content: message });
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "",
+      messages: conversation,
+      temperature: 0.7,
+    });
+
+    const response = completion.choices[0].message.content;
+    const provider = completion.provider;
+
+    // Add assistant response to conversation
+    conversation.push({ role: "assistant", content: response });
+
+    console.log(`\n🤖 Assistant (${provider}): ${response}\n`);
+  } catch (error) {
+    console.error("Error:", error);
+  }
+
+  // Continue the conversation
+  askQuestion();
+}
+
+function askQuestion() {
+  rl.question("🔵 You: ", (input) => {
+    if (input.toLowerCase() === "quit" || input.toLowerCase() === "exit") {
+      console.log("👋 Goodbye!");
+      rl.close();
+      return;
+    }
+
+    chat(input);
+  });
+}
+
+console.log("🚀 Interactive Chat with Adaptive");
+console.log('Type "quit" or "exit" to end the conversation\n');
+askQuestion();
+```
+
+### Python with Input
+
+```python interactive_chat.py
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("ADAPTIVE_API_KEY"),
+    base_url="https://llmadaptive.uk/api/v1"
+)
+
+conversation = []
+
+def chat(message: str):
+    # Add user message to conversation
+    conversation.append({"role": "user", "content": message})
+
+    try:
+        completion = client.chat.completions.create(
+            model="",
+            messages=conversation,
+            temperature=0.7
+        )
+
+        response = completion.choices[0].message.content
+        provider = completion.provider
+
+        # Add assistant response to conversation
+        conversation.append({"role": "assistant", "content": response})
+
+        print(f"\n🤖 Assistant ({provider}): {response}\n")
+
+    except Exception as error:
+        print(f"Error: {error}")
+
+def main():
+    print("🚀 Interactive Chat with Adaptive")
+    print("Type 'quit' or 'exit' to end the conversation\n")
+
+    while True:
+        user_input = input("🔵 You: ")
+
+        if user_input.lower() in ['quit', 'exit']:
+            print("👋 Goodbye!")
+            break
+
+        chat(user_input)
+
+if __name__ == "__main__":
+    main()
+```
+
+## Web Application Example
+
+### Express.js Server
+
+<CodeGroup>
+
+```bash Installation
+npm install express openai cors
+npm install -D @types/express
+```
+
+```typescript server.ts
+import express from "express";
+import OpenAI from "openai";
+import cors from "cors";
+
+const app = express();
+const port = 3000;
+
+app.use(cors());
+app.use(express.json());
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+// Store conversations in memory (use a database in production)
+const conversations = new Map<
+  string,
+  Array<{ role: "user" | "assistant"; content: string }>
+>();
+
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message, conversationId = "default" } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    // Get or create conversation
+    let conversation = conversations.get(conversationId) || [];
+
+    // Add user message
+    conversation.push({ role: "user", content: message });
+
+    const completion = await openai.chat.completions.create({
+      model: "",
+      messages: conversation,
+      temperature: 0.7,
+    });
+
+    const response = completion.choices[0].message.content;
+    const provider = completion.provider;
+    const model = completion.model;
+
+    // Add assistant response
+    conversation.push({ role: "assistant", content: response });
+
+    // Store updated conversation
+    conversations.set(conversationId, conversation);
+
+    res.json({
+      response,
+      provider,
+      model,
+      conversationId,
+    });
+  } catch (error) {
+    console.error("Chat error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/api/conversations/:id", (req, res) => {
+  const conversation = conversations.get(req.params.id) || [];
+  res.json({ conversation });
+});
+
+app.listen(port, () => {
+  console.log(`Chat server running at http://localhost:${port}`);
+});
+```
+
+```html public/index.html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adaptive Chat</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .chat-container {
+        border: 1px solid #ddd;
+        height: 400px;
+        overflow-y: auto;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+      .message {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 4px;
+      }
+      .user {
+        background-color: #e3f2fd;
+        text-align: right;
+      }
+      .assistant {
+        background-color: #f5f5f5;
+      }
+      .provider-info {
+        font-size: 0.8em;
+        color: #666;
+        margin-top: 4px;
+      }
+      .input-container {
+        display: flex;
+        gap: 10px;
+      }
+      input[type="text"] {
+        flex: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        padding: 8px 16px;
+        background-color: #2196f3;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #1976d2;
+      }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🚀 Adaptive Chat</h1>
+    <div id="chat-container" class="chat-container"></div>
+    <div class="input-container">
+      <input
+        type="text"
+        id="message-input"
+        placeholder="Type your message..."
+        onkeypress="handleKeyPress(event)"
+      />
+      <button onclick="sendMessage()" id="send-button">Send</button>
+    </div>
+
+    <script>
+      let conversationId = "default";
+
+      async function sendMessage() {
+        const input = document.getElementById("message-input");
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        // Add user message to chat
+        addMessage("user", message);
+
+        // Clear input and disable button
+        input.value = "";
+        document.getElementById("send-button").disabled = true;
+
+        try {
+          const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message, conversationId }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            addMessage(
+              "assistant",
+              data.response,
+              `${data.provider}/${data.model}`,
+            );
+          } else {
+            addMessage("assistant", "Error: " + data.error);
+          }
+        } catch (error) {
+          addMessage("assistant", "Error: Failed to send message");
+        }
+
+        document.getElementById("send-button").disabled = false;
+        input.focus();
+      }
+
+      function addMessage(role, content, providerInfo = "") {
+        const container = document.getElementById("chat-container");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${role}`;
+
+        let html = `<div>${content}</div>`;
+        if (providerInfo) {
+          html += `<div class="provider-info">Provider: ${providerInfo}</div>`;
+        }
+
+        messageDiv.innerHTML = html;
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      function handleKeyPress(event) {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      }
+
+      // Focus input on load
+      document.getElementById("message-input").focus();
+    </script>
+  </body>
+</html>
+```
+
+</CodeGroup>
+
+## Streaming Chat Example
+
+### JavaScript with Streaming
+
+```typescript streaming-chat.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+async function streamingChat(message: string) {
+  console.log(`🔵 User: ${message}`);
+  console.log("🤖 Assistant: ");
+
+  const stream = await openai.chat.completions.create({
+    model: "",
+    messages: [{ role: "user", content: message }],
+    stream: true,
+    temperature: 0.7,
+  });
+
+  let fullResponse = "";
+  let provider = "";
+
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content || "";
+    const chunkProvider = chunk.provider;
+
+    if (chunkProvider && !provider) {
+      provider = chunkProvider;
+    }
+
+    process.stdout.write(content);
+    fullResponse += content;
+  }
+
+  console.log(`\n\n📊 Provider: ${provider}`);
+  console.log(`📝 Full response: ${fullResponse.length} characters\n`);
+}
+
+// Example usage
+async function main() {
+  await streamingChat("Tell me a story about a brave knight");
+  await streamingChat("Explain how machine learning works");
+  await streamingChat("Write a haiku about programming");
+}
+
+main().catch(console.error);
+```
+
+## Cost Optimization Examples
+
+### Cost-Conscious Chat
+
+```typescript cost-optimized-chat.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+async function costOptimizedChat(message: string, costBias = 0.2) {
+  const completion = await openai.chat.completions.create({
+    model: "",
+    messages: [{ role: "user", content: message }],
+    cost_bias: costBias, // 0 = cheapest, 1 = best performance
+    temperature: 0.7,
+  });
+
+  return {
+    response: completion.choices[0].message.content,
+    provider: completion.provider,
+    model: completion.model,
+    usage: completion.usage,
+  };
+}
+
+async function demonstrateCostOptimization() {
+  const message = "Explain the concept of photosynthesis";
+
+  console.log("🔍 Comparing different cost optimization levels:\n");
+
+  // Maximum cost savings
+  console.log("💰 Maximum Cost Savings (cost_bias: 0.1):");
+  const cheapest = await costOptimizedChat(message, 0.1);
+  console.log(`Provider: ${cheapest.provider}/${cheapest.model}`);
+  console.log(`Tokens: ${cheapest.usage?.total_tokens}\n`);
+
+  // Balanced approach
+  console.log("⚖️ Balanced (cost_bias: 0.5):");
+  const balanced = await costOptimizedChat(message, 0.5);
+  console.log(`Provider: ${balanced.provider}/${balanced.model}`);
+  console.log(`Tokens: ${balanced.usage?.total_tokens}\n`);
+
+  // Best performance
+  console.log("🚀 Best Performance (cost_bias: 0.9):");
+  const premium = await costOptimizedChat(message, 0.9);
+  console.log(`Provider: ${premium.provider}/${premium.model}`);
+  console.log(`Tokens: ${premium.usage?.total_tokens}\n`);
+}
+
+demonstrateCostOptimization().catch(console.error);
+```
+
+## Provider Constraints Example
+
+```typescript provider-constraints.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+async function chatWithConstraints(message: string, providers: string[]) {
+  const completion = await openai.chat.completions.create({
+    model: "",
+    messages: [{ role: "user", content: message }],
+    provider_constraints: providers,
+    temperature: 0.7,
+  });
+
+  return {
+    response: completion.choices[0].message.content,
+    provider: completion.provider,
+    model: completion.model,
+  };
+}
+
+async function demonstrateConstraints() {
+  const message = "Write a creative short story about time travel";
+
+  console.log("🎯 Testing different provider constraints:\n");
+
+  // Only use fast providers
+  console.log("⚡ Fast providers only (Groq, Gemini):");
+  const fast = await chatWithConstraints(message, ["groq", "gemini"]);
+  console.log(`Selected: ${fast.provider}/${fast.model}\n`);
+
+  // Only use premium providers
+  console.log("⭐ Premium providers only (OpenAI, Anthropic):");
+  const premium = await chatWithConstraints(message, ["openai", "anthropic"]);
+  console.log(`Selected: ${premium.provider}/${premium.model}\n`);
+
+  // Code-specialized providers
+  console.log("💻 Code-specialized providers (DeepSeek, OpenAI):");
+  const code = await chatWithConstraints(
+    "Write a Python function to calculate fibonacci numbers",
+    ["deepseek", "openai"],
+  );
+  console.log(`Selected: ${code.provider}/${code.model}\n`);
+}
+
+demonstrateConstraints().catch(console.error);
+```
+
+## Error Handling Best Practices
+
+```typescript robust-chat.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+interface ChatResult {
+  success: boolean;
+  response?: string;
+  provider?: string;
+  error?: string;
+  retryable?: boolean;
+}
+
+async function robustChat(message: string, retries = 3): Promise<ChatResult> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "",
+        messages: [{ role: "user", content: message }],
+        temperature: 0.7,
+      });
+
+      return {
+        success: true,
+        response: completion.choices[0].message.content,
+        provider: completion.provider,
+      };
+    } catch (error: any) {
+      console.log(`Attempt ${attempt} failed:`, error.message);
+
+      // Check if error is retryable
+      const isRetryable =
+        error.status === 429 || // Rate limit
+        error.status === 502 || // Bad gateway
+        error.status === 503 || // Service unavailable
+        error.status === 504; // Gateway timeout
+
+      if (!isRetryable || attempt === retries) {
+        return {
+          success: false,
+          error: error.message,
+          retryable: isRetryable,
+        };
+      }
+
+      // Wait before retry (exponential backoff)
+      const delay = Math.pow(2, attempt - 1) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  return { success: false, error: "Max retries exceeded" };
+}
+
+async function demonstrateErrorHandling() {
+  const messages = [
+    "What is artificial intelligence?",
+    "Explain quantum computing",
+    "Write a poem about nature",
+  ];
+
+  for (const message of messages) {
+    console.log(`\n🔵 User: ${message}`);
+
+    const result = await robustChat(message);
+
+    if (result.success) {
+      console.log(`🤖 Assistant (${result.provider}): ${result.response}`);
+    } else {
+      console.log(`❌ Error: ${result.error}`);
+      if (result.retryable) {
+        console.log("💡 This error might be temporary, try again later");
+      }
+    }
+  }
+}
+
+demonstrateErrorHandling().catch(console.error);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Streaming Chat" icon="rss" href="/examples/streaming-chat">
+    Build real-time streaming chat applications
+  </Card>
+  <Card title="Function Calling" icon="gear" href="/examples/function-calling">
+    Integrate tools and external APIs
+  </Card>
+  <Card
+    title="RAG Application"
+    icon="database"
+    href="/examples/rag-application"
+  >
+    Build retrieval-augmented generation systems
+  </Card>
+  <Card title="Multi-Agent System" icon="users" href="/examples/multi-agent">
+    Create collaborative AI agent workflows
+  </Card>
+</CardGroup>

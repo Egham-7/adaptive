@@ -1,102 +1,155 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Adaptive",
+  "description": "Adaptive is an AI-powered platform offering cost-optimized and intelligent routing for LLMs.",
+  "root": "index",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#2563EB",
+    "light": "#3B82F6",
+    "dark": "#1D4ED8"
   },
   "favicon": "/favicon.svg",
   "navigation": {
-    "tabs": [
+    "dropdowns": [
       {
-        "tab": "Guides",
+        "dropdown": "Documentation",
+        "icon": "book",
+        "description": "How to use Adaptive effectively",
         "groups": [
           {
-            "group": "Get Started",
+            "group": "Getting Started",
+            "pages": ["index", "quickstart", "authentication"]
+          },
+          {
+            "group": "Integration Guides",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "integrations/openai-sdk",
+              "integrations/vercel-ai-sdk",
+              "integrations/langchain"
             ]
           },
           {
-            "group": "Essentials",
+            "group": "Key Features",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
+              "features/intelligent-routing",
+              "features/cost-optimization",
+              "features/provider-constraints"
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
+        "dropdown": "API Reference",
+        "icon": "terminal",
+        "description": "Explore the Adaptive API",
         "groups": [
           {
-            "group": "API Documentation",
+            "group": "Overview",
             "pages": [
-              "api-reference/introduction"
+              "api-reference/chat-completions",
+              "api-reference/models",
+              "api-reference/errors"
             ]
           },
           {
-            "group": "Endpoint Examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
+            "group": "OpenAPI",
+            "openapi": {
+              "source": "api-reference/openapi.json"
+            }
           }
         ]
+      },
+      {
+        "dropdown": "Examples & Use Cases",
+        "icon": "lightbulb",
+        "description": "Real-world applications and starter templates",
+        "pages": ["examples/basic-chat", "examples/streaming-chat"]
+      },
+      {
+        "dropdown": "Support",
+        "icon": "life-ring",
+        "description": "Help and troubleshooting resources",
+        "pages": ["troubleshooting"]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/dark.svg",
+    "href": "https://adaptive.app"
   },
   "navbar": {
     "links": [
       {
+        "label": "Pricing",
+        "href": "https://adaptive.app/pricing"
+      },
+      {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:support@adaptive.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Get Started",
+      "href": "https://adaptive.app/signup"
     }
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/adaptive",
+      "github": "https://github.com/adaptive",
+      "linkedin": "https://linkedin.com/company/adaptive"
+    },
+    "links": [
+      {
+        "header": "Resources",
+        "items": [
+          {
+            "label": "Dashboard",
+            "href": "https://adaptive.app"
+          },
+          {
+            "label": "Documentation",
+            "href": "https://docs.adaptive.app"
+          }
+        ]
+      },
+      {
+        "header": "Company",
+        "items": [
+          {
+            "label": "Careers",
+            "href": "https://adaptive.app/careers"
+          },
+          {
+            "label": "Blog",
+            "href": "https://adaptive.app/blog"
+          }
+        ]
+      }
+    ]
+  },
+  "api": {
+    "baseUrl": "https://llmadaptive.uk/api/v1",
+    "auth": {
+      "method": "bearer"
+    },
+    "playground": {
+      "display": "interactive"
+    },
+    "examples": {
+      "languages": ["curl", "python", "javascript"]
+    }
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt"]
+  },
+  "errors": {
+    "404": {
+      "redirect": true
     }
   }
 }
+

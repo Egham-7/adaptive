@@ -1,0 +1,1067 @@
+---
+title: "Streaming Chat Application"
+description: "Build real-time streaming chat with Adaptive intelligent routing"
+---
+
+## Overview
+
+Streaming provides a better user experience by showing responses as they're generated. This example demonstrates how to implement streaming chat with Adaptive's intelligent routing.
+
+## Basic Streaming
+
+### JavaScript/TypeScript
+
+```typescript streaming-basic.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+async function streamChat(message: string) {
+  console.log(`🔵 User: ${message}`);
+  console.log("🤖 Assistant: ");
+
+  const stream = await openai.chat.completions.create({
+    model: "", // Intelligent routing
+    messages: [{ role: "user", content: message }],
+    stream: true,
+    temperature: 0.7,
+  });
+
+  let fullResponse = "";
+  let provider = "";
+
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content || "";
+
+    // Capture provider info from first chunk
+    if (chunk.provider && !provider) {
+      provider = chunk.provider;
+    }
+
+    // Stream content in real-time
+    process.stdout.write(content);
+    fullResponse += content;
+  }
+
+  console.log(`\n\n📊 Provider: ${provider}`);
+  console.log(`📝 Length: ${fullResponse.length} characters\n`);
+
+  return fullResponse;
+}
+
+// Example usage
+async function main() {
+  await streamChat("Tell me a detailed story about a space explorer");
+  await streamChat("Explain how neural networks work step by step");
+}
+
+main().catch(console.error);
+```
+
+### Python
+
+```python streaming_basic.py
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("ADAPTIVE_API_KEY"),
+    base_url="https://llmadaptive.uk/api/v1"
+)
+
+def stream_chat(message: str):
+    print(f"🔵 User: {message}")
+    print("🤖 Assistant: ", end="", flush=True)
+
+    stream = client.chat.completions.create(
+        model="",
+        messages=[{"role": "user", "content": message}],
+        stream=True,
+        temperature=0.7
+    )
+
+    full_response = ""
+    provider = ""
+
+    for chunk in stream:
+        content = chunk.choices[0].delta.content or ""
+
+        # Capture provider info
+        if hasattr(chunk, 'provider') and chunk.provider and not provider:
+            provider = chunk.provider
+
+        # Stream content in real-time
+        print(content, end="", flush=True)
+        full_response += content
+
+    print(f"\n\n📊 Provider: {provider}")
+    print(f"📝 Length: {len(full_response)} characters\n")
+
+    return full_response
+
+def main():
+    stream_chat("Tell me a detailed story about a space explorer")
+    stream_chat("Explain how neural networks work step by step")
+
+if __name__ == "__main__":
+    main()
+```
+
+## Interactive Streaming Chat
+
+### Node.js Console Application
+
+```typescript interactive-streaming.ts
+import OpenAI from "openai";
+import * as readline from "readline";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const conversation: Array<{ role: "user" | "assistant"; content: string }> = [];
+
+async function streamResponse(userMessage: string) {
+  // Add user message to conversation
+  conversation.push({ role: "user", content: userMessage });
+
+  console.log("\n🤖 Assistant: ");
+
+  try {
+    const stream = await openai.chat.completions.create({
+      model: "",
+      messages: conversation,
+      stream: true,
+      temperature: 0.7,
+    });
+
+    let assistantResponse = "";
+    let provider = "";
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || "";
+
+      if (chunk.provider && !provider) {
+        provider = chunk.provider;
+      }
+
+      process.stdout.write(content);
+      assistantResponse += content;
+    }
+
+    // Add assistant response to conversation
+    conversation.push({ role: "assistant", content: assistantResponse });
+
+    console.log(`\n\n💡 Routed to: ${provider}`);
+    console.log(`📊 Conversation length: ${conversation.length} messages\n`);
+  } catch (error) {
+    console.error("\n❌ Error:", error);
+  }
+
+  askQuestion();
+}
+
+function askQuestion() {
+  rl.question("🔵 You: ", (input) => {
+    if (input.toLowerCase() === "quit" || input.toLowerCase() === "exit") {
+      console.log("\n👋 Goodbye!");
+      rl.close();
+      return;
+    }
+
+    if (input.toLowerCase() === "clear") {
+      conversation.length = 0;
+      console.log("\n🧹 Conversation cleared\n");
+      askQuestion();
+      return;
+    }
+
+    streamResponse(input);
+  });
+}
+
+console.log("🚀 Interactive Streaming Chat with Adaptive");
+console.log('Commands: "quit" to exit, "clear" to reset conversation\n');
+askQuestion();
+```
+
+## Web-Based Streaming Chat
+
+### Express.js with Server-Sent Events
+
+<CodeGroup>
+
+```typescript server.ts
+import express from "express";
+import OpenAI from "openai";
+import cors from "cors";
+import path from "path";
+
+const app = express();
+const port = 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+// Store conversations
+const conversations = new Map<
+  string,
+  Array<{ role: "user" | "assistant"; content: string }>
+>();
+
+app.post("/api/stream-chat", async (req, res) => {
+  const { message, conversationId = "default" } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: "Message is required" });
+  }
+
+  // Set up Server-Sent Events
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Cache-Control",
+  });
+
+  try {
+    // Get conversation
+    let conversation = conversations.get(conversationId) || [];
+    conversation.push({ role: "user", content: message });
+
+    const stream = await openai.chat.completions.create({
+      model: "",
+      messages: conversation,
+      stream: true,
+      temperature: 0.7,
+    });
+
+    let fullResponse = "";
+    let provider = "";
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || "";
+
+      if (chunk.provider && !provider) {
+        provider = chunk.provider;
+        // Send provider info
+        res.write(
+          `data: ${JSON.stringify({ type: "provider", provider })}\n\n`,
+        );
+      }
+
+      if (content) {
+        // Send content chunk
+        res.write(`data: ${JSON.stringify({ type: "content", content })}\n\n`);
+        fullResponse += content;
+      }
+    }
+
+    // Add response to conversation
+    conversation.push({ role: "assistant", content: fullResponse });
+    conversations.set(conversationId, conversation);
+
+    // Send completion signal
+    res.write(`data: ${JSON.stringify({ type: "done", fullResponse })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error("Streaming error:", error);
+    res.write(
+      `data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`,
+    );
+    res.end();
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Streaming chat server running at http://localhost:${port}`);
+});
+```
+
+```html public/streaming-chat.html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Adaptive Streaming Chat</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .chat-container {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        height: 500px;
+        overflow-y: auto;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .message {
+        margin-bottom: 15px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        max-width: 80%;
+        word-wrap: break-word;
+      }
+      .user {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin-left: auto;
+        text-align: right;
+      }
+      .assistant {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        margin-right: auto;
+      }
+      .provider-info {
+        font-size: 0.8em;
+        color: #666;
+        margin-top: 8px;
+        font-style: italic;
+      }
+      .typing-indicator {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        margin-right: auto;
+        position: relative;
+      }
+      .typing-dots {
+        display: inline-block;
+      }
+      .typing-dots::after {
+        content: "";
+        animation: dots 1.5s infinite;
+      }
+      @keyframes dots {
+        0%,
+        20% {
+          content: "";
+        }
+        40% {
+          content: ".";
+        }
+        60% {
+          content: "..";
+        }
+        80%,
+        100% {
+          content: "...";
+        }
+      }
+      .input-container {
+        display: flex;
+        gap: 10px;
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      input[type="text"] {
+        flex: 1;
+        padding: 12px 16px;
+        border: 1px solid #ddd;
+        border-radius: 25px;
+        font-size: 16px;
+        outline: none;
+      }
+      input[type="text"]:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+      }
+      button {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .header h1 {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🚀 Adaptive Streaming Chat</h1>
+      <p>Experience real-time AI responses with intelligent model routing</p>
+    </div>
+
+    <div id="chat-container" class="chat-container"></div>
+
+    <div class="input-container">
+      <input
+        type="text"
+        id="message-input"
+        placeholder="Type your message..."
+        onkeypress="handleKeyPress(event)"
+      />
+      <button onclick="sendMessage()" id="send-button">Send</button>
+    </div>
+
+    <script>
+      let conversationId = "streaming-" + Date.now();
+      let isStreaming = false;
+
+      function addMessage(role, content, providerInfo = "") {
+        const container = document.getElementById("chat-container");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${role}`;
+
+        let html = `<div>${content}</div>`;
+        if (providerInfo) {
+          html += `<div class="provider-info">🤖 ${providerInfo}</div>`;
+        }
+
+        messageDiv.innerHTML = html;
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+
+        return messageDiv;
+      }
+
+      function addTypingIndicator() {
+        const container = document.getElementById("chat-container");
+        const typingDiv = document.createElement("div");
+        typingDiv.className = "message typing-indicator";
+        typingDiv.id = "typing-indicator";
+        typingDiv.innerHTML = '<div class="typing-dots">AI is thinking</div>';
+        container.appendChild(typingDiv);
+        container.scrollTop = container.scrollHeight;
+        return typingDiv;
+      }
+
+      function removeTypingIndicator() {
+        const indicator = document.getElementById("typing-indicator");
+        if (indicator) {
+          indicator.remove();
+        }
+      }
+
+      async function sendMessage() {
+        if (isStreaming) return;
+
+        const input = document.getElementById("message-input");
+        const message = input.value.trim();
+
+        if (!message) return;
+
+        // Add user message
+        addMessage("user", message);
+
+        // Clear input and show typing
+        input.value = "";
+        const typingIndicator = addTypingIndicator();
+
+        // Disable input
+        isStreaming = true;
+        document.getElementById("send-button").disabled = true;
+        input.disabled = true;
+
+        try {
+          const response = await fetch("/api/stream-chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message, conversationId }),
+          });
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+
+          let assistantMessage = null;
+          let fullContent = "";
+          let provider = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split("\n");
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.type === "provider") {
+                    provider = data.provider;
+                    removeTypingIndicator();
+                    assistantMessage = addMessage(
+                      "assistant",
+                      "",
+                      `Routing to ${provider}...`,
+                    );
+                  } else if (data.type === "content") {
+                    if (!assistantMessage) {
+                      removeTypingIndicator();
+                      assistantMessage = addMessage("assistant", "");
+                    }
+
+                    fullContent += data.content;
+
+                    // Update message content
+                    let html = `<div>${fullContent}</div>`;
+                    if (provider) {
+                      html += `<div class="provider-info">🤖 Powered by ${provider}</div>`;
+                    }
+                    assistantMessage.innerHTML = html;
+                  } else if (data.type === "done") {
+                    console.log("Streaming completed");
+                  } else if (data.type === "error") {
+                    removeTypingIndicator();
+                    addMessage("assistant", `❌ Error: ${data.error}`);
+                  }
+                } catch (e) {
+                  console.log("Parse error:", e);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          removeTypingIndicator();
+          addMessage("assistant", `❌ Connection error: ${error.message}`);
+        }
+
+        // Re-enable input
+        isStreaming = false;
+        document.getElementById("send-button").disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+
+      function handleKeyPress(event) {
+        if (event.key === "Enter" && !isStreaming) {
+          sendMessage();
+        }
+      }
+
+      // Focus input on load
+      document.getElementById("message-input").focus();
+
+      // Add welcome message
+      addMessage(
+        "assistant",
+        "Hello! I'm your AI assistant powered by Adaptive's intelligent routing. Ask me anything and watch as I stream my response in real-time! 🚀",
+      );
+    </script>
+  </body>
+</html>
+```
+
+</CodeGroup>
+
+## React Streaming Component
+
+```tsx StreamingChat.tsx
+import React, { useState, useRef, useEffect } from "react";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  provider?: string;
+  streaming?: boolean;
+}
+
+const StreamingChat: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const conversationId = useRef(`chat-${Date.now()}`);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const sendMessage = async () => {
+    if (isStreaming || !input.trim()) return;
+
+    const userMessage = input.trim();
+    setInput("");
+
+    // Add user message
+    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+
+    // Add streaming assistant message
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: "", streaming: true },
+    ]);
+
+    setIsStreaming(true);
+
+    try {
+      const response = await fetch("/api/stream-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage,
+          conversationId: conversationId.current,
+        }),
+      });
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      let fullContent = "";
+      let provider = "";
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === "provider") {
+                  provider = data.provider;
+                } else if (data.type === "content") {
+                  fullContent += data.content;
+
+                  // Update the streaming message
+                  setMessages((prev) =>
+                    prev.map((msg, index) =>
+                      index === prev.length - 1 && msg.streaming
+                        ? { ...msg, content: fullContent, provider }
+                        : msg,
+                    ),
+                  );
+                } else if (data.type === "done") {
+                  // Mark streaming as complete
+                  setMessages((prev) =>
+                    prev.map((msg, index) =>
+                      index === prev.length - 1 && msg.streaming
+                        ? { ...msg, streaming: false, provider }
+                        : msg,
+                    ),
+                  );
+                }
+              } catch (e) {
+                console.error("Parse error:", e);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Streaming error:", error);
+      setMessages((prev) =>
+        prev.map((msg, index) =>
+          index === prev.length - 1 && msg.streaming
+            ? {
+                ...msg,
+                content: "❌ Error occurred during streaming",
+                streaming: false,
+              }
+            : msg,
+        ),
+      );
+    }
+
+    setIsStreaming(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  return (
+    <div
+      style={{
+        maxWidth: "800px",
+        margin: "0 auto",
+        padding: "20px",
+        fontFamily: "system-ui, sans-serif",
+      }}
+    >
+      <h1 style={{ textAlign: "center", marginBottom: "30px" }}>
+        🚀 React Streaming Chat
+      </h1>
+
+      <div
+        style={{
+          height: "400px",
+          overflowY: "auto",
+          border: "1px solid #ddd",
+          borderRadius: "8px",
+          padding: "20px",
+          marginBottom: "20px",
+          backgroundColor: "#f9f9f9",
+        }}
+      >
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            style={{
+              marginBottom: "15px",
+              padding: "12px",
+              borderRadius: "8px",
+              maxWidth: "80%",
+              backgroundColor: message.role === "user" ? "#007bff" : "#fff",
+              color: message.role === "user" ? "white" : "black",
+              marginLeft: message.role === "user" ? "auto" : "0",
+              marginRight: message.role === "user" ? "0" : "auto",
+              border: message.role === "assistant" ? "1px solid #ddd" : "none",
+            }}
+          >
+            <div>{message.content}</div>
+            {message.provider && (
+              <div
+                style={{
+                  fontSize: "0.8em",
+                  marginTop: "8px",
+                  opacity: 0.7,
+                  fontStyle: "italic",
+                }}
+              >
+                🤖 {message.provider}
+                {message.streaming && " (streaming...)"}
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div style={{ display: "flex", gap: "10px" }}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Type your message..."
+          disabled={isStreaming}
+          style={{
+            flex: 1,
+            padding: "12px",
+            border: "1px solid #ddd",
+            borderRadius: "4px",
+            fontSize: "16px",
+          }}
+        />
+        <button
+          onClick={sendMessage}
+          disabled={isStreaming || !input.trim()}
+          style={{
+            padding: "12px 24px",
+            backgroundColor: isStreaming ? "#ccc" : "#007bff",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: isStreaming ? "not-allowed" : "pointer",
+            fontSize: "16px",
+          }}
+        >
+          {isStreaming ? "Streaming..." : "Send"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default StreamingChat;
+```
+
+## Advanced Streaming Features
+
+### Streaming with Function Calls
+
+```typescript streaming-functions.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+async function streamWithFunctions(message: string) {
+  console.log(`🔵 User: ${message}`);
+  console.log("🤖 Assistant: ");
+
+  const stream = await openai.chat.completions.create({
+    model: "",
+    messages: [{ role: "user", content: message }],
+    stream: true,
+    tools: [
+      {
+        type: "function",
+        function: {
+          name: "get_weather",
+          description: "Get current weather for a location",
+          parameters: {
+            type: "object",
+            properties: {
+              location: {
+                type: "string",
+                description: "City and state, e.g. San Francisco, CA",
+              },
+            },
+            required: ["location"],
+          },
+        },
+      },
+    ],
+  });
+
+  let fullResponse = "";
+  let functionCall = "";
+  let provider = "";
+
+  for await (const chunk of stream) {
+    if (chunk.provider && !provider) {
+      provider = chunk.provider;
+    }
+
+    const delta = chunk.choices[0]?.delta;
+
+    if (delta?.content) {
+      process.stdout.write(delta.content);
+      fullResponse += delta.content;
+    }
+
+    if (delta?.tool_calls) {
+      const toolCall = delta.tool_calls[0];
+      if (toolCall?.function?.name) {
+        console.log(`\n🔧 Calling function: ${toolCall.function.name}`);
+      }
+      if (toolCall?.function?.arguments) {
+        functionCall += toolCall.function.arguments;
+      }
+    }
+  }
+
+  if (functionCall) {
+    console.log(`📋 Function arguments: ${functionCall}`);
+  }
+
+  console.log(`\n\n📊 Provider: ${provider}\n`);
+}
+
+// Example usage
+streamWithFunctions("What's the weather like in New York?").catch(
+  console.error,
+);
+```
+
+### Streaming Progress Tracking
+
+```typescript streaming-progress.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+interface StreamingStats {
+  tokensReceived: number;
+  chunksReceived: number;
+  startTime: number;
+  provider: string;
+  estimatedCompletion?: number;
+}
+
+async function streamWithProgress(message: string) {
+  console.log(`🔵 User: ${message}`);
+  console.log("🤖 Assistant: ");
+
+  const stats: StreamingStats = {
+    tokensReceived: 0,
+    chunksReceived: 0,
+    startTime: Date.now(),
+    provider: "",
+  };
+
+  const stream = await openai.chat.completions.create({
+    model: "",
+    messages: [{ role: "user", content: message }],
+    stream: true,
+    max_tokens: 500, // Set a limit for progress estimation
+  });
+
+  let fullResponse = "";
+
+  for await (const chunk of stream) {
+    if (chunk.provider && !stats.provider) {
+      stats.provider = chunk.provider;
+    }
+
+    const content = chunk.choices[0]?.delta?.content || "";
+
+    if (content) {
+      process.stdout.write(content);
+      fullResponse += content;
+
+      // Rough token estimation (1 token ≈ 4 characters)
+      stats.tokensReceived += Math.ceil(content.length / 4);
+    }
+
+    stats.chunksReceived++;
+
+    // Show progress every 10 chunks
+    if (stats.chunksReceived % 10 === 0) {
+      const elapsed = Date.now() - stats.startTime;
+      const tokensPerSecond = (stats.tokensReceived / elapsed) * 1000;
+
+      process.stdout.write(
+        `\n📊 Progress: ${stats.tokensReceived} tokens, ${tokensPerSecond.toFixed(1)} tokens/sec\n`,
+      );
+    }
+  }
+
+  const totalTime = Date.now() - stats.startTime;
+  const avgTokensPerSecond = (stats.tokensReceived / totalTime) * 1000;
+
+  console.log(`\n\n📈 Final Stats:`);
+  console.log(`   Provider: ${stats.provider}`);
+  console.log(`   Total tokens: ${stats.tokensReceived}`);
+  console.log(`   Total chunks: ${stats.chunksReceived}`);
+  console.log(`   Duration: ${totalTime}ms`);
+  console.log(`   Speed: ${avgTokensPerSecond.toFixed(2)} tokens/second\n`);
+}
+
+// Example usage
+streamWithProgress(
+  "Write a detailed explanation of how blockchain technology works",
+).catch(console.error);
+```
+
+## Performance Optimization
+
+### Buffered Streaming
+
+```typescript buffered-streaming.ts
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://llmadaptive.uk/api/v1",
+});
+
+async function bufferedStream(message: string, bufferSize = 10) {
+  console.log(`🔵 User: ${message}`);
+  console.log("🤖 Assistant: ");
+
+  const stream = await openai.chat.completions.create({
+    model: "",
+    messages: [{ role: "user", content: message }],
+    stream: true,
+  });
+
+  let buffer = "";
+  let wordCount = 0;
+
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content || "";
+    buffer += content;
+
+    // Count words in buffer
+    const words = buffer.split(/\s+/).filter((word) => word.length > 0);
+
+    // Flush buffer when we have enough words
+    if (words.length >= bufferSize) {
+      const toFlush = words.slice(0, bufferSize).join(" ") + " ";
+      process.stdout.write(toFlush);
+
+      // Keep remaining words in buffer
+      buffer = words.slice(bufferSize).join(" ");
+      wordCount += bufferSize;
+    }
+  }
+
+  // Flush remaining buffer
+  if (buffer.trim()) {
+    process.stdout.write(buffer);
+  }
+
+  console.log(
+    `\n\n📊 Total words streamed: ${wordCount + buffer.split(/\s+/).length}\n`,
+  );
+}
+
+// Example usage
+bufferedStream("Tell me a long story about ancient civilizations", 5).catch(
+  console.error,
+);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Function Calling" icon="gear" href="/examples/function-calling">
+    Add tools and external API integration
+  </Card>
+  <Card
+    title="RAG Application"
+    icon="database"
+    href="/examples/rag-application"
+  >
+    Build retrieval-augmented generation systems
+  </Card>
+  <Card title="WebSocket Chat" icon="wifi" href="/examples/websocket-chat">
+    Real-time bidirectional communication
+  </Card>
+  <Card
+    title="Cost Optimization"
+    icon="dollar-sign"
+    href="/examples/cost-optimization"
+  >
+    Advanced cost control strategies
+  </Card>
+</CardGroup>
