@@ -1,6 +1,9 @@
 package models
 
 import (
+	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"time"
+
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/shared"
@@ -355,4 +358,14 @@ func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) 
 	}
 
 	return adaptive
+}
+
+// RaceResult represents a parallel provider race outcome.
+type RaceResult struct {
+	Provider     provider_interfaces.LLMProvider
+	ProviderName string
+	ModelName    string
+	TaskType     string
+	Duration     time.Duration
+	Error        error
 }
