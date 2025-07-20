@@ -170,10 +170,10 @@ class ProtocolManager:
                 "reasoning": reasoning,
                 "decision_factors": {
                     "request_has_tools": request_has_tools,
-                    "high_complexity": complexity_score > 0.50,
+                    "high_complexity": complexity_score > 0.40,
                     "long_input": token_count > 3000,
                     "many_few_shots": number_of_few_shots > 4,
-                    "high_reasoning": reasoning > 0.65,
+                    "high_reasoning": reasoning > 0.55,
                 },
             },
         )
@@ -202,7 +202,7 @@ class ProtocolManager:
         else:
             result = ProtocolSelectionOutput(
                 protocol=protocol_choice,
-                provider="groq",
+                provider="adaptive",
                 model=minion_model,
                 explanation=f"Rule-based selection: {protocol_choice} for efficiency",
                 temperature=0.7,
