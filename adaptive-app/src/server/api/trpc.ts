@@ -5,7 +5,13 @@ import { ZodError, z } from "zod";
 import { db } from "@/server/db";
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-	const clerkAuthResult = await getClerkAuth();
+	let clerkAuthResult;
+	try {
+		clerkAuthResult = await getClerkAuth();
+	} catch (error) {
+		// Handle case where Clerk middleware is not available (e.g., for /api/v1 routes)
+		clerkAuthResult = { userId: null };
+	}
 
 	return {
 		db,
