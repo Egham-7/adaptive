@@ -1,13 +1,13 @@
 # mypy: disable-error-code=import
 from typing import Any
 
+import cachetools
 from huggingface_hub import PyTorchModelHubMixin
 import numpy as np
 import torch
 import torch.nn as nn
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
-from adaptive_ai.core.generic_cache import DomainClassificationCache
 from adaptive_ai.models.llm_classification_models import (
     DomainClassificationResult,
     DomainType,
@@ -77,8 +77,8 @@ class DomainClassifier:
         self, lit_logger: Any = None, cache_size: int = 1000, cache_ttl: int = 3600
     ) -> None:
         self.lit_logger: Any = lit_logger
-        self.cache = DomainClassificationCache(
-            max_size=cache_size, ttl=cache_ttl, thread_safe=True
+        self.cache: cachetools.TTLCache[str, DomainClassificationResult] = (
+            cachetools.TTLCache(maxsize=cache_size, ttl=cache_ttl)
         )
 
         # Load NVIDIA domain classifier following official documentation
@@ -137,7 +137,15 @@ class DomainClassifier:
                     texts_to_classify.append(text)
 
             # Log cache performance
-            cache_stats: dict[str, Any] = self.cache.get_stats()
+            cache_stats: dict[str, Any] = {
+                "size": len(self.cache),
+                "max_size": self.cache.maxsize,
+                "ttl": self.cache.ttl,
+                "hits": 0,  # cachetools doesn't track this by default
+                "misses": 0,  # cachetools doesn't track this by default
+                "evictions": 0,  # cachetools doesn't track this by default
+                "hit_rate": 0.0,  # cachetools doesn't track this by default
+            }
             self.log("domain_classification_cache_stats", cache_stats)
 
             # Classify uncached texts
@@ -165,7 +173,7 @@ class DomainClassifier:
                         new_result = new_results[new_result_idx]
                         results[i] = new_result
                         # Cache the result
-                        self.cache.put(texts[i], new_result)
+                        self.cache[texts[i]] = new_result
                         new_result_idx += 1
 
             self.log(
