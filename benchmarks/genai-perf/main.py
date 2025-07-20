@@ -4,22 +4,23 @@ GenAI Performance Benchmarking Tool
 Consolidated script for running benchmarks and analyzing results.
 """
 
-import pandas as pd
-import json
-import matplotlib.pyplot as plt
-import seaborn as sns
-from pathlib import Path
+from dataclasses import dataclass
 from datetime import datetime
-import requests
+import json
+from pathlib import Path
 import subprocess
 import time
-import typer
+from typing import Any
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import requests
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
-from rich.panel import Panel
-from typing import Optional, Dict, Any
-from dataclasses import dataclass
+import seaborn as sns
+import typer
 
 # Set style for better looking plots
 plt.style.use("seaborn-v0_8")
@@ -36,95 +37,95 @@ class BenchmarkParameters:
     # Core parameters
     url: str
     model: str
-    concurrency: Optional[str] = None
+    concurrency: str | None = None
     check_health: bool = True
 
     # Audio Input
-    audio_length_mean: Optional[float] = None
-    audio_length_stddev: Optional[float] = None
-    audio_format: Optional[str] = None
-    audio_depths: Optional[str] = None
-    audio_sample_rates: Optional[str] = None
-    audio_num_channels: Optional[int] = None
+    audio_length_mean: float | None = None
+    audio_length_stddev: float | None = None
+    audio_format: str | None = None
+    audio_depths: str | None = None
+    audio_sample_rates: str | None = None
+    audio_num_channels: int | None = None
 
     # Endpoint
-    model_selection_strategy: Optional[str] = None
-    backend: Optional[str] = None
-    endpoint: Optional[str] = None
-    endpoint_type: Optional[str] = None
-    server_metrics_url: Optional[str] = None
+    model_selection_strategy: str | None = None
+    backend: str | None = None
+    endpoint: str | None = None
+    endpoint_type: str | None = None
+    server_metrics_url: str | None = None
     streaming: bool = False
 
     # Image Input
-    image_width_mean: Optional[int] = None
-    image_width_stddev: Optional[int] = None
-    image_height_mean: Optional[int] = None
-    image_height_stddev: Optional[int] = None
-    image_format: Optional[str] = None
+    image_width_mean: int | None = None
+    image_width_stddev: int | None = None
+    image_height_mean: int | None = None
+    image_height_stddev: int | None = None
+    image_format: str | None = None
 
     # Input
-    batch_size_audio: Optional[int] = None
-    batch_size_image: Optional[int] = None
-    batch_size_text: Optional[int] = None
-    extra_inputs: Optional[str] = None
-    goodput: Optional[str] = None
-    header: Optional[str] = None
-    input_file: Optional[str] = None
-    num_dataset_entries: Optional[int] = None
-    num_prefix_prompts: Optional[int] = None
-    output_tokens_mean: Optional[int] = None
+    batch_size_audio: int | None = None
+    batch_size_image: int | None = None
+    batch_size_text: int | None = None
+    extra_inputs: str | None = None
+    goodput: str | None = None
+    header: str | None = None
+    input_file: str | None = None
+    num_dataset_entries: int | None = None
+    num_prefix_prompts: int | None = None
+    output_tokens_mean: int | None = None
     output_tokens_mean_deterministic: bool = False
-    output_tokens_stddev: Optional[int] = None
-    random_seed: Optional[int] = None
-    grpc_method: Optional[str] = None
-    synthetic_input_tokens_mean: Optional[int] = None
-    synthetic_input_tokens_stddev: Optional[int] = None
-    prefix_prompt_length: Optional[int] = None
-    warmup_request_count: Optional[int] = None
+    output_tokens_stddev: int | None = None
+    random_seed: int | None = None
+    grpc_method: str | None = None
+    synthetic_input_tokens_mean: int | None = None
+    synthetic_input_tokens_stddev: int | None = None
+    prefix_prompt_length: int | None = None
+    warmup_request_count: int | None = None
 
     # Other
     verbose: bool = False
 
     # Output
-    artifact_dir: Optional[str] = None
-    checkpoint_dir: Optional[str] = None
+    artifact_dir: str | None = None
+    checkpoint_dir: str | None = None
     generate_plots: bool = False
     enable_checkpointing: bool = False
-    profile_export_file: Optional[str] = None
+    profile_export_file: str | None = None
 
     # Profiling
-    measurement_interval: Optional[int] = None
-    request_count: Optional[int] = None
-    request_rate: Optional[float] = None
-    fixed_schedule: Optional[str] = None
-    stability_percentage: Optional[float] = None
+    measurement_interval: int | None = None
+    request_count: int | None = None
+    request_rate: float | None = None
+    fixed_schedule: str | None = None
+    stability_percentage: float | None = None
 
     # Session
-    num_sessions: Optional[int] = None
-    session_concurrency: Optional[int] = None
-    session_delay_ratio: Optional[float] = None
-    session_turn_delay_mean: Optional[float] = None
-    session_turn_delay_stddev: Optional[float] = None
-    session_turns_mean: Optional[int] = None
-    session_turns_stddev: Optional[int] = None
+    num_sessions: int | None = None
+    session_concurrency: int | None = None
+    session_delay_ratio: float | None = None
+    session_turn_delay_mean: float | None = None
+    session_turn_delay_stddev: float | None = None
+    session_turns_mean: int | None = None
+    session_turns_stddev: int | None = None
 
     # Tokenizer
-    tokenizer: Optional[str] = None
-    tokenizer_revision: Optional[str] = None
+    tokenizer: str | None = None
+    tokenizer_revision: str | None = None
     tokenizer_trust_remote_code: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for easy parameter passing"""
         return {k: v for k, v in self.__dict__.items() if v is not None}
 
 
 class GenAIPerfAnalyzer:
-    def __init__(self, results_dir="./results"):
+    def __init__(self, results_dir: str = "./results") -> None:
         self.results_dir = Path(results_dir)
         self.plots_dir = self.results_dir / "plots"
         self.plots_dir.mkdir(parents=True, exist_ok=True)
 
-    def parse_genai_perf_csv(self, csv_path):
+    def parse_genai_perf_csv(self, csv_path: str) -> dict[str, Any] | None:
         """Parse GenAI-Perf CSV results file"""
         try:
             df = pd.read_csv(csv_path, skiprows=8)
@@ -146,10 +147,10 @@ class GenAIPerfAnalyzer:
             console.print(f"[red]Error parsing {csv_path}: {e}[/red]")
             return None
 
-    def parse_genai_perf_json(self, json_path):
+    def parse_genai_perf_json(self, json_path: str) -> dict[str, Any] | None:
         """Parse GenAI-Perf JSON results file"""
         try:
-            with open(json_path, "r") as f:
+            with open(json_path) as f:
                 data = json.load(f)
             metrics = {}
 
@@ -188,7 +189,7 @@ class GenAIPerfAnalyzer:
             console.print(f"[red]Error parsing {json_path}: {e}[/red]")
             return None
 
-    def extract_test_info(self, filepath):
+    def extract_test_info(self, filepath: str) -> dict[str, Any]:
         """Extract test information from file path"""
         path_parts = Path(filepath).parts
         filename = Path(filepath).stem
@@ -214,30 +215,30 @@ class GenAIPerfAnalyzer:
 
         return {"concurrency": concurrency, "test_type": test_type}
 
-    def scan_results_directory(self):
+    def scan_results_directory(self) -> pd.DataFrame:
         """Scan results directory for benchmark files"""
         results = []
 
         csv_files = list(self.results_dir.rglob("*_genai_perf.csv"))
         for csv_file in csv_files:
-            metrics = self.parse_genai_perf_csv(csv_file)
+            metrics = self.parse_genai_perf_csv(str(csv_file))
             if metrics:
-                test_info = self.extract_test_info(csv_file)
+                test_info = self.extract_test_info(str(csv_file))
                 result = {**metrics, **test_info, "source_file": str(csv_file)}
                 results.append(result)
 
         # Look for GenAI-Perf JSON files
         json_files = list(self.results_dir.rglob("*_genai_perf.json"))
         for json_file in json_files:
-            metrics = self.parse_genai_perf_json(json_file)
+            metrics = self.parse_genai_perf_json(str(json_file))
             if metrics:
-                test_info = self.extract_test_info(json_file)
+                test_info = self.extract_test_info(str(json_file))
                 result = {**metrics, **test_info, "source_file": str(json_file)}
                 results.append(result)
 
         return pd.DataFrame(results)
 
-    def generate_performance_plots(self, df):
+    def generate_performance_plots(self, df: pd.DataFrame) -> None:
         """Generate comprehensive performance visualization plots"""
         if df.empty:
             console.print("[yellow]No data to plot[/yellow]")
@@ -331,7 +332,7 @@ class GenAIPerfAnalyzer:
 
         console.print(f"[green]✓ Performance plots saved to {self.plots_dir}/[/green]")
 
-    def generate_summary_report(self, df):
+    def generate_summary_report(self, df: pd.DataFrame) -> None:
         """Generate a comprehensive summary report"""
         if df.empty:
             console.print("[yellow]No data available for summary report[/yellow]")
@@ -390,7 +391,7 @@ class GenAIPerfAnalyzer:
 
         console.print(f"[green]✓ Summary report saved to {report_path}[/green]")
 
-    def save_detailed_results(self, df):
+    def save_detailed_results(self, df: pd.DataFrame) -> None:
         """Save detailed results to CSV"""
         if df.empty:
             console.print("[yellow]No data to save[/yellow]")
@@ -400,7 +401,7 @@ class GenAIPerfAnalyzer:
         df.to_csv(csv_path, index=False)
         console.print(f"[green]✓ Detailed results saved to {csv_path}[/green]")
 
-    def run_analysis(self):
+    def run_analysis(self) -> None:
         """Run complete analysis pipeline"""
         console.print("[blue]Starting GenAI-Perf Results Analysis...[/blue]")
         console.print(f"Results directory: {self.results_dir}")
@@ -463,7 +464,7 @@ def _run_benchmark_with_params(params: BenchmarkParameters) -> None:
     console.print(f"Results saved in: {benchmarker.results_dir}")
 
 
-def create_benchmark_params(**kwargs) -> BenchmarkParameters:
+def create_benchmark_params(**kwargs: Any) -> BenchmarkParameters:
     """Create BenchmarkParameters from keyword arguments"""
     return BenchmarkParameters(
         url=kwargs.get("url", "http://localhost:8080"),
@@ -553,7 +554,7 @@ class GenAIPerfBenchmarker:
             console.print(f"[dim]Health check failed for {self.router_url}: {e}[/dim]")
             return False
 
-    def run_genai_perf_command(self, **kwargs) -> bool:
+    def run_genai_perf_command(self, **kwargs: Any) -> bool:
         """Run genai-perf command with given parameters"""
         cmd = [
             "uv",
@@ -615,7 +616,9 @@ class GenAIPerfBenchmarker:
         console.print(f"[dim]Running command: {' '.join(cmd)}[/dim]")
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            result = subprocess.run(  # noqa: S603
+                cmd, capture_output=True, text=True, timeout=300, check=False
+            )
             if result.returncode != 0:
                 console.print(f"[red]Command failed with stdout: {result.stdout}[/red]")
                 console.print(f"[red]Command failed with stderr: {result.stderr}[/red]")
@@ -627,7 +630,7 @@ class GenAIPerfBenchmarker:
             console.print(f"[red]Error running benchmark: {e}[/red]")
             return False
 
-    def run_simple_benchmark(self, params: BenchmarkParameters):
+    def run_simple_benchmark(self, params: BenchmarkParameters) -> None:
         """Run simple benchmark without tokenizer dependencies"""
         console.print("[blue]Running Simple Benchmark (No Tokenizer)[/blue]")
 
@@ -699,7 +702,7 @@ def benchmark(
         "http://localhost:8080", "--url", "-u", help="Full Router URL with protocol"
     ),
     model: str = typer.Option("adaptive-go-api", "--model", "-m", help="Model name"),
-    concurrency: Optional[str] = typer.Option(
+    concurrency: str | None = typer.Option(
         None,
         "--concurrency",
         "-c",
@@ -709,125 +712,121 @@ def benchmark(
         True, "--check-health/--no-check-health", help="Check API health before running"
     ),
     # Audio Input
-    audio_length_mean: Optional[float] = typer.Option(
+    audio_length_mean: float | None = typer.Option(
         None, help="Mean length of audio data in seconds"
     ),
-    audio_length_stddev: Optional[float] = typer.Option(
+    audio_length_stddev: float | None = typer.Option(
         None, help="Standard deviation of audio length"
     ),
-    audio_format: Optional[str] = typer.Option(None, help="Audio format (wav, mp3)"),
-    audio_depths: Optional[str] = typer.Option(
+    audio_format: str | None = typer.Option(None, help="Audio format (wav, mp3)"),
+    audio_depths: str | None = typer.Option(
         None, help="Comma-separated audio bit depths"
     ),
-    audio_sample_rates: Optional[str] = typer.Option(
+    audio_sample_rates: str | None = typer.Option(
         None, help="Comma-separated audio sample rates"
     ),
-    audio_num_channels: Optional[int] = typer.Option(
+    audio_num_channels: int | None = typer.Option(
         None, help="Number of audio channels (1 or 2)"
     ),
     # Endpoint
-    model_selection_strategy: Optional[str] = typer.Option(
+    model_selection_strategy: str | None = typer.Option(
         None, help="Model selection strategy (round_robin, random)"
     ),
-    backend: Optional[str] = typer.Option(None, help="Backend (tensorrtllm, vllm)"),
-    endpoint: Optional[str] = typer.Option(None, help="Custom endpoint"),
-    endpoint_type: Optional[str] = typer.Option(None, help="Endpoint type"),
-    server_metrics_url: Optional[str] = typer.Option(
+    backend: str | None = typer.Option(None, help="Backend (tensorrtllm, vllm)"),
+    endpoint: str | None = typer.Option(None, help="Custom endpoint"),
+    endpoint_type: str | None = typer.Option(None, help="Endpoint type"),
+    server_metrics_url: str | None = typer.Option(
         None, help="Comma-separated server metrics URLs"
     ),
     streaming: bool = typer.Option(False, help="Enable streaming API"),
     # Image Input
-    image_width_mean: Optional[int] = typer.Option(None, help="Mean width of images"),
-    image_width_stddev: Optional[int] = typer.Option(
+    image_width_mean: int | None = typer.Option(None, help="Mean width of images"),
+    image_width_stddev: int | None = typer.Option(
         None, help="Standard deviation of image width"
     ),
-    image_height_mean: Optional[int] = typer.Option(None, help="Mean height of images"),
-    image_height_stddev: Optional[int] = typer.Option(
+    image_height_mean: int | None = typer.Option(None, help="Mean height of images"),
+    image_height_stddev: int | None = typer.Option(
         None, help="Standard deviation of image height"
     ),
-    image_format: Optional[str] = typer.Option(None, help="Image format (png, jpeg)"),
+    image_format: str | None = typer.Option(None, help="Image format (png, jpeg)"),
     # Input
-    batch_size_audio: Optional[int] = typer.Option(None, help="Audio batch size"),
-    batch_size_image: Optional[int] = typer.Option(None, help="Image batch size"),
-    batch_size_text: Optional[int] = typer.Option(None, help="Text batch size"),
-    extra_inputs: Optional[str] = typer.Option(
+    batch_size_audio: int | None = typer.Option(None, help="Audio batch size"),
+    batch_size_image: int | None = typer.Option(None, help="Image batch size"),
+    batch_size_text: int | None = typer.Option(None, help="Text batch size"),
+    extra_inputs: str | None = typer.Option(
         None, help="Extra inputs in 'key:value' format"
     ),
-    goodput: Optional[str] = typer.Option(None, help="Goodput constraints"),
-    header: Optional[str] = typer.Option(None, help="Custom headers"),
-    input_file: Optional[str] = typer.Option(None, help="Input file path"),
-    num_dataset_entries: Optional[int] = typer.Option(
+    goodput: str | None = typer.Option(None, help="Goodput constraints"),
+    header: str | None = typer.Option(None, help="Custom headers"),
+    input_file: str | None = typer.Option(None, help="Input file path"),
+    num_dataset_entries: int | None = typer.Option(
         None, "--num-dataset-entries", "--num-prompts", help="Number of unique payloads"
     ),
-    num_prefix_prompts: Optional[int] = typer.Option(
+    num_prefix_prompts: int | None = typer.Option(
         None, help="Number of prefix prompts"
     ),
-    output_tokens_mean: Optional[int] = typer.Option(
+    output_tokens_mean: int | None = typer.Option(
         None, help="Mean number of output tokens"
     ),
     output_tokens_mean_deterministic: bool = typer.Option(
         False, help="Enable deterministic output tokens"
     ),
-    output_tokens_stddev: Optional[int] = typer.Option(
+    output_tokens_stddev: int | None = typer.Option(
         None, help="Standard deviation of output tokens"
     ),
-    random_seed: Optional[int] = typer.Option(None, help="Random seed"),
-    grpc_method: Optional[str] = typer.Option(None, help="gRPC method name"),
-    synthetic_input_tokens_mean: Optional[int] = typer.Option(
+    random_seed: int | None = typer.Option(None, help="Random seed"),
+    grpc_method: str | None = typer.Option(None, help="gRPC method name"),
+    synthetic_input_tokens_mean: int | None = typer.Option(
         None, help="Mean synthetic input tokens"
     ),
-    synthetic_input_tokens_stddev: Optional[int] = typer.Option(
+    synthetic_input_tokens_stddev: int | None = typer.Option(
         None, help="Standard deviation of synthetic input tokens"
     ),
-    prefix_prompt_length: Optional[int] = typer.Option(
-        None, help="Prefix prompt length"
-    ),
-    warmup_request_count: Optional[int] = typer.Option(
+    prefix_prompt_length: int | None = typer.Option(None, help="Prefix prompt length"),
+    warmup_request_count: int | None = typer.Option(
         None, help="Number of warmup requests"
     ),
     # Other
     verbose: bool = typer.Option(False, help="Enable verbose mode"),
     # Output
-    artifact_dir: Optional[str] = typer.Option(None, help="Artifact directory"),
-    checkpoint_dir: Optional[str] = typer.Option(None, help="Checkpoint directory"),
+    artifact_dir: str | None = typer.Option(None, help="Artifact directory"),
+    checkpoint_dir: str | None = typer.Option(None, help="Checkpoint directory"),
     generate_plots: bool = typer.Option(False, help="Generate plots"),
     enable_checkpointing: bool = typer.Option(False, help="Enable checkpointing"),
-    profile_export_file: Optional[str] = typer.Option(
+    profile_export_file: str | None = typer.Option(
         None, help="Profile export file path"
     ),
     # Profiling
-    measurement_interval: Optional[int] = typer.Option(
+    measurement_interval: int | None = typer.Option(
         None, help="Measurement interval in milliseconds"
     ),
-    request_count: Optional[int] = typer.Option(None, help="Number of requests"),
-    request_rate: Optional[float] = typer.Option(None, help="Request rate"),
-    fixed_schedule: Optional[str] = typer.Option(None, help="Fixed schedule file"),
-    stability_percentage: Optional[float] = typer.Option(
+    request_count: int | None = typer.Option(None, help="Number of requests"),
+    request_rate: float | None = typer.Option(None, help="Request rate"),
+    fixed_schedule: str | None = typer.Option(None, help="Fixed schedule file"),
+    stability_percentage: float | None = typer.Option(
         None, help="Stability percentage"
     ),
     # Session
-    num_sessions: Optional[int] = typer.Option(None, help="Number of sessions"),
-    session_concurrency: Optional[int] = typer.Option(None, help="Session concurrency"),
-    session_delay_ratio: Optional[float] = typer.Option(
-        None, help="Session delay ratio"
-    ),
-    session_turn_delay_mean: Optional[float] = typer.Option(
+    num_sessions: int | None = typer.Option(None, help="Number of sessions"),
+    session_concurrency: int | None = typer.Option(None, help="Session concurrency"),
+    session_delay_ratio: float | None = typer.Option(None, help="Session delay ratio"),
+    session_turn_delay_mean: float | None = typer.Option(
         None, help="Mean session turn delay"
     ),
-    session_turn_delay_stddev: Optional[float] = typer.Option(
+    session_turn_delay_stddev: float | None = typer.Option(
         None, help="Standard deviation of session turn delay"
     ),
-    session_turns_mean: Optional[int] = typer.Option(None, help="Mean session turns"),
-    session_turns_stddev: Optional[int] = typer.Option(
+    session_turns_mean: int | None = typer.Option(None, help="Mean session turns"),
+    session_turns_stddev: int | None = typer.Option(
         None, help="Standard deviation of session turns"
     ),
     # Tokenizer
-    tokenizer: Optional[str] = typer.Option(None, help="Tokenizer name or path"),
-    tokenizer_revision: Optional[str] = typer.Option(None, help="Tokenizer revision"),
+    tokenizer: str | None = typer.Option(None, help="Tokenizer name or path"),
+    tokenizer_revision: str | None = typer.Option(None, help="Tokenizer revision"),
     tokenizer_trust_remote_code: bool = typer.Option(
         False, help="Trust remote tokenizer code"
     ),
-):
+) -> None:
     """Run GenAI-Perf benchmarks"""
     console.print(
         Panel("[bold blue]GenAI-Perf Benchmarking Tool[/bold blue]", expand=False)
@@ -912,7 +911,7 @@ def analyze(
     summary_only: bool = typer.Option(
         False, "--summary-only", help="Generate summary report only"
     ),
-):
+) -> None:
     """Analyze benchmark results"""
     console.print(
         Panel("[bold blue]GenAI-Perf Results Analysis[/bold blue]", expand=False)
@@ -938,7 +937,7 @@ def status(
         "-r",
         help="Directory containing benchmark results",
     )
-):
+) -> None:
     """Show status of benchmark results"""
     results_path = Path(results_dir)
 
@@ -983,129 +982,125 @@ def run_all(
         "http://localhost:8080", "--url", "-u", help="Full Router URL with protocol"
     ),
     model: str = typer.Option("adaptive-go-api", "--model", "-m", help="Model name"),
-    concurrency: Optional[str] = typer.Option(
+    concurrency: str | None = typer.Option(
         None, "--concurrency", "-c", help="Comma-separated concurrency levels"
     ),
     # Audio Input
-    audio_length_mean: Optional[float] = typer.Option(
+    audio_length_mean: float | None = typer.Option(
         None, help="Mean length of audio data in seconds"
     ),
-    audio_length_stddev: Optional[float] = typer.Option(
+    audio_length_stddev: float | None = typer.Option(
         None, help="Standard deviation of audio length"
     ),
-    audio_format: Optional[str] = typer.Option(None, help="Audio format (wav, mp3)"),
-    audio_depths: Optional[str] = typer.Option(
+    audio_format: str | None = typer.Option(None, help="Audio format (wav, mp3)"),
+    audio_depths: str | None = typer.Option(
         None, help="Comma-separated audio bit depths"
     ),
-    audio_sample_rates: Optional[str] = typer.Option(
+    audio_sample_rates: str | None = typer.Option(
         None, help="Comma-separated audio sample rates"
     ),
-    audio_num_channels: Optional[int] = typer.Option(
+    audio_num_channels: int | None = typer.Option(
         None, help="Number of audio channels (1 or 2)"
     ),
     # Endpoint
-    model_selection_strategy: Optional[str] = typer.Option(
+    model_selection_strategy: str | None = typer.Option(
         None, help="Model selection strategy (round_robin, random)"
     ),
-    backend: Optional[str] = typer.Option(None, help="Backend (tensorrtllm, vllm)"),
-    endpoint: Optional[str] = typer.Option(None, help="Custom endpoint"),
-    endpoint_type: Optional[str] = typer.Option(None, help="Endpoint type"),
-    server_metrics_url: Optional[str] = typer.Option(
+    backend: str | None = typer.Option(None, help="Backend (tensorrtllm, vllm)"),
+    endpoint: str | None = typer.Option(None, help="Custom endpoint"),
+    endpoint_type: str | None = typer.Option(None, help="Endpoint type"),
+    server_metrics_url: str | None = typer.Option(
         None, help="Comma-separated server metrics URLs"
     ),
     streaming: bool = typer.Option(False, help="Enable streaming API"),
     # Image Input
-    image_width_mean: Optional[int] = typer.Option(None, help="Mean width of images"),
-    image_width_stddev: Optional[int] = typer.Option(
+    image_width_mean: int | None = typer.Option(None, help="Mean width of images"),
+    image_width_stddev: int | None = typer.Option(
         None, help="Standard deviation of image width"
     ),
-    image_height_mean: Optional[int] = typer.Option(None, help="Mean height of images"),
-    image_height_stddev: Optional[int] = typer.Option(
+    image_height_mean: int | None = typer.Option(None, help="Mean height of images"),
+    image_height_stddev: int | None = typer.Option(
         None, help="Standard deviation of image height"
     ),
-    image_format: Optional[str] = typer.Option(None, help="Image format (png, jpeg)"),
+    image_format: str | None = typer.Option(None, help="Image format (png, jpeg)"),
     # Input
-    batch_size_audio: Optional[int] = typer.Option(None, help="Audio batch size"),
-    batch_size_image: Optional[int] = typer.Option(None, help="Image batch size"),
-    batch_size_text: Optional[int] = typer.Option(None, help="Text batch size"),
-    extra_inputs: Optional[str] = typer.Option(
+    batch_size_audio: int | None = typer.Option(None, help="Audio batch size"),
+    batch_size_image: int | None = typer.Option(None, help="Image batch size"),
+    batch_size_text: int | None = typer.Option(None, help="Text batch size"),
+    extra_inputs: str | None = typer.Option(
         None, help="Extra inputs in 'key:value' format"
     ),
-    goodput: Optional[str] = typer.Option(None, help="Goodput constraints"),
-    header: Optional[str] = typer.Option(None, help="Custom headers"),
-    input_file: Optional[str] = typer.Option(None, help="Input file path"),
-    num_dataset_entries: Optional[int] = typer.Option(
+    goodput: str | None = typer.Option(None, help="Goodput constraints"),
+    header: str | None = typer.Option(None, help="Custom headers"),
+    input_file: str | None = typer.Option(None, help="Input file path"),
+    num_dataset_entries: int | None = typer.Option(
         None, "--num-dataset-entries", "--num-prompts", help="Number of unique payloads"
     ),
-    num_prefix_prompts: Optional[int] = typer.Option(
+    num_prefix_prompts: int | None = typer.Option(
         None, help="Number of prefix prompts"
     ),
-    output_tokens_mean: Optional[int] = typer.Option(
+    output_tokens_mean: int | None = typer.Option(
         None, help="Mean number of output tokens"
     ),
     output_tokens_mean_deterministic: bool = typer.Option(
         False, help="Enable deterministic output tokens"
     ),
-    output_tokens_stddev: Optional[int] = typer.Option(
+    output_tokens_stddev: int | None = typer.Option(
         None, help="Standard deviation of output tokens"
     ),
-    random_seed: Optional[int] = typer.Option(None, help="Random seed"),
-    grpc_method: Optional[str] = typer.Option(None, help="gRPC method name"),
-    synthetic_input_tokens_mean: Optional[int] = typer.Option(
+    random_seed: int | None = typer.Option(None, help="Random seed"),
+    grpc_method: str | None = typer.Option(None, help="gRPC method name"),
+    synthetic_input_tokens_mean: int | None = typer.Option(
         None, help="Mean synthetic input tokens"
     ),
-    synthetic_input_tokens_stddev: Optional[int] = typer.Option(
+    synthetic_input_tokens_stddev: int | None = typer.Option(
         None, help="Standard deviation of synthetic input tokens"
     ),
-    prefix_prompt_length: Optional[int] = typer.Option(
-        None, help="Prefix prompt length"
-    ),
-    warmup_request_count: Optional[int] = typer.Option(
+    prefix_prompt_length: int | None = typer.Option(None, help="Prefix prompt length"),
+    warmup_request_count: int | None = typer.Option(
         None, help="Number of warmup requests"
     ),
     # Other
     verbose: bool = typer.Option(False, help="Enable verbose mode"),
     # Output
-    artifact_dir: Optional[str] = typer.Option(None, help="Artifact directory"),
-    checkpoint_dir: Optional[str] = typer.Option(None, help="Checkpoint directory"),
+    artifact_dir: str | None = typer.Option(None, help="Artifact directory"),
+    checkpoint_dir: str | None = typer.Option(None, help="Checkpoint directory"),
     generate_plots: bool = typer.Option(False, help="Generate plots"),
     enable_checkpointing: bool = typer.Option(False, help="Enable checkpointing"),
-    profile_export_file: Optional[str] = typer.Option(
+    profile_export_file: str | None = typer.Option(
         None, help="Profile export file path"
     ),
     # Profiling
-    measurement_interval: Optional[int] = typer.Option(
+    measurement_interval: int | None = typer.Option(
         None, help="Measurement interval in milliseconds"
     ),
-    request_count: Optional[int] = typer.Option(None, help="Number of requests"),
-    request_rate: Optional[float] = typer.Option(None, help="Request rate"),
-    fixed_schedule: Optional[str] = typer.Option(None, help="Fixed schedule file"),
-    stability_percentage: Optional[float] = typer.Option(
+    request_count: int | None = typer.Option(None, help="Number of requests"),
+    request_rate: float | None = typer.Option(None, help="Request rate"),
+    fixed_schedule: str | None = typer.Option(None, help="Fixed schedule file"),
+    stability_percentage: float | None = typer.Option(
         None, help="Stability percentage"
     ),
     # Session
-    num_sessions: Optional[int] = typer.Option(None, help="Number of sessions"),
-    session_concurrency: Optional[int] = typer.Option(None, help="Session concurrency"),
-    session_delay_ratio: Optional[float] = typer.Option(
-        None, help="Session delay ratio"
-    ),
-    session_turn_delay_mean: Optional[float] = typer.Option(
+    num_sessions: int | None = typer.Option(None, help="Number of sessions"),
+    session_concurrency: int | None = typer.Option(None, help="Session concurrency"),
+    session_delay_ratio: float | None = typer.Option(None, help="Session delay ratio"),
+    session_turn_delay_mean: float | None = typer.Option(
         None, help="Mean session turn delay"
     ),
-    session_turn_delay_stddev: Optional[float] = typer.Option(
+    session_turn_delay_stddev: float | None = typer.Option(
         None, help="Standard deviation of session turn delay"
     ),
-    session_turns_mean: Optional[int] = typer.Option(None, help="Mean session turns"),
-    session_turns_stddev: Optional[int] = typer.Option(
+    session_turns_mean: int | None = typer.Option(None, help="Mean session turns"),
+    session_turns_stddev: int | None = typer.Option(
         None, help="Standard deviation of session turns"
     ),
     # Tokenizer
-    tokenizer: Optional[str] = typer.Option(None, help="Tokenizer name or path"),
-    tokenizer_revision: Optional[str] = typer.Option(None, help="Tokenizer revision"),
+    tokenizer: str | None = typer.Option(None, help="Tokenizer name or path"),
+    tokenizer_revision: str | None = typer.Option(None, help="Tokenizer revision"),
     tokenizer_trust_remote_code: bool = typer.Option(
         False, help="Trust remote tokenizer code"
     ),
-):
+) -> None:
     """Run benchmarks and analyze results in one command"""
     console.print(
         Panel(
@@ -1188,7 +1183,7 @@ def run_all(
     console.print("\n[green]Complete pipeline finished![/green]")
 
 
-def main():
+def main() -> None:
     """Main entry point"""
     app()
 
