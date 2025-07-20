@@ -83,6 +83,7 @@ class GenericTypedCache(Generic[K, V]):
         # Cache storage
         self._cache: OrderedDict[str, tuple[V, float]] = OrderedDict()
         self._key_mapping: dict[K, str] = {}
+        self._reverse_key_mapping: dict[str, K] = {}
 
         # Thread safety
         self._lock = threading.Lock() if thread_safe else None
@@ -108,18 +109,19 @@ class GenericTypedCache(Generic[K, V]):
             if self.eviction_policy == "lru":
                 # Remove least recently used
                 oldest_key, _ = self._cache.popitem(last=False)
-                # Clean up key mapping
-                self._key_mapping = {
-                    k: v for k, v in self._key_mapping.items() if v != oldest_key
-                }
+                # Clean up key mapping using reverse mapping for O(1) lookup
+                if oldest_key in self._reverse_key_mapping:
+                    original_key = self._reverse_key_mapping.pop(oldest_key)
+                    del self._key_mapping[original_key]
             else:
                 # For TTL and semantic, remove expired items first, then LRU
                 self._evict_expired()
                 if len(self._cache) >= self.max_size:
                     oldest_key, _ = self._cache.popitem(last=False)
-                    self._key_mapping = {
-                        k: v for k, v in self._key_mapping.items() if v != oldest_key
-                    }
+                    # Clean up key mapping using reverse mapping for O(1) lookup
+                    if oldest_key in self._reverse_key_mapping:
+                        original_key = self._reverse_key_mapping.pop(oldest_key)
+                        del self._key_mapping[original_key]
             self.stats.evictions += 1
 
     def _evict_expired(self) -> None:
@@ -136,10 +138,10 @@ class GenericTypedCache(Generic[K, V]):
 
         for cache_key in expired_keys:
             del self._cache[cache_key]
-            # Clean up key mapping
-            self._key_mapping = {
-                k: v for k, v in self._key_mapping.items() if v != cache_key
-            }
+            # Clean up key mapping using reverse mapping for O(1) lookup
+            if cache_key in self._reverse_key_mapping:
+                original_key = self._reverse_key_mapping.pop(cache_key)
+                del self._key_mapping[original_key]
 
     def get(self, key: K) -> V | None:
         """Get item from cache."""
@@ -153,11 +155,12 @@ class GenericTypedCache(Generic[K, V]):
 
                 # Check TTL expiration
                 if self.ttl and time.time() - timestamp > self.ttl:
-                 if self.ttl and time.time() - timestamp > self.ttl:
-                     del self._cache[cache_key]
-                     if key in self._key_mapping:
-                         del self._key_mapping[key]
-                     self.stats.misses += 1
+                    del self._cache[cache_key]
+                    if key in self._key_mapping:
+                        del self._key_mapping[key]
+                    if cache_key in self._reverse_key_mapping:
+                        del self._reverse_key_mapping[cache_key]
+                    self.stats.misses += 1
                     return None
 
                 # Move to end (mark as recently used)
@@ -166,23 +169,17 @@ class GenericTypedCache(Generic[K, V]):
                 return value
 
             # Semantic similarity search
+            # Note: Semantic similarity requires a value to compare against cached values
+            # but get() only receives a key. This would need a different API design
+            # where the caller provides both key and value for similarity matching
             if (
                 self.eviction_policy == "semantic"
                 and self.similarity_matcher
                 and self._cache
             ):
-
-                for _cached_key, (
-                    _cached_value,
-                    cached_timestamp,
-                ) in self._cache.items():
-                    if self.ttl and time.time() - cached_timestamp > self.ttl:
-                        continue
-
-                    # This is a simplified approach - in practice, you'd want
-                    # to compare the input key against the original keys
-                    # that were used to store the cached values
-                    pass
+                # TODO: Implement semantic similarity when API design allows
+                # comparing search values against cached values
+                pass
 
             self.stats.misses += 1
             return None
@@ -202,6 +199,7 @@ class GenericTypedCache(Generic[K, V]):
 
             self._cache[cache_key] = (value, timestamp)
             self._key_mapping[key] = cache_key
+            self._reverse_key_mapping[cache_key] = key
 
             # Move to end (mark as recently used)
             self._cache.move_to_end(cache_key)
@@ -214,6 +212,7 @@ class GenericTypedCache(Generic[K, V]):
         def _clear() -> None:
             self._cache.clear()
             self._key_mapping.clear()
+            self._reverse_key_mapping.clear()
 
         self._with_lock(_clear)
 
