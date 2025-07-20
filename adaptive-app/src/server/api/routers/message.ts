@@ -135,6 +135,7 @@ export const messageRouter = createTRPCRouter({
 		.input(createMessageSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
 			// Check if user is subscribed
 			const subscription = await ctx.db.subscription.findFirst({
@@ -181,6 +182,7 @@ export const messageRouter = createTRPCRouter({
 		.input(z.object({ conversationId: z.number() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
 			const conversation = await findConversationByUserAndId(
 				ctx.db,
@@ -199,6 +201,7 @@ export const messageRouter = createTRPCRouter({
 		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
 			const message = await findMessageWithConversationAccess(
 				ctx.db,
@@ -212,6 +215,7 @@ export const messageRouter = createTRPCRouter({
 		.input(updateMessageSchema)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 			const { id, ...dataToUpdate } = input;
 
 			const message = await findMessageWithConversationAccess(
@@ -234,6 +238,7 @@ export const messageRouter = createTRPCRouter({
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
 			const message = await findMessageWithConversationAccess(
 				ctx.db,
@@ -258,6 +263,7 @@ export const messageRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 			const { conversationId, messages: messagesData } = input;
 
 			const conversation = await findConversationByUserAndId(
@@ -321,6 +327,7 @@ export const messageRouter = createTRPCRouter({
 
 	getRemainingDaily: protectedProcedure.query(async ({ ctx }) => {
 		const userId = ctx.clerkAuth.userId;
+		if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
 
 		// Check if user is subscribed
 		const subscription = await ctx.db.subscription.findFirst({
