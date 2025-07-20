@@ -9,7 +9,7 @@ authors = [
 dependencies = [
     "datasets>=2.16.0",
     "transformers>=4.35.0",
-    "torch==2.7.1",
+    "torch==2.2.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     "matplotlib>=3.7.0",

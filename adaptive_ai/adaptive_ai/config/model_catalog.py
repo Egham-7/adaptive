@@ -17,6 +17,7 @@ ACTIVE_PROVIDERS = {
     ProviderType.GROQ,  # Fast inference provider
     ProviderType.GROK,  # X.AI's models (grok-3, grok-3-mini)
     ProviderType.DEEPSEEK,
+    ProviderType.ADAPTIVE,  # Adaptive minion service
 }
 
 # --- In-memory map of model capabilities aggregated by provider ---
@@ -505,22 +506,1005 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
     ),
 }
 
-# --- Minion Task Model Mappings (HuggingFace Models) ---
-# This maps each TaskType to a SINGLE designated HuggingFace specialist model,
-# each optimized for specific task types and available via HuggingFace Inference API
+# --- Minion Task Model Mappings (Adaptive Service Models) ---
+# This maps each TaskType to a SINGLE designated adaptive service specialist model,
+# each optimized for specific task types and available via Adaptive Minion Service
 
 minion_task_model_mappings: dict[TaskType, str] = {
-    TaskType.OPEN_QA: "llama-3.1-8b-instant",
-    TaskType.CODE_GENERATION: "meta-llama/llama-4-scout-17b-16e-instruct",
-    TaskType.SUMMARIZATION: "gemma2-9b-it",
-    TaskType.TEXT_GENERATION: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.CHATBOT: "gemma2-9b-it",
-    TaskType.CLASSIFICATION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.CLOSED_QA: "llama-3.1-8b-instant",
-    TaskType.REWRITE: "gemma2-9b-it",
-    TaskType.BRAINSTORMING: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.EXTRACTION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.OTHER: "llama-3.1-8b-instant",
+    TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
+    TaskType.CODE_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
+    TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
+    TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.CHATBOT: "meta-llama/Meta-Llama-3-8B-Instruct",
+    TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+    TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.REWRITE: "microsoft/Phi-4-mini-reasoning",
+    TaskType.BRAINSTORMING: "meta-llama/Meta-Llama-3-8B-Instruct",
+    TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+    TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
+}
+
+# --- Domain-Based Model Mappings for Adaptive Service ---
+# This maps domain types to specialized models based on domain expertise
+
+minion_domain_model_mappings: dict[DomainType, str] = {
+    DomainType.BUSINESS_AND_INDUSTRIAL: "Qwen/Qwen2.5-14B-Instruct",
+    DomainType.HEALTH: "Qwen/Qwen2.5-14B-Instruct",
+    DomainType.NEWS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.OTHERDOMAINS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.REAL_ESTATE: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.COMPUTERS_AND_ELECTRONICS: "codellama/CodeLlama-7b-Instruct-hf",
+    DomainType.INTERNET_AND_TELECOM: "codellama/CodeLlama-7b-Instruct-hf",
+    DomainType.FINANCE: "Qwen/Qwen2.5-Math-7B-Instruct",
+    DomainType.SCIENCE: "Qwen/Qwen2.5-Math-7B-Instruct",
+    DomainType.JOBS_AND_EDUCATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    DomainType.LAW_AND_GOVERNMENT: "microsoft/Phi-4-mini-reasoning",
+    DomainType.SENSITIVE_SUBJECTS: "meta-llama/Meta-Llama-3-8B-Instruct",
+    # Default for remaining domains
+    DomainType.ADULT: "meta-llama/Meta-Llama-3-8B-Instruct",
+    DomainType.ARTS_AND_ENTERTAINMENT: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.AUTOS_AND_VEHICLES: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.BEAUTY_AND_FITNESS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.BOOKS_AND_LITERATURE: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.FOOD_AND_DRINK: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.GAMES: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.HOBBIES_AND_LEISURE: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.HOME_AND_GARDEN: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.ONLINE_COMMUNITIES: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.PEOPLE_AND_SOCIETY: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.PETS_AND_ANIMALS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.REFERENCE: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    DomainType.SHOPPING: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.SPORTS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.TRAVEL_AND_TRANSPORTATION: "Qwen/Qwen2.5-7B-Instruct",
+}
+
+# --- UNIFIED DOMAIN-TASK MODEL MAPPING ---
+# Structure: domains[domain][task_type] -> list[TaskModelEntry]
+# Used for standard LLM protocol routing
+domains: dict[DomainType, dict[TaskType, list[TaskModelEntry]]] = {
+    # Business and Industrial
+    DomainType.BUSINESS_AND_INDUSTRIAL: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Computers and Electronics
+    DomainType.COMPUTERS_AND_ELECTRONICS: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Finance
+    DomainType.FINANCE: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Health
+    DomainType.HEALTH: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Internet and Telecom
+    DomainType.INTERNET_AND_TELECOM: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Jobs and Education
+    DomainType.JOBS_AND_EDUCATION: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Law and Government
+    DomainType.LAW_AND_GOVERNMENT: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+        ],
+    },
+    # News
+    DomainType.NEWS: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+    },
+    # Real Estate
+    DomainType.REAL_ESTATE: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Science
+    DomainType.SCIENCE: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(
+                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
+            ),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+    },
+    # Sensitive Subjects
+    DomainType.SENSITIVE_SUBJECTS: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+    # Other Domains (consolidated)
+    DomainType.OTHERDOMAINS: {
+        TaskType.CODE_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+        TaskType.OPEN_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
+        ],
+        TaskType.SUMMARIZATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+        ],
+        TaskType.TEXT_GENERATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CHATBOT: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLASSIFICATION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.CLOSED_QA: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.REWRITE: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+        ],
+        TaskType.BRAINSTORMING: [
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.EXTRACTION: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+        ],
+        TaskType.OTHER: [
+            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
+            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
+            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
+        ],
+    },
+}
+
+
+# --- MINION MODELS (HuggingFace Specialists) ---
+# ONLY models with confirmed HuggingFace Inference API support
+# ✅ API Ready: microsoft/deberta-v3-base, facebook/bart-large-cnn, ProsusAI/finbert,
+#               emilyalsentzer/Bio_ClinicalBERT, nlpaueb/legal-bert-base-uncased, microsoft/codebert-base
+minion_domains: dict[DomainType, dict[TaskType, str]] = {
+    # Business and Industrial
+    DomainType.BUSINESS_AND_INDUSTRIAL: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - best available for generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - general purpose
+    },
+    # Computers and Electronics
+    DomainType.COMPUTERS_AND_ELECTRONICS: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - text generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/codebert-base",
+    },
+    # Finance
+    DomainType.FINANCE: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "ProsusAI/finbert",
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - text generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "ProsusAI/finbert",
+        TaskType.CLOSED_QA: "ProsusAI/finbert",
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "ProsusAI/finbert",
+        TaskType.OTHER: "ProsusAI/finbert",
+    },
+    # Health
+    DomainType.HEALTH: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "emilyalsentzer/Bio_ClinicalBERT",
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",  # ✅ API Ready - LED not available
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - text generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses  # Fixed: Bio_ClinicalBERT can't chat
+        TaskType.CLASSIFICATION: "emilyalsentzer/Bio_ClinicalBERT",
+        TaskType.CLOSED_QA: "emilyalsentzer/Bio_ClinicalBERT",
+        TaskType.REWRITE: "facebook/bart-large-cnn",  # ✅ API Ready - LED not available
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "emilyalsentzer/Bio_ClinicalBERT",
+        TaskType.OTHER: "emilyalsentzer/Bio_ClinicalBERT",
+    },
+    # Internet and Telecom
+    DomainType.INTERNET_AND_TELECOM: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - text generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - general purpose
+    },
+    # Jobs and Education
+    DomainType.JOBS_AND_EDUCATION: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - best available for generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - general purpose
+    },
+    # Law and Government
+    DomainType.LAW_AND_GOVERNMENT: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "nlpaueb/legal-bert-base-uncased",
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",  # ✅ API Ready - LED not available
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - text generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses  # Fixed: Legal-BERT can't chat
+        TaskType.CLASSIFICATION: "nlpaueb/legal-bert-base-uncased",
+        TaskType.CLOSED_QA: "nlpaueb/legal-bert-base-uncased",
+        TaskType.REWRITE: "facebook/bart-large-cnn",  # ✅ API Ready - LED not available
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "nlpaueb/legal-bert-base-uncased",
+        TaskType.OTHER: "nlpaueb/legal-bert-base-uncased",
+    },
+    # News
+    DomainType.NEWS: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - best available for generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - general purpose
+    },
+    # Real Estate
+    DomainType.REAL_ESTATE: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - best available for generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - general purpose
+    },
+    # Science
+    DomainType.SCIENCE: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - SciBERT not available
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",  # ✅ API Ready - LED not available
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - text generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",  # ✅ API Ready - SciBERT not available
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - SciBERT not available
+        TaskType.REWRITE: "facebook/bart-large-cnn",  # ✅ API Ready - LED not available
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",  # ✅ API Ready - SciBERT not available
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - SciBERT not available
+    },
+    # Sensitive Subjects
+    DomainType.SENSITIVE_SUBJECTS: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - best available for generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - general purpose
+    },
+    # Other Domains (consolidated)
+    DomainType.OTHERDOMAINS: {
+        TaskType.CODE_GENERATION: "microsoft/codebert-base",  # ✅ API Ready - code feature extraction
+        TaskType.OPEN_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.SUMMARIZATION: "facebook/bart-large-cnn",
+        TaskType.TEXT_GENERATION: "facebook/bart-large-cnn",  # ✅ API Ready - best available for generation
+        TaskType.CHATBOT: "microsoft/deberta-v3-base",  # ✅ API Ready - classification-based responses
+        TaskType.CLASSIFICATION: "microsoft/deberta-v3-base",
+        TaskType.CLOSED_QA: "microsoft/deberta-v3-base",  # ✅ API Ready - classification for QA
+        TaskType.REWRITE: "facebook/bart-large-cnn",
+        TaskType.BRAINSTORMING: "facebook/bart-large-cnn",  # ✅ API Ready - creative text generation
+        TaskType.EXTRACTION: "microsoft/deberta-v3-base",
+        TaskType.OTHER: "microsoft/deberta-v3-base",  # ✅ API Ready - general purpose
+    },
 }
 
 # --- UNIFIED DOMAIN-TASK MODEL MAPPING ---
