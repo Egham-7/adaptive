@@ -295,19 +295,23 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					// Get total metrics
-					const totalMetrics = aggregateSchema.parse(
-						await ctx.db.apiUsage.aggregate({
-							where: whereClause,
-							_sum: {
-								totalTokens: true,
-								cost: true,
-								requestCount: true,
-							},
-							_count: {
-								id: true,
-							},
-						}),
-					);
+					const aggregateResult = await ctx.db.apiUsage.aggregate({
+						where: whereClause,
+						_sum: {
+							totalTokens: true,
+							cost: true,
+							requestCount: true,
+						},
+						_count: {
+							id: true,
+						},
+					});
+					
+					console.log("Aggregate result:", JSON.stringify(aggregateResult, null, 2));
+					console.log("Cost type:", typeof aggregateResult._sum.cost);
+					console.log("Cost value:", aggregateResult._sum.cost);
+					
+					const totalMetrics = aggregateSchema.parse(aggregateResult);
 
 					// Zod schemas for groupBy results
 					const providerUsageSchema = z.object({
