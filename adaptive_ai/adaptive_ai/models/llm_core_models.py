@@ -124,6 +124,9 @@ class ModelSelectionRequest(BaseModel):
     # Required
     messages: list[Message]
 
+    # Backend compatibility
+    user_id: str | None = Field(default=None, alias="user_id")
+
     # Model selection (existing)
     provider_constraint: list[str] | None = Field(
         default=None, alias="provider_constraint"
