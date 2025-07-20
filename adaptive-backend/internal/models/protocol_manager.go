@@ -2,9 +2,6 @@
 package models
 
 import (
-	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"time"
-
 	"github.com/openai/openai-go"
 )
 
@@ -48,21 +45,6 @@ const (
 	ProtocolMinionsProtocol ProtocolType = "minions_protocol"
 )
 
-// ModelCapability represents the capabilities of a model.
-type ModelCapability struct {
-	Description             string       `json:"description"`
-	Provider                ProviderType `json:"provider"`
-	ModelName               string       `json:"model_name"`
-	CostPer1MInputTokens    float64      `json:"cost_per_1m_input_tokens"`
-	CostPer1MOutputTokens   float64      `json:"cost_per_1m_output_tokens"`
-	MaxContextTokens        int          `json:"max_context_tokens"`
-	MaxOutputTokens         *int         `json:"max_output_tokens,omitempty"`
-	SupportsFunctionCalling bool         `json:"supports_function_calling"`
-	LanguagesSupported      []string     `json:"languages_supported"`
-	ModelSizeParams         *string      `json:"model_size_params,omitempty"`
-	LatencyTier             *string      `json:"latency_tier,omitempty"`
-}
-
 // ModelSelectionRequest represents an incoming selection request.
 type ModelSelectionRequest struct {
 	Messages           []openai.ChatCompletionMessageParamUnion `json:"messages"`
@@ -101,14 +83,4 @@ type ProtocolResponse struct {
 	Protocol ProtocolType     `json:"protocol"`
 	Standard *StandardLLMInfo `json:"standard,omitempty"`
 	Minion   *MinionInfo      `json:"minion,omitempty"`
-}
-
-// RaceResult represents a parallel provider race outcome.
-type RaceResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string
-	ModelName    string
-	TaskType     string
-	Duration     time.Duration
-	Error        error
 }
