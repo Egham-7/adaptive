@@ -67,7 +67,6 @@ export const usageRouter = createTRPCRouter({
 					});
 				}
 
-				// Calculate cost using provider cost table
 				const providerModel =
 					!input.provider || !input.model
 						? null
@@ -80,7 +79,10 @@ export const usageRouter = createTRPCRouter({
 									},
 									select: { inputTokenCost: true, outputTokenCost: true },
 								})
-								.catch(() => null);
+								.catch((error) => {
+									console.error("Error fetching provider model:", error);
+									return null;
+								});
 
 				const calculatedCost = providerModel
 					? (input.usage.promptTokens *
@@ -246,7 +248,15 @@ export const usageRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
-			const cacheKey = `project-analytics:${userId}:${input.projectId}:${JSON.stringify(input)}`;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User not authenticated",
+				});
+			}
+			const cacheKey = `project-analytics:${userId}:${
+				input.projectId
+			}:${JSON.stringify(input)}`;
 
 			return withCache(cacheKey, async () => {
 				try {
@@ -286,7 +296,10 @@ export const usageRouter = createTRPCRouter({
 					const aggregateSchema = z.object({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.any().nullable().transform(val => val ? Number(val) : null),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : null)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -306,11 +319,7 @@ export const usageRouter = createTRPCRouter({
 							id: true,
 						},
 					});
-					
-					console.log("Aggregate result:", JSON.stringify(aggregateResult, null, 2));
-					console.log("Cost type:", typeof aggregateResult._sum.cost);
-					console.log("Cost value:", aggregateResult._sum.cost);
-					
+
 					const totalMetrics = aggregateSchema.parse(aggregateResult);
 
 					// Zod schemas for groupBy results
@@ -318,7 +327,10 @@ export const usageRouter = createTRPCRouter({
 						provider: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.any().nullable().transform(val => val ? Number(val) : null),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : null)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -329,7 +341,10 @@ export const usageRouter = createTRPCRouter({
 						requestType: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.any().nullable().transform(val => val ? Number(val) : null),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : null)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -340,7 +355,10 @@ export const usageRouter = createTRPCRouter({
 						timestamp: z.date(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.any().nullable().transform(val => val ? Number(val) : null),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : null)),
 							requestCount: z.number().nullable(),
 						}),
 					});
@@ -623,6 +641,12 @@ export const usageRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User not authenticated",
+				});
+			}
 			const cacheKey = `user-analytics:${userId}:${JSON.stringify(input)}`;
 
 			return withCache(cacheKey, async () => {
@@ -644,7 +668,10 @@ export const usageRouter = createTRPCRouter({
 					const aggregateSchema = z.object({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.any().nullable().transform(val => val ? Number(val) : null),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : null)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -671,7 +698,10 @@ export const usageRouter = createTRPCRouter({
 						projectId: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.any().nullable().transform(val => val ? Number(val) : null),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : null)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({

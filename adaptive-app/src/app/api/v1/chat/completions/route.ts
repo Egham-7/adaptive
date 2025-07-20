@@ -16,8 +16,9 @@ export async function POST(req: NextRequest) {
 		const body: ChatCompletionRequest = await req.json();
 
 		// Extract API key from X-Stainless-API-Key header
-		const apiKey = req.headers.get("x-stainless-api-key") ||
-                req.headers.get("authorization")?.replace("Bearer ", "");
+		const apiKey =
+			req.headers.get("x-stainless-api-key") ||
+			req.headers.get("authorization")?.replace("Bearer ", "");
 
 		if (!apiKey) {
 			return new Response(
