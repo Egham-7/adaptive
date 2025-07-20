@@ -69,6 +69,19 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
 	});
 });
 
+const requireUserId = t.middleware(({ ctx, next }) => {
+	const userId = ctx.clerkAuth.userId;
+	if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+	return next({
+		ctx: {
+			...ctx,
+			userId, // guaranteed to be string
+		},
+	});
+});
+
+export { requireUserId };
+
 export const publicProcedure = t.procedure.use(timingMiddleware);
 
 export const protectedProcedure = t.procedure

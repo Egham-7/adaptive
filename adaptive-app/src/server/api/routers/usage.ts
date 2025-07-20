@@ -6,6 +6,7 @@ import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
+	requireUserId,
 } from "@/server/api/trpc";
 
 // Helper function to ensure we always return valid numbers
@@ -229,6 +230,7 @@ export const usageRouter = createTRPCRouter({
 
 	// Get usage analytics for a project
 	getProjectAnalytics: protectedProcedure
+		.use(requireUserId)
 		.input(
 			z.object({
 				projectId: z.string(),
@@ -247,13 +249,7 @@ export const usageRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "User not authenticated",
-				});
-			}
+			const userId = ctx.userId;
 			const cacheKey = `project-analytics:${userId}:${
 				input.projectId
 			}:${JSON.stringify(input)}`;
@@ -623,6 +619,7 @@ export const usageRouter = createTRPCRouter({
 
 	// Get usage analytics for a user across all projects
 	getUserAnalytics: protectedProcedure
+		.use(requireUserId)
 		.input(
 			z.object({
 				startDate: z.date().optional(),
@@ -640,13 +637,7 @@ export const usageRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
-			if (!userId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "User not authenticated",
-				});
-			}
+			const userId = ctx.userId;
 			const cacheKey = `user-analytics:${userId}:${JSON.stringify(input)}`;
 
 			return withCache(cacheKey, async () => {
