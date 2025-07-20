@@ -16,7 +16,7 @@
   },
   "servers": [
     {
-      "url": "https://llmadaptive.uk/api/v1",
+      "url": "https://llmadaptive.uk/api",
       "description": "Production server"
     },
     {
@@ -160,11 +160,6 @@
             "minimum": 1,
             "description": "The maximum number of tokens to generate",
             "example": 1000
-          },
-          "max_completion_tokens": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "An upper bound for the number of tokens that can be generated for a completion"
           },
           "top_p": {
             "type": "number",

@@ -37,7 +37,7 @@ All API endpoints require authentication using an API key. You must also have:
 Include your API key in the `X-Stainless-API-Key` header:
 
 ```bash
-curl https://api.adaptive.ai/v1/chat/completions \
+curl https://llmadaptive.uk/api/v1/chat/completions \
   -H "X-Stainless-API-Key: your-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{...}'
@@ -128,7 +128,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-adaptive-api-key",
-    base_url="https://api.adaptive.ai/v1"
+    base_url="https://llmadaptive.uk/api/v1"
 )
 ```
 
@@ -138,13 +138,13 @@ import OpenAI from 'openai';
 
 const client = new OpenAI({
   apiKey: 'your-adaptive-api-key',
-  baseURL: 'https://api.adaptive.ai/v1'
+  baseURL: 'https://llmadaptive.uk/api/v1'
 });
 ```
 
 ### cURL
 ```bash
-curl https://api.adaptive.ai/v1/chat/completions \
+curl https://llmadaptive.uk/api/v1/chat/completions \
   -H "X-Stainless-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{
