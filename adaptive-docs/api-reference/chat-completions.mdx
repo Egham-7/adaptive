@@ -1,0 +1,324 @@
+---
+title: 'Chat Completions'
+api: 'POST https://llmadaptive.uk/api/v1/chat/completions'
+description: 'Create a chat completion with intelligent model routing'
+---
+
+## Overview
+
+The chat completions endpoint is fully compatible with OpenAI's API while adding intelligent routing across multiple AI providers. Simply use an empty string for the model parameter to enable automatic provider selection.
+
+## Request
+
+<ParamField body="model" type="string" required>
+  Model to use for completion. Use `""` (empty string) for intelligent routing.
+</ParamField>
+
+<ParamField body="messages" type="array" required>
+  Array of message objects representing the conversation.
+  
+  <Expandable title="Message Object">
+    <ParamField body="role" type="string" required>
+      Role of the message author. One of: `system`, `user`, `assistant`, `tool`
+    </ParamField>
+    
+    <ParamField body="content" type="string | array" required>
+      Content of the message. Can be text or array for multimodal inputs.
+    </ParamField>
+    
+    <ParamField body="name" type="string">
+      Optional name for the message author
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="temperature" type="number">
+  Sampling temperature between 0 and 2. Higher values make output more random.
+  Default: `1`
+</ParamField>
+
+<ParamField body="max_tokens" type="integer">
+  Maximum number of tokens to generate. Default varies by model.
+</ParamField>
+
+<ParamField body="stream" type="boolean">
+  Whether to stream the response. Default: `false`
+</ParamField>
+
+<ParamField body="top_p" type="number">
+  Nucleus sampling parameter. Default: `1`
+</ParamField>
+
+<ParamField body="frequency_penalty" type="number">
+  Penalty for token frequency. Range: -2.0 to 2.0. Default: `0`
+</ParamField>
+
+<ParamField body="presence_penalty" type="number">
+  Penalty for token presence. Range: -2.0 to 2.0. Default: `0`
+</ParamField>
+
+<ParamField body="tools" type="array">
+  Array of tool definitions for function calling.
+</ParamField>
+
+### Adaptive-Specific Parameters
+
+<ParamField body="provider_constraint" type="array">
+  Array of provider names to limit selection. Available: `["openai", "anthropic", "gemini", "groq", "deepseek", "grok"]`
+</ParamField>
+
+<ParamField body="cost_bias" type="number">
+  Bias towards cost optimization. Range: 0-1 where 0 = cheapest, 1 = best performance. Default: `0.5`
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string">
+  Unique identifier for the completion
+</ResponseField>
+
+<ResponseField name="object" type="string">
+  Object type, always `chat.completion`
+</ResponseField>
+
+<ResponseField name="created" type="integer">
+  Unix timestamp of creation
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  Model used for the completion
+</ResponseField>
+
+<ResponseField name="provider" type="string">
+  **Adaptive addition:** Which provider was selected (e.g., "openai", "anthropic")
+</ResponseField>
+
+<ResponseField name="choices" type="array">
+  Array of completion choices
+  
+  <Expandable title="Choice Object">
+    <ResponseField name="index" type="integer">
+      Index of the choice
+    </ResponseField>
+    
+    <ResponseField name="message" type="object">
+      The generated message
+      
+      <Expandable title="Message Object">
+        <ResponseField name="role" type="string">
+          Role of the message, always "assistant"
+        </ResponseField>
+        
+        <ResponseField name="content" type="string">
+          The content of the message
+        </ResponseField>
+        
+        <ResponseField name="tool_calls" type="array">
+          Tool calls made by the model (if any)
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="finish_reason" type="string">
+      Reason completion finished: `stop`, `length`, `tool_calls`, or `content_filter`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Token usage statistics
+  
+  <Expandable title="Usage Object">
+    <ResponseField name="prompt_tokens" type="integer">
+      Number of tokens in the prompt
+    </ResponseField>
+    
+    <ResponseField name="completion_tokens" type="integer">
+      Number of tokens in the completion
+    </ResponseField>
+    
+    <ResponseField name="total_tokens" type="integer">
+      Total tokens used
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Examples
+
+### Basic Chat
+
+<CodeGroup>
+
+```javascript JavaScript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Explain quantum computing simply' }
+  ],
+});
+
+console.log(completion.choices[0].message.content);
+```
+
+```python Python
+completion = client.chat.completions.create(
+    model="",
+    messages=[
+        {"role": "user", "content": "Explain quantum computing simply"}
+    ]
+)
+
+print(completion.choices[0].message.content)
+```
+
+```bash cURL
+curl https://llmadaptive.uk/api/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
+  -d '{
+    "model": "",
+    "messages": [
+      {"role": "user", "content": "Explain quantum computing simply"}
+    ]
+  }'
+```
+
+</CodeGroup>
+
+### With Provider Constraints
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Write a Python function to sort a list' }
+  ],
+  provider_constraint: ['anthropic', 'deepseek'], // Only use these providers
+  cost_bias: 0.2 // Prefer cost savings
+});
+```
+
+### Streaming Response
+
+```javascript
+const stream = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Tell me a story about space exploration' }
+  ],
+  stream: true
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}
+```
+
+### Function Calling
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'What\'s the weather like in San Francisco?' }
+  ],
+  tools: [
+    {
+      type: 'function',
+      function: {
+        name: 'get_weather',
+        description: 'Get current weather for a location',
+        parameters: {
+          type: 'object',
+          properties: {
+            location: {
+              type: 'string',
+              description: 'City and state, e.g. San Francisco, CA'
+            }
+          },
+          required: ['location']
+        }
+      }
+    }
+  ]
+});
+```
+
+### Vision (Multimodal)
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'What\'s in this image?' },
+        {
+          type: 'image_url',
+          image_url: {
+            url: 'https://example.com/image.jpg'
+          }
+        }
+      ]
+    }
+  ]
+});
+```
+
+## Error Responses
+
+<ResponseField name="error" type="object">
+  Error information
+  
+  <Expandable title="Error Object">
+    <ResponseField name="message" type="string">
+      Human-readable error message
+    </ResponseField>
+    
+    <ResponseField name="type" type="string">
+      Error type: `invalid_request_error`, `authentication_error`, `permission_error`, `rate_limit_error`, or `server_error`
+    </ResponseField>
+    
+    <ResponseField name="code" type="string">
+      Error code for programmatic handling
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Common Errors
+
+| Status Code | Error Type | Description |
+|-------------|------------|-------------|
+| 400 | `invalid_request_error` | Invalid request format or parameters |
+| 401 | `authentication_error` | Invalid or missing API key |
+| 403 | `permission_error` | API key doesn't have required permissions |
+| 429 | `rate_limit_error` | Rate limit exceeded |
+| 500 | `server_error` | Internal server error |
+
+## Rate Limits
+
+| Plan | Requests per Minute | Tokens per Minute |
+|------|-------------------|-------------------|
+| Free | 100 | 10,000 |
+| Pro | 1,000 | 100,000 |
+| Enterprise | Custom | Custom |
+
+Rate limits are applied per API key and reset every minute.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Model Selection" icon="brain">
+    Use empty string `""` for model to enable intelligent routing and cost savings
+  </Card>
+  <Card title="Cost Control" icon="dollar-sign">
+    Use `cost_bias` parameter to balance cost vs performance for your use case
+  </Card>
+  <Card title="Provider Limits" icon="filter">
+    Use `provider_constraint` to limit which providers can be selected
+  </Card>
+  <Card title="Error Handling" icon="shield-check">
+    Always implement proper error handling for network and API failures
+  </Card>
+</CardGroup>
