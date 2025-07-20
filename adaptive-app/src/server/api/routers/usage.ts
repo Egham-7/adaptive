@@ -286,7 +286,7 @@ export const usageRouter = createTRPCRouter({
 					const aggregateSchema = z.object({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z.any().nullable().transform(val => val ? Number(val) : null),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -318,7 +318,7 @@ export const usageRouter = createTRPCRouter({
 						provider: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z.any().nullable().transform(val => val ? Number(val) : null),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -329,7 +329,7 @@ export const usageRouter = createTRPCRouter({
 						requestType: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z.any().nullable().transform(val => val ? Number(val) : null),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -340,7 +340,7 @@ export const usageRouter = createTRPCRouter({
 						timestamp: z.date(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z.any().nullable().transform(val => val ? Number(val) : null),
 							requestCount: z.number().nullable(),
 						}),
 					});
@@ -644,7 +644,7 @@ export const usageRouter = createTRPCRouter({
 					const aggregateSchema = z.object({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z.any().nullable().transform(val => val ? Number(val) : null),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -671,7 +671,7 @@ export const usageRouter = createTRPCRouter({
 						projectId: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z.any().nullable().transform(val => val ? Number(val) : null),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
