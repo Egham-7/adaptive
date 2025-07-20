@@ -177,7 +177,7 @@ class ModelSelectionService:
         # Get all other minions from the mapping that could potentially handle the task
         for _task, model in minion_task_model_mappings.items():
             if model != primary_minion:  # Exclude the primary minion
-                alternatives.append({"provider": "groq", "model": model})
+                alternatives.append({"provider": "adaptive", "model": model})
 
         # Limit to top 3 alternatives to avoid overwhelming
         return alternatives[:3]

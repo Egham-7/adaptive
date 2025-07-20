@@ -16,6 +16,7 @@ ACTIVE_PROVIDERS = {
     ProviderType.GROQ,  # Fast inference provider
     ProviderType.GROK,  # X.AI's models (grok-3, grok-3-mini)
     ProviderType.DEEPSEEK,
+    ProviderType.ADAPTIVE,  # Adaptive minion service
 }
 
 # --- In-memory map of model capabilities aggregated by provider ---
@@ -504,20 +505,56 @@ task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
     ),
 }
 
-# --- Minion Task Model Mappings (HuggingFace Models) ---
-# This maps each TaskType to a SINGLE designated HuggingFace specialist model,
-# each optimized for specific task types and available via HuggingFace Inference API
+# --- Minion Task Model Mappings (Adaptive Service Models) ---
+# This maps each TaskType to a SINGLE designated adaptive service specialist model,
+# each optimized for specific task types and available via Adaptive Minion Service
 
 minion_task_model_mappings: dict[TaskType, str] = {
-    TaskType.OPEN_QA: "llama-3.1-8b-instant",
-    TaskType.CODE_GENERATION: "meta-llama/llama-4-scout-17b-16e-instruct",
-    TaskType.SUMMARIZATION: "gemma2-9b-it",
-    TaskType.TEXT_GENERATION: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.CHATBOT: "gemma2-9b-it",
-    TaskType.CLASSIFICATION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.CLOSED_QA: "llama-3.1-8b-instant",
-    TaskType.REWRITE: "gemma2-9b-it",
-    TaskType.BRAINSTORMING: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.EXTRACTION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.OTHER: "llama-3.1-8b-instant",
+    TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
+    TaskType.CODE_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
+    TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
+    TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.CHATBOT: "meta-llama/Meta-Llama-3-8B-Instruct",
+    TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+    TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
+    TaskType.REWRITE: "microsoft/Phi-4-mini-reasoning",
+    TaskType.BRAINSTORMING: "meta-llama/Meta-Llama-3-8B-Instruct",
+    TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+    TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
+}
+
+# --- Domain-Based Model Mappings for Adaptive Service ---
+# This maps domain types to specialized models based on domain expertise
+from adaptive_ai.models.llm_classification_models import DomainType
+
+minion_domain_model_mappings: dict[DomainType, str] = {
+    DomainType.BUSINESS_AND_INDUSTRIAL: "Qwen/Qwen2.5-14B-Instruct",
+    DomainType.HEALTH: "Qwen/Qwen2.5-14B-Instruct",
+    DomainType.NEWS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.OTHERDOMAINS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.REAL_ESTATE: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.COMPUTERS_AND_ELECTRONICS: "codellama/CodeLlama-7b-Instruct-hf",
+    DomainType.INTERNET_AND_TELECOM: "codellama/CodeLlama-7b-Instruct-hf",
+    DomainType.FINANCE: "Qwen/Qwen2.5-Math-7B-Instruct",
+    DomainType.SCIENCE: "Qwen/Qwen2.5-Math-7B-Instruct",
+    DomainType.JOBS_AND_EDUCATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    DomainType.LAW_AND_GOVERNMENT: "microsoft/Phi-4-mini-reasoning",
+    DomainType.SENSITIVE_SUBJECTS: "meta-llama/Meta-Llama-3-8B-Instruct",
+    # Default for remaining domains
+    DomainType.ADULT: "meta-llama/Meta-Llama-3-8B-Instruct",
+    DomainType.ARTS_AND_ENTERTAINMENT: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.AUTOS_AND_VEHICLES: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.BEAUTY_AND_FITNESS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.BOOKS_AND_LITERATURE: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.FOOD_AND_DRINK: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.GAMES: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.HOBBIES_AND_LEISURE: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.HOME_AND_GARDEN: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.ONLINE_COMMUNITIES: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.PEOPLE_AND_SOCIETY: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.PETS_AND_ANIMALS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.REFERENCE: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+    DomainType.SHOPPING: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.SPORTS: "Qwen/Qwen2.5-7B-Instruct",
+    DomainType.TRAVEL_AND_TRANSPORTATION: "Qwen/Qwen2.5-7B-Instruct",
 }
