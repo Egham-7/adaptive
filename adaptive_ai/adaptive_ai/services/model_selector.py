@@ -276,7 +276,7 @@ class ModelSelectionService:
         """Get alternative minion models excluding the primary minion."""
         all_minions = self.get_available_minions()
         alternatives = [
-            {"provider": "huggingface", "model": minion}
+            {"provider": "adaptive", "model": minion}
             for minion in all_minions
             if minion != primary_minion
         ]
