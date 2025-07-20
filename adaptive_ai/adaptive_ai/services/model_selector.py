@@ -1,7 +1,7 @@
 # mypy: disable-error-code=import
 from typing import Any
 
-from adaptive_ai.config.model_catalog import (
+from adaptive_ai.config import (
     ACTIVE_PROVIDERS,
     minion_domains,
     provider_model_capabilities,
