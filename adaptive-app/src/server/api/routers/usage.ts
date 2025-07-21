@@ -68,40 +68,100 @@ export const usageRouter = createTRPCRouter({
 					});
 				}
 
+				// Helper function to find best matching model by similarity
+				const findModelBySimilarity = async (
+					modelName: string,
+					providerName: string,
+				) => {
+					// First try exact match
+					const exactMatch = await ctx.db.providerModel.findFirst({
+						where: {
+							name: modelName,
+							provider: { name: providerName, isActive: true },
+							isActive: true,
+						},
+						select: {
+							inputTokenCost: true,
+							outputTokenCost: true,
+						},
+					});
+
+					if (exactMatch) return exactMatch;
+
+					// If no exact match, get all models for the provider and find best similarity
+					const allModels = await ctx.db.providerModel.findMany({
+						where: {
+							provider: { name: providerName, isActive: true },
+							isActive: true,
+						},
+						select: {
+							name: true,
+							inputTokenCost: true,
+							outputTokenCost: true,
+						},
+					});
+
+					if (allModels.length === 0) return null;
+
+					// Simple similarity scoring: check if model name contains the base name
+					const baseModelName = modelName.toLowerCase();
+					let bestMatch = allModels[0];
+					let bestScore = 0;
+
+					for (const model of allModels) {
+						const modelDbName = model.name.toLowerCase();
+
+						// Score based on:
+						// 1. If the db model name is contained in the input model name
+						// 2. If they share common prefixes
+						let score = 0;
+
+						if (baseModelName.includes(modelDbName)) {
+							score += 10;
+						} else if (modelDbName.includes(baseModelName)) {
+							score += 8;
+						}
+
+						// Check for common prefixes (e.g., "gpt-4o" matches "gpt-4o-mini")
+						const commonPrefix = getCommonPrefix(baseModelName, modelDbName);
+						if (commonPrefix.length > 3) {
+							score += commonPrefix.length;
+						}
+
+						if (score > bestScore) {
+							bestScore = score;
+							bestMatch = model;
+						}
+					}
+
+					return bestScore > 0 ? bestMatch : null;
+				};
+
+				// Helper function to get common prefix
+				const getCommonPrefix = (str1: string, str2: string): string => {
+					let i = 0;
+					while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
+						i++;
+					}
+					return str1.substring(0, i);
+				};
+
 				const providerModel =
 					!input.provider || !input.model
 						? null
-						: await ctx.db.providerModel
-								.findFirst({
-									where: {
-										name: input.model,
-										provider: { name: input.provider, isActive: true },
-										isActive: true,
-									},
-									select: { inputTokenCost: true, outputTokenCost: true },
-								})
+						: await findModelBySimilarity(input.model, input.provider)
 								.catch((error) => {
 									console.error("Error fetching provider model:", error);
 									return null;
 								});
 
-				console.log("Cost Calculation Debug:", {
-					hasProvider: !!input.provider,
-					hasModel: !!input.model,
-					provider: input.provider,
-					model: input.model,
-					providerModelFound: !!providerModel,
-				});
 
 				if (!providerModel && input.provider && input.model) {
 					// Check if provider exists separately
 					const provider = await ctx.db.provider.findFirst({
 						where: { name: input.provider, isActive: true }
 					});
-					console.log("Provider check:", { 
-						providerExists: !!provider,
-						searchedProvider: input.provider 
-					});
+					
 
 					// Check if model exists with this provider
 					const model = await ctx.db.providerModel.findFirst({
@@ -111,13 +171,7 @@ export const usageRouter = createTRPCRouter({
 						},
 						select: { inputTokenCost: true, outputTokenCost: true, isActive: true },
 					});
-					console.log("Model check:", { 
-						modelExists: !!model,
-						modelIsActive: model?.isActive,
-						searchedModel: input.model,
-						inputCost: model?.inputTokenCost?.toNumber(),
-						outputCost: model?.outputTokenCost?.toNumber()
-					});
+					
 				}
 
 				const calculatedCost = providerModel
@@ -128,21 +182,6 @@ export const usageRouter = createTRPCRouter({
 						1000000
 					: 0;
 
-				console.log("API Usage Input:", {
-					provider: input.provider,
-					model: input.model,
-					promptTokens: input.usage.promptTokens,
-					completionTokens: input.usage.completionTokens,
-				});
-
-				console.log("Provider Model Query Result:", providerModel);
-
-				console.log("Calculated Cost:", {
-					calculatedCost,
-					inputTokenCost: providerModel?.inputTokenCost?.toNumber(),
-					outputTokenCost: providerModel?.outputTokenCost?.toNumber(),
-					calculation: providerModel ? `(${input.usage.promptTokens} * ${providerModel.inputTokenCost.toNumber()} + ${input.usage.completionTokens} * ${providerModel.outputTokenCost.toNumber()}) / 1000000` : "No provider model found",
-				});
 
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
@@ -302,9 +341,6 @@ export const usageRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId;
 			
-			// Add logging to debug auth issue
-			console.log("getProjectAnalytics - userId:", userId);
-			console.log("getProjectAnalytics - input:", input);
 			const cacheKey = `project-analytics:${userId}:${
 				input.projectId
 			}:${JSON.stringify(input)}`;
