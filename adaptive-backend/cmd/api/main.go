@@ -25,6 +25,10 @@ import (
 // SetupRoutes configures all the application routes for the Fiber app.
 func SetupRoutes(app *fiber.App) {
 	chatCompletionHandler := api.NewCompletionHandler()
+	healthHandler := api.NewHealthHandler()
+
+	// Health endpoint (no auth required)
+	app.Get("/health", healthHandler.Health)
 
 	// Apply API key authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.APIKeyAuth())
@@ -98,16 +102,6 @@ func main() {
 			"endpoints": map[string]string{
 				"chat": chatEndpoint,
 			},
-		})
-	})
-
-	app.Get(healthEndpoint, func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status":     "healthy",
-			"timestamp":  time.Now(),
-			"uptime":     time.Since(time.Now()).String(),
-			"go_version": runtime.Version(),
-			"goroutines": runtime.NumGoroutine(),
 		})
 	})
 
