@@ -1,0 +1,706 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions when using Adaptive API'
+---
+
+## Common Issues
+
+### Authentication Problems
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized Error">
+    **Problem:** Getting authentication errors when making API calls.
+
+    **Solutions:**
+    1. **Check your API key:**
+       ```bash
+       # Verify your API key is set correctly
+       echo $ADAPTIVE_API_KEY
+       ```
+
+    2. **Ensure correct format:**
+       ```javascript
+       // Correct - no 'Bearer' prefix needed
+       const openai = new OpenAI({
+         apiKey: 'your-adaptive-api-key',
+         baseURL: 'https://llmadaptive.uk/api/v1'
+       });
+       ```
+
+    3. **Verify API key validity:**
+       - Check if your API key has expired
+       - Ensure you're using the correct key for your environment
+       - Try regenerating your API key in the dashboard
+
+    4. **Test with curl:**
+       ```bash
+       curl -H "X-Stainless-API-Key: your-adaptive-api-key" \
+            -H "Content-Type: application/json" \
+            https://llmadaptive.uk/api/v1/chat/completions \
+            -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
+       ```
+  </Accordion>
+
+  <Accordion title="API Key Not Found">
+    **Problem:** Environment variable not being loaded.
+
+    **Solutions:**
+    1. **Check environment variable:**
+       ```bash
+       # In terminal
+       export ADAPTIVE_API_KEY=your-key-here
+       
+       # Or in .env file
+       echo "ADAPTIVE_API_KEY=your-key-here" >> .env
+       ```
+
+    2. **Load environment variables:**
+       ```javascript
+       // Node.js
+       require('dotenv').config();
+       
+       // Or using ES modules
+       import 'dotenv/config';
+       ```
+
+    3. **Python environment:**
+       ```python
+       import os
+       from dotenv import load_dotenv
+       
+       load_dotenv()
+       api_key = os.getenv("ADAPTIVE_API_KEY")
+       ```
+  </Accordion>
+</AccordionGroup>
+
+### Configuration Issues
+
+<AccordionGroup>
+  <Accordion title="Wrong Base URL">
+    **Problem:** Using incorrect base URL causing connection failures.
+
+    **Correct base URL:**
+    ```
+    https://llmadaptive.uk/api/v1
+    ```
+
+    **Common mistakes:**
+    ```javascript
+    // ❌ Wrong
+    baseURL: 'https://api.openai.com/v1'
+    baseURL: 'https://adaptive.ai/api/v1'
+    baseURL: 'https://llmadaptive.uk/v1'
+    
+    // ✅ Correct
+    baseURL: 'https://llmadaptive.uk/api/v1'
+    ```
+  </Accordion>
+
+  <Accordion title="Model Parameter Issues">
+    **Problem:** Intelligent routing not working or model errors.
+
+    **Solutions:**
+    1. **Use empty string for intelligent routing:**
+       ```javascript
+       // ✅ Correct - enables intelligent routing
+       model: ""
+       
+       // ❌ Wrong - tries to use specific model
+       model: "gpt-3.5-turbo"
+       model: null
+       model: undefined
+       ```
+
+    2. **TypeScript type issues:**
+       ```typescript
+       // Option 1: Type assertion
+       model: "" as any
+       
+       // Option 2: Disable strict checking for this parameter
+       // @ts-ignore
+       model: ""
+       ```
+  </Accordion>
+
+  <Accordion title="SSL/TLS Certificate Errors">
+    **Problem:** Certificate validation errors in some environments.
+
+    **Solutions:**
+    1. **Update certificates:**
+       ```bash
+       # Ubuntu/Debian
+       sudo apt-get update && sudo apt-get install ca-certificates
+       
+       # macOS
+       brew install ca-certificates
+       ```
+
+    2. **Node.js certificate issues:**
+       ```javascript
+       // Temporary workaround (not recommended for production)
+       process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+       
+       // Better solution: update Node.js or certificates
+       ```
+
+    3. **Python certificate issues:**
+       ```python
+       import ssl
+       import certifi
+       
+       # Ensure certificates are up to date
+       ssl.create_default_context(cafile=certifi.where())
+       ```
+  </Accordion>
+</AccordionGroup>
+
+### Request/Response Issues
+
+<AccordionGroup>
+  <Accordion title="Empty or No Response">
+    **Problem:** Getting empty responses or no content.
+
+    **Diagnostic steps:**
+    1. **Check request format:**
+       ```javascript
+       const completion = await openai.chat.completions.create({
+         model: "",
+         messages: [
+           { role: "user", content: "Hello" } // Ensure content is not empty
+         ]
+       });
+       ```
+
+    2. **Verify response handling:**
+       ```javascript
+       console.log("Full response:", completion);
+       console.log("Content:", completion.choices[0]?.message?.content);
+       console.log("Provider:", completion.provider);
+       ```
+
+    3. **Check for API errors:**
+       ```javascript
+       try {
+         const completion = await openai.chat.completions.create({...});
+       } catch (error) {
+         console.log("Error details:", error);
+         console.log("Status:", error.status);
+         console.log("Message:", error.message);
+       }
+       ```
+  </Accordion>
+
+  <Accordion title="Streaming Not Working">
+    **Problem:** Streaming responses not appearing or failing.
+
+    **Solutions:**
+    1. **Check streaming syntax:**
+       ```javascript
+       // ✅ Correct streaming setup
+       const stream = await openai.chat.completions.create({
+         model: "",
+         messages: [...],
+         stream: true
+       });
+       
+       for await (const chunk of stream) {
+         process.stdout.write(chunk.choices[0]?.delta?.content || '');
+       }
+       ```
+
+    2. **Browser streaming with fetch:**
+       ```javascript
+       const response = await fetch('/api/stream-chat', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ message })
+       });
+       
+       const reader = response.body.getReader();
+       const decoder = new TextDecoder();
+       
+       while (true) {
+         const { done, value } = await reader.read();
+         if (done) break;
+         
+         const chunk = decoder.decode(value);
+         // Process chunk...
+       }
+       ```
+
+    3. **Server-sent events setup:**
+       ```javascript
+       // Server
+       res.writeHead(200, {
+         'Content-Type': 'text/event-stream',
+         'Cache-Control': 'no-cache',
+         'Connection': 'keep-alive'
+       });
+       ```
+  </Accordion>
+
+  <Accordion title="Rate Limiting Errors">
+    **Problem:** Getting 429 errors (rate limit exceeded).
+
+    **Solutions:**
+    1. **Implement exponential backoff:**
+       ```javascript
+       async function retryWithBackoff(fn, maxRetries = 3) {
+         for (let i = 0; i < maxRetries; i++) {
+           try {
+             return await fn();
+           } catch (error) {
+             if (error.status === 429 && i < maxRetries - 1) {
+               const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+               await new Promise(resolve => setTimeout(resolve, delay));
+               continue;
+             }
+             throw error;
+           }
+         }
+       }
+       ```
+
+    2. **Check your rate limits:**
+       - Free tier: 100 requests/minute
+       - Pro tier: 1,000 requests/minute
+       - Enterprise: Custom limits
+
+    3. **Implement request queuing:**
+       ```javascript
+       class RequestQueue {
+         constructor(maxPerMinute = 100) {
+           this.queue = [];
+           this.maxPerMinute = maxPerMinute;
+           this.requestTimes = [];
+         }
+         
+         async enqueue(requestFn) {
+           return new Promise((resolve, reject) => {
+             this.queue.push({ requestFn, resolve, reject });
+             this.processQueue();
+           });
+         }
+         
+         async processQueue() {
+           if (this.queue.length === 0) return;
+           
+           const now = Date.now();
+           this.requestTimes = this.requestTimes.filter(time => now - time < 60000);
+           
+           if (this.requestTimes.length < this.maxPerMinute) {
+             const { requestFn, resolve, reject } = this.queue.shift();
+             this.requestTimes.push(now);
+             
+             try {
+               const result = await requestFn();
+               resolve(result);
+             } catch (error) {
+               reject(error);
+             }
+             
+             // Process next request
+             setTimeout(() => this.processQueue(), 100);
+           } else {
+             // Wait and try again
+             setTimeout(() => this.processQueue(), 1000);
+           }
+         }
+       }
+       ```
+  </Accordion>
+</AccordionGroup>
+
+### Integration-Specific Issues
+
+<AccordionGroup>
+  <Accordion title="LangChain Integration Problems">
+    **Problem:** LangChain not working with Adaptive.
+
+    **Solutions:**
+    1. **Correct LangChain setup:**
+       ```python
+       # Python
+       from langchain_openai import ChatOpenAI
+       
+       llm = ChatOpenAI(
+           api_key=os.getenv("ADAPTIVE_API_KEY"),
+           base_url="https://llmadaptive.uk/api/v1",
+           model=""  # Important: empty string
+       )
+       ```
+
+       ```javascript
+       // JavaScript
+       import { ChatOpenAI } from "@langchain/openai";
+       
+       const llm = new ChatOpenAI({
+         apiKey: process.env.ADAPTIVE_API_KEY,
+         configuration: {
+           baseURL: "https://llmadaptive.uk/api/v1"
+         },
+         model: ""
+       });
+       ```
+
+    2. **Handle LangChain-specific errors:**
+       ```python
+       from openai import APIError
+       
+       try:
+           response = llm.invoke("Hello")
+       except APIError as e:
+           print(f"API Error: {e}")
+       except Exception as e:
+           print(f"Other error: {e}")
+       ```
+  </Accordion>
+
+  <Accordion title="Vercel AI SDK Issues">
+    **Problem:** Vercel AI SDK not connecting properly.
+
+    **Solutions:**
+    1. **Using OpenAI provider method:**
+       ```javascript
+       import { openai } from '@ai-sdk/openai';
+       
+       const adaptiveOpenAI = openai({
+         apiKey: process.env.ADAPTIVE_API_KEY,
+         baseURL: 'https://llmadaptive.uk/api/v1',
+       });
+       
+       const { text } = await generateText({
+         model: adaptiveOpenAI(''), // Empty string for routing
+         prompt: 'Hello'
+       });
+       ```
+
+    2. **TypeScript issues:**
+       ```typescript
+       // If getting type errors
+       const model = adaptiveOpenAI('' as any);
+       ```
+
+    3. **Environment variables in Next.js:**
+       ```javascript
+       // next.config.js
+       module.exports = {
+         env: {
+           ADAPTIVE_API_KEY: process.env.ADAPTIVE_API_KEY,
+         },
+       };
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="Slow Response Times">
+    **Problem:** Responses taking longer than expected.
+
+    **Diagnostic steps:**
+    1. **Check routing decisions:**
+       ```javascript
+       const completion = await openai.chat.completions.create({
+         model: "",
+         messages: [...]
+       });
+       
+       console.log("Selected provider:", completion.provider);
+       console.log("Selected model:", completion.model);
+       ```
+
+    2. **Optimize with cost_bias:**
+       ```javascript
+       // Prefer faster, cheaper models
+       const completion = await openai.chat.completions.create({
+         model: "",
+         messages: [...],
+         cost_bias: 0.2 // 0 = cheapest/fastest, 1 = best quality
+       });
+       ```
+
+    3. **Use provider constraints for speed:**
+       ```javascript
+       // Route only to fast providers
+       const completion = await openai.chat.completions.create({
+         model: "",
+         messages: [...],
+         provider_constraint: ["groq", "gemini"] // Fast providers
+       });
+       ```
+  </Accordion>
+
+  <Accordion title="High Latency">
+    **Problem:** Network latency issues.
+
+    **Solutions:**
+    1. **Check your network:**
+       ```bash
+       # Test connectivity
+       ping llmadaptive.uk
+       
+       # Test TLS handshake
+       curl -w "@curl-format.txt" -o /dev/null https://llmadaptive.uk/api/v1/
+       ```
+
+    2. **Implement timeout handling:**
+       ```javascript
+       const controller = new AbortController();
+       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+       
+       try {
+         const completion = await openai.chat.completions.create({
+           model: "",
+           messages: [...]
+         }, {
+           signal: controller.signal
+         });
+       } catch (error) {
+         if (error.name === 'AbortError') {
+           console.log('Request timed out');
+         }
+       } finally {
+         clearTimeout(timeoutId);
+       }
+       ```
+
+    3. **Use connection pooling:**
+       ```javascript
+       import https from 'https';
+       
+       const agent = new https.Agent({
+         keepAlive: true,
+         maxSockets: 10
+       });
+       
+       const openai = new OpenAI({
+         apiKey: process.env.ADAPTIVE_API_KEY,
+         baseURL: 'https://llmadaptive.uk/api/v1',
+         httpAgent: agent
+       });
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Development Environment Issues
+
+<AccordionGroup>
+  <Accordion title="CORS Issues in Browser">
+    **Problem:** Cross-origin resource sharing errors.
+
+    **Solutions:**
+    1. **Never call API directly from browser:**
+       ```javascript
+       // ❌ Wrong - exposes API key
+       // const completion = await openai.chat.completions.create({...});
+       
+       // ✅ Correct - use your backend
+       const response = await fetch('/api/chat', {
+         method: 'POST',
+         body: JSON.stringify({ message })
+       });
+       ```
+
+    2. **Set up proxy in development:**
+       ```javascript
+       // Next.js API route
+       // pages/api/chat.js
+       export default async function handler(req, res) {
+         const completion = await openai.chat.completions.create({
+           model: "",
+           messages: req.body.messages
+         });
+         
+         res.json({ response: completion.choices[0].message.content });
+       }
+       ```
+
+    3. **Configure CORS for your backend:**
+       ```javascript
+       // Express.js
+       app.use(cors({
+         origin: ['http://localhost:3000', 'https://yourdomain.com'],
+         credentials: true
+       }));
+       ```
+  </Accordion>
+
+  <Accordion title="TypeScript Compilation Errors">
+    **Problem:** TypeScript errors with Adaptive integration.
+
+    **Solutions:**
+    1. **Install correct types:**
+       ```bash
+       npm install --save-dev @types/node
+       npm install openai  # Latest version includes types
+       ```
+
+    2. **Type assertion for model parameter:**
+       ```typescript
+       const completion = await openai.chat.completions.create({
+         model: "" as any, // Type assertion
+         messages: [...]
+       });
+       ```
+
+    3. **Create custom types if needed:**
+       ```typescript
+       interface AdaptiveCompletion extends ChatCompletion {
+         provider: string;
+       }
+       ```
+  </Accordion>
+
+  <Accordion title="Module Import Errors">
+    **Problem:** ES modules vs CommonJS issues.
+
+    **Solutions:**
+    1. **Use correct imports:**
+       ```javascript
+       // ES modules
+       import OpenAI from 'openai';
+       
+       // CommonJS
+       const OpenAI = require('openai');
+       ```
+
+    2. **Package.json configuration:**
+       ```json
+       {
+         "type": "module",
+         "dependencies": {
+           "openai": "^4.0.0"
+         }
+       }
+       ```
+
+    3. **Node.js version compatibility:**
+       ```bash
+       # Check Node.js version
+       node --version
+       
+       # Adaptive requires Node.js 18+
+       # Update if necessary
+       ```
+  </Accordion>
+</AccordionGroup>
+
+## Getting Help
+
+### Debug Information to Collect
+
+When reporting issues, please include:
+
+1. **Environment details:**
+   ```bash
+   # System info
+   node --version
+   npm --version
+   
+   # Package versions
+   npm list openai
+   npm list @langchain/openai
+   ```
+
+2. **Request details:**
+   ```javascript
+   // Sanitized request (remove API key)
+   {
+     "model": "",
+     "messages": [...],
+     "provider_constraint": [...],
+     "cost_bias": 0.5
+   }
+   ```
+
+3. **Error information:**
+   ```javascript
+   console.log("Error status:", error.status);
+   console.log("Error message:", error.message);
+   console.log("Error stack:", error.stack);
+   ```
+
+4. **Network diagnostics:**
+   ```bash
+   # Test connectivity
+   curl -I https://llmadaptive.uk/api/v1/
+   
+   # DNS resolution
+   nslookup llmadaptive.uk
+   ```
+
+### Support Channels
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book">
+    Check our comprehensive guides and API reference for solutions
+  </Card>
+  <Card title="GitHub Issues" icon="github">
+    Report bugs and request features on our GitHub repository
+  </Card>
+  <Card title="Discord Community" icon="discord">
+    Get help from the community and Adaptive team members
+  </Card>
+  <Card title="Email Support" icon="envelope">
+    Contact support@adaptive.com for priority assistance
+  </Card>
+</CardGroup>
+
+### Best Practices for Debugging
+
+1. **Start with simple requests:**
+   ```javascript
+   // Test basic functionality first
+   const simple = await openai.chat.completions.create({
+     model: "",
+     messages: [{ role: "user", content: "Hello" }]
+   });
+   ```
+
+2. **Enable verbose logging:**
+   ```javascript
+   // Add detailed logging
+   console.log("Request:", JSON.stringify(requestData, null, 2));
+   console.log("Response:", JSON.stringify(response, null, 2));
+   ```
+
+3. **Test with curl:**
+   ```bash
+   # Verify API access outside your application
+   curl -X POST https://llmadaptive.uk/api/v1/chat/completions \
+     -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
+   ```
+
+4. **Isolate the problem:**
+   - Test different messages
+   - Try different parameters
+   - Test in different environments
+   - Compare with working examples
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Why am I not getting responses from certain providers?">
+    This could be due to provider constraints, cost bias settings, or the specific requirements of your request. Check your `provider_constraint` parameter and try adjusting your `cost_bias` setting.
+  </Accordion>
+
+  <Accordion title="How do I know which provider was selected?">
+    Check the `provider` field in the response:
+    ```javascript
+    console.log("Selected provider:", completion.provider);
+    ```
+  </Accordion>
+
+  <Accordion title="Can I force a specific model?">
+    While you can use `provider_constraint` to limit options, we recommend letting intelligent routing optimize for you. Manual model selection typically results in higher costs and lower performance.
+  </Accordion>
+
+  <Accordion title="Why are my costs higher than expected?">
+    Check your `cost_bias` setting. A higher value (closer to 1) prioritizes quality over cost. Lower values (closer to 0) prioritize cost savings.
+  </Accordion>
+</AccordionGroup>

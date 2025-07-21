@@ -1,26 +1,24 @@
-# config/model_catalog.py
+"""
+Provider configurations and model capabilities for all supported providers.
+"""
 
-from adaptive_ai.models import (
-    ModelCapability,
-    ProviderType,
-    TaskModelEntry,
-    TaskModelMapping,
-    TaskType,
-)
+from adaptive_ai.models.llm_core_models import ModelCapability
+from adaptive_ai.models.llm_enums import ProviderType
 
-# --- ACTIVE PROVIDERS CONFIGURATION ---
-# Only these providers will be used for model selection
-# Other providers remain in the catalog but are inactive
+# Active providers in the system
 ACTIVE_PROVIDERS = {
     ProviderType.OPENAI,
-    ProviderType.GROQ,  # Fast inference provider
-    ProviderType.GROK,  # X.AI's models (grok-3, grok-3-mini)
+    ProviderType.ANTHROPIC,
+    ProviderType.GOOGLE,
+    ProviderType.GROQ,
     ProviderType.DEEPSEEK,
+    ProviderType.MISTRAL,
+    ProviderType.GROK,
+    ProviderType.HUGGINGFACE,
+    ProviderType.ADAPTIVE,
 }
 
-# --- In-memory map of model capabilities aggregated by provider ---
-# This dictionary holds aggregated model capabilities, crucial for dynamic routing.
-# The keys are ProviderType enums, and values are lists of ModelCapability objects.
+# Model capabilities for all providers
 provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
     ProviderType.GOOGLE: [
         ModelCapability(
@@ -310,214 +308,4 @@ provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
             latency_tier="high",
         ),
     ],
-    ProviderType.HUGGINGFACE: [
-        # General-purpose models around 10B params
-        ModelCapability(
-            description="Qwen2.5 14B - Alibaba's advanced multilingual model with strong reasoning capabilities.",
-            provider=ProviderType.HUGGINGFACE,
-            model_name="Qwen/Qwen2.5-14B-Instruct",
-            cost_per_1m_input_tokens=0.12,
-            cost_per_1m_output_tokens=0.12,
-            max_context_tokens=32768,
-            max_output_tokens=8192,
-            supports_function_calling=True,
-            languages_supported=["en", "zh", "es", "fr", "de", "ja", "ko"],
-            model_size_params="14B",
-            latency_tier="medium",
-        ),
-        ModelCapability(
-            description="Meta's Llama 3.1 8B - Excellent general-purpose model with strong instruction following.",
-            provider=ProviderType.HUGGINGFACE,
-            model_name="meta-llama/Llama-3.1-8B-Instruct",
-            cost_per_1m_input_tokens=0.10,
-            cost_per_1m_output_tokens=0.10,
-            max_context_tokens=131072,
-            max_output_tokens=4096,
-            supports_function_calling=False,
-            languages_supported=["en", "es", "fr", "de", "it", "pt", "hi", "th"],
-            model_size_params="8B",
-            latency_tier="low",
-        ),
-        # Code generation specialist
-        ModelCapability(
-            description="CodeLlama 13B - Meta's specialized model for code generation and understanding.",
-            provider=ProviderType.HUGGINGFACE,
-            model_name="codellama/CodeLlama-13b-Instruct-hf",
-            cost_per_1m_input_tokens=0.11,
-            cost_per_1m_output_tokens=0.11,
-            max_context_tokens=16384,
-            max_output_tokens=4096,
-            supports_function_calling=False,
-            languages_supported=["en"],
-            model_size_params="13B",
-            latency_tier="medium",
-        ),
-        # Conversational specialist
-        ModelCapability(
-            description="Mistral 7B Instruct v0.3 - Optimized for conversational AI and chat applications.",
-            provider=ProviderType.HUGGINGFACE,
-            model_name="mistralai/Mistral-7B-Instruct-v0.3",
-            cost_per_1m_input_tokens=0.08,
-            cost_per_1m_output_tokens=0.08,
-            max_context_tokens=32768,
-            max_output_tokens=4096,
-            supports_function_calling=False,
-            languages_supported=["en", "fr", "de", "es", "it"],
-            model_size_params="7B",
-            latency_tier="low",
-        ),
-        # Text generation and summarization specialist
-        ModelCapability(
-            description="FLAN-T5-XL - Google's instruction-tuned model excellent for summarization and text processing.",
-            provider=ProviderType.HUGGINGFACE,
-            model_name="google/flan-t5-xl",
-            cost_per_1m_input_tokens=0.06,
-            cost_per_1m_output_tokens=0.06,
-            max_context_tokens=2048,
-            max_output_tokens=1024,
-            supports_function_calling=False,
-            languages_supported=["en"],
-            model_size_params="3B",
-            latency_tier="very low",
-        ),
-        # Classification and extraction specialist
-        ModelCapability(
-            description="DeBERTa v3 Large - Microsoft's model optimized for classification and NLU tasks.",
-            provider=ProviderType.HUGGINGFACE,
-            model_name="microsoft/deberta-v3-large",
-            cost_per_1m_input_tokens=0.04,
-            cost_per_1m_output_tokens=0.04,
-            max_context_tokens=512,
-            max_output_tokens=512,
-            supports_function_calling=False,
-            languages_supported=["en"],
-            model_size_params="304M",
-            latency_tier="very low",
-        ),
-    ],
-}
-
-# --- In-memory map for TaskModelMapping (Remote/Standard LLM Models) ---
-# This maps each TaskType to an ordered list of TaskModelEntry,
-# where the first model is considered 'best' for that task type, and so on.
-# --- ACTIVE TASK MODEL MAPPINGS (OPENAI, GROK & DEEPSEEK ONLY) ---
-# Updated to only include active providers: OpenAI, GROK, and DeepSeek
-task_model_mappings_data: dict[TaskType, TaskModelMapping] = {
-    TaskType.OPEN_QA: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-        ]
-    ),
-    TaskType.CODE_GENERATION: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(
-                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
-            ),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o3"),
-        ]
-    ),
-    TaskType.SUMMARIZATION: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-        ]
-    ),
-    TaskType.TEXT_GENERATION: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
-        ]
-    ),
-    TaskType.CHATBOT: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-        ]
-    ),
-    TaskType.CLOSED_QA: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-        ]
-    ),
-    TaskType.CLASSIFICATION: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1-nano"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-        ]
-    ),
-    TaskType.REWRITE: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-        ]
-    ),
-    TaskType.BRAINSTORMING: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="o1"),
-            TaskModelEntry(
-                provider=ProviderType.DEEPSEEK, model_name="deepseek-reasoner"
-            ),
-        ]
-    ),
-    TaskType.EXTRACTION: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1-nano"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-        ]
-    ),
-    TaskType.OTHER: TaskModelMapping(
-        model_entries=[
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-        ]
-    ),
-}
-
-# --- Minion Task Model Mappings (HuggingFace Models) ---
-# This maps each TaskType to a SINGLE designated HuggingFace specialist model,
-# each optimized for specific task types and available via HuggingFace Inference API
-
-minion_task_model_mappings: dict[TaskType, str] = {
-    TaskType.OPEN_QA: "llama-3.1-8b-instant",
-    TaskType.CODE_GENERATION: "meta-llama/llama-4-scout-17b-16e-instruct",
-    TaskType.SUMMARIZATION: "gemma2-9b-it",
-    TaskType.TEXT_GENERATION: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.CHATBOT: "gemma2-9b-it",
-    TaskType.CLASSIFICATION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.CLOSED_QA: "llama-3.1-8b-instant",
-    TaskType.REWRITE: "gemma2-9b-it",
-    TaskType.BRAINSTORMING: "meta-llama/llama-4-maverick-17b-128e-instruct",
-    TaskType.EXTRACTION: "meta-llama/llama-prompt-guard-2-86m",
-    TaskType.OTHER: "llama-3.1-8b-instant",
 }

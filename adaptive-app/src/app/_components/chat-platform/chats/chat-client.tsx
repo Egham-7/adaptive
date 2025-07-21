@@ -47,7 +47,7 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 		useChat({
 			id: conversation.id.toString(),
 			chatStore,
-			experimental_throttle: 50,
+			experimental_throttle: 100,
 			onFinish({ message }) {
 				console.log("Message finished:", message);
 			},

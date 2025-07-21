@@ -102,6 +102,7 @@ func NewRedisClient(config *RedisConfig) (*redis.Client, error) {
 		ReadTimeout:     config.ReadTimeout,
 		WriteTimeout:    config.WriteTimeout,
 		ConnMaxIdleTime: config.IdleTimeout,
+		UnstableResp3:   true,
 
 		// Connection pool settings
 		MinIdleConns: config.MinIdleConns,
