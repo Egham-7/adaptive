@@ -85,6 +85,41 @@ export const usageRouter = createTRPCRouter({
 									return null;
 								});
 
+				console.log("Cost Calculation Debug:", {
+					hasProvider: !!input.provider,
+					hasModel: !!input.model,
+					provider: input.provider,
+					model: input.model,
+					providerModelFound: !!providerModel,
+				});
+
+				if (!providerModel && input.provider && input.model) {
+					// Check if provider exists separately
+					const provider = await ctx.db.provider.findFirst({
+						where: { name: input.provider, isActive: true }
+					});
+					console.log("Provider check:", { 
+						providerExists: !!provider,
+						searchedProvider: input.provider 
+					});
+
+					// Check if model exists with this provider
+					const model = await ctx.db.providerModel.findFirst({
+						where: { 
+							name: input.model,
+							provider: { name: input.provider }
+						},
+						select: { inputTokenCost: true, outputTokenCost: true, isActive: true },
+					});
+					console.log("Model check:", { 
+						modelExists: !!model,
+						modelIsActive: model?.isActive,
+						searchedModel: input.model,
+						inputCost: model?.inputTokenCost?.toNumber(),
+						outputCost: model?.outputTokenCost?.toNumber()
+					});
+				}
+
 				const calculatedCost = providerModel
 					? (input.usage.promptTokens *
 							providerModel.inputTokenCost.toNumber() +
@@ -92,6 +127,22 @@ export const usageRouter = createTRPCRouter({
 								providerModel.outputTokenCost.toNumber()) /
 						1000000
 					: 0;
+
+				console.log("API Usage Input:", {
+					provider: input.provider,
+					model: input.model,
+					promptTokens: input.usage.promptTokens,
+					completionTokens: input.usage.completionTokens,
+				});
+
+				console.log("Provider Model Query Result:", providerModel);
+
+				console.log("Calculated Cost:", {
+					calculatedCost,
+					inputTokenCost: providerModel?.inputTokenCost?.toNumber(),
+					outputTokenCost: providerModel?.outputTokenCost?.toNumber(),
+					calculation: providerModel ? `(${input.usage.promptTokens} * ${providerModel.inputTokenCost.toNumber()} + ${input.usage.completionTokens} * ${providerModel.outputTokenCost.toNumber()}) / 1000000` : "No provider model found",
+				});
 
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
@@ -250,12 +301,23 @@ export const usageRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId;
+			
+			// Add logging to debug auth issue
+			console.log("getProjectAnalytics - userId:", userId);
+			console.log("getProjectAnalytics - input:", input);
 			const cacheKey = `project-analytics:${userId}:${
 				input.projectId
 			}:${JSON.stringify(input)}`;
 
 			return withCache(cacheKey, async () => {
 				try {
+					// Ensure userId is available
+					if (!userId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "User ID not found in context",
+						});
+					}
 					// Verify user has access to the project
 					const project = await ctx.db.project.findFirst({
 						where: {
@@ -295,7 +357,7 @@ export const usageRouter = createTRPCRouter({
 							cost: z
 								.any()
 								.nullable()
-								.transform((val) => (val ? Number(val) : null)),
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -326,7 +388,7 @@ export const usageRouter = createTRPCRouter({
 							cost: z
 								.any()
 								.nullable()
-								.transform((val) => (val ? Number(val) : null)),
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -340,7 +402,7 @@ export const usageRouter = createTRPCRouter({
 							cost: z
 								.any()
 								.nullable()
-								.transform((val) => (val ? Number(val) : null)),
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -354,7 +416,7 @@ export const usageRouter = createTRPCRouter({
 							cost: z
 								.any()
 								.nullable()
-								.transform((val) => (val ? Number(val) : null)),
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 					});
@@ -662,7 +724,7 @@ export const usageRouter = createTRPCRouter({
 							cost: z
 								.any()
 								.nullable()
-								.transform((val) => (val ? Number(val) : null)),
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -692,7 +754,7 @@ export const usageRouter = createTRPCRouter({
 							cost: z
 								.any()
 								.nullable()
-								.transform((val) => (val ? Number(val) : null)),
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
