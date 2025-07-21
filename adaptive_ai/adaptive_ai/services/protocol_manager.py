@@ -202,7 +202,7 @@ class ProtocolManager:
         else:
             result = ProtocolSelectionOutput(
                 protocol=protocol_choice,
-                provider="groq",
+                provider="adaptive",
                 model=minion_model,
                 explanation=f"Rule-based selection: {protocol_choice} for efficiency",
                 temperature=0.7,

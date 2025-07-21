@@ -1,7 +1,7 @@
 # mypy: disable-error-code=import
 from typing import Any
 
-from adaptive_ai.config.model_catalog import (
+from adaptive_ai.config import (
     ACTIVE_PROVIDERS,
     minion_domains,
     provider_model_capabilities,
@@ -276,7 +276,7 @@ class ModelSelectionService:
         """Get alternative minion models excluding the primary minion."""
         all_minions = self.get_available_minions()
         alternatives = [
-            {"provider": "huggingface", "model": minion}
+            {"provider": "adaptive", "model": minion}
             for minion in all_minions
             if minion != primary_minion
         ]

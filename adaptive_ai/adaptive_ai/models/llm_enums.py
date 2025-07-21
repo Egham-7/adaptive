@@ -10,6 +10,7 @@ class ProviderType(str, Enum):
     MISTRAL = "mistral"
     GROK = "grok"
     HUGGINGFACE = "huggingface"
+    ADAPTIVE = "adaptive"
 
 
 class TaskType(str, Enum):
@@ -24,6 +25,21 @@ class TaskType(str, Enum):
     BRAINSTORMING = "Brainstorming"
     EXTRACTION = "Extraction"
     OTHER = "Other"
+
+
+class DomainType(str, Enum):
+    BUSINESS_AND_INDUSTRIAL = "Business_and_Industrial"
+    HEALTH = "Health"
+    NEWS = "News"
+    OTHERDOMAINS = "Otherdomains"
+    REAL_ESTATE = "Real_Estate"
+    COMPUTERS_AND_ELECTRONICS = "Computers_and_Electronics"
+    INTERNET_AND_TELECOM = "Internet_and_Telecom"
+    FINANCE = "Finance"
+    SCIENCE = "Science"
+    JOBS_AND_EDUCATION = "Jobs_and_Education"
+    LAW_AND_GOVERNMENT = "Law_and_Government"
+    SENSITIVE_SUBJECTS = "Sensitive_Subjects"
 
 
 class ProtocolType(str, Enum):
