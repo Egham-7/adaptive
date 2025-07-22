@@ -23,9 +23,8 @@ import (
 )
 
 // SetupRoutes configures all the application routes for the Fiber app.
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	chatCompletionHandler := api.NewCompletionHandler()
-	healthHandler := api.NewHealthHandler()
 
 	// Health endpoint (no auth required)
 	app.Get("/health", healthHandler.Health)
@@ -91,7 +90,18 @@ func main() {
 	})
 
 	setupMiddleware(app, allowedOrigins)
-	SetupRoutes(app)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Wait for services to become healthy before starting server
+	healthHandler := api.NewHealthHandler()
+	if err := healthHandler.WaitForServices(ctx, 10*time.Minute); err != nil {
+		fiberlog.Errorf("Failed to wait for services: %v", err)
+		return
+	}
+
+	SetupRoutes(app, healthHandler)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
@@ -104,9 +114,6 @@ func main() {
 			},
 		})
 	})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	fmt.Printf("Server starting on %s with allowed origins: %s\n", port, allowedOrigins)
 	fmt.Printf("Environment: %s\n", os.Getenv(envKey))
