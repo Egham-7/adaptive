@@ -28,6 +28,10 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         )
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
+    def decode_request(self, request):
+        """Extract messages from ChatCompletionRequest."""
+        return request.messages
+
     def batch(self, inputs: List[ChatCompletion]) -> List[ChatCompletion]:
         """Batch multiple chat requests together."""
         return inputs
