@@ -146,7 +146,7 @@ func (hs *HealthService) checkProtocolManagerHealth(ctx context.Context) HealthS
 		Retries: 1, // Fewer retries since models take time to load
 	}
 
-	var response map[string]interface{}
+	var response string
 	err := hs.protocolManagerClient.Get("/health", &response, opts)
 
 	if err != nil {
@@ -174,7 +174,7 @@ func (hs *HealthService) checkAdaptiveHealth(ctx context.Context) HealthStatus {
 		Retries: 1, // Fewer retries since models take time to load
 	}
 
-	var response map[string]interface{}
+	var response string
 	err := hs.adaptiveClient.Get("/health", &response, opts)
 
 	if err != nil {
