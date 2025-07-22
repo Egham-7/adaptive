@@ -22,6 +22,11 @@ func NewHealthHandler() *HealthHandler {
 	}
 }
 
+// WaitForServices waits for all services to become healthy
+func (h *HealthHandler) WaitForServices(ctx context.Context, maxWaitTime time.Duration) error {
+	return h.healthService.WaitForServices(ctx, maxWaitTime)
+}
+
 // Health handles GET /health requests
 func (h *HealthHandler) Health(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 30*time.Second)
