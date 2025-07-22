@@ -27,10 +27,7 @@ def main() -> None:
     loggers = [AppLifecycleLogger(), PerformanceLogger()]
 
     server = ls.LitServer(
-        api,
-        devices="auto",
-        workers_per_device=1,
-        loggers=loggers,
+        api, devices="auto", workers_per_device=1, loggers=loggers, spec=ls.OpenAISpec()
     )
 
     server.run()
