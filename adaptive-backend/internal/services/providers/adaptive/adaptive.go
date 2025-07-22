@@ -28,6 +28,8 @@ func NewAdaptiveService() (*AdaptiveService, error) {
 		baseURL = "https://api.adaptive.ai/v1" // Default Adaptive API base URL
 	}
 
+	baseURL = fmt.Sprintf("%s/v1", baseURL) // Ensure it ends with /v1
+
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
 		option.WithBaseURL(baseURL),
