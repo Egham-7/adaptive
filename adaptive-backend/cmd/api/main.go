@@ -3,7 +3,6 @@ package main
 import (
 	"adaptive-backend/internal/api"
 	"adaptive-backend/internal/middleware"
-	"adaptive-backend/internal/services"
 	"context"
 	"fmt"
 	"os"
