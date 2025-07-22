@@ -28,6 +28,10 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         )
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
+    def decode_request(self, request):
+        """Extract messages from ChatCompletionRequest."""
+        return request.messages
+
     def batch(self, inputs: List[ChatCompletion]) -> List[ChatCompletion]:
         """Batch multiple chat requests together."""
         return inputs
@@ -43,19 +47,8 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         """
         start_time = time.perf_counter()
 
-        # Debug: Log the types being received
-        self.log("debug", f"prompt type: {type(prompt)}, context type: {type(context)}")
-        self.log("debug", f"prompt: {prompt}")
-        self.log("debug", f"context: {context}")
-
-        # Handle case where parameters might be swapped
-        if isinstance(context, list) and isinstance(prompt, dict):
-            # Parameters are swapped - fix them
-            prompt, context = context, prompt
-            self.log("info", "Swapped parameters due to type mismatch")
-
         # OpenAI spec automatically injects request parameters into context
-        model_name = context.get("model", "") if isinstance(context, dict) else ""
+        model_name = context.get("model", "")
 
         if not model_name:
             raise ValueError("Model name is required")
