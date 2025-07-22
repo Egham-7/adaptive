@@ -23,12 +23,10 @@ class PerformanceLogger(ls.Logger):
 
 def main() -> None:
 
-    api = LitGPTOpenAIAPI()
+    api = LitGPTOpenAIAPI(spec=ls.OpenAISpec(), max_batch_size=8, batch_timeout=0.05)
     loggers = [AppLifecycleLogger(), PerformanceLogger()]
 
-    server = ls.LitServer(
-        api, devices="auto", workers_per_device=1, loggers=loggers, spec=ls.OpenAISpec()
-    )
+    server = ls.LitServer(api, devices="auto", workers_per_device=1, loggers=loggers)
 
     server.run()
 

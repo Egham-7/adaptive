@@ -6,8 +6,6 @@ from openai.types.chat import ChatCompletionMessageParam, ChatCompletion
 
 
 class LitGPTOpenAIAPI(ls.LitAPI):
-    def __init__(self):
-        super().__init__(spec=ls.OpenAISpec(), max_batch_size=8, batch_timeout=0.05)
 
     def setup(self, device: str) -> None:
         supported_models = [
