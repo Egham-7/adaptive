@@ -60,7 +60,8 @@ class VLLMOpenAIAPI(ls.LitAPI):
 
         # Generate response using vLLM chat interface
         inference_start = time.perf_counter()
-        outputs = llm.chat(prompt.messages, sampling_params, use_tqdm=False)
+        messages_dict = [msg.model_dump() for msg in prompt.messages]
+        outputs = llm.chat(messages_dict, sampling_params, use_tqdm=False)
         inference_time = time.perf_counter() - inference_start
         self.log("inference_time", inference_time)
 
