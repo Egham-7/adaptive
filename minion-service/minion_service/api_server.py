@@ -18,8 +18,6 @@ class VLLMOpenAIAPI(ls.LitAPI):
         # Configure model manager with memory reserve and circuit breaker
         config = ModelManagerConfig(
             memory_reserve_gb=2.0,  # Always keep 2GB free for system stability
-            max_retries=3,
-            circuit_breaker_failure_threshold=5,
         )
         self.model_manager = ModelManager(
             preload_models=supported_models, config=config

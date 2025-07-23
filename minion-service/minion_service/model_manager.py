@@ -33,8 +33,6 @@ class ModelLoadAttempt:
 @dataclass
 class ModelManagerConfig:
     memory_reserve_gb: float = 2.0  # Always keep this much memory free
-    max_retries: int = 3
-    retry_delay_seconds: float = 1.0
     circuit_breaker_failure_threshold: int = 5
     circuit_breaker_timeout_seconds: int = 60
     model_priority_weights: Dict[str, float] = field(default_factory=dict)
@@ -55,7 +53,6 @@ class ModelManager:
         self.load_attempts: Dict[str, ModelLoadAttempt] = {}
         self.model_memory_usage: Dict[str, float] = {}  # GB
         self.model_load_times: Dict[str, float] = {}  # seconds
-        self.usage_patterns: Dict[str, List[datetime]] = {}  # For predictive loading
         self._preloading_tasks: Dict[str, asyncio.Task] = (
             {}
         )  # Track async preloading tasks
@@ -209,7 +206,6 @@ class ModelManager:
         if model_name in self.models:
             self._log("model_cache_hit", 1)
             self.last_used[model_name] = datetime.now()
-            self._track_usage_pattern(model_name)
             return self.models[model_name]
 
         # Check circuit breaker before attempting load
@@ -219,15 +215,6 @@ class ModelManager:
             )
 
         return await self._load_model_with_memory_management(model_name)
-
-    def _track_usage_pattern(self, model_name: str):
-        """Track usage patterns for predictive loading."""
-        if model_name not in self.usage_patterns:
-            self.usage_patterns[model_name] = []
-        self.usage_patterns[model_name].append(datetime.now())
-        # Keep only last 100 usage records
-        if len(self.usage_patterns[model_name]) > 100:
-            self.usage_patterns[model_name] = self.usage_patterns[model_name][-100:]
 
     async def _load_model_with_memory_management(self, model_name: str) -> LLM:
         """Load a model with automatic memory management and LRU eviction."""
