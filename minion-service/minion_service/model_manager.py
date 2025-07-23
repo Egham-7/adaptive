@@ -114,7 +114,7 @@ class ModelManager:
         """Load a single model and update tracking lists."""
         # Check if we have sufficient GPU memory before attempting load
         if self.config.enable_gpu_memory_management:
-            used_gb, free_gb, total_gb = self._get_gpu_memory_info()
+            _, free_gb, _ = self._get_gpu_memory_info()
             estimated_memory_gb = self._estimate_model_memory_gb(model_name)
 
             if free_gb < estimated_memory_gb + self.config.gpu_memory_reserve_gb:
@@ -307,7 +307,7 @@ class ModelManager:
                 load_start = time.perf_counter()
 
                 # Track GPU memory before loading
-                pre_used_gb, pre_free_gb, total_gb = self._get_gpu_memory_info()
+                pre_used_gb, _, _ = self._get_gpu_memory_info()
 
                 # Load model in executor with timeout to avoid hanging
                 loop = asyncio.get_event_loop()
@@ -324,7 +324,7 @@ class ModelManager:
                 load_time = time.perf_counter() - load_start
 
                 # Track GPU memory after loading
-                post_used_gb, post_free_gb, _ = self._get_gpu_memory_info()
+                post_used_gb, _, _ = self._get_gpu_memory_info()
                 # Ensure memory calculation is non-negative (could be negative if other processes freed memory)
                 model_memory_gb = max(0.0, post_used_gb - pre_used_gb)
 
@@ -517,7 +517,7 @@ class ModelManager:
                 torch.cuda.empty_cache()
 
             # Log current GPU memory status
-            used_gb, free_gb, total_gb = self._get_gpu_memory_info()
+            used_gb, free_gb, _ = self._get_gpu_memory_info()
             self._log(
                 "gpu_memory_after_unload",
                 {"used_gb": round(used_gb, 2), "free_gb": round(free_gb, 2)},
