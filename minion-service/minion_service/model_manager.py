@@ -53,9 +53,6 @@ class ModelManager:
         self.load_attempts: Dict[str, ModelLoadAttempt] = {}
         self.model_memory_usage: Dict[str, float] = {}  # GB
         self.model_load_times: Dict[str, float] = {}  # seconds
-        self._preloading_tasks: Dict[str, asyncio.Task] = (
-            {}
-        )  # Track async preloading tasks
         self._model_loading_lock = asyncio.Lock()  # Single lock for model loading
         self._logger_callback = None
 
@@ -426,45 +423,3 @@ class ModelManager:
             "last_used": last_used.isoformat(),
             "inactive_minutes": int(inactive_duration.total_seconds() / 60),
         }
-
-    async def async_preload_model(self, model_name: str) -> bool:
-        """Asynchronously preload a model in the background."""
-        if model_name in self.models or model_name in self._preloading_tasks:
-            return True  # Already loaded or loading
-
-        if not self._should_attempt_load(model_name):
-            return False  # Circuit breaker is open
-
-        # Create async task for loading
-        async def load_task():
-            try:
-                await self._load_model_with_memory_management(model_name)
-                return True
-            except Exception as e:
-                self._log("async_preload_failed", f"{model_name}: {str(e)}")
-                return False
-            finally:
-                # Clean up task from tracking dict
-                if model_name in self._preloading_tasks:
-                    del self._preloading_tasks[model_name]
-
-        # Start the task and track it
-        task = asyncio.create_task(load_task())
-        self._preloading_tasks[model_name] = task
-        self._log("async_preload_started", model_name)
-
-        return True
-
-    def get_preloading_status(self) -> Dict[str, str]:
-        """Get status of models currently being preloaded."""
-        status = {}
-        for model_name, task in self._preloading_tasks.items():
-            if task.done():
-                try:
-                    result = task.result()
-                    status[model_name] = "completed" if result else "failed"
-                except Exception:
-                    status[model_name] = "failed"
-            else:
-                status[model_name] = "loading"
-        return status
