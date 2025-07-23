@@ -25,7 +25,8 @@ class VLLMOpenAIAPI(ls.LitAPI):
             memory_threshold_percent=85.0,
             memory_reserve_gb=2.0,
         )
-        self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
+        self.model_manager.set_logger_callback(
+            lambda key, value: self.log(key, value))
 
     def predict(self, prompt, context):
         """Process chat completion request with batching support.
