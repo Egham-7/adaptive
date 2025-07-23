@@ -47,8 +47,16 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         """
         start_time = time.perf_counter()
 
+        # Debug: Check parameter types
+        self.log("debug", f"prompt type: {type(prompt)}, context type: {type(context)}")
+        
+        # Handle parameter swap issue
+        if isinstance(context, list) and isinstance(prompt, dict):
+            prompt, context = context, prompt
+            self.log("info", "Swapped parameters due to type mismatch")
+
         # OpenAI spec automatically injects request parameters into context
-        model_name = context.get("model", "")
+        model_name = context.get("model", "") if isinstance(context, dict) else ""
 
         if not model_name:
             raise ValueError("Model name is required")
