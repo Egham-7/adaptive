@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional, NamedTuple, Tuple
 from vllm import LLM
-import threading
 import time
 import psutil
 import asyncio
@@ -39,7 +38,6 @@ class ModelManagerConfig:
     circuit_breaker_failure_threshold: int = 5
     circuit_breaker_timeout_seconds: int = 60
     model_priority_weights: Dict[str, float] = field(default_factory=dict)
-    enable_predictive_loading: bool = True
     memory_estimation_factor: float = 1.2  # Safety factor for memory estimation
 
 
@@ -61,8 +59,8 @@ class ModelManager:
         self._preloading_tasks: Dict[str, asyncio.Task] = (
             {}
         )  # Track async preloading tasks
-        self._loading_locks: Dict[str, threading.Lock] = {}
-        self._main_lock = threading.Lock()
+        self._loading_locks: Dict[str, asyncio.Lock] = {}
+        self._main_lock = asyncio.Lock()
         self._logger_callback = None
 
         # Preload models at startup
@@ -83,17 +81,9 @@ class ModelManager:
         failed_models: List[ModelLoadFailure] = []
         loaded_models: List[str] = []
 
-        # Try to get or create event loop for async operations
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Use async loading for better performance
-        loop.run_until_complete(
-            self._async_preload_models(model_names, loaded_models, failed_models)
-        )
+        # Load models synchronously to avoid event loop conflicts
+        for model_name in model_names:
+            self._load_single_model(model_name, loaded_models, failed_models)
 
         if not loaded_models:
             self._log("fatal_error", "No models loaded - service cannot start")
@@ -102,32 +92,6 @@ class ModelManager:
             )
 
         self._log_preload_summary(loaded_models, failed_models, len(model_names))
-
-    async def _async_preload_models(
-        self,
-        model_names: List[str],
-        loaded_models: List[str],
-        failed_models: List[ModelLoadFailure],
-    ):
-        """Async preload models with concurrent loading."""
-        # Load up to 3 models concurrently to avoid overwhelming the system
-        semaphore = asyncio.Semaphore(3)
-
-        async def load_model_async(model_name: str):
-            async with semaphore:
-                await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    self._load_single_model,
-                    model_name,
-                    loaded_models,
-                    failed_models,
-                )
-
-        # Create tasks for all models
-        tasks = [load_model_async(model_name) for model_name in model_names]
-
-        # Wait for all tasks to complete
-        await asyncio.gather(*tasks, return_exceptions=True)
 
     def _load_single_model(
         self,
@@ -271,11 +235,7 @@ class ModelManager:
         self._log("model_cache_miss", 1)
         self._log("loading_on_demand", model_name)
 
-        # Use asyncio.Lock instead of threading.Lock for async compatibility
-        if not hasattr(self, "_async_main_lock"):
-            self._async_main_lock = asyncio.Lock()
-
-        async with self._async_main_lock:
+        async with self._main_lock:
             if model_name in self.models:
                 self.last_used[model_name] = datetime.now()
                 return self.models[model_name]
