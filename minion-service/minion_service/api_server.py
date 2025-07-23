@@ -1,7 +1,10 @@
-import litserve as ls  # type:ignore
-from minion_service.model_manager import ModelManager, ModelManagerConfig
+import asyncio
 import time
+
+import litserve as ls  # type:ignore
 from vllm import SamplingParams
+
+from minion_service.model_manager import ModelManager, ModelManagerConfig
 
 
 class VLLMOpenAIAPI(ls.LitAPI):
@@ -24,13 +27,16 @@ class VLLMOpenAIAPI(ls.LitAPI):
         except ImportError:
             gpu_available = False
 
+        self.log("gpu_available", gpu_available)
+
         config = ModelManagerConfig(
             gpu_memory_reserve_gb=2.0, enable_gpu_memory_management=gpu_available
         )
-        self.model_manager = ModelManager(
-            preload_models=supported_models, config=config
-        )
+        self.model_manager = ModelManager(config=config)
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
+
+        # Preload models asynchronously after setup
+        asyncio.create_task(self.model_manager.preload_models_async(supported_models))
 
     async def predict(self, prompt, context):
         """Process chat completion request with batching support.

@@ -54,7 +54,6 @@ class ModelManagerConfig:
 class ModelManager:
     def __init__(
         self,
-        preload_models: Optional[List[str]] = None,
         config: Optional[ModelManagerConfig] = None,
     ):
         self.config = config or ModelManagerConfig()
@@ -75,9 +74,7 @@ class ModelManager:
             else 0
         )
 
-        # Preload models at startup
-        if preload_models:
-            self._preload_models(preload_models)
+        # Preloading will be done separately via preload_models_async()
 
     def set_logger_callback(self, callback):
         """Set callback function for logging metrics."""
@@ -88,14 +85,98 @@ class ModelManager:
         if self._logger_callback:
             self._logger_callback(key, value)
 
-    def _preload_models(self, model_names: List[str]):
-        """Preload models at startup for better performance."""
+    async def preload_models_async(self, model_names: List[str]):
+        """Preload models at startup with memory-aware parallel loading."""
         failed_models: List[ModelLoadFailure] = []
         loaded_models: List[str] = []
 
-        # Load models synchronously to avoid event loop conflicts
-        for model_name in model_names:
-            self._load_single_model(model_name, loaded_models, failed_models)
+        # Sort models by estimated size (smallest first for better packing)
+        sorted_models = sorted(model_names, key=self._estimate_model_memory_gb)
+
+        # Load models with memory-aware concurrency
+        loading_lock = asyncio.Lock()  # Protect memory checks and model loading
+
+        async def load_model_with_memory_check(model_name: str):
+            async with loading_lock:
+                # Check GPU memory before attempting load
+                if self.config.enable_gpu_memory_management:
+                    _, free_gb, _ = self._get_gpu_memory_info()
+                    estimated_memory_gb = self._estimate_model_memory_gb(model_name)
+
+                    if (
+                        free_gb
+                        < estimated_memory_gb + self.config.gpu_memory_reserve_gb
+                    ):
+                        self._log(
+                            "preload_skipped_memory",
+                            f"{model_name}: need {estimated_memory_gb:.1f}GB, only {free_gb:.1f}GB free",
+                        )
+                        failure = ModelLoadFailure(
+                            model_name=model_name,
+                            error_message=f"Insufficient GPU memory: need {estimated_memory_gb:.1f}GB, have {free_gb:.1f}GB",
+                            timestamp=datetime.now(),
+                        )
+                        failed_models.append(failure)
+                        return
+
+                # Load the model
+                try:
+                    self._log("preloading_model", model_name)
+                    load_start = time.perf_counter()
+
+                    # Track GPU memory before loading
+                    pre_used_gb, _, _ = self._get_gpu_memory_info()
+
+                    # Load model in executor with timeout
+                    loop = asyncio.get_event_loop()
+                    try:
+                        llm = await asyncio.wait_for(
+                            loop.run_in_executor(None, LLM, model_name),
+                            timeout=self.config.model_loading_timeout_seconds,
+                        )
+                    except asyncio.TimeoutError:
+                        raise RuntimeError(
+                            f"Model loading timed out after {self.config.model_loading_timeout_seconds}s"
+                        )
+
+                    load_time = time.perf_counter() - load_start
+
+                    # Track GPU memory after loading
+                    post_used_gb, _, _ = self._get_gpu_memory_info()
+                    model_memory_gb = max(0.0, post_used_gb - pre_used_gb)
+
+                    # Use estimation fallback if calculated memory is too low
+                    if model_memory_gb < 0.1:
+                        estimated_memory = self._estimate_model_memory_gb(model_name)
+                        self._log(
+                            "using_estimated_memory",
+                            f"Calculated {model_memory_gb:.3f}GB, using estimate {estimated_memory:.1f}GB",
+                        )
+                        model_memory_gb = estimated_memory
+
+                    self.models[model_name] = llm
+                    self.last_used[model_name] = datetime.now()
+                    self.model_gpu_memory[model_name] = model_memory_gb
+                    loaded_models.append(model_name)
+
+                    self._log("model_preloaded", model_name)
+                    self._log("preload_duration", load_time)
+                    self._log("preload_gpu_memory_gb", round(model_memory_gb, 2))
+
+                except Exception as e:
+                    self._log("preload_failed", model_name)
+                    self._log("preload_error", f"{model_name}: {str(e)}")
+                    failure = ModelLoadFailure(
+                        model_name=model_name,
+                        error_message=str(e),
+                        timestamp=datetime.now(),
+                    )
+                    failed_models.append(failure)
+                    self._update_circuit_breaker(model_name, success=False)
+
+        # Process models sequentially but with async I/O for downloads
+        for model_name in sorted_models:
+            await load_model_with_memory_check(model_name)
 
         if not loaded_models:
             self._log("fatal_error", "No models loaded - service cannot start")
