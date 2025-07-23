@@ -19,7 +19,6 @@ classifiers = [
 dependencies = [
     "cachetools>=5.5.0",
     "hf-transfer>=0.1.9",
-    "litgpt>=0.5.9",
     "litserve>=0.2.13",
     "openai>=1.97.0",
     "psutil>=6.1.0",
@@ -29,6 +28,7 @@ dependencies = [
     "types-cachetools>=6.1.0.20250717",
     "types-psutil>=7.0.0.20250601",
     "types-requests>=2.32.4.20250611",
+    "vllm>=0.9.1",
 ]
 
 [project.optional-dependencies]
