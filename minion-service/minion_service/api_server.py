@@ -1,5 +1,5 @@
 import litserve as ls  # type:ignore
-from minion_service.model_manager import ModelManager
+from minion_service.model_manager import ModelManager, ModelManagerConfig
 import time
 from vllm import SamplingParams
 
@@ -16,15 +16,20 @@ class VLLMOpenAIAPI(ls.LitAPI):
         ]
 
         # Auto-unload models after 30 minutes of inactivity with memory management
-        self.model_manager = ModelManager(
-            preload_models=supported_models,
-            inactivity_timeout_minutes=30,
+        config = ModelManagerConfig(
             memory_threshold_percent=95.0,
             memory_reserve_gb=2.0,
+            inactivity_timeout_minutes=30,
+            max_retries=3,
+            circuit_breaker_failure_threshold=5,
+            enable_predictive_loading=True,
+        )
+        self.model_manager = ModelManager(
+            preload_models=supported_models, config=config
         )
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
-    def predict(self, prompt, context):
+    async def predict(self, prompt, context):
         """Process chat completion request with batching support.
 
         Args:
@@ -40,7 +45,7 @@ class VLLMOpenAIAPI(ls.LitAPI):
             raise ValueError("Model name is required")
 
         model_load_start = time.perf_counter()
-        llm = self.model_manager.get_model(model_name)
+        llm = await self.model_manager.get_model(model_name)
         model_load_time = time.perf_counter() - model_load_start
         self.log("model_load_time", model_load_time)
 
