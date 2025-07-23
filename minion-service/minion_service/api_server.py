@@ -15,9 +15,17 @@ class VLLMOpenAIAPI(ls.LitAPI):
             "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION - Education focused
         ]
 
-        # Configure model manager with memory reserve and circuit breaker
+        # Configure model manager with GPU memory management and circuit breaker
+        # Only enable GPU memory management if CUDA is available
+        try:
+            import torch
+
+            gpu_available = torch.cuda.is_available() and torch.cuda.device_count() > 0
+        except ImportError:
+            gpu_available = False
+
         config = ModelManagerConfig(
-            memory_reserve_gb=2.0,  # Always keep 2GB free for system stability
+            gpu_memory_reserve_gb=2.0, enable_gpu_memory_management=gpu_available
         )
         self.model_manager = ModelManager(
             preload_models=supported_models, config=config
