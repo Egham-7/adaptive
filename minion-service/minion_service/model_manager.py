@@ -21,7 +21,8 @@ class ModelManager:
         # Start with a reasonable maxsize, we'll resize dynamically if needed
         self.models: LRUCache[str, LLM] = LRUCache(maxsize=10)
         self.last_used: Dict[str, datetime] = {}
-        self.failed_models: Dict[str, str] = {}  # Track models that failed to load
+        # Track models that failed to load
+        self.failed_models: Dict[str, str] = {}
         self._loading_locks: Dict[str, threading.Lock] = {}
         self._main_lock = threading.Lock()
         self._logger_callback = None
@@ -60,7 +61,7 @@ class ModelManager:
                 self._log("preloading_model", model_name)
                 load_start = time.perf_counter()
 
-                llm = LLM(model=model_name)
+                llm = LLM(model=model_name, enable_prefix_caching=True)
 
                 load_time = time.perf_counter() - load_start
                 self.models[model_name] = llm
@@ -228,7 +229,8 @@ class ModelManager:
                         f"Cannot load model '{model_name}' due to memory constraints: {error_msg}"
                     )
 
-                raise ValueError(f"Failed to load model '{model_name}': {error_msg}")
+                raise ValueError(
+                    f"Failed to load model '{model_name}': {error_msg}")
 
     def unload_model(self, model_name: str) -> None:
         if model_name in self.models:
@@ -301,7 +303,8 @@ class ModelManager:
                     last_used := self.last_used.get(model_name, current_time)
                 ).isoformat(),
                 "inactive_minutes": int(
-                    (inactive_duration := current_time - last_used).total_seconds() / 60
+                    (inactive_duration := current_time -
+                     last_used).total_seconds() / 60
                 ),
                 "will_unload_in_minutes": max(
                     0,
