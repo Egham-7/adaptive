@@ -7,7 +7,7 @@ from vllm import SamplingParams
 class VLLMOpenAIAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         supported_models = [
-            "meta-llama/Llama-2-7b-chat-hf",  # SENSITIVE_SUBJECTS - Most reliable
+            "meta-llama/Meta-Llama-3-8B-Instruct",  # SENSITIVE_SUBJECTS - Most reliable
             "google/codegemma-7b-it",  # COMPUTERS_AND_ELECTRONICS - Google official
             "Qwen/Qwen2.5-7B-Instruct",  # NEWS/BUSINESS/GENERAL - Extensively tested
             "Qwen/Qwen2.5-Math-7B-Instruct",  # FINANCE/SCIENCE - Math specialist
