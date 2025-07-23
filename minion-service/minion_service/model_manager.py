@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, NamedTuple, Tuple
-import litgpt  # type: ignore
+from vllm import LLM
 import threading
 import time
 import psutil
@@ -54,7 +54,7 @@ class ModelManager:
         self.config = config or ModelManagerConfig()
 
         # Start with a reasonable maxsize, we'll resize dynamically if needed
-        self.models: LRUCache[str, litgpt.LLM] = LRUCache(maxsize=10)
+        self.models: LRUCache[str, LLM] = LRUCache(maxsize=10)
         self.last_used: Dict[str, datetime] = {}
         self.load_attempts: Dict[str, ModelLoadAttempt] = {}
         self.model_memory_usage: Dict[str, float] = {}  # GB
@@ -155,7 +155,7 @@ class ModelManager:
             self._log("preloading_model", model_name)
             load_start = time.perf_counter()
 
-            llm = litgpt.LLM.load(model_name)
+            llm = LLM(model=model_name)
             load_time = time.perf_counter() - load_start
 
             self.models[model_name] = llm
@@ -257,7 +257,7 @@ class ModelManager:
             },
         )
 
-    async def get_model(self, model_name: str) -> litgpt.LLM:
+    async def get_model(self, model_name: str) -> LLM:
         if model_name in self.models:
             self._log("model_cache_hit", 1)
             self.last_used[model_name] = datetime.now()
@@ -281,7 +281,7 @@ class ModelManager:
         if len(self.usage_patterns[model_name]) > 100:
             self.usage_patterns[model_name] = self.usage_patterns[model_name][-100:]
 
-    async def _load_model_with_memory_management(self, model_name: str) -> litgpt.LLM:
+    async def _load_model_with_memory_management(self, model_name: str) -> LLM:
         """Load a model with automatic memory management and LRU eviction."""
         self._log("model_cache_miss", 1)
         self._log("loading_on_demand", model_name)
@@ -318,7 +318,7 @@ class ModelManager:
         if available_gb < estimated_memory + self.config.memory_reserve_gb:
             await self._free_memory_for_model(estimated_memory)
 
-    async def _attempt_model_load(self, model_name: str) -> litgpt.LLM:
+    async def _attempt_model_load(self, model_name: str) -> LLM:
         """Attempt to load the requested model."""
         try:
             self._log("attempting_model_load", model_name)
@@ -327,7 +327,7 @@ class ModelManager:
 
             # Load model in executor to avoid blocking the event loop
             loop = asyncio.get_event_loop()
-            llm = await loop.run_in_executor(None, litgpt.LLM.load, model_name)
+            llm = await loop.run_in_executor(None, LLM, model_name)
 
             load_time = time.perf_counter() - load_start
             post_load_memory = psutil.virtual_memory().percent
