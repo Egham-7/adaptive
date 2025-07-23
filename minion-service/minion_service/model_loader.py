@@ -1,7 +1,8 @@
 # Standard library imports
 import asyncio
 import time
-from typing import Optional, Callable, Any, Coroutine
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Optional, Callable, Any, Coroutine, List
 
 # Third-party imports
 from vllm import LLM
@@ -161,3 +162,92 @@ class ModelLoader:
         return self.gpu_memory_manager.has_sufficient_memory(
             estimated_memory, reserve_gb
         )
+
+    def load_model_sync(self, model_name: str) -> tuple[Any, float, float]:
+        """
+        Load a model synchronously and return (model, gpu_memory_gb, load_time).
+
+        Returns:
+            tuple: (loaded_model, gpu_memory_used_gb, load_time_seconds)
+        """
+        self._log("attempting_model_load", model_name)
+        load_start = time.perf_counter()
+
+        # Track GPU memory before loading
+        pre_used_gb, _, _ = self.gpu_memory_manager.get_memory_info()
+
+        # Load model synchronously
+        try:
+            llm = LLM(model=model_name)
+        except Exception as e:
+            self._log("model_load_failed", f"{model_name}: {str(e)}")
+            raise
+
+        load_time = time.perf_counter() - load_start
+
+        # Track GPU memory after loading
+        post_used_gb, _, _ = self.gpu_memory_manager.get_memory_info()
+        model_memory_gb = max(0.0, post_used_gb - pre_used_gb)
+
+        # Use estimation fallback if calculated memory is too low
+        if model_memory_gb < 0.1:
+            estimated_memory = self.gpu_memory_manager.estimate_model_memory_gb(
+                model_name
+            )
+            self._log(
+                "using_estimated_memory",
+                f"Calculated {model_memory_gb:.3f}GB, using estimate {estimated_memory:.1f}GB",
+            )
+            model_memory_gb = estimated_memory
+
+        self._log("model_load_success", model_name)
+        self._log("load_duration", load_time)
+        self._log("model_gpu_memory_gb", round(model_memory_gb, 2))
+
+        return llm, model_memory_gb, load_time
+
+    def load_models_parallel_sync(
+        self, model_names: List[str], max_workers: int = 2
+    ) -> tuple[List[tuple[str, Any, float, float]], List[tuple[str, Exception]]]:
+        """
+        Load multiple models in parallel using threads.
+
+        Args:
+            model_names: List of model names to load
+            max_workers: Maximum number of worker threads
+
+        Returns:
+            tuple: (successful_loads, failed_loads)
+                successful_loads: List of (model_name, model, gpu_memory_gb, load_time)
+                failed_loads: List of (model_name, exception)
+        """
+        successful_loads = []
+        failed_loads = []
+
+        def load_single_model(model_name: str):
+            try:
+                model, gpu_memory_gb, load_time = self.load_model_sync(model_name)
+                return model_name, model, gpu_memory_gb, load_time, None
+            except Exception as e:
+                return model_name, None, 0.0, 0.0, e
+
+        # Use ThreadPoolExecutor for parallel loading
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all model loading tasks
+            future_to_model = {
+                executor.submit(load_single_model, model_name): model_name
+                for model_name in model_names
+            }
+
+            # Process completed tasks
+            for future in as_completed(future_to_model):
+                model_name, model, gpu_memory_gb, load_time, exception = future.result()
+
+                if exception is None:
+                    successful_loads.append(
+                        (model_name, model, gpu_memory_gb, load_time)
+                    )
+                else:
+                    failed_loads.append((model_name, exception))
+
+        return successful_loads, failed_loads

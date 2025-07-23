@@ -1,5 +1,6 @@
 # Standard library imports
 import asyncio
+import threading
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional, NamedTuple, Callable
@@ -38,6 +39,7 @@ class ModelManager:
         self.config = config or ModelManagerConfig()
         self._logger_callback: Optional[Callable] = None
         self._model_loading_lock = asyncio.Lock()
+        self._sync_loading_lock = threading.Lock()
 
         # Initialize components
         self.gpu_memory_manager = GPUMemoryManager()
@@ -197,6 +199,83 @@ class ModelManager:
                 failure = ModelLoadFailure(
                     model_name=model_name,
                     error_message=str(e),
+                    timestamp=datetime.now(),
+                )
+                failed_models.append(failure)
+                self.circuit_breaker.record_failure(model_name)
+
+        # Log summary
+        self._log_preload_summary(loaded_models, failed_models, len(model_names))
+
+        if not loaded_models:
+            self._log("fatal_error", "No models loaded - service cannot start")
+            raise RuntimeError(
+                f"No models loaded successfully from {len(model_names)} attempted models"
+            )
+
+    def preload_models_sync(self, model_names: List[str], max_workers: int = 2) -> None:
+        """Preload models synchronously using threads for parallelization."""
+        from datetime import datetime
+
+        failed_models: List[ModelLoadFailure] = []
+        loaded_models: List[str] = []
+
+        # Sort models by estimated size (smallest first for better packing)
+        sorted_models = sorted(
+            model_names, key=self.gpu_memory_manager.estimate_model_memory_gb
+        )
+
+        # Filter models that can be loaded based on memory constraints
+        loadable_models = []
+        for model_name in sorted_models:
+            if (
+                self.config.enable_gpu_memory_management
+                and not self.model_loader.can_load_model(
+                    model_name, self.config.gpu_memory_reserve_gb
+                )
+            ):
+                estimated_memory = self.gpu_memory_manager.estimate_model_memory_gb(
+                    model_name
+                )
+                _, free_gb, _ = self.gpu_memory_manager.get_memory_info()
+
+                self._log(
+                    "preload_skipped_memory",
+                    f"{model_name}: need {estimated_memory:.1f}GB, only {free_gb:.1f}GB free",
+                )
+                failure = ModelLoadFailure(
+                    model_name=model_name,
+                    error_message=f"Insufficient GPU memory: need {estimated_memory:.1f}GB, have {free_gb:.1f}GB",
+                    timestamp=datetime.now(),
+                )
+                failed_models.append(failure)
+            else:
+                loadable_models.append(model_name)
+
+        if loadable_models:
+            # Load models in parallel using threads
+            successful_loads, failed_loads = (
+                self.model_loader.load_models_parallel_sync(
+                    loadable_models, max_workers
+                )
+            )
+
+            # Process successful loads
+            for model_name, model, gpu_memory_gb, load_time in successful_loads:
+                self.model_cache.put(model_name, model, gpu_memory_gb, load_time)
+                loaded_models.append(model_name)
+                self.circuit_breaker.record_success(model_name)
+
+                self._log("model_preloaded", model_name)
+                self._log("preload_gpu_memory_gb", round(gpu_memory_gb, 2))
+
+            # Process failed loads
+            for model_name, exception in failed_loads:
+                self._log("preload_failed", model_name)
+                self._log("preload_error", f"{model_name}: {str(exception)}")
+                failure = ModelLoadFailure(
+                    model_name=model_name,
+                    error_message=str(exception),
                     timestamp=datetime.now(),
                 )
                 failed_models.append(failure)
