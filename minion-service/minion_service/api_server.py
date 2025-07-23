@@ -34,8 +34,8 @@ class VLLMOpenAIAPI(ls.LitAPI):
         self.model_manager = ModelManager(config=config)
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
-        # Preload models synchronously using threads for parallelization
-        self.model_manager.preload_models_sync(supported_models, max_workers=2)
+        # Preload models synchronously (sequential to avoid CUDA conflicts)
+        self.model_manager.preload_models_sync(supported_models)
 
     async def predict(self, prompt, context):
         """Process chat completion request with batching support.

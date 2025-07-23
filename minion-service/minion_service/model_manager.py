@@ -213,8 +213,8 @@ class ModelManager:
                 f"No models loaded successfully from {len(model_names)} attempted models"
             )
 
-    def preload_models_sync(self, model_names: List[str], max_workers: int = 2) -> None:
-        """Preload models synchronously using threads for parallelization."""
+    def preload_models_sync(self, model_names: List[str]) -> None:
+        """Preload models synchronously in sequential order."""
         from datetime import datetime
 
         failed_models: List[ModelLoadFailure] = []
@@ -225,43 +225,39 @@ class ModelManager:
             model_names, key=self.gpu_memory_manager.estimate_model_memory_gb
         )
 
-        # Filter models that can be loaded based on memory constraints
-        loadable_models = []
         for model_name in sorted_models:
-            if (
-                self.config.enable_gpu_memory_management
-                and not self.model_loader.can_load_model(
-                    model_name, self.config.gpu_memory_reserve_gb
-                )
-            ):
-                estimated_memory = self.gpu_memory_manager.estimate_model_memory_gb(
+            try:
+                # Check if we can load this model
+                if (
+                    self.config.enable_gpu_memory_management
+                    and not self.model_loader.can_load_model(
+                        model_name, self.config.gpu_memory_reserve_gb
+                    )
+                ):
+                    estimated_memory = self.gpu_memory_manager.estimate_model_memory_gb(
+                        model_name
+                    )
+                    _, free_gb, _ = self.gpu_memory_manager.get_memory_info()
+
+                    self._log(
+                        "preload_skipped_memory",
+                        f"{model_name}: need {estimated_memory:.1f}GB, only {free_gb:.1f}GB free",
+                    )
+                    failure = ModelLoadFailure(
+                        model_name=model_name,
+                        error_message=f"Insufficient GPU memory: need {estimated_memory:.1f}GB, have {free_gb:.1f}GB",
+                        timestamp=datetime.now(),
+                    )
+                    failed_models.append(failure)
+                    continue
+
+                # Load the model sequentially
+                self._log("preloading_model", model_name)
+                model, gpu_memory_gb, load_time = self.model_loader.load_model_sync(
                     model_name
                 )
-                _, free_gb, _ = self.gpu_memory_manager.get_memory_info()
 
-                self._log(
-                    "preload_skipped_memory",
-                    f"{model_name}: need {estimated_memory:.1f}GB, only {free_gb:.1f}GB free",
-                )
-                failure = ModelLoadFailure(
-                    model_name=model_name,
-                    error_message=f"Insufficient GPU memory: need {estimated_memory:.1f}GB, have {free_gb:.1f}GB",
-                    timestamp=datetime.now(),
-                )
-                failed_models.append(failure)
-            else:
-                loadable_models.append(model_name)
-
-        if loadable_models:
-            # Load models in parallel using threads
-            successful_loads, failed_loads = (
-                self.model_loader.load_models_parallel_sync(
-                    loadable_models, max_workers
-                )
-            )
-
-            # Process successful loads
-            for model_name, model, gpu_memory_gb, load_time in successful_loads:
+                # Store in cache
                 self.model_cache.put(model_name, model, gpu_memory_gb, load_time)
                 loaded_models.append(model_name)
                 self.circuit_breaker.record_success(model_name)
@@ -269,13 +265,12 @@ class ModelManager:
                 self._log("model_preloaded", model_name)
                 self._log("preload_gpu_memory_gb", round(gpu_memory_gb, 2))
 
-            # Process failed loads
-            for model_name, exception in failed_loads:
+            except Exception as e:
                 self._log("preload_failed", model_name)
-                self._log("preload_error", f"{model_name}: {str(exception)}")
+                self._log("preload_error", f"{model_name}: {str(e)}")
                 failure = ModelLoadFailure(
                     model_name=model_name,
-                    error_message=str(exception),
+                    error_message=str(e),
                     timestamp=datetime.now(),
                 )
                 failed_models.append(failure)
