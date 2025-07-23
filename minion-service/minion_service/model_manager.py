@@ -1,7 +1,6 @@
-from typing import Dict, List, Optional, NamedTuple, Tuple
+from typing import Dict, List, Optional, NamedTuple
 from vllm import LLM
 import time
-import psutil
 import asyncio
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -32,11 +31,8 @@ class ModelLoadAttempt:
 
 @dataclass
 class ModelManagerConfig:
-    memory_reserve_gb: float = 2.0  # Always keep this much memory free
     circuit_breaker_failure_threshold: int = 5
     circuit_breaker_timeout_seconds: int = 60
-    model_priority_weights: Dict[str, float] = field(default_factory=dict)
-    memory_estimation_factor: float = 1.2  # Safety factor for memory estimation
 
 
 class ModelManager:
@@ -51,7 +47,6 @@ class ModelManager:
         self.models: LRUCache[str, LLM] = LRUCache(maxsize=10)
         self.last_used: Dict[str, datetime] = {}
         self.load_attempts: Dict[str, ModelLoadAttempt] = {}
-        self.model_memory_usage: Dict[str, float] = {}  # GB
         self.model_load_times: Dict[str, float] = {}  # seconds
         self._model_loading_lock = asyncio.Lock()  # Single lock for model loading
         self._logger_callback = None
@@ -223,84 +218,85 @@ class ModelManager:
                 self.last_used[model_name] = datetime.now()
                 return self.models[model_name]
 
-            await self._ensure_memory_available(model_name)
             return await self._attempt_model_load(model_name)
 
-    async def _ensure_memory_available(self, model_name: str):
-        """Ensure enough memory is available for model loading."""
-        estimated_memory = self._estimate_model_memory(model_name)
-        used_percent, available_gb = self._get_memory_info()
-
-        self._log(
-            "pre_load_memory_check",
-            {
-                "model": model_name,
-                "estimated_memory_gb": estimated_memory,
-                "memory_used_percent": used_percent,
-                "memory_available_gb": available_gb,
-            },
-        )
-
-        # Use sophisticated memory management instead of simple LRU eviction
-        if available_gb < estimated_memory + self.config.memory_reserve_gb:
-            await self._free_memory_for_model(estimated_memory)
-
     async def _attempt_model_load(self, model_name: str) -> LLM:
-        """Attempt to load the requested model."""
-        try:
-            self._log("attempting_model_load", model_name)
-            load_start = time.perf_counter()
-            pre_load_memory = psutil.virtual_memory().percent
+        """Attempt to load the requested model with LRU eviction on failure."""
+        max_retries = 3  # Maximum number of models to unload and retry
 
-            # Load model in executor to avoid blocking the event loop
-            loop = asyncio.get_event_loop()
-            llm = await loop.run_in_executor(None, LLM, model_name)
-
-            load_time = time.perf_counter() - load_start
-            post_load_memory = psutil.virtual_memory().percent
-            memory_increase = post_load_memory - pre_load_memory
-
-            self.models[model_name] = llm
-            self.last_used[model_name] = datetime.now()
-
-            # Track memory usage and load time for future predictions
-            self.model_memory_usage[model_name] = (
-                memory_increase / 100 * psutil.virtual_memory().total / (1024**3)
-            )
-            self.model_load_times[model_name] = load_time
-
-            self._log("on_demand_load_success", model_name)
-            self._log("load_duration", load_time)
-            self._log("memory_increase", memory_increase)
-            self._log("total_models_loaded", len(self.models))
-
-            # Update circuit breaker on success
-            self._update_circuit_breaker(model_name, success=True)
-
-            return llm
-
-        except Exception as e:
-            error_msg = str(e)
-            self._log("on_demand_load_failed", model_name)
-            self._log("load_error", f"{model_name}: {error_msg}")
-
-            # Update circuit breaker on failure
-            self._update_circuit_breaker(model_name, success=False)
-
-            if self._is_memory_error(error_msg):
+        for attempt in range(max_retries + 1):
+            try:
                 self._log(
-                    "memory_error_on_demand", "Memory error during on-demand loading"
+                    "attempting_model_load", f"{model_name} (attempt {attempt + 1})"
                 )
-                raise RuntimeError(
-                    f"Cannot load model '{model_name}' due to memory constraints: {error_msg}"
+                load_start = time.perf_counter()
+
+                # Load model in executor to avoid blocking the event loop
+                loop = asyncio.get_event_loop()
+                llm = await loop.run_in_executor(None, LLM, model_name)
+
+                load_time = time.perf_counter() - load_start
+
+                self.models[model_name] = llm
+                self.last_used[model_name] = datetime.now()
+                self.model_load_times[model_name] = load_time
+
+                self._log("on_demand_load_success", model_name)
+                self._log("load_duration", load_time)
+                self._log("total_models_loaded", len(self.models))
+
+                # Update circuit breaker on success
+                self._update_circuit_breaker(model_name, success=True)
+
+                return llm
+
+            except Exception as e:
+                error_msg = str(e)
+                self._log(
+                    "model_load_attempt_failed",
+                    f"{model_name} attempt {attempt + 1}: {error_msg}",
                 )
 
-            raise ValueError(f"Failed to load model '{model_name}': {error_msg}")
+                # If this isn't the last attempt, try freeing space
+                if attempt < max_retries and self.models:
+                    lru_model = self._get_least_recently_used_model()
+                    if lru_model and lru_model != model_name:
+                        self._log(
+                            "evicting_lru_model",
+                            f"Unloading {lru_model} to make space for {model_name}",
+                        )
+                        await self.unload_model(lru_model)
+                        continue
 
-    def _is_memory_error(self, error_msg: str) -> bool:
-        """Check if error is memory-related."""
-        memory_keywords = ["memory", "oom", "cuda out of memory", "allocation"]
-        return any(keyword in error_msg.lower() for keyword in memory_keywords)
+                # Last attempt failed or no models to unload
+                self._log("on_demand_load_failed", model_name)
+                self._log("load_error", f"{model_name}: {error_msg}")
+
+                # Update circuit breaker on failure
+                self._update_circuit_breaker(model_name, success=False)
+
+                raise ValueError(
+                    f"Failed to load model '{model_name}' after {attempt + 1} attempts: {error_msg}"
+                )
+
+        # This should never be reached due to the raise above, but mypy needs it
+        raise RuntimeError("Unexpected code path in _attempt_model_load")
+
+    def _get_least_recently_used_model(self) -> Optional[str]:
+        """Get the least recently used model for eviction."""
+        if not self.models:
+            return None
+
+        oldest_time = None
+        oldest_model = None
+
+        for model_name in self.models.keys():
+            last_used = self.last_used.get(model_name, datetime.min)
+            if oldest_time is None or last_used < oldest_time:
+                oldest_time = last_used
+                oldest_model = model_name
+
+        return oldest_model
 
     async def unload_model(self, model_name: str) -> None:
         if model_name in self.models:
@@ -311,8 +307,6 @@ class ModelManager:
             )
             if model_name in self.last_used:
                 del self.last_used[model_name]
-            if model_name in self.model_memory_usage:
-                del self.model_memory_usage[model_name]
             if model_name in self.model_load_times:
                 del self.model_load_times[model_name]
             self._log("model_unloaded", model_name)
@@ -320,92 +314,6 @@ class ModelManager:
 
     def list_loaded_models(self) -> List[str]:
         return list(self.models.keys())
-
-    def _get_memory_info(self) -> Tuple[float, float]:
-        """Get current memory information."""
-        memory = psutil.virtual_memory()
-        used_percent = memory.percent
-        available_gb = memory.available / (1024**3)
-        return used_percent, available_gb
-
-    def _estimate_model_memory(self, model_name: str) -> float:
-        """Estimate memory needed for model in GB."""
-        # Use historical data if available
-        if model_name in self.model_memory_usage:
-            return (
-                self.model_memory_usage[model_name]
-                * self.config.memory_estimation_factor
-            )
-
-        # Basic estimation based on model name patterns
-        model_lower = model_name.lower()
-        if "7b" in model_lower or "7-b" in model_lower:
-            return 14.0  # ~14GB for 7B parameter models
-        elif "3b" in model_lower or "3-b" in model_lower:
-            return 6.0  # ~6GB for 3B parameter models
-        elif "1b" in model_lower or "1.7b" in model_lower:
-            return 3.0  # ~3GB for smaller models
-        elif "14b" in model_lower:
-            return 28.0  # ~28GB for 14B parameter models
-        else:
-            return 8.0  # Default estimation
-
-    async def _free_memory_for_model(self, required_memory_gb: float):
-        """Free exactly enough memory for the required model."""
-        if not self.models:
-            return
-
-        # Calculate current memory usage
-        current_usage = sum(
-            self.model_memory_usage.get(name, 0) for name in self.models.keys()
-        )
-
-        self._log("current_memory_usage", f"{current_usage:.1f}GB")
-
-        memory_info = psutil.virtual_memory()
-        available_gb = memory_info.available / (1024**3)
-
-        # Check if we need to free memory
-        if available_gb >= required_memory_gb + self.config.memory_reserve_gb:
-            return
-
-        memory_to_free = (
-            required_memory_gb + self.config.memory_reserve_gb - available_gb
-        )
-
-        # Get models sorted by priority (LRU + priority weights)
-        models_by_priority = self._get_models_by_eviction_priority()
-
-        freed_memory = 0.0
-        for model_name in models_by_priority:
-            if freed_memory >= memory_to_free:
-                break
-            model_memory = self.model_memory_usage.get(model_name, 0)
-            await self.unload_model(model_name)
-            freed_memory += model_memory
-            self._log(
-                "model_evicted_for_memory", f"{model_name} freed {model_memory:.1f}GB"
-            )
-
-    def _get_models_by_eviction_priority(self) -> List[str]:
-        """Get models sorted by eviction priority (least important first)."""
-        current_time = datetime.now()
-        model_scores = []
-
-        for model_name in self.models.keys():
-            # Base score on last used time (older = higher eviction priority)
-            last_used = self.last_used.get(model_name, current_time)
-            time_score = (current_time - last_used).total_seconds()
-
-            # Apply priority weights (lower weight = higher eviction priority)
-            priority_weight = self.config.model_priority_weights.get(model_name, 1.0)
-            final_score = time_score / priority_weight
-
-            model_scores.append((final_score, model_name))
-
-        # Sort by score (highest first = most likely to evict)
-        model_scores.sort(reverse=True)
-        return [model_name for _, model_name in model_scores]
 
     def get_model_stats(self) -> Dict[str, Dict]:
         """Get statistics about loaded models including last used times."""

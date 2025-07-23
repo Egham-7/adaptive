@@ -15,10 +15,8 @@ class VLLMOpenAIAPI(ls.LitAPI):
             "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION - Education focused
         ]
 
-        # Configure model manager with memory reserve and circuit breaker
-        config = ModelManagerConfig(
-            memory_reserve_gb=2.0,  # Always keep 2GB free for system stability
-        )
+        # Configure model manager with circuit breaker
+        config = ModelManagerConfig()
         self.model_manager = ModelManager(
             preload_models=supported_models, config=config
         )
