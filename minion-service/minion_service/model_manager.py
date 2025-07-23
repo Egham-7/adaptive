@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional
-import litgpt  # type: ignore
+from vllm import LLM
 import threading
 import time
 import psutil
@@ -19,7 +19,7 @@ class ModelManager:
         self.memory_reserve_gb = memory_reserve_gb
 
         # Start with a reasonable maxsize, we'll resize dynamically if needed
-        self.models: LRUCache[str, litgpt.LLM] = LRUCache(maxsize=10)
+        self.models: LRUCache[str, LLM] = LRUCache(maxsize=10)
         self.last_used: Dict[str, datetime] = {}
         self.failed_models: Dict[str, str] = {}  # Track models that failed to load
         self._loading_locks: Dict[str, threading.Lock] = {}
@@ -60,7 +60,7 @@ class ModelManager:
                 self._log("preloading_model", model_name)
                 load_start = time.perf_counter()
 
-                llm = litgpt.LLM.load(model_name)
+                llm = LLM(model=model_name)
 
                 load_time = time.perf_counter() - load_start
                 self.models[model_name] = llm
@@ -119,7 +119,7 @@ class ModelManager:
                 f"Service starting with {len(loaded_models)}/{len(model_names)} models",
             )
 
-    def get_model(self, model_name: str) -> litgpt.LLM:
+    def get_model(self, model_name: str) -> LLM:
         if model_name in self.models:
             self._log("model_cache_hit", 1)
             # Update last used timestamp
@@ -129,7 +129,7 @@ class ModelManager:
         # Model not currently loaded - try to load it with memory management
         return self._load_model_with_memory_management(model_name)
 
-    def _load_model_with_memory_management(self, model_name: str) -> litgpt.LLM:
+    def _load_model_with_memory_management(self, model_name: str) -> LLM:
         """Load a model with automatic memory management and LRU eviction."""
         self._log("model_cache_miss", 1)
         self._log("loading_on_demand", model_name)
@@ -190,7 +190,7 @@ class ModelManager:
                 load_start = time.perf_counter()
 
                 pre_load_memory = psutil.virtual_memory().percent
-                llm = litgpt.LLM.load(model_name)
+                llm = LLM(model=model_name)
                 post_load_memory = psutil.virtual_memory().percent
 
                 load_time = time.perf_counter() - load_start
