@@ -49,7 +49,7 @@ class LitGPTOpenAIAPI(ls.LitAPI):
 
         # Debug: Check parameter types
         self.log("debug", f"prompt type: {type(prompt)}, context type: {type(context)}")
-        
+
         # Handle parameter swap issue
         if isinstance(context, list) and isinstance(prompt, dict):
             prompt, context = context, prompt
