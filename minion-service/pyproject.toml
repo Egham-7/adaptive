@@ -3,7 +3,7 @@ name = "minion-service"
 version = "0.1.0"
 description = "LitGPT-based OpenAI-compatible API server with automatic model management"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 authors = [
     {name = "Adaptive", email = "contact@adaptive.com"}
 ]
