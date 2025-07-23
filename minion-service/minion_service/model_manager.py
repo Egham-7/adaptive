@@ -4,7 +4,7 @@ import threading
 import time
 import psutil
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 from dataclasses import dataclass, field
 from enum import Enum
 from cachetools import LRUCache
@@ -33,9 +33,7 @@ class ModelLoadAttempt:
 
 @dataclass
 class ModelManagerConfig:
-    memory_threshold_percent: float = 95.0
-    memory_reserve_gb: float = 2.0
-    inactivity_timeout_minutes: int = 30
+    memory_reserve_gb: float = 2.0  # Always keep this much memory free
     max_retries: int = 3
     retry_delay_seconds: float = 1.0
     circuit_breaker_failure_threshold: int = 5
@@ -66,23 +64,10 @@ class ModelManager:
         self._loading_locks: Dict[str, threading.Lock] = {}
         self._main_lock = threading.Lock()
         self._logger_callback = None
-        self.inactivity_timeout = timedelta(
-            minutes=self.config.inactivity_timeout_minutes
-        )
-        self._cleanup_thread: Optional[threading.Thread] = None
-        self._shutdown_cleanup = threading.Event()
 
         # Preload models at startup
         if preload_models:
             self._preload_models(preload_models)
-
-        # Start background cleanup task
-        self._start_cleanup_task()
-
-    def _should_evict_models(self) -> bool:
-        """Check if we should evict models due to memory pressure."""
-        used_percent, available_gb, has_enough_memory = self._get_memory_info()
-        return not has_enough_memory
 
     def set_logger_callback(self, callback):
         """Set callback function for logging metrics."""
@@ -212,8 +197,8 @@ class ModelManager:
             # Check if timeout has passed
             if (
                 attempt.last_failure
-                and datetime.now() - attempt.last_failure
-                > timedelta(seconds=self.config.circuit_breaker_timeout_seconds)
+                and (datetime.now() - attempt.last_failure).total_seconds()
+                > self.config.circuit_breaker_timeout_seconds
             ):
                 attempt.circuit_state = CircuitState.HALF_OPEN
                 self._log("circuit_breaker_half_open", model_name)
@@ -301,7 +286,7 @@ class ModelManager:
     async def _ensure_memory_available(self, model_name: str):
         """Ensure enough memory is available for model loading."""
         estimated_memory = self._estimate_model_memory(model_name)
-        used_percent, available_gb, has_enough_memory = self._get_memory_info()
+        used_percent, available_gb = self._get_memory_info()
 
         self._log(
             "pre_load_memory_check",
@@ -310,7 +295,6 @@ class ModelManager:
                 "estimated_memory_gb": estimated_memory,
                 "memory_used_percent": used_percent,
                 "memory_available_gb": available_gb,
-                "has_enough_memory": has_enough_memory,
             },
         )
 
@@ -394,16 +378,12 @@ class ModelManager:
     def list_loaded_models(self) -> List[str]:
         return list(self.models.keys())
 
-    def _get_memory_info(self) -> Tuple[float, float, bool]:
-        """Get current memory information and check if there's enough available."""
+    def _get_memory_info(self) -> Tuple[float, float]:
+        """Get current memory information."""
         memory = psutil.virtual_memory()
         used_percent = memory.percent
         available_gb = memory.available / (1024**3)
-        has_enough_memory = (
-            used_percent < self.config.memory_threshold_percent
-            and available_gb > self.config.memory_reserve_gb
-        )
-        return used_percent, available_gb, has_enough_memory
+        return used_percent, available_gb
 
     def _estimate_model_memory(self, model_name: str) -> float:
         """Estimate memory needed for model in GB."""
@@ -484,48 +464,6 @@ class ModelManager:
         model_scores.sort(reverse=True)
         return [model_name for _, model_name in model_scores]
 
-    def _start_cleanup_task(self) -> None:
-        """Start background task to periodically unload unused models."""
-        if self._cleanup_thread is None or not self._cleanup_thread.is_alive():
-            self._cleanup_thread = threading.Thread(
-                target=self._cleanup_unused_models, daemon=True
-            )
-            self._cleanup_thread.start()
-
-    def _cleanup_unused_models(self) -> None:
-        """Background task that runs periodically to unload unused models."""
-        while not self._shutdown_cleanup.is_set():
-            try:
-                # Run async cleanup in a new event loop for the thread
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(self._unload_inactive_models())
-                loop.close()
-                self._shutdown_cleanup.wait(300)  # Wait 5 minutes
-            except Exception as e:
-                self._log("cleanup_error", str(e))
-                self._shutdown_cleanup.wait(60)  # Wait 1 minute on error
-
-    async def _unload_inactive_models(self):
-        """Unload models that have been inactive for too long."""
-        current_time = datetime.now()
-        with self._main_lock:
-            models_to_unload = [
-                model_name
-                for model_name, last_used_time in self.last_used.items()
-                if current_time - last_used_time > self.inactivity_timeout
-            ]
-
-        for model_name in models_to_unload:
-            self._log("model_auto_unload_triggered", model_name)
-            await self.unload_model(model_name)
-
-    def shutdown(self) -> None:
-        """Shutdown the model manager and cleanup resources."""
-        self._shutdown_cleanup.set()
-        if self._cleanup_thread and self._cleanup_thread.is_alive():
-            self._cleanup_thread.join(timeout=5)
-
     def get_model_stats(self) -> Dict[str, Dict]:
         """Get statistics about loaded models including last used times."""
         current_time = datetime.now()
@@ -541,10 +479,6 @@ class ModelManager:
         return {
             "last_used": last_used.isoformat(),
             "inactive_minutes": int(inactive_duration.total_seconds() / 60),
-            "will_unload_in_minutes": max(
-                0,
-                int((self.inactivity_timeout - inactive_duration).total_seconds() / 60),
-            ),
         }
 
     async def async_preload_model(self, model_name: str) -> bool:

@@ -15,11 +15,9 @@ class VLLMOpenAIAPI(ls.LitAPI):
             "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION - Education focused
         ]
 
-        # Auto-unload models after 30 minutes of inactivity with memory management
+        # Configure model manager with memory reserve and circuit breaker
         config = ModelManagerConfig(
-            memory_threshold_percent=95.0,
-            memory_reserve_gb=2.0,
-            inactivity_timeout_minutes=30,
+            memory_reserve_gb=2.0,  # Always keep 2GB free for system stability
             max_retries=3,
             circuit_breaker_failure_threshold=5,
             enable_predictive_loading=True,
