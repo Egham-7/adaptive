@@ -19,7 +19,7 @@ class VLLMOpenAIAPI(ls.LitAPI):
         self.model_manager = ModelManager(
             preload_models=supported_models,
             inactivity_timeout_minutes=30,
-            memory_threshold_percent=85.0,
+            memory_threshold_percent=95.0,
             memory_reserve_gb=2.0,
         )
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
