@@ -520,16 +520,17 @@ class ModelManager:
             # Check all available GPU devices using cached count
             for device_id in range(self._gpu_device_count):
                 try:
-                    used_bytes = torch.cuda.memory_allocated(device_id)
-                    total_bytes = torch.cuda.get_device_properties(
-                        device_id
-                    ).total_memory
-                    free_bytes = max(0, total_bytes - used_bytes)  # Ensure non-negative
+                    # Use the same method VLLM uses - actual GPU memory usage, not just PyTorch allocations
+                    memory_info = torch.cuda.mem_get_info(device_id)
+                    free_bytes, total_bytes = memory_info
+                    used_bytes = total_bytes - free_bytes
 
                     # Convert to GB and accumulate
                     total_used_gb += used_bytes / (1024**3)
                     total_free_gb += free_bytes / (1024**3)
                     total_capacity_gb += total_bytes / (1024**3)
+                    
+                    self._log("gpu_device_memory_detail", f"Device {device_id}: {used_bytes/(1024**3):.2f}GB used, {free_bytes/(1024**3):.2f}GB free")
                 except RuntimeError as e:
                     # Log but continue if specific device has issues
                     self._log("gpu_device_error", f"Device {device_id}: {str(e)}")
