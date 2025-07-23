@@ -7,15 +7,12 @@ from vllm import SamplingParams
 class VLLMOpenAIAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         supported_models = [
-            "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-            "Qwen/Qwen2.5-14B-Instruct",  # BUSINESS_AND_INDUSTRIAL/HEALTH
-            "Qwen/Qwen2.5-7B-Instruct",  # NEWS / OTHERDOMAINS / REAL_ESTATE
-            # COMPUTERS_AND_ELECTRONICS/INTERNET_AND_TELECOM
-            "codellama/CodeLlama-7b-Instruct-hf",
-            "Qwen/Qwen2.5-Math-7B-Instruct",  # FINANCE/SCIENCE
-            "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION
-            "microsoft/Phi-4-mini-reasoning",  # LAW_AND_GOVERNMENT
-            "meta-llama/Meta-Llama-3-8B-Instruct",  # SENSITIVE_SUBJECTS
+            "meta-llama/Llama-2-7b-chat-hf",        # SENSITIVE_SUBJECTS - Most reliable
+            "google/codegemma-7b-it",               # COMPUTERS_AND_ELECTRONICS - Google official  
+            "Qwen/Qwen2.5-7B-Instruct",            # NEWS/BUSINESS/GENERAL - Extensively tested
+            "Qwen/Qwen2.5-Math-7B-Instruct",       # FINANCE/SCIENCE - Math specialist
+            "microsoft/Phi-4-mini-reasoning",       # LAW_AND_GOVERNMENT - Reasoning specialist
+            "HuggingFaceTB/SmolLM2-1.7B-Instruct", # JOBS_AND_EDUCATION - Education focused
         ]
 
         # Auto-unload models after 30 minutes of inactivity with memory management
