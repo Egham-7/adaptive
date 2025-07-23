@@ -59,8 +59,7 @@ class ModelManager:
         self._preloading_tasks: Dict[str, asyncio.Task] = (
             {}
         )  # Track async preloading tasks
-        self._loading_locks: Dict[str, asyncio.Lock] = {}
-        self._main_lock = asyncio.Lock()
+        self._model_loading_lock = asyncio.Lock()  # Single lock for model loading
         self._logger_callback = None
 
         # Preload models at startup
@@ -235,7 +234,7 @@ class ModelManager:
         self._log("model_cache_miss", 1)
         self._log("loading_on_demand", model_name)
 
-        async with self._main_lock:
+        async with self._model_loading_lock:
             if model_name in self.models:
                 self.last_used[model_name] = datetime.now()
                 return self.models[model_name]
