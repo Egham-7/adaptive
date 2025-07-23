@@ -229,8 +229,7 @@ class ModelManager:
                         f"Cannot load model '{model_name}' due to memory constraints: {error_msg}"
                     )
 
-                raise ValueError(
-                    f"Failed to load model '{model_name}': {error_msg}")
+                raise ValueError(f"Failed to load model '{model_name}': {error_msg}")
 
     def unload_model(self, model_name: str) -> None:
         if model_name in self.models:
@@ -303,8 +302,7 @@ class ModelManager:
                     last_used := self.last_used.get(model_name, current_time)
                 ).isoformat(),
                 "inactive_minutes": int(
-                    (inactive_duration := current_time -
-                     last_used).total_seconds() / 60
+                    (inactive_duration := current_time - last_used).total_seconds() / 60
                 ),
                 "will_unload_in_minutes": max(
                     0,
