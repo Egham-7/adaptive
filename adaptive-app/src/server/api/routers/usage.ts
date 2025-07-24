@@ -46,11 +46,6 @@ export const usageRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			console.log("🔍 Recording API usage with input:", {
-				provider: input.provider,
-				model: input.model,
-				usage: input.usage,
-			});
 			try {
 				// Hash the provided API key to compare with stored hash
 				const keyHash = crypto
