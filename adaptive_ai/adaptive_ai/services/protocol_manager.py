@@ -147,9 +147,13 @@ class ProtocolManager:
             else 0.0
         )
 
-        # Rule-based protocol selection - always use standard
-        should_use_standard = True
-
+        should_use_standard = (
+            request_has_tools
+            or complexity_score > 0.40
+            or token_count > 3000
+            or number_of_few_shots > 4
+            or reasoning > 0.55
+        )
         protocol_choice = "standard_llm" if should_use_standard else "minion"
 
         self.log(
