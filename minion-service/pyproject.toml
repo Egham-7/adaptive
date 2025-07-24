@@ -3,7 +3,7 @@ name = "minion-service"
 version = "0.1.0"
 description = "LitGPT-based OpenAI-compatible API server with automatic model management"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 authors = [
     {name = "Adaptive", email = "contact@adaptive.com"}
 ]
@@ -18,10 +18,10 @@ classifiers = [
 ]
 dependencies = [
     "cachetools>=5.5.0",
+    "flashinfer-python>=0.2.8",
     "hf-transfer>=0.1.9",
-    "litgpt>=0.5.9",
     "litserve>=0.2.13",
-    "openai>=1.97.0",
+    "openai>=1.90.0",
     "psutil>=6.1.0",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
@@ -29,6 +29,7 @@ dependencies = [
     "types-cachetools>=6.1.0.20250717",
     "types-psutil>=7.0.0.20250601",
     "types-requests>=2.32.4.20250611",
+    "vllm==0.9.2",
 ]
 
 [project.optional-dependencies]

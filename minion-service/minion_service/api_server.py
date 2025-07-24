@@ -1,42 +1,43 @@
-import litserve as ls  # type:ignore
-from minion_service.model_manager import ModelManager
 import time
-from typing import Any, Dict, Generator, List
-from openai.types.chat import ChatCompletionMessageParam, ChatCompletion
+
+import litserve as ls  # type:ignore
+from vllm import SamplingParams
+
+from minion_service.model_manager import ModelManager, ModelManagerConfig
 
 
-class LitGPTOpenAIAPI(ls.LitAPI):
-    def __init__(self):
-        super().__init__(spec=ls.OpenAISpec(), max_batch_size=8, batch_timeout=0.05)
-
+class VLLMOpenAIAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         supported_models = [
-            "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-            "Qwen/Qwen2.5-14B-Instruct",  # BUSINESS_AND_INDUSTRIAL/HEALTH
-            "Qwen/Qwen2.5-7B-Instruct",  # NEWS / OTHERDOMAINS / REAL_ESTATE
-            "codellama/CodeLlama-7b-Instruct-hf",  # COMPUTERS_AND_ELECTRONICS/INTERNET_AND_TELECOM
-            "Qwen/Qwen2.5-Math-7B-Instruct",  # FINANCE/SCIENCE
-            "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION
-            "microsoft/Phi-4-mini-reasoning",  # LAW_AND_GOVERNMENT
-            "meta-llama/Meta-Llama-3-8B-Instruct",  # SENSITIVE_SUBJECTS
+            "meta-llama/Meta-Llama-3-8B-Instruct",  # SENSITIVE_SUBJECTS - Most reliable
+            "google/codegemma-7b-it",  # COMPUTERS_AND_ELECTRONICS - Google official
+            "Qwen/Qwen2.5-7B-Instruct",  # NEWS/BUSINESS/GENERAL - Extensively tested
+            "Qwen/Qwen2.5-Math-7B-Instruct",  # FINANCE/SCIENCE - Math specialist
+            "microsoft/Phi-4-mini-reasoning",  # LAW_AND_GOVERNMENT - Reasoning specialist
+            "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION - Education focused
         ]
 
-        # Auto-unload models after 30 minutes of inactivity with memory management
-        self.model_manager = ModelManager(
-            preload_models=supported_models,
-            inactivity_timeout_minutes=30,
-            memory_threshold_percent=85.0,
-            memory_reserve_gb=2.0,
+        # Configure model manager with GPU memory management and circuit breaker
+        # Only enable GPU memory management if CUDA is available
+        try:
+            import torch
+
+            gpu_available = torch.cuda.is_available() and torch.cuda.device_count() > 0
+        except ImportError:
+            gpu_available = False
+
+        self.log("gpu_available", gpu_available)
+
+        config = ModelManagerConfig(
+            gpu_memory_reserve_gb=2.0, enable_gpu_memory_management=gpu_available
         )
+        self.model_manager = ModelManager(config=config)
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
-    def batch(self, inputs: List[ChatCompletion]) -> List[ChatCompletion]:
-        """Batch multiple chat requests together."""
-        return inputs
+        # Preload models synchronously (sequential to avoid CUDA conflicts)
+        self.model_manager.preload_models_sync(supported_models)
 
-    def predict(
-        self, prompt: List[ChatCompletionMessageParam], context: Dict[str, Any]
-    ) -> Generator[str, None, None]:
+    async def predict(self, prompt, context):
         """Process chat completion request with batching support.
 
         Args:
@@ -45,14 +46,14 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         """
         start_time = time.perf_counter()
 
-        # OpenAI spec automatically injects request parameters into context
+        self.log("prompt", prompt)
         model_name = context.get("model", "")
 
         if not model_name:
             raise ValueError("Model name is required")
 
         model_load_start = time.perf_counter()
-        llm = self.model_manager.get_model(model_name)
+        llm = await self.model_manager.get_model(model_name)
         model_load_time = time.perf_counter() - model_load_start
         self.log("model_load_time", model_load_time)
 
@@ -60,32 +61,39 @@ class LitGPTOpenAIAPI(ls.LitAPI):
         self.log("request_temperature", context.get("temperature", 0.7))
         self.log("request_max_tokens", context.get("max_tokens", 512))
 
-        # Generate response using LitGPT
-        inference_start = time.perf_counter()
-        generated_text = llm.generate(
-            prompt,
-            max_new_tokens=context.get("max_tokens", 512),
+        # Create sampling parameters for vLLM
+        sampling_params = SamplingParams(
+            max_tokens=context.get("max_tokens", 512),
             temperature=context.get("temperature", 0.7),
             top_p=context.get("top_p", 1.0),
         )
+
+        # Generate response using vLLM chat interface
+        inference_start = time.perf_counter()
+        messages_dict = [msg.model_dump() for msg in prompt.messages]
+        outputs = llm.chat(messages_dict, sampling_params, use_tqdm=False)
         inference_time = time.perf_counter() - inference_start
         self.log("inference_time", inference_time)
 
         total_tokens = 0
-        if generated_text:
+        if outputs and len(outputs) > 0 and outputs[0].outputs:
+            generated_text = outputs[0].outputs[0].text.strip()
             total_tokens = len(generated_text.split())
-            self.log("generated_tokens", total_tokens)
-
-            # Yield tokens for streaming
-            yield from (word + " " for word in generated_text.split())
         else:
+            generated_text = ""
+
+        if generated_text:
+            self.log("generated_tokens", total_tokens)
+            self.log("debug", f"Generated text: {repr(generated_text)}")
+
+            # Stream the response word by word
+            for word in generated_text.split():
+                yield word + " "
+        else:
+            self.log("warning", "No text generated by model")
             yield "I apologize, but I couldn't generate a response."
 
         total_time = time.perf_counter() - start_time
         self.log("total_request_time", total_time)
         if total_tokens > 0:
             self.log("tokens_per_second", total_tokens / inference_time)
-
-    def unbatch(self, output: Any) -> Any:
-        """Unbatch the results for individual responses."""
-        return output

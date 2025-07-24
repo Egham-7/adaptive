@@ -1,7 +1,7 @@
 import litserve as ls  # type:ignore
 import time
 from dotenv import load_dotenv
-from minion_service.api_server import LitGPTOpenAIAPI
+from minion_service.api_server import VLLMOpenAIAPI
 
 # Load environment variables from .env file
 load_dotenv()
@@ -22,16 +22,10 @@ class PerformanceLogger(ls.Logger):
 
 
 def main() -> None:
-
-    api = LitGPTOpenAIAPI()
+    api = VLLMOpenAIAPI(spec=ls.OpenAISpec(), enable_async=True)
     loggers = [AppLifecycleLogger(), PerformanceLogger()]
 
-    server = ls.LitServer(
-        api,
-        devices="auto",
-        workers_per_device=1,
-        loggers=loggers,
-    )
+    server = ls.LitServer(api, devices="auto", workers_per_device=1, loggers=loggers)
 
     server.run()
 

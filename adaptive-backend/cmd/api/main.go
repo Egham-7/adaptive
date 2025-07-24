@@ -23,8 +23,11 @@ import (
 )
 
 // SetupRoutes configures all the application routes for the Fiber app.
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	chatCompletionHandler := api.NewCompletionHandler()
+
+	// Health endpoint (no auth required)
+	app.Get("/health", healthHandler.Health)
 
 	// Apply API key authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.APIKeyAuth())
@@ -87,7 +90,18 @@ func main() {
 	})
 
 	setupMiddleware(app, allowedOrigins)
-	SetupRoutes(app)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Wait for services to become healthy before starting server
+	healthHandler := api.NewHealthHandler()
+	if err := healthHandler.WaitForServices(ctx, 10*time.Minute); err != nil {
+		fiberlog.Errorf("Failed to wait for services: %v", err)
+		return
+	}
+
+	SetupRoutes(app, healthHandler)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
@@ -100,19 +114,6 @@ func main() {
 			},
 		})
 	})
-
-	app.Get(healthEndpoint, func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status":     "healthy",
-			"timestamp":  time.Now(),
-			"uptime":     time.Since(time.Now()).String(),
-			"go_version": runtime.Version(),
-			"goroutines": runtime.NumGoroutine(),
-		})
-	})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	fmt.Printf("Server starting on %s with allowed origins: %s\n", port, allowedOrigins)
 	fmt.Printf("Environment: %s\n", os.Getenv(envKey))

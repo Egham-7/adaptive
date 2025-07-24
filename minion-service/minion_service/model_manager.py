@@ -1,315 +1,343 @@
-from typing import Dict, List, Optional
-import litgpt  # type: ignore
+# Standard library imports
+import asyncio
 import threading
-import time
-import psutil
-from datetime import datetime, timedelta
-from cachetools import LRUCache
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Dict, List, Optional, NamedTuple, Callable
+
+# Third-party imports
+from vllm import LLM
+
+# Local imports
+from .circuit_breaker import CircuitBreaker
+from .gpu_memory_manager import GPUMemoryManager
+from .model_cache import ModelCache
+from .model_loader import ModelLoader
+
+
+class ModelLoadFailure(NamedTuple):
+    model_name: str
+    error_message: str
+    timestamp: datetime
+
+
+@dataclass
+class ModelManagerConfig:
+    circuit_breaker_failure_threshold: int = 5
+    circuit_breaker_timeout_seconds: int = 60
+    gpu_memory_reserve_gb: float = 2.0
+    enable_gpu_memory_management: bool = True
+    max_load_retries: int = 3
+    model_loading_timeout_seconds: int = 300
+    cache_max_size: int = 10
 
 
 class ModelManager:
-    def __init__(
-        self,
-        preload_models: Optional[List[str]] = None,
-        inactivity_timeout_minutes: int = 30,
-        memory_threshold_percent: float = 85.0,
-        memory_reserve_gb: float = 2.0,
-    ):
-        self.memory_threshold_percent = memory_threshold_percent
-        self.memory_reserve_gb = memory_reserve_gb
+    """Orchestrates model loading, caching, and memory management."""
 
-        # Start with a reasonable maxsize, we'll resize dynamically if needed
-        self.models: LRUCache[str, litgpt.LLM] = LRUCache(maxsize=10)
-        self.last_used: Dict[str, datetime] = {}
-        self.failed_models: Dict[str, str] = {}  # Track models that failed to load
-        self._loading_locks: Dict[str, threading.Lock] = {}
-        self._main_lock = threading.Lock()
-        self._logger_callback = None
-        self.inactivity_timeout = timedelta(minutes=inactivity_timeout_minutes)
-        self._cleanup_thread: Optional[threading.Thread] = None
-        self._shutdown_cleanup = threading.Event()
+    def __init__(self, config: Optional[ModelManagerConfig] = None):
+        self.config = config or ModelManagerConfig()
+        self._logger_callback: Optional[Callable] = None
+        self._model_loading_lock = asyncio.Lock()
+        self._sync_loading_lock = threading.Lock()
 
-        # Preload models at startup
-        if preload_models:
-            self._preload_models(preload_models)
+        # Initialize components
+        self.gpu_memory_manager = GPUMemoryManager()
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=self.config.circuit_breaker_failure_threshold,
+            timeout_seconds=self.config.circuit_breaker_timeout_seconds,
+        )
+        self.model_cache = ModelCache(max_size=self.config.cache_max_size)
+        self.model_loader = ModelLoader(
+            gpu_memory_manager=self.gpu_memory_manager,
+            timeout_seconds=self.config.model_loading_timeout_seconds,
+        )
 
-        # Start background cleanup task
-        self._start_cleanup_task()
-
-    def _should_evict_models(self) -> bool:
-        """Check if we should evict models due to memory pressure."""
-        used_percent, available_gb, has_enough_memory = self._get_memory_info()
-        return not has_enough_memory
-
-    def set_logger_callback(self, callback):
-        """Set callback function for logging metrics."""
+    def set_logger_callback(self, callback: Callable):
+        """Set callback function for logging metrics across all components."""
         self._logger_callback = callback
+        # Update all components with the new callback
+        self.gpu_memory_manager._logger_callback = callback
+        self.circuit_breaker._logger_callback = callback
+        self.model_cache._logger_callback = callback
+        self.model_loader._logger_callback = callback
 
     def _log(self, key: str, value):
         """Log metrics if callback is available."""
         if self._logger_callback:
             self._logger_callback(key, value)
 
-    def _preload_models(self, model_names: List[str]):
-        """Preload models at startup for better performance."""
-        failed_models = []
-        loaded_models = []
+    async def get_model(self, model_name: str) -> LLM:
+        """Get a model, loading it if necessary."""
+        # Check cache first
+        cached_model = self.model_cache.get(model_name)
+        if cached_model is not None:
+            return cached_model
 
-        for model_name in model_names:
+        # Check circuit breaker before attempting load
+        if not self.circuit_breaker.should_attempt_load(model_name):
+            raise RuntimeError(
+                f"Circuit breaker is open for model '{model_name}' - too many recent failures"
+            )
+
+        return await self._load_model_with_management(model_name)
+
+    async def _load_model_with_management(self, model_name: str) -> LLM:
+        """Load a model with full memory and concurrency management."""
+        async with self._model_loading_lock:
+            # Double-check cache after acquiring lock
+            cached_model = self.model_cache.get(model_name)
+            if cached_model is not None:
+                return cached_model
+
+            # Ensure GPU memory is available
+            if self.config.enable_gpu_memory_management:
+                await self._ensure_gpu_memory_available(model_name)
+
+            # Load the model with retries and eviction callback
             try:
+                model, gpu_memory_gb, load_time = (
+                    await self.model_loader.load_with_retries(
+                        model_name=model_name,
+                        max_retries=self.config.max_load_retries,
+                        evict_callback=self._evict_lru_model,
+                    )
+                )
+
+                # Store in cache
+                self.model_cache.put(model_name, model, gpu_memory_gb, load_time)
+
+                # Record success in circuit breaker
+                self.circuit_breaker.record_success(model_name)
+
+                return model
+
+            except Exception:
+                # Record failure in circuit breaker
+                self.circuit_breaker.record_failure(model_name)
+                raise
+
+    async def _ensure_gpu_memory_available(self, model_name: str):
+        """Ensure enough GPU memory is available for the model."""
+        estimated_memory = self.gpu_memory_manager.estimate_model_memory_gb(model_name)
+
+        while not self.gpu_memory_manager.has_sufficient_memory(
+            estimated_memory, self.config.gpu_memory_reserve_gb
+        ):
+            if not await self._evict_lru_model():
+                # No more models to evict
+                used_gb, free_gb, total_gb = self.gpu_memory_manager.get_memory_info()
+                raise RuntimeError(
+                    f"Insufficient GPU memory for {model_name}: need {estimated_memory:.1f}GB, "
+                    f"have {free_gb:.1f}GB free ({used_gb:.1f}GB/{total_gb:.1f}GB used)"
+                )
+
+    async def _evict_lru_model(self) -> bool:
+        """Evict the least recently used model. Returns True if eviction occurred."""
+        lru_model = self.model_cache.get_least_recently_used()
+        if not lru_model:
+            return False
+
+        freed_memory = await self.model_cache.remove(lru_model)
+        self._log("model_evicted_for_memory", f"{lru_model} freed {freed_memory:.1f}GB")
+        self.gpu_memory_manager.cleanup_memory()
+        return True
+
+    async def preload_models_async(self, model_names: List[str]):
+        """Preload models with memory-aware sequential loading."""
+        failed_models: List[ModelLoadFailure] = []
+        loaded_models: List[str] = []
+
+        # Sort models by estimated size (smallest first for better packing)
+        sorted_models = sorted(
+            model_names, key=self.gpu_memory_manager.estimate_model_memory_gb
+        )
+
+        for model_name in sorted_models:
+            try:
+                # Check if we can load this model
+                if (
+                    self.config.enable_gpu_memory_management
+                    and not self.model_loader.can_load_model(
+                        model_name, self.config.gpu_memory_reserve_gb
+                    )
+                ):
+
+                    estimated_memory = self.gpu_memory_manager.estimate_model_memory_gb(
+                        model_name
+                    )
+                    _, free_gb, _ = self.gpu_memory_manager.get_memory_info()
+
+                    self._log(
+                        "preload_skipped_memory",
+                        f"{model_name}: need {estimated_memory:.1f}GB, only {free_gb:.1f}GB free",
+                    )
+                    failure = ModelLoadFailure(
+                        model_name=model_name,
+                        error_message=f"Insufficient GPU memory: need {estimated_memory:.1f}GB, have {free_gb:.1f}GB",
+                        timestamp=datetime.now(),
+                    )
+                    failed_models.append(failure)
+                    continue
+
+                # Load the model
                 self._log("preloading_model", model_name)
-                load_start = time.perf_counter()
+                model, gpu_memory_gb, load_time = await self.model_loader.load_model(
+                    model_name
+                )
 
-                llm = litgpt.LLM.load(model_name)
-
-                load_time = time.perf_counter() - load_start
-                self.models[model_name] = llm
-                self.last_used[model_name] = datetime.now()
+                # Store in cache
+                self.model_cache.put(model_name, model, gpu_memory_gb, load_time)
                 loaded_models.append(model_name)
 
                 self._log("model_preloaded", model_name)
-                self._log("preload_duration", load_time)
-                self._log(
-                    "model_preload_success", f"{model_name} loaded in {load_time:.2f}s"
-                )
+                self._log("preload_gpu_memory_gb", round(gpu_memory_gb, 2))
 
             except Exception as e:
                 self._log("preload_failed", model_name)
                 self._log("preload_error", f"{model_name}: {str(e)}")
-                failed_models.append((model_name, str(e)))
-                # Store failed model for tracking
-                self.failed_models[model_name] = str(e)
+                failure = ModelLoadFailure(
+                    model_name=model_name,
+                    error_message=str(e),
+                    timestamp=datetime.now(),
+                )
+                failed_models.append(failure)
+                self.circuit_breaker.record_failure(model_name)
 
-        # Log warnings for failed models
-        if failed_models:
-            failed_model_names = [name for name, _ in failed_models]
-            self._log(
-                "model_preload_warnings",
-                f"Failed to load {len(failed_models)} model(s)",
-            )
-            self._log("failed_models", failed_model_names)
+        # Log summary
+        self._log_preload_summary(loaded_models, failed_models, len(model_names))
 
-            # Log each failure as a warning
-            for model_name, error in failed_models:
-                self._log("model_load_warning", f"{model_name}: {error}")
-
-        # Only throw fatal error if NO models loaded successfully
         if not loaded_models:
             self._log("fatal_error", "No models loaded - service cannot start")
-            self._log("zero_models_loaded", len(model_names))
             raise RuntimeError(
                 f"No models loaded successfully from {len(model_names)} attempted models"
             )
 
-        # Log successful startup summary
+    def preload_models_sync(self, model_names: List[str]) -> None:
+        """Preload models synchronously in sequential order."""
+        from datetime import datetime
+
+        failed_models: List[ModelLoadFailure] = []
+        loaded_models: List[str] = []
+
+        # Sort models by estimated size (smallest first for better packing)
+        sorted_models = sorted(
+            model_names, key=self.gpu_memory_manager.estimate_model_memory_gb
+        )
+
+        for model_name in sorted_models:
+            try:
+                # Check if we can load this model
+                if (
+                    self.config.enable_gpu_memory_management
+                    and not self.model_loader.can_load_model(
+                        model_name, self.config.gpu_memory_reserve_gb
+                    )
+                ):
+                    estimated_memory = self.gpu_memory_manager.estimate_model_memory_gb(
+                        model_name
+                    )
+                    _, free_gb, _ = self.gpu_memory_manager.get_memory_info()
+
+                    self._log(
+                        "preload_skipped_memory",
+                        f"{model_name}: need {estimated_memory:.1f}GB, only {free_gb:.1f}GB free",
+                    )
+                    failure = ModelLoadFailure(
+                        model_name=model_name,
+                        error_message=f"Insufficient GPU memory: need {estimated_memory:.1f}GB, have {free_gb:.1f}GB",
+                        timestamp=datetime.now(),
+                    )
+                    failed_models.append(failure)
+                    continue
+
+                # Load the model sequentially
+                self._log("preloading_model", model_name)
+                model, gpu_memory_gb, load_time = self.model_loader.load_model_sync(
+                    model_name
+                )
+
+                # Store in cache
+                self.model_cache.put(model_name, model, gpu_memory_gb, load_time)
+                loaded_models.append(model_name)
+                self.circuit_breaker.record_success(model_name)
+
+                self._log("model_preloaded", model_name)
+                self._log("preload_gpu_memory_gb", round(gpu_memory_gb, 2))
+
+            except Exception as e:
+                self._log("preload_failed", model_name)
+                self._log("preload_error", f"{model_name}: {str(e)}")
+                failure = ModelLoadFailure(
+                    model_name=model_name,
+                    error_message=str(e),
+                    timestamp=datetime.now(),
+                )
+                failed_models.append(failure)
+                self.circuit_breaker.record_failure(model_name)
+
+        # Log summary
+        self._log_preload_summary(loaded_models, failed_models, len(model_names))
+
+        if not loaded_models:
+            self._log("fatal_error", "No models loaded - service cannot start")
+            raise RuntimeError(
+                f"No models loaded successfully from {len(model_names)} attempted models"
+            )
+
+    def _log_preload_summary(
+        self,
+        loaded_models: List[str],
+        failed_models: List[ModelLoadFailure],
+        total_requested: int,
+    ):
+        """Log preload summary and warnings."""
+        if failed_models:
+            self._log(
+                "model_preload_warnings",
+                f"Failed to load {len(failed_models)} model(s)",
+            )
+            for failure in failed_models:
+                self._log(
+                    "model_load_warning",
+                    f"{failure.model_name}: {failure.error_message}",
+                )
+            self._log(
+                "partial_success_warning",
+                f"Service starting with {len(loaded_models)}/{total_requested} models",
+            )
+
         self._log(
             "preload_summary",
             {
                 "loaded_count": len(loaded_models),
                 "failed_count": len(failed_models),
-                "total_requested": len(model_names),
+                "total_requested": total_requested,
                 "loaded_models": loaded_models,
-                "failed_models": [name for name, _ in failed_models],
+                "failed_models": [f.model_name for f in failed_models],
             },
         )
 
-        if failed_models:
-            self._log(
-                "partial_success_warning",
-                f"Service starting with {len(loaded_models)}/{len(model_names)} models",
-            )
-
-    def get_model(self, model_name: str) -> litgpt.LLM:
-        if model_name in self.models:
-            self._log("model_cache_hit", 1)
-            # Update last used timestamp
-            self.last_used[model_name] = datetime.now()
-            return self.models[model_name]
-
-        # Model not currently loaded - try to load it with memory management
-        return self._load_model_with_memory_management(model_name)
-
-    def _load_model_with_memory_management(self, model_name: str) -> litgpt.LLM:
-        """Load a model with automatic memory management and LRU eviction."""
-        self._log("model_cache_miss", 1)
-        self._log("loading_on_demand", model_name)
-
-        # Check if model previously failed
-        if model_name in self.failed_models:
-            self._log("model_previously_failed", model_name)
-            raise ValueError(
-                f"Model '{model_name}' previously failed to load: {self.failed_models[model_name]}"
-            )
-
-        with self._main_lock:
-            # Double-check if model was loaded by another thread
-            if model_name in self.models:
-                self.last_used[model_name] = datetime.now()
-                return self.models[model_name]
-
-            # Check memory before loading
-            used_percent, available_gb, has_enough_memory = self._get_memory_info()
-            self._log(
-                "pre_load_memory_check",
-                {
-                    "model": model_name,
-                    "memory_used_percent": used_percent,
-                    "memory_available_gb": available_gb,
-                    "has_enough_memory": has_enough_memory,
-                },
-            )
-
-            # If not enough memory, reduce cache size to force eviction
-            if not has_enough_memory and len(self.models) > 0:
-                self._log(
-                    "memory_pressure_reducing_cache",
-                    f"Memory at {used_percent:.1f}%, reducing cache size to force LRU eviction",
-                )
-
-                # Reduce maxsize to current size - 1 to force eviction of LRU item
-                new_maxsize = max(1, len(self.models) - 1)
-                old_models = dict(self.models)  # Save current models
-                self.models = LRUCache(maxsize=new_maxsize)
-
-                # Re-add models (LRUCache will keep only the most recent ones)
-                for model_name, model in old_models.items():
-                    self.models[model_name] = model
-
-                self._log(
-                    "cache_size_reduced",
-                    {
-                        "old_size": len(old_models),
-                        "new_maxsize": new_maxsize,
-                        "current_size": len(self.models),
-                    },
-                )
-
-            # Attempt to load the requested model
-            try:
-                self._log("attempting_model_load", model_name)
-                load_start = time.perf_counter()
-
-                pre_load_memory = psutil.virtual_memory().percent
-                llm = litgpt.LLM.load(model_name)
-                post_load_memory = psutil.virtual_memory().percent
-
-                load_time = time.perf_counter() - load_start
-                memory_increase = post_load_memory - pre_load_memory
-
-                # Successfully loaded
-                self.models[model_name] = llm
-                self.last_used[model_name] = datetime.now()
-
-                self._log("on_demand_load_success", model_name)
-                self._log("load_duration", load_time)
-                self._log("memory_increase", memory_increase)
-                self._log("total_models_loaded", len(self.models))
-
-                return llm
-
-            except Exception as e:
-                error_msg = str(e)
-                self._log("on_demand_load_failed", model_name)
-                self._log("load_error", f"{model_name}: {error_msg}")
-
-                # Store failure for future reference
-                self.failed_models[model_name] = error_msg
-
-                # Check if memory-related error
-                if any(
-                    keyword in error_msg.lower()
-                    for keyword in ["memory", "oom", "cuda out of memory", "allocation"]
-                ):
-                    self._log(
-                        "memory_error_on_demand",
-                        "Memory error during on-demand loading",
-                    )
-                    raise RuntimeError(
-                        f"Cannot load model '{model_name}' due to memory constraints: {error_msg}"
-                    )
-
-                raise ValueError(f"Failed to load model '{model_name}': {error_msg}")
-
-    def unload_model(self, model_name: str) -> None:
-        if model_name in self.models:
-            del self.models[model_name]
-            if model_name in self.last_used:
-                del self.last_used[model_name]
-            self._log("model_unloaded", model_name)
-            self._log("total_models_loaded", len(self.models))
+    async def unload_model(self, model_name: str) -> None:
+        """Unload a specific model from cache."""
+        freed_memory = await self.model_cache.remove(model_name)
+        if freed_memory > 0:
+            self.gpu_memory_manager.cleanup_memory()
 
     def list_loaded_models(self) -> List[str]:
-        return list(self.models.keys())
-
-    def _get_memory_info(self) -> tuple[float, float, bool]:
-        """Get current memory information and check if there's enough available."""
-        memory = psutil.virtual_memory()
-        used_percent = memory.percent
-        available_gb = memory.available / (1024**3)
-        has_enough_memory = (
-            used_percent < self.memory_threshold_percent
-            and available_gb > self.memory_reserve_gb
-        )
-        return used_percent, available_gb, has_enough_memory
-
-    def _start_cleanup_task(self) -> None:
-        """Start background task to periodically unload unused models."""
-        if self._cleanup_thread is None or not self._cleanup_thread.is_alive():
-            self._cleanup_thread = threading.Thread(
-                target=self._cleanup_unused_models, daemon=True
-            )
-            self._cleanup_thread.start()
-
-    def _cleanup_unused_models(self) -> None:
-        """Background task that runs periodically to unload unused models."""
-        while not self._shutdown_cleanup.is_set():
-            try:
-                current_time = datetime.now()
-
-                with self._main_lock:
-                    models_to_unload = [
-                        model_name
-                        for model_name, last_used_time in self.last_used.items()
-                        if current_time - last_used_time > self.inactivity_timeout
-                    ]
-
-                # Log and unload models
-                for model_name in models_to_unload:
-                    self._log("model_auto_unload_triggered", model_name)
-                    self.unload_model(model_name)
-
-                # Wait 5 minutes before next cleanup check
-                self._shutdown_cleanup.wait(300)
-
-            except Exception as e:
-                self._log("cleanup_error", str(e))
-                self._shutdown_cleanup.wait(60)  # Wait 1 minute on error
-
-    def shutdown(self) -> None:
-        """Shutdown the model manager and cleanup resources."""
-        self._shutdown_cleanup.set()
-        if self._cleanup_thread and self._cleanup_thread.is_alive():
-            self._cleanup_thread.join(timeout=5)
+        """Get list of all loaded model names."""
+        return self.model_cache.list_models()
 
     def get_model_stats(self) -> Dict[str, Dict]:
-        """Get statistics about loaded models including last used times."""
-        current_time = datetime.now()
+        """Get statistics about loaded models."""
+        return self.model_cache.get_stats()
 
+    def get_gpu_memory_info(self) -> Dict[str, float]:
+        """Get current GPU memory information."""
+        used_gb, free_gb, total_gb = self.gpu_memory_manager.get_memory_info()
         return {
-            model_name: {
-                "last_used": (
-                    last_used := self.last_used.get(model_name, current_time)
-                ).isoformat(),
-                "inactive_minutes": int(
-                    (inactive_duration := current_time - last_used).total_seconds() / 60
-                ),
-                "will_unload_in_minutes": max(
-                    0,
-                    int(
-                        (self.inactivity_timeout - inactive_duration).total_seconds()
-                        / 60
-                    ),
-                ),
-            }
-            for model_name in self.models.keys()
+            "used_gb": round(used_gb, 2),
+            "free_gb": round(free_gb, 2),
+            "total_gb": round(total_gb, 2),
+            "cached_models_gb": round(self.model_cache.get_total_gpu_memory_usage(), 2),
         }
