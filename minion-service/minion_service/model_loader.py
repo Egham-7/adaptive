@@ -176,9 +176,15 @@ class ModelLoader:
         # Track GPU memory before loading
         pre_used_gb, _, _ = self.gpu_memory_manager.get_memory_info()
 
-        # Load model synchronously
+        # Load model synchronously with memory optimization settings
         try:
-            llm = LLM(model=model_name)
+            llm = LLM(
+                model=model_name,
+                enforce_eager=True,  # Disable CUDA graph compilation to save memory
+                max_model_len=4096,  # Limit context window to reduce memory
+                max_num_seqs=4,  # Limit batch size to reduce memory
+                gpu_memory_utilization=0.8,  # Use 80% of GPU memory instead of 90%
+            )
         except Exception as e:
             self._log("model_load_failed", f"{model_name}: {str(e)}")
             raise
