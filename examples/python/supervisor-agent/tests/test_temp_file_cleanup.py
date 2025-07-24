@@ -24,7 +24,8 @@ class TestDataAgentTempFileCleanup:
     
     def test_track_temp_file(self):
         """Test that temp files are tracked correctly."""
-        test_file = "/tmp/test_file.png"
+        import tempfile
+        test_file = os.path.join(tempfile.gettempdir(), "test_file.png")
         
         # Initially no temp files
         assert len(self.agent._temp_files) == 0
