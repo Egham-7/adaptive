@@ -29,6 +29,7 @@ export const usageRouter = createTRPCRouter({
 						"deepseek",
 						"huggingface",
 						"grok",
+						"adaptive",
 					])
 					.nullable(),
 				model: z.string().nullable(),
@@ -251,6 +252,7 @@ export const usageRouter = createTRPCRouter({
 						"deepseek",
 						"huggingface",
 						"grok",
+						"adaptive",
 					])
 					.optional(),
 				model: z.string().optional(),
@@ -337,6 +339,7 @@ export const usageRouter = createTRPCRouter({
 						"groq",
 						"deepseek",
 						"huggingface",
+						"adaptive",
 					])
 					.optional(),
 			}),
@@ -738,6 +741,7 @@ export const usageRouter = createTRPCRouter({
 						"groq",
 						"deepseek",
 						"huggingface",
+						"adaptive",
 					])
 					.optional(),
 			}),

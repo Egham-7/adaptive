@@ -13,6 +13,7 @@ export type Provider =
 	| "deepseek"
 	| "huggingface"
 	| "grok"
+	| "adaptive"
 	| null;
 
 // Extend OpenAI types with our custom fields
