@@ -8,18 +8,18 @@ from adaptive_ai.models.llm_classification_models import DomainType
 
 # Domain-based model mappings for minion protocol
 minion_domains = {
-    DomainType.BUSINESS_AND_INDUSTRIAL: "Qwen/Qwen2.5-7B-Instruct",
-    DomainType.HEALTH: "microsoft/Phi-4-mini-reasoning",
-    DomainType.NEWS: "microsoft/Phi-4-mini-reasoning",
-    DomainType.OTHERDOMAINS: "microsoft/Phi-4-mini-reasoning",
-    DomainType.REAL_ESTATE: "microsoft/Phi-4-mini-reasoning",
-    DomainType.COMPUTERS_AND_ELECTRONICS: "deepseek-ai/deepseek-coder-6.7b-base",
-    DomainType.INTERNET_AND_TELECOM: "microsoft/Phi-4-mini-reasoning",
-    DomainType.FINANCE: "instruction-pretrain/finance-Llama3-8B",
-    DomainType.SCIENCE: "Qwen/Qwen2.5-Math-7B-Instruct",
-    DomainType.JOBS_AND_EDUCATION: "microsoft/Phi-4-mini-reasoning",
-    DomainType.LAW_AND_GOVERNMENT: "ricdomolm/lawma-8b",
-    DomainType.SENSITIVE_SUBJECTS: "meta-llama/Meta-Llama-3-8B-Instruct",
+    DomainType.BUSINESS_AND_INDUSTRIAL: "meta-llama/Llama-3.1-8B-Instruct",
+    DomainType.HEALTH: "Qwen/Qwen3-8B-Base",
+    DomainType.NEWS: "mistralai/Mistral-7B-Instruct-v0.2",
+    DomainType.OTHERDOMAINS: "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    DomainType.REAL_ESTATE: "meta-llama/Llama-3.1-8B-Instruct",
+    DomainType.COMPUTERS_AND_ELECTRONICS: "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    DomainType.INTERNET_AND_TELECOM: "Qwen/Qwen3-8B-Base",
+    DomainType.FINANCE: "meta-llama/Llama-3.1-8B-Instruct",
+    DomainType.SCIENCE: "Qwen/Qwen3-8B-Base",
+    DomainType.JOBS_AND_EDUCATION: "mistralai/Mistral-7B-Instruct-v0.2",
+    DomainType.LAW_AND_GOVERNMENT: "meta-llama/Llama-3.1-8B-Instruct",
+    DomainType.SENSITIVE_SUBJECTS: "meta-llama/Llama-3.1-8B-Instruct",
 }
 
 # Add missing domains that should use OTHERDOMAINS models
