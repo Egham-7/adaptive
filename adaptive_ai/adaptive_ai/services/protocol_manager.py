@@ -147,7 +147,6 @@ class ProtocolManager:
             else 0.0
         )
 
-        # Rule-based protocol selection - always use standard
         should_use_standard = (
             request_has_tools
             or complexity_score > 0.40
