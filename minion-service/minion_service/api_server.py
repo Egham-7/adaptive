@@ -14,13 +14,10 @@ from minion_service.model_manager import ModelManager, ModelManagerConfig
 class VLLMOpenAIAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         supported_models = [
-            "meta-llama/Meta-Llama-3-8B-Instruct",  # SENSITIVE_SUBJECTS - Most reliable
-            "google/codegemma-7b-it",  # COMPUTERS_AND_ELECTRONICS - Google official
-            "Qwen/Qwen2.5-7B-Instruct",  # NEWS/BUSINESS/GENERAL - Extensively tested
-            "Qwen/Qwen2.5-Math-7B-Instruct",  # FINANCE/SCIENCE - Math specialist
-            "microsoft/Phi-4-mini-reasoning",  # LAW_AND_GOVERNMENT - Reasoning specialist
-            # JOBS_AND_EDUCATION - Education focused
-            "HuggingFaceTB/SmolLM2-1.7B-Instruct",
+            "meta-llama/Meta-Llama-3-8B-Instruct",  # SENSITIVE_SUBJECTS
+            "google/codegemma-7b-it",  # COMPUTERS_AND_ELECTRONICS
+            "Qwen/Qwen2.5-7B-Instruct",  # NEWS/BUSINESS/GENERAL + JOBS_AND_EDUCATION
+            "microsoft/Phi-4-mini-reasoning",  # LAW_AND_GOVERNMENT + FINANCE/SCIENCE
         ]
 
         # Configure model manager with GPU memory management and circuit breaker
