@@ -37,8 +37,7 @@ class VLLMOpenAIAPI(ls.LitAPI):
             gpu_memory_reserve_gb=2.0, enable_gpu_memory_management=gpu_available
         )
         self.model_manager = ModelManager(config=config)
-        self.model_manager.set_logger_callback(
-            lambda key, value: self.log(key, value))
+        self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
         # Preload models synchronously (sequential to avoid CUDA conflicts)
         self.model_manager.preload_models_sync(supported_models)
@@ -90,8 +89,7 @@ class VLLMOpenAIAPI(ls.LitAPI):
             completion_tokens = len(generated_text.split())
             # Estimate prompt tokens (rough approximation)
             prompt_text = " ".join(
-                [msg.content for msg in prompt.messages if hasattr(
-                    msg, "content")]
+                [msg.content for msg in prompt.messages if hasattr(msg, "content")]
             )
             prompt_tokens = len(prompt_text.split())
             total_tokens = prompt_tokens + completion_tokens
@@ -157,8 +155,7 @@ class VLLMOpenAIAPI(ls.LitAPI):
                 object="chat.completion.chunk",
                 created=created,
                 model=model,
-                choices=[Choice(index=0, delta=ChoiceDelta(),
-                                finish_reason="stop")],
+                choices=[Choice(index=0, delta=ChoiceDelta(), finish_reason="stop")],
                 usage=usage,
             )
             yield final_chunk.model_dump()
