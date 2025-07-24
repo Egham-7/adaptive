@@ -18,7 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "cachetools>=5.5.0",
-    "flashinfer-python>=0.2.8",
+    "flashinfer-python>=0.2.8; sys_platform == 'linux'",
     "hf-transfer>=0.1.9",
     "litserve>=0.2.13",
     "openai>=1.90.0",
@@ -60,5 +60,12 @@ dev = [
     "types-cachetools>=5.5.0",
     "types-requests>=2.32.0",
 ]
+
+[tool.uv]
+required-environments = [
+    "sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "sys_platform == 'linux' and platform_machine == 'x86_64'",
+]
+
 
 
