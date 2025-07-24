@@ -1,7 +1,9 @@
-import litserve as ls  # type:ignore
-from minion_service.model_manager import ModelManager
 import time
+
+import litserve as ls  # type:ignore
 from vllm import SamplingParams
+
+from minion_service.model_manager import ModelManager, ModelManagerConfig
 
 
 class VLLMOpenAIAPI(ls.LitAPI):
@@ -15,16 +17,27 @@ class VLLMOpenAIAPI(ls.LitAPI):
             "HuggingFaceTB/SmolLM2-1.7B-Instruct",  # JOBS_AND_EDUCATION - Education focused
         ]
 
-        # Auto-unload models after 30 minutes of inactivity with memory management
-        self.model_manager = ModelManager(
-            preload_models=supported_models,
-            inactivity_timeout_minutes=30,
-            memory_threshold_percent=85.0,
-            memory_reserve_gb=2.0,
+        # Configure model manager with GPU memory management and circuit breaker
+        # Only enable GPU memory management if CUDA is available
+        try:
+            import torch
+
+            gpu_available = torch.cuda.is_available() and torch.cuda.device_count() > 0
+        except ImportError:
+            gpu_available = False
+
+        self.log("gpu_available", gpu_available)
+
+        config = ModelManagerConfig(
+            gpu_memory_reserve_gb=2.0, enable_gpu_memory_management=gpu_available
         )
+        self.model_manager = ModelManager(config=config)
         self.model_manager.set_logger_callback(lambda key, value: self.log(key, value))
 
-    def predict(self, prompt, context):
+        # Preload models synchronously (sequential to avoid CUDA conflicts)
+        self.model_manager.preload_models_sync(supported_models)
+
+    async def predict(self, prompt, context):
         """Process chat completion request with batching support.
 
         Args:
@@ -40,7 +53,7 @@ class VLLMOpenAIAPI(ls.LitAPI):
             raise ValueError("Model name is required")
 
         model_load_start = time.perf_counter()
-        llm = self.model_manager.get_model(model_name)
+        llm = await self.model_manager.get_model(model_name)
         model_load_time = time.perf_counter() - model_load_start
         self.log("model_load_time", model_load_time)
 

@@ -171,7 +171,7 @@ def _prepare_upload_folder(source_dir: Path, upload_dir: Path, repo_id: str) -> 
                 "per_channel": True,
                 "calibration_dataset": "databricks/databricks-dolly-15k",
                 "calibration_samples": 5000,
-                "precision": "int8"
+                "precision": "int8",
             }
             if "tags" not in config_data:
                 config_data["tags"] = []

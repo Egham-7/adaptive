@@ -1,7 +1,6 @@
-# Use CUDA runtime image for LitGPT
-FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04
-ARG PYTHON_VERSION=3.11
+FROM nvidia/cuda:12.9.1-devel-ubuntu22.04
 
+ARG PYTHON_VERSION=3.11
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV HF_HUB_CACHE=/app/hf_cache

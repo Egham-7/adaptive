@@ -1,17 +1,13 @@
 name: Minion Service CI/CD
-
 on:
   push:
     branches: [main]
-
   pull_request:
     branches: [main]
   workflow_dispatch:
-
 env:
   PYTHON_VERSION: "3.11"
   WORKING_DIR: "./minion-service"
-
 jobs:
   test:
     name: Test & Coverage
@@ -22,19 +18,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup uv and Python
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
-
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.26
+        with:
+          cuda: "12.9.1"
+          method: "network"
       - name: Install dependencies
         run: uv sync --all-extras --dev
-
       - name: Run tests
         run: uv run pytest --cov=. --cov-report=xml
-
       - name: Upload coverage
         uses: codecov/codecov-action@v5
         with:
@@ -42,7 +39,6 @@ jobs:
           flags: backend-python
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
-
   lint:
     name: Lint & Format
     runs-on: ubuntu-latest
@@ -52,25 +48,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup uv and Python
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           enable-cache: true
-
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.26
+        with:
+          cuda: "12.9.1"
+          method: "network"
       - name: Install dependencies
         run: uv sync --all-extras --dev
-
       - name: Run type checking
         run: uv run mypy .
-
       - name: Run linting
         run: uv run ruff check . --output-format=github
-
       - name: Check formatting
         run: uv run black . --check --diff
-
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
@@ -82,14 +77,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Azure Login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.MINIONSERVICE_AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.MINIONSERVICE_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.MINIONSERVICE_AZURE_SUBSCRIPTION_ID }}
-
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
@@ -100,3 +93,4 @@ jobs:
           containerAppName: minion-service
           resourceGroup: adaptive
           imageToBuild: llmadaptiveregistry.azurecr.io/minion-service:${{ github.sha }}
+

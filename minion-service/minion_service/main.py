@@ -22,7 +22,7 @@ class PerformanceLogger(ls.Logger):
 
 
 def main() -> None:
-    api = VLLMOpenAIAPI(spec=ls.OpenAISpec())
+    api = VLLMOpenAIAPI(spec=ls.OpenAISpec(), enable_async=True)
     loggers = [AppLifecycleLogger(), PerformanceLogger()]
 
     server = ls.LitServer(api, devices="auto", workers_per_device=1, loggers=loggers)
