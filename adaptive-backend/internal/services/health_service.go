@@ -139,7 +139,6 @@ func (hs *HealthService) checkProtocolManagerHealth(ctx context.Context) HealthS
 	return status
 }
 
-
 // WaitForServices waits for all services to become healthy before returning
 // This supports very long startup times for model loading
 func (hs *HealthService) WaitForServices(ctx context.Context, maxWaitTime time.Duration) error {
