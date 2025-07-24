@@ -238,6 +238,48 @@ const globalPricing = {
 			},
 		},
 	},
+	adaptive: {
+		displayName: "Adaptive",
+		description: "Self-hosted adaptive AI models",
+		models: {
+			"meta-llama/Meta-Llama-3-8B-Instruct": {
+				displayName: "Meta Llama 3 8B Instruct",
+				type: "chat",
+				inputTokenCost: 0.02,
+				outputTokenCost: 0.04,
+			},
+			"google/codegemma-7b-it": {
+				displayName: "CodeGemma 7B IT",
+				type: "chat",
+				inputTokenCost: 0.02,
+				outputTokenCost: 0.04,
+			},
+			"Qwen/Qwen2.5-7B-Instruct": {
+				displayName: "Qwen 2.5 7B Instruct",
+				type: "chat",
+				inputTokenCost: 0.02,
+				outputTokenCost: 0.04,
+			},
+			"Qwen/Qwen2.5-Math-7B-Instruct": {
+				displayName: "Qwen 2.5 Math 7B Instruct",
+				type: "chat",
+				inputTokenCost: 0.025,
+				outputTokenCost: 0.05,
+			},
+			"microsoft/Phi-4-mini-reasoning": {
+				displayName: "Phi 4 Mini Reasoning",
+				type: "chat",
+				inputTokenCost: 0.015,
+				outputTokenCost: 0.03,
+			},
+			"HuggingFaceTB/SmolLM2-1.7B-Instruct": {
+				displayName: "SmolLM2 1.7B Instruct",
+				type: "chat",
+				inputTokenCost: 0.005,
+				outputTokenCost: 0.01,
+			},
+		},
+	},
 };
 
 async function seedProviders() {

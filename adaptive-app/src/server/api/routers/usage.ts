@@ -29,6 +29,7 @@ export const usageRouter = createTRPCRouter({
 						"deepseek",
 						"huggingface",
 						"grok",
+						"adaptive",
 					])
 					.nullable(),
 				model: z.string().nullable(),
@@ -67,20 +68,111 @@ export const usageRouter = createTRPCRouter({
 					});
 				}
 
-				// Calculate cost using provider cost table
+				// Helper function to find best matching model by similarity
+				const findModelBySimilarity = async (
+					modelName: string,
+					providerName: string,
+				) => {
+					// First try exact match
+					const exactMatch = await ctx.db.providerModel.findFirst({
+						where: {
+							name: modelName,
+							provider: { name: providerName, isActive: true },
+							isActive: true,
+						},
+						select: {
+							inputTokenCost: true,
+							outputTokenCost: true,
+						},
+					});
+
+					if (exactMatch) return exactMatch;
+
+					// If no exact match, get all models for the provider and find best similarity
+					const allModels = await ctx.db.providerModel.findMany({
+						where: {
+							provider: { name: providerName, isActive: true },
+							isActive: true,
+						},
+						select: {
+							name: true,
+							inputTokenCost: true,
+							outputTokenCost: true,
+						},
+					});
+
+					if (allModels.length === 0) return null;
+
+					// Simple similarity scoring: check if model name contains the base name
+					const baseModelName = modelName.toLowerCase();
+					let bestMatch = allModels[0];
+					let bestScore = 0;
+
+					for (const model of allModels) {
+						const modelDbName = model.name.toLowerCase();
+
+						// Score based on:
+						// 1. If the db model name is contained in the input model name
+						// 2. If they share common prefixes
+						let score = 0;
+
+						if (baseModelName.includes(modelDbName)) {
+							score += 10;
+						} else if (modelDbName.includes(baseModelName)) {
+							score += 8;
+						}
+
+						// Check for common prefixes (e.g., "gpt-4o" matches "gpt-4o-mini")
+						const commonPrefix = getCommonPrefix(baseModelName, modelDbName);
+						if (commonPrefix.length > 3) {
+							score += commonPrefix.length;
+						}
+
+						if (score > bestScore) {
+							bestScore = score;
+							bestMatch = model;
+						}
+					}
+
+					return bestScore > 0 ? bestMatch : null;
+				};
+
+				// Helper function to get common prefix
+				const getCommonPrefix = (str1: string, str2: string): string => {
+					let i = 0;
+					while (i < str1.length && i < str2.length && str1[i] === str2[i]) {
+						i++;
+					}
+					return str1.substring(0, i);
+				};
+
 				const providerModel =
 					!input.provider || !input.model
 						? null
-						: await ctx.db.providerModel
-								.findFirst({
-									where: {
-										name: input.model,
-										provider: { name: input.provider, isActive: true },
-										isActive: true,
-									},
-									select: { inputTokenCost: true, outputTokenCost: true },
-								})
-								.catch(() => null);
+						: await findModelBySimilarity(input.model, input.provider)
+								.catch((error) => {
+									console.error("Error fetching provider model:", error);
+									return null;
+								});
+
+
+				if (!providerModel && input.provider && input.model) {
+					// Check if provider exists separately
+					const provider = await ctx.db.provider.findFirst({
+						where: { name: input.provider, isActive: true }
+					});
+					
+
+					// Check if model exists with this provider
+					const model = await ctx.db.providerModel.findFirst({
+						where: { 
+							name: input.model,
+							provider: { name: input.provider }
+						},
+						select: { inputTokenCost: true, outputTokenCost: true, isActive: true },
+					});
+					
+				}
 
 				const calculatedCost = providerModel
 					? (input.usage.promptTokens *
@@ -89,6 +181,7 @@ export const usageRouter = createTRPCRouter({
 								providerModel.outputTokenCost.toNumber()) /
 						1000000
 					: 0;
+
 
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
@@ -154,6 +247,7 @@ export const usageRouter = createTRPCRouter({
 						"deepseek",
 						"huggingface",
 						"grok",
+						"adaptive",
 					])
 					.optional(),
 				model: z.string().optional(),
@@ -240,16 +334,27 @@ export const usageRouter = createTRPCRouter({
 						"groq",
 						"deepseek",
 						"huggingface",
+						"adaptive",
 					])
 					.optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
-			const cacheKey = `project-analytics:${userId}:${input.projectId}:${JSON.stringify(input)}`;
+			const userId = ctx.userId;
+			
+			const cacheKey = `project-analytics:${userId}:${
+				input.projectId
+			}:${JSON.stringify(input)}`;
 
 			return withCache(cacheKey, async () => {
 				try {
+					// Ensure userId is available
+					if (!userId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "User ID not found in context",
+						});
+					}
 					// Verify user has access to the project
 					const project = await ctx.db.project.findFirst({
 						where: {
@@ -286,7 +391,10 @@ export const usageRouter = createTRPCRouter({
 					const aggregateSchema = z.object({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -295,26 +403,29 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					// Get total metrics
-					const totalMetrics = aggregateSchema.parse(
-						await ctx.db.apiUsage.aggregate({
-							where: whereClause,
-							_sum: {
-								totalTokens: true,
-								cost: true,
-								requestCount: true,
-							},
-							_count: {
-								id: true,
-							},
-						}),
-					);
+					const aggregateResult = await ctx.db.apiUsage.aggregate({
+						where: whereClause,
+						_sum: {
+							totalTokens: true,
+							cost: true,
+							requestCount: true,
+						},
+						_count: {
+							id: true,
+						},
+					});
+
+					const totalMetrics = aggregateSchema.parse(aggregateResult);
 
 					// Zod schemas for groupBy results
 					const providerUsageSchema = z.object({
 						provider: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -325,7 +436,10 @@ export const usageRouter = createTRPCRouter({
 						requestType: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -336,25 +450,34 @@ export const usageRouter = createTRPCRouter({
 						timestamp: z.date(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 					});
 
 					// Get usage by provider
+					const rawProviderUsage = await ctx.db.apiUsage.groupBy({
+						by: ["provider"],
+						where: whereClause,
+						_sum: {
+							totalTokens: true,
+							cost: true,
+							requestCount: true,
+						},
+						_count: {
+							id: true,
+						},
+					});
+
+					// Filter out null providers and provide default for unknown providers
 					const providerUsage = providerUsageSchema.array().parse(
-						await ctx.db.apiUsage.groupBy({
-							by: ["provider"],
-							where: whereClause,
-							_sum: {
-								totalTokens: true,
-								cost: true,
-								requestCount: true,
-							},
-							_count: {
-								id: true,
-							},
-						}),
+						rawProviderUsage.map((usage: any) => ({
+							...usage,
+							provider: usage.provider || "unknown"
+						}))
 					);
 
 					// Get usage by request type
@@ -613,12 +736,13 @@ export const usageRouter = createTRPCRouter({
 						"groq",
 						"deepseek",
 						"huggingface",
+						"adaptive",
 					])
 					.optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.clerkAuth.userId;
+			const userId = ctx.userId;
 			const cacheKey = `user-analytics:${userId}:${JSON.stringify(input)}`;
 
 			return withCache(cacheKey, async () => {
@@ -640,7 +764,10 @@ export const usageRouter = createTRPCRouter({
 					const aggregateSchema = z.object({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -667,7 +794,10 @@ export const usageRouter = createTRPCRouter({
 						projectId: z.string(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							cost: z.number().nullable(),
+							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
