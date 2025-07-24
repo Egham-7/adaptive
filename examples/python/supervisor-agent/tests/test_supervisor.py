@@ -4,7 +4,13 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 
 from supervisor_agent.supervisor.supervisor import SupervisorAgent
-from supervisor_agent.supervisor.tools import HANDOFF_TOOLS
+from supervisor_agent.supervisor.tools import (
+    HANDOFF_TOOLS, 
+    parse_structured_message, 
+    extract_agent_from_message,
+    is_completion_message,
+    extract_completion_result
+)
 
 
 class TestSupervisorAgent:
@@ -229,3 +235,82 @@ class TestSupervisorIntegration:
                 
                 assert "Error processing request" in response
                 assert "Test error" in response
+
+
+class TestStructuredMessageParsing:
+    """Test cases for structured message parsing functions."""
+    
+    def test_parse_handoff_message(self):
+        """Test parsing valid handoff messages."""
+        message = 'HANDOFF_MESSAGE:{"action":"handoff","target_agent":"code_agent","agent_name":"Code Agent","task":"Generate code"}'
+        result = parse_structured_message(message)
+        
+        assert result["action"] == "handoff"
+        assert result["target_agent"] == "code_agent"
+        assert result["agent_name"] == "Code Agent"
+        assert result["task"] == "Generate code"
+    
+    def test_parse_completion_message(self):
+        """Test parsing valid completion messages."""
+        message = 'COMPLETION_MESSAGE:{"action":"complete","result":"Task finished successfully"}'
+        result = parse_structured_message(message)
+        
+        assert result["action"] == "complete"
+        assert result["result"] == "Task finished successfully"
+    
+    def test_parse_invalid_message(self):
+        """Test parsing invalid or non-structured messages."""
+        # Non-structured message
+        result = parse_structured_message("Just a regular message")
+        assert result == {}
+        
+        # Malformed JSON
+        result = parse_structured_message("HANDOFF_MESSAGE:{invalid json}")
+        assert result == {}
+        
+        # Empty message
+        result = parse_structured_message("")
+        assert result == {}
+    
+    def test_extract_agent_from_handoff_message(self):
+        """Test extracting agent from handoff messages."""
+        message = 'HANDOFF_MESSAGE:{"action":"handoff","target_agent":"data_agent","agent_name":"Data Agent","task":"Analyze data"}'
+        agent = extract_agent_from_message(message)
+        assert agent == "data_agent"
+        
+        # Non-handoff message
+        message = 'COMPLETION_MESSAGE:{"action":"complete","result":"Done"}'
+        agent = extract_agent_from_message(message)
+        assert agent == ""
+        
+        # Invalid message
+        agent = extract_agent_from_message("Not a structured message")
+        assert agent == ""
+    
+    def test_is_completion_message(self):
+        """Test completion message detection."""
+        # Valid completion message
+        message = 'COMPLETION_MESSAGE:{"action":"complete","result":"Task done"}'
+        assert is_completion_message(message) is True
+        
+        # Handoff message
+        message = 'HANDOFF_MESSAGE:{"action":"handoff","target_agent":"code_agent","task":"Code task"}'
+        assert is_completion_message(message) is False
+        
+        # Non-structured message
+        assert is_completion_message("Regular message") is False
+    
+    def test_extract_completion_result(self):
+        """Test extracting results from completion messages."""
+        message = 'COMPLETION_MESSAGE:{"action":"complete","result":"The final result"}'
+        result = extract_completion_result(message)
+        assert result == "The final result"
+        
+        # Non-completion message
+        message = 'HANDOFF_MESSAGE:{"action":"handoff","target_agent":"file_agent"}'
+        result = extract_completion_result(message)
+        assert result == ""
+        
+        # Invalid message
+        result = extract_completion_result("Not structured")
+        assert result == ""

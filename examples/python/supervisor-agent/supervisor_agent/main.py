@@ -10,7 +10,7 @@ from rich.prompt import Prompt
 from rich.table import Table
 from rich.text import Text
 
-from supervisor_agent.supervisor.supervisor import SupervisorAgent
+from supervisor_agent import SupervisorAgent
 from supervisor_agent.utils.config import get_config, validate_config
 
 

@@ -4,7 +4,7 @@ import asyncio
 import os
 from pathlib import Path
 
-from supervisor_agent.supervisor.supervisor import SupervisorAgent
+from supervisor_agent import SupervisorAgent
 from supervisor_agent.utils.config import validate_config
 
 

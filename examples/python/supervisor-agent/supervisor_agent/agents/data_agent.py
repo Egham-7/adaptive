@@ -2,6 +2,7 @@
 
 import json
 import tempfile
+import threading
 from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
@@ -12,6 +13,45 @@ from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
 from supervisor_agent.utils.config import get_config
+
+
+# Global registry for tracking temporary files created by data agent tools
+_temp_file_registry = []
+_temp_file_lock = threading.Lock()
+
+
+def _register_temp_file(file_path: str) -> None:
+    """Register a temporary file in the global registry for cleanup.
+    
+    Args:
+        file_path: Path to the temporary file to track
+    """
+    with _temp_file_lock:
+        if file_path and file_path not in _temp_file_registry:
+            _temp_file_registry.append(file_path)
+
+
+def _cleanup_global_temp_files() -> int:
+    """Clean up all temporary files in the global registry.
+    
+    Returns:
+        Number of files successfully deleted
+    """
+    import os
+    
+    with _temp_file_lock:
+        deleted_count = 0
+        for file_path in _temp_file_registry[:]:  # Create a copy to iterate over
+            try:
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+                    deleted_count += 1
+                _temp_file_registry.remove(file_path)
+            except (OSError, ValueError) as e:
+                # Log the error but continue with other files
+                print(f"Warning: Could not delete temporary file {file_path}: {e}")
+        
+        return deleted_count
 
 
 @tool
@@ -128,6 +168,11 @@ def create_visualization(data: Union[str, List, Dict], chart_type: str, title: s
         
     Returns:
         Path to the saved chart image
+        
+    Note:
+        Temporary image files are tracked and can be cleaned up using the 
+        DataAgent.cleanup_temp_files() method or will be cleaned up automatically
+        when the agent is garbage collected.
     """
     try:
         # Parse data
@@ -183,6 +228,9 @@ def create_visualization(data: Union[str, List, Dict], chart_type: str, title: s
         temp_file = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
         plt.savefig(temp_file.name, dpi=150, bbox_inches='tight')
         plt.close()
+        
+        # Register the temp file for cleanup
+        _register_temp_file(temp_file.name)
         
         return temp_file.name
         
@@ -336,6 +384,7 @@ class DataAgent:
         """Initialize the Data Agent."""
         self.name = "Data Agent"
         self.description = "I handle data analysis, statistics, visualizations, and mathematical calculations."
+        self._temp_files = []  # Track temporary files for cleanup
         self.tools = [
             analyze_data,
             calculate_statistics,
@@ -385,3 +434,62 @@ Only handle tasks related to data analysis, statistics, math, and visualizations
         
         message_lower = message.lower()
         return any(keyword in message_lower for keyword in data_keywords)
+    
+    def cleanup_temp_files(self) -> int:
+        """Clean up all temporary files created by this agent.
+        
+        This method cleans up both agent-specific temp files and global temp files
+        created by the data agent tools.
+        
+        Returns:
+            Number of files successfully deleted
+        """
+        import os
+        
+        deleted_count = 0
+        
+        # Clean up agent-specific temp files
+        for file_path in self._temp_files[:]:  # Create a copy to iterate over
+            try:
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
+                    deleted_count += 1
+                self._temp_files.remove(file_path)
+            except (OSError, ValueError) as e:
+                # Log the error but continue with other files
+                print(f"Warning: Could not delete temporary file {file_path}: {e}")
+        
+        # Clean up global temp files created by tools
+        deleted_count += _cleanup_global_temp_files()
+        
+        return deleted_count
+    
+    def _track_temp_file(self, file_path: str) -> None:
+        """Track a temporary file for later cleanup.
+        
+        Args:
+            file_path: Path to the temporary file to track
+        """
+        if file_path and file_path not in self._temp_files:
+            self._temp_files.append(file_path)
+    
+    def get_temp_file_count(self) -> Dict[str, int]:
+        """Get the count of tracked temporary files.
+        
+        Returns:
+            Dictionary with counts of agent-specific and global temp files
+        """
+        with _temp_file_lock:
+            return {
+                "agent_temp_files": len(self._temp_files),
+                "global_temp_files": len(_temp_file_registry),
+                "total_temp_files": len(self._temp_files) + len(_temp_file_registry)
+            }
+    
+    def __del__(self):
+        """Cleanup temporary files when the agent is garbage collected."""
+        try:
+            self.cleanup_temp_files()
+        except Exception:
+            # Silently ignore errors during garbage collection
+            pass

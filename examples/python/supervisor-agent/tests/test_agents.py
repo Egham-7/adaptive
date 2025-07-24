@@ -180,7 +180,8 @@ class TestAgentTools:
             "validate_python_syntax",
             "explain_code",
             "generate_tests",
-            "debug_code"
+            "debug_code",
+            "run_python_code"
         ]
         
         for tool in expected_tools:

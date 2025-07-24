@@ -21,10 +21,11 @@ A multi-agent AI system built with LangGraph that coordinates specialized agents
 
 ### Data Agent  
 - **Data Analysis**: Analyze datasets and provide statistical insights
-- **Visualizations**: Create charts, graphs, and plots
+- **Visualizations**: Create charts, graphs, and plots (with automatic temp file cleanup)
 - **Statistical Calculations**: Calculate mean, median, standard deviation, etc.
 - **CSV Processing**: Handle CSV data operations
 - **Mathematical Calculations**: Perform complex mathematical operations
+- **Resource Management**: Automatic cleanup of temporary visualization files
 
 ### File Agent
 - **File Operations**: Read, write, create, delete files
@@ -121,7 +122,7 @@ Use the supervisor programmatically:
 ```python
 from supervisor_agent import SupervisorAgent
 
-# Initialize the supervisor
+# Initialize the supervisor (uses SimpleSupervisorAgent by default)
 supervisor = SupervisorAgent()
 
 # Process a request
@@ -135,6 +136,18 @@ print(capabilities)
 # Health check
 health = supervisor.health_check()
 print(health)
+
+# Resource management - cleanup temporary files created by data agent
+from supervisor_agent.agents.data_agent import DataAgent
+data_agent = DataAgent()
+temp_file_count = data_agent.get_temp_file_count()
+print(f"Temporary files: {temp_file_count}")
+deleted_files = data_agent.cleanup_temp_files()
+print(f"Cleaned up {deleted_files} temporary files")
+
+# Alternative: Use the full LangGraph implementation
+from supervisor_agent import LangGraphSupervisorAgent
+advanced_supervisor = LangGraphSupervisorAgent()
 ```
 
 ## 📝 Examples

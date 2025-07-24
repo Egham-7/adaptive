@@ -1,6 +1,7 @@
 """Configuration management for the supervisor agent system."""
 
 import os
+import threading
 from typing import Optional
 
 from pydantic import Field
@@ -23,13 +24,17 @@ class Config(BaseSettings):
 
 
 _config: Optional[Config] = None
+_config_lock = threading.Lock()
 
 
 def get_config() -> Config:
     """Get the application configuration instance."""
     global _config
     if _config is None:
-        _config = Config()
+        with _config_lock:
+            # Double-checked locking pattern
+            if _config is None:
+                _config = Config()
     return _config
 
 

@@ -10,7 +10,12 @@ from langgraph.prebuilt import create_react_agent
 from supervisor_agent.agents.code_agent import CodeAgent
 from supervisor_agent.agents.data_agent import DataAgent
 from supervisor_agent.agents.file_agent import FileAgent
-from supervisor_agent.supervisor.tools import HANDOFF_TOOLS
+from supervisor_agent.supervisor.tools import (
+    HANDOFF_TOOLS, 
+    extract_agent_from_message, 
+    is_completion_message,
+    extract_completion_result
+)
 from supervisor_agent.utils.config import get_config
 
 
@@ -64,13 +69,6 @@ class SupervisorAgent:
             self.supervisor_llm,
             self.file_agent.tools,
             state_modifier=SystemMessage(content=self.file_agent.get_system_message())
-        )
-        
-        # Create supervisor node
-        supervisor_node = create_react_agent(
-            self.supervisor_llm,
-            HANDOFF_TOOLS,
-            state_modifier=SystemMessage(content=self._get_supervisor_system_message())
         )
         
         # Create the graph
@@ -150,20 +148,21 @@ Always be helpful and ensure tasks are routed to the most appropriate agent."""
         new_state = state.copy()
         new_state["messages"] = result["messages"]
         
-        # Check if task was completed or handed off
+        # Check if task was completed or handed off using robust parsing
         last_message = result["messages"][-1]
         if hasattr(last_message, 'content'):
-            if "Task completed" in last_message.content:
+            message_content = last_message.content
+            
+            # Check for task completion
+            if is_completion_message(message_content):
                 new_state["task_completed"] = True
-                new_state["result"] = last_message.content
-            elif "Task handed off to" in last_message.content:
-                # Extract agent name from handoff message
-                if "Code Agent" in last_message.content:
-                    new_state["current_agent"] = "code_agent"
-                elif "Data Agent" in last_message.content:
-                    new_state["current_agent"] = "data_agent"
-                elif "File Agent" in last_message.content:
-                    new_state["current_agent"] = "file_agent"
+                completion_result = extract_completion_result(message_content)
+                new_state["result"] = completion_result if completion_result else message_content
+            else:
+                # Check for agent handoff
+                target_agent = extract_agent_from_message(message_content)
+                if target_agent:
+                    new_state["current_agent"] = target_agent
         
         return new_state
     
