@@ -45,7 +45,8 @@ class ProtocolManager:
         for entry in model_entries:
             for provider in entry.providers:
                 alternatives.append(
-                    Alternative(provider=provider.value, model=entry.model_name)
+                    Alternative(provider=provider.value,
+                                model=entry.model_name)
                 )
         return alternatives
 
@@ -64,23 +65,7 @@ class ProtocolManager:
         )
 
         # Extract decision factors from classification result
-        # Check if the REQUEST has tools/functions (not if models support it)
-        request_has_tools = False
-        if request:
-            request_has_tools = bool(request.tools or request.functions)
-            # Debug logging
-            if self.lit_logger:
-                self.lit_logger.log(
-                    "debug_tools_check",
-                    {
-                        "has_tools": bool(request.tools),
-                        "has_functions": bool(request.functions),
-                        "tools_value": (
-                            str(request.tools)[:200] if request.tools else None
-                        ),
-                        "request_has_tools": request_has_tools,
-                    },
-                )
+
         complexity_score = (
             classification_result.prompt_complexity_score[0]
             if classification_result.prompt_complexity_score
@@ -98,8 +83,7 @@ class ProtocolManager:
         )
 
         should_use_standard = (
-            request_has_tools
-            or complexity_score > 0.40
+            complexity_score > 0.40
             or token_count > 3000
             or number_of_few_shots > 4
             or reasoning > 0.55
@@ -111,13 +95,11 @@ class ProtocolManager:
             {
                 "task_type": task_type,
                 "protocol_choice": protocol_choice,
-                "request_has_tools": request_has_tools,
                 "complexity_score": complexity_score,
                 "token_count": token_count,
                 "number_of_few_shots": number_of_few_shots,
                 "reasoning": reasoning,
                 "decision_factors": {
-                    "request_has_tools": request_has_tools,
                     "high_complexity": complexity_score > 0.40,
                     "long_input": token_count > 3000,
                     "many_few_shots": number_of_few_shots > 4,
