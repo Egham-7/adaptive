@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"adaptive-backend/internal/services/providers/adaptive"
 	"adaptive-backend/internal/services/providers/anthropic"
 	"adaptive-backend/internal/services/providers/deepseek"
 	"adaptive-backend/internal/services/providers/gemini"
@@ -61,14 +60,6 @@ func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error
 		if err != nil {
 			return nil, err
 		}
-		return service, nil
-
-	case "adaptive":
-		service, err := adaptive.NewAdaptiveService()
-		if err != nil {
-			return nil, err
-		}
-
 		return service, nil
 
 	default:
