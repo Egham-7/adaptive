@@ -10,7 +10,7 @@ from adaptive_ai.models.llm_classification_models import (
     DomainClassificationResult,
 )
 from adaptive_ai.models.llm_core_models import (
-    ModelCapability,
+    ModelEntry,
     ModelSelectionRequest,
 )
 from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
@@ -147,7 +147,7 @@ class ProtocolManagerAPI(ls.LitAPI):
                 )
 
             select_t0 = time.perf_counter()
-            candidate_models: list[ModelCapability] = (
+            standard_candidates: list[ModelEntry] = (
                 self.model_selection_service.select_candidate_models(
                     request=req,
                     classification_result=current_classification_result,
@@ -155,29 +155,27 @@ class ProtocolManagerAPI(ls.LitAPI):
                     domain_classification=current_domain_result,
                 )
             )
+
+            minion_candidates: list[ModelEntry] = (
+                self.model_selection_service.get_minion_candidates(
+                    classification_result=current_classification_result,
+                    domain_classification=current_domain_result,
+                )
+            )
             select_t1 = time.perf_counter()
             self.log("model_selection_time", select_t1 - select_t0)
 
-            # Get designated minion and alternatives with domain awareness
-            minion_model = self.model_selection_service.get_designated_minion(
-                classification_result=current_classification_result,
-                domain_classification=current_domain_result,
-            )
-            minion_alternatives = self.model_selection_service.get_minion_alternatives(
-                primary_minion=minion_model
-            )
-
-            if not candidate_models:
+            if not standard_candidates and not minion_candidates:
                 self.log("no_eligible_models", {"prompt": req.prompt})
                 raise ValueError(
                     "No eligible models found after applying provider and task constraints"
                 )
+
             protocol_t0 = time.perf_counter()
             orchestrator_response: OrchestratorResponse = (
                 self.protocol_manager.select_protocol(
-                    candidate_models=candidate_models,
-                    minion_model=minion_model,
-                    minion_alternatives=minion_alternatives,
+                    standard_candidates=standard_candidates,
+                    minion_candidates=minion_candidates,
                     classification_result=current_classification_result,
                     token_count=prompt_token_count,
                     request=req,

@@ -2,7 +2,6 @@
 from typing import Any
 
 from adaptive_ai.config import (
-    ACTIVE_PROVIDERS,
     minion_domains,
     provider_model_capabilities,
     task_model_mappings_data,
@@ -13,8 +12,8 @@ from adaptive_ai.models.llm_classification_models import (
 )
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
+    ModelEntry,
     ModelSelectionRequest,
-    TaskModelEntry,
 )
 from adaptive_ai.models.llm_enums import ProviderType, TaskType
 
@@ -33,6 +32,13 @@ class ModelSelectionService:
             for m_cap in provider_list
         }
 
+        # Cache for eligible providers per model and token count
+        self._eligible_providers_cache: dict[tuple[str, int], list[ProviderType]] = {}
+
+        # Pre-computed mapping of models to their available providers
+        self._model_to_providers: dict[str, list[ProviderType]] = {}
+        self._build_model_provider_cache()
+
         # Performance metrics
         self.selection_metrics: dict[str, Any] = {
             "total_selections": 0,
@@ -42,22 +48,10 @@ class ModelSelectionService:
             "performance_times": [],
         }
 
-        # Updated default models to only include active providers
-        self._default_task_specific_model_entries: list[TaskModelEntry] = [
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o"),
-            TaskModelEntry(provider=ProviderType.DEEPSEEK, model_name="deepseek-chat"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4.1"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3"),
-            TaskModelEntry(provider=ProviderType.OPENAI, model_name="gpt-4o-mini"),
-            TaskModelEntry(provider=ProviderType.GROK, model_name="grok-3-mini"),
-        ]
         self.lit_logger: LitLoggerProtocol | None = lit_logger
         self.log(
             "model_selection_service_init",
             {
-                "default_models": [
-                    e.model_name for e in self._default_task_specific_model_entries
-                ],
                 "task_mappings_loaded": len(task_model_mappings_data),
                 "minion_domains_loaded": len(minion_domains),
                 "total_minion_domains": len(minion_domains),
@@ -68,13 +62,81 @@ class ModelSelectionService:
         if self.lit_logger:
             self.lit_logger.log(key, value)
 
+    def _build_model_provider_cache(self) -> None:
+        """Pre-compute which providers are available for each model."""
+        for (provider, model_name), _ in self._all_model_capabilities_by_id.items():
+            if model_name not in self._model_to_providers:
+                self._model_to_providers[model_name] = []
+            if provider not in self._model_to_providers[model_name]:
+                self._model_to_providers[model_name].append(provider)
+
+    def _get_eligible_providers_for_model(
+        self,
+        model_entry: ModelEntry,
+        eligible_providers: set[ProviderType],
+        prompt_token_count: int,
+    ) -> list[ProviderType]:
+        """Get eligible providers for a model that meet capability requirements."""
+        # Create cache key - use rounded token count to improve cache hit rate
+        cache_key = (model_entry.model_name, (prompt_token_count // 1000) * 1000)
+
+        # Check cache first
+        if cache_key in self._eligible_providers_cache:
+            cached_providers = self._eligible_providers_cache[cache_key]
+            # Filter cached providers by current eligibility
+            return [p for p in cached_providers if p in eligible_providers]
+
+        # Cache miss - compute and cache result
+        eligible_providers_for_model = []
+
+        # Use pre-computed available providers to avoid checking non-existent combinations
+        available_providers = self._model_to_providers.get(model_entry.model_name, [])
+
+        for provider in model_entry.providers:
+            if provider in available_providers and provider in eligible_providers:
+                model_identifier = (provider, model_entry.model_name)
+                model_cap = self._all_model_capabilities_by_id[model_identifier]
+                if model_cap.max_context_tokens >= prompt_token_count:
+                    eligible_providers_for_model.append(provider)
+
+        # Cache the result (regardless of current eligible_providers filter)
+        all_token_eligible = []
+        for provider in available_providers:
+            model_identifier = (provider, model_entry.model_name)
+            model_cap = self._all_model_capabilities_by_id[model_identifier]
+            if model_cap.max_context_tokens >= prompt_token_count:
+                all_token_eligible.append(provider)
+
+        self._eligible_providers_cache[cache_key] = all_token_eligible
+
+        return eligible_providers_for_model
+
+    def get_cache_stats(self) -> dict[str, Any]:
+        """Get caching performance statistics."""
+        return {
+            "eligible_providers_cache_size": len(self._eligible_providers_cache),
+            "model_to_providers_cache_size": len(self._model_to_providers),
+            "total_models_tracked": len(self._model_to_providers),
+            "average_providers_per_model": (
+                sum(len(providers) for providers in self._model_to_providers.values())
+                / len(self._model_to_providers)
+                if self._model_to_providers
+                else 0
+            ),
+        }
+
+    def clear_cache(self) -> None:
+        """Clear the eligible providers cache (useful for testing or memory management)."""
+        self._eligible_providers_cache.clear()
+        self.log("cache_cleared", {"cache_type": "eligible_providers"})
+
     def select_candidate_models(
         self,
         request: ModelSelectionRequest,
         classification_result: ClassificationResult,
         prompt_token_count: int,
         domain_classification: DomainClassificationResult | None = None,
-    ) -> list[ModelCapability]:
+    ) -> list[ModelEntry]:
         self.log(
             "select_candidate_models_called",
             {
@@ -87,21 +149,22 @@ class ModelSelectionService:
         )
         if request.provider_constraint:
             all_known_provider_types = {p.value for p in ProviderType}
-            # Filter to only include active providers
+            # Filter to only include known providers with capabilities
+            available_providers = set(provider_model_capabilities.keys())
             eligible_providers: set[ProviderType] = {
                 ProviderType(p)
                 for p in request.provider_constraint
-                if p in all_known_provider_types and ProviderType(p) in ACTIVE_PROVIDERS
+                if p in all_known_provider_types
+                and ProviderType(p) in available_providers
             }
             for p in request.provider_constraint:
                 if p not in all_known_provider_types:
                     self.log("invalid_provider_constraint", p)
-                elif ProviderType(p) not in ACTIVE_PROVIDERS:
-                    self.log("inactive_provider_constraint", p)
+                elif ProviderType(p) not in available_providers:
+                    self.log("unavailable_provider_constraint", p)
         else:
-            # Only use active providers even when no constraint is specified
-            eligible_providers_else: set[ProviderType] = ACTIVE_PROVIDERS
-            eligible_providers = eligible_providers_else
+            # Use all providers with defined capabilities
+            eligible_providers = set(provider_model_capabilities.keys())
 
         primary_task_type: TaskType = (
             TaskType(classification_result.task_type_1[0])
@@ -119,7 +182,7 @@ class ModelSelectionService:
                 f"No task mapping found for task type: {primary_task_type}"
             )
 
-        candidate_model_entries: list[TaskModelEntry] = task_mapping.model_entries
+        candidate_model_entries: list[ModelEntry] = task_mapping.model_entries
 
         self.log(
             "task_only_selection",
@@ -150,43 +213,30 @@ class ModelSelectionService:
             self.selection_metrics["task_usage"].get(task_key, 0) + 1
         )
 
-        seen_model_identifiers: set[tuple[ProviderType, str]] = set()
-        candidate_models: list[ModelCapability] = []
+        seen_model_names: set[str] = set()
+        candidate_models: list[ModelEntry] = []
 
         for task_model_entry in candidate_model_entries:
-            model_identifier: tuple[ProviderType, str] = (
-                task_model_entry.provider,
-                task_model_entry.model_name,
-            )
-
-            if (
-                task_model_entry.provider not in eligible_providers
-                or model_identifier in seen_model_identifiers
-            ):
-                self.log(
-                    "model_skipped",
-                    {
-                        "provider": str(task_model_entry.provider),
-                        "model": task_model_entry.model_name,
-                    },
-                )
+            if task_model_entry.model_name in seen_model_names:
                 continue
 
-            found_model_cap: ModelCapability | None = (
-                self._all_model_capabilities_by_id.get(model_identifier)
+            # Filter providers to only eligible ones that have capabilities defined
+            eligible_providers_for_model = self._get_eligible_providers_for_model(
+                task_model_entry, eligible_providers, prompt_token_count
             )
 
-            if (
-                found_model_cap is not None
-                and found_model_cap.max_context_tokens >= prompt_token_count
-            ):
-                candidate_models.append(found_model_cap)
-                seen_model_identifiers.add(model_identifier)
-
-                # Track model usage
-                model_key: str = (
-                    f"{found_model_cap.provider.value}:{found_model_cap.model_name}"
+            if eligible_providers_for_model:
+                # Create ModelEntry with only eligible providers
+                candidate_entry = ModelEntry(
+                    providers=eligible_providers_for_model,
+                    model_name=task_model_entry.model_name,
                 )
+                candidate_models.append(candidate_entry)
+                seen_model_names.add(task_model_entry.model_name)
+
+                # Track model usage (use first eligible provider for tracking)
+                first_provider = eligible_providers_for_model[0]
+                model_key = f"{first_provider.value}:{task_model_entry.model_name}"
                 self.selection_metrics["model_usage"][model_key] = (
                     self.selection_metrics["model_usage"].get(model_key, 0) + 1
                 )
@@ -194,8 +244,10 @@ class ModelSelectionService:
                 self.log(
                     "model_candidate_added",
                     {
-                        "provider": str(found_model_cap.provider),
-                        "model": found_model_cap.model_name,
+                        "model": task_model_entry.model_name,
+                        "eligible_providers": [
+                            p.value for p in eligible_providers_for_model
+                        ],
                     },
                 )
 
@@ -203,6 +255,7 @@ class ModelSelectionService:
 
         # Log comprehensive metrics periodically
         if self.selection_metrics["total_selections"] % 10 == 0:
+            cache_stats = self.get_cache_stats()
             self.log(
                 "model_selection_metrics",
                 {
@@ -221,17 +274,18 @@ class ModelSelectionService:
                         key=lambda x: x[1],
                         reverse=True,
                     )[:5],
+                    "cache_performance": cache_stats,
                 },
             )
 
         return candidate_models
 
-    def get_designated_minion(
+    def get_minion_candidates(
         self,
         classification_result: ClassificationResult,
         domain_classification: DomainClassificationResult | None = None,
-    ) -> str:
-        """Get the designated HuggingFace minion specialist for the domain."""
+    ) -> list[ModelEntry]:
+        """Get minion candidates with the designated model first, then alternatives."""
         primary_task_type: TaskType = (
             TaskType(classification_result.task_type_1[0])
             if classification_result.task_type_1
@@ -242,43 +296,92 @@ class ModelSelectionService:
         if not domain_classification:
             raise ValueError("Domain classification is required for minion selection")
 
-        # Direct lookup - domain maps directly to model
+        # Direct lookup - domain maps directly to model entry
         domain = domain_classification.domain
         if domain not in minion_domains:
             raise ValueError(f"Domain {domain.value} not supported in minion domains")
 
-        minion_model = minion_domains[domain]
+        primary_entry = minion_domains[domain]
+
+        # Get alternatives (excluding the primary)
+        alternatives = self.get_minion_alternatives(
+            primary_minion=primary_entry.model_name,
+            primary_provider=primary_entry.providers[0].value,
+        )
+
+        # Return with primary first, then alternatives
+        candidates = [primary_entry, *alternatives]
 
         self.log(
-            "minion_domain_selected",
+            "minion_candidates_selected",
             {
                 "domain": domain.value,
                 "task_type": primary_task_type.value,
                 "confidence": domain_classification.confidence,
-                "minion_model": minion_model,
+                "primary_model": primary_entry.model_name,
+                "primary_providers": [p.value for p in primary_entry.providers],
+                "total_candidates": len(candidates),
             },
         )
-        return minion_model
+        return candidates
 
     def get_available_minions(self) -> list[str]:
         """Get all available minion models from the domain mappings."""
-        minions: set[str] = set(minion_domains.values())
+        minions: set[str] = {entry.model_name for entry in minion_domains.values()}
         return sorted(minions)
 
-    def get_minion_alternatives(self, primary_minion: str) -> list[dict[str, str]]:
-        """Get alternative minion models excluding the primary minion."""
-        all_minions = self.get_available_minions()
-        alternatives = [
-            {"provider": "adaptive", "model": minion}
-            for minion in all_minions
-            if minion != primary_minion
-        ]
+    def get_minion_alternatives(
+        self, primary_minion: str, primary_provider: str
+    ) -> list[ModelEntry]:
+        """Get alternative minion models with prioritization:
+        1. Same model with different providers
+        2. Different models
+        """
+        alternatives = []
+
+        # First priority: Same model with different providers
+        for domain_entry in minion_domains.values():
+            if domain_entry.model_name == primary_minion:
+                other_providers = [
+                    p for p in domain_entry.providers if p.value != primary_provider
+                ]
+                if other_providers:
+                    alternatives.append(
+                        ModelEntry(
+                            providers=other_providers,
+                            model_name=domain_entry.model_name,
+                        )
+                    )
+                break  # Only need one entry for the same model
+
+        # Second priority: Different models (all providers for each)
+        seen_models = {primary_minion}
+        for domain_entry in minion_domains.values():
+            if domain_entry.model_name not in seen_models:
+                alternatives.append(
+                    ModelEntry(
+                        providers=domain_entry.providers,
+                        model_name=domain_entry.model_name,
+                    )
+                )
+                seen_models.add(domain_entry.model_name)
+
         self.log(
             "minion_alternatives_selected",
             {
                 "primary_minion": primary_minion,
+                "primary_provider": primary_provider,
                 "alternatives_count": len(alternatives),
-                "alternatives": alternatives[:3],  # Log first 3 for debugging
+                "same_model_different_provider_count": sum(
+                    1 for alt in alternatives if alt.model_name == primary_minion
+                ),
+                "alternatives": [
+                    {
+                        "model": alt.model_name,
+                        "providers": [p.value for p in alt.providers],
+                    }
+                    for alt in alternatives[:5]
+                ],
             },
         )
         return alternatives

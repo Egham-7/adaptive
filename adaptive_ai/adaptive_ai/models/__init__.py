@@ -13,9 +13,9 @@ from .llm_classification_models import ClassificationResult
 # Import core data models for model capabilities, selection logic, and general requests/results
 from .llm_core_models import (
     ModelCapability,
+    ModelEntry,
     ModelSelectionConfig,
     ModelSelectionRequest,
-    TaskModelEntry,
     TaskModelMapping,
 )
 from .llm_enums import (
@@ -41,6 +41,7 @@ __all__ = [
     "MinionInfo",
     # Core Models
     "ModelCapability",
+    "ModelEntry",
     "ModelSelectionConfig",
     "ModelSelectionRequest",
     # Orchestration Models
@@ -50,7 +51,6 @@ __all__ = [
     # Enums
     "ProviderType",
     "StandardLLMInfo",
-    "TaskModelEntry",  # NEW: Export TaskModelEntry
     "TaskModelMapping",
     "TaskType",
 ]

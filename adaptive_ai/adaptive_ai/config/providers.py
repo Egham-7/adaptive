@@ -5,19 +5,6 @@ Provider configurations and model capabilities for all supported providers.
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import ProviderType
 
-# Active providers in the system
-ACTIVE_PROVIDERS = {
-    ProviderType.OPENAI,
-    ProviderType.ANTHROPIC,
-    ProviderType.GOOGLE,
-    ProviderType.GROQ,
-    ProviderType.DEEPSEEK,
-    ProviderType.MISTRAL,
-    ProviderType.GROK,
-    ProviderType.HUGGINGFACE,
-    ProviderType.ADAPTIVE,
-}
-
 # Model capabilities for all providers
 provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
     ProviderType.GOOGLE: [

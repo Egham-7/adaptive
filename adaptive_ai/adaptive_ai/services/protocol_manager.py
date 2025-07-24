@@ -3,7 +3,11 @@ from typing import Any, Protocol
 from pydantic import BaseModel, Field
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
-from adaptive_ai.models.llm_core_models import ModelCapability, ModelSelectionRequest
+from adaptive_ai.models.llm_core_models import (
+    ModelCapability,
+    ModelEntry,
+    ModelSelectionRequest,
+)
 from adaptive_ai.models.llm_enums import ProtocolType
 from adaptive_ai.models.llm_orchestration_models import (
     Alternative,
@@ -89,20 +93,22 @@ class ProtocolManager:
             )
         return "\n".join(lines)
 
-    def _convert_minion_alternatives(
-        self, minion_alternatives: list[dict[str, str]]
+    def _convert_model_entries_to_alternatives(
+        self, model_entries: list[ModelEntry]
     ) -> list[Alternative]:
-        """Convert minion alternative objects to Alternative objects."""
-        return [
-            Alternative(provider=alt["provider"], model=alt["model"])
-            for alt in minion_alternatives
-        ]
+        """Convert ModelEntry objects to Alternative objects with all providers."""
+        alternatives = []
+        for entry in model_entries:
+            for provider in entry.providers:
+                alternatives.append(
+                    Alternative(provider=provider.value, model=entry.model_name)
+                )
+        return alternatives
 
     def select_protocol(
         self,
-        candidate_models: list[ModelCapability],
-        minion_model: str,
-        minion_alternatives: list[dict[str, str]],
+        standard_candidates: list[ModelEntry],
+        minion_candidates: list[ModelEntry],
         classification_result: ClassificationResult,
         token_count: int = 0,
         request: ModelSelectionRequest | None = None,
@@ -177,12 +183,13 @@ class ProtocolManager:
         )
 
         # Create protocol selection output
-        if should_use_standard and candidate_models:
-            first_model = candidate_models[0]
+        if should_use_standard and standard_candidates:
+            first_standard = standard_candidates[0]
+            primary_provider = first_standard.providers[0].value
             result = ProtocolSelectionOutput(
                 protocol=protocol_choice,
-                provider=first_model.provider.value,
-                model=first_model.model_name,
+                provider=primary_provider,
+                model=first_standard.model_name,
                 explanation=f"Rule-based selection: {protocol_choice} due to complexity/requirements",
                 temperature=0.7,
                 top_p=0.9,
@@ -191,17 +198,20 @@ class ProtocolManager:
                 stop=None,
                 frequency_penalty=0.0,
                 presence_penalty=0.0,
-                standard_alternatives=[
-                    Alternative(provider=m.provider.value, model=m.model_name)
-                    for m in candidate_models[1:]
-                ],
-                minion_alternatives=[],
+                standard_alternatives=self._convert_model_entries_to_alternatives(
+                    standard_candidates[1:]
+                ),
+                minion_alternatives=self._convert_model_entries_to_alternatives(
+                    minion_candidates
+                ),
             )
-        else:
+        elif minion_candidates:
+            first_minion = minion_candidates[0]
+            primary_provider = first_minion.providers[0].value
             result = ProtocolSelectionOutput(
                 protocol=protocol_choice,
-                provider="adaptive",
-                model=minion_model,
+                provider=primary_provider,
+                model=first_minion.model_name,
                 explanation=f"Rule-based selection: {protocol_choice} for efficiency",
                 temperature=0.7,
                 top_p=0.9,
@@ -210,11 +220,15 @@ class ProtocolManager:
                 stop=None,
                 frequency_penalty=0.0,
                 presence_penalty=0.0,
-                standard_alternatives=[],
-                minion_alternatives=self._convert_minion_alternatives(
-                    minion_alternatives
+                standard_alternatives=self._convert_model_entries_to_alternatives(
+                    standard_candidates
+                ),
+                minion_alternatives=self._convert_model_entries_to_alternatives(
+                    minion_candidates[1:]
                 ),
             )
+        else:
+            raise ValueError("No candidates available for either protocol")
 
         protocol_str = result.protocol
         protocol = (
@@ -233,9 +247,7 @@ class ProtocolManager:
         )
 
         standard_alts = result.standard_alternatives
-
-        # Convert minion alternatives from model selector
-        minion_alts = self._convert_minion_alternatives(minion_alternatives)
+        minion_alts = result.minion_alternatives
 
         match protocol:
             case ProtocolType.STANDARD_LLM:
