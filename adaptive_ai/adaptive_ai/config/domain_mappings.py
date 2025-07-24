@@ -28,7 +28,7 @@ minion_domains = {
         TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
     },
     DomainType.HEALTH: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct", 
+        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
         TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
         TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
         TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",
