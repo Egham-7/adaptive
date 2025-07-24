@@ -30,6 +30,7 @@ enum ProviderType {
   grok
   deepseek
   huggingface
+  adaptive
 }
 
 enum RequestType {
