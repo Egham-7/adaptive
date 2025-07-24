@@ -60,9 +60,7 @@ class ModelSelectionService:
                 ],
                 "task_mappings_loaded": len(task_model_mappings_data),
                 "minion_domains_loaded": len(minion_domains),
-                "total_minion_domain_task_combinations": sum(
-                    len(tasks) for tasks in minion_domains.values()
-                ),
+                "total_minion_domains": len(minion_domains),
             },
         )
 
@@ -233,7 +231,7 @@ class ModelSelectionService:
         classification_result: ClassificationResult,
         domain_classification: DomainClassificationResult | None = None,
     ) -> str:
-        """Get the designated HuggingFace minion specialist for the domain-task combination."""
+        """Get the designated HuggingFace minion specialist for the domain."""
         primary_task_type: TaskType = (
             TaskType(classification_result.task_type_1[0])
             if classification_result.task_type_1
@@ -244,18 +242,15 @@ class ModelSelectionService:
         if not domain_classification:
             raise ValueError("Domain classification is required for minion selection")
 
-        # Direct lookup - require exact domain/task match
+        # Direct lookup - domain maps directly to model
         domain = domain_classification.domain
         if domain not in minion_domains:
             raise ValueError(f"Domain {domain.value} not supported in minion domains")
-        if primary_task_type not in minion_domains[domain]:
-            raise ValueError(
-                f"Task {primary_task_type.value} not supported for domain {domain.value}"
-            )
-        minion_model = minion_domains[domain][primary_task_type]
+
+        minion_model = minion_domains[domain]
 
         self.log(
-            "minion_domain_task_selected",
+            "minion_domain_selected",
             {
                 "domain": domain.value,
                 "task_type": primary_task_type.value,
@@ -266,10 +261,8 @@ class ModelSelectionService:
         return minion_model
 
     def get_available_minions(self) -> list[str]:
-        """Get all available minion models from the domain matrix."""
-        minions: set[str] = set()
-        for domain_tasks in minion_domains.values():
-            minions.update(domain_tasks.values())
+        """Get all available minion models from the domain mappings."""
+        minions: set[str] = set(minion_domains.values())
         return sorted(minions)
 
     def get_minion_alternatives(self, primary_minion: str) -> list[dict[str, str]]:
