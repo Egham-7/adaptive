@@ -45,8 +45,7 @@ class ProtocolManager:
         for entry in model_entries:
             for provider in entry.providers:
                 alternatives.append(
-                    Alternative(provider=provider.value,
-                                model=entry.model_name)
+                    Alternative(provider=provider.value, model=entry.model_name)
                 )
         return alternatives
 
