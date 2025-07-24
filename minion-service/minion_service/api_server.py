@@ -1,9 +1,8 @@
 import time
 import uuid
-from typing import Optional
 
 import litserve as ls  # type:ignore
-from openai.types.chat import ChatCompletionChunk, ChatCompletionMessage
+from openai.types.chat import ChatCompletionChunk
 from openai.types.chat.chat_completion_chunk import Choice, ChoiceDelta
 from openai.types import CompletionUsage
 from vllm import SamplingParams
