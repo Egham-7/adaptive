@@ -39,8 +39,6 @@ dependencies = [
     "matplotlib>=3.7.0,<4",
     "pyyaml>=6.0.2,<7",
     "tiktoken>=0.9.0,<0.10",
-    "pytest>=8.4.1,<9",
-    "pytest-cov>=6.2.1,<7",
     "langchain>=0.3.26,<0.4",
     "langchain-huggingface>=0.3.0,<0.4",
     "sentence-transformers>=4.1.0,<6",
@@ -72,16 +70,17 @@ dev = [
     "types-pyyaml>=6.0.12.20250516,<7",
     "types-cachetools>=5.3.0,<6",
 ]
+test = [
+    "pytest>=8.4.1,<9",
+    "pytest-cov>=6.2.1,<7",
+]
 docs = [
     "mkdocs>=1.5.0,<2",
     "mkdocs-material>=9.0.0,<10",
 ]
 
 [tool.uv]
-default-groups = [
-    "dev",
-    "docs",
-]
+default-groups = []
 
 [tool.hatch.build.targets.sdist]
 include = ["adaptive_ai"]
