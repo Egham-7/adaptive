@@ -13,7 +13,6 @@ import (
 // HealthService manages health checks for dependent services
 type HealthService struct {
 	protocolManagerClient *Client
-	adaptiveClient        *Client
 	checkInterval         time.Duration
 	timeout               time.Duration
 	servicesReady         bool
@@ -43,15 +42,8 @@ func NewHealthService() *HealthService {
 		protocolManagerURL = "http://localhost:8000"
 	}
 
-	// Get adaptive provider base URL
-	adaptiveURL := os.Getenv("ADAPTIVE_BASE_URL")
-	if adaptiveURL == "" {
-		adaptiveURL = "https://api.adaptive.ai/v1"
-	}
-
 	return &HealthService{
 		protocolManagerClient: NewClient(protocolManagerURL),
-		adaptiveClient:        NewClient(adaptiveURL),
 		checkInterval:         10 * time.Second, // Longer interval for model loading
 		timeout:               30 * time.Second, // Longer timeout for model loading
 		servicesReady:         false,
@@ -76,32 +68,19 @@ func (hs *HealthService) CheckHealth(ctx context.Context) *OverallHealth {
 					Error:     "Starting up",
 					CheckedAt: time.Now(),
 				},
-				{
-					Service:   "adaptive_provider",
-					Healthy:   false,
-					Error:     "Starting up",
-					CheckedAt: time.Now(),
-				},
 			},
 		}
 	}
 
 	// Perform actual health checks
 	var wg sync.WaitGroup
-	results := make(chan HealthStatus, 2)
+	results := make(chan HealthStatus, 1)
 
 	// Check protocol manager health
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		results <- hs.checkProtocolManagerHealth(ctx)
-	}()
-
-	// Check adaptive provider health
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		results <- hs.checkAdaptiveHealth(ctx)
 	}()
 
 	// Wait for all checks to complete
@@ -160,33 +139,6 @@ func (hs *HealthService) checkProtocolManagerHealth(ctx context.Context) HealthS
 	return status
 }
 
-// checkAdaptiveHealth checks the adaptive provider /health endpoint
-func (hs *HealthService) checkAdaptiveHealth(ctx context.Context) HealthStatus {
-	status := HealthStatus{
-		Service:   "adaptive_provider",
-		CheckedAt: time.Now(),
-	}
-
-	opts := &RequestOptions{
-		Context: ctx,
-		Timeout: hs.timeout,
-		Retries: 1, // Fewer retries since models take time to load
-	}
-
-	err := hs.adaptiveClient.Get("/health", nil, opts)
-
-	if err != nil {
-		status.Healthy = false
-		status.Error = err.Error()
-		fiberlog.Debugf("Adaptive provider health check failed: %v", err)
-	} else {
-		status.Healthy = true
-		fiberlog.Debugf("Adaptive provider health check passed")
-	}
-
-	return status
-}
-
 // WaitForServices waits for all services to become healthy before returning
 // This supports very long startup times for model loading
 func (hs *HealthService) WaitForServices(ctx context.Context, maxWaitTime time.Duration) error {
@@ -214,18 +166,12 @@ func (hs *HealthService) WaitForServices(ctx context.Context, maxWaitTime time.D
 
 			// Do the actual health check
 			var wg sync.WaitGroup
-			results := make(chan HealthStatus, 2)
+			results := make(chan HealthStatus, 1)
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				results <- hs.checkProtocolManagerHealth(checkCtx)
-			}()
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				results <- hs.checkAdaptiveHealth(checkCtx)
 			}()
 
 			go func() {
@@ -280,8 +226,5 @@ func (hs *HealthService) IsReady() bool {
 func (hs *HealthService) Close() {
 	if hs.protocolManagerClient != nil {
 		hs.protocolManagerClient.Close()
-	}
-	if hs.adaptiveClient != nil {
-		hs.adaptiveClient.Close()
 	}
 }
