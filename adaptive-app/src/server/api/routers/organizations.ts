@@ -2,11 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
 import { invalidateOrganizationCache, withCache } from "@/lib/cache-utils";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	requireUserId,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type OrganizationWithMembersAndCount = Prisma.OrganizationGetPayload<{
 	include: {
@@ -21,10 +17,9 @@ type OrganizationWithMembersAndCount = Prisma.OrganizationGetPayload<{
 
 export const organizationsRouter = createTRPCRouter({
 	// Get all organizations for the current user
-	getAll: protectedProcedure
-		.use(requireUserId)
-		.query(async ({ ctx }): Promise<OrganizationWithMembersAndCount[]> => {
-			const userId = ctx.userId;
+	getAll: protectedProcedure.query(
+		async ({ ctx }): Promise<OrganizationWithMembersAndCount[]> => {
+			const userId = ctx.clerkAuth.userId;
 			const cacheKey = `organizations:${userId}`;
 
 			return withCache(cacheKey, async () => {
@@ -53,18 +48,18 @@ export const organizationsRouter = createTRPCRouter({
 					});
 				}
 			});
-		}),
+		},
+	),
 
 	// Get a specific organization by ID
 	getById: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.string() }))
 		.query(
 			async ({
 				ctx,
 				input,
 			}): Promise<OrganizationWithMembersAndCount | null> => {
-				const userId = ctx.userId;
+				const userId = ctx.clerkAuth.userId;
 				const cacheKey = `organization:${userId}:${input.id}`;
 
 				return withCache(cacheKey, async () => {
@@ -108,7 +103,6 @@ export const organizationsRouter = createTRPCRouter({
 
 	// Create a new organization
 	create: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				name: z.string().min(1, "Organization name is required"),
@@ -117,7 +111,7 @@ export const organizationsRouter = createTRPCRouter({
 		)
 		.mutation(
 			async ({ ctx, input }): Promise<OrganizationWithMembersAndCount> => {
-				const userId = ctx.userId;
+				const userId = ctx.clerkAuth.userId;
 
 				try {
 					const organization = await ctx.db.organization.create({
@@ -158,7 +152,6 @@ export const organizationsRouter = createTRPCRouter({
 
 	// Update an organization
 	update: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				id: z.string(),
@@ -168,7 +161,7 @@ export const organizationsRouter = createTRPCRouter({
 		)
 		.mutation(
 			async ({ ctx, input }): Promise<OrganizationWithMembersAndCount> => {
-				const userId = ctx.userId;
+				const userId = ctx.clerkAuth.userId;
 
 				try {
 					// Check if user is owner or admin
@@ -227,10 +220,9 @@ export const organizationsRouter = createTRPCRouter({
 
 	// Delete an organization
 	delete: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			try {
 				// Check if user is owner
@@ -282,7 +274,6 @@ export const organizationsRouter = createTRPCRouter({
 
 	// Add a member to an organization
 	addMember: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				organizationId: z.string(),
@@ -291,7 +282,7 @@ export const organizationsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const currentUserId = ctx.userId;
+			const currentUserId = ctx.clerkAuth.userId;
 
 			try {
 				// Check if current user is owner or admin
@@ -361,7 +352,6 @@ export const organizationsRouter = createTRPCRouter({
 
 	// Remove a member from an organization
 	removeMember: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				organizationId: z.string(),
@@ -369,7 +359,10 @@ export const organizationsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const currentUserId = ctx.userId;
+			const currentUserId = ctx.clerkAuth.userId;
+			if (!currentUserId) {
+				throw new TRPCError({ code: "UNAUTHORIZED" });
+			}
 
 			try {
 				// Check if current user is owner or admin

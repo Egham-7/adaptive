@@ -126,6 +126,11 @@ export async function POST(req: NextRequest) {
 			if (completion.usage) {
 				setImmediate(async () => {
 					try {
+						console.log("🔍 About to record usage with completion data:", {
+							provider: completion.provider,
+							model: completion.model,
+							usage: completion.usage,
+						});
 						await api.usage.recordApiUsage({
 							apiKey,
 							provider: completion.provider,

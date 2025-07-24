@@ -7,11 +7,7 @@ import {
 	hasReachedDailyLimit,
 } from "@/lib/chat/message-limits";
 import { createMessageSchema, updateMessageSchema } from "@/lib/chat/schema";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	requireUserId,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type CreateMessageInput = z.infer<typeof createMessageSchema>;
 type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
@@ -136,10 +132,9 @@ const deleteMessageWithTimestampUpdate = async (
 
 export const messageRouter = createTRPCRouter({
 	create: protectedProcedure
-		.use(requireUserId)
 		.input(createMessageSchema)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			// Check if user is subscribed
 			const subscription = await ctx.db.subscription.findFirst({
@@ -183,10 +178,9 @@ export const messageRouter = createTRPCRouter({
 		}),
 
 	listByConversation: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ conversationId: z.number() }))
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			const conversation = await findConversationByUserAndId(
 				ctx.db,
@@ -202,10 +196,9 @@ export const messageRouter = createTRPCRouter({
 		}),
 
 	getById: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.string() }))
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			const message = await findMessageWithConversationAccess(
 				ctx.db,
@@ -216,10 +209,9 @@ export const messageRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
-		.use(requireUserId)
 		.input(updateMessageSchema)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const { id, ...dataToUpdate } = input;
 
 			const message = await findMessageWithConversationAccess(
@@ -239,10 +231,9 @@ export const messageRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			const message = await findMessageWithConversationAccess(
 				ctx.db,
@@ -259,7 +250,6 @@ export const messageRouter = createTRPCRouter({
 		}),
 
 	batchUpsert: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				conversationId: z.number(),
@@ -267,7 +257,7 @@ export const messageRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const { conversationId, messages: messagesData } = input;
 
 			const conversation = await findConversationByUserAndId(
@@ -329,25 +319,23 @@ export const messageRouter = createTRPCRouter({
 			return { count: results.length };
 		}),
 
-	getRemainingDaily: protectedProcedure
-		.use(requireUserId)
-		.query(async ({ ctx }) => {
-			const userId = ctx.userId;
+	getRemainingDaily: protectedProcedure.query(async ({ ctx }) => {
+		const userId = ctx.clerkAuth.userId;
 
-			// Check if user is subscribed
-			const subscription = await ctx.db.subscription.findFirst({
-				where: {
-					userId: userId,
-					status: "active",
-				},
-			});
-			const isSubscribed = !!subscription;
+		// Check if user is subscribed
+		const subscription = await ctx.db.subscription.findFirst({
+			where: {
+				userId: userId,
+				status: "active",
+			},
+		});
+		const isSubscribed = !!subscription;
 
-			if (isSubscribed) {
-				return { unlimited: true, remaining: null };
-			}
+		if (isSubscribed) {
+			return { unlimited: true, remaining: null };
+		}
 
-			const remaining = await getRemainingMessages(ctx.db, userId);
-			return { unlimited: false, remaining };
-		}),
+		const remaining = await getRemainingMessages(ctx.db, userId);
+		return { unlimited: false, remaining };
+	}),
 });

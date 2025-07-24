@@ -8,18 +8,13 @@ import {
 	getConversationsOptionsSchema,
 	updateConversationSchema,
 } from "@/lib/chat/schema";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	requireUserId,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 export const conversationRouter = createTRPCRouter({
 	create: protectedProcedure
-		.use(requireUserId)
 		.input(createConversationSchema)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const result = await ctx.db.conversation.create({
 				data: {
 					...input,
@@ -35,10 +30,9 @@ export const conversationRouter = createTRPCRouter({
 		}),
 
 	getById: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.number() }))
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const cacheKey = `conversation:${userId}:${input.id}`;
 
 			return withCache(cacheKey, async () => {
@@ -63,10 +57,9 @@ export const conversationRouter = createTRPCRouter({
 		}),
 
 	list: protectedProcedure
-		.use(requireUserId)
 		.input(getConversationsOptionsSchema.optional())
 		.query(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const cacheKey = `conversations:${userId}:${JSON.stringify(input || {})}`;
 
 			return withCache(cacheKey, async () => {
@@ -90,10 +83,9 @@ export const conversationRouter = createTRPCRouter({
 		}),
 
 	update: protectedProcedure
-		.use(requireUserId)
 		.input(updateConversationSchema)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const { id, ...dataToUpdate } = input;
 
 			const result = await ctx.db.$transaction(async (tx) => {
@@ -125,10 +117,9 @@ export const conversationRouter = createTRPCRouter({
 		}),
 
 	delete: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.number() }))
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			const result = await ctx.db.$transaction(async (tx) => {
 				const conversationToDelete = await tx.conversation.findFirst({
@@ -163,10 +154,9 @@ export const conversationRouter = createTRPCRouter({
 		}),
 
 	setPinStatus: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.number(), pinned: z.boolean() }))
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const { id, pinned } = input;
 
 			const result = await ctx.db.$transaction(async (tx) => {

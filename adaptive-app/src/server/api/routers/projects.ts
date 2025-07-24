@@ -2,11 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
 import { invalidateProjectCache, withCache } from "@/lib/cache-utils";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	requireUserId,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type ProjectWithMembers = Prisma.ProjectGetPayload<{
 	include: {
@@ -24,10 +20,9 @@ type ProjectWithMembersAndOrganization = Prisma.ProjectGetPayload<{
 export const projectsRouter = createTRPCRouter({
 	// Get all projects for an organization
 	getByOrganization: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ organizationId: z.string() }))
 		.query(async ({ ctx, input }): Promise<ProjectWithMembers[]> => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 			const cacheKey = `projects:${userId}:${input.organizationId}`;
 
 			return withCache(cacheKey, async () => {
@@ -73,14 +68,13 @@ export const projectsRouter = createTRPCRouter({
 
 	// Get a specific project by ID
 	getById: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.string() }))
 		.query(
 			async ({
 				ctx,
 				input,
 			}): Promise<ProjectWithMembersAndOrganization | null> => {
-				const userId = ctx.userId;
+				const userId = ctx.clerkAuth.userId;
 				const cacheKey = `project:${userId}:${input.id}`;
 
 				return withCache(cacheKey, async () => {
@@ -122,7 +116,6 @@ export const projectsRouter = createTRPCRouter({
 
 	// Create a new project
 	create: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				name: z.string().min(1, "Project name is required"),
@@ -132,7 +125,7 @@ export const projectsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			try {
 				// Check if user has permission to create projects in this organization
@@ -190,7 +183,6 @@ export const projectsRouter = createTRPCRouter({
 
 	// Update a project
 	update: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				id: z.string(),
@@ -201,7 +193,7 @@ export const projectsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			try {
 				// Check if user has permission to update this project
@@ -262,10 +254,9 @@ export const projectsRouter = createTRPCRouter({
 
 	// Delete a project
 	delete: protectedProcedure
-		.use(requireUserId)
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
+			const userId = ctx.clerkAuth.userId;
 
 			try {
 				// Check if user has permission to delete this project
@@ -323,7 +314,6 @@ export const projectsRouter = createTRPCRouter({
 
 	// Add a member to a project
 	addMember: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				projectId: z.string(),
@@ -332,7 +322,7 @@ export const projectsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const currentUserId = ctx.userId;
+			const currentUserId = ctx.clerkAuth.userId;
 
 			try {
 				// Check if current user has permission to add members
@@ -411,7 +401,6 @@ export const projectsRouter = createTRPCRouter({
 
 	// Remove a member from a project
 	removeMember: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				projectId: z.string(),
@@ -419,7 +408,7 @@ export const projectsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const currentUserId = ctx.userId;
+			const currentUserId = ctx.clerkAuth.userId;
 
 			try {
 				// Check if current user has permission to remove members

@@ -6,7 +6,6 @@ import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
-	requireUserId,
 } from "@/server/api/trpc";
 
 // Helper function to ensure we always return valid numbers
@@ -46,6 +45,11 @@ export const usageRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			console.log("🔍 Recording API usage with input:", {
+				provider: input.provider,
+				model: input.model,
+				usage: input.usage,
+			});
 			try {
 				// Hash the provided API key to compare with stored hash
 				const keyHash = crypto
@@ -320,7 +324,6 @@ export const usageRouter = createTRPCRouter({
 
 	// Get usage analytics for a project
 	getProjectAnalytics: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				projectId: z.string(),
@@ -458,19 +461,25 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					// Get usage by provider
+					const rawProviderUsage = await ctx.db.apiUsage.groupBy({
+						by: ["provider"],
+						where: whereClause,
+						_sum: {
+							totalTokens: true,
+							cost: true,
+							requestCount: true,
+						},
+						_count: {
+							id: true,
+						},
+					});
+
+					// Filter out null providers and provide default for unknown providers
 					const providerUsage = providerUsageSchema.array().parse(
-						await ctx.db.apiUsage.groupBy({
-							by: ["provider"],
-							where: whereClause,
-							_sum: {
-								totalTokens: true,
-								cost: true,
-								requestCount: true,
-							},
-							_count: {
-								id: true,
-							},
-						}),
+						rawProviderUsage.map((usage: any) => ({
+							...usage,
+							provider: usage.provider || "unknown"
+						}))
 					);
 
 					// Get usage by request type
@@ -717,7 +726,6 @@ export const usageRouter = createTRPCRouter({
 
 	// Get usage analytics for a user across all projects
 	getUserAnalytics: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				startDate: z.date().optional(),

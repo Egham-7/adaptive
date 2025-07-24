@@ -2,46 +2,39 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { invalidateSubscriptionCache, withCache } from "@/lib/cache-utils";
 import { stripe } from "@/lib/stripe/stripe";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-	requireUserId,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 export const subscriptionRouter = createTRPCRouter({
 	// Get current user's subscription status
-	getSubscription: protectedProcedure
-		.use(requireUserId)
-		.query(async ({ ctx }) => {
-			const userId = ctx.userId;
-			const cacheKey = `subscription:${userId}`;
+	getSubscription: protectedProcedure.query(async ({ ctx }) => {
+		const userId = ctx.clerkAuth.userId;
+		const cacheKey = `subscription:${userId}`;
 
-			return withCache(cacheKey, async () => {
-				const subscription = await ctx.db.subscription.findFirst({
-					where: {
-						userId: userId,
-					},
-				});
-
-				if (!subscription) {
-					return { subscribed: false, subscription: null };
-				}
-
-				return {
-					subscribed: subscription.status === "active",
-					subscription: {
-						id: subscription.id,
-						status: subscription.status,
-						currentPeriodEnd: subscription.currentPeriodEnd,
-						stripePriceId: subscription.stripePriceId,
-					},
-				};
+		return withCache(cacheKey, async () => {
+			const subscription = await ctx.db.subscription.findFirst({
+				where: {
+					userId: userId,
+				},
 			});
-		}),
+
+			if (!subscription) {
+				return { subscribed: false, subscription: null };
+			}
+
+			return {
+				subscribed: subscription.status === "active",
+				subscription: {
+					id: subscription.id,
+					status: subscription.status,
+					currentPeriodEnd: subscription.currentPeriodEnd,
+					stripePriceId: subscription.stripePriceId,
+				},
+			};
+		});
+	}),
 
 	// Create Stripe checkout session
 	createCheckoutSession: protectedProcedure
-		.use(requireUserId)
 		.input(
 			z.object({
 				priceId: z.string().optional(),
@@ -74,7 +67,7 @@ export const subscriptionRouter = createTRPCRouter({
 						},
 					],
 					metadata: {
-						userId: ctx.userId,
+						userId: ctx.clerkAuth.userId,
 					},
 					mode: "subscription",
 					success_url: `${process.env.NEXT_PUBLIC_URL}/chat-platform?success=true&session_id={CHECKOUT_SESSION_ID}`,
@@ -138,64 +131,61 @@ export const subscriptionRouter = createTRPCRouter({
 		}),
 
 	// Cancel subscription
-	cancelSubscription: protectedProcedure
-		.use(requireUserId)
-		.mutation(async ({ ctx }) => {
-			const userId = ctx.userId;
-			const subscription = await ctx.db.subscription.findFirst({
+	cancelSubscription: protectedProcedure.mutation(async ({ ctx }) => {
+		const subscription = await ctx.db.subscription.findFirst({
+			where: {
+				userId: ctx.clerkAuth.userId,
+				status: "active",
+			},
+		});
+
+		if (!subscription) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "No active subscription found",
+			});
+		}
+
+		if (!subscription.stripeSubscriptionId) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: "Invalid subscription data",
+			});
+		}
+
+		try {
+			// Cancel the subscription in Stripe
+			await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
+
+			// Update the subscription status in the database
+			await ctx.db.subscription.update({
 				where: {
-					userId: userId,
-					status: "active",
+					id: subscription.id,
+				},
+				data: {
+					status: "canceled",
 				},
 			});
 
-			if (!subscription) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "No active subscription found",
-				});
-			}
+			// Invalidate subscription cache
+			await invalidateSubscriptionCache(ctx.clerkAuth.userId);
 
-			if (!subscription.stripeSubscriptionId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid subscription data",
-				});
-			}
-
-			try {
-				// Cancel the subscription in Stripe
-				await stripe.subscriptions.cancel(subscription.stripeSubscriptionId);
-
-				// Update the subscription status in the database
-				await ctx.db.subscription.update({
-					where: {
-						id: subscription.id,
-					},
-					data: {
-						status: "canceled",
-					},
-				});
-
-				// Invalidate subscription cache
-				await invalidateSubscriptionCache(userId);
-
-				return {
-					success: true,
-					message: "Subscription canceled successfully",
-				};
-			} catch (error) {
-				console.error("Subscription cancellation error:", error);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to cancel subscription",
-				});
-			}
-		}),
+			return {
+				success: true,
+				message: "Subscription canceled successfully",
+			};
+		} catch (error) {
+			console.error("Subscription cancellation error:", error);
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: "Failed to cancel subscription",
+			});
+		}
+	}),
 
 	// Check if user is subscribed (utility function)
-	isSubscribed: protectedProcedure.use(requireUserId).query(async ({ ctx }) => {
-		const userId = ctx.userId;
+	isSubscribed: protectedProcedure.query(async ({ ctx }) => {
+		const userId = ctx.clerkAuth.userId;
 		const cacheKey = `subscription-status:${userId}`;
 
 		return withCache(cacheKey, async () => {
