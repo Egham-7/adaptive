@@ -167,8 +167,8 @@ class ProtocolManager:
 
         weights = task_weights.get(task_type, default_weights)
 
-        # Normalize token count to 0-1 scale (assuming max reasonable is 10k tokens)
-        normalized_token_score = min(token_count / 10000, 1.0)
+        # Normalize token count to 0-1 scale (assuming max reasonable is defined by MAX_TOKEN_COUNT)
+        normalized_token_score = min(token_count / self.MAX_TOKEN_COUNT, 1.0)
 
         # Calculate composite score using all features (higher = more likely to use standard)
         composite_score = (
