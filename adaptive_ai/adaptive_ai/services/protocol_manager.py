@@ -39,52 +39,6 @@ class ProtocolManager:
         if self.lit_logger:
             self.lit_logger.log(key, value)
 
-    def _get_task_thresholds(self, task_type: str) -> dict[str, float]:
-        """Get task-specific thresholds optimized for different task types."""
-        # Task-specific thresholds based on task characteristics
-        task_configs = {
-            "Code Generation": {
-                "complexity": 0.30,  # Lower - code tasks benefit from standard models
-                "token_count": 2500,  # Lower - code context is important
-                "few_shots": 3,  # Lower - examples matter for code
-                "reasoning": 0.45,  # Lower - logic-heavy
-            },
-            "Summarization": {
-                "complexity": 0.50,  # Higher - simpler task for minions
-                "token_count": 4000,  # Higher - can handle longer text
-                "few_shots": 5,  # Higher - pattern is straightforward
-                "reasoning": 0.60,  # Higher - less reasoning needed
-            },
-            "Open QA": {
-                "complexity": 0.35,  # Lower - knowledge-intensive
-                "token_count": 2000,  # Lower - context matters
-                "few_shots": 3,  # Lower - examples help
-                "reasoning": 0.50,  # Medium - needs good reasoning
-            },
-            "Text Generation": {
-                "complexity": 0.45,  # Medium-high - creative but structured
-                "token_count": 3500,  # Medium-high - context less critical
-                "few_shots": 4,  # Medium - some examples help
-                "reasoning": 0.60,  # Higher - more creative than logical
-            },
-            "Classification": {
-                "complexity": 0.55,  # Higher - good for minions
-                "token_count": 5000,  # Higher - can handle lots of examples
-                "few_shots": 6,  # Higher - pattern recognition
-                "reasoning": 0.65,  # Higher - less reasoning needed
-            },
-        }
-
-        # Default thresholds (current values)
-        default_thresholds = {
-            "complexity": 0.40,
-            "token_count": 3000,
-            "few_shots": 4,
-            "reasoning": 0.55,
-        }
-
-        return task_configs.get(task_type, default_thresholds)
-
     def _calculate_composite_score(
         self,
         task_type: str,
@@ -278,33 +232,30 @@ class ProtocolManager:
         token_count: int,
     ) -> None:
         """Log the protocol selection decision with all relevant factors."""
-        task_thresholds = self._get_task_thresholds(task_type)
         composite_score = self._calculate_composite_score(
             task_type, classification_result, token_count
         )
 
-        complexity_score = classification_result.prompt_complexity_score[0]
-        reasoning = classification_result.reasoning[0]
-        number_of_few_shots = classification_result.number_of_few_shots[0]
-
         self.log(
-            "rule_based_protocol_selection",
+            "composite_protocol_selection",
             {
                 "task_type": task_type,
                 "protocol_choice": protocol_choice,
-                "complexity_score": complexity_score,
-                "token_count": token_count,
-                "number_of_few_shots": number_of_few_shots,
-                "reasoning": reasoning,
-                "decision_factors": {
-                    "high_complexity": complexity_score > task_thresholds["complexity"],
-                    "long_input": token_count > task_thresholds["token_count"],
-                    "many_few_shots": number_of_few_shots
-                    > task_thresholds["few_shots"],
-                    "high_reasoning": reasoning > task_thresholds["reasoning"],
-                },
-                "task_thresholds": task_thresholds,
                 "composite_score": composite_score,
+                "token_count": token_count,
+                "classification_features": {
+                    "complexity_score": classification_result.prompt_complexity_score[
+                        0
+                    ],
+                    "reasoning": classification_result.reasoning[0],
+                    "creativity_scope": classification_result.creativity_scope[0],
+                    "contextual_knowledge": classification_result.contextual_knowledge[
+                        0
+                    ],
+                    "domain_knowledge": classification_result.domain_knowledge[0],
+                    "constraint_ct": classification_result.constraint_ct[0],
+                    "number_of_few_shots": classification_result.number_of_few_shots[0],
+                },
             },
         )
 
