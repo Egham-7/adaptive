@@ -47,9 +47,16 @@ class ProtocolManager:
         """Determine if standard protocol should be used based on NVIDIA's trained complexity score."""
         # Use NVIDIA's professionally trained complexity score as primary signal
         complexity_score = classification_result.prompt_complexity_score[0]
+        reasoning_score = classification_result.reasoning[0]
+        number_of_few_shots = classification_result.number_of_few_shots[0]
 
         # Simple, interpretable logic based on the trained model
-        return complexity_score > 0.4 or token_count > 3000
+        return (
+            complexity_score > 0.4
+            or token_count > 3000
+            or number_of_few_shots > 4
+            or reasoning_score > 0.55
+        )
 
     def _select_best_protocol(
         self,
