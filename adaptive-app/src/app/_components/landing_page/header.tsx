@@ -69,63 +69,63 @@ export default function Header() {
 			<nav
 				data-state={menuState && "active"}
 				className="fixed z-20 w-full border-b border-dashed bg-background backdrop-blur-sm md:relative dark:bg-background/50 lg:dark:bg-transparent"
+				aria-label="Main navigation"
 			>
 				<div className="m-auto max-w-5xl px-6">
 					<div className="flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
-						{/* Logo section */}
-						<div className="flex w-full justify-between lg:w-auto">
-							<Link
-								href="/"
-								aria-label="home"
-								className="flex items-center space-x-2"
-							>
-								<Logo />
-							</Link>
-							<button
-								type="button"
-								onClick={() => setMenuState(!menuState)}
-								aria-label={menuState === true ? "Close Menu" : "Open Menu"}
-								className="-m-2.5 -mr-4 relative z-20 block cursor-pointer p-2.5 lg:hidden"
-							>
-								<Menu className="m-auto size-6 in-data-[state=active]:rotate-180 in-data-[state=active]:scale-0 in-data-[state=active]:opacity-0 duration-200" />
-								<X className="-rotate-180 absolute inset-0 m-auto size-6 in-data-[state=active]:rotate-0 in-data-[state=active]:scale-100 scale-0 in-data-[state=active]:opacity-100 opacity-0 duration-200" />
-							</button>
+						<Link
+							href="/"
+							aria-label="Adaptive AI Home"
+							className="flex items-center space-x-2"
+						>
+							<Logo />
+						</Link>
+						<button
+							type="button"
+							onClick={() => setMenuState(!menuState)}
+							aria-label={menuState === true ? "Close Menu" : "Open Menu"}
+							aria-expanded={menuState}
+							className="-m-2.5 -mr-4 relative z-20 block cursor-pointer p-2.5 lg:hidden"
+						>
+							<Menu className="m-auto size-6 in-data-[state=active]:rotate-180 in-data-[state=active]:scale-0 in-data-[state=active]:opacity-0 duration-200" />
+							<X className="-rotate-180 absolute inset-0 m-auto size-6 in-data-[state=active]:rotate-0 in-data-[state=active]:scale-100 scale-0 in-data-[state=active]:opacity-100 opacity-0 duration-200" />
+						</button>
+
+						<div className="hidden gap-8 text-sm lg:flex" role="menubar">
+							{menuItems.map((item) => (
+								<div key={item.name}>
+									{item.external ? (
+										<a
+											href={item.href}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-muted-foreground duration-150 hover:text-accent-foreground"
+											role="menuitem"
+										>
+											{item.name}
+										</a>
+									) : (
+										<a
+											href={item.href}
+											className="cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
+											role="menuitem"
+											onClick={(e) => {
+												e.preventDefault();
+												const target = document.querySelector(item.href);
+												target?.scrollIntoView({ behavior: "smooth" });
+											}}
+										>
+											{item.name}
+										</a>
+									)}
+								</div>
+							))}
 						</div>
 
-						{/* Menu section - hidden on mobile, centered on desktop */}
-						<div className="hidden lg:block">
-							<ul className="flex gap-8 text-sm">
-								{menuItems.map((item) => (
-									<li key={item.name}>
-										{item.external ? (
-											<a
-												href={item.href}
-												target="_blank"
-												rel="noopener noreferrer"
-												className="text-muted-foreground duration-150 hover:text-accent-foreground"
-											>
-												<span>{item.name}</span>
-											</a>
-										) : (
-											<a
-												href={item.href}
-												className="cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
-												onClick={(e) => {
-													e.preventDefault();
-													const target = document.querySelector(item.href);
-													target?.scrollIntoView({ behavior: "smooth" });
-												}}
-											>
-												<span>{item.name}</span>
-											</a>
-										)}
-									</li>
-								))}
-							</ul>
-						</div>
-
-						{/* Icon links - docs and GitHub */}
-						<div className="hidden lg:flex lg:items-center lg:gap-3">
+						<nav
+							className="hidden lg:flex lg:items-center lg:gap-3"
+							aria-label="External links"
+						>
 							{iconMenuItems.map((item) => {
 								const Icon = item.icon;
 								return (
@@ -135,14 +135,14 @@ export default function Header() {
 										target="_blank"
 										rel="noopener noreferrer"
 										className="flex items-center gap-2 text-muted-foreground duration-150 hover:text-accent-foreground"
-										title={item.name}
+										aria-label={`Visit ${item.name}`}
 									>
-										<Icon size={20} />
+										<Icon size={20} aria-hidden="true" />
 										<span className="text-sm">{item.name}</span>
 									</a>
 								);
 							})}
-						</div>
+						</nav>
 
 						{/* Buttons section - hidden on mobile, shown on desktop */}
 						<div className="hidden lg:flex lg:items-center lg:gap-3">
@@ -258,9 +258,9 @@ export default function Header() {
 						</div>
 
 						{/* Mobile menu - keep existing mobile menu structure */}
-						<div className="mb-6 in-data-[state=active]:block hidden w-full flex-wrap items-center justify-center space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-color-shadow-color/[var(--shadow-opacity)] md:flex-nowrap lg:hidden">
-							<div>
-								<ul className="space-y-6 text-base lg:flex lg:justify-center lg:gap-8 lg:space-y-0 lg:text-sm">
+						<div className="mb-6 in-data-[state=active]:block hidden w-full flex-col items-center space-y-6 rounded-3xl border bg-background p-6 shadow-2xl shadow-color-shadow-color/[var(--shadow-opacity)] lg:hidden">
+							<div className="mb-8 w-full">
+								<ul className="space-y-4 text-center text-base">
 									{menuItems.map((item) => (
 										<li key={item.name}>
 											{item.external ? (
@@ -268,14 +268,14 @@ export default function Header() {
 													href={item.href}
 													target="_blank"
 													rel="noopener noreferrer"
-													className="block text-muted-foreground duration-150 hover:text-accent-foreground"
+													className="block text-center text-muted-foreground duration-150 hover:text-accent-foreground"
 												>
 													<span>{item.name}</span>
 												</a>
 											) : (
 												<a
 													href={item.href}
-													className="block cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
+													className="block cursor-pointer text-center text-muted-foreground duration-150 hover:text-accent-foreground"
 													onClick={(e) => {
 														e.preventDefault();
 														const target = document.querySelector(item.href);
@@ -291,7 +291,7 @@ export default function Header() {
 								</ul>
 
 								{/* Icon links for mobile */}
-								<div className="flex justify-center gap-6 pt-4">
+								<div className="mt-8 mb-8 flex justify-center gap-6 border-t border-dashed pt-8">
 									{iconMenuItems.map((item) => {
 										const Icon = item.icon;
 										return (
@@ -310,7 +310,7 @@ export default function Header() {
 								</div>
 							</div>
 
-							<div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:border-l lg:pl-6">
+							<div className="mt-8 flex w-full flex-col items-center space-y-3 border-t border-dashed pt-8">
 								<SignedOut>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>

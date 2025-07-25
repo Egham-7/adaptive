@@ -1,7 +1,7 @@
 export function PerformanceMetricsChart() {
 	return (
 		<svg
-			className="w-full sm:w-[150%]"
+			className="w-full md:w-[150%]"
 			viewBox="0 0 366 231"
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"

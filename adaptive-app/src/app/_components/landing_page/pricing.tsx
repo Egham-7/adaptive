@@ -17,8 +17,8 @@ export default function Pricing() {
 	return (
 		<section id="pricing" className="overflow-hidden py-16 md:py-32">
 			<div className="mx-auto max-w-6xl px-6">
-				<div className="mx-auto max-w-2xl space-y-6 text-center">
-					<h2 className="text-balance text-center font-display font-semibold text-4xl lg:text-5xl">
+				<header className="mx-auto max-w-2xl space-y-6 text-center">
+					<h2 className="text-balance font-display font-semibold text-4xl lg:text-5xl">
 						API Pricing
 					</h2>
 					<p className="text-muted-foreground">
@@ -26,8 +26,8 @@ export default function Pricing() {
 						available in the chat app.
 					</p>
 
-					{/* Billing Toggle */}
-					<div className="mt-8 flex items-center justify-center gap-4">
+					<fieldset className="mt-8 flex items-center justify-center gap-4 border-0 p-0">
+						<legend className="sr-only">Billing frequency</legend>
 						<span
 							className={`text-sm ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}
 						>
@@ -36,6 +36,8 @@ export default function Pricing() {
 						<button
 							type="button"
 							onClick={() => setIsAnnual(!isAnnual)}
+							aria-label={`Switch to ${isAnnual ? "monthly" : "annual"} billing`}
+							aria-pressed={isAnnual}
 							className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
 								isAnnual ? "bg-primary" : "bg-muted"
 							}`}
@@ -56,8 +58,8 @@ export default function Pricing() {
 								Save 20%
 							</span>
 						)}
-					</div>
-				</div>
+					</fieldset>
+				</header>
 
 				<div className="mx-auto mt-8 grid max-w-6xl gap-6 md:mt-20 md:grid-cols-3">
 					<Card>

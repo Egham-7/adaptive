@@ -63,7 +63,7 @@ export default function FooterSection() {
 						</p>
 					</div>
 					<nav
-						className="grid grid-cols-2 gap-6 sm:grid-cols-4 md:col-span-3"
+						className="grid grid-cols-2 gap-6 md:col-span-3 md:grid-cols-4"
 						aria-label="Footer navigation"
 					>
 						{links.map((link) => (

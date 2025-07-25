@@ -106,7 +106,7 @@ export default function AnimatedBeamGraph() {
 			role="img"
 			aria-label="Adaptive AI infrastructure connecting user prompts to various AI providers"
 		>
-			<div className="flex w-full items-center justify-between px-4 sm:px-0">
+			<div className="flex w-full items-center justify-between px-4 md:px-0">
 				{/* Prompt Input */}
 				<motion.div
 					layout

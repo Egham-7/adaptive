@@ -149,30 +149,12 @@ export const usageRouter = createTRPCRouter({
 				const providerModel =
 					!input.provider || !input.model
 						? null
-						: await findModelBySimilarity(input.model, input.provider)
-								.catch((error) => {
+						: await findModelBySimilarity(input.model, input.provider).catch(
+								(error) => {
 									console.error("Error fetching provider model:", error);
 									return null;
-								});
-
-
-				if (!providerModel && input.provider && input.model) {
-					// Check if provider exists separately
-					const provider = await ctx.db.provider.findFirst({
-						where: { name: input.provider, isActive: true }
-					});
-					
-
-					// Check if model exists with this provider
-					const model = await ctx.db.providerModel.findFirst({
-						where: { 
-							name: input.model,
-							provider: { name: input.provider }
-						},
-						select: { inputTokenCost: true, outputTokenCost: true, isActive: true },
-					});
-					
-				}
+								},
+							);
 
 				const calculatedCost = providerModel
 					? (input.usage.promptTokens *
@@ -181,7 +163,6 @@ export const usageRouter = createTRPCRouter({
 								providerModel.outputTokenCost.toNumber()) /
 						1000000
 					: 0;
-
 
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
@@ -341,7 +322,7 @@ export const usageRouter = createTRPCRouter({
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId;
-			
+
 			const cacheKey = `project-analytics:${userId}:${
 				input.projectId
 			}:${JSON.stringify(input)}`;
@@ -476,8 +457,8 @@ export const usageRouter = createTRPCRouter({
 					const providerUsage = providerUsageSchema.array().parse(
 						rawProviderUsage.map((usage: any) => ({
 							...usage,
-							provider: usage.provider || "unknown"
-						}))
+							provider: usage.provider || "unknown",
+						})),
 					);
 
 					// Get usage by request type
