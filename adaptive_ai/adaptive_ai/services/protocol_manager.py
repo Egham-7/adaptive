@@ -20,6 +20,8 @@ class LitLoggerProtocol(Protocol):
 
 
 class ProtocolManager:
+    MAX_TOKEN_COUNT = 10000  # Maximum reasonable token count for normalization
+
     def __init__(
         self,
         lit_logger: LitLoggerProtocol | None = None,
@@ -36,6 +38,261 @@ class ProtocolManager:
     def log(self, key: str, value: Any) -> None:
         if self.lit_logger:
             self.lit_logger.log(key, value)
+
+    def _should_use_standard_protocol(
+        self,
+        classification_result: ClassificationResult,
+        token_count: int,
+    ) -> bool:
+        """Determine if standard protocol should be used based on NVIDIA's trained complexity score."""
+        # Use NVIDIA's professionally trained complexity score as primary signal
+        complexity_score = classification_result.prompt_complexity_score[0]
+        reasoning_score = classification_result.reasoning[0]
+        number_of_few_shots = classification_result.number_of_few_shots[0]
+
+        # Simple, interpretable logic based on the trained model
+        return (
+            complexity_score > 0.4
+            or token_count > 3000
+            or number_of_few_shots > 4
+            or reasoning_score > 0.55
+        )
+
+    def _select_best_protocol(
+        self,
+        classification_result: ClassificationResult,
+        token_count: int,
+        available_protocols: list[str],
+    ) -> str:
+        """Select the best protocol based on NVIDIA's complexity score."""
+        should_use_standard = self._should_use_standard_protocol(
+            classification_result, token_count
+        )
+
+        # Prefer standard_llm if complexity/tokens are high and available
+        if should_use_standard and "standard_llm" in available_protocols:
+            return "standard_llm"
+        elif "minion" in available_protocols:
+            return "minion"
+        else:
+            # Fallback to first available protocol
+            return available_protocols[0]
+
+    def _get_tuned_parameters(
+        self, classification_result: ClassificationResult, task_type: str
+    ) -> OpenAIParameters:
+        """Get OpenAI parameters tuned based on classification features."""
+        # Extract key features for parameter tuning
+        creativity = classification_result.creativity_scope[0]
+        reasoning = classification_result.reasoning[0]
+        complexity = classification_result.prompt_complexity_score[0]
+        classification_result.domain_knowledge[0]
+        classification_result.constraint_ct[0]
+
+        # Task-specific parameter base values and adjustments
+        task_configs = {
+            "Code Generation": {
+                "base_temp": 0.5,
+                "temp_factor": -0.3,
+                "temp_feature": complexity,
+                "base_tokens": 1200,
+                "token_factor": 800,
+                "token_feature": complexity,
+                "freq_penalty": reasoning * 0.2,
+                "pres_penalty": 0.0,
+                "top_p": 0.9,
+            },
+            "Text Generation": {
+                "base_temp": 0.6,
+                "temp_factor": 0.4,
+                "temp_feature": creativity,
+                "base_tokens": 1000,
+                "token_factor": 1000,
+                "token_feature": creativity,
+                "freq_penalty": 0.0,
+                "pres_penalty": 0.0,
+                "top_p": min(0.95, 0.85 + creativity * 0.1),
+            },
+            "Classification": {
+                "base_temp": 0.3,
+                "temp_factor": -0.2,
+                "temp_feature": reasoning,
+                "base_tokens": 200,
+                "token_factor": 300,
+                "token_feature": complexity,
+                "freq_penalty": 0.0,
+                "pres_penalty": 0.0,
+                "top_p": 0.9,
+            },
+            "Brainstorming": {
+                "base_temp": 0.8,
+                "temp_factor": 0.2,
+                "temp_feature": creativity,
+                "base_tokens": 1200,
+                "token_factor": 800,
+                "token_feature": creativity,
+                "freq_penalty": 0.0,
+                "pres_penalty": creativity * 0.4,
+                "top_p": min(0.98, 0.9 + creativity * 0.08),
+            },
+        }
+
+        # Default config
+        default_config = {
+            "base_temp": 0.7,
+            "temp_factor": 0.0,
+            "temp_feature": 0.0,
+            "base_tokens": 1000,
+            "token_factor": 0,
+            "token_feature": 0.0,
+            "freq_penalty": 0.0,
+            "pres_penalty": 0.0,
+            "top_p": 0.9,
+        }
+
+        config = task_configs.get(task_type, default_config)
+
+        # Calculate final parameters
+        temperature = max(
+            0.1,
+            min(
+                1.0,
+                config["base_temp"] + config["temp_factor"] * config["temp_feature"],
+            ),
+        )
+        max_tokens = min(
+            2500,
+            config["base_tokens"]
+            + int(config["token_factor"] * config["token_feature"]),
+        )
+        frequency_penalty = min(0.5, config["freq_penalty"])
+        presence_penalty = min(0.6, config["pres_penalty"])
+        top_p = config["top_p"]
+
+        self.log(
+            "parameter_tuning",
+            {
+                "task_type": task_type,
+                "tuned_parameters": {
+                    "temperature": round(temperature, 2),
+                    "top_p": round(top_p, 2),
+                    "max_tokens": max_tokens,
+                    "frequency_penalty": round(frequency_penalty, 2),
+                    "presence_penalty": round(presence_penalty, 2),
+                },
+            },
+        )
+
+        return OpenAIParameters(
+            temperature=round(temperature, 2),
+            top_p=round(top_p, 2),
+            max_tokens=int(max_tokens),
+            n=1,
+            stop=None,
+            frequency_penalty=round(frequency_penalty, 2),
+            presence_penalty=round(presence_penalty, 2),
+        )
+
+    def _log_protocol_decision(
+        self,
+        task_type: str,
+        protocol_choice: str,
+        classification_result: ClassificationResult,
+        token_count: int,
+    ) -> None:
+        """Log the protocol selection decision using NVIDIA's complexity score."""
+        complexity_score = classification_result.prompt_complexity_score[0]
+
+        self.log(
+            "nvidia_complexity_protocol_selection",
+            {
+                "task_type": task_type,
+                "protocol_choice": protocol_choice,
+                "nvidia_complexity_score": complexity_score,
+                "token_count": token_count,
+                "decision_factors": {
+                    "high_complexity": complexity_score > 0.4,
+                    "long_input": token_count > 3000,
+                },
+                "all_classification_features": {
+                    "complexity_score": complexity_score,
+                    "reasoning": classification_result.reasoning[0],
+                    "creativity_scope": classification_result.creativity_scope[0],
+                    "contextual_knowledge": classification_result.contextual_knowledge[
+                        0
+                    ],
+                    "domain_knowledge": classification_result.domain_knowledge[0],
+                    "constraint_ct": classification_result.constraint_ct[0],
+                    "number_of_few_shots": classification_result.number_of_few_shots[0],
+                },
+            },
+        )
+
+    def _create_protocol_response(
+        self,
+        protocol_choice: str,
+        candidates_map: dict[str, list[ModelEntry]],
+        classification_result: ClassificationResult,
+        task_type: str,
+    ) -> OrchestratorResponse:
+        """Create the appropriate protocol response with tuned parameters."""
+        parameters = self._get_tuned_parameters(classification_result, task_type)
+
+        candidates = candidates_map.get(protocol_choice)
+        if not candidates:
+            raise ValueError(f"No candidates available for protocol: {protocol_choice}")
+
+        # Protocol handler mapping - easily extensible
+        protocol_handlers = {
+            "standard_llm": self._create_standard_response,
+            "minion": self._create_minion_response,
+            # Easy to add new protocols:
+            # "specialist": self._create_specialist_response,
+        }
+
+        handler = protocol_handlers.get(protocol_choice)
+        if not handler:
+            raise ValueError(
+                f"Unknown protocol '{protocol_choice}'. Available protocols: {list(protocol_handlers.keys())}"
+            )
+
+        return handler(candidates, parameters)
+
+    def _create_standard_response(
+        self, standard_candidates: list[ModelEntry], parameters: OpenAIParameters
+    ) -> OrchestratorResponse:
+        """Create standard LLM response."""
+        first_standard = standard_candidates[0]
+        primary_provider = first_standard.providers[0].value
+
+        standard = StandardLLMInfo(
+            provider=primary_provider,
+            model=first_standard.model_name,
+            parameters=parameters,
+            alternatives=self._convert_model_entries_to_alternatives(
+                standard_candidates[1:]
+            ),
+        )
+        return OrchestratorResponse(
+            protocol=ProtocolType.STANDARD_LLM, standard=standard
+        )
+
+    def _create_minion_response(
+        self, minion_candidates: list[ModelEntry], parameters: OpenAIParameters
+    ) -> OrchestratorResponse:
+        """Create minion response."""
+        first_minion = minion_candidates[0]
+        primary_provider = first_minion.providers[0].value
+
+        minion = MinionInfo(
+            provider=primary_provider,
+            model=first_minion.model_name,
+            parameters=parameters,
+            alternatives=self._convert_model_entries_to_alternatives(
+                minion_candidates[1:]
+            ),
+        )
+        return OrchestratorResponse(protocol=ProtocolType.MINION, minion=minion)
 
     def _convert_model_entries_to_alternatives(
         self, model_entries: list[ModelEntry]
@@ -57,97 +314,39 @@ class ProtocolManager:
         token_count: int = 0,
         request: ModelSelectionRequest | None = None,
     ) -> OrchestratorResponse:
+        # Extract key decision factors
         task_type = (
             classification_result.task_type_1[0]
             if classification_result.task_type_1
             else "Other"
         )
 
-        # Extract decision factors from classification result
+        # Determine available protocols based on candidates
+        available_protocols = []
+        candidates_map = {}
 
-        complexity_score = (
-            classification_result.prompt_complexity_score[0]
-            if classification_result.prompt_complexity_score
-            else 0.0
-        )
-        reasoning = (
-            classification_result.reasoning[0]
-            if classification_result.reasoning
-            else 0.0
-        )
-        number_of_few_shots = (
-            classification_result.number_of_few_shots[0]
-            if classification_result.number_of_few_shots
-            else 0.0
-        )
+        if standard_candidates:
+            available_protocols.append("standard_llm")
+            candidates_map["standard_llm"] = standard_candidates
 
-        should_use_standard = (
-            complexity_score > 0.40
-            or token_count > 3000
-            or number_of_few_shots > 4
-            or reasoning > 0.55
-        )
-        protocol_choice = "standard_llm" if should_use_standard else "minion"
+        if minion_candidates:
+            available_protocols.append("minion")
+            candidates_map["minion"] = minion_candidates
 
-        self.log(
-            "rule_based_protocol_selection",
-            {
-                "task_type": task_type,
-                "protocol_choice": protocol_choice,
-                "complexity_score": complexity_score,
-                "token_count": token_count,
-                "number_of_few_shots": number_of_few_shots,
-                "reasoning": reasoning,
-                "decision_factors": {
-                    "high_complexity": complexity_score > 0.40,
-                    "long_input": token_count > 3000,
-                    "many_few_shots": number_of_few_shots > 4,
-                    "high_reasoning": reasoning > 0.55,
-                },
-            },
+        if not available_protocols:
+            raise ValueError("No candidates available for any protocol")
+
+        # Select best protocol
+        protocol_choice = self._select_best_protocol(
+            classification_result, token_count, available_protocols
         )
 
-        # Create OpenAI parameters
-        parameters = OpenAIParameters(
-            temperature=0.7,
-            top_p=0.9,
-            max_tokens=1000,
-            n=1,
-            stop=None,
-            frequency_penalty=0.0,
-            presence_penalty=0.0,
+        # Log decision with full context
+        self._log_protocol_decision(
+            task_type, protocol_choice, classification_result, token_count
         )
 
-        # Create protocol response directly
-        if should_use_standard and standard_candidates:
-            first_standard = standard_candidates[0]
-            primary_provider = first_standard.providers[0].value
-
-            standard = StandardLLMInfo(
-                provider=primary_provider,
-                model=first_standard.model_name,
-                parameters=parameters,
-                alternatives=self._convert_model_entries_to_alternatives(
-                    standard_candidates[1:]
-                ),
-            )
-            return OrchestratorResponse(
-                protocol=ProtocolType.STANDARD_LLM, standard=standard
-            )
-
-        elif minion_candidates:
-            first_minion = minion_candidates[0]
-            primary_provider = first_minion.providers[0].value
-
-            minion = MinionInfo(
-                provider=primary_provider,
-                model=first_minion.model_name,
-                parameters=parameters,
-                alternatives=self._convert_model_entries_to_alternatives(
-                    minion_candidates[1:]
-                ),
-            )
-            return OrchestratorResponse(protocol=ProtocolType.MINION, minion=minion)
-
-        else:
-            raise ValueError("No candidates available for either protocol")
+        # Create and return response
+        return self._create_protocol_response(
+            protocol_choice, candidates_map, classification_result, task_type
+        )
