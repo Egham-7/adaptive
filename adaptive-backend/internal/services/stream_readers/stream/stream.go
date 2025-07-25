@@ -28,10 +28,7 @@ func createBridgeContext(fasthttpCtx *fasthttp.RequestCtx) context.Context {
 	// Monitor FastHTTP context in a goroutine
 	go func() {
 		defer cancel()
-		select {
-		case <-fasthttpCtx.Done():
-			// FastHTTP context cancelled
-		}
+		<-fasthttpCtx.Done() // Simple channel receive - blocks until cancelled
 	}()
 
 	return ctx
