@@ -6,7 +6,7 @@ export default function TestimonialsSection() {
 			<div className="mx-auto max-w-5xl px-6">
 				<div className="mx-auto max-w-2xl">
 					<blockquote>
-						<p className="font-semibold text-lg sm:text-xl md:text-3xl">
+						<p className="font-semibold text-lg md:text-xl lg:text-3xl">
 							Using Adaptive has been like unlocking a secret productivity
 							superpower. It&apos;s the perfect fusion of simplicity and
 							versatility, enabling us to create workflows that are as efficient
