@@ -29,7 +29,8 @@ def main() -> None:
 
     # Quantize command
     quantize_parser = subparsers.add_parser(
-        "quantize", help="Quantize the original model to ONNX format using static quantization"
+        "quantize",
+        help="Quantize the original model to ONNX format using static quantization",
     )
     quantize_parser.add_argument(
         "--model-id",

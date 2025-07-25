@@ -5,156 +5,56 @@ Includes both core specialized domains and fallback mappings for additional doma
 """
 
 from adaptive_ai.models.llm_classification_models import DomainType
-from adaptive_ai.models.llm_enums import TaskType
+from adaptive_ai.models.llm_core_models import ModelEntry
+from adaptive_ai.models.llm_enums import ProviderType
 
 # Domain-based model mappings for minion protocol
 minion_domains = {
-    DomainType.BUSINESS_AND_INDUSTRIAL: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.CHATBOT: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.REWRITE: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "Qwen/Qwen2.5-14B-Instruct",
-    },
-    DomainType.HEALTH: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.CHATBOT: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.REWRITE: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-14B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "Qwen/Qwen2.5-14B-Instruct",
-    },
-    DomainType.NEWS: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.REWRITE: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
-    },
-    DomainType.OTHERDOMAINS: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.REWRITE: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
-    },
-    DomainType.REAL_ESTATE: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.CHATBOT: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.REWRITE: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-7B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "Qwen/Qwen2.5-7B-Instruct",
-    },
-    DomainType.COMPUTERS_AND_ELECTRONICS: {
-        TaskType.CODE_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.OPEN_QA: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.SUMMARIZATION: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.TEXT_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.CHATBOT: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.REWRITE: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.BRAINSTORMING: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "codellama/CodeLlama-7b-Instruct-hf",
-    },
-    DomainType.INTERNET_AND_TELECOM: {
-        TaskType.CODE_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.OPEN_QA: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.SUMMARIZATION: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.TEXT_GENERATION: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.CHATBOT: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.REWRITE: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.BRAINSTORMING: "codellama/CodeLlama-7b-Instruct-hf",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "codellama/CodeLlama-7b-Instruct-hf",
-    },
-    DomainType.FINANCE: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.CHATBOT: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.REWRITE: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "Qwen/Qwen2.5-Math-7B-Instruct",
-    },
-    DomainType.SCIENCE: {
-        TaskType.OPEN_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.SUMMARIZATION: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.TEXT_GENERATION: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.CHATBOT: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.REWRITE: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.BRAINSTORMING: "Qwen/Qwen2.5-Math-7B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "Qwen/Qwen2.5-Math-7B-Instruct",
-    },
-    DomainType.JOBS_AND_EDUCATION: {
-        TaskType.OPEN_QA: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        TaskType.SUMMARIZATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        TaskType.TEXT_GENERATION: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        TaskType.CHATBOT: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        TaskType.REWRITE: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        TaskType.BRAINSTORMING: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "HuggingFaceTB/SmolLM2-1.7B-Instruct",
-    },
-    DomainType.LAW_AND_GOVERNMENT: {
-        TaskType.OPEN_QA: "microsoft/Phi-4-mini-reasoning",
-        TaskType.SUMMARIZATION: "microsoft/Phi-4-mini-reasoning",
-        TaskType.TEXT_GENERATION: "microsoft/Phi-4-mini-reasoning",
-        TaskType.CHATBOT: "microsoft/Phi-4-mini-reasoning",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "microsoft/Phi-4-mini-reasoning",
-        TaskType.REWRITE: "microsoft/Phi-4-mini-reasoning",
-        TaskType.BRAINSTORMING: "microsoft/Phi-4-mini-reasoning",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "microsoft/Phi-4-mini-reasoning",
-    },
-    DomainType.SENSITIVE_SUBJECTS: {
-        TaskType.OPEN_QA: "meta-llama/Meta-Llama-3-8B-Instruct",
-        TaskType.SUMMARIZATION: "meta-llama/Meta-Llama-3-8B-Instruct",
-        TaskType.TEXT_GENERATION: "meta-llama/Meta-Llama-3-8B-Instruct",
-        TaskType.CHATBOT: "meta-llama/Meta-Llama-3-8B-Instruct",
-        TaskType.CLASSIFICATION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.CLOSED_QA: "meta-llama/Meta-Llama-3-8B-Instruct",
-        TaskType.REWRITE: "meta-llama/Meta-Llama-3-8B-Instruct",
-        TaskType.BRAINSTORMING: "meta-llama/Meta-Llama-3-8B-Instruct",
-        TaskType.EXTRACTION: "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        TaskType.OTHER: "meta-llama/Meta-Llama-3-8B-Instruct",
-    },
+    DomainType.BUSINESS_AND_INDUSTRIAL: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.HEALTH: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+    ),
+    DomainType.NEWS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="mistralai/Mistral-7B-Instruct-v0.2",
+    ),
+    DomainType.OTHERDOMAINS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    ),
+    DomainType.REAL_ESTATE: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.COMPUTERS_AND_ELECTRONICS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    ),
+    DomainType.INTERNET_AND_TELECOM: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+    ),
+    DomainType.FINANCE: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.SCIENCE: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+    ),
+    DomainType.JOBS_AND_EDUCATION: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="mistralai/Mistral-7B-Instruct-v0.2",
+    ),
+    DomainType.LAW_AND_GOVERNMENT: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.SENSITIVE_SUBJECTS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
 }
 
 # Add missing domains that should use OTHERDOMAINS models
@@ -176,4 +76,4 @@ for domain in [
     DomainType.GAMES,
     DomainType.REFERENCE,
 ]:
-    minion_domains[domain] = minion_domains[DomainType.OTHERDOMAINS].copy()
+    minion_domains[domain] = minion_domains[DomainType.OTHERDOMAINS]

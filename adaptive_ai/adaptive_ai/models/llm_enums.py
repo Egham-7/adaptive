@@ -10,7 +10,6 @@ class ProviderType(str, Enum):
     MISTRAL = "mistral"
     GROK = "grok"
     HUGGINGFACE = "huggingface"
-    ADAPTIVE = "adaptive"
 
 
 class TaskType(str, Enum):

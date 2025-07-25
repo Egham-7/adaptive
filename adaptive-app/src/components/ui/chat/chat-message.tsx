@@ -144,7 +144,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     return (
       <div className="w-full">
         {userFiles && userFiles.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2 justify-end">
+          <div className="mb-2 flex flex-wrap gap-2 justify-start">
             {userFiles.map((file) => (
               <FilePreview key={`${file.name}-${file.size}`} file={file} />
             ))}
