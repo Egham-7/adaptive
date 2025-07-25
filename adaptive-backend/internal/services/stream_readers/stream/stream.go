@@ -34,7 +34,7 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 		defer closeStreamReader(streamReader, requestID)
 
 		if err := pumpStreamData(ctx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
-			if ctx.Err() != nil {
+			if ctx != nil && ctx.Err() != nil {
 				fiberlog.Infof("[%s] Client disconnected during stream", requestID)
 				return
 			}
@@ -65,11 +65,17 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 	for {
 		// Check for client disconnect
 		if ctx != nil {
-			select {
-			case <-ctx.Done():
-				fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
-				return ctx.Err()
-			default:
+			ctxDone := ctx.Done()
+			if ctxDone != nil {
+				select {
+				case <-ctxDone:
+					fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
+					if ctx != nil {
+						return ctx.Err()
+					}
+					return context.Canceled
+				default:
+				}
 			}
 		}
 
