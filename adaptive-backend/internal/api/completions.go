@@ -102,8 +102,3 @@ func (h *CompletionHandler) selectProtocol(
 
 	return resp, nil
 }
-
-// Health returns protocol manager health.
-func (h *CompletionHandler) Health() error {
-	return h.protocolMgr.ValidateContext()
-}
