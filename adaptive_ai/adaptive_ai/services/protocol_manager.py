@@ -39,190 +39,152 @@ class ProtocolManager:
         if self.lit_logger:
             self.lit_logger.log(key, value)
 
-    def _calculate_composite_score(
+    def _should_use_standard_protocol(
         self,
-        task_type: str,
         classification_result: ClassificationResult,
         token_count: int,
-    ) -> float:
-        """Calculate composite score using all available classification features."""
-        # Extract all available features (taking first element since they're lists)
+    ) -> bool:
+        """Determine if standard protocol should be used based on NVIDIA's trained complexity score."""
+        # Use NVIDIA's professionally trained complexity score as primary signal
         complexity_score = classification_result.prompt_complexity_score[0]
-        reasoning = classification_result.reasoning[0]
-        creativity_scope = classification_result.creativity_scope[0]
-        contextual_knowledge = classification_result.contextual_knowledge[0]
-        domain_knowledge = classification_result.domain_knowledge[0]
-        constraint_ct = classification_result.constraint_ct[0]
-        number_of_few_shots = classification_result.number_of_few_shots[0]
 
-        # Task-specific weights using ALL available features
-        task_weights = {
-            "Code Generation": {
-                "complexity": 0.1,
-                "reasoning": 0.25,
-                "creativity": 0.05,
-                "contextual": 0.15,
-                "domain": 0.2,
-                "constraints": 0.15,
-                "few_shots": 0.05,
-                "token_weight": 0.05,
-            },
-            "Open QA": {
-                "complexity": 0.15,
-                "reasoning": 0.2,
-                "creativity": 0.1,
-                "contextual": 0.2,
-                "domain": 0.15,
-                "constraints": 0.1,
-                "few_shots": 0.05,
-                "token_weight": 0.05,
-            },
-            "Summarization": {
-                "complexity": 0.2,
-                "reasoning": 0.15,
-                "creativity": 0.1,
-                "contextual": 0.25,
-                "domain": 0.1,
-                "constraints": 0.1,
-                "few_shots": 0.05,
-                "token_weight": 0.05,
-            },
-            "Text Generation": {
-                "complexity": 0.25,
-                "reasoning": 0.1,
-                "creativity": 0.3,
-                "contextual": 0.1,
-                "domain": 0.05,
-                "constraints": 0.1,
-                "few_shots": 0.05,
-                "token_weight": 0.05,
-            },
-            "Classification": {
-                "complexity": 0.05,
-                "reasoning": 0.2,
-                "creativity": 0.05,
-                "contextual": 0.15,
-                "domain": 0.15,
-                "constraints": 0.2,
-                "few_shots": 0.15,
-                "token_weight": 0.05,
-            },
-        }
-
-        # Default weights
-        default_weights = {
-            "complexity": 0.15,
-            "reasoning": 0.15,
-            "creativity": 0.15,
-            "contextual": 0.15,
-            "domain": 0.1,
-            "constraints": 0.15,
-            "few_shots": 0.1,
-            "token_weight": 0.05,
-        }
-
-        weights = task_weights.get(task_type, default_weights)
-
-        # Normalize token count to 0-1 scale (assuming max reasonable is defined by MAX_TOKEN_COUNT)
-        normalized_token_score = min(token_count / self.MAX_TOKEN_COUNT, 1.0)
-
-        # Calculate composite score using all features (higher = more likely to use standard)
-        composite_score = (
-            weights["complexity"] * complexity_score
-            + weights["reasoning"] * reasoning
-            + weights["creativity"] * creativity_scope
-            + weights["contextual"] * contextual_knowledge
-            + weights["domain"] * domain_knowledge
-            + weights["constraints"] * constraint_ct
-            + weights["few_shots"] * number_of_few_shots
-            + weights["token_weight"] * normalized_token_score
-        )
-
-        return float(min(composite_score, 1.0))  # Cap at 1.0 and ensure float type
+        # Simple, interpretable logic based on the trained model
+        return complexity_score > 0.4 or token_count > 3000
 
     def _select_best_protocol(
         self,
-        task_type: str,
         classification_result: ClassificationResult,
         token_count: int,
         available_protocols: list[str],
     ) -> str:
-        """Select the best protocol from available options based on task requirements."""
-        # Calculate composite score for each protocol
-        protocol_scores = {}
-
-        for protocol in available_protocols:
-            score = self._calculate_protocol_score(
-                protocol, task_type, classification_result, token_count
-            )
-            protocol_scores[protocol] = score
-
-        # Return protocol with highest score
-        return max(protocol_scores, key=lambda k: protocol_scores[k])
-
-    def _calculate_protocol_score(
-        self,
-        protocol: str,
-        task_type: str,
-        classification_result: ClassificationResult,
-        token_count: int,
-    ) -> float:
-        """Calculate how well a protocol fits the task requirements."""
-        composite_score = self._calculate_composite_score(
-            task_type, classification_result, token_count
+        """Select the best protocol based on NVIDIA's complexity score."""
+        should_use_standard = self._should_use_standard_protocol(
+            classification_result, token_count
         )
 
-        # Protocol-specific scoring logic (expandable)
-        protocol_multipliers = {
-            "standard_llm": {
-                "base_multiplier": 1.0,
-                "complexity_bonus": 0.3,  # Bonus for complex tasks
-                "token_penalty": (
-                    -0.1 if token_count < 1000 else 0.0
-                ),  # Penalty for short tasks
+        # Prefer standard_llm if complexity/tokens are high and available
+        if should_use_standard and "standard_llm" in available_protocols:
+            return "standard_llm"
+        elif "minion" in available_protocols:
+            return "minion"
+        else:
+            # Fallback to first available protocol
+            return available_protocols[0]
+
+    def _get_tuned_parameters(
+        self, classification_result: ClassificationResult, task_type: str
+    ) -> OpenAIParameters:
+        """Get OpenAI parameters tuned based on classification features."""
+        # Extract key features for parameter tuning
+        creativity = classification_result.creativity_scope[0]
+        reasoning = classification_result.reasoning[0]
+        complexity = classification_result.prompt_complexity_score[0]
+        classification_result.domain_knowledge[0]
+        classification_result.constraint_ct[0]
+
+        # Task-specific parameter base values and adjustments
+        task_configs = {
+            "Code Generation": {
+                "base_temp": 0.5,
+                "temp_factor": -0.3,
+                "temp_feature": complexity,
+                "base_tokens": 1200,
+                "token_factor": 800,
+                "token_feature": complexity,
+                "freq_penalty": reasoning * 0.2,
+                "pres_penalty": 0.0,
+                "top_p": 0.9,
             },
-            "minion": {
-                "base_multiplier": 0.8,
-                "complexity_penalty": -0.2,  # Penalty for complex tasks
-                "token_bonus": (
-                    0.2 if token_count < 1000 else 0.0
-                ),  # Bonus for short tasks
+            "Text Generation": {
+                "base_temp": 0.6,
+                "temp_factor": 0.4,
+                "temp_feature": creativity,
+                "base_tokens": 1000,
+                "token_factor": 1000,
+                "token_feature": creativity,
+                "freq_penalty": 0.0,
+                "pres_penalty": 0.0,
+                "top_p": min(0.95, 0.85 + creativity * 0.1),
             },
-            # Easy to add new protocols:
-            # "specialist": {
-            #     "base_multiplier": 1.2,
-            #     "domain_bonus": 0.4 if domain == "code" else 0.0,
-            # },
+            "Classification": {
+                "base_temp": 0.3,
+                "temp_factor": -0.2,
+                "temp_feature": reasoning,
+                "base_tokens": 200,
+                "token_factor": 300,
+                "token_feature": complexity,
+                "freq_penalty": 0.0,
+                "pres_penalty": 0.0,
+                "top_p": 0.9,
+            },
+            "Brainstorming": {
+                "base_temp": 0.8,
+                "temp_factor": 0.2,
+                "temp_feature": creativity,
+                "base_tokens": 1200,
+                "token_factor": 800,
+                "token_feature": creativity,
+                "freq_penalty": 0.0,
+                "pres_penalty": creativity * 0.4,
+                "top_p": min(0.98, 0.9 + creativity * 0.08),
+            },
         }
 
-        if protocol not in protocol_multipliers:
-            self.log(
-                "unknown_protocol_error",
-                {
-                    "protocol": protocol,
-                    "available_protocols": list(protocol_multipliers.keys()),
-                    "task_type": task_type,
+        # Default config
+        default_config = {
+            "base_temp": 0.7,
+            "temp_factor": 0.0,
+            "temp_feature": 0.0,
+            "base_tokens": 1000,
+            "token_factor": 0,
+            "token_feature": 0.0,
+            "freq_penalty": 0.0,
+            "pres_penalty": 0.0,
+            "top_p": 0.9,
+        }
+
+        config = task_configs.get(task_type, default_config)
+
+        # Calculate final parameters
+        temperature = max(
+            0.1,
+            min(
+                1.0,
+                config["base_temp"] + config["temp_factor"] * config["temp_feature"],
+            ),
+        )
+        max_tokens = min(
+            2500,
+            config["base_tokens"]
+            + int(config["token_factor"] * config["token_feature"]),
+        )
+        frequency_penalty = min(0.5, config["freq_penalty"])
+        presence_penalty = min(0.6, config["pres_penalty"])
+        top_p = config["top_p"]
+
+        self.log(
+            "parameter_tuning",
+            {
+                "task_type": task_type,
+                "tuned_parameters": {
+                    "temperature": round(temperature, 2),
+                    "top_p": round(top_p, 2),
+                    "max_tokens": max_tokens,
+                    "frequency_penalty": round(frequency_penalty, 2),
+                    "presence_penalty": round(presence_penalty, 2),
                 },
-            )
-            raise ValueError(
-                f"Unknown protocol '{protocol}'. Available protocols: {list(protocol_multipliers.keys())}"
-            )
+            },
+        )
 
-        multiplier_config = protocol_multipliers[protocol]
-        score = composite_score * multiplier_config["base_multiplier"]
-
-        # Apply bonuses/penalties
-        complexity_score = classification_result.prompt_complexity_score[0]
-        if "complexity_bonus" in multiplier_config:
-            score += complexity_score * multiplier_config["complexity_bonus"]
-        if "complexity_penalty" in multiplier_config:
-            score += complexity_score * multiplier_config["complexity_penalty"]
-        if "token_bonus" in multiplier_config:
-            score += multiplier_config["token_bonus"]
-        if "token_penalty" in multiplier_config:
-            score += multiplier_config["token_penalty"]
-
-        return max(0.0, min(1.0, score))  # Clamp between 0-1
+        return OpenAIParameters(
+            temperature=round(temperature, 2),
+            top_p=round(top_p, 2),
+            max_tokens=int(max_tokens),
+            n=1,
+            stop=None,
+            frequency_penalty=round(frequency_penalty, 2),
+            presence_penalty=round(presence_penalty, 2),
+        )
 
     def _log_protocol_decision(
         self,
@@ -231,22 +193,22 @@ class ProtocolManager:
         classification_result: ClassificationResult,
         token_count: int,
     ) -> None:
-        """Log the protocol selection decision with all relevant factors."""
-        composite_score = self._calculate_composite_score(
-            task_type, classification_result, token_count
-        )
+        """Log the protocol selection decision using NVIDIA's complexity score."""
+        complexity_score = classification_result.prompt_complexity_score[0]
 
         self.log(
-            "composite_protocol_selection",
+            "nvidia_complexity_protocol_selection",
             {
                 "task_type": task_type,
                 "protocol_choice": protocol_choice,
-                "composite_score": composite_score,
+                "nvidia_complexity_score": complexity_score,
                 "token_count": token_count,
-                "classification_features": {
-                    "complexity_score": classification_result.prompt_complexity_score[
-                        0
-                    ],
+                "decision_factors": {
+                    "high_complexity": complexity_score > 0.4,
+                    "long_input": token_count > 3000,
+                },
+                "all_classification_features": {
+                    "complexity_score": complexity_score,
                     "reasoning": classification_result.reasoning[0],
                     "creativity_scope": classification_result.creativity_scope[0],
                     "contextual_knowledge": classification_result.contextual_knowledge[
@@ -260,18 +222,14 @@ class ProtocolManager:
         )
 
     def _create_protocol_response(
-        self, protocol_choice: str, candidates_map: dict[str, list[ModelEntry]]
+        self,
+        protocol_choice: str,
+        candidates_map: dict[str, list[ModelEntry]],
+        classification_result: ClassificationResult,
+        task_type: str,
     ) -> OrchestratorResponse:
-        """Create the appropriate protocol response based on decision."""
-        parameters = OpenAIParameters(
-            temperature=0.7,
-            top_p=0.9,
-            max_tokens=1000,
-            n=1,
-            stop=None,
-            frequency_penalty=0.0,
-            presence_penalty=0.0,
-        )
+        """Create the appropriate protocol response with tuned parameters."""
+        parameters = self._get_tuned_parameters(classification_result, task_type)
 
         candidates = candidates_map.get(protocol_choice)
         if not candidates:
@@ -373,7 +331,7 @@ class ProtocolManager:
 
         # Select best protocol
         protocol_choice = self._select_best_protocol(
-            task_type, classification_result, token_count, available_protocols
+            classification_result, token_count, available_protocols
         )
 
         # Log decision with full context
@@ -382,4 +340,6 @@ class ProtocolManager:
         )
 
         # Create and return response
-        return self._create_protocol_response(protocol_choice, candidates_map)
+        return self._create_protocol_response(
+            protocol_choice, candidates_map, classification_result, task_type
+        )
