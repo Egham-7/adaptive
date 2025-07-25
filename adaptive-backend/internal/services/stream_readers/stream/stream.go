@@ -17,14 +17,39 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// createBridgeContext creates a standard context that cancels when FastHTTP context cancels
+func createBridgeContext(fasthttpCtx *fasthttp.RequestCtx) context.Context {
+	if fasthttpCtx == nil {
+		return context.Background()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Monitor FastHTTP context in a goroutine
+	go func() {
+		defer cancel()
+		select {
+		case <-fasthttpCtx.Done():
+			// FastHTTP context cancelled
+		}
+	}()
+
+	return ctx
+}
+
 // HandleStream manages the streaming response to the client with optimized performance
 func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedModel string, provider string) error {
 	fiberlog.Infof("[%s] Starting stream handling", requestID)
 
-	c.Context().SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+	// Get FastHTTP context once to avoid potential nil issues
+	fasthttpCtx := c.Context()
+
+	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		startTime := time.Now()
 		var totalBytes int64
-		ctx := c.Context()
+
+		// Create a context that bridges FastHTTP cancellation to standard context
+		ctx := createBridgeContext(fasthttpCtx)
 
 		streamReader, err := sse.GetSSEStreamReader(ctx, resp, requestID, selectedModel, provider)
 		if err != nil {
@@ -33,8 +58,8 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 		}
 		defer closeStreamReader(streamReader, requestID)
 
-		if err := pumpStreamData(ctx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
-			if ctx != nil && ctx.Err() != nil {
+		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
+			if fasthttpCtx != nil && fasthttpCtx.Err() != nil {
 				fiberlog.Infof("[%s] Client disconnected during stream", requestID)
 				return
 			}
@@ -44,7 +69,26 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 	return nil
 }
 
-func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader, requestID string, startTime time.Time, totalBytesPtr *int64) error {
+func pumpStreamData(fasthttpCtx *fasthttp.RequestCtx, w *bufio.Writer, streamReader io.Reader, requestID string, startTime time.Time, totalBytesPtr *int64) (err error) {
+	// Panic recovery for robust error handling
+	defer func() {
+		if r := recover(); r != nil {
+			fiberlog.Errorf("[%s] Stream panic recovered: %v", requestID, r)
+			err = fmt.Errorf("stream panic: %v", r)
+		}
+	}()
+
+	// Validate inputs
+	if fasthttpCtx == nil {
+		return fmt.Errorf("fasthttp context is nil")
+	}
+	if w == nil {
+		return fmt.Errorf("writer is nil")
+	}
+	if streamReader == nil {
+		return fmt.Errorf("stream reader is nil")
+	}
+
 	// Use larger buffer for better throughput - SSE chunks are typically 1-4KB
 	const bufferSize = 4096
 	buffer := make([]byte, bufferSize) // Stack allocation for hot path
@@ -63,26 +107,29 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 		requestID, bufferSize, flushThreshold)
 
 	for {
-		// Check for client disconnect
-		if ctx != nil {
-			ctxDone := ctx.Done()
-			if ctxDone != nil {
+		// Check for client disconnect using FastHTTP's Done channel
+		select {
+		case <-fasthttpCtx.Done():
+			fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
+			return fasthttpCtx.Err()
+		default:
+		}
+
+		// Read timeout is handled by context cancellation and internal stream timeouts
+		n, err := streamReader.Read(buffer)
+		readCount++
+
+		// Health check: if we've had too many consecutive zero-byte reads, something might be wrong
+		if n == 0 && err == nil {
+			if readCount%100 == 0 { // Every 100 zero-byte reads, check context
 				select {
-				case <-ctxDone:
-					fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
-					if ctx != nil {
-						return ctx.Err()
-					}
-					return context.Canceled
+				case <-fasthttpCtx.Done():
+					fiberlog.Infof("[%s] Context cancelled during zero-byte reads", requestID)
+					return fasthttpCtx.Err()
 				default:
 				}
 			}
 		}
-
-		// Read timeout is handled by context cancellation and internal stream timeouts
-
-		n, err := streamReader.Read(buffer)
-		readCount++
 
 		if n > 0 {
 			totalBytes += int64(n)
@@ -153,6 +200,13 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 
 // writeChunk writes data and flushes for optimal throughput
 func writeChunk(w *bufio.Writer, data []byte, requestID string) error {
+	if w == nil {
+		return fmt.Errorf("[%s] writer is nil", requestID)
+	}
+	if len(data) == 0 {
+		return nil // Nothing to write
+	}
+
 	if _, err := w.Write(data); err != nil {
 		return fmt.Errorf("[%s] writing chunk: %w", requestID, err)
 	}
@@ -163,6 +217,11 @@ func writeChunk(w *bufio.Writer, data []byte, requestID string) error {
 }
 
 func closeStreamReader(streamReader io.ReadCloser, requestID string) {
+	if streamReader == nil {
+		fiberlog.Warnf("[%s] Attempted to close nil stream reader", requestID)
+		return
+	}
+
 	closeStart := time.Now()
 	if err := streamReader.Close(); err != nil {
 		fiberlog.Errorf("[%s] Error closing stream reader: %v", requestID, err)
