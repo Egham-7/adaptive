@@ -123,7 +123,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 
 	// Get and process the current chunk
 	chunk := r.stream.Current()
-	
+
 	// Detailed chunk logging
 	var choiceContent string
 	if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
@@ -134,10 +134,15 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 			choiceContent = content
 		}
 	}
-	
+
 	fiberlog.Debugf("[%s] Processing chunk: ID=%s, Choices=%d, Content='%s', FinishReason=%v, Usage.TotalTokens=%d",
-		r.RequestID, chunk.ID, len(chunk.Choices), choiceContent, 
-		func() string { if len(chunk.Choices) > 0 { return string(chunk.Choices[0].FinishReason) }; return "none" }(),
+		r.RequestID, chunk.ID, len(chunk.Choices), choiceContent,
+		func() string {
+			if len(chunk.Choices) > 0 {
+				return string(chunk.Choices[0].FinishReason)
+			}
+			return "none"
+		}(),
 		chunk.Usage.TotalTokens)
 
 	if err := r.processChunk(&chunk); err != nil {
@@ -218,7 +223,7 @@ func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 // processChunk orchestrates the transformation and buffering of a chunk.
 func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) error {
 	startTime := time.Now()
-	
+
 	// Convert OpenAI chunk to our adaptive chunk with cost savings
 	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, r.provider)
 	conversionTime := time.Since(startTime)
@@ -227,7 +232,7 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	jsonBB := bytebufferpool.Get()
 	defer bytebufferpool.Put(jsonBB)
 	jsonBB.Reset()
-	
+
 	// Marshal JSON directly to buffer pool
 	marshalStart := time.Now()
 	jsonData, err := json.Marshal(adaptiveChunk)
@@ -235,10 +240,13 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 		fiberlog.Errorf("[%s] JSON marshaling failed for chunk: %v", r.RequestID, err)
 		return err
 	}
-	jsonBB.Write(jsonData)
+	if _, err := jsonBB.Write(jsonData); err != nil {
+		fiberlog.Errorf("[%s] Failed to write JSON to buffer: %v", r.RequestID, err)
+		return err
+	}
 	marshalTime := time.Since(marshalStart)
 
-	// Use bytebufferpool for efficient SSE message building  
+	// Use bytebufferpool for efficient SSE message building
 	bb := bytebufferpool.Get()
 	defer bytebufferpool.Put(bb)
 	bb.Reset()
@@ -277,7 +285,7 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 		copy(r.Buffer, bb.B)
 	}
 	bufferTime := time.Since(bufferStart)
-	
+
 	totalTime := time.Since(startTime)
 	fiberlog.Debugf("[%s] Chunk processed: json_size=%d, sse_size=%d, conversion=%v, marshal=%v, buffer=%v, total=%v",
 		r.RequestID, len(jsonData), bb.Len(), conversionTime, marshalTime, bufferTime, totalTime)

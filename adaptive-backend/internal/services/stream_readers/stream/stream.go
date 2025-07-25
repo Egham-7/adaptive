@@ -52,14 +52,14 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 	var totalBytes int64
 	var writeBuffer []byte      // Accumulate small writes before flushing
 	const flushThreshold = 2048 // Flush when we accumulate 2KB
-	
+
 	// Performance tracking
 	var readCount, flushCount int64
 	var maxBufferSize int
 	lastLogTime := startTime
 	const logInterval = 5 * time.Second
-	
-	fiberlog.Debugf("[%s] Starting stream pump - buffer_size=%d flush_threshold=%d", 
+
+	fiberlog.Debugf("[%s] Starting stream pump - buffer_size=%d flush_threshold=%d",
 		requestID, bufferSize, flushThreshold)
 
 	for {
@@ -81,7 +81,7 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 
 			// Accumulate data for batch writing
 			writeBuffer = append(writeBuffer, buffer[:n]...)
-			
+
 			// Track buffer utilization
 			if len(writeBuffer) > maxBufferSize {
 				maxBufferSize = len(writeBuffer)
@@ -93,23 +93,23 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 
 			if shouldFlush {
 				flushCount++
-				fiberlog.Debugf("[%s] Flushing batch: size=%d bytes, chunk_complete=%v", 
+				fiberlog.Debugf("[%s] Flushing batch: size=%d bytes, chunk_complete=%v",
 					requestID, len(writeBuffer), bytes.HasSuffix(writeBuffer, []byte("\n\n")))
-				
+
 				if writeErr := writeChunk(w, writeBuffer, requestID); writeErr != nil {
-					fiberlog.Errorf("[%s] Write error after %d reads, %d flushes: %v", 
+					fiberlog.Errorf("[%s] Write error after %d reads, %d flushes: %v",
 						requestID, readCount, flushCount, writeErr)
 					return writeErr
 				}
 				writeBuffer = writeBuffer[:0] // Reset buffer
 			}
 		}
-		
+
 		// Periodic performance logging
 		if time.Since(lastLogTime) >= logInterval {
 			duration := time.Since(startTime)
 			throughput := float64(totalBytes) / duration.Seconds() / 1024
-			fiberlog.Infof("[%s] Stream progress: %d bytes, %d reads, %d flushes, %.2f KB/s, max_buffer=%d", 
+			fiberlog.Infof("[%s] Stream progress: %d bytes, %d reads, %d flushes, %.2f KB/s, max_buffer=%d",
 				requestID, totalBytes, readCount, flushCount, throughput, maxBufferSize)
 			lastLogTime = time.Now()
 		}
@@ -130,13 +130,13 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 			}
 
 			fiberlog.Infof("[%s] Stream completed: %d bytes in %v (%.2f KB/s), reads=%d, flushes=%d, max_buffer=%d",
-				requestID, totalBytes, duration, float64(totalBytes)/duration.Seconds()/1024, 
+				requestID, totalBytes, duration, float64(totalBytes)/duration.Seconds()/1024,
 				readCount, flushCount, maxBufferSize)
 			return nil
 		}
 
 		if err != nil {
-			fiberlog.Errorf("[%s] Stream read error after %d successful reads (%d bytes): %v", 
+			fiberlog.Errorf("[%s] Stream read error after %d successful reads (%d bytes): %v",
 				requestID, readCount, totalBytes, err)
 			return fmt.Errorf("[%s] reading from stream: %w", requestID, err)
 		}
