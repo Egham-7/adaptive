@@ -15,7 +15,7 @@ export default function HeroSection() {
 		<section className="relative flex min-h-screen items-center overflow-hidden bg-white dark:bg-neutral-950">
 			<div className="relative z-10 w-full py-12">
 				<div className="mx-auto max-w-7xl px-6">
-					<div className="max-w-4xl text-center sm:mx-auto lg:mt-0 lg:mr-auto lg:w-full">
+					<div className="max-w-4xl text-center mx-auto lg:mt-0 lg:mr-auto lg:w-full">
 						<h1 className="mt-8 text-balance text-center font-display font-semibold text-4xl md:text-5xl xl:text-7xl xl:[line-height:1.125]">
 							{"We Provide ".split(" ").map((word, wordIndex) => (
 								<span key={word} className="mr-2 inline-block last:mr-0">
@@ -65,7 +65,7 @@ export default function HeroSection() {
 
 						<AnimatedBeamGraph />
 
-						<div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+						<div className="mt-8 flex flex-col justify-center gap-4 md:flex-row">
 							<SignedOut>
 								<SignUpButton signInForceRedirectUrl="/chat-platform">
 									<Button

@@ -33,7 +33,7 @@ export default function FeaturesSection() {
 								</p>
 							</CardContent>
 						</Card>
-						<Card className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
+						<Card className="relative col-span-full overflow-hidden md:col-span-3 lg:col-span-2">
 							<CardContent className="pt-6">
 								<div className="before:-inset-2 relative mx-auto flex aspect-square size-32 items-center justify-center rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
 									<Network className="h-12 w-12 text-primary" />
@@ -50,7 +50,7 @@ export default function FeaturesSection() {
 								</div>
 							</CardContent>
 						</Card>
-						<Card className="relative col-span-full overflow-hidden sm:col-span-3 lg:col-span-2">
+						<Card className="relative col-span-full overflow-hidden md:col-span-3 lg:col-span-2">
 							<CardContent className="pt-6">
 								<div className="pt-6 lg:px-6">
 									<ProviderDownloadChart />
@@ -67,7 +67,7 @@ export default function FeaturesSection() {
 							</CardContent>
 						</Card>
 						<Card className="relative col-span-full overflow-hidden lg:col-span-3">
-							<div className="grid pt-6 sm:grid-cols-2">
+							<div className="grid pt-6 md:grid-cols-2">
 								<div className="relative z-10 flex flex-col justify-between space-y-12 px-6 lg:space-y-6">
 									<div className="before:-inset-2 relative flex aspect-square size-12 rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
 										<Cpu className="m-auto size-5" strokeWidth={1} />
@@ -83,7 +83,7 @@ export default function FeaturesSection() {
 										</p>
 									</div>
 								</div>
-								<div className="-mb-6 -mr-6 relative mt-6 h-fit rounded-tl-(--radius) border-t border-l p-6 py-6 sm:ml-6">
+								<div className="-mb-6 -mr-6 relative mt-6 h-fit rounded-tl-(--radius) border-t border-l p-6 py-6 md:ml-6">
 									<div className="absolute top-2 left-3 flex gap-1">
 										<span className="block size-2 rounded-full border dark:border-white/10 dark:bg-white/10" />
 										<span className="block size-2 rounded-full border dark:border-white/10 dark:bg-white/10" />
@@ -94,7 +94,7 @@ export default function FeaturesSection() {
 							</div>
 						</Card>
 						<Card className="relative col-span-full overflow-hidden lg:col-span-3">
-							<CardContent className="grid h-full pt-6 sm:grid-cols-2">
+							<CardContent className="grid h-full pt-6 md:grid-cols-2">
 								<div className="relative z-10 flex flex-col justify-between space-y-12 lg:space-y-6">
 									<div className="before:-inset-2 relative flex aspect-square size-12 rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
 										<BarChart3 className="m-auto size-6" strokeWidth={1} />
@@ -110,7 +110,7 @@ export default function FeaturesSection() {
 										</p>
 									</div>
 								</div>
-								<div className="sm:-my-6 sm:-mr-6 relative mt-6 before:absolute before:inset-0 before:mx-auto before:w-px before:bg-(--color-border)">
+								<div className="md:-my-6 md:-mr-6 relative mt-6 before:absolute before:inset-0 before:mx-auto before:w-px before:bg-(--color-border)">
 									<div className="relative flex h-full flex-col justify-center space-y-6 py-6">
 										<div className="relative flex w-[calc(50%+0.875rem)] items-center justify-end gap-2">
 											<span className="block h-fit rounded border px-2 py-1 text-xs shadow-sm">

@@ -258,9 +258,9 @@ export default function Header() {
 						</div>
 
 						{/* Mobile menu - keep existing mobile menu structure */}
-						<div className="mb-6 in-data-[state=active]:block hidden w-full flex-wrap items-center justify-center space-y-8 rounded-3xl border bg-background p-6 shadow-2xl shadow-color-shadow-color/[var(--shadow-opacity)] md:flex-nowrap lg:hidden">
-							<div>
-								<ul className="space-y-6 text-base lg:flex lg:justify-center lg:gap-8 lg:space-y-0 lg:text-sm">
+						<div className="mb-6 in-data-[state=active]:block hidden w-full flex-col items-center space-y-6 rounded-3xl border bg-background p-6 shadow-2xl shadow-color-shadow-color/[var(--shadow-opacity)] lg:hidden">
+							<div className="w-full mb-8">
+								<ul className="space-y-4 text-center text-base">
 									{menuItems.map((item) => (
 										<li key={item.name}>
 											{item.external ? (
@@ -268,14 +268,14 @@ export default function Header() {
 													href={item.href}
 													target="_blank"
 													rel="noopener noreferrer"
-													className="block text-muted-foreground duration-150 hover:text-accent-foreground"
+													className="block text-center text-muted-foreground duration-150 hover:text-accent-foreground"
 												>
 													<span>{item.name}</span>
 												</a>
 											) : (
 												<a
 													href={item.href}
-													className="block cursor-pointer text-muted-foreground duration-150 hover:text-accent-foreground"
+													className="block cursor-pointer text-center text-muted-foreground duration-150 hover:text-accent-foreground"
 													onClick={(e) => {
 														e.preventDefault();
 														const target = document.querySelector(item.href);
@@ -291,7 +291,7 @@ export default function Header() {
 								</ul>
 
 								{/* Icon links for mobile */}
-								<div className="flex justify-center gap-6 pt-4">
+								<div className="flex justify-center gap-6 pt-8 mt-8 mb-8 border-t border-dashed">
 									{iconMenuItems.map((item) => {
 										const Icon = item.icon;
 										return (
@@ -310,7 +310,7 @@ export default function Header() {
 								</div>
 							</div>
 
-							<div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:border-l lg:pl-6">
+							<div className="flex w-full flex-col items-center space-y-3 pt-8 mt-8 border-t border-dashed">
 								<SignedOut>
 									<DropdownMenu>
 										<DropdownMenuTrigger asChild>
