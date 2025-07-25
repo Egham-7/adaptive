@@ -162,7 +162,7 @@ export const modelPricingRouter = createTRPCRouter({
 			const savings = currentCost - compareCost;
 			console.log("Savings: ", savings);
 			const savingsPercentage =
-				currentCost > 0 ? (Math.abs(savings) / currentCost) * 100 : 0;
+				compareCost > 0 ? (Math.abs(savings) / compareCost) * 100 : 0;
 
 			return {
 				currentModel: {
