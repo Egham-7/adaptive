@@ -5,21 +5,56 @@ Includes both core specialized domains and fallback mappings for additional doma
 """
 
 from adaptive_ai.models.llm_classification_models import DomainType
+from adaptive_ai.models.llm_core_models import ModelEntry
+from adaptive_ai.models.llm_enums import ProviderType
 
 # Domain-based model mappings for minion protocol
 minion_domains = {
-    DomainType.BUSINESS_AND_INDUSTRIAL: "meta-llama/Llama-3.1-8B-Instruct",
-    DomainType.HEALTH: "Qwen/Qwen3-8B-Base",
-    DomainType.NEWS: "mistralai/Mistral-7B-Instruct-v0.2",
-    DomainType.OTHERDOMAINS: "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
-    DomainType.REAL_ESTATE: "meta-llama/Llama-3.1-8B-Instruct",
-    DomainType.COMPUTERS_AND_ELECTRONICS: "deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
-    DomainType.INTERNET_AND_TELECOM: "Qwen/Qwen3-8B-Base",
-    DomainType.FINANCE: "meta-llama/Llama-3.1-8B-Instruct",
-    DomainType.SCIENCE: "Qwen/Qwen3-8B-Base",
-    DomainType.JOBS_AND_EDUCATION: "mistralai/Mistral-7B-Instruct-v0.2",
-    DomainType.LAW_AND_GOVERNMENT: "meta-llama/Llama-3.1-8B-Instruct",
-    DomainType.SENSITIVE_SUBJECTS: "meta-llama/Llama-3.1-8B-Instruct",
+    DomainType.BUSINESS_AND_INDUSTRIAL: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.HEALTH: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+    ),
+    DomainType.NEWS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="mistralai/Mistral-7B-Instruct-v0.2",
+    ),
+    DomainType.OTHERDOMAINS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    ),
+    DomainType.REAL_ESTATE: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.COMPUTERS_AND_ELECTRONICS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+    ),
+    DomainType.INTERNET_AND_TELECOM: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+    ),
+    DomainType.FINANCE: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.SCIENCE: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+    ),
+    DomainType.JOBS_AND_EDUCATION: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="mistralai/Mistral-7B-Instruct-v0.2",
+    ),
+    DomainType.LAW_AND_GOVERNMENT: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
+    DomainType.SENSITIVE_SUBJECTS: ModelEntry(
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+    ),
 }
 
 # Add missing domains that should use OTHERDOMAINS models

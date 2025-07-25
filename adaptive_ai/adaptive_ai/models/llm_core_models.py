@@ -23,13 +23,13 @@ class ModelCapability(BaseModel):
     latency_tier: str | None = Field(None, alias="latency_tier")
 
 
-class TaskModelEntry(BaseModel):
-    provider: ProviderType
+class ModelEntry(BaseModel):
+    providers: list[ProviderType]
     model_name: str = Field(alias="model_name")
 
 
 class TaskModelMapping(BaseModel):
-    model_entries: list[TaskModelEntry] = Field(alias="model_entries")
+    model_entries: list[ModelEntry] = Field(alias="model_entries")
 
 
 class ModelSelectionConfig(BaseModel):
