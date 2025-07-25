@@ -64,11 +64,13 @@ func pumpStreamData(ctx context.Context, w *bufio.Writer, streamReader io.Reader
 
 	for {
 		// Check for client disconnect
-		select {
-		case <-ctx.Done():
-			fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
-			return ctx.Err()
-		default:
+		if ctx != nil {
+			select {
+			case <-ctx.Done():
+				fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
+				return ctx.Err()
+			default:
+			}
 		}
 
 		// Read timeout is handled by context cancellation and internal stream timeouts
