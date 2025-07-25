@@ -20,6 +20,8 @@ class LitLoggerProtocol(Protocol):
 
 
 class ProtocolManager:
+    MAX_TOKEN_COUNT = 10000  # Maximum reasonable token count for normalization
+
     def __init__(
         self,
         lit_logger: LitLoggerProtocol | None = None,
@@ -182,7 +184,7 @@ class ProtocolManager:
             + weights["token_weight"] * normalized_token_score
         )
 
-        return min(composite_score, 1.0)  # Cap at 1.0
+        return float(min(composite_score, 1.0))  # Cap at 1.0 and ensure float type
 
     def _select_best_protocol(
         self,
@@ -240,7 +242,17 @@ class ProtocolManager:
         }
 
         if protocol not in protocol_multipliers:
-            return 0.0  # Unknown protocol
+            self.log(
+                "unknown_protocol_error",
+                {
+                    "protocol": protocol,
+                    "available_protocols": list(protocol_multipliers.keys()),
+                    "task_type": task_type,
+                },
+            )
+            raise ValueError(
+                f"Unknown protocol '{protocol}'. Available protocols: {list(protocol_multipliers.keys())}"
+            )
 
         multiplier_config = protocol_multipliers[protocol]
         score = composite_score * multiplier_config["base_multiplier"]
@@ -314,17 +326,21 @@ class ProtocolManager:
         if not candidates:
             raise ValueError(f"No candidates available for protocol: {protocol_choice}")
 
-        # Protocol-specific response creation (easily extensible)
-        match protocol_choice:
-            case "standard_llm":
-                return self._create_standard_response(candidates, parameters)
-            case "minion":
-                return self._create_minion_response(candidates, parameters)
+        # Protocol handler mapping - easily extensible
+        protocol_handlers = {
+            "standard_llm": self._create_standard_response,
+            "minion": self._create_minion_response,
             # Easy to add new protocols:
-            # case "specialist":
-            #     return self._create_specialist_response(candidates, parameters)
-            case _:
-                raise ValueError(f"Unknown protocol: {protocol_choice}")
+            # "specialist": self._create_specialist_response,
+        }
+
+        handler = protocol_handlers.get(protocol_choice)
+        if not handler:
+            raise ValueError(
+                f"Unknown protocol '{protocol_choice}'. Available protocols: {list(protocol_handlers.keys())}"
+            )
+
+        return handler(candidates, parameters)
 
     def _create_standard_response(
         self, standard_candidates: list[ModelEntry], parameters: OpenAIParameters
