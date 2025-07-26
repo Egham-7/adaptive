@@ -190,8 +190,8 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.log("predict_completed", {"output_count": len(outputs)})
         return outputs
 
-    def encode_response(self, output: OrchestratorResponse) -> dict[str, Any]:
-        return cast(dict[str, Any], output.model_dump())
+    def encode_response(self, output: OrchestratorResponse) -> Any:
+        return output.model_dump()
 
 
 def create_app() -> ls.LitServer:
