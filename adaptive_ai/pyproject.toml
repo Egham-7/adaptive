@@ -146,6 +146,13 @@ module = [
   "transformers.*",
   "huggingface_hub.*",
   "sklearn.*",
+  "pydantic.*",
+  "pydantic_settings.*",
+  "numpy.*",
+  "langchain_core.*",
+  "tiktoken.*",
+  "sentence_transformers.*",
+  "accelerate.*",
 ]
 ignore_missing_imports = true
 

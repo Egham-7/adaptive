@@ -31,7 +31,7 @@ class EmbeddingCache:
         thread_safe: bool = True,
         lit_logger: LitLoggerProtocol | None = None,
     ) -> None:
-        self.vectorstore = InMemoryVectorStore(embeddings_model)  # type: ignore[arg-type]
+        self.vectorstore = InMemoryVectorStore(embeddings_model)
         self.similarity_threshold = similarity_threshold
         self.max_size = max_size
         self.thread_safe = thread_safe
@@ -195,9 +195,10 @@ class EmbeddingCache:
                             "doc_id": self._exact_match_ids[query_json_string],
                         },
                     )
-                    return OrchestratorResponse.model_validate(
+                    validated_response: OrchestratorResponse = OrchestratorResponse.model_validate(
                         exact_doc.metadata["orchestrator_response"]
                     )
+                    return validated_response
                 except Exception as e:
                     self.log(
                         "embedding_cache_exact_error",
@@ -238,9 +239,10 @@ class EmbeddingCache:
                                 "doc_id": most_similar_doc.id,
                             },
                         )
-                        return OrchestratorResponse.model_validate(
+                        semantic_response: OrchestratorResponse = OrchestratorResponse.model_validate(
                             most_similar_doc.metadata["orchestrator_response"]
                         )
+                        return semantic_response
             except Exception as e:
                 self.log("embedding_cache_semantic_error", {"error": str(e)})
 
