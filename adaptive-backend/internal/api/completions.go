@@ -24,7 +24,7 @@ type CompletionHandler struct {
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
 func NewCompletionHandler() *CompletionHandler {
-	protocolMgr, err := protocol_manager.NewProtocolManager(0, 0)
+	protocolMgr, err := protocol_manager.NewProtocolManager(nil)
 	if err != nil {
 		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
 	}
@@ -93,7 +93,7 @@ func (h *CompletionHandler) selectProtocol(
 	}
 
 	resp, _, err = h.protocolMgr.SelectProtocolWithCache(
-		selReq, userID, requestID, circuitBreakers,
+		selReq, userID, requestID, circuitBreakers, req.SemanticCache,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
