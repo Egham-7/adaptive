@@ -22,9 +22,6 @@ export default function ChatbotPricing() {
 			staleTime: 0,
 		});
 
-	// Debug logging
-	console.log("Subscription data:", subscriptionData);
-	console.log("Is subscribed:", subscriptionData?.subscribed);
 
 	return (
 		<div className="w-full p-6">
