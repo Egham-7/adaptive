@@ -56,8 +56,8 @@ export default function HeroSection() {
 				</h1>
 
 				<p className="mx-auto mt-8 max-w-3xl text-balance text-muted-foreground">
-					Adaptive uses intelligent protocols to optimize your entire AI request 
-					flow - from model selection and caching to reliability handling. 
+					Adaptive uses intelligent protocols to optimize your entire AI request
+					flow - from model selection and caching to reliability handling.
 					Reduce costs by up to 90% while improving performance.
 				</p>
 

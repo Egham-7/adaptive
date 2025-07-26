@@ -30,13 +30,14 @@ export default function ContentSection() {
 							<span className="font-bold text-accent-foreground">
 								It's an intelligent inference platform
 							</span>{" "}
-							— with smart protocols that handle your entire request flow automatically.
+							— with smart protocols that handle your entire request flow
+							automatically.
 						</p>
 
 						<p className="text-muted-foreground">
-							From intuitive interfaces to powerful APIs, we help developers 
-							and businesses get better AI results while reducing costs and 
-							ensuring uptime.
+							From intuitive interfaces to powerful APIs, we help developers and
+							businesses get better AI results while reducing costs and ensuring
+							uptime.
 						</p>
 
 						<div className="grid grid-cols-2 gap-3 pt-6 md:gap-4">
@@ -46,7 +47,8 @@ export default function ContentSection() {
 									<h3 className="font-medium text-sm">Lightning Fast</h3>
 								</div>
 								<p className="text-muted-foreground text-sm">
-									Smart caching and optimization deliver lightning-fast responses.
+									Smart caching and optimization deliver lightning-fast
+									responses.
 								</p>
 							</div>
 							<div className="space-y-2">

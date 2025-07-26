@@ -16,7 +16,8 @@ export default function FeaturesSection() {
 						Features
 					</h2>
 					<p className="mt-4 text-muted-foreground">
-						Intelligent AI optimization platform designed for modern applications
+						Intelligent AI optimization platform designed for modern
+						applications
 					</p>
 				</header>
 				<div className="grid grid-cols-6 gap-3">
@@ -27,8 +28,9 @@ export default function FeaturesSection() {
 								Smart Request Handling
 							</h3>
 							<p className="mt-2 text-muted-foreground">
-								Automatically chooses between full AI models for complex tasks 
-								or specialized tiny models for simple questions to save time and money.
+								Automatically chooses between full AI models for complex tasks
+								or specialized tiny models for simple questions to save time and
+								money.
 							</p>
 						</CardContent>
 					</Card>
@@ -102,7 +104,8 @@ export default function FeaturesSection() {
 									</h2>
 									<p className="text-foreground">
 										Our system learns from performance data to continuously
-										improve model selection and deliver better results over time.
+										improve model selection and deliver better results over
+										time.
 									</p>
 								</div>
 							</div>
