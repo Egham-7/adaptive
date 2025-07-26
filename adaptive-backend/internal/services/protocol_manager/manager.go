@@ -5,70 +5,49 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/utils"
 	"fmt"
-	"os"
 
-	"github.com/botirk38/semanticcache"
-	"github.com/botirk38/semanticcache/backends"
-	"github.com/botirk38/semanticcache/providers/openai"
-	"github.com/botirk38/semanticcache/types"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
 const (
 	defaultCostBiasFactor = 0.5
-	semanticThreshold     = 0.9
 )
 
 // ProtocolManager coordinates protocol selection and caching for model selection.
 type ProtocolManager struct {
-	cache  *semanticcache.SemanticCache[string, models.ProtocolResponse]
+	cache  *ProtocolManagerCache
 	client *ProtocolManagerClient
 }
 
-// NewProtocolManager creates a new ProtocolManager with semantic cache and client.
-func NewProtocolManager(
-	semanticThreshold float32,
-	userCacheSize int,
-) (*ProtocolManager, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is not set")
+// NewProtocolManager creates a new ProtocolManager with cache configuration.
+func NewProtocolManager(cacheConfig *CacheConfig) (*ProtocolManager, error) {
+	var cache *ProtocolManagerCache
+	var err error
+
+	// Use default config if nil
+	if cacheConfig == nil {
+		defaultConfig := DefaultCacheConfig()
+		cacheConfig = &defaultConfig
+		fiberlog.Info("ProtocolManager: Using default cache configuration")
 	}
 
-	// Get Redis connection configuration
-	redisURL := os.Getenv("REDIS_URL")
-	if redisURL == "" {
-		return nil, fmt.Errorf("REDIS_URL environment variable is not set")
-	}
+	fiberlog.Infof("ProtocolManager: Initializing with cache enabled=%t, threshold=%.2f",
+		cacheConfig.Enabled, cacheConfig.SemanticThreshold)
 
-	// Create Redis backend configuration
-	config := types.BackendConfig{
-		ConnectionString: redisURL,
-	}
-
-	// Create backend factory and Redis backend
-	factory := &backends.BackendFactory[string, models.ProtocolResponse]{}
-	backend, err := factory.NewBackend(types.BackendRedis, config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Redis backend: %w", err)
-	}
-
-	// Create OpenAI provider
-	provider, err := openai.NewOpenAIProvider(openai.OpenAIConfig{
-		APIKey: apiKey,
-		Model:  "text-embedding-3-small",
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create OpenAI provider: %w", err)
-	}
-
-	// Create semantic cache
-	cache, err := semanticcache.NewSemanticCache(backend, provider, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create semantic cache: %w", err)
+	// Create cache only if enabled
+	if cacheConfig.Enabled {
+		cache, err = NewProtocolManagerCache(cacheConfig)
+		if err != nil {
+			fiberlog.Errorf("ProtocolManager: Failed to create cache: %v", err)
+			return nil, fmt.Errorf("failed to create protocol manager cache: %w", err)
+		}
+		fiberlog.Info("ProtocolManager: Cache initialized successfully")
+	} else {
+		fiberlog.Warn("ProtocolManager: Cache is disabled")
 	}
 
 	client := NewProtocolManagerClient()
+	fiberlog.Info("ProtocolManager: Client initialized successfully")
 
 	return &ProtocolManager{
 		cache:  cache,
@@ -83,40 +62,77 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	userID, requestID string,
 	cbs map[string]*circuitbreaker.CircuitBreaker,
 ) (*models.ProtocolResponse, string, error) {
+	fiberlog.Debugf("[%s] Starting protocol selection for user: %s", requestID, userID)
+
 	if req.CostBias == nil || *req.CostBias <= 0 {
 		bias := float32(defaultCostBiasFactor)
 		req.CostBias = &bias
+		fiberlog.Debugf("[%s] Using default cost bias: %.2f", requestID, bias)
+	} else {
+		fiberlog.Debugf("[%s] Using provided cost bias: %.2f", requestID, *req.CostBias)
 	}
 
 	// Extract prompt from last message for cache key
 	prompt, err := utils.ExtractLastMessage(req.Messages)
 	if err != nil {
+		fiberlog.Errorf("[%s] Failed to extract last message: %v", requestID, err)
 		return nil, "", fmt.Errorf("failed to extract last message: %w", err)
 	}
 
-	// 1) First try exact key matching
-	if hit, found := pm.cache.Get(prompt); found {
-		fiberlog.Infof("[%s] cache hit (exact)", requestID)
-		return &hit, "exact", nil
+	fiberlog.Debugf("[%s] Extracted prompt for caching (length: %d chars)", requestID, len(prompt))
+
+	// 1) Check cache for existing protocol response (if cache is enabled)
+	if pm.cache != nil {
+		fiberlog.Debugf("[%s] Checking cache for existing protocol response", requestID)
+		if hit, source, found := pm.cache.Lookup(prompt, requestID); found {
+			fiberlog.Infof("[%s] Cache hit (%s) - returning cached protocol: %s", requestID, source, hit.Protocol)
+			return hit, source, nil
+		}
+		fiberlog.Debugf("[%s] Cache miss - proceeding to protocol selection service", requestID)
+	} else {
+		fiberlog.Debugf("[%s] Cache disabled - proceeding directly to protocol selection service", requestID)
 	}
 
-	// 2) If no exact match, try semantic similarity search
-	if hit, found, err := pm.cache.Lookup(prompt, semanticThreshold); err == nil && found {
-		fiberlog.Infof("[%s] cache hit (semantic)", requestID)
-		return &hit, "semantic", nil
-	}
-
-	// 3) Call Python service for protocol selection
+	// 2) Call Python service for protocol selection
+	fiberlog.Debugf("[%s] Calling protocol selection service", requestID)
 	resp := pm.client.SelectProtocol(req)
 
-	fiberlog.Infof("[%s] protocol selected: %s", requestID, resp.Protocol)
+	fiberlog.Infof("[%s] Protocol selected: %s (provider: %s, model: %s)",
+		requestID, resp.Protocol,
+		getProviderFromResponse(resp), getModelFromResponse(resp))
 
-	// 4) Store in cache for future use
-	if err := pm.cache.Set(prompt, prompt, resp); err != nil {
-		fiberlog.Errorf("failed to store in cache: %v", err)
+	// 3) Store in cache for future use (if cache is enabled)
+	if pm.cache != nil {
+		fiberlog.Debugf("[%s] Storing protocol response in cache", requestID)
+		if err := pm.cache.Store(prompt, resp); err != nil {
+			fiberlog.Errorf("[%s] Failed to store protocol response in cache: %v", requestID, err)
+		} else {
+			fiberlog.Debugf("[%s] Successfully stored protocol response in cache", requestID)
+		}
 	}
 
 	return &resp, string(resp.Protocol), nil
+}
+
+// Helper functions to extract provider and model from response for logging
+func getProviderFromResponse(resp models.ProtocolResponse) string {
+	if resp.Standard != nil {
+		return resp.Standard.Provider
+	}
+	if resp.Minion != nil {
+		return resp.Minion.Provider
+	}
+	return "unknown"
+}
+
+func getModelFromResponse(resp models.ProtocolResponse) string {
+	if resp.Standard != nil {
+		return resp.Standard.Model
+	}
+	if resp.Minion != nil {
+		return resp.Minion.Model
+	}
+	return "unknown"
 }
 
 // GetClientMetrics returns circuit breaker metrics for the Python service client.
@@ -126,19 +142,35 @@ func (pm *ProtocolManager) GetClientMetrics() circuitbreaker.LocalMetrics {
 
 // ValidateContext ensures dependencies are set.
 func (pm *ProtocolManager) ValidateContext() error {
-	if pm.cache == nil {
-		return fmt.Errorf("semantic cache is required")
-	}
+	fiberlog.Debug("ProtocolManager: Validating context and dependencies")
+
 	if pm.client == nil {
+		fiberlog.Error("ProtocolManager: Protocol manager client is missing")
 		return fmt.Errorf("protocol manager client is required")
 	}
+
+	if pm.cache != nil {
+		fiberlog.Debug("ProtocolManager: Cache is enabled and available")
+	} else {
+		fiberlog.Debug("ProtocolManager: Cache is disabled")
+	}
+
+	fiberlog.Debug("ProtocolManager: Context validation successful")
 	return nil
 }
 
-// Close properly closes the semantic cache during shutdown
+// Close properly closes the protocol manager cache during shutdown
 func (pm *ProtocolManager) Close() error {
+	fiberlog.Info("ProtocolManager: Shutting down")
+
 	if pm.cache != nil {
+		fiberlog.Info("ProtocolManager: Closing cache connection")
 		pm.cache.Close()
+		fiberlog.Info("ProtocolManager: Cache closed successfully")
+	} else {
+		fiberlog.Debug("ProtocolManager: No cache to close (cache disabled)")
 	}
+
+	fiberlog.Info("ProtocolManager: Shutdown completed")
 	return nil
 }
