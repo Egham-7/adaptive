@@ -203,8 +203,9 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProviderConstraint []string `json:"provider_constraint,omitempty"`
-	CostBias           float32  `json:"cost_bias,omitempty"` // Bias towards cheaper providers
+	ProviderConstraint []string      `json:"provider_constraint,omitempty"`
+	CostBias           float32       `json:"cost_bias,omitempty"`           // Bias towards cheaper providers
+	SemanticCache      *CacheConfig  `json:"semantic_cache,omitempty"`      // Optional semantic cache configuration
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.

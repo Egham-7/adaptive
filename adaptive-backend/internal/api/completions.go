@@ -93,7 +93,7 @@ func (h *CompletionHandler) selectProtocol(
 	}
 
 	resp, _, err = h.protocolMgr.SelectProtocolWithCache(
-		selReq, userID, requestID, circuitBreakers,
+		selReq, userID, requestID, circuitBreakers, req.SemanticCache,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)

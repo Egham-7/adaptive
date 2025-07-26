@@ -20,7 +20,7 @@ type ProtocolManager struct {
 }
 
 // NewProtocolManager creates a new ProtocolManager with cache configuration.
-func NewProtocolManager(cacheConfig *CacheConfig) (*ProtocolManager, error) {
+func NewProtocolManager(cacheConfig *models.CacheConfig) (*ProtocolManager, error) {
 	var cache *ProtocolManagerCache
 	var err error
 
@@ -57,10 +57,12 @@ func NewProtocolManager(cacheConfig *CacheConfig) (*ProtocolManager, error) {
 
 // SelectProtocolWithCache checks the semantic cache, then calls the Python service for protocol selection if needed.
 // It returns the protocol response, the source (cache or service), and any error encountered.
+// If cacheConfigOverride is provided, it will temporarily override the cache behavior for this request.
 func (pm *ProtocolManager) SelectProtocolWithCache(
 	req models.ModelSelectionRequest,
 	userID, requestID string,
 	cbs map[string]*circuitbreaker.CircuitBreaker,
+	cacheConfigOverride *models.CacheConfig,
 ) (*models.ProtocolResponse, string, error) {
 	fiberlog.Debugf("[%s] Starting protocol selection for user: %s", requestID, userID)
 
@@ -81,8 +83,15 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 
 	fiberlog.Debugf("[%s] Extracted prompt for caching (length: %d chars)", requestID, len(prompt))
 
-	// 1) Check cache for existing protocol response (if cache is enabled)
-	if pm.cache != nil {
+	// 1) Check if cache should be used (either default cache or override config)
+	useCache := pm.cache != nil
+	if cacheConfigOverride != nil {
+		useCache = cacheConfigOverride.Enabled
+		fiberlog.Debugf("[%s] Cache config override provided: enabled=%t, threshold=%.2f", 
+			requestID, cacheConfigOverride.Enabled, cacheConfigOverride.SemanticThreshold)
+	}
+
+	if useCache && pm.cache != nil {
 		fiberlog.Debugf("[%s] Checking cache for existing protocol response", requestID)
 		if hit, source, found := pm.cache.Lookup(prompt, requestID); found {
 			fiberlog.Infof("[%s] Cache hit (%s) - returning cached protocol: %s", requestID, source, hit.Protocol)
@@ -90,7 +99,11 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 		}
 		fiberlog.Debugf("[%s] Cache miss - proceeding to protocol selection service", requestID)
 	} else {
-		fiberlog.Debugf("[%s] Cache disabled - proceeding directly to protocol selection service", requestID)
+		if cacheConfigOverride != nil && !cacheConfigOverride.Enabled {
+			fiberlog.Debugf("[%s] Cache disabled by request override", requestID)
+		} else {
+			fiberlog.Debugf("[%s] Cache disabled - proceeding directly to protocol selection service", requestID)
+		}
 	}
 
 	// 2) Call Python service for protocol selection
@@ -101,8 +114,8 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 		requestID, resp.Protocol,
 		getProviderFromResponse(resp), getModelFromResponse(resp))
 
-	// 3) Store in cache for future use (if cache is enabled)
-	if pm.cache != nil {
+	// 3) Store in cache for future use (if cache should be used)
+	if useCache && pm.cache != nil {
 		fiberlog.Debugf("[%s] Storing protocol response in cache", requestID)
 		if err := pm.cache.Store(prompt, resp); err != nil {
 			fiberlog.Errorf("[%s] Failed to store protocol response in cache: %v", requestID, err)

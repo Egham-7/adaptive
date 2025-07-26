@@ -16,15 +16,9 @@ const (
 	defaultSemanticThreshold = 0.9
 )
 
-// CacheConfig holds configuration for the protocol manager cache
-type CacheConfig struct {
-	Enabled           bool    `json:"enabled"`
-	SemanticThreshold float32 `json:"semantic_threshold"`
-}
-
 // DefaultCacheConfig returns default cache configuration
-func DefaultCacheConfig() CacheConfig {
-	return CacheConfig{
+func DefaultCacheConfig() models.CacheConfig {
+	return models.CacheConfig{
 		Enabled:           true,
 		SemanticThreshold: defaultSemanticThreshold,
 	}
@@ -37,7 +31,7 @@ type ProtocolManagerCache struct {
 }
 
 // NewProtocolManagerCache creates a new protocol manager cache instance
-func NewProtocolManagerCache(cacheConfig *CacheConfig) (*ProtocolManagerCache, error) {
+func NewProtocolManagerCache(cacheConfig *models.CacheConfig) (*ProtocolManagerCache, error) {
 	fiberlog.Info("ProtocolManagerCache: Initializing cache")
 
 	// Use default config if nil
