@@ -10,16 +10,37 @@ const client =
 	globalForRedis.redis ??
 	createClient({
 		url: env.REDIS_URL,
+		socket: {
+			reconnectStrategy: (retries) => Math.min(retries * 50, 1000),
+		},
 	});
+
+// Error handling
+client.on('error', (err) => {
+	console.error('Redis client error:', err);
+});
+
+client.on('connect', () => {
+	console.log('Redis client connected');
+});
+
+client.on('disconnect', () => {
+	console.log('Redis client disconnected');
+});
 
 if (env.NODE_ENV !== "production") globalForRedis.redis = client;
 
-// Lazy connection function
+// Lazy connection function with error handling
 async function ensureConnected() {
-	if (!client.isOpen) {
-		await client.connect();
+	try {
+		if (!client.isOpen) {
+			await client.connect();
+		}
+		return client;
+	} catch (error) {
+		console.error('Failed to connect to Redis:', error);
+		throw error;
 	}
-	return client;
 }
 
 // Export the lazy connection function

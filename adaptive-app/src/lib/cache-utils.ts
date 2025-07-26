@@ -8,7 +8,7 @@ export async function withCache<T>(
 	try {
 		// Try to get cached result
 		const cached = await redis.get(key);
-		if (cached) {
+		if (cached !== null && cached !== undefined) {
 			console.log(`[CACHE HIT] ${key}`);
 			return JSON.parse(cached);
 		}

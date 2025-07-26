@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { CalendarDays, CreditCard, AlertTriangle } from "lucide-react";
 import { api } from "@/trpc/react";
 import { useRouter } from "next/navigation";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export default function BillingPage() {
 	const { user } = useUser();
@@ -20,17 +21,7 @@ export default function BillingPage() {
 		{ enabled: !!user }
 	);
 
-	const utils = api.useUtils();
-
-	const cancelSubscription = api.subscription.cancelSubscription.useMutation({
-		onSuccess: () => {
-			utils.subscription.getSubscription.invalidate();
-			setShowCancelDialog(false);
-		},
-		onError: (error) => {
-			console.error("Failed to cancel subscription:", error);
-		},
-	});
+	const { cancelSubscription } = useSubscription();
 
 	if (!user) {
 		router.push("/");
@@ -188,7 +179,10 @@ export default function BillingPage() {
 											</Button>
 											<Button 
 												variant="destructive"
-												onClick={() => cancelSubscription.mutate()}
+												onClick={() => {
+													cancelSubscription.mutate();
+													setShowCancelDialog(false);
+												}}
 												disabled={cancelSubscription.isPending}
 											>
 												{cancelSubscription.isPending ? "Canceling..." : "Yes, Cancel"}

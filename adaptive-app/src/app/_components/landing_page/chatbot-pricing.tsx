@@ -17,14 +17,22 @@ export default function ChatbotPricing() {
 	const { user } = useUser();
 	const { data: subscriptionData, isLoading } = api.subscription.getSubscription.useQuery(
 		undefined,
-		{ enabled: !!user }
+		{ 
+			enabled: !!user,
+			refetchOnWindowFocus: true,
+			staleTime: 0
+		}
 	);
+
+	// Debug logging
+	console.log("Subscription data:", subscriptionData);
+	console.log("Is subscribed:", subscriptionData?.subscribed);
 
 
 	return (
 		<div className="w-full p-6">
 			<h2 className="mb-8 text-center font-bold text-2xl">Choose Your Plan</h2>
-			<div className="mx-auto grid w-full gap-6 md:grid-cols-2">
+			<div className="mx-auto grid w-full max-w-6xl gap-6 md:grid-cols-2">
 				<Card>
 					<CardHeader>
 						<CardTitle className="font-medium">Free</CardTitle>
@@ -63,7 +71,7 @@ export default function ChatbotPricing() {
 				</Card>
 
 				<Card className="relative">
-					<span className="-top-3 absolute inset-x-0 mx-auto flex h-6 w-fit items-center rounded-full bg-[linear-gradient(to_right,var(--color-primary),var(--color-secondary))] px-3 py-1 font-medium text-primary-foreground text-xs ring-1 ring-white/20 ring-inset ring-offset-1 ring-offset-gray-950/5">
+					<span className="-top-3 absolute left-1/2 flex h-6 w-fit -translate-x-1/2 items-center rounded-full bg-[linear-gradient(to_right,var(--color-primary),var(--color-secondary))] px-3 py-1 font-medium text-primary-foreground text-xs ring-1 ring-white/20 ring-inset ring-offset-1 ring-offset-gray-950/5">
 						Popular
 					</span>
 					<CardHeader>
