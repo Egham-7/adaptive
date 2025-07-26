@@ -191,7 +191,7 @@ class ProtocolManagerAPI(ls.LitAPI):
         return outputs
 
     def encode_response(self, output: OrchestratorResponse) -> dict[str, Any]:
-        return cast(dict[str, Any], output.model_dump())
+        return output.model_dump()  # type: ignore[no-any-return]
 
 
 def create_app() -> ls.LitServer:
