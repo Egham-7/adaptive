@@ -43,23 +43,43 @@ async function ensureConnected() {
 	}
 }
 
-// Export the lazy connection function
+// Export the lazy connection function with error handling
 export const redis = {
 	async get(key: string) {
-		const redisClient = await ensureConnected();
-		return redisClient.get(key);
+		try {
+			const redisClient = await ensureConnected();
+			return redisClient.get(key);
+		} catch (error) {
+			console.error('Redis GET error:', error);
+			return null;
+		}
 	},
 	async setEx(key: string, seconds: number, value: string) {
-		const redisClient = await ensureConnected();
-		return redisClient.setEx(key, seconds, value);
+		try {
+			const redisClient = await ensureConnected();
+			return redisClient.setEx(key, seconds, value);
+		} catch (error) {
+			console.error('Redis SETEX error:', error);
+			return null;
+		}
 	},
 	async keys(pattern: string) {
-		const redisClient = await ensureConnected();
-		return redisClient.keys(pattern);
+		try {
+			const redisClient = await ensureConnected();
+			return redisClient.keys(pattern);
+		} catch (error) {
+			console.error('Redis KEYS error:', error);
+			return [];
+		}
 	},
 	async del(keys: string[]) {
-		const redisClient = await ensureConnected();
-		return redisClient.del(keys);
+		try {
+			const redisClient = await ensureConnected();
+			return redisClient.del(keys);
+		} catch (error) {
+			console.error('Redis DEL error:', error);
+			return 0;
+		}
 	},
 };
 
