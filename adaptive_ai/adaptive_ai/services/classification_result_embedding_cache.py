@@ -5,6 +5,7 @@ from typing import Protocol
 import uuid
 
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import InMemoryVectorStore
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
@@ -25,7 +26,7 @@ class LitLoggerProtocol(Protocol):
 class EmbeddingCache:
     def __init__(
         self,
-        embeddings_model: EmbeddingsProtocol,
+        embeddings_model: Embeddings,
         similarity_threshold: float = 0.95,
         max_size: int = 1000,
         thread_safe: bool = True,
