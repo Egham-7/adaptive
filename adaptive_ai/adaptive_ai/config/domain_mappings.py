@@ -15,11 +15,12 @@ minion_domains = {
         model_name="meta-llama/Llama-3.1-8B-Instruct",
     ),
     DomainType.HEALTH: ModelEntry(
-        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
     ),
     DomainType.NEWS: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],
-        model_name="mistralai/Mistral-7B-Instruct-v0.2",
+        model_name="mistralai/Mistral-7B-Instruct-v0.3",
     ),
     DomainType.OTHERDOMAINS: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],
@@ -34,18 +35,20 @@ minion_domains = {
         model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     ),
     DomainType.INTERNET_AND_TELECOM: ModelEntry(
-        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     ),
     DomainType.FINANCE: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],
-        model_name="meta-llama/Llama-3.1-8B-Instruct",
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
     ),
     DomainType.SCIENCE: ModelEntry(
-        providers=[ProviderType.HUGGINGFACE], model_name="Qwen/Qwen3-8B-Base"
+        providers=[ProviderType.HUGGINGFACE],
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
     ),
     DomainType.JOBS_AND_EDUCATION: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],
-        model_name="mistralai/Mistral-7B-Instruct-v0.2",
+        model_name="mistralai/Mistral-7B-Instruct-v0.3",
     ),
     DomainType.LAW_AND_GOVERNMENT: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],
