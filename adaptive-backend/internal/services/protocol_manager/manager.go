@@ -1,23 +1,27 @@
 package protocol_manager
 
 import (
-	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/utils"
 	"fmt"
 	"os"
 
+	"github.com/botirk38/semanticcache"
+	"github.com/botirk38/semanticcache/backends"
+	"github.com/botirk38/semanticcache/providers/openai"
+	"github.com/botirk38/semanticcache/types"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
 )
 
-const defaultCostBiasFactor = 0.15
+const (
+	defaultCostBiasFactor = 0.5
+	semanticThreshold     = 0.9
+)
 
 // ProtocolManager coordinates protocol selection and caching for model selection.
 type ProtocolManager struct {
-	cache  *SemanticCache
+	cache  *semanticcache.SemanticCache[string, models.ProtocolResponse]
 	client *ProtocolManagerClient
 }
 
@@ -30,19 +34,39 @@ func NewProtocolManager(
 	if apiKey == "" {
 		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is not set")
 	}
-	// Create OpenAI client
-	openaiClient := openai.NewClient(
-		option.WithAPIKey(apiKey),
-	)
 
-	// Create Redis client
-	redisClient, err := config.NewRedisClientFromEnv()
-	if err != nil {
-		return nil, fmt.Errorf("init redis client: %w", err)
+	// Get Redis connection configuration
+	redisURL := os.Getenv("REDIS_URL")
+	if redisURL == "" {
+		return nil, fmt.Errorf("REDIS_URL environment variable is not set")
 	}
 
-	// Create Redis-backed semantic cache
-	cache := NewSemanticCache(redisClient, &openaiClient)
+	// Create Redis backend configuration
+	config := types.BackendConfig{
+		ConnectionString: redisURL,
+	}
+
+	// Create backend factory and Redis backend
+	factory := &backends.BackendFactory[string, models.ProtocolResponse]{}
+	backend, err := factory.NewBackend(types.BackendRedis, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Redis backend: %w", err)
+	}
+
+	// Create OpenAI provider
+	provider, err := openai.NewOpenAIProvider(openai.OpenAIConfig{
+		APIKey: apiKey,
+		Model:  "text-embedding-3-small",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OpenAI provider: %w", err)
+	}
+
+	// Create semantic cache
+	cache, err := semanticcache.NewSemanticCache(backend, provider, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create semantic cache: %w", err)
+	}
 
 	client := NewProtocolManagerClient()
 
@@ -70,19 +94,27 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 		return nil, "", fmt.Errorf("failed to extract last message: %w", err)
 	}
 
-	// 1) Check semantic cache first
-	if hit, src, ok := pm.cache.Lookup(prompt, userID); ok {
-		fiberlog.Infof("[%s] cache hit (%s)", requestID, src)
-		return &hit, src, nil
+	// 1) First try exact key matching
+	if hit, found := pm.cache.Get(prompt); found {
+		fiberlog.Infof("[%s] cache hit (exact)", requestID)
+		return &hit, "exact", nil
 	}
 
-	// 2) Call Python service for protocol selection
+	// 2) If no exact match, try semantic similarity search
+	if hit, found, err := pm.cache.Lookup(prompt, semanticThreshold); err == nil && found {
+		fiberlog.Infof("[%s] cache hit (semantic)", requestID)
+		return &hit, "semantic", nil
+	}
+
+	// 3) Call Python service for protocol selection
 	resp := pm.client.SelectProtocol(req)
 
 	fiberlog.Infof("[%s] protocol selected: %s", requestID, resp.Protocol)
 
-	// 3) Store in cache for future use
-	pm.cache.Store(prompt, userID, resp)
+	// 4) Store in cache for future use
+	if err := pm.cache.Set(prompt, prompt, resp); err != nil {
+		fiberlog.Errorf("failed to store in cache: %v", err)
+	}
 
 	return &resp, string(resp.Protocol), nil
 }
@@ -103,10 +135,10 @@ func (pm *ProtocolManager) ValidateContext() error {
 	return nil
 }
 
-// Close properly closes the Redis client during shutdown
+// Close properly closes the semantic cache during shutdown
 func (pm *ProtocolManager) Close() error {
 	if pm.cache != nil {
-		return pm.cache.Close()
+		pm.cache.Close()
 	}
 	return nil
 }
