@@ -102,10 +102,7 @@ export default function ChatbotPricing() {
 							</div>
 						) : (
 							<Button asChild className="mt-4 w-full">
-								<Link href="/billing">
-									<Settings className="relative mr-2 size-4" />
-									<span>Manage Subscription</span>
-								</Link>
+								Already Subscribed
 							</Button>
 						)}
 					</CardHeader>
