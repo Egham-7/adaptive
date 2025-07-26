@@ -1,4 +1,4 @@
-import { BarChart3, Code2, Cpu, Network, Workflow, Layers, Shield } from "lucide-react";
+import { BarChart3, Code2, Layers, Shield, Workflow } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { PerformanceMetricsChart } from "./performance-metrics-chart";
