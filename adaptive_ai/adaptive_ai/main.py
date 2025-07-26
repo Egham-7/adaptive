@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 
 # Removed HuggingFaceEmbeddings import to avoid model downloads
 import litserve as ls
