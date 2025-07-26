@@ -84,3 +84,9 @@ type ProtocolResponse struct {
 	Standard *StandardLLMInfo `json:"standard,omitempty"`
 	Minion   *MinionInfo      `json:"minion,omitempty"`
 }
+
+// CacheConfig holds configuration for the protocol manager cache
+type CacheConfig struct {
+	Enabled           bool    `json:"enabled"`
+	SemanticThreshold float32 `json:"semantic_threshold"`
+}
