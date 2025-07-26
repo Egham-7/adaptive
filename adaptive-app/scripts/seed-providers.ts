@@ -248,14 +248,14 @@ const globalPricing = {
 				inputTokenCost: 0.01,
 				outputTokenCost: 0.02,
 			},
-			"Qwen/Qwen3-8B-Base": {
-				displayName: "Qwen 3 8B Base",
+			"deepseek-ai/DeepSeek-R1-Distill-Qwen-14B": {
+				displayName: "DeepSeek R1 Distill Qwen 14B",
 				type: "chat",
 				inputTokenCost: 0.01,
 				outputTokenCost: 0.02,
 			},
-			"mistralai/Mistral-7B-Instruct-v0.2": {
-				displayName: "Mistral 7B Instruct v0.2",
+			"mistralai/Mistral-7B-Instruct-v0.3": {
+				displayName: "Mistral 7B Instruct v0.3",
 				type: "chat",
 				inputTokenCost: 0.01,
 				outputTokenCost: 0.02,
