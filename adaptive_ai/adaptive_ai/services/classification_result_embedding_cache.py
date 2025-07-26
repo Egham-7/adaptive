@@ -195,8 +195,10 @@ class EmbeddingCache:
                             "doc_id": self._exact_match_ids[query_json_string],
                         },
                     )
-                    validated_response: OrchestratorResponse = OrchestratorResponse.model_validate(
-                        exact_doc.metadata["orchestrator_response"]
+                    validated_response: OrchestratorResponse = (
+                        OrchestratorResponse.model_validate(
+                            exact_doc.metadata["orchestrator_response"]
+                        )
                     )
                     return validated_response
                 except Exception as e:
@@ -239,8 +241,10 @@ class EmbeddingCache:
                                 "doc_id": most_similar_doc.id,
                             },
                         )
-                        semantic_response: OrchestratorResponse = OrchestratorResponse.model_validate(
-                            most_similar_doc.metadata["orchestrator_response"]
+                        semantic_response: OrchestratorResponse = (
+                            OrchestratorResponse.model_validate(
+                                most_similar_doc.metadata["orchestrator_response"]
+                            )
                         )
                         return semantic_response
             except Exception as e:
