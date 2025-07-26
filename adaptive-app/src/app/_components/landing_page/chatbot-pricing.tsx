@@ -1,6 +1,6 @@
 "use client";
 import { SignUpButton, useUser } from "@clerk/nextjs";
-import { Check, Zap } from "lucide-react";
+import { Check, Zap, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import SubscribeButton from "../stripe/subscribe-button";
 import { api } from "@/trpc/react";
+import Link from "next/link";
 
 export default function ChatbotPricing() {
 	const { user } = useUser();
@@ -18,6 +19,7 @@ export default function ChatbotPricing() {
 		undefined,
 		{ enabled: !!user }
 	);
+
 
 	return (
 		<div className="w-full p-6">
@@ -77,10 +79,6 @@ export default function ChatbotPricing() {
 							<Button disabled className="mt-4 w-full bg-muted text-muted-foreground">
 								Loading...
 							</Button>
-						) : user && !subscriptionData?.subscribed ? (
-							<div className="mt-4 w-full">
-								<SubscribeButton />
-							</div>
 						) : !user ? (
 							<Button
 								asChild
@@ -93,9 +91,16 @@ export default function ChatbotPricing() {
 									</Button>
 								</SignUpButton>
 							</Button>
+						) : !subscriptionData?.subscribed ? (
+							<div className="mt-4 w-full">
+								<SubscribeButton />
+							</div>
 						) : (
-							<Button disabled className="mt-4 w-full bg-muted text-muted-foreground">
-								Already Subscribed
+							<Button asChild className="mt-4 w-full">
+								<Link href="/billing">
+									<Settings className="relative mr-2 size-4" />
+									<span>Manage Subscription</span>
+								</Link>
 							</Button>
 						)}
 					</CardHeader>

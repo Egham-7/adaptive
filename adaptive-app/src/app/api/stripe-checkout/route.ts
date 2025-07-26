@@ -177,6 +177,27 @@ export async function POST(request: NextRequest) {
           }
         }
         break;
+
+      case "customer.deleted":
+        const deletedCustomer = event.data.object as Stripe.Customer;
+        
+        // Find and mark all subscriptions for this customer as canceled
+        const customerSubscriptions = await db.subscription.findMany({
+          where: { stripeCustomerId: deletedCustomer.id },
+        });
+
+        for (const sub of customerSubscriptions) {
+          await db.subscription.update({
+            where: { id: sub.id },
+            data: { status: "canceled" },
+          });
+
+          // Invalidate subscription cache for each user
+          await invalidateSubscriptionCache(sub.userId);
+        }
+
+        console.log(`✅ Customer deleted, ${customerSubscriptions.length} subscriptions canceled`);
+        break;
     }
   } catch (error) {
     console.error("❌ Webhook error:", error);

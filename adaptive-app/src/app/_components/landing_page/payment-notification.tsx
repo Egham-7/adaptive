@@ -36,6 +36,7 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 		type: "success" | "error";
 		message: string;
 	} | null>(null);
+	const [isProcessing, setIsProcessing] = useState(false);
 	const verifySessionMutation = api.subscription.verifySession.useMutation();
 
 	useEffect(() => {
@@ -44,7 +45,7 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 		const sessionId = searchParams.get("session_id");
 
 		async function handleSuccess() {
-			if (sessionId) {
+			if (sessionId && !isProcessing) {
 				const shownNotification = getSessionStorage(
 					`notification_shown_${sessionId}`,
 				);
@@ -52,6 +53,7 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 					return;
 				}
 
+				setIsProcessing(true);
 				try {
 					const { isValid } = await verifySessionMutation.mutateAsync({
 						sessionId,
@@ -75,6 +77,8 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 						type: "error",
 						message: "Payment verification failed. Please contact support.",
 					});
+				} finally {
+					setIsProcessing(false);
 				}
 			}
 		}
@@ -101,7 +105,7 @@ export default function PaymentNotificationWrapper({ children }: Props) {
 		} else if (canceled === "true") {
 			handleCancel();
 		}
-	}, [searchParams, verifySessionMutation.mutateAsync]);
+	}, [searchParams]); // Remove mutateAsync from deps to prevent re-runs
 
 	return (
 		<>
