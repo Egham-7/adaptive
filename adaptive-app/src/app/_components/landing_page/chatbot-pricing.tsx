@@ -10,9 +10,14 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import SubscribeButton from "../stripe/subscribe-button";
+import { api } from "@/trpc/react";
 
 export default function ChatbotPricing() {
 	const { user } = useUser();
+	const { data: subscriptionData, isLoading } = api.subscription.getSubscription.useQuery(
+		undefined,
+		{ enabled: !!user }
+	);
 
 	return (
 		<div className="w-full p-6">
@@ -28,9 +33,15 @@ export default function ChatbotPricing() {
 						<CardDescription className="text-sm">
 							Perfect for trying out our chatbot
 						</CardDescription>
-						<Button asChild variant="outline" className="mt-4 w-full">
-							<SignUpButton />
-						</Button>
+						{!user ? (
+							<Button asChild variant="outline" className="mt-4 w-full">
+								<SignUpButton />
+							</Button>
+						) : (
+							<Button disabled variant="outline" className="mt-4 w-full">
+								Signed Up
+							</Button>
+						)}
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<hr className="border-dashed" />
@@ -62,11 +73,15 @@ export default function ChatbotPricing() {
 						<CardDescription className="text-sm">
 							For unlimited chatbot usage
 						</CardDescription>
-						{user ? (
+						{isLoading ? (
+							<Button disabled className="mt-4 w-full bg-muted text-muted-foreground">
+								Loading...
+							</Button>
+						) : user && !subscriptionData?.subscribed ? (
 							<div className="mt-4 w-full">
 								<SubscribeButton />
 							</div>
-						) : (
+						) : !user ? (
 							<Button
 								asChild
 								className="mt-4 w-full bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
@@ -77,6 +92,10 @@ export default function ChatbotPricing() {
 										<span>Get Started</span>
 									</Button>
 								</SignUpButton>
+							</Button>
+						) : (
+							<Button disabled className="mt-4 w-full bg-muted text-muted-foreground">
+								Already Subscribed
 							</Button>
 						)}
 					</CardHeader>
