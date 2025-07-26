@@ -1,6 +1,7 @@
 "use client";
 import { SignUpButton, useUser } from "@clerk/nextjs";
-import { Check, Zap, Settings } from "lucide-react";
+import { Check, Settings, Zap } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,25 +10,21 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import SubscribeButton from "../stripe/subscribe-button";
 import { api } from "@/trpc/react";
-import Link from "next/link";
+import SubscribeButton from "../stripe/subscribe-button";
 
 export default function ChatbotPricing() {
 	const { user } = useUser();
-	const { data: subscriptionData, isLoading } = api.subscription.getSubscription.useQuery(
-		undefined,
-		{ 
+	const { data: subscriptionData, isLoading } =
+		api.subscription.getSubscription.useQuery(undefined, {
 			enabled: !!user,
 			refetchOnWindowFocus: true,
-			staleTime: 0
-		}
-	);
+			staleTime: 0,
+		});
 
 	// Debug logging
 	console.log("Subscription data:", subscriptionData);
 	console.log("Is subscribed:", subscriptionData?.subscribed);
-
 
 	return (
 		<div className="w-full p-6">
@@ -71,7 +68,7 @@ export default function ChatbotPricing() {
 				</Card>
 
 				<Card className="relative">
-					<span className="-top-3 absolute left-1/2 flex h-6 w-fit -translate-x-1/2 items-center rounded-full bg-[linear-gradient(to_right,var(--color-primary),var(--color-secondary))] px-3 py-1 font-medium text-primary-foreground text-xs ring-1 ring-white/20 ring-inset ring-offset-1 ring-offset-gray-950/5">
+					<span className="-top-3 -translate-x-1/2 absolute left-1/2 flex h-6 w-fit items-center rounded-full bg-[linear-gradient(to_right,var(--color-primary),var(--color-secondary))] px-3 py-1 font-medium text-primary-foreground text-xs ring-1 ring-white/20 ring-inset ring-offset-1 ring-offset-gray-950/5">
 						Popular
 					</span>
 					<CardHeader>
@@ -84,7 +81,10 @@ export default function ChatbotPricing() {
 							For unlimited chatbot usage
 						</CardDescription>
 						{isLoading ? (
-							<Button disabled className="mt-4 w-full bg-muted text-muted-foreground">
+							<Button
+								disabled
+								className="mt-4 w-full bg-muted text-muted-foreground"
+							>
 								Loading...
 							</Button>
 						) : !user ? (

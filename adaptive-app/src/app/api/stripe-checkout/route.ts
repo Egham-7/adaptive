@@ -1,209 +1,229 @@
-import { stripe } from "@/lib/stripe/stripe";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-import { db } from "@/server/db";
+import { type NextRequest, NextResponse } from "next/server";
+import type Stripe from "stripe";
 import { invalidateSubscriptionCache } from "@/lib/cache-utils";
+import { stripe } from "@/lib/stripe/stripe";
+import { db } from "@/server/db";
 
 export async function POST(request: NextRequest) {
-  const body = await request.text();
-  const headersList = await headers();
-  const signature = headersList.get("Stripe-Signature") as string;
+	const body = await request.text();
+	const headersList = await headers();
+	const signature = headersList.get("Stripe-Signature") as string;
 
-  let event: Stripe.Event;
+	let event: Stripe.Event;
 
-  try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_SIGNING_SECRET!
-    );
-  } catch (error) {
-    console.error("❌ Webhook signature verification failed:", error);
-    return new NextResponse("webhook error", { status: 400 });
-  }
+	try {
+		event = stripe.webhooks.constructEvent(
+			body,
+			signature,
+			process.env.STRIPE_SIGNING_SECRET!,
+		);
+	} catch (error) {
+		console.error("❌ Webhook signature verification failed:", error);
+		return new NextResponse("webhook error", { status: 400 });
+	}
 
-  try {
-    switch (event.type) {
-      case "checkout.session.completed":
-        if (event.data.object.payment_status === "paid") {
-          const session = event.data.object as Stripe.Checkout.Session;
-          
-          // Skip if missing required fields (test data)
-          if (!session.metadata?.userId || !session.subscription || !session.customer) {
-            break;
-          }
+	try {
+		switch (event.type) {
+			case "checkout.session.completed":
+				if (event.data.object.payment_status === "paid") {
+					const session = event.data.object as Stripe.Checkout.Session;
 
-          // Get the subscription details from Stripe
-          const subscription = await stripe.subscriptions.retrieve(
-            session.subscription as string
-          );
+					// Skip if missing required fields (test data)
+					if (
+						!session.metadata?.userId ||
+						!session.subscription ||
+						!session.customer
+					) {
+						break;
+					}
 
-          // Calculate next month's date for the subscription period
-          const currentPeriodEnd = new Date();
-          currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+					// Get the subscription details from Stripe
+					const subscription = await stripe.subscriptions.retrieve(
+						session.subscription as string,
+					);
 
-          const priceId = subscription.items.data[0]?.price.id;
+					// Calculate next month's date for the subscription period
+					const currentPeriodEnd = new Date();
+					currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
 
-          if (!priceId) {
-            throw new Error("Subscription price ID is missing");
-          }
+					const priceId = subscription.items.data[0]?.price.id;
 
-          // Ensure customer ID is a string
-          const customerId = typeof session.customer === 'string' 
-            ? session.customer 
-            : session.customer.id;
+					if (!priceId) {
+						throw new Error("Subscription price ID is missing");
+					}
 
-          // Update or create subscription in database
-          await db.subscription.upsert({
-            where: {
-              userId: session.metadata.userId,
-            },
-            create: {
-              userId: session.metadata.userId,
-              stripeCustomerId: customerId,
-              stripePriceId: priceId,
-              stripeSubscriptionId: subscription.id,
-              status: subscription.status,
-              currentPeriodEnd,
-            },
-            update: {
-              stripeCustomerId: customerId,
-              stripePriceId: priceId,
-              stripeSubscriptionId: subscription.id,
-              status: subscription.status,
-              currentPeriodEnd,
-            },
-          });
+					// Ensure customer ID is a string
+					const customerId =
+						typeof session.customer === "string"
+							? session.customer
+							: session.customer.id;
 
-          // Invalidate subscription cache for this user
-          await invalidateSubscriptionCache(session.metadata.userId);
+					// Update or create subscription in database
+					await db.subscription.upsert({
+						where: {
+							userId: session.metadata.userId,
+						},
+						create: {
+							userId: session.metadata.userId,
+							stripeCustomerId: customerId,
+							stripePriceId: priceId,
+							stripeSubscriptionId: subscription.id,
+							status: subscription.status,
+							currentPeriodEnd,
+						},
+						update: {
+							stripeCustomerId: customerId,
+							stripePriceId: priceId,
+							stripeSubscriptionId: subscription.id,
+							status: subscription.status,
+							currentPeriodEnd,
+						},
+					});
 
-          console.log("✅ Subscription created/updated successfully");
-        }
-        break;
+					// Invalidate subscription cache for this user
+					await invalidateSubscriptionCache(session.metadata.userId);
 
-      case "customer.subscription.updated":
-        const subscription = event.data.object as Stripe.Subscription;
-        
-        const existingSub = await db.subscription.findUnique({
-          where: { stripeSubscriptionId: subscription.id },
-        });
+					console.log("✅ Subscription created/updated successfully");
+				}
+				break;
 
-        if (existingSub) {
-          await db.subscription.update({
-            where: { stripeSubscriptionId: subscription.id },
-            data: {
-              status: subscription.status,
-              currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
-              stripePriceId: subscription.items.data[0]?.price.id || existingSub.stripePriceId,
-            },
-          });
+			case "customer.subscription.updated": {
+				const subscription = event.data.object as Stripe.Subscription;
 
-          // Invalidate subscription cache for this user
-          await invalidateSubscriptionCache(existingSub.userId);
+				const existingSub = await db.subscription.findUnique({
+					where: { stripeSubscriptionId: subscription.id },
+				});
 
-          console.log("✅ Subscription updated successfully");
-        }
-        break;
+				if (existingSub) {
+					await db.subscription.update({
+						where: { stripeSubscriptionId: subscription.id },
+						data: {
+							status: subscription.status,
+							currentPeriodEnd: new Date(
+								(subscription as any).current_period_end * 1000,
+							),
+							stripePriceId:
+								subscription.items.data[0]?.price.id ||
+								existingSub.stripePriceId,
+						},
+					});
 
-      case "customer.subscription.deleted":
-        const deletedSubscription = event.data.object as Stripe.Subscription;
-        
-        const canceledSub = await db.subscription.update({
-          where: { stripeSubscriptionId: deletedSubscription.id },
-          data: { 
-            status: "canceled",
-            currentPeriodEnd: new Date((deletedSubscription as any).current_period_end * 1000),
-          },
-        });
+					// Invalidate subscription cache for this user
+					await invalidateSubscriptionCache(existingSub.userId);
 
-        // Invalidate subscription cache for this user
-        await invalidateSubscriptionCache(canceledSub.userId);
+					console.log("✅ Subscription updated successfully");
+				}
+				break;
+			}
 
-        console.log("✅ Subscription canceled successfully");
-        break;
+			case "customer.subscription.deleted": {
+				const deletedSubscription = event.data.object as Stripe.Subscription;
 
-      case "invoice.payment_succeeded":
-        const invoice = event.data.object as Stripe.Invoice;
-        
-        if ((invoice as any).subscription) {
-          const subscriptionId = (invoice as any).subscription as string;
-          
-          // Check if subscription exists before updating
-          const existingSubscription = await db.subscription.findUnique({
-            where: { stripeSubscriptionId: subscriptionId },
-          });
+				const canceledSub = await db.subscription.update({
+					where: { stripeSubscriptionId: deletedSubscription.id },
+					data: {
+						status: "canceled",
+						currentPeriodEnd: new Date(
+							(deletedSubscription as any).current_period_end * 1000,
+						),
+					},
+				});
 
-          if (existingSubscription) {
-            await db.subscription.update({
-              where: { stripeSubscriptionId: subscriptionId },
-              data: {
-                status: "active",
-                currentPeriodEnd: new Date(invoice.period_end * 1000),
-              },
-            });
+				// Invalidate subscription cache for this user
+				await invalidateSubscriptionCache(canceledSub.userId);
 
-            // Invalidate subscription cache for this user
-            await invalidateSubscriptionCache(existingSubscription.userId);
+				console.log("✅ Subscription canceled successfully");
+				break;
+			}
 
-            console.log("✅ Subscription activated successfully");
-          }
-        }
-        break;
+			case "invoice.payment_succeeded": {
+				const invoice = event.data.object as Stripe.Invoice;
 
-      case "invoice.payment_failed":
-        const failedInvoice = event.data.object as Stripe.Invoice;
-        
-        if ((failedInvoice as any).subscription) {
-          const subscriptionId = (failedInvoice as any).subscription as string;
-          
-          // Check if subscription exists before updating
-          const existingFailedSubscription = await db.subscription.findUnique({
-            where: { stripeSubscriptionId: subscriptionId },
-          });
+				if ((invoice as any).subscription) {
+					const subscriptionId = (invoice as any).subscription as string;
 
-          if (existingFailedSubscription) {
-            await db.subscription.update({
-              where: { stripeSubscriptionId: subscriptionId },
-              data: { status: "past_due" },
-            });
+					// Check if subscription exists before updating
+					const existingSubscription = await db.subscription.findUnique({
+						where: { stripeSubscriptionId: subscriptionId },
+					});
 
-            // Invalidate subscription cache for this user
-            await invalidateSubscriptionCache(existingFailedSubscription.userId);
+					if (existingSubscription) {
+						await db.subscription.update({
+							where: { stripeSubscriptionId: subscriptionId },
+							data: {
+								status: "active",
+								currentPeriodEnd: new Date(invoice.period_end * 1000),
+							},
+						});
 
-            console.log("⚠️ Subscription marked past due");
-          }
-        }
-        break;
+						// Invalidate subscription cache for this user
+						await invalidateSubscriptionCache(existingSubscription.userId);
 
-      case "customer.deleted":
-        const deletedCustomer = event.data.object as Stripe.Customer;
-        
-        // Find and mark all subscriptions for this customer as canceled
-        const customerSubscriptions = await db.subscription.findMany({
-          where: { stripeCustomerId: deletedCustomer.id },
-        });
+						console.log("✅ Subscription activated successfully");
+					}
+				}
+				break;
+			}
 
-        for (const sub of customerSubscriptions) {
-          await db.subscription.update({
-            where: { id: sub.id },
-            data: { status: "canceled" },
-          });
+			case "invoice.payment_failed": {
+				const failedInvoice = event.data.object as Stripe.Invoice;
 
-          // Invalidate subscription cache for each user
-          await invalidateSubscriptionCache(sub.userId);
-        }
+				if ((failedInvoice as any).subscription) {
+					const subscriptionId = (failedInvoice as any).subscription as string;
 
-        console.log(`✅ Customer deleted, ${customerSubscriptions.length} subscriptions canceled`);
-        break;
-    }
-  } catch (error) {
-    console.error("❌ Webhook error:", error);
-    return new NextResponse("Error processing webhook", { status: 500 });
-  }
+					// Check if subscription exists before updating
+					const existingFailedSubscription = await db.subscription.findUnique({
+						where: { stripeSubscriptionId: subscriptionId },
+					});
 
-  revalidatePath("/", "layout");
-  return new NextResponse(null, { status: 200 });
+					if (existingFailedSubscription) {
+						await db.subscription.update({
+							where: { stripeSubscriptionId: subscriptionId },
+							data: { status: "past_due" },
+						});
+
+						// Invalidate subscription cache for this user
+						await invalidateSubscriptionCache(
+							existingFailedSubscription.userId,
+						);
+
+						console.log("⚠️ Subscription marked past due");
+					}
+				}
+				break;
+			}
+
+			case "customer.deleted": {
+				const deletedCustomer = event.data.object as Stripe.Customer;
+
+				// Find and mark all subscriptions for this customer as canceled
+				const customerSubscriptions = await db.subscription.findMany({
+					where: { stripeCustomerId: deletedCustomer.id },
+				});
+
+				for (const sub of customerSubscriptions) {
+					await db.subscription.update({
+						where: { id: sub.id },
+						data: { status: "canceled" },
+					});
+
+					// Invalidate subscription cache for each user
+					await invalidateSubscriptionCache(sub.userId);
+				}
+
+				console.log(
+					`✅ Customer deleted, ${customerSubscriptions.length} subscriptions canceled`,
+				);
+				break;
+			}
+		}
+	} catch (error) {
+		console.error("❌ Webhook error:", error);
+		return new NextResponse("Error processing webhook", { status: 500 });
+	}
+
+	revalidatePath("/", "layout");
+	return new NextResponse(null, { status: 200 });
 }

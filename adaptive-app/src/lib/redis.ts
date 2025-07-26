@@ -16,16 +16,16 @@ const client =
 	});
 
 // Error handling
-client.on('error', (err) => {
-	console.error('Redis client error:', err);
+client.on("error", (err) => {
+	console.error("Redis client error:", err);
 });
 
-client.on('connect', () => {
-	console.log('Redis client connected');
+client.on("connect", () => {
+	console.log("Redis client connected");
 });
 
-client.on('disconnect', () => {
-	console.log('Redis client disconnected');
+client.on("disconnect", () => {
+	console.log("Redis client disconnected");
 });
 
 if (env.NODE_ENV !== "production") globalForRedis.redis = client;
@@ -38,7 +38,7 @@ async function ensureConnected() {
 		}
 		return client;
 	} catch (error) {
-		console.error('Failed to connect to Redis:', error);
+		console.error("Failed to connect to Redis:", error);
 		throw error;
 	}
 }
@@ -50,7 +50,7 @@ export const redis = {
 			const redisClient = await ensureConnected();
 			return redisClient.get(key);
 		} catch (error) {
-			console.error('Redis GET error:', error);
+			console.error("Redis GET error:", error);
 			return null;
 		}
 	},
@@ -59,7 +59,7 @@ export const redis = {
 			const redisClient = await ensureConnected();
 			return redisClient.setEx(key, seconds, value);
 		} catch (error) {
-			console.error('Redis SETEX error:', error);
+			console.error("Redis SETEX error:", error);
 			return null;
 		}
 	},
@@ -68,7 +68,7 @@ export const redis = {
 			const redisClient = await ensureConnected();
 			return redisClient.keys(pattern);
 		} catch (error) {
-			console.error('Redis KEYS error:', error);
+			console.error("Redis KEYS error:", error);
 			return [];
 		}
 	},
@@ -77,7 +77,7 @@ export const redis = {
 			const redisClient = await ensureConnected();
 			return redisClient.del(keys);
 		} catch (error) {
-			console.error('Redis DEL error:', error);
+			console.error("Redis DEL error:", error);
 			return 0;
 		}
 	},
