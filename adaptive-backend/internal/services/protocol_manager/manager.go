@@ -87,7 +87,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	useCache := pm.cache != nil
 	if cacheConfigOverride != nil {
 		useCache = cacheConfigOverride.Enabled
-		fiberlog.Debugf("[%s] Cache config override provided: enabled=%t, threshold=%.2f", 
+		fiberlog.Debugf("[%s] Cache config override provided: enabled=%t, threshold=%.2f",
 			requestID, cacheConfigOverride.Enabled, cacheConfigOverride.SemanticThreshold)
 	}
 
