@@ -57,7 +57,7 @@ func NewProtocolManagerCache(cacheConfig *models.CacheConfig) (*ProtocolManagerC
 		fiberlog.Error("ProtocolManagerCache: REDIS_URL environment variable not set")
 		return nil, fmt.Errorf("REDIS_URL environment variable is not set")
 	}
-	fiberlog.Debugf("ProtocolManagerCache: Using Redis URL: %s", redisURL)
+	fiberlog.Debug("ProtocolManagerCache: Redis URL configured")
 
 	// Create Redis backend configuration
 	config := types.BackendConfig{
