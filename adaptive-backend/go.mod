@@ -7,6 +7,7 @@ toolchain go1.24.3
 require (
 	github.com/alitto/pond/v2 v2.5.0
 	github.com/anthropics/anthropic-sdk-go v1.5.0
+	github.com/botirk38/semanticcache v0.2.0
 	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/openai/openai-go v1.11.1
 	github.com/redis/go-redis/v9 v9.11.0
@@ -35,7 +36,6 @@ require (
 )
 
 require (
-	github.com/botirk38/semanticcache v0.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
