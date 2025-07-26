@@ -167,7 +167,7 @@ export const subscriptionRouter = createTRPCRouter({
 				},
 			});
 
-			// Invalidate subscription cache
+			// Invalidate subscription cache on Redis
 			await invalidateSubscriptionCache(ctx.clerkAuth.userId);
 
 			return {

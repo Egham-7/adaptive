@@ -1,6 +1,7 @@
 "use client";
 import { SignUpButton, useUser } from "@clerk/nextjs";
-import { Check, Zap } from "lucide-react";
+import { Check, Settings, Zap } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,15 +10,23 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { api } from "@/trpc/react";
 import SubscribeButton from "../stripe/subscribe-button";
 
 export default function ChatbotPricing() {
 	const { user } = useUser();
+	const { data: subscriptionData, isLoading } =
+		api.subscription.getSubscription.useQuery(undefined, {
+			enabled: !!user,
+			refetchOnWindowFocus: true,
+			staleTime: 0,
+		});
+
 
 	return (
 		<div className="w-full p-6">
 			<h2 className="mb-8 text-center font-bold text-2xl">Choose Your Plan</h2>
-			<div className="mx-auto grid w-full gap-6 md:grid-cols-2">
+			<div className="mx-auto grid w-full max-w-6xl gap-6 md:grid-cols-2">
 				<Card>
 					<CardHeader>
 						<CardTitle className="font-medium">Free</CardTitle>
@@ -28,9 +37,15 @@ export default function ChatbotPricing() {
 						<CardDescription className="text-sm">
 							Perfect for trying out our chatbot
 						</CardDescription>
-						<Button asChild variant="outline" className="mt-4 w-full">
-							<SignUpButton />
-						</Button>
+						{!user ? (
+							<Button asChild variant="outline" className="mt-4 w-full">
+								<SignUpButton />
+							</Button>
+						) : (
+							<Button disabled variant="outline" className="mt-4 w-full">
+								Signed Up
+							</Button>
+						)}
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<hr className="border-dashed" />
@@ -50,7 +65,7 @@ export default function ChatbotPricing() {
 				</Card>
 
 				<Card className="relative">
-					<span className="-top-3 absolute inset-x-0 mx-auto flex h-6 w-fit items-center rounded-full bg-[linear-gradient(to_right,var(--color-primary),var(--color-secondary))] px-3 py-1 font-medium text-primary-foreground text-xs ring-1 ring-white/20 ring-inset ring-offset-1 ring-offset-gray-950/5">
+					<span className="-top-3 -translate-x-1/2 absolute left-1/2 flex h-6 w-fit items-center rounded-full bg-[linear-gradient(to_right,var(--color-primary),var(--color-secondary))] px-3 py-1 font-medium text-primary-foreground text-xs ring-1 ring-white/20 ring-inset ring-offset-1 ring-offset-gray-950/5">
 						Popular
 					</span>
 					<CardHeader>
@@ -62,11 +77,14 @@ export default function ChatbotPricing() {
 						<CardDescription className="text-sm">
 							For unlimited chatbot usage
 						</CardDescription>
-						{user ? (
-							<div className="mt-4 w-full">
-								<SubscribeButton />
-							</div>
-						) : (
+						{isLoading ? (
+							<Button
+								disabled
+								className="mt-4 w-full bg-muted text-muted-foreground"
+							>
+								Loading...
+							</Button>
+						) : !user ? (
 							<Button
 								asChild
 								className="mt-4 w-full bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
@@ -77,6 +95,14 @@ export default function ChatbotPricing() {
 										<span>Get Started</span>
 									</Button>
 								</SignUpButton>
+							</Button>
+						) : !subscriptionData?.subscribed ? (
+							<div className="mt-4 w-full">
+								<SubscribeButton />
+							</div>
+						) : (
+							<Button asChild className="mt-4 w-full">
+								Already Subscribed
 							</Button>
 						)}
 					</CardHeader>
