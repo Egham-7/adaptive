@@ -20,23 +20,24 @@ export default function ContentSection() {
 		<section id="solution" className="py-16 md:py-32">
 			<div className="mx-auto max-w-5xl space-y-8 px-6 md:space-y-16">
 				<h2 className="relative z-10 max-w-xl font-medium text-4xl lg:text-5xl">
-					The Adaptive ecosystem brings together our powerful models.
+					The Adaptive platform optimizes AI performance across all providers.
 				</h2>
 
 				<div className="grid gap-6 md:grid-cols-2 md:gap-12 lg:gap-24">
 					<div className="relative space-y-4">
 						<p className="text-muted-foreground">
-							Adaptive is evolving to be more than just the models.{" "}
+							Adaptive is more than just model routing.{" "}
 							<span className="font-bold text-accent-foreground">
-								It supports an entire ecosystem
+								It's an intelligent inference platform
 							</span>{" "}
-							— from products to platforms that help teams scale.
+							— with smart protocols that handle your entire request flow
+							automatically.
 						</p>
 
 						<p className="text-muted-foreground">
-							It supports an entire ecosystem — from intuitive interfaces to
-							powerful APIs helping developers and businesses adapt to changing
-							needs
+							From intuitive interfaces to powerful APIs, we help developers and
+							businesses get better AI results while reducing costs and ensuring
+							uptime.
 						</p>
 
 						<div className="grid grid-cols-2 gap-3 pt-6 md:gap-4">
@@ -46,7 +47,8 @@ export default function ContentSection() {
 									<h3 className="font-medium text-sm">Lightning Fast</h3>
 								</div>
 								<p className="text-muted-foreground text-sm">
-									Experience unparalleled speed with our optimized platform.
+									Smart caching and optimization deliver lightning-fast
+									responses.
 								</p>
 							</div>
 							<div className="space-y-2">
@@ -55,7 +57,7 @@ export default function ContentSection() {
 									<h3 className="font-medium text-sm">Powerful</h3>
 								</div>
 								<p className="text-muted-foreground text-sm">
-									Leverage advanced capabilities to transform your workflow.
+									Advanced algorithms automatically optimize AI performance.
 								</p>
 							</div>
 						</div>

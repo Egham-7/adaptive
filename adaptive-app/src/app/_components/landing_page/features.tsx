@@ -1,4 +1,4 @@
-import { BarChart3, Code2, Cpu, Network, Timer } from "lucide-react";
+import { BarChart3, Code2, Layers, Shield, Workflow } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { PerformanceMetricsChart } from "./performance-metrics-chart";
@@ -16,35 +16,36 @@ export default function FeaturesSection() {
 						Features
 					</h2>
 					<p className="mt-4 text-muted-foreground">
-						Powerful AI infrastructure designed for modern applications
+						Intelligent AI optimization platform designed for modern
+						applications
 					</p>
 				</header>
 				<div className="grid grid-cols-6 gap-3">
 					<Card className="col-span-full flex overflow-hidden lg:col-span-2">
 						<CardContent className="m-auto flex flex-col items-center justify-center pt-6 text-center">
-							<Timer className="h-16 w-16 text-primary" aria-hidden="true" />
+							<Workflow className="h-16 w-16 text-primary" aria-hidden="true" />
 							<h3 className="mt-6 font-semibold text-3xl">
-								Lightning Fast Model Selection
+								Smart Request Handling
 							</h3>
 							<p className="mt-2 text-muted-foreground">
-								Choose the optimal AI model for each query in milliseconds with
-								our intelligent routing system.
+								Automatically chooses between full AI models for complex tasks
+								or specialized tiny models for simple questions to save time and
+								money.
 							</p>
 						</CardContent>
 					</Card>
 					<Card className="relative col-span-full overflow-hidden md:col-span-3 lg:col-span-2">
 						<CardContent className="pt-6">
 							<div className="before:-inset-2 relative mx-auto flex aspect-square size-32 items-center justify-center rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
-								<Network className="h-12 w-12 text-primary" />
+								<Shield className="h-12 w-12 text-primary" />
 							</div>
 							<div className="relative z-10 mt-6 space-y-2 text-center">
 								<h2 className="font-medium text-lg transition hover:text-primary dark:text-white">
-									Resilience to Provider Outages
+									Reliable AI Service
 								</h2>
 								<p className="text-foreground">
-									Automatic failover to alternative providers ensures your
-									applications stay online even when individual AI services go
-									down.
+									Automatic backup to alternative AI providers ensures your
+									applications stay online with proven reliability systems.
 								</p>
 							</div>
 						</CardContent>
@@ -69,16 +70,15 @@ export default function FeaturesSection() {
 						<div className="grid pt-6 md:grid-cols-2">
 							<div className="relative z-10 flex flex-col justify-between space-y-12 px-6 lg:space-y-6">
 								<div className="before:-inset-2 relative flex aspect-square size-12 rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
-									<Cpu className="m-auto size-5" strokeWidth={1} />
+									<Layers className="m-auto size-5" strokeWidth={1} />
 								</div>
 								<div className="space-y-2 px-2">
 									<h2 className="font-medium text-foreground text-lg transition hover:text-primary dark:text-white">
-										Efficient LLM Inference
+										Intelligent Model Selection
 									</h2>
 									<p className="text-foreground">
-										Optimize performance with intelligent caching, request
-										batching, and model-specific optimizations for maximum
-										efficiency.
+										Advanced algorithms automatically choose the best AI model
+										and optimize settings for quality and cost efficiency.
 									</p>
 								</div>
 							</div>
@@ -100,12 +100,12 @@ export default function FeaturesSection() {
 								</div>
 								<div className="space-y-2">
 									<h2 className="font-medium text-lg transition">
-										Smart Analytics & Learning
+										Continuous Learning
 									</h2>
 									<p className="text-foreground">
-										Continuously improve model selection through online learning
-										based on evals and customer feedback, with full
-										observability into routing decisions.
+										Our system learns from performance data to continuously
+										improve model selection and deliver better results over
+										time.
 									</p>
 								</div>
 							</div>
