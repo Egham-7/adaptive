@@ -1,4 +1,4 @@
-import { BarChart3, Code2, Cpu, Network, Timer } from "lucide-react";
+import { BarChart3, Code2, Cpu, Network, Workflow, Layers, Shield } from "lucide-react";
 import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { PerformanceMetricsChart } from "./performance-metrics-chart";
@@ -23,7 +23,7 @@ export default function FeaturesSection() {
 				<div className="grid grid-cols-6 gap-3">
 					<Card className="col-span-full flex overflow-hidden lg:col-span-2">
 						<CardContent className="m-auto flex flex-col items-center justify-center pt-6 text-center">
-							<Timer className="h-16 w-16 text-primary" aria-hidden="true" />
+							<Workflow className="h-16 w-16 text-primary" aria-hidden="true" />
 							<h3 className="mt-6 font-semibold text-3xl">
 								Smart Request Handling
 							</h3>
@@ -37,7 +37,7 @@ export default function FeaturesSection() {
 					<Card className="relative col-span-full overflow-hidden md:col-span-3 lg:col-span-2">
 						<CardContent className="pt-6">
 							<div className="before:-inset-2 relative mx-auto flex aspect-square size-32 items-center justify-center rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
-								<Network className="h-12 w-12 text-primary" />
+								<Shield className="h-12 w-12 text-primary" />
 							</div>
 							<div className="relative z-10 mt-6 space-y-2 text-center">
 								<h2 className="font-medium text-lg transition hover:text-primary dark:text-white">
@@ -70,7 +70,7 @@ export default function FeaturesSection() {
 						<div className="grid pt-6 md:grid-cols-2">
 							<div className="relative z-10 flex flex-col justify-between space-y-12 px-6 lg:space-y-6">
 								<div className="before:-inset-2 relative flex aspect-square size-12 rounded-full border before:absolute before:rounded-full before:border dark:border-white/10 dark:before:border-white/5">
-									<Cpu className="m-auto size-5" strokeWidth={1} />
+									<Layers className="m-auto size-5" strokeWidth={1} />
 								</div>
 								<div className="space-y-2 px-2">
 									<h2 className="font-medium text-foreground text-lg transition hover:text-primary dark:text-white">
