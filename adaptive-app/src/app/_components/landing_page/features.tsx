@@ -16,7 +16,7 @@ export default function FeaturesSection() {
 						Features
 					</h2>
 					<p className="mt-4 text-muted-foreground">
-						Powerful AI infrastructure designed for modern applications
+						Intelligent AI optimization platform designed for modern applications
 					</p>
 				</header>
 				<div className="grid grid-cols-6 gap-3">
@@ -24,11 +24,11 @@ export default function FeaturesSection() {
 						<CardContent className="m-auto flex flex-col items-center justify-center pt-6 text-center">
 							<Timer className="h-16 w-16 text-primary" aria-hidden="true" />
 							<h3 className="mt-6 font-semibold text-3xl">
-								Lightning Fast Model Selection
+								Smart Request Handling
 							</h3>
 							<p className="mt-2 text-muted-foreground">
-								Choose the optimal AI model for each query in milliseconds with
-								our intelligent routing system.
+								Automatically chooses between full AI models for complex tasks 
+								or specialized tiny models for simple questions to save time and money.
 							</p>
 						</CardContent>
 					</Card>
@@ -39,12 +39,11 @@ export default function FeaturesSection() {
 							</div>
 							<div className="relative z-10 mt-6 space-y-2 text-center">
 								<h2 className="font-medium text-lg transition hover:text-primary dark:text-white">
-									Resilience to Provider Outages
+									Reliable AI Service
 								</h2>
 								<p className="text-foreground">
-									Automatic failover to alternative providers ensures your
-									applications stay online even when individual AI services go
-									down.
+									Automatic backup to alternative AI providers ensures your
+									applications stay online with proven reliability systems.
 								</p>
 							</div>
 						</CardContent>
@@ -73,12 +72,11 @@ export default function FeaturesSection() {
 								</div>
 								<div className="space-y-2 px-2">
 									<h2 className="font-medium text-foreground text-lg transition hover:text-primary dark:text-white">
-										Efficient LLM Inference
+										Intelligent Model Selection
 									</h2>
 									<p className="text-foreground">
-										Optimize performance with intelligent caching, request
-										batching, and model-specific optimizations for maximum
-										efficiency.
+										Advanced algorithms automatically choose the best AI model
+										and optimize settings for quality and cost efficiency.
 									</p>
 								</div>
 							</div>
@@ -100,12 +98,11 @@ export default function FeaturesSection() {
 								</div>
 								<div className="space-y-2">
 									<h2 className="font-medium text-lg transition">
-										Smart Analytics & Learning
+										Continuous Learning
 									</h2>
 									<p className="text-foreground">
-										Continuously improve model selection through online learning
-										based on evals and customer feedback, with full
-										observability into routing decisions.
+										Our system learns from performance data to continuously
+										improve model selection and deliver better results over time.
 									</p>
 								</div>
 							</div>

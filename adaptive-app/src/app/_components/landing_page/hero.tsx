@@ -9,7 +9,7 @@ import { TextRotate } from "@/components/ui/text-rotate";
 import AnimatedBeamGraph from "./animated-beam-graph";
 
 export default function HeroSection() {
-	const rotatingTexts = ["Cost Effective AI", "Smart Model Selection"];
+	const rotatingTexts = ["Intelligent LLM Inference", "Cost Effective AI"];
 
 	return (
 		<section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white dark:bg-neutral-950">
@@ -56,9 +56,9 @@ export default function HeroSection() {
 				</h1>
 
 				<p className="mx-auto mt-8 max-w-3xl text-balance text-muted-foreground">
-					Adaptive intelligently routes your queries to the best AI model for
-					each task. Get optimal results while reducing costs by up to 90%
-					compared to using premium models for everything.
+					Adaptive uses intelligent protocols to optimize your entire AI request 
+					flow - from model selection and caching to reliability handling. 
+					Reduce costs by up to 90% while improving performance.
 				</p>
 
 				<AnimatedBeamGraph />
