@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 # Removed HuggingFaceEmbeddings import to avoid model downloads
 import litserve as ls
@@ -191,8 +191,7 @@ class ProtocolManagerAPI(ls.LitAPI):
         return outputs
 
     def encode_response(self, output: OrchestratorResponse) -> dict[str, Any]:
-        result: dict[str, Any] = output.model_dump()
-        return result
+        return cast(dict[str, Any], output.model_dump())
 
 
 def create_app() -> ls.LitServer:
