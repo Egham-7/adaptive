@@ -1,6 +1,5 @@
 """Utilities for working with OpenAI request structures."""
 
-
 from openai.types.chat import CompletionCreateParams
 
 
