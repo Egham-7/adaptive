@@ -104,6 +104,18 @@ func extractContentFromAssistant(msg *openai.ChatCompletionAssistantMessageParam
 	if msg.Content.OfArrayOfContentParts != nil {
 		return extractTextFromAssistantContentParts(msg.Content.OfArrayOfContentParts)
 	}
+
+	// Handle messages with tool calls but empty content
+	if len(msg.ToolCalls) > 0 {
+		var toolCallSummaries []string
+		for _, toolCall := range msg.ToolCalls {
+			toolCallSummaries = append(toolCallSummaries, fmt.Sprintf("tool_call:%s", toolCall.Function.Name))
+		}
+		if len(toolCallSummaries) > 0 {
+			return strings.Join(toolCallSummaries, ",")
+		}
+	}
+
 	return ""
 }
 
