@@ -75,7 +75,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	}
 
 	// Extract prompt from last message for cache key
-	prompt, err := utils.ExtractLastMessage(req.Messages)
+	prompt, err := utils.ExtractLastMessage(req.ChatCompletionRequest.Messages)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to extract last message: %v", requestID, err)
 		return nil, "", fmt.Errorf("failed to extract last message: %w", err)
