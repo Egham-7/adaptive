@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import {
 	convertToModelMessages,
 	generateText,
+	stepCountIs,
 	streamText,
 	tool,
 	type UIMessage,
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
 
 		const body = await req.json();
 		console.log("Received body:", body);
-		const { messages, id: conversationId, searchEnabled = false } = body;
+		const { messages, id: conversationId, searchEnabled = true } = body;
 
 		const numericConversationId = Number(conversationId);
 
@@ -147,7 +148,7 @@ export async function POST(req: Request) {
 					webSearch: tool({
 						description:
 							"Search the web for current information, news, facts, or any topic that requires up-to-date information",
-						parameters: zodSchema.object({
+						inputSchema: zodSchema.object({
 							query: zodSchema
 								.string()
 								.describe("The search query to look up on the web"),
@@ -233,14 +234,12 @@ export async function POST(req: Request) {
 				provider = providerMetadata?.adaptive?.provider as string | undefined;
 				modelId = response.modelId || undefined;
 			},
-			maxSteps: 10,
+			stopWhen: stepCountIs(5),
 		});
 
 		const data = result.toUIMessageStreamResponse({
 			sendReasoning: true,
 			sendSources: true,
-			experimental_sendFinish: true,
-			experimental_sendStart: true,
 			messageMetadata: ({ part }) => {
 				return {
 					...part,
