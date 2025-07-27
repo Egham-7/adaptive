@@ -210,7 +210,7 @@ class ProtocolManager:
     ) -> None:
         """Log the protocol selection decision using NVIDIA's complexity score."""
         complexity_score = classification_result.prompt_complexity_score[0]
-        
+
         # Extract cost bias information if available
         cost_bias = None
         cost_bias_active = False
@@ -220,7 +220,11 @@ class ProtocolManager:
 
         # Determine cost bias impact on model selection
         cost_bias_impact = None
-        if cost_bias_active and protocol_choice == "standard_llm":
+        if (
+            cost_bias_active
+            and protocol_choice == "standard_llm"
+            and cost_bias is not None
+        ):
             if cost_bias <= 0.3:
                 cost_bias_impact = "strongly_budget_focused"
             elif cost_bias <= 0.7:
@@ -239,12 +243,13 @@ class ProtocolManager:
                     "cost_bias": cost_bias,
                     "cost_bias_active": cost_bias_active,
                     "cost_bias_impact": cost_bias_impact,
-                    "applies_to_protocol": protocol_choice == "standard_llm"
+                    "applies_to_protocol": protocol_choice == "standard_llm",
                 },
                 "decision_factors": {
                     "high_complexity": complexity_score > 0.4,
                     "long_input": token_count > 3000,
-                    "cost_optimization_enabled": cost_bias_active and protocol_choice == "standard_llm"
+                    "cost_optimization_enabled": cost_bias_active
+                    and protocol_choice == "standard_llm",
                 },
                 "all_classification_features": {
                     "complexity_score": complexity_score,
