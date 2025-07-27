@@ -47,6 +47,7 @@ dependencies = [
     "sentencepiece>=0.2.0,<0.3",
     "accelerate>=1.8.1,<2",
     "cachetools>=5.3.0,<6",
+    "openai>=1.97.1",
 ]
 
 [project.urls]
