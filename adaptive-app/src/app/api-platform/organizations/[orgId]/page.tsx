@@ -9,6 +9,7 @@ import {
 	CheckCircle,
 	ChevronRight,
 	Clock,
+	CreditCard,
 	Edit,
 	Folder,
 	Pause,
@@ -61,6 +62,7 @@ import { useCreateProject } from "@/hooks/projects/use-create-project";
 import { useDeleteProject } from "@/hooks/projects/use-delete-project";
 import { useProjects } from "@/hooks/projects/use-projects";
 import { useUpdateProject } from "@/hooks/projects/use-update-project";
+import { CreditManagement } from "@/app/_components/api-platform/organizations/credit-management";
 import type { OrganizationDetails, ProjectListItem } from "@/types";
 
 const createProjectSchema = z.object({
@@ -83,6 +85,7 @@ export default function OrganizationProjectsPage() {
 	const [editingProject, setEditingProject] = useState<ProjectListItem | null>(
 		null,
 	);
+	const [activeTab, setActiveTab] = useState<"projects" | "credits">("projects");
 
 	const { user } = useUser();
 	const {
@@ -305,20 +308,55 @@ export default function OrganizationProjectsPage() {
 					</div>
 				</div>
 
-				{/* Search */}
-				<div className="mb-8">
-					<div className="relative max-w-md">
-						<Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
-						<Input
-							placeholder="Search projects..."
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							className="pl-10"
-						/>
-					</div>
+				{/* Tab Navigation */}
+				<div className="border-b">
+					<nav className="flex space-x-8">
+						<button
+							onClick={() => setActiveTab("projects")}
+							className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+								activeTab === "projects"
+									? "border-primary text-primary"
+									: "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+							}`}
+						>
+							<div className="flex items-center gap-2">
+								<Folder className="h-4 w-4" />
+								Projects
+							</div>
+						</button>
+						<button
+							onClick={() => setActiveTab("credits")}
+							className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+								activeTab === "credits"
+									? "border-primary text-primary"
+									: "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+							}`}
+						>
+							<div className="flex items-center gap-2">
+								<CreditCard className="h-4 w-4" />
+								Credits & Billing
+							</div>
+						</button>
+					</nav>
 				</div>
 
-				{/* Projects Grid */}
+				{/* Tab Content */}
+				{activeTab === "projects" && (
+					<>
+						{/* Search */}
+						<div className="mb-8">
+							<div className="relative max-w-md">
+								<Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
+								<Input
+									placeholder="Search projects..."
+									value={searchQuery}
+									onChange={(e) => setSearchQuery(e.target.value)}
+									className="pl-10"
+								/>
+							</div>
+						</div>
+
+						{/* Projects Grid */}
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{/* Create Project Card */}
 					{canCreateProject && (
@@ -521,19 +559,28 @@ export default function OrganizationProjectsPage() {
 					})}
 				</div>
 
-				{filteredProjects.length === 0 && (
-					<div className="py-12 text-center">
-						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-muted p-4">
-							<Folder className="h-8 w-8 text-muted-foreground" />
-						</div>
-						<h3 className="mb-2 font-semibold text-foreground text-lg">
-							No projects found
-						</h3>
-						<p className="mx-auto max-w-md text-muted-foreground">
-							{searchQuery
-								? "Try adjusting your search terms"
-								: "This organization doesn't have any projects yet"}
-						</p>
+						{filteredProjects.length === 0 && (
+							<div className="py-12 text-center">
+								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-muted p-4">
+									<Folder className="h-8 w-8 text-muted-foreground" />
+								</div>
+								<h3 className="mb-2 font-semibold text-foreground text-lg">
+									No projects found
+								</h3>
+								<p className="mx-auto max-w-md text-muted-foreground">
+									{searchQuery
+										? "Try adjusting your search terms"
+										: "This organization doesn't have any projects yet"}
+								</p>
+							</div>
+						)}
+					</>
+				)}
+
+				{/* Credits Tab Content */}
+				{activeTab === "credits" && (
+					<div className="py-6">
+						<CreditManagement organizationId={orgId} />
 					</div>
 				)}
 
