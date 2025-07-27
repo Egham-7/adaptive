@@ -1,4 +1,4 @@
-import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
+import { createAdaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import {
@@ -16,6 +16,11 @@ import { db } from "@/server/db";
 import { api } from "@/trpc/server";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
+
+const adaptive = createAdaptive({
+	baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+	apiKey: process.env.ADAPTIVE_API_KEY,
+});
 
 import { Exa } from "exa-js";
 
@@ -139,7 +144,7 @@ export async function POST(req: Request) {
 		await api.messages.create(userMessage);
 
 		// Check if this is the first message in the conversation to generate a title
-		const isFirstMessage = previousMessages.length === 0;
+		const isFirstMessage = previousMessages.length === 1;
 		const shouldGenerateTitle = isFirstMessage && message.content;
 
 		const tools = searchEnabled

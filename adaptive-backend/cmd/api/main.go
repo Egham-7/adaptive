@@ -16,7 +16,6 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -26,10 +25,8 @@ import (
 func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	chatCompletionHandler := api.NewCompletionHandler()
 
-	// Health endpoint (no auth required)
 	app.Get("/health", healthHandler.Health)
 
-	// Apply API key authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.APIKeyAuth())
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 }
@@ -49,6 +46,25 @@ const (
 func main() {
 	if err := godotenv.Load(".env.local"); err != nil {
 		fiberlog.Info("No .env.local file found, proceeding with environment variables")
+	}
+
+	// Set log level based on environment variable, default to Info
+	logLevel := os.Getenv("LOG_LEVEL")
+	switch logLevel {
+	case "trace":
+		fiberlog.SetLevel(fiberlog.LevelTrace)
+	case "debug":
+		fiberlog.SetLevel(fiberlog.LevelDebug)
+	case "warn":
+		fiberlog.SetLevel(fiberlog.LevelWarn)
+	case "error":
+		fiberlog.SetLevel(fiberlog.LevelError)
+	case "fatal":
+		fiberlog.SetLevel(fiberlog.LevelFatal)
+	case "panic":
+		fiberlog.SetLevel(fiberlog.LevelPanic)
+	default:
+		fiberlog.SetLevel(fiberlog.LevelInfo)
 	}
 
 	port := os.Getenv(addrKey)
@@ -144,25 +160,6 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 
 	app.Use(compress.New(compress.Config{
 		Level: compress.LevelBestSpeed,
-	}))
-
-	app.Use(limiter.New(limiter.Config{
-		Max:               1000,
-		Expiration:        1 * time.Minute,
-		LimiterMiddleware: limiter.SlidingWindow{},
-		KeyGenerator: func(c *fiber.Ctx) string {
-			apiKey := c.Get("X-Stainless-API-Key")
-			if apiKey != "" {
-				return apiKey
-			}
-			return c.IP()
-		},
-		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error":       "Rate limit exceeded",
-				"retry_after": "60 seconds",
-			})
-		},
 	}))
 
 	if isProd {
