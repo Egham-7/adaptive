@@ -52,9 +52,15 @@ export default function ChatbotPricing() {
             <CardDescription className="text-sm">
               Perfect for trying out our chatbot
             </CardDescription>
-            <Button asChild variant="outline" className="mt-4 w-full">
-              <SignUpButton />
-            </Button>
+            {user ? (
+              <Button disabled variant="outline" className="mt-4 w-full">
+                You are already signed up
+              </Button>
+            ) : (
+              <Button asChild variant="outline" className="mt-4 w-full">
+                <SignUpButton />
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <hr className="border-dashed" />
@@ -88,17 +94,17 @@ export default function ChatbotPricing() {
               For unlimited chatbot usage
             </CardDescription>
             {loading ? (
-              <p className="mt-4 text-center text-sm text-muted-foreground">
+              <Button disabled variant="outline" className="mt-4 w-full">
                 Checking subscription status...
-              </p>
+              </Button>
             ) : user && !isSubscribed ? (
               <div className="mt-4 w-full">
                 <SubscribeButton />
               </div>
             ) : (
-              <p className="mt-4 text-center text-sm text-muted-foreground">
-                You are already subscribed.
-              </p>
+              <Button disabled variant="outline" className="mt-4 w-full">
+                You are already subscribed
+              </Button>
             )}
           </CardHeader>
           <CardContent className="space-y-4">
