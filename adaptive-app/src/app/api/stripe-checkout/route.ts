@@ -6,7 +6,6 @@ import { stripe } from "@/lib/stripe/stripe";
 import { db } from "@/server/db";
 
 export async function POST(request: NextRequest) {
-  console.log("Stripe Object:" + stripe);
   const body = await request.text();
   const headersList = await headers();
   const signature = headersList.get("stripe-signature");
@@ -63,11 +62,17 @@ export async function POST(request: NextRequest) {
           const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
+          console.log("🔍 Full subscription object:", JSON.stringify(subscription, null, 2));
+          
+          const subscriptionItem = subscription.items.data[0];
+          if (!subscriptionItem) {
+            throw new Error("No subscription items found");
+          }
+          
           const currentPeriodEnd = new Date(
-            // @ts-ignore - current_period_end exists in Stripe API but not in TS types
-            subscription.current_period_end * 1000
+            subscriptionItem.current_period_end * 1000
           );
-          const priceId = subscription.items.data[0]?.price.id;
+          const priceId = subscriptionItem.price.id;
 
           if (!priceId) {
             throw new Error("Subscription price ID is missing");
@@ -123,19 +128,21 @@ export async function POST(request: NextRequest) {
           const fullSubscription = await stripe.subscriptions.retrieve(
             subscription.id
           );
+          console.log("🔍 Full subscription object (updated):", JSON.stringify(fullSubscription, null, 2));
+
+          const subscriptionItem = fullSubscription.items.data[0];
+          if (!subscriptionItem) {
+            throw new Error("No subscription items found in updated subscription");
+          }
 
           await db.subscription.update({
             where: { stripeSubscriptionId: subscription.id },
             data: {
               status: subscription.status,
               currentPeriodEnd: new Date(
-                // @ts-ignore - current_period_end exists in Stripe API but not in TS types
-
-                fullSubscription.current_period_end * 1000
+                subscriptionItem.current_period_end * 1000
               ),
-              stripePriceId:
-                subscription.items.data[0]?.price.id ||
-                existingSub.stripePriceId,
+              stripePriceId: subscriptionItem.price.id,
             },
           });
 
