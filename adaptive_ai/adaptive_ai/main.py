@@ -48,7 +48,9 @@ class ProtocolManagerAPI(ls.LitAPI):
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
         return ModelSelectionRequest(**request)
 
-    def predict(self, requests: list[ModelSelectionRequest]) -> list[OrchestratorResponse]:
+    def predict(
+        self, requests: list[ModelSelectionRequest]
+    ) -> list[OrchestratorResponse]:
         import time
 
         outputs: list[OrchestratorResponse] = []
