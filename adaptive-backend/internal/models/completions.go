@@ -9,12 +9,6 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
-// SelectModelRequest represents a request to select a model for a given prompt and provider.
-type SelectModelRequest struct {
-	Prompt   string `json:"prompt"`
-	Provider string `json:"provider,omitempty"`
-}
-
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {
 	// Messages comprising the conversation so far.

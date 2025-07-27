@@ -43,12 +43,17 @@ class ProtocolManager:
         self,
         classification_result: ClassificationResult,
         token_count: int,
+        request: ModelSelectionRequest | None = None,
     ) -> bool:
         """Determine if standard protocol should be used based on NVIDIA's trained complexity score."""
         # Use NVIDIA's professionally trained complexity score as primary signal
         complexity_score = classification_result.prompt_complexity_score[0]
         reasoning_score = classification_result.reasoning[0]
         number_of_few_shots = classification_result.number_of_few_shots[0]
+
+        # If request has tools, always use standard protocol
+        if request and request.tools:
+            return True
 
         # Simple, interpretable logic based on the trained model
         return (
@@ -63,10 +68,11 @@ class ProtocolManager:
         classification_result: ClassificationResult,
         token_count: int,
         available_protocols: list[str],
+        request: ModelSelectionRequest | None = None,
     ) -> str:
         """Select the best protocol based on NVIDIA's complexity score."""
         should_use_standard = self._should_use_standard_protocol(
-            classification_result, token_count
+            classification_result, token_count, request
         )
 
         # Prefer standard_llm if complexity/tokens are high and available
@@ -338,7 +344,7 @@ class ProtocolManager:
 
         # Select best protocol
         protocol_choice = self._select_best_protocol(
-            classification_result, token_count, available_protocols
+            classification_result, token_count, available_protocols, request
         )
 
         # Log decision with full context
