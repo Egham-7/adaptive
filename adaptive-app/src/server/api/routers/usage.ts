@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { invalidateAnalyticsCache, withCache } from "@/lib/cache-utils";
+import { CreditService } from "@/lib/credit-service";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -59,12 +60,28 @@ export const usageRouter = createTRPCRouter({
 						keyHash,
 						status: "active",
 					},
+					include: {
+						project: {
+							include: {
+								organization: true,
+							},
+						},
+					},
 				});
 
 				if (!apiKey) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "Invalid API key",
+					});
+				}
+
+				// Get organization ID from API key's project
+				const organizationId = apiKey.project?.organizationId;
+				if (!organizationId) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "API key is not associated with an organization",
 					});
 				}
 
@@ -156,6 +173,7 @@ export const usageRouter = createTRPCRouter({
 								},
 							);
 
+				// Calculate provider cost (what you pay to the provider)
 				const calculatedCost = providerModel
 					? (input.usage.promptTokens *
 							providerModel.inputTokenCost.toNumber() +
@@ -163,6 +181,27 @@ export const usageRouter = createTRPCRouter({
 								providerModel.outputTokenCost.toNumber()) /
 						1000000
 					: 0;
+
+				// Calculate credit cost (what you charge the user)
+				// $0.05 per 1M input tokens, $0.15 per 1M output tokens
+				const creditCost = CreditService.calculateCreditCost(
+					input.usage.promptTokens,
+					input.usage.completionTokens
+				);
+
+				// Check if organization has sufficient credits before processing
+				const hasSufficientCredits = await CreditService.hasSufficientCredits(
+					organizationId,
+					creditCost
+				);
+
+				if (!hasSufficientCredits) {
+					const currentBalance = await CreditService.getOrganizationBalance(organizationId);
+					throw new TRPCError({
+						code: "PAYMENT_REQUIRED",
+						message: `Insufficient credits. Required: $${creditCost.toFixed(4)}, Available: $${currentBalance.toFixed(4)}. Please purchase more credits.`,
+					});
+				}
 
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
@@ -175,7 +214,8 @@ export const usageRouter = createTRPCRouter({
 						inputTokens: input.usage.promptTokens,
 						outputTokens: input.usage.completionTokens,
 						totalTokens: input.usage.totalTokens,
-						cost: calculatedCost,
+						cost: calculatedCost, // Provider cost
+						creditCost: creditCost, // User credit cost
 						requestCount: input.requestCount,
 						metadata: {
 							...input.metadata,
@@ -185,6 +225,23 @@ export const usageRouter = createTRPCRouter({
 							userId: apiKey.userId, // Get userId from the API key
 						},
 					},
+				});
+
+				// Deduct credits from organization's account
+				const creditTransaction = await CreditService.deductCredits({
+					organizationId,
+					userId: apiKey.userId,
+					amount: creditCost,
+					description: `API usage: ${input.usage.promptTokens} input + ${input.usage.completionTokens} output tokens`,
+					metadata: {
+						provider: input.provider,
+						model: input.model,
+						inputTokens: input.usage.promptTokens,
+						outputTokens: input.usage.completionTokens,
+						duration: input.duration,
+					},
+					apiKeyId: apiKey.id,
+					apiUsageId: usage.id,
 				});
 
 				// Update the API key's last used timestamp
@@ -199,7 +256,14 @@ export const usageRouter = createTRPCRouter({
 					apiKey.projectId || undefined,
 				);
 
-				return { success: true, usage };
+				return { 
+					success: true, 
+					usage,
+					creditTransaction: {
+						amount: creditTransaction.deductedAmount,
+						newBalance: creditTransaction.newBalance,
+					}
+				};
 			} catch (error) {
 				console.error("Failed to record API usage:", error);
 				if (error instanceof TRPCError) {
@@ -249,6 +313,13 @@ export const usageRouter = createTRPCRouter({
 					where: {
 						keyHash,
 						status: "active",
+					},
+					include: {
+						project: {
+							include: {
+								organization: true,
+							},
+						},
 					},
 				});
 
