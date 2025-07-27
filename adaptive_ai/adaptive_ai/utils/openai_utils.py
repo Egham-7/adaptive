@@ -1,11 +1,8 @@
 """Utilities for working with OpenAI request structures."""
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-if TYPE_CHECKING:
-    from openai.types.chat import CompletionCreateParams
-else:
-    CompletionCreateParams = dict[str, Any]
+from openai.types.chat import CompletionCreateParams
 
 
 def extract_last_message_content(
