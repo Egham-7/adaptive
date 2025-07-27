@@ -1,9 +1,9 @@
 # llm_core_models.py
 
 
-from typing import Any
-
-from openai.types.chat import CompletionCreateParams
+from openai.types.chat import (
+    CompletionCreateParams,
+)
 from pydantic import BaseModel, Field, model_validator
 
 from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskModelEntry
