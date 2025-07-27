@@ -253,6 +253,32 @@ class ModelSelectionService:
 
         self.log("candidate_models_count", len(candidate_models))
 
+        # Apply cost-based ranking if cost_bias is provided
+        if request.cost_bias is not None and candidate_models:
+            from adaptive_ai.utils.cost_utils import rank_models_by_cost_performance
+            
+            original_count = len(candidate_models)
+            original_top_model = candidate_models[0].model_name if candidate_models else None
+            
+            # Apply cost-performance ranking
+            candidate_models = rank_models_by_cost_performance(
+                model_entries=candidate_models,
+                cost_bias=request.cost_bias,
+                model_capabilities=self._all_model_capabilities_by_id,
+                estimated_tokens=prompt_token_count
+            )
+            
+            new_top_model = candidate_models[0].model_name if candidate_models else None
+            
+            self.log("cost_bias_routing", {
+                "cost_bias": request.cost_bias,
+                "original_model_count": original_count,
+                "original_top_model": original_top_model,
+                "cost_optimized_top_model": new_top_model,
+                "reranked_models": [entry.model_name for entry in candidate_models[:5]],
+                "ranking_changed": original_top_model != new_top_model
+            })
+
         # Log comprehensive metrics periodically
         if self.selection_metrics["total_selections"] % 10 == 0:
             cache_stats = self.get_cache_stats()

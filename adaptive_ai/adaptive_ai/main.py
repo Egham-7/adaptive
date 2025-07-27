@@ -45,12 +45,12 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.model_selection_service = ModelSelectionService(lit_logger=self)
         self.protocol_manager = ProtocolManager(lit_logger=self, device=device)
 
-    def decode_request(self, request: ModelSelectionRequest) -> ModelSelectionRequest:
-        return request
+    def decode_request(self, request: dict) -> ModelSelectionRequest:
+        return ModelSelectionRequest(**request)
 
     def predict(
         self, requests: list[ModelSelectionRequest]
-    ) -> list[OrchestratorResponse]:
+    ) -> list[dict]:
         import time
 
         outputs: list[OrchestratorResponse] = []
@@ -195,10 +195,10 @@ class ProtocolManagerAPI(ls.LitAPI):
             outputs.append(orchestrator_response)
 
         self.log("predict_completed", {"output_count": len(outputs)})
-        return outputs
+        return [output.model_dump() for output in outputs]
 
-    def encode_response(self, output: OrchestratorResponse) -> Any:
-        return output.model_dump()
+    def encode_response(self, output: dict) -> Any:
+        return output
 
 
 def create_app() -> ls.LitServer:
