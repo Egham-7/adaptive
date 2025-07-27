@@ -111,9 +111,7 @@ func extractContentFromAssistant(msg *openai.ChatCompletionAssistantMessageParam
 		for _, toolCall := range msg.ToolCalls {
 			toolCallSummaries = append(toolCallSummaries, fmt.Sprintf("tool_call:%s", toolCall.Function.Name))
 		}
-		if len(toolCallSummaries) > 0 {
-			return strings.Join(toolCallSummaries, ",")
-		}
+		return strings.Join(toolCallSummaries, ",")
 	}
 
 	return ""
