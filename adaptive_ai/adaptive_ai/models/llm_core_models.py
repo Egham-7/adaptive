@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel, Field, model_validator
 
 if TYPE_CHECKING:
-    from openai.types.chat import CompletionCreateParams  # type: ignore
+    from openai.types.chat import CompletionCreateParams  # type: ignore[import-not-found]
 else:
     CompletionCreateParams = dict[str, Any]
 
