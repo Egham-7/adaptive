@@ -50,17 +50,17 @@ export function UsageChart({
 	}
 
 	// Calculate margin breakdown if requested
-	const chartData = showMarginBreakdown 
-		? data.map(point => {
-			// Assume provider cost is ~70% of our charge (30% margin)
-			const providerCost = point.adaptive * 0.7;
-			const ourMargin = point.adaptive * 0.3;
-			return {
-				...point,
-				providerCost,
-				ourMargin,
-			};
-		})
+	const chartData = showMarginBreakdown
+		? data.map((point) => {
+				// Assume provider cost is ~70% of our charge (30% margin)
+				const providerCost = point.adaptive * 0.7;
+				const ourMargin = point.adaptive * 0.3;
+				return {
+					...point,
+					providerCost,
+					ourMargin,
+				};
+			})
 		: data;
 
 	const config = {
@@ -93,16 +93,18 @@ export function UsageChart({
 					fontSize={12}
 					tickFormatter={(value) => `$${value.toFixed(2)}`}
 				/>
-				<ChartTooltip 
-					content={<ChartTooltipContent 
-						formatter={(value, name) => [
-							`$${Number(value).toFixed(4)}`,
-							name
-						]}
-					/>} 
+				<ChartTooltip
+					content={
+						<ChartTooltipContent
+							formatter={(value, name) => [
+								`$${Number(value).toFixed(4)}`,
+								name,
+							]}
+						/>
+					}
 				/>
 				<ChartLegend content={<ChartLegendContent />} />
-				
+
 				{showMarginBreakdown ? (
 					<>
 						{/* Stacked bars for margin breakdown */}

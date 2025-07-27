@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PieChart } from "lucide-react";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
 import { UsageChart } from "./charts/usage-chart";
 import { ChartSkeleton } from "./loading-skeleton";
@@ -57,7 +57,7 @@ export function UsageSection({
 			<CardHeader>
 				<div className="flex items-center justify-between">
 					<div className="flex-1">
-						<div className="flex items-center justify-between mb-1">
+						<div className="mb-1 flex items-center justify-between">
 							<CardTitle>Total Spend</CardTitle>
 							<div className="flex items-center gap-2">
 								{showMarginBreakdown && (
@@ -71,7 +71,7 @@ export function UsageSection({
 									onClick={() => setShowMarginBreakdown(!showMarginBreakdown)}
 									className="h-8 px-3"
 								>
-									<PieChart className="h-3 w-3 mr-1" />
+									<PieChart className="mr-1 h-3 w-3" />
 									{showMarginBreakdown ? "Cost View" : "Margin View"}
 								</Button>
 							</div>
@@ -108,18 +108,24 @@ export function UsageSection({
 						</div>
 
 						{showMarginBreakdown && (
-							<div className="mt-3 p-3 bg-muted/30 rounded-lg">
-								<h4 className="font-medium text-sm mb-2">Revenue Breakdown (Estimated)</h4>
+							<div className="mt-3 rounded-lg bg-muted/30 p-3">
+								<h4 className="mb-2 font-medium text-sm">
+									Revenue Breakdown (Estimated)
+								</h4>
 								<div className="grid grid-cols-2 gap-4 text-sm">
 									<div>
-										<div className="text-muted-foreground">Provider Cost (~70%)</div>
-										<div className="font-mono font-medium">
+										<div className="text-muted-foreground">
+											Provider Cost (~70%)
+										</div>
+										<div className="font-medium font-mono">
 											${(totalSpend * 0.7).toFixed(4)}
 										</div>
 									</div>
 									<div>
-										<div className="text-muted-foreground">Our Margin (~30%)</div>
-										<div className="font-mono font-medium text-green-600">
+										<div className="text-muted-foreground">
+											Our Margin (~30%)
+										</div>
+										<div className="font-medium font-mono text-green-600">
 											${(totalSpend * 0.3).toFixed(4)}
 										</div>
 									</div>

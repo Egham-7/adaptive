@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { CreditCard, DollarSign, TrendingUp, Zap } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -19,10 +21,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/trpc/react";
-import { toast } from "sonner";
 
 interface CreditManagementProps {
 	organizationId: string;
@@ -61,33 +61,33 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 	const [isProcessing, setIsProcessing] = useState(false);
 
 	// Fetch credit balance
-	const { 
-		data: balance, 
-		refetch: refetchBalance, 
+	const {
+		data: balance,
+		refetch: refetchBalance,
 		isLoading: balanceLoading,
-		error: balanceError 
+		error: balanceError,
 	} = api.credits.getBalance.useQuery(
 		{ organizationId },
-		{ 
+		{
 			refetchInterval: 30000, // Refetch every 30 seconds
 			retry: (failureCount, error) => {
 				// Don't retry on NOT_FOUND errors
-				if (error?.data?.code === 'NOT_FOUND') return false;
+				if (error?.data?.code === "NOT_FOUND") return false;
 				return failureCount < 3;
-			}
-		}
+			},
+		},
 	);
 
 	// Fetch low balance status
 	const { data: balanceStatus } = api.credits.getLowBalanceStatus.useQuery(
 		{ organizationId },
-		{ 
+		{
 			enabled: !balanceError, // Don't fetch if balance fetch failed
 			retry: (failureCount, error) => {
-				if (error?.data?.code === 'NOT_FOUND') return false;
+				if (error?.data?.code === "NOT_FOUND") return false;
 				return failureCount < 3;
-			}
-		}
+			},
+		},
 	);
 
 	// Create checkout session
@@ -107,7 +107,7 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 
 	const handlePurchase = async (amount: number) => {
 		setIsProcessing(true);
-		
+
 		try {
 			await createCheckout.mutateAsync({
 				organizationId,
@@ -121,7 +121,7 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 	};
 
 	const handleCustomPurchase = () => {
-		const amount = parseFloat(customAmount);
+		const amount = Number.parseFloat(customAmount);
 		if (amount >= 1 && amount <= 10000) {
 			handlePurchase(amount);
 			setShowCustomDialog(false);
@@ -169,17 +169,16 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 					<CardContent>
 						<div className="flex flex-col items-center justify-center py-8 text-center">
 							<div className="mb-4 text-4xl">⚠️</div>
-							<h3 className="mb-2 font-medium text-lg">Unable to load credit balance</h3>
-							<p className="mb-4 text-sm text-muted-foreground max-w-md">
-								{balanceError.data?.code === 'NOT_FOUND' 
+							<h3 className="mb-2 font-medium text-lg">
+								Unable to load credit balance
+							</h3>
+							<p className="mb-4 max-w-md text-muted-foreground text-sm">
+								{balanceError.data?.code === "NOT_FOUND"
 									? "Organization not found. Please make sure you have access to this organization."
-									: balanceError.message || "There was an error loading your credit information."
-								}
+									: balanceError.message ||
+										"There was an error loading your credit information."}
 							</p>
-							<Button 
-								onClick={() => refetchBalance()}
-								variant="outline"
-							>
+							<Button onClick={() => refetchBalance()} variant="outline">
 								Try Again
 							</Button>
 						</div>
@@ -208,16 +207,18 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 							<div className="flex items-center gap-2">
 								{balanceLoading ? (
 									<div className="flex items-center gap-2">
-										<div className="h-8 w-24 bg-muted animate-pulse rounded" />
-										<div className="h-4 w-4 bg-muted animate-pulse rounded-full" />
+										<div className="h-8 w-24 animate-pulse rounded bg-muted" />
+										<div className="h-4 w-4 animate-pulse rounded-full bg-muted" />
 									</div>
 								) : (
 									<>
-										<span className="text-2xl font-bold">
+										<span className="font-bold text-2xl">
 											{balance?.formattedBalance || "$0.00"}
 										</span>
 										{balanceStatus?.status && (
-											<span className={getBalanceStatusColor(balanceStatus.status)}>
+											<span
+												className={getBalanceStatusColor(balanceStatus.status)}
+											>
 												{getBalanceStatusIcon(balanceStatus.status)}
 											</span>
 										)}
@@ -230,12 +231,14 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 								)}
 							</div>
 							{balanceStatus?.message && (
-								<p className={`text-sm ${getBalanceStatusColor(balanceStatus.status)}`}>
+								<p
+									className={`text-sm ${getBalanceStatusColor(balanceStatus.status)}`}
+								>
 									{balanceStatus.message}
 								</p>
 							)}
 						</div>
-						<Button 
+						<Button
 							onClick={() => refetchBalance()}
 							variant="outline"
 							size="sm"
@@ -244,13 +247,15 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 						</Button>
 					</div>
 
-					{balanceStatus?.status && ["empty", "very_low", "low"].includes(balanceStatus.status) && (
-						<div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-							<p className="text-orange-800 text-sm font-medium">
-								💡 Low credit balance detected. Consider purchasing more credits to avoid service interruption.
-							</p>
-						</div>
-					)}
+					{balanceStatus?.status &&
+						["empty", "very_low", "low"].includes(balanceStatus.status) && (
+							<div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-3">
+								<p className="font-medium text-orange-800 text-sm">
+									💡 Low credit balance detected. Consider purchasing more
+									credits to avoid service interruption.
+								</p>
+							</div>
+						)}
 				</CardContent>
 			</Card>
 
@@ -268,24 +273,27 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 				<CardContent>
 					<div className="grid gap-4 md:grid-cols-3">
 						{CREDIT_PACKAGES.map((pkg) => (
-							<Card key={pkg.id} className="relative border-2 hover:border-primary/20 transition-colors">
+							<Card
+								key={pkg.id}
+								className="relative border-2 transition-colors hover:border-primary/20"
+							>
 								{pkg.popular && (
-									<Badge className="absolute -top-2 left-1/2 -translate-x-1/2">
+									<Badge className="-top-2 -translate-x-1/2 absolute left-1/2">
 										Most Popular
 									</Badge>
 								)}
-								<CardHeader className="text-center pb-2">
+								<CardHeader className="pb-2 text-center">
 									<CardTitle className="text-lg">{pkg.name}</CardTitle>
 									<CardDescription>{pkg.description}</CardDescription>
 								</CardHeader>
-								<CardContent className="text-center space-y-4">
+								<CardContent className="space-y-4 text-center">
 									<div>
-										<div className="text-3xl font-bold">${pkg.amount}</div>
-										<div className="text-sm text-muted-foreground">
+										<div className="font-bold text-3xl">${pkg.amount}</div>
+										<div className="text-muted-foreground text-sm">
 											${pkg.price} total
 										</div>
 									</div>
-									<Button 
+									<Button
 										onClick={() => handlePurchase(pkg.amount)}
 										disabled={isProcessing}
 										className="w-full"
@@ -326,7 +334,7 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 											value={customAmount}
 											onChange={(e) => setCustomAmount(e.target.value)}
 										/>
-										<p className="text-sm text-muted-foreground mt-1">
+										<p className="mt-1 text-muted-foreground text-sm">
 											Minimum: $1.00 • Maximum: $10,000.00
 										</p>
 									</div>
@@ -352,22 +360,26 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 					</div>
 
 					{/* Pricing Info */}
-					<div className="mt-6 p-4 bg-muted/50 rounded-lg">
-						<h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+					<div className="mt-6 rounded-lg bg-muted/50 p-4">
+						<h4 className="mb-2 flex items-center gap-2 font-medium text-sm">
 							<TrendingUp className="h-4 w-4" />
 							API Pricing
 						</h4>
 						<div className="grid gap-2 text-sm">
 							<div className="flex justify-between">
-								<span className="text-muted-foreground">Input tokens (per 1M)</span>
+								<span className="text-muted-foreground">
+									Input tokens (per 1M)
+								</span>
 								<span className="font-mono">$0.05</span>
 							</div>
 							<div className="flex justify-between">
-								<span className="text-muted-foreground">Output tokens (per 1M)</span>
+								<span className="text-muted-foreground">
+									Output tokens (per 1M)
+								</span>
 								<span className="font-mono">$0.15</span>
 							</div>
 						</div>
-						<p className="text-xs text-muted-foreground mt-2">
+						<p className="mt-2 text-muted-foreground text-xs">
 							Credits are charged based on actual token usage. 1 credit = $1 USD
 						</p>
 					</div>

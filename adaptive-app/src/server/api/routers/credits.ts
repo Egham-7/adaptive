@@ -2,24 +2,24 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { CreditService } from "@/lib/credit-service";
 import { stripe } from "@/lib/stripe/stripe";
-import {
-	createTRPCRouter,
-	protectedProcedure,
-} from "@/server/api/trpc";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 // Configuration constants
-const PROMOTIONAL_CREDIT_LIMIT = parseInt(process.env.PROMOTIONAL_CREDIT_LIMIT || '20');
-const PROMOTIONAL_CREDIT_AMOUNT = parseFloat(process.env.PROMOTIONAL_CREDIT_AMOUNT || '5.00');
+const PROMOTIONAL_CREDIT_LIMIT = Number.parseInt(
+	process.env.PROMOTIONAL_CREDIT_LIMIT || "20",
+);
+const PROMOTIONAL_CREDIT_AMOUNT = Number.parseFloat(
+	process.env.PROMOTIONAL_CREDIT_AMOUNT || "5.00",
+);
 
 // Helper function for dynamic precision formatting
 const formatCurrency = (amount: number): string => {
 	if (amount < 1) {
 		// For small amounts, show full precision to display micro-transactions
 		return `$${amount}`;
-	} else {
-		// For larger amounts, show standard 2 decimal places
-		return `$${amount.toFixed(2)}`;
 	}
+	// For larger amounts, show standard 2 decimal places
+	return `$${amount.toFixed(2)}`;
 };
 
 export const creditsRouter = createTRPCRouter({
@@ -37,25 +37,29 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const balance = await CreditService.getOrganizationBalance(input.organizationId);
+				const balance = await CreditService.getOrganizationBalance(
+					input.organizationId,
+				);
 				return {
 					balance,
 					formattedBalance: formatCurrency(balance),
 				};
 			} catch (error) {
 				console.error("Error fetching organization balance:", error);
-				
+
 				// Check if it's a specific error we can handle
 				if (error instanceof Error && error.message.includes("not found")) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
-						message: "Organization not found. Please make sure you have access to this organization.",
+						message:
+							"Organization not found. Please make sure you have access to this organization.",
 					});
 				}
-				
+
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch credit balance. Please try again or contact support if the issue persists.",
+					message:
+						"Failed to fetch credit balance. Please try again or contact support if the issue persists.",
 				});
 			}
 		}),
@@ -64,34 +68,36 @@ export const creditsRouter = createTRPCRouter({
 	getStats: protectedProcedure
 		.input(z.object({ organizationId: z.string() }))
 		.query(async ({ ctx, input }) => {
-		const userId = ctx.userId;
+			const userId = ctx.userId;
 
-		if (!userId) {
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "User ID not found in context",
-			});
-		}
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User ID not found in context",
+				});
+			}
 
-		try {
-			const stats = await CreditService.getOrganizationCreditStats(input.organizationId);
-			return {
-				...stats,
-				// Add formatted versions for UI display
-				formatted: {
-					currentBalance: formatCurrency(stats.currentBalance),
-					totalPurchased: formatCurrency(stats.totalPurchased),
-					totalUsed: formatCurrency(stats.totalUsed),
-				},
-			};
-		} catch (error) {
-			console.error("Error fetching user credit stats:", error);
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Failed to fetch credit statistics",
-			});
-		}
-	}),
+			try {
+				const stats = await CreditService.getOrganizationCreditStats(
+					input.organizationId,
+				);
+				return {
+					...stats,
+					// Add formatted versions for UI display
+					formatted: {
+						currentBalance: formatCurrency(stats.currentBalance),
+						totalPurchased: formatCurrency(stats.totalPurchased),
+						totalUsed: formatCurrency(stats.totalUsed),
+					},
+				};
+			} catch (error) {
+				console.error("Error fetching user credit stats:", error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to fetch credit statistics",
+				});
+			}
+		}),
 
 	// Get transaction history with pagination and filtering
 	getTransactionHistory: protectedProcedure
@@ -100,8 +106,8 @@ export const creditsRouter = createTRPCRouter({
 				organizationId: z.string(),
 				limit: z.number().min(1).max(100).default(20),
 				offset: z.number().min(0).default(0),
-				type: z.enum(['purchase', 'usage', 'refund', 'promotional']).optional(),
-			})
+				type: z.enum(["purchase", "usage", "refund", "promotional"]).optional(),
+			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId;
@@ -114,14 +120,15 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const transactions = await CreditService.getOrganizationTransactionHistory(
-					input.organizationId,
-					{
-						limit: input.limit,
-						offset: input.offset,
-						type: input.type,
-					}
-				);
+				const transactions =
+					await CreditService.getOrganizationTransactionHistory(
+						input.organizationId,
+						{
+							limit: input.limit,
+							offset: input.offset,
+							type: input.type,
+						},
+					);
 
 				// Format transactions for UI display
 				const formattedTransactions = transactions.map((transaction) => {
@@ -129,16 +136,17 @@ export const creditsRouter = createTRPCRouter({
 					const balanceAfter = transaction.balanceAfter.toNumber();
 					return {
 						...transaction,
-						formattedAmount: amount >= 0 
-							? `+${formatCurrency(amount).substring(1)}` // Remove $ and add +
-							: `-${formatCurrency(Math.abs(amount)).substring(1)}`, // Remove $ and add -
+						formattedAmount:
+							amount >= 0
+								? `+${formatCurrency(amount).substring(1)}` // Remove $ and add +
+								: `-${formatCurrency(Math.abs(amount)).substring(1)}`, // Remove $ and add -
 						formattedBalance: formatCurrency(balanceAfter),
 						// Add readable descriptions for different transaction types
 						readableType: {
-							purchase: 'Credit Purchase',
-							usage: 'API Usage',
-							refund: 'Refund',
-							promotional: 'Promotional Credit',
+							purchase: "Credit Purchase",
+							usage: "API Usage",
+							refund: "Refund",
+							promotional: "Promotional Credit",
 						}[transaction.type],
 					};
 				});
@@ -163,12 +171,12 @@ export const creditsRouter = createTRPCRouter({
 			z.object({
 				inputTokens: z.number().min(0),
 				outputTokens: z.number().min(0),
-			})
+			}),
 		)
 		.query(async ({ input }) => {
 			const cost = CreditService.calculateCreditCost(
 				input.inputTokens,
-				input.outputTokens
+				input.outputTokens,
 			);
 
 			return {
@@ -190,7 +198,7 @@ export const creditsRouter = createTRPCRouter({
 			z.object({
 				organizationId: z.string(),
 				requiredAmount: z.number().min(0),
-			})
+			}),
 		)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId;
@@ -205,9 +213,11 @@ export const creditsRouter = createTRPCRouter({
 			try {
 				const hasSufficient = await CreditService.hasSufficientCredits(
 					input.organizationId,
-					input.requiredAmount
+					input.requiredAmount,
 				);
-				const currentBalance = await CreditService.getOrganizationBalance(input.organizationId);
+				const currentBalance = await CreditService.getOrganizationBalance(
+					input.organizationId,
+				);
 
 				return {
 					hasSufficientCredits: hasSufficient,
@@ -231,7 +241,7 @@ export const creditsRouter = createTRPCRouter({
 				organizationId: z.string(),
 				amount: z.number().min(0.01),
 				description: z.string().min(1),
-			})
+			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.userId;
@@ -248,7 +258,7 @@ export const creditsRouter = createTRPCRouter({
 					input.organizationId,
 					userId,
 					input.amount,
-					input.description
+					input.description,
 				);
 
 				return {
@@ -259,8 +269,11 @@ export const creditsRouter = createTRPCRouter({
 				};
 			} catch (error) {
 				console.error("Error awarding promotional credits:", error);
-				
-				if (error instanceof Error && error.message.includes("already received")) {
+
+				if (
+					error instanceof Error &&
+					error.message.includes("already received")
+				) {
 					throw new TRPCError({
 						code: "CONFLICT",
 						message: "User has already received promotional credits",
@@ -278,51 +291,54 @@ export const creditsRouter = createTRPCRouter({
 	getLowBalanceStatus: protectedProcedure
 		.input(z.object({ organizationId: z.string() }))
 		.query(async ({ ctx, input }) => {
-		const userId = ctx.userId;
+			const userId = ctx.userId;
 
-		if (!userId) {
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "User ID not found in context",
-			});
-		}
-
-		try {
-			const balance = await CreditService.getOrganizationBalance(input.organizationId);
-			const LOW_BALANCE_THRESHOLD = 1.0; // $1.00
-			const VERY_LOW_BALANCE_THRESHOLD = 0.1; // $0.10
-
-			let status: 'good' | 'low' | 'very_low' | 'empty' = 'good';
-			let message = '';
-
-			if (balance <= 0) {
-				status = 'empty';
-				message = 'Your credit balance is empty. Please purchase credits to continue using the API.';
-			} else if (balance <= VERY_LOW_BALANCE_THRESHOLD) {
-				status = 'very_low';
-				message = `Your credit balance is very low (${formatCurrency(balance)}). Please consider purchasing credits soon.`;
-			} else if (balance <= LOW_BALANCE_THRESHOLD) {
-				status = 'low';
-				message = `Your credit balance is low (${formatCurrency(balance)}). Consider purchasing credits.`;
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User ID not found in context",
+				});
 			}
 
-			return {
-				balance,
-				status,
-				message,
-				thresholds: {
-					low: LOW_BALANCE_THRESHOLD,
-					veryLow: VERY_LOW_BALANCE_THRESHOLD,
-				},
-			};
-		} catch (error) {
-			console.error("Error checking low balance status:", error);
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Failed to check balance status",
-			});
-		}
-	}),
+			try {
+				const balance = await CreditService.getOrganizationBalance(
+					input.organizationId,
+				);
+				const LOW_BALANCE_THRESHOLD = 1.0; // $1.00
+				const VERY_LOW_BALANCE_THRESHOLD = 0.1; // $0.10
+
+				let status: "good" | "low" | "very_low" | "empty" = "good";
+				let message = "";
+
+				if (balance <= 0) {
+					status = "empty";
+					message =
+						"Your credit balance is empty. Please purchase credits to continue using the API.";
+				} else if (balance <= VERY_LOW_BALANCE_THRESHOLD) {
+					status = "very_low";
+					message = `Your credit balance is very low (${formatCurrency(balance)}). Please consider purchasing credits soon.`;
+				} else if (balance <= LOW_BALANCE_THRESHOLD) {
+					status = "low";
+					message = `Your credit balance is low (${formatCurrency(balance)}). Consider purchasing credits.`;
+				}
+
+				return {
+					balance,
+					status,
+					message,
+					thresholds: {
+						low: LOW_BALANCE_THRESHOLD,
+						veryLow: VERY_LOW_BALANCE_THRESHOLD,
+					},
+				};
+			} catch (error) {
+				console.error("Error checking low balance status:", error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to check balance status",
+				});
+			}
+		}),
 
 	// Create Stripe checkout session for credit purchase
 	createCheckoutSession: protectedProcedure
@@ -332,7 +348,7 @@ export const creditsRouter = createTRPCRouter({
 				amount: z.number().min(1).max(10000), // $1 minimum, $10,000 maximum
 				successUrl: z.string(),
 				cancelUrl: z.string(),
-			})
+			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.userId;
@@ -347,7 +363,7 @@ export const creditsRouter = createTRPCRouter({
 			try {
 				// Get or create Stripe customer
 				let customerId: string;
-				
+
 				// Check if user already has a Stripe customer ID
 				const existingSubscription = await ctx.db.subscription.findUnique({
 					where: { userId },
@@ -361,7 +377,7 @@ export const creditsRouter = createTRPCRouter({
 					const customer = await stripe.customers.create({
 						metadata: {
 							userId,
-							type: 'api_credit_customer',
+							type: "api_credit_customer",
 						},
 					});
 					customerId = customer.id;
@@ -372,7 +388,7 @@ export const creditsRouter = createTRPCRouter({
 						create: {
 							userId,
 							stripeCustomerId: customerId,
-							status: 'incomplete',
+							status: "incomplete",
 						},
 						update: {
 							stripeCustomerId: customerId,
@@ -383,12 +399,12 @@ export const creditsRouter = createTRPCRouter({
 				// Create Stripe checkout session for one-time payment
 				const session = await stripe.checkout.sessions.create({
 					customer: customerId,
-					payment_method_types: ['card'],
-					mode: 'payment', // One-time payment, not subscription
+					payment_method_types: ["card"],
+					mode: "payment", // One-time payment, not subscription
 					line_items: [
 						{
 							price_data: {
-								currency: 'usd',
+								currency: "usd",
 								product_data: {
 									name: `API Credits - $${input.amount}`,
 									description: `$${input.amount} in API credits for your account`,
@@ -403,7 +419,7 @@ export const creditsRouter = createTRPCRouter({
 					metadata: {
 						userId,
 						creditAmount: input.amount.toString(),
-						type: 'credit_purchase',
+						type: "credit_purchase",
 					},
 				});
 
@@ -426,67 +442,73 @@ export const creditsRouter = createTRPCRouter({
 	claimWelcomeCredit: protectedProcedure
 		.input(z.object({ organizationId: z.string() }))
 		.mutation(async ({ ctx, input }) => {
-		const userId = ctx.userId;
+			const userId = ctx.userId;
 
-		if (!userId) {
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "User ID not found in context",
-			});
-		}
+			if (!userId) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "User ID not found in context",
+				});
+			}
 
-		try {
-			// Check how many organizations have already claimed promotional credits
-			const promotionalCreditCount = await ctx.db.creditTransaction.count({
-				where: {
-					type: 'promotional',
-					description: {
-						contains: 'Welcome bonus',
+			try {
+				// Check how many organizations have already claimed promotional credits
+				const promotionalCreditCount = await ctx.db.creditTransaction.count({
+					where: {
+						type: "promotional",
+						description: {
+							contains: "Welcome bonus",
+						},
 					},
-				},
-			});
+				});
 
-			// Only allow first N users to claim (configurable)
-			if (promotionalCreditCount >= PROMOTIONAL_CREDIT_LIMIT) {
+				// Only allow first N users to claim (configurable)
+				if (promotionalCreditCount >= PROMOTIONAL_CREDIT_LIMIT) {
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: `Welcome credit promotion has ended. Limited to first ${PROMOTIONAL_CREDIT_LIMIT} users.`,
+					});
+				}
+
+				// Award promotional credit (configurable amount)
+				const result = await CreditService.awardPromotionalCredits(
+					input.organizationId,
+					userId,
+					PROMOTIONAL_CREDIT_AMOUNT,
+					`Welcome bonus - ${formatCurrency(PROMOTIONAL_CREDIT_AMOUNT)} free credits for new API users`,
+				);
+
+				return {
+					success: true,
+					creditAmount: PROMOTIONAL_CREDIT_AMOUNT,
+					newBalance: result.newBalance,
+					message: `Welcome! You've received ${formatCurrency(PROMOTIONAL_CREDIT_AMOUNT)} in free API credits. You are organization #${promotionalCreditCount + 1} to claim this bonus.`,
+					remainingSlots: Math.max(
+						0,
+						PROMOTIONAL_CREDIT_LIMIT - (promotionalCreditCount + 1),
+					),
+				};
+			} catch (error) {
+				console.error("Error claiming welcome credit:", error);
+
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+
+				if (
+					error instanceof Error &&
+					error.message.includes("already received")
+				) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "You have already claimed your welcome credit.",
+					});
+				}
+
 				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: `Welcome credit promotion has ended. Limited to first ${PROMOTIONAL_CREDIT_LIMIT} users.`,
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to claim welcome credit",
 				});
 			}
-
-			// Award promotional credit (configurable amount)
-			const result = await CreditService.awardPromotionalCredits(
-				input.organizationId,
-				userId,
-				PROMOTIONAL_CREDIT_AMOUNT,
-				`Welcome bonus - ${formatCurrency(PROMOTIONAL_CREDIT_AMOUNT)} free credits for new API users`
-			);
-
-			return {
-				success: true,
-				creditAmount: PROMOTIONAL_CREDIT_AMOUNT,
-				newBalance: result.newBalance,
-				message: `Welcome! You've received ${formatCurrency(PROMOTIONAL_CREDIT_AMOUNT)} in free API credits. You are organization #${promotionalCreditCount + 1} to claim this bonus.`,
-				remainingSlots: Math.max(0, PROMOTIONAL_CREDIT_LIMIT - (promotionalCreditCount + 1)),
-			};
-		} catch (error) {
-			console.error("Error claiming welcome credit:", error);
-			
-			if (error instanceof TRPCError) {
-				throw error;
-			}
-
-			if (error instanceof Error && error.message.includes("already received")) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message: "You have already claimed your welcome credit.",
-				});
-			}
-
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Failed to claim welcome credit",
-			});
-		}
-	}),
+		}),
 });

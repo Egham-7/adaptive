@@ -186,17 +186,18 @@ export const usageRouter = createTRPCRouter({
 				// $0.05 per 1M input tokens, $0.15 per 1M output tokens
 				const creditCost = CreditService.calculateCreditCost(
 					input.usage.promptTokens,
-					input.usage.completionTokens
+					input.usage.completionTokens,
 				);
 
 				// Check if organization has sufficient credits before processing
 				const hasSufficientCredits = await CreditService.hasSufficientCredits(
 					organizationId,
-					creditCost
+					creditCost,
 				);
 
 				if (!hasSufficientCredits) {
-					const currentBalance = await CreditService.getOrganizationBalance(organizationId);
+					const currentBalance =
+						await CreditService.getOrganizationBalance(organizationId);
 					throw new TRPCError({
 						code: "PAYMENT_REQUIRED",
 						message: `Insufficient credits. Required: $${creditCost.toFixed(4)}, Available: $${currentBalance.toFixed(4)}. Please purchase more credits.`,
@@ -256,13 +257,13 @@ export const usageRouter = createTRPCRouter({
 					apiKey.projectId || undefined,
 				);
 
-				return { 
-					success: true, 
+				return {
+					success: true,
 					usage,
 					creditTransaction: {
 						amount: creditTransaction.deductedAmount,
 						newBalance: creditTransaction.newBalance,
-					}
+					},
 				};
 			} catch (error) {
 				console.error("Failed to record API usage:", error);

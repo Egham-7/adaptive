@@ -2,8 +2,8 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { stripe } from "@/lib/stripe/stripe";
 import { CreditService } from "@/lib/credit-service";
+import { stripe } from "@/lib/stripe/stripe";
 import { db } from "@/server/db";
 
 export async function POST(request: NextRequest) {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 				if (session.payment_status === "paid") {
 					// Check if this is a credit purchase or subscription
 					const isSubscription = !!session.subscription;
-					const isCreditPurchase = session.metadata?.type === 'credit_purchase';
+					const isCreditPurchase = session.metadata?.type === "credit_purchase";
 
 					if (!session.metadata?.userId || !session.customer) {
 						console.log("⚠️ Missing required session data, skipping...");
@@ -61,15 +61,20 @@ export async function POST(request: NextRequest) {
 					if (isCreditPurchase) {
 						// Handle credit purchase
 						console.log("💳 Processing credit purchase");
-						
+
 						if (!session.metadata?.organizationId) {
 							console.error("❌ Missing organizationId for credit purchase");
 							break;
 						}
-						
-						const creditAmount = parseFloat(session.metadata.creditAmount || '0');
+
+						const creditAmount = Number.parseFloat(
+							session.metadata.creditAmount || "0",
+						);
 						if (creditAmount <= 0) {
-							console.error("❌ Invalid credit amount:", session.metadata.creditAmount);
+							console.error(
+								"❌ Invalid credit amount:",
+								session.metadata.creditAmount,
+							);
 							break;
 						}
 
@@ -79,7 +84,7 @@ export async function POST(request: NextRequest) {
 								organizationId: session.metadata.organizationId,
 								userId: session.metadata.userId,
 								amount: creditAmount,
-								type: 'purchase',
+								type: "purchase",
 								description: `Credit purchase via Stripe - $${creditAmount}`,
 								metadata: {
 									stripeSessionId: session.id,
