@@ -62,6 +62,11 @@ export async function POST(request: NextRequest) {
 						// Handle credit purchase
 						console.log("💳 Processing credit purchase");
 						
+						if (!session.metadata?.organizationId) {
+							console.error("❌ Missing organizationId for credit purchase");
+							break;
+						}
+						
 						const creditAmount = parseFloat(session.metadata.creditAmount || '0');
 						if (creditAmount <= 0) {
 							console.error("❌ Invalid credit amount:", session.metadata.creditAmount);
@@ -69,8 +74,9 @@ export async function POST(request: NextRequest) {
 						}
 
 						try {
-							// Add credits to user's account
+							// Add credits to organization's account
 							const result = await CreditService.addCredits({
+								organizationId: session.metadata.organizationId,
 								userId: session.metadata.userId,
 								amount: creditAmount,
 								type: 'purchase',
