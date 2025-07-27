@@ -8,30 +8,53 @@ export class CreditService {
    * Every organization needs an OrganizationCredit record to track their balance
    */
   static async getOrCreateOrganizationCredit(organizationId: string) {
-    let orgCredit = await db.organizationCredit.findUnique({
-      where: { organizationId },
-    });
-
-    if (!orgCredit) {
-      orgCredit = await db.organizationCredit.create({
-        data: {
-          organizationId,
-          balance: 0,
-          totalPurchased: 0,
-          totalUsed: 0,
-        },
+    try {
+      let orgCredit = await db.organizationCredit.findUnique({
+        where: { organizationId },
       });
-    }
 
-    return orgCredit;
+      if (!orgCredit) {
+        // First, verify the organization exists
+        const organization = await db.organization.findUnique({
+          where: { id: organizationId },
+        });
+
+        if (!organization) {
+          throw new Error(`Organization with ID ${organizationId} not found`);
+        }
+
+        // Create the credit record
+        orgCredit = await db.organizationCredit.create({
+          data: {
+            organizationId,
+            balance: 0,
+            totalPurchased: 0,
+            totalUsed: 0,
+          },
+        });
+      }
+
+      return orgCredit;
+    } catch (error) {
+      console.error("Error in getOrCreateOrganizationCredit:", error);
+      throw error;
+    }
   }
 
   /**
    * Get organization's current credit balance
    */
   static async getOrganizationBalance(organizationId: string): Promise<number> {
-    const orgCredit = await this.getOrCreateOrganizationCredit(organizationId);
-    return orgCredit.balance.toNumber();
+    try {
+      const orgCredit = await this.getOrCreateOrganizationCredit(organizationId);
+      return orgCredit.balance?.toNumber() || 0;
+    } catch (error) {
+      console.error("Error getting organization balance:", error);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: `Failed to get credit balance: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
   }
 
   /**

@@ -44,9 +44,18 @@ export const creditsRouter = createTRPCRouter({
 				};
 			} catch (error) {
 				console.error("Error fetching organization balance:", error);
+				
+				// Check if it's a specific error we can handle
+				if (error instanceof Error && error.message.includes("not found")) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Organization not found. Please make sure you have access to this organization.",
+					});
+				}
+				
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch credit balance",
+					message: "Failed to fetch credit balance. Please try again or contact support if the issue persists.",
 				});
 			}
 		}),

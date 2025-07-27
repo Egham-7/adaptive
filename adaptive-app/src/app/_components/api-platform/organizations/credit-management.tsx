@@ -61,14 +61,33 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 	const [isProcessing, setIsProcessing] = useState(false);
 
 	// Fetch credit balance
-	const { data: balance, refetch: refetchBalance } = api.credits.getBalance.useQuery(
+	const { 
+		data: balance, 
+		refetch: refetchBalance, 
+		isLoading: balanceLoading,
+		error: balanceError 
+	} = api.credits.getBalance.useQuery(
 		{ organizationId },
-		{ refetchInterval: 30000 } // Refetch every 30 seconds
+		{ 
+			refetchInterval: 30000, // Refetch every 30 seconds
+			retry: (failureCount, error) => {
+				// Don't retry on NOT_FOUND errors
+				if (error?.data?.code === 'NOT_FOUND') return false;
+				return failureCount < 3;
+			}
+		}
 	);
 
 	// Fetch low balance status
 	const { data: balanceStatus } = api.credits.getLowBalanceStatus.useQuery(
-		{ organizationId }
+		{ organizationId },
+		{ 
+			enabled: !balanceError, // Don't fetch if balance fetch failed
+			retry: (failureCount, error) => {
+				if (error?.data?.code === 'NOT_FOUND') return false;
+				return failureCount < 3;
+			}
+		}
 	);
 
 	// Create checkout session
@@ -136,6 +155,40 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 		}
 	};
 
+	// Show error state if balance fetch failed
+	if (balanceError) {
+		return (
+			<div className="space-y-6">
+				<Card>
+					<CardHeader>
+						<CardTitle className="flex items-center gap-2">
+							<CreditCard className="h-5 w-5" />
+							Credit Balance
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<div className="flex flex-col items-center justify-center py-8 text-center">
+							<div className="mb-4 text-4xl">⚠️</div>
+							<h3 className="mb-2 font-medium text-lg">Unable to load credit balance</h3>
+							<p className="mb-4 text-sm text-muted-foreground max-w-md">
+								{balanceError.data?.code === 'NOT_FOUND' 
+									? "Organization not found. Please make sure you have access to this organization."
+									: balanceError.message || "There was an error loading your credit information."
+								}
+							</p>
+							<Button 
+								onClick={() => refetchBalance()}
+								variant="outline"
+							>
+								Try Again
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
+			</div>
+		);
+	}
+
 	return (
 		<div className="space-y-6">
 			{/* Credit Balance Overview */}
@@ -153,9 +206,23 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 					<div className="flex items-center justify-between">
 						<div className="space-y-1">
 							<div className="flex items-center gap-2">
-								<span className="text-2xl font-bold">
-									{balance?.formattedBalance || "$0.00"}
-								</span>
+								{balanceLoading ? (
+									<div className="flex items-center gap-2">
+										<div className="h-8 w-24 bg-muted animate-pulse rounded" />
+										<div className="h-4 w-4 bg-muted animate-pulse rounded-full" />
+									</div>
+								) : (
+									<>
+										<span className="text-2xl font-bold">
+											{balance?.formattedBalance || "$0.00"}
+										</span>
+										{balanceStatus?.status && (
+											<span className={getBalanceStatusColor(balanceStatus.status)}>
+												{getBalanceStatusIcon(balanceStatus.status)}
+											</span>
+										)}
+									</>
+								)}
 								{balanceStatus?.status && (
 									<span className={getBalanceStatusColor(balanceStatus.status)}>
 										{getBalanceStatusIcon(balanceStatus.status)}
