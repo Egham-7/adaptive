@@ -255,7 +255,9 @@ class ModelSelectionService:
 
         # Apply cost-based ranking if cost_bias is provided
         if request.cost_bias is not None and candidate_models:
-            from adaptive_ai.utils.cost_utils import rank_models_by_cost_performance
+            from adaptive_ai.services.cost_optimizer import (
+                rank_models_by_cost_performance,
+            )
 
             original_count = len(candidate_models)
             original_top_model = (
