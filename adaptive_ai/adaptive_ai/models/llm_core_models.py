@@ -58,7 +58,7 @@ class ModelSelectionRequest(BaseModel):
     @model_validator(mode="after")
     def validate_parameters(self) -> "ModelSelectionRequest":
         # Validate the OpenAI request has required fields
-        if not self.chat_completion_request.get("messages"):
+        if not self.chat_completion_request.messages:
             raise ValueError("messages cannot be empty")
 
         return self
