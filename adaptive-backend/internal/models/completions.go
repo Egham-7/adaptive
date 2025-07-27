@@ -146,10 +146,6 @@ type ChatCompletionRequest struct {
 	// Options for streaming response. Only set this when you set `stream: true`.
 	StreamOptions openai.ChatCompletionStreamOptionsParam `json:"stream_options,omitzero"`
 
-	// Deprecated in favor of `tools`.
-	//
-	// A list of functions the model may generate JSON inputs for.
-	Functions []openai.ChatCompletionNewParamsFunction `json:"functions,omitzero"`
 	// Deprecated in favor of `tool_choice`.
 	//
 	// Controls which (if any) function is called by the model.
@@ -232,7 +228,6 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 		ServiceTier:         r.ServiceTier,
 		Stop:                r.Stop,
 		StreamOptions:       r.StreamOptions,
-		Functions:           r.Functions,
 		FunctionCall:        r.FunctionCall,
 		Prediction:          r.Prediction,
 		ResponseFormat:      r.ResponseFormat,
