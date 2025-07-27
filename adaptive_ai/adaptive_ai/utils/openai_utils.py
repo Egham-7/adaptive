@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from openai.types.chat import CompletionCreateParams  # type: ignore[import-not-found]
+    from openai.types.chat import CompletionCreateParams  #type: ignore
 else:
     CompletionCreateParams = dict[str, Any]
 
