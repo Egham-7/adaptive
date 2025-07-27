@@ -1,6 +1,7 @@
 import { createCallerFactory, createTRPCRouter } from "@/server/api/trpc";
 import { apiKeysRouter } from "./routers/api_keys";
 import { conversationRouter } from "./routers/conversations";
+import { creditsRouter } from "./routers/credits";
 import { messageRouter } from "./routers/message";
 import { organizationsRouter } from "./routers/organizations";
 import { modelPricingRouter } from "./routers/pricing";
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
 	conversations: conversationRouter,
 	messages: messageRouter,
 	api_keys: apiKeysRouter,
+	credits: creditsRouter,
 	organizations: organizationsRouter,
 	modelPricing: modelPricingRouter,
 	projects: projectsRouter,

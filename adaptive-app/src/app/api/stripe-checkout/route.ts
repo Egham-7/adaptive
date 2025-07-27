@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe/stripe";
+import { CreditService } from "@/lib/credit-service";
 import { db } from "@/server/db";
 
 export async function POST(request: NextRequest) {
@@ -48,63 +49,104 @@ export async function POST(request: NextRequest) {
 				console.log("🔔 Payment received!");
 
 				if (session.payment_status === "paid") {
-					// Skip if missing required fields
-					if (
-						!session.metadata?.userId ||
-						!session.subscription ||
-						!session.customer
-					) {
+					// Check if this is a credit purchase or subscription
+					const isSubscription = !!session.subscription;
+					const isCreditPurchase = session.metadata?.type === 'credit_purchase';
+
+					if (!session.metadata?.userId || !session.customer) {
 						console.log("⚠️ Missing required session data, skipping...");
 						break;
 					}
 
-					// Get the subscription details from Stripe API
-					const subscription = await stripe.subscriptions.retrieve(
-						session.subscription as string,
-					);
-					const currentPeriodEnd = new Date(
-						// @ts-ignore - current_period_end exists in Stripe API but not in TS types
-						subscription.current_period_end * 1000,
-					);
-					const priceId = subscription.items.data[0]?.price.id;
+					if (isCreditPurchase) {
+						// Handle credit purchase
+						console.log("💳 Processing credit purchase");
+						
+						const creditAmount = parseFloat(session.metadata.creditAmount || '0');
+						if (creditAmount <= 0) {
+							console.error("❌ Invalid credit amount:", session.metadata.creditAmount);
+							break;
+						}
 
-					if (!priceId) {
-						throw new Error("Subscription price ID is missing");
+						try {
+							// Add credits to user's account
+							const result = await CreditService.addCredits({
+								userId: session.metadata.userId,
+								amount: creditAmount,
+								type: 'purchase',
+								description: `Credit purchase via Stripe - $${creditAmount}`,
+								metadata: {
+									stripeSessionId: session.id,
+									stripePaymentIntentId: session.payment_intent,
+									purchaseTimestamp: new Date().toISOString(),
+								},
+								stripeSessionId: session.id,
+								stripePaymentIntentId: session.payment_intent as string,
+							});
+
+							console.log("✅ Credits added successfully:", {
+								userId: session.metadata.userId,
+								amount: creditAmount,
+								newBalance: result.newBalance,
+							});
+						} catch (error) {
+							console.error("❌ Failed to add credits:", error);
+						}
+					} else if (isSubscription) {
+						// Handle subscription (existing logic)
+						if (!session.subscription) {
+							console.log("⚠️ Missing subscription data, skipping...");
+							break;
+						}
+
+						// Get the subscription details from Stripe API
+						const subscription = await stripe.subscriptions.retrieve(
+							session.subscription as string,
+						);
+						const currentPeriodEnd = new Date(
+							// @ts-ignore - current_period_end exists in Stripe API but not in TS types
+							subscription.current_period_end * 1000,
+						);
+						const priceId = subscription.items.data[0]?.price.id;
+
+						if (!priceId) {
+							throw new Error("Subscription price ID is missing");
+						}
+
+						// Ensure customer ID is a string
+						const customerId =
+							typeof session.customer === "string"
+								? session.customer
+								: session.customer.id;
+
+						// Update or create subscription in database
+						await db.subscription.upsert({
+							where: {
+								userId: session.metadata.userId,
+							},
+							create: {
+								userId: session.metadata.userId,
+								stripeCustomerId: customerId,
+								stripePriceId: priceId,
+								stripeSubscriptionId: subscription.id,
+								status: subscription.status,
+								currentPeriodEnd,
+							},
+							update: {
+								stripeCustomerId: customerId,
+								stripePriceId: priceId,
+								stripeSubscriptionId: subscription.id,
+								status: subscription.status,
+								currentPeriodEnd,
+							},
+						});
+
+						console.log("✅ Subscription created/updated:", {
+							userId: session.metadata.userId,
+							subscriptionId: subscription.id,
+							status: subscription.status,
+						});
 					}
-
-					// Ensure customer ID is a string
-					const customerId =
-						typeof session.customer === "string"
-							? session.customer
-							: session.customer.id;
-
-					// Update or create subscription in database
-					await db.subscription.upsert({
-						where: {
-							userId: session.metadata.userId,
-						},
-						create: {
-							userId: session.metadata.userId,
-							stripeCustomerId: customerId,
-							stripePriceId: priceId,
-							stripeSubscriptionId: subscription.id,
-							status: subscription.status,
-							currentPeriodEnd,
-						},
-						update: {
-							stripeCustomerId: customerId,
-							stripePriceId: priceId,
-							stripeSubscriptionId: subscription.id,
-							status: subscription.status,
-							currentPeriodEnd,
-						},
-					});
-
-					console.log("✅ Subscription created/updated:", {
-						userId: session.metadata.userId,
-						subscriptionId: subscription.id,
-						status: subscription.status,
-					});
 				}
 				break;
 			}
