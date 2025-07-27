@@ -18,7 +18,7 @@ class CostOptimizer:
             strategy: Optimization strategy ("sigmoid" or future "ml_model")
         """
         self.strategy = strategy
-        self._cost_cache: dict[tuple[str, int], float] = {}
+        self._cost_cache: dict[tuple[str, int, float], float] = {}
         self._tier_cache: dict[str, str] = {}
 
         # Strategy configuration
@@ -44,7 +44,7 @@ class CostOptimizer:
     ) -> float:
         """Calculate estimated cost for a model based on token usage."""
         # Check cache first
-        cache_key = (model_capability.model_name, input_tokens)
+        cache_key = (model_capability.model_name, input_tokens, output_ratio)
         if cache_key in self._cost_cache:
             return self._cost_cache[cache_key]
 
