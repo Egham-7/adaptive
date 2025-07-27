@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
                   ? line.subscription
                   : line.subscription.id;
 
-              await db.subscription.update({
+              await db.subscription.updateMany({
                 where: { stripeSubscriptionId: subscriptionId },
                 data: {
                   status: "active",
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
                   ? line.subscription
                   : line.subscription.id;
 
-              await db.subscription.update({
+              await db.subscription.updateMany({
                 where: { stripeSubscriptionId: subscriptionId },
                 data: {
                   status: "past_due",
