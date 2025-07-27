@@ -97,7 +97,11 @@ export default function ChatbotPricing() {
 							<Button disabled variant="outline" className="mt-4 w-full">
 								Checking subscription status...
 							</Button>
-						) : user && !isSubscribed ? (
+						) : !user ? (
+							<Button disabled variant="outline" className="mt-4 w-full">
+								Please log in to subscribe
+							</Button>
+						) : !isSubscribed ? (
 							<div className="mt-4 w-full">
 								<SubscribeButton />
 							</div>
