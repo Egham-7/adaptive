@@ -1,9 +1,21 @@
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { db } from "@/server/db";
 
 export async function GET(req: Request) {
+	const { userId: authenticatedUserId } = await auth(); // Authenticate the user
 	const { searchParams } = new URL(req.url);
 	const userId = searchParams.get("userId");
+
+	// Ensure the user is authenticated
+	if (!authenticatedUserId) {
+		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+	}
+
+	// Ensure the user can only query their own subscription status
+	if (userId !== authenticatedUserId) {
+		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+	}
 
 	if (!userId) {
 		return NextResponse.json({ error: "User ID is required" }, { status: 400 });
