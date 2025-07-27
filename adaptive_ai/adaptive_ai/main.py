@@ -22,6 +22,7 @@ from adaptive_ai.services.model_selector import (
 )
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 from adaptive_ai.services.protocol_manager import ProtocolManager
+from adaptive_ai.utils.openai_utils import extract_last_message_content
 
 
 # LitServe Console Logger
@@ -54,7 +55,11 @@ class ProtocolManagerAPI(ls.LitAPI):
 
         outputs: list[OrchestratorResponse] = []
 
-        prompts: list[str] = [req.prompt for req in requests]
+        # Get the most recent message content for classification
+        prompts: list[str] = [
+            extract_last_message_content(req.chat_completion_request)
+            for req in requests
+        ]
 
         # Run both task and domain classification in parallel
         t0 = time.perf_counter()
@@ -137,13 +142,15 @@ class ProtocolManagerAPI(ls.LitAPI):
             self.log("cache_disabled", "rule_based_routing_is_fast")
 
             # Direct routing without cache
+            # Get current prompt (already extracted above)
+            current_prompt = prompts[i]
             try:
-                prompt_token_count = len(self.tokenizer.encode(req.prompt))
+                prompt_token_count = len(self.tokenizer.encode(current_prompt))
             except Exception as e:
-                prompt_token_count = len(req.prompt) // 4  # Rough approximation
+                prompt_token_count = len(current_prompt) // 4  # Rough approximation
                 self.log(
                     "prompt_token_count_fallback",
-                    {"prompt": req.prompt, "error": str(e)},
+                    {"prompt": current_prompt, "error": str(e)},
                 )
 
             select_t0 = time.perf_counter()
@@ -166,7 +173,7 @@ class ProtocolManagerAPI(ls.LitAPI):
             self.log("model_selection_time", select_t1 - select_t0)
 
             if not standard_candidates and not minion_candidates:
-                self.log("no_eligible_models", {"prompt": req.prompt})
+                self.log("no_eligible_models", {"prompt": current_prompt})
                 raise ValueError(
                     "No eligible models found after applying provider and task constraints"
                 )

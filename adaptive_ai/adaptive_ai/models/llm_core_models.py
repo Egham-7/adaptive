@@ -2,8 +2,6 @@
 
 
 from openai.types.chat import (
-    ChatCompletionMessageParam,
-    ChatCompletionToolParam,
     CompletionCreateParams,
 )
 from pydantic import BaseModel, Field, model_validator
@@ -64,44 +62,3 @@ class ModelSelectionRequest(BaseModel):
             raise ValueError("messages cannot be empty")
 
         return self
-
-    @property
-    def tools(self) -> list[ChatCompletionToolParam] | None:
-        """Access tools from the OpenAI request."""
-        from typing import cast
-
-        return cast(
-            list[ChatCompletionToolParam] | None,
-            self.chat_completion_request.get("tools"),
-        )
-
-    @property
-    def messages(self) -> list[ChatCompletionMessageParam]:
-        """Access messages from the OpenAI request."""
-        from typing import cast
-
-        return cast(
-            list[ChatCompletionMessageParam], self.chat_completion_request["messages"]
-        )
-
-    @property
-    def prompt(self) -> str:
-        """Convert messages to a single prompt string for backward compatibility."""
-        text_parts = []
-        for msg in self.messages:
-            role = msg.get("role", "")
-            content = msg.get("content", "")
-            if isinstance(content, str):
-                text_parts.append(f"{role}: {content}")
-            elif isinstance(content, list):
-                # Handle multimodal content
-                text_content = " ".join(
-                    [
-                        item.get("text", "")
-                        for item in content
-                        if item.get("type") == "text" and item.get("text")
-                    ]
-                )
-                if text_content:
-                    text_parts.append(f"{role}: {text_content}")
-        return "\n".join(text_parts)
