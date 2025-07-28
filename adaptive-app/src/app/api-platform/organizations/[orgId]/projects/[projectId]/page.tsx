@@ -111,7 +111,11 @@ export default function DashboardPage() {
 						Real-time insights
 					</div>
 				</div>
-				<MetricsOverview data={data} loading={loading} selectedModel={selectedModel} />
+				<MetricsOverview
+					data={data}
+					loading={loading}
+					selectedModel={selectedModel}
+				/>
 			</section>
 
 			{/* Divider */}

@@ -42,14 +42,15 @@ const COMPARISON_MODELS = [
 // Calculate direct cost for a specific model using actual token usage
 function calculateDirectModelCost(
 	usageData: { inputTokens: number; outputTokens: number }[],
-	modelId: keyof typeof MODEL_PRICING
+	modelId: keyof typeof MODEL_PRICING,
 ): number {
 	const modelPricing = MODEL_PRICING[modelId];
 	if (!modelPricing) return 0;
 
 	return usageData.reduce((totalCost, usage) => {
 		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
-		const outputCost = (usage.outputTokens / 1_000_000) * modelPricing.outputCost;
+		const outputCost =
+			(usage.outputTokens / 1_000_000) * modelPricing.outputCost;
 		return totalCost + inputCost + outputCost;
 	}, 0);
 }
@@ -62,7 +63,6 @@ export function UsageSection({
 	selectedModel,
 	onModelChange,
 }: UsageSectionProps) {
-
 	if (loading) {
 		return <ChartSkeleton />;
 	}
@@ -82,15 +82,17 @@ export function UsageSection({
 		);
 	}
 
-	const selectedModelInfo = COMPARISON_MODELS.find((m) => m.id === selectedModel);
+	const selectedModelInfo = COMPARISON_MODELS.find(
+		(m) => m.id === selectedModel,
+	);
 	const totalSpend = data.totalSpend;
-	
+
 	// Calculate actual direct model cost using real token usage data
 	const directModelCost = calculateDirectModelCost(
-		data.usageData, 
-		selectedModel as keyof typeof MODEL_PRICING
+		data.usageData,
+		selectedModel as keyof typeof MODEL_PRICING,
 	);
-	
+
 	const totalSavings = directModelCost - totalSpend;
 	const savingsPercentage =
 		directModelCost > 0
@@ -99,10 +101,11 @@ export function UsageSection({
 
 	// Recalculate chart data with selected model pricing
 	const chartData = data.usageData.map((dataPoint) => {
-		const modelPricing = MODEL_PRICING[selectedModel as keyof typeof MODEL_PRICING];
+		const modelPricing =
+			MODEL_PRICING[selectedModel as keyof typeof MODEL_PRICING];
 		if (!modelPricing) return dataPoint;
 
-		const directCost = 
+		const directCost =
 			(dataPoint.inputTokens / 1_000_000) * modelPricing.inputCost +
 			(dataPoint.outputTokens / 1_000_000) * modelPricing.outputCost;
 
@@ -120,7 +123,9 @@ export function UsageSection({
 						<div className="mb-1 flex items-center justify-between">
 							<CardTitle>Cost Comparison</CardTitle>
 							<div className="flex items-center gap-2">
-								<span className="text-muted-foreground text-sm">Compare vs</span>
+								<span className="text-muted-foreground text-sm">
+									Compare vs
+								</span>
 								<Select value={selectedModel} onValueChange={onModelChange}>
 									<SelectTrigger className="w-[180px]">
 										<SelectValue />
@@ -137,7 +142,9 @@ export function UsageSection({
 						</div>
 						<div className="space-y-2">
 							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground text-sm">Your Adaptive Cost</span>
+								<span className="text-muted-foreground text-sm">
+									Your Adaptive Cost
+								</span>
 								<span className="font-semibold text-lg">
 									$
 									{typeof totalSpend === "number"
@@ -163,7 +170,7 @@ export function UsageSection({
 						</div>
 						<div className="mt-3 rounded-lg bg-green-50 p-3 dark:bg-green-900/10">
 							<div className="flex items-center justify-between">
-								<span className="font-medium text-sm text-green-700 dark:text-green-400">
+								<span className="font-medium text-green-700 text-sm dark:text-green-400">
 									You saved with Adaptive
 								</span>
 								<span className="font-bold text-green-700 dark:text-green-400">
@@ -177,15 +184,11 @@ export function UsageSection({
 								</span>
 							</div>
 						</div>
-
 					</div>
 				</div>
 			</CardHeader>
 			<CardContent>
-				<UsageChart
-					data={chartData}
-					providerName={selectedModelInfo?.name}
-				/>
+				<UsageChart data={chartData} providerName={selectedModelInfo?.name} />
 			</CardContent>
 		</Card>
 	);

@@ -42,8 +42,8 @@ export interface UsageDataPoint {
 	requests: number;
 	spend: number;
 	tokens: number;
-	inputTokens: number;    // ← Add input tokens for accurate cost calculations
-	outputTokens: number;   // ← Add output tokens for accurate cost calculations
+	inputTokens: number; // ← Add input tokens for accurate cost calculations
+	outputTokens: number; // ← Add output tokens for accurate cost calculations
 }
 
 /**

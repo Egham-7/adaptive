@@ -458,6 +458,10 @@ export const usageRouter = createTRPCRouter({
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -471,6 +475,7 @@ export const usageRouter = createTRPCRouter({
 						_sum: {
 							totalTokens: true,
 							cost: true,
+							creditCost: true,
 							requestCount: true,
 						},
 						_count: {
@@ -513,9 +518,13 @@ export const usageRouter = createTRPCRouter({
 						timestamp: z.date(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
-							inputTokens: z.number().nullable(),    // ← Add input tokens validation
-							outputTokens: z.number().nullable(),   // ← Add output tokens validation
+							inputTokens: z.number().nullable(), // ← Add input tokens validation
+							outputTokens: z.number().nullable(), // ← Add output tokens validation
 							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
@@ -568,10 +577,10 @@ export const usageRouter = createTRPCRouter({
 							where: whereClause,
 							_sum: {
 								totalTokens: true,
-								inputTokens: true,    // ← Add input tokens
-								outputTokens: true,   // ← Add output tokens
-								cost: true,           // ← Keep for admin dashboard
-								creditCost: true,     // ← Add for customer dashboard
+								inputTokens: true, // ← Add input tokens
+								outputTokens: true, // ← Add output tokens
+								cost: true, // ← Keep for admin dashboard
+								creditCost: true, // ← Add for customer dashboard
 								requestCount: true,
 							},
 							orderBy: {
@@ -581,7 +590,8 @@ export const usageRouter = createTRPCRouter({
 					);
 
 					// Calculate comparison costs using database provider pricing
-					const totalSpend = ensureNumber(totalMetrics._sum.cost);
+					const totalSpend = ensureNumber(totalMetrics._sum.creditCost); // Use creditCost for customer spending
+					const totalProviderCost = ensureNumber(totalMetrics._sum.cost); // Keep for admin dashboard
 
 					// Get all providers with their pricing data
 					const providers = await ctx.db.provider.findMany({
@@ -766,10 +776,11 @@ export const usageRouter = createTRPCRouter({
 							const dateKey = usage.timestamp.toISOString().split("T")[0];
 							return {
 								date: usage.timestamp,
-								spend: ensureNumber(usage._sum.cost),
+								spend: ensureNumber(usage._sum.creditCost), // ← Use creditCost for customer spending
+								providerCost: ensureNumber(usage._sum.cost), // ← Keep provider cost for admin
 								tokens: ensureNumber(usage._sum.totalTokens),
-								inputTokens: ensureNumber(usage._sum.inputTokens),    // ← Add input tokens
-								outputTokens: ensureNumber(usage._sum.outputTokens),  // ← Add output tokens
+								inputTokens: ensureNumber(usage._sum.inputTokens), // ← Add input tokens
+								outputTokens: ensureNumber(usage._sum.outputTokens), // ← Add output tokens
 								requests: ensureNumber(usage._sum.requestCount),
 								errorCount: dateKey ? errorsByDay[dateKey] || 0 : 0,
 							};
@@ -835,6 +846,10 @@ export const usageRouter = createTRPCRouter({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
 							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
