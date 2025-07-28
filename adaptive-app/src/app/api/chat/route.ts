@@ -71,8 +71,7 @@ export async function POST(req: Request) {
 		}
 
 		const body = await req.json();
-		console.log("Received body:", body);
-		const { messages, id: conversationId, searchEnabled = true } = body;
+		const { messages, id: conversationId, searchEnabled = false } = body;
 
 		const numericConversationId = Number(conversationId);
 
