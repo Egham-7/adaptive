@@ -1,6 +1,6 @@
 "use client";
 import { SignUpButton, useUser } from "@clerk/nextjs";
-import { Check, Zap } from "lucide-react";
+import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {

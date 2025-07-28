@@ -1,11 +1,11 @@
 "use client";
 
 import { type UIMessage, useChat } from "@ai-sdk/react";
-import {
-	convertFileListToFileUIParts,
-	defaultChatStore,
-	type UIMessagePart,
-} from "ai";
+import { convertFileListToFileUIParts } from "ai";
+
+// Extract part types from UIMessage
+type MessagePart = UIMessage["parts"][number];
+
 import { useCallback, useState } from "react";
 import { Chat } from "@/components/ui/chat";
 import { useMessageLimits } from "@/hooks/messages/use-message-limits";
@@ -32,26 +32,23 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 
 	const mappedMessages = initialMessages as unknown as UIMessage[];
 
-	const chatStore = defaultChatStore({
-		api: "/api/chat",
-		credentials: "include",
-		chats: {
-			[conversation.id.toString()]: {
-				messages: mappedMessages,
-			},
+	const [input, setInput] = useState("");
+	const {
+		messages,
+		setMessages,
+		status,
+		stop,
+		error,
+		sendMessage,
+		regenerate,
+	} = useChat({
+		id: conversation.id.toString(),
+		messages: mappedMessages,
+		experimental_throttle: 50,
+		onFinish({ message }) {
+			console.log("Message finished:", message);
 		},
 	});
-
-	const [input, setInput] = useState("");
-	const { messages, setMessages, status, stop, error, append, reload } =
-		useChat({
-			id: conversation.id.toString(),
-			chatStore,
-			experimental_throttle: 50,
-			onFinish({ message }) {
-				console.log("Message finished:", message);
-			},
-		});
 
 	const handleInputChange = useCallback(
 		(event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -68,17 +65,19 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 
 			if (!text.trim()) return;
 
-			append(
+			sendMessage(
 				{
 					role: "user",
 					parts: [{ type: "text", text }],
 				},
 				{
-					body: { searchEnabled: searchEnabled || false },
+					body: {
+						searchEnabled: searchEnabled || false,
+					},
 				},
 			);
 		},
-		[append, hasReachedLimit],
+		[sendMessage, hasReachedLimit],
 	);
 
 	const handleSubmit = useCallback(
@@ -94,44 +93,38 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 
 			if (!input.trim()) return;
 
-			const parts: UIMessagePart<Record<string, unknown>>[] = [
-				{ type: "text", text: input },
-			];
+			const parts: MessagePart[] = [{ type: "text", text: input }];
 
 			if (options?.files && options.files.length > 0) {
 				const fileParts = await convertFileListToFileUIParts(options.files);
 				parts.push(...fileParts);
 			}
 
-			append(
-				{
-					role: "user",
-					parts,
-				},
-				{
-					body: { searchEnabled: options?.searchEnabled || false },
-				},
-			);
+			sendMessage({
+				role: "user",
+				parts,
+				metadata: { searchEnabled: options?.searchEnabled || false },
+			});
 			setInput("");
 		},
-		[append, hasReachedLimit, input],
+		[sendMessage, hasReachedLimit, input],
 	);
 
 	const isLoading = status === "streaming" || status === "submitted";
 	const isError = status === "error";
 
-	const regenerate = useCallback(() => {
-		reload();
-	}, [reload]);
+	const handleRegenerate = useCallback(() => {
+		regenerate();
+	}, [regenerate]);
 
-	const sendMessage = useCallback(
+	const handleSendMessage = useCallback(
 		async (message: { text: string }) => {
-			append({
+			sendMessage({
 				role: "user",
 				parts: [{ type: "text", text: message.text }],
 			});
 		},
-		[append],
+		[sendMessage],
 	);
 
 	return (
@@ -144,13 +137,13 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 			handleSubmit={handleSubmit}
 			handleSuggestionSubmit={handleSuggestionSubmit}
 			setMessages={setMessages}
-			sendMessage={sendMessage}
+			sendMessage={handleSendMessage}
 			isGenerating={isLoading}
 			stop={stop}
 			suggestions={CHAT_SUGGESTIONS as string[]}
 			isError={isError}
 			error={error}
-			onRetry={regenerate}
+			onRetry={handleRegenerate}
 			hasReachedLimit={hasReachedLimit}
 			remainingMessages={remainingMessages}
 			isUnlimited={isUnlimited}
