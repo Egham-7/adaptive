@@ -83,8 +83,7 @@ func (s *ResponseService) handleProtocolGeneric(
 			StreamCompletion(c.Context(), req.ToOpenAIParams())
 		if err != nil {
 			fiberlog.Errorf("[%s] %s stream failed: %v", requestID, protocolName, err)
-			return s.HandleError(c, fiber.StatusInternalServerError,
-				protocolName+" stream failed: "+err.Error(), requestID)
+			return fmt.Errorf("stream completion failed: %w", err)
 		}
 
 		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
@@ -96,8 +95,7 @@ func (s *ResponseService) handleProtocolGeneric(
 		CreateCompletion(c.Context(), req.ToOpenAIParams())
 	if err != nil {
 		fiberlog.Errorf("[%s] %s create failed: %v", requestID, protocolName, err)
-		return s.HandleError(c, fiber.StatusInternalServerError,
-			protocolName+" create failed: "+err.Error(), requestID)
+		return fmt.Errorf("create completion failed: %w", err)
 	}
 
 	adaptiveResp := models.ConvertToAdaptive(regResp, provider)
@@ -143,7 +141,32 @@ func (s *ResponseService) handleStandard(
 		fiberlog.Infof("[%s] Using primary standard provider: %s (%s)", requestID, standardInfo.Provider, standardInfo.Model)
 	}
 
-	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolStandard)
+	// Try the completion, fallback if it fails
+	if err := s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolStandard); err != nil {
+		fiberlog.Warnf("[%s] Standard completion failed: %v", requestID, err)
+
+		// Completion failed, try alternatives if available
+		if len(standardInfo.Alternatives) == 0 {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("Standard completion failed and no alternatives: %v", err), requestID)
+		}
+
+		fiberlog.Infof("[%s] Trying %d standard alternatives after completion failure", requestID, len(standardInfo.Alternatives))
+		fallbackSvc := NewFallbackService()
+		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), standardInfo.Alternatives, requestID)
+		if fallbackErr != nil {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("All standard providers failed: %v", fallbackErr), requestID)
+		}
+
+		req.Model = shared.ChatModel(result.ModelName)
+		fiberlog.Infof("[%s] Using standard fallback after completion failure: %s (%s)", requestID, result.ProviderName, result.ModelName)
+
+		// Try the fallback provider
+		return s.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolStandard)
+	}
+
+	return nil
 }
 
 // handleMinion handles both streaming and regular minion flows with fallback.
@@ -185,7 +208,32 @@ func (s *ResponseService) handleMinion(
 		fiberlog.Infof("[%s] Using primary minion provider: %s (%s)", requestID, minionInfo.Provider, minionInfo.Model)
 	}
 
-	return s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolMinion)
+	// Try the completion, fallback if it fails
+	if err := s.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolMinion); err != nil {
+		fiberlog.Warnf("[%s] Minion completion failed: %v", requestID, err)
+
+		// Completion failed, try alternatives if available
+		if len(minionInfo.Alternatives) == 0 {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("Minion completion failed and no alternatives: %v", err), requestID)
+		}
+
+		fiberlog.Infof("[%s] Trying %d minion alternatives after completion failure", requestID, len(minionInfo.Alternatives))
+		fallbackSvc := NewFallbackService()
+		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), minionInfo.Alternatives, requestID)
+		if fallbackErr != nil {
+			return s.HandleError(c, fiber.StatusInternalServerError,
+				fmt.Sprintf("All minion providers failed: %v", fallbackErr), requestID)
+		}
+
+		req.Model = shared.ChatModel(result.ModelName)
+		fiberlog.Infof("[%s] Using minion fallback after completion failure: %s (%s)", requestID, result.ProviderName, result.ModelName)
+
+		// Try the fallback provider
+		return s.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolMinion)
+	}
+
+	return nil
 }
 
 // handleMinionsProtocol handles the MinionS protocol, both stream and non-stream.
@@ -231,7 +279,7 @@ func (s *ResponseService) handleMinionsProtocol(
 
 	// Try minion provider first
 	minionProv, err := providers.NewLLMProvider(resp.Minion.Provider)
-	var minionModel string
+	minionModel := resp.Minion.Model
 	if err != nil {
 		fiberlog.Warnf("[%s] Primary minion provider %s failed: %v", requestID, resp.Minion.Provider, err)
 
@@ -251,37 +299,17 @@ func (s *ResponseService) handleMinionsProtocol(
 				fmt.Sprintf("Primary minion provider failed and no alternatives: %v", err), requestID)
 		}
 	} else {
-		minionModel = resp.Minion.Model
 		fiberlog.Infof("[%s] Using primary minion provider: %s (%s)", requestID, resp.Minion.Provider, resp.Minion.Model)
 	}
 
 	if isStream {
 		fiberlog.Infof("[%s] streaming MinionS response", requestID)
 		s.setStreamHeaders(c)
-
-		streamResp, err := orchestrator.OrchestrateMinionSStream(
-			c.Context(), remoteProv, minionProv, req, minionModel,
-		)
-		if err != nil {
-			fiberlog.Errorf("[%s] MinionS stream failed: %v", requestID, err)
-			return s.HandleError(c, fiber.StatusInternalServerError,
-				"MinionS streaming failed: "+err.Error(), requestID)
-		}
-
-		provider := minionProv.GetProviderName()
-		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+	} else {
+		fiberlog.Infof("[%s] generating MinionS completion", requestID)
 	}
 
-	fiberlog.Infof("[%s] generating MinionS completion", requestID)
-	result, err := orchestrator.OrchestrateMinionS(
-		c.Context(), remoteProv, minionProv, req, minionModel,
-	)
-	if err != nil {
-		fiberlog.Errorf("[%s] MinionS create failed: %v", requestID, err)
-		return s.HandleError(c, fiber.StatusInternalServerError,
-			"MinionS protocol failed: "+err.Error(), requestID)
-	}
-	return c.JSON(result)
+	return s.tryMinionSWithFallback(c, orchestrator, remoteProv, minionProv, req, minionModel, resp, requestID, isStream)
 }
 
 // HandleError sends a standardized error response.
@@ -311,6 +339,138 @@ func (s *ResponseService) HandleInternalError(
 	message, requestID string,
 ) error {
 	return s.HandleError(c, fiber.StatusInternalServerError, message, requestID)
+}
+
+// tryMinionSWithFallback attempts MinionS orchestration with fallback alternatives.
+func (s *ResponseService) tryMinionSWithFallback(
+	c *fiber.Ctx,
+	orchestrator *minions.MinionsOrchestrationService,
+	remoteProv, minionProv provider_interfaces.LLMProvider,
+	req *models.ChatCompletionRequest,
+	minionModel string,
+	resp *models.ProtocolResponse,
+	requestID string,
+	isStream bool,
+) error {
+	// Try initial orchestration
+	if isStream {
+		streamResp, err := orchestrator.OrchestrateMinionSStream(
+			c.Context(), remoteProv, minionProv, req, minionModel,
+		)
+		if err == nil {
+			provider := minionProv.GetProviderName()
+			return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+		}
+		fiberlog.Warnf("[%s] MinionS stream failed: %v", requestID, err)
+	} else {
+		result, err := orchestrator.OrchestrateMinionS(
+			c.Context(), remoteProv, minionProv, req, minionModel,
+		)
+		if err == nil {
+			return c.JSON(result)
+		}
+		fiberlog.Warnf("[%s] MinionS create failed: %v", requestID, err)
+	}
+
+	// Try standard alternatives first
+	if len(resp.Standard.Alternatives) > 0 {
+		if altErr := s.tryMinionSStandardAlternatives(c, orchestrator, minionProv, req, minionModel, resp.Standard.Alternatives, requestID, isStream); altErr == nil {
+			return nil
+		}
+	}
+
+	// Try minion alternatives
+	if len(resp.Minion.Alternatives) > 0 {
+		if altErr := s.tryMinionSMinionAlternatives(c, orchestrator, remoteProv, req, resp.Minion.Alternatives, requestID, isStream); altErr == nil {
+			return nil
+		}
+	}
+
+	return s.HandleError(c, fiber.StatusInternalServerError,
+		fmt.Sprintf("MinionS %s failed", map[bool]string{true: "streaming", false: "protocol"}[isStream]), requestID)
+}
+
+// tryMinionSStandardAlternatives tries standard alternatives for MinionS.
+func (s *ResponseService) tryMinionSStandardAlternatives(
+	c *fiber.Ctx,
+	orchestrator *minions.MinionsOrchestrationService,
+	minionProv provider_interfaces.LLMProvider,
+	req *models.ChatCompletionRequest,
+	minionModel string,
+	alternatives []models.Alternative,
+	requestID string,
+	isStream bool,
+) error {
+	fiberlog.Infof("[%s] Trying standard alternatives for MinionS restart", requestID)
+	fallbackSvc := NewFallbackService()
+	standardResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, requestID)
+	if err != nil {
+		return err
+	}
+
+	fiberlog.Infof("[%s] Restarting MinionS with standard alternative: %s", requestID, standardResult.ProviderName)
+
+	if isStream {
+		streamResp, retryErr := orchestrator.OrchestrateMinionSStream(
+			c.Context(), standardResult.Provider, minionProv, req, minionModel,
+		)
+		if retryErr != nil {
+			fiberlog.Warnf("[%s] MinionS retry with standard alternative failed: %v", requestID, retryErr)
+			return retryErr
+		}
+		provider := minionProv.GetProviderName()
+		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+	}
+
+	result, retryErr := orchestrator.OrchestrateMinionS(
+		c.Context(), standardResult.Provider, minionProv, req, minionModel,
+	)
+	if retryErr != nil {
+		fiberlog.Warnf("[%s] MinionS retry with standard alternative failed: %v", requestID, retryErr)
+		return retryErr
+	}
+	return c.JSON(result)
+}
+
+// tryMinionSMinionAlternatives tries minion alternatives for MinionS.
+func (s *ResponseService) tryMinionSMinionAlternatives(
+	c *fiber.Ctx,
+	orchestrator *minions.MinionsOrchestrationService,
+	remoteProv provider_interfaces.LLMProvider,
+	req *models.ChatCompletionRequest,
+	alternatives []models.Alternative,
+	requestID string,
+	isStream bool,
+) error {
+	fiberlog.Infof("[%s] Trying minion alternatives for MinionS restart", requestID)
+	fallbackSvc := NewFallbackService()
+	minionResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, requestID)
+	if err != nil {
+		return err
+	}
+
+	fiberlog.Infof("[%s] Restarting MinionS with minion alternative: %s", requestID, minionResult.ProviderName)
+
+	if isStream {
+		streamResp, retryErr := orchestrator.OrchestrateMinionSStream(
+			c.Context(), remoteProv, minionResult.Provider, req, minionResult.ModelName,
+		)
+		if retryErr != nil {
+			fiberlog.Warnf("[%s] MinionS retry with minion alternative failed: %v", requestID, retryErr)
+			return retryErr
+		}
+		provider := minionResult.Provider.GetProviderName()
+		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+	}
+
+	result, retryErr := orchestrator.OrchestrateMinionS(
+		c.Context(), remoteProv, minionResult.Provider, req, minionResult.ModelName,
+	)
+	if retryErr != nil {
+		fiberlog.Warnf("[%s] MinionS retry with minion alternative failed: %v", requestID, retryErr)
+		return retryErr
+	}
+	return c.JSON(result)
 }
 
 // setStreamHeaders sets SSE headers.
