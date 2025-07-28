@@ -265,7 +265,9 @@ export const creditsRouter = createTRPCRouter({
 					success: true,
 					newBalance: result.newBalance,
 					transaction: result.transaction,
-					message: `Successfully awarded ${formatCurrency(input.amount)} in promotional credits`,
+					message: `Successfully awarded ${formatCurrency(
+						input.amount,
+					)} in promotional credits`,
 				};
 			} catch (error) {
 				console.error("Error awarding promotional credits:", error);
@@ -316,10 +318,14 @@ export const creditsRouter = createTRPCRouter({
 						"Your credit balance is empty. Please purchase credits to continue using the API.";
 				} else if (balance <= VERY_LOW_BALANCE_THRESHOLD) {
 					status = "very_low";
-					message = `Your credit balance is very low (${formatCurrency(balance)}). Please consider purchasing credits soon.`;
+					message = `Your credit balance is very low (${formatCurrency(
+						balance,
+					)}). Please consider purchasing credits soon.`;
 				} else if (balance <= LOW_BALANCE_THRESHOLD) {
 					status = "low";
-					message = `Your credit balance is low (${formatCurrency(balance)}). Consider purchasing credits.`;
+					message = `Your credit balance is low (${formatCurrency(
+						balance,
+					)}). Consider purchasing credits.`;
 				}
 
 				return {
@@ -361,6 +367,8 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
+				console.log("🛒 Creating checkout session.");
+
 				// Get or create Stripe customer
 				let customerId: string;
 
@@ -418,11 +426,13 @@ export const creditsRouter = createTRPCRouter({
 					cancel_url: input.cancelUrl,
 					metadata: {
 						userId,
+						organizationId: input.organizationId,
 						creditAmount: input.amount.toString(),
 						type: "credit_purchase",
 					},
 				});
 
+				console.log("✅ Checkout session created.");
 				return {
 					checkoutUrl: session.url,
 					sessionId: session.id,
@@ -475,14 +485,20 @@ export const creditsRouter = createTRPCRouter({
 					input.organizationId,
 					userId,
 					PROMOTIONAL_CREDIT_AMOUNT,
-					`Welcome bonus - ${formatCurrency(PROMOTIONAL_CREDIT_AMOUNT)} free credits for new API users`,
+					`Welcome bonus - ${formatCurrency(
+						PROMOTIONAL_CREDIT_AMOUNT,
+					)} free credits for new API users`,
 				);
 
 				return {
 					success: true,
 					creditAmount: PROMOTIONAL_CREDIT_AMOUNT,
 					newBalance: result.newBalance,
-					message: `Welcome! You've received ${formatCurrency(PROMOTIONAL_CREDIT_AMOUNT)} in free API credits. You are organization #${promotionalCreditCount + 1} to claim this bonus.`,
+					message: `Welcome! You've received ${formatCurrency(
+						PROMOTIONAL_CREDIT_AMOUNT,
+					)} in free API credits. You are organization #${
+						promotionalCreditCount + 1
+					} to claim this bonus.`,
 					remainingSlots: Math.max(
 						0,
 						PROMOTIONAL_CREDIT_LIMIT - (promotionalCreditCount + 1),

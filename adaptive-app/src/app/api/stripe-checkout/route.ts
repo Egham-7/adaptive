@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
 	const eventType = event.type;
 
 	try {
+		console.log("🔄 Processing webhook event:");
+
 		switch (eventType) {
 			case "checkout.session.completed": {
 				const session = data.object as Stripe.Checkout.Session;
@@ -79,6 +81,8 @@ export async function POST(request: NextRequest) {
 						}
 
 						try {
+							console.log("💳 Adding credits to organization.");
+
 							// Add credits to organization's account
 							const result = await CreditService.addCredits({
 								organizationId: session.metadata.organizationId,
@@ -97,11 +101,14 @@ export async function POST(request: NextRequest) {
 
 							console.log("✅ Credits added successfully:", {
 								userId: session.metadata.userId,
+								organizationId: session.metadata.organizationId,
 								amount: creditAmount,
 								newBalance: result.newBalance,
+								transactionId: result.transaction.id,
+								sessionId: session.id,
 							});
 						} catch (error) {
-							console.error("❌ Failed to add credits:", error);
+							console.error("❌ Failed to add credits.");
 						}
 					} else if (isSubscription) {
 						// Handle subscription (existing logic)

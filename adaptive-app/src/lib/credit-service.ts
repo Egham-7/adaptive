@@ -53,7 +53,9 @@ export class CreditService {
 			console.error("Error getting organization balance:", error);
 			throw new TRPCError({
 				code: "INTERNAL_SERVER_ERROR",
-				message: `Failed to get credit balance: ${error instanceof Error ? error.message : "Unknown error"}`,
+				message: `Failed to get credit balance: ${
+					error instanceof Error ? error.message : "Unknown error"
+				}`,
 			});
 		}
 	}
@@ -98,6 +100,8 @@ export class CreditService {
 			throw new Error("Credit amount must be positive");
 		}
 
+		console.log("💰 Starting addCredits transaction.");
+
 		// Use database transaction to ensure data consistency
 		return await db.$transaction(async (tx) => {
 			// Get current organization credit state
@@ -139,6 +143,8 @@ export class CreditService {
 				},
 			});
 
+			console.log("✅ Credits added successfully.");
+
 			return {
 				organizationCredit: updatedOrgCredit,
 				transaction,
@@ -174,6 +180,8 @@ export class CreditService {
 			throw new Error("Deduction amount must be positive");
 		}
 
+		console.log("💸 Starting deductCredits transaction.");
+
 		// Use database transaction for atomicity
 		return await db.$transaction(async (tx) => {
 			// Get current organization credit state
@@ -195,7 +203,9 @@ export class CreditService {
 			if (currentBalance < amount) {
 				throw new TRPCError({
 					code: "PAYMENT_REQUIRED",
-					message: `Insufficient credits. Required: $${amount.toFixed(4)}, Available: $${currentBalance.toFixed(4)}`,
+					message: `Insufficient credits. Required: $${amount.toFixed(
+						4,
+					)}, Available: $${currentBalance.toFixed(4)}`,
 				});
 			}
 
@@ -224,6 +234,8 @@ export class CreditService {
 					apiUsageId,
 				},
 			});
+
+			console.log("✅ Credits deducted successfully.");
 
 			return {
 				organizationCredit: updatedOrgCredit,
