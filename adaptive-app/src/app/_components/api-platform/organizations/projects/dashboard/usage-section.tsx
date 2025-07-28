@@ -95,6 +95,21 @@ export function UsageSection({
 			? ((totalSavings / directModelCost) * 100).toFixed(1)
 			: "0.0";
 
+	// Recalculate chart data with selected model pricing
+	const chartData = data.usageData.map((dataPoint) => {
+		const modelPricing = MODEL_PRICING[selectedModel as keyof typeof MODEL_PRICING];
+		if (!modelPricing) return dataPoint;
+
+		const directCost = 
+			(dataPoint.inputTokens / 1_000_000) * modelPricing.inputCost +
+			(dataPoint.outputTokens / 1_000_000) * modelPricing.outputCost;
+
+		return {
+			...dataPoint,
+			singleProvider: directCost, // Update with selected model's cost
+		};
+	});
+
 	return (
 		<Card>
 			<CardHeader>
@@ -166,7 +181,7 @@ export function UsageSection({
 			</CardHeader>
 			<CardContent>
 				<UsageChart
-					data={data.usageData}
+					data={chartData}
 					providerName={selectedModelInfo?.provider}
 				/>
 			</CardContent>
