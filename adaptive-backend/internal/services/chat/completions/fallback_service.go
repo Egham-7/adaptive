@@ -93,7 +93,23 @@ func (fs *FallbackService) raceAlternatives(
 	requestID string,
 ) (*models.RaceResult, error) {
 	fiberlog.Infof("[%s] Racing %d alternative providers", requestID, len(*alternatives))
-	return fs.raceAllProviders(ctx, *alternatives, requestID)
+
+	// For race mode, we try all alternatives at once
+	result, err := fs.raceAllProviders(ctx, *alternatives, requestID)
+
+	// Always clear the slice since we tried all providers
+	alternativeCount := len(*alternatives)
+	*alternatives = (*alternatives)[:0]
+
+	if err == nil {
+		// Success - we found a winner
+		fiberlog.Infof("[%s] Race winner found: %s (%s), cleared all alternatives", requestID, result.ProviderName, result.ModelName)
+	} else {
+		// All failed - we tried them all
+		fiberlog.Warnf("[%s] All %d alternatives failed in race, cleared all alternatives", requestID, alternativeCount)
+	}
+
+	return result, err
 }
 
 // selectSequentialAlternative tries the first alternative and removes it from the slice
