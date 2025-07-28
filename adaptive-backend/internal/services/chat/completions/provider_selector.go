@@ -24,28 +24,14 @@ func (ps *ProviderSelector) SelectStandardProvider(
 	standardInfo *models.StandardLLMInfo,
 	requestID string,
 ) (provider_interfaces.LLMProvider, string, error) {
-	// Try primary provider first
-	prov, err := providers.NewLLMProvider(standardInfo.Provider)
-	if err == nil {
-		fiberlog.Infof("[%s] Using primary standard provider: %s (%s)", requestID, standardInfo.Provider, standardInfo.Model)
-		return prov, standardInfo.Model, nil
-	}
-
-	fiberlog.Warnf("[%s] Primary standard provider %s failed: %v", requestID, standardInfo.Provider, err)
-
-	// Primary failed, try alternatives
-	if len(standardInfo.Alternatives) == 0 {
-		return nil, "", fmt.Errorf("primary standard provider failed and no alternatives: %v", err)
-	}
-
-	fallbackSvc := NewFallbackService()
-	result, fallbackErr := fallbackSvc.SelectAlternative(ctx, standardInfo.Alternatives, requestID)
-	if fallbackErr != nil {
-		return nil, "", fmt.Errorf("all standard providers failed: %v", fallbackErr)
-	}
-
-	fiberlog.Infof("[%s] Using standard alternative: %s (%s)", requestID, result.ProviderName, result.ModelName)
-	return result.Provider, result.ModelName, nil
+	return ps.selectProviderWithFallback(
+		ctx,
+		standardInfo.Provider,
+		standardInfo.Model,
+		standardInfo.Alternatives,
+		"standard",
+		requestID,
+	)
 }
 
 // SelectMinionProvider selects a minion provider with fallback logic.
@@ -54,26 +40,47 @@ func (ps *ProviderSelector) SelectMinionProvider(
 	minionInfo *models.MinionInfo,
 	requestID string,
 ) (provider_interfaces.LLMProvider, string, error) {
+	return ps.selectProviderWithFallback(
+		ctx,
+		minionInfo.Provider,
+		minionInfo.Model,
+		minionInfo.Alternatives,
+		"minion",
+		requestID,
+	)
+}
+
+// selectProviderWithFallback handles common provider selection logic with fallback
+func (ps *ProviderSelector) selectProviderWithFallback(
+	ctx context.Context,
+	primaryProvider string,
+	primaryModel string,
+	alternatives []models.Alternative,
+	providerType string,
+	requestID string,
+) (provider_interfaces.LLMProvider, string, error) {
 	// Try primary provider first
-	prov, err := providers.NewLLMProvider(minionInfo.Provider)
+	prov, err := providers.NewLLMProvider(primaryProvider)
 	if err == nil {
-		fiberlog.Infof("[%s] Using primary minion provider: %s (%s)", requestID, minionInfo.Provider, minionInfo.Model)
-		return prov, minionInfo.Model, nil
+		fiberlog.Infof("[%s] Using primary %s provider: %s (%s)", requestID, providerType, primaryProvider, primaryModel)
+		return prov, primaryModel, nil
 	}
 
-	fiberlog.Warnf("[%s] Primary minion provider %s failed: %v", requestID, minionInfo.Provider, err)
+	fiberlog.Warnf("[%s] Primary %s provider %s failed: %v", requestID, providerType, primaryProvider, err)
 
 	// Primary failed, try alternatives
-	if len(minionInfo.Alternatives) == 0 {
-		return nil, "", fmt.Errorf("primary minion provider failed and no alternatives: %v", err)
+	if len(alternatives) == 0 {
+		return nil, "", fmt.Errorf("primary %s provider failed and no alternatives: %v", providerType, err)
 	}
 
 	fallbackSvc := NewFallbackService()
-	result, fallbackErr := fallbackSvc.SelectAlternative(ctx, minionInfo.Alternatives, requestID)
+	alternativesCopy := make([]models.Alternative, len(alternatives))
+	copy(alternativesCopy, alternatives)
+	result, fallbackErr := fallbackSvc.SelectAlternative(ctx, &alternativesCopy, requestID)
 	if fallbackErr != nil {
-		return nil, "", fmt.Errorf("all minion providers failed: %v", fallbackErr)
+		return nil, "", fmt.Errorf("all %s providers failed: %v", providerType, fallbackErr)
 	}
 
-	fiberlog.Infof("[%s] Using minion alternative: %s (%s)", requestID, result.ProviderName, result.ModelName)
+	fiberlog.Infof("[%s] Using %s alternative: %s (%s)", requestID, providerType, result.ProviderName, result.ModelName)
 	return result.Provider, result.ModelName, nil
 }

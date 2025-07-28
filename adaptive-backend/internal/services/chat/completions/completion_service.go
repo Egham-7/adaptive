@@ -37,32 +37,8 @@ func (cs *CompletionService) HandleStandardCompletion(
 	if err != nil {
 		return fmt.Errorf("standard provider selection failed: %w", err)
 	}
-	req.Model = shared.ChatModel(model)
 
-	// Try the completion, fallback if it fails
-	if err := cs.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolStandard); err != nil {
-		fiberlog.Warnf("[%s] Standard completion failed: %v", requestID, err)
-
-		// Completion failed, try alternatives if available
-		if len(standardInfo.Alternatives) == 0 {
-			return fmt.Errorf("standard completion failed and no alternatives: %w", err)
-		}
-
-		fiberlog.Infof("[%s] Trying %d standard alternatives after completion failure", requestID, len(standardInfo.Alternatives))
-		fallbackSvc := NewFallbackService()
-		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), standardInfo.Alternatives, requestID)
-		if fallbackErr != nil {
-			return fmt.Errorf("all standard providers failed: %w", fallbackErr)
-		}
-
-		req.Model = shared.ChatModel(result.ModelName)
-		fiberlog.Infof("[%s] Using standard fallback after completion failure: %s (%s)", requestID, result.ProviderName, result.ModelName)
-
-		// Try the fallback provider
-		return cs.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolStandard)
-	}
-
-	return nil
+	return cs.handleCompletionWithFallback(c, req, prov, model, standardInfo.Alternatives, protocolStandard, requestID, isStream)
 }
 
 // HandleMinionCompletion handles minion protocol completions with fallback.
@@ -78,32 +54,8 @@ func (cs *CompletionService) HandleMinionCompletion(
 	if err != nil {
 		return fmt.Errorf("minion provider selection failed: %w", err)
 	}
-	req.Model = shared.ChatModel(model)
 
-	// Try the completion, fallback if it fails
-	if err := cs.handleProtocolGeneric(c, prov, req, requestID, isStream, protocolMinion); err != nil {
-		fiberlog.Warnf("[%s] Minion completion failed: %v", requestID, err)
-
-		// Completion failed, try alternatives if available
-		if len(minionInfo.Alternatives) == 0 {
-			return fmt.Errorf("minion completion failed and no alternatives: %w", err)
-		}
-
-		fiberlog.Infof("[%s] Trying %d minion alternatives after completion failure", requestID, len(minionInfo.Alternatives))
-		fallbackSvc := NewFallbackService()
-		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), minionInfo.Alternatives, requestID)
-		if fallbackErr != nil {
-			return fmt.Errorf("all minion providers failed: %w", fallbackErr)
-		}
-
-		req.Model = shared.ChatModel(result.ModelName)
-		fiberlog.Infof("[%s] Using minion fallback after completion failure: %s (%s)", requestID, result.ProviderName, result.ModelName)
-
-		// Try the fallback provider
-		return cs.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolMinion)
-	}
-
-	return nil
+	return cs.handleCompletionWithFallback(c, req, prov, model, minionInfo.Alternatives, protocolMinion, requestID, isStream)
 }
 
 // HandleMinionsProtocolCompletion handles MinionS protocol with fallback.
@@ -136,6 +88,50 @@ func (cs *CompletionService) HandleMinionsProtocolCompletion(
 	}
 
 	return cs.tryMinionSWithFallback(c, orchestrator, remoteProv, minionProv, req, minionModel, resp, requestID, isStream)
+}
+
+// handleCompletionWithFallback handles completion requests with fallback logic (DRY)
+func (cs *CompletionService) handleCompletionWithFallback(
+	c *fiber.Ctx,
+	req *models.ChatCompletionRequest,
+	initialProvider provider_interfaces.LLMProvider,
+	initialModel string,
+	alternatives []models.Alternative,
+	protocolName string,
+	requestID string,
+	isStream bool,
+) error {
+	// Create mutable copy of alternatives for tracking attempts
+	alternativesCopy := make([]models.Alternative, len(alternatives))
+	copy(alternativesCopy, alternatives)
+
+	// Set initial model
+	req.Model = shared.ChatModel(initialModel)
+
+	// Try the completion with initial provider, fallback if it fails
+	if err := cs.handleProtocolGeneric(c, initialProvider, req, requestID, isStream, protocolName); err != nil {
+		fiberlog.Warnf("[%s] %s completion failed: %v", requestID, protocolName, err)
+
+		// Completion failed, try remaining alternatives
+		if len(alternativesCopy) == 0 {
+			return fmt.Errorf("%s completion failed and no alternatives remaining: %w", protocolName, err)
+		}
+
+		fiberlog.Infof("[%s] Trying %d remaining %s alternatives after completion failure", requestID, len(alternativesCopy), protocolName)
+		fallbackSvc := NewFallbackService()
+		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), &alternativesCopy, requestID)
+		if fallbackErr != nil {
+			return fmt.Errorf("all %s providers failed: %w", protocolName, fallbackErr)
+		}
+
+		req.Model = shared.ChatModel(result.ModelName)
+		fiberlog.Infof("[%s] Using %s fallback after completion failure: %s (%s)", requestID, protocolName, result.ProviderName, result.ModelName)
+
+		// Try the fallback provider
+		return cs.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolName)
+	}
+
+	return nil
 }
 
 // handleProtocolGeneric handles both streaming and regular flows for any protocol.
@@ -208,15 +204,19 @@ func (cs *CompletionService) tryMinionSWithFallback(
 	}
 
 	// Try standard alternatives first
-	if len(resp.Standard.Alternatives) > 0 {
-		if altErr := cs.tryMinionSStandardAlternatives(c, orchestrator, minionProv, req, minionModel, resp.Standard.Alternatives, requestID, isStream); altErr == nil {
+	standardAlternatives := make([]models.Alternative, len(resp.Standard.Alternatives))
+	copy(standardAlternatives, resp.Standard.Alternatives)
+	if len(standardAlternatives) > 0 {
+		if altErr := cs.tryMinionSStandardAlternatives(c, orchestrator, minionProv, req, minionModel, &standardAlternatives, requestID, isStream); altErr == nil {
 			return nil
 		}
 	}
 
 	// Try minion alternatives
-	if len(resp.Minion.Alternatives) > 0 {
-		if altErr := cs.tryMinionSMinionAlternatives(c, orchestrator, remoteProv, req, resp.Minion.Alternatives, requestID, isStream); altErr == nil {
+	minionAlternatives := make([]models.Alternative, len(resp.Minion.Alternatives))
+	copy(minionAlternatives, resp.Minion.Alternatives)
+	if len(minionAlternatives) > 0 {
+		if altErr := cs.tryMinionSMinionAlternatives(c, orchestrator, remoteProv, req, &minionAlternatives, requestID, isStream); altErr == nil {
 			return nil
 		}
 	}
@@ -231,7 +231,7 @@ func (cs *CompletionService) tryMinionSStandardAlternatives(
 	minionProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
 	minionModel string,
-	alternatives []models.Alternative,
+	alternatives *[]models.Alternative,
 	requestID string,
 	isStream bool,
 ) error {
@@ -272,7 +272,7 @@ func (cs *CompletionService) tryMinionSMinionAlternatives(
 	orchestrator *minions.MinionsOrchestrationService,
 	remoteProv provider_interfaces.LLMProvider,
 	req *models.ChatCompletionRequest,
-	alternatives []models.Alternative,
+	alternatives *[]models.Alternative,
 	requestID string,
 	isStream bool,
 ) error {
