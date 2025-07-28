@@ -31,17 +31,17 @@ import { cn } from "@/lib/utils";
 
 import type { UIMessage } from "@ai-sdk/react";
 
-// Define the specific part types we need
-type TextUIPart = Extract<UIMessage["parts"][number], { type: "text" }>;
-type ReasoningUIPart = Extract<
-  UIMessage["parts"][number],
-  { type: "reasoning" }
->;
-type FileUIPart = Extract<UIMessage["parts"][number], { type: "file" }>;
-type ToolInvocationUIPart = Extract<
-  UIMessage["parts"][number],
-  { type: "tool-invocation" }
->;
+// Extract part types from UIMessage
+type MessagePart = UIMessage["parts"][number];
+type TextUIPart = Extract<MessagePart, { type: "text" }>;
+type ReasoningUIPart = Extract<MessagePart, { type: "reasoning" }>;
+type FileUIPart = Extract<MessagePart, { type: "file" }>;
+
+// Extract tool part types - any part that starts with "tool-"
+type ToolPart = Extract<MessagePart, { type: `tool-${string}` }>;
+
+// Extract specific tool types
+type WebSearchToolPart = Extract<MessagePart, { type: "tool-webSearch" }>;
 
 const chatBubbleVariants = cva(
   "relative break-words text-sm transition-colors",
@@ -251,35 +251,192 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
             return <ReasoningBlock key={`reasoning-${index}`} part={part} />;
           }
-          if (part.type === "tool-invocation") {
-            const toolInvocation = part as ToolInvocationUIPart;
-            const { toolName, state } = toolInvocation.toolInvocation;
+          // Handle tool parts following AI SDK 5.0 pattern
+          if (part.type === "tool-webSearch") {
+            const callId = part.toolCallId;
 
-            // Render tool-specific UI based on tool name
-            if (toolName === "webSearch") {
-              return (
-                // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
-                <WebSearchBlock
-                  key={`websearch-${index}`}
-                  toolPart={toolInvocation}
-                />
-              );
+            switch (part.state) {
+              case "input-streaming":
+                return (
+                  <div
+                    key={callId}
+                    className="mb-3 rounded-lg border bg-muted/50 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Search className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">
+                            Preparing search...
+                          </span>
+                          <DotsLoader size="sm" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              case "input-available":
+                return (
+                  <div
+                    key={callId}
+                    className="mb-3 rounded-lg border bg-muted/50 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                        <Search className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">
+                            Searching the web
+                          </span>
+                          <DotsLoader size="sm" />
+                        </div>
+                        {(part as any).input?.query && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            "{(part as any).input.query}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              case "output-available": {
+                const result = (part as any).output;
+                if (!result) return null;
+
+                const searchData = result as {
+                  query: string;
+                  results: Array<{
+                    title: string;
+                    url: string;
+                    snippet: string;
+                  }>;
+                };
+
+                return (
+                  <div
+                    key={callId}
+                    className="mb-3 rounded-lg border bg-muted/50 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
+                        <Globe className="h-4 w-4 text-success" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-foreground">
+                          Web Search Results
+                        </span>
+                        <p className="text-xs text-muted-foreground">
+                          "{searchData.query}"
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {searchData.results.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1">
+                              <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
+                              >
+                                <span className="line-clamp-1">
+                                  {item.title}
+                                </span>
+                                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </a>
+                              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+                                {item.snippet}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground font-mono">
+                                {new URL(item.url).hostname}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              case "output-error":
+                return (
+                  <div
+                    key={callId}
+                    className="mb-3 rounded-lg border bg-destructive/10 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <X className="h-4 w-4 text-destructive" />
+                      <span className="text-sm text-destructive">
+                        Search failed: {(part as any).errorText}
+                      </span>
+                    </div>
+                  </div>
+                );
+              default:
+                return null;
             }
+          }
 
-            // Default fallback for unknown tools
-            return (
-              // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
-              <div
-                key={`tool-${index}`}
-                className="mb-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
-              >
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Terminal className="h-4 w-4" />
-                  <span>Tool: {toolName}</span>
-                  {state === "call" && <DotsLoader size="sm" />}
-                </div>
-              </div>
-            );
+          // Handle other tool types with generic fallback
+          if (part.type.startsWith("tool-")) {
+            const toolPart = part as ToolPart;
+            const toolName = part.type.replace("tool-", "");
+            const callId = (toolPart as any).toolCallId;
+
+            switch ((toolPart as any).state) {
+              case "input-streaming":
+              case "input-available":
+                return (
+                  <div
+                    key={callId}
+                    className="mb-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
+                  >
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Terminal className="h-4 w-4" />
+                      <span>Tool: {toolName}</span>
+                      <DotsLoader size="sm" />
+                    </div>
+                  </div>
+                );
+              case "output-available":
+                return (
+                  <div
+                    key={callId}
+                    className="mb-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm"
+                  >
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Terminal className="h-4 w-4" />
+                      <span>Tool: {toolName} completed</span>
+                    </div>
+                  </div>
+                );
+              case "output-error":
+                return (
+                  <div
+                    key={callId}
+                    className="mb-2 rounded-lg border bg-destructive/10 px-3 py-2 text-sm"
+                  >
+                    <div className="flex items-center gap-2 text-destructive">
+                      <X className="h-4 w-4" />
+                      <span>
+                        Tool {toolName} failed: {(toolPart as any).errorText}
+                      </span>
+                    </div>
+                  </div>
+                );
+              default:
+                return null;
+            }
           }
           if (part.type === "file") {
             const filePart = part as FileUIPart;
@@ -458,106 +615,3 @@ const ReasoningBlock = ({ part }: { part: ReasoningUIPart }) => {
     </div>
   );
 };
-
-interface WebSearchBlockProps {
-  toolPart: ToolInvocationUIPart;
-}
-
-function WebSearchBlock({ toolPart }: WebSearchBlockProps) {
-  const { state } = toolPart.toolInvocation;
-  const result =
-    toolPart.toolInvocation.state === "result"
-      ? toolPart.toolInvocation.result
-      : undefined;
-  const args =
-    toolPart.toolInvocation.state === "call" ||
-    toolPart.toolInvocation.state === "result"
-      ? toolPart.toolInvocation.args
-      : undefined;
-
-  switch (state) {
-    case "partial-call":
-    case "call":
-      return (
-        <div className="mb-3 rounded-lg border bg-muted/50 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-              <Search className="h-4 w-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  Searching the web
-                </span>
-                <DotsLoader size="sm" />
-              </div>
-              {args?.query && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  "{args.query}"
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-
-    case "result": {
-      if (!result) return null;
-
-      const searchData = result as {
-        query: string;
-        results: Array<{ title: string; url: string; snippet: string }>;
-      };
-
-      return (
-        <div className="mb-3 rounded-lg border bg-muted/50 px-4 py-3">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
-              <Globe className="h-4 w-4 text-success" />
-            </div>
-            <div className="flex-1">
-              <span className="text-sm font-medium text-foreground">
-                Web Search Results
-              </span>
-              <p className="text-xs text-muted-foreground">
-                "{searchData.query}"
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {searchData.results.map((item, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
-              >
-                <div className="flex items-start gap-2">
-                  <div className="flex-1">
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
-                    >
-                      <span className="line-clamp-1">{item.title}</span>
-                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </a>
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                      {item.snippet}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground font-mono">
-                      {new URL(item.url).hostname}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    default:
-      return null;
-  }
-}

@@ -1,4 +1,9 @@
 import type { MessageAction, MessageState } from "./chat-types";
+import type { UIMessage } from "@ai-sdk/react";
+
+// Extract tool part type from UIMessage
+type MessagePart = UIMessage["parts"][number];
+type ToolPart = Extract<MessagePart, { type: `tool-${string}` }>;
 
 export function messageReducer(
   state: MessageState,
@@ -16,20 +21,17 @@ export function messageReducer(
 
       let needsUpdate = false;
       const updatedParts = message.parts.map((part) => {
-        if (
-          part.type === "tool-invocation" &&
-          part.toolInvocation.state === "call"
-        ) {
-          needsUpdate = true;
-          return {
-            ...part,
-            toolInvocation: {
-              ...part.toolInvocation,
-              state: "result" as const,
-              result: "Tool execution was cancelled",
-              isError: true,
-            },
-          };
+        if (part.type.startsWith("tool-")) {
+          const toolPart = part as ToolPart;
+          if ('state' in toolPart && 
+              ((toolPart as any).state === "input-streaming" || (toolPart as any).state === "input-available")) {
+            needsUpdate = true;
+            return {
+              ...toolPart,
+              state: "output-error" as const,
+              errorText: "Tool execution was cancelled",
+            } as any;
+          }
         }
         return part;
       });

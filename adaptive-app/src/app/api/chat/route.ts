@@ -1,13 +1,15 @@
-import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
+import { createAdaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import {
 	convertToModelMessages,
 	generateText,
+	stepCountIs,
 	streamText,
 	tool,
 	type UIMessage,
 } from "ai";
+import { Exa } from "exa-js";
 import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
@@ -17,7 +19,23 @@ import { api } from "@/trpc/server";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
-import { Exa } from "exa-js";
+// Validate required environment variables
+if (!process.env.ADAPTIVE_API_KEY) {
+	throw new Error(
+		"ADAPTIVE_API_KEY environment variable is required but not defined",
+	);
+}
+
+if (!process.env.ADAPTIVE_API_BASE_URL) {
+	throw new Error(
+		"ADAPTIVE_API_BASE_URL environment variable is required but not defined",
+	);
+}
+
+const adaptive = createAdaptive({
+	apiKey: process.env.ADAPTIVE_API_KEY,
+	baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+});
 
 // Web search function using Exa API
 async function webSearch(query: string): Promise<
@@ -66,7 +84,6 @@ export async function POST(req: Request) {
 		}
 
 		const body = await req.json();
-		console.log("Received body:", body);
 		const { messages, id: conversationId, searchEnabled = false } = body;
 
 		const numericConversationId = Number(conversationId);
@@ -147,7 +164,7 @@ export async function POST(req: Request) {
 					webSearch: tool({
 						description:
 							"Search the web for current information, news, facts, or any topic that requires up-to-date information",
-						parameters: zodSchema.object({
+						inputSchema: zodSchema.object({
 							query: zodSchema
 								.string()
 								.describe("The search query to look up on the web"),
@@ -233,14 +250,12 @@ export async function POST(req: Request) {
 				provider = providerMetadata?.adaptive?.provider as string | undefined;
 				modelId = response.modelId || undefined;
 			},
-			maxSteps: 10,
+			stopWhen: stepCountIs(5),
 		});
 
 		const data = result.toUIMessageStreamResponse({
 			sendReasoning: true,
 			sendSources: true,
-			experimental_sendFinish: true,
-			experimental_sendStart: true,
 			messageMetadata: ({ part }) => {
 				return {
 					...part,

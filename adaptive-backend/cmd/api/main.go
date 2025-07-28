@@ -43,6 +43,7 @@ const (
 	allowedHeadersKey = "ALLOWED_ORIGINS"
 	addrKey           = "ADDR"
 	envKey            = "ENV"
+	logLevelKey       = "LOG_LEVEL"
 )
 
 // main is the entry point for the Adaptive backend server.
@@ -50,6 +51,9 @@ func main() {
 	if err := godotenv.Load(".env.local"); err != nil {
 		fiberlog.Info("No .env.local file found, proceeding with environment variables")
 	}
+
+	// Set log level based on environment variable
+	setupLogLevel()
 
 	port := os.Getenv(addrKey)
 	if port == "" {
@@ -212,4 +216,34 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	if !isProd {
 		app.Use(pprof.New())
 	}
+}
+
+// setupLogLevel configures the Fiber log level based on environment variable
+func setupLogLevel() {
+	logLevel := strings.ToLower(os.Getenv(logLevelKey))
+	if logLevel == "" {
+		logLevel = "info" // default to info if not set
+	}
+
+	switch logLevel {
+	case "trace":
+		fiberlog.SetLevel(fiberlog.LevelTrace)
+	case "debug":
+		fiberlog.SetLevel(fiberlog.LevelDebug)
+	case "info":
+		fiberlog.SetLevel(fiberlog.LevelInfo)
+	case "warn", "warning":
+		fiberlog.SetLevel(fiberlog.LevelWarn)
+	case "error":
+		fiberlog.SetLevel(fiberlog.LevelError)
+	case "fatal":
+		fiberlog.SetLevel(fiberlog.LevelFatal)
+	case "panic":
+		fiberlog.SetLevel(fiberlog.LevelPanic)
+	default:
+		fiberlog.SetLevel(fiberlog.LevelInfo)
+		fiberlog.Warnf("Unknown log level '%s', defaulting to 'info'", logLevel)
+	}
+
+	fiberlog.Infof("Log level set to: %s", logLevel)
 }
