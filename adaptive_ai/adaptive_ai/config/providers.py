@@ -237,7 +237,19 @@ provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
         ),
     ],
     ProviderType.GROQ: [
-        # Add GROQ (fast inference) models here when available
+        ModelCapability(
+            description="Llama 3.1 70B model optimized for fast inference and cost efficiency.",
+            provider=ProviderType.GROQ,
+            model_name="llama-3.1-70b-versatile",
+            cost_per_1m_input_tokens=0.59,
+            cost_per_1m_output_tokens=0.79,
+            max_context_tokens=131072,
+            max_output_tokens=4096,
+            supports_function_calling=True,
+            languages_supported=["en"],
+            model_size_params="70B",
+            latency_tier="very low",
+        ),
     ],
     ProviderType.GROK: [
         ModelCapability(
@@ -293,6 +305,19 @@ provider_model_capabilities: dict[ProviderType, list[ModelCapability]] = {
             languages_supported=["en"],
             model_size_params="Proprietary-Opus",
             latency_tier="high",
+        ),
+        ModelCapability(
+            description="Claude 3 Haiku - Anthropic's fastest and most cost-effective model.",
+            provider=ProviderType.ANTHROPIC,
+            model_name="claude-3-haiku-20240307",
+            cost_per_1m_input_tokens=0.25,
+            cost_per_1m_output_tokens=1.25,
+            max_context_tokens=200000,
+            max_output_tokens=4096,
+            supports_function_calling=True,
+            languages_supported=["en"],
+            model_size_params="Proprietary-Haiku",
+            latency_tier="low",
         ),
     ],
 }
