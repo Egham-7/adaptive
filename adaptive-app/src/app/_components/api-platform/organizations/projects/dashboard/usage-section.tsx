@@ -182,7 +182,7 @@ export function UsageSection({
 			<CardContent>
 				<UsageChart
 					data={chartData}
-					providerName={selectedModelInfo?.provider}
+					providerName={selectedModelInfo?.name}
 				/>
 			</CardContent>
 		</Card>

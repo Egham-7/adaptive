@@ -37,7 +37,7 @@ const chartConfig = {
 
 export function UsageChart({
 	data,
-	providerName = "Single Provider",
+	providerName = "Direct Cost",
 }: UsageChartProps) {
 	if (!data || data.length === 0) {
 		return (
