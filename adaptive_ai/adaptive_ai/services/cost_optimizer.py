@@ -154,7 +154,10 @@ class CostOptimizer:
             }
 
         model_costs = []
+        model_costs = []
         for entry in model_entries:
+            if not entry.providers:
+                continue
             key = (entry.providers[0], entry.model_name)
             if model_cap := model_capabilities.get(key):
                 cost = self.calculate_model_cost(model_cap, estimated_tokens)
