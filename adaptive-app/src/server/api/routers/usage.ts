@@ -570,7 +570,8 @@ export const usageRouter = createTRPCRouter({
 								totalTokens: true,
 								inputTokens: true,    // ← Add input tokens
 								outputTokens: true,   // ← Add output tokens
-								cost: true,
+								cost: true,           // ← Keep for admin dashboard
+								creditCost: true,     // ← Add for customer dashboard
 								requestCount: true,
 							},
 							orderBy: {
