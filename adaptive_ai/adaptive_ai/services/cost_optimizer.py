@@ -154,8 +154,8 @@ class CostOptimizer:
                 "tier_distribution": {},
             }
 
-        model_costs = []
-        model_costs = []
+        model_costs: list[dict[str, Any]] = []
+
         for entry in model_entries:
             if not entry.providers:
                 continue
