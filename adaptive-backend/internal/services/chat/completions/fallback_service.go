@@ -66,12 +66,13 @@ func (fs *FallbackService) SetTimeout(timeout time.Duration) {
 }
 
 // SelectAlternative selects the best alternative provider when primary fails
+// It modifies the alternatives slice by removing tried providers to avoid retries
 func (fs *FallbackService) SelectAlternative(
 	ctx context.Context,
-	alternatives []models.Alternative,
+	alternatives *[]models.Alternative,
 	requestID string,
 ) (*models.RaceResult, error) {
-	if len(alternatives) == 0 {
+	if len(*alternatives) == 0 {
 		return nil, fmt.Errorf("no alternatives available")
 	}
 
@@ -88,33 +89,58 @@ func (fs *FallbackService) SelectAlternative(
 // raceAlternatives races alternative providers in parallel
 func (fs *FallbackService) raceAlternatives(
 	ctx context.Context,
-	alternatives []models.Alternative,
+	alternatives *[]models.Alternative,
 	requestID string,
 ) (*models.RaceResult, error) {
-	fiberlog.Infof("[%s] Racing %d alternative providers", requestID, len(alternatives))
-	return fs.raceAllProviders(ctx, alternatives, requestID)
-}
+	fiberlog.Infof("[%s] Racing %d alternative providers", requestID, len(*alternatives))
 
-// selectSequentialAlternative tries alternative providers one by one in order
-func (fs *FallbackService) selectSequentialAlternative(
-	ctx context.Context,
-	alternatives []models.Alternative,
-	requestID string,
-) (*models.RaceResult, error) {
-	fiberlog.Infof("[%s] Sequential fallback: trying %d alternatives", requestID, len(alternatives))
+	// For race mode, we try all alternatives at once
+	result, err := fs.raceAllProviders(ctx, *alternatives, requestID)
 
-	// Try alternatives one by one
-	for i, alt := range alternatives {
-		fiberlog.Infof("[%s] Trying alternative %d: %s (%s)", requestID, i+1, alt.Provider, alt.Model)
-		result := fs.tryProviderConnection(alt, requestID)
-		if result.Error == nil {
-			fiberlog.Infof("[%s] Alternative %d provider %s (%s) available", requestID, i+1, alt.Provider, alt.Model)
-			return result, nil
-		}
-		fiberlog.Warnf("[%s] Alternative %d provider %s (%s) failed: %v", requestID, i+1, alt.Provider, alt.Model, result.Error)
+	// Always clear the slice since we tried all providers
+	alternativeCount := len(*alternatives)
+	*alternatives = (*alternatives)[:0]
+
+	if err == nil {
+		// Success - we found a winner
+		fiberlog.Infof("[%s] Race winner found: %s (%s), cleared all alternatives", requestID, result.ProviderName, result.ModelName)
+	} else {
+		// All failed - we tried them all
+		fiberlog.Warnf("[%s] All %d alternatives failed in race, cleared all alternatives", requestID, alternativeCount)
 	}
 
-	return nil, fmt.Errorf("all %d alternatives failed", len(alternatives))
+	return result, err
+}
+
+// selectSequentialAlternative tries the first alternative and removes it from the slice
+func (fs *FallbackService) selectSequentialAlternative(
+	ctx context.Context,
+	alternatives *[]models.Alternative,
+	requestID string,
+) (*models.RaceResult, error) {
+	if len(*alternatives) == 0 {
+		return nil, fmt.Errorf("no alternatives available")
+	}
+
+	fiberlog.Infof("[%s] Sequential fallback: trying next alternative from %d remaining", requestID, len(*alternatives))
+
+	// Try the first alternative
+	alt := (*alternatives)[0]
+	fiberlog.Infof("[%s] Trying alternative: %s (%s)", requestID, alt.Provider, alt.Model)
+	result := fs.tryProviderConnection(alt, requestID)
+
+	if result.Error == nil {
+		// Success - remove this alternative from the slice and return it
+		*alternatives = (*alternatives)[1:]
+		fiberlog.Infof("[%s] Alternative provider %s (%s) available, %d alternatives remaining", requestID, alt.Provider, alt.Model, len(*alternatives))
+		return result, nil
+	}
+
+	// Failed - remove this alternative from the slice
+	*alternatives = (*alternatives)[1:]
+	fiberlog.Warnf("[%s] Alternative provider %s (%s) failed: %v, %d alternatives remaining", requestID, alt.Provider, alt.Model, result.Error, len(*alternatives))
+
+	return nil, fmt.Errorf("alternative %s (%s) failed: %w", alt.Provider, alt.Model, result.Error)
 }
 
 // raceAllProviders races all providers in parallel
