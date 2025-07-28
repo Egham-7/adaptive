@@ -107,12 +107,13 @@ class CostOptimizer:
         # Extract model data
         model_data = []
         for entry in model_entries:
+            if not entry.providers:
+                continue
             key = (entry.providers[0], entry.model_name)
             if model_cap := model_capabilities.get(key):
                 cost = self.calculate_model_cost(model_cap, estimated_tokens)
                 tier = self.get_cost_tier(model_cap)
                 model_data.append((entry, cost, tier))
-
         if not model_data:
             return model_entries
 
