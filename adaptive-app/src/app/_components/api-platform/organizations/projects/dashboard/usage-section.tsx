@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Select,
@@ -18,6 +17,8 @@ interface UsageSectionProps {
 	loading: boolean;
 	selectedProvider: string;
 	providers: Provider[];
+	selectedModel: string;
+	onModelChange: (model: string) => void;
 }
 
 // Model pricing data (from seed-providers.ts)
@@ -58,8 +59,9 @@ export function UsageSection({
 	loading,
 	selectedProvider,
 	providers,
+	selectedModel,
+	onModelChange,
 }: UsageSectionProps) {
-	const [selectedModel, setSelectedModel] = useState("gpt-4o");
 
 	if (loading) {
 		return <ChartSkeleton />;
@@ -119,7 +121,7 @@ export function UsageSection({
 							<CardTitle>Cost Comparison</CardTitle>
 							<div className="flex items-center gap-2">
 								<span className="text-muted-foreground text-sm">Compare vs</span>
-								<Select value={selectedModel} onValueChange={setSelectedModel}>
+								<Select value={selectedModel} onValueChange={onModelChange}>
 									<SelectTrigger className="w-[180px]">
 										<SelectValue />
 									</SelectTrigger>

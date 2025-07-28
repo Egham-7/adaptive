@@ -11,12 +11,37 @@ import type { DashboardData } from "@/types/api-platform/dashboard";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
 
+// Model pricing data (same as usage-section.tsx)
+const MODEL_PRICING = {
+	"gpt-4o": { inputCost: 3.0, outputCost: 10.0 },
+	"gpt-4o-mini": { inputCost: 0.15, outputCost: 0.6 },
+	"claude-3.5-sonnet": { inputCost: 3.0, outputCost: 15.0 },
+	"gemini-2.5-pro": { inputCost: 1.25, outputCost: 10.0 },
+	"deepseek-chat": { inputCost: 0.27, outputCost: 1.1 },
+} as const;
+
+// Calculate direct cost for a specific model using actual token usage
+function calculateDirectModelCost(
+	usageData: { inputTokens: number; outputTokens: number }[],
+	modelId: keyof typeof MODEL_PRICING
+): number {
+	const modelPricing = MODEL_PRICING[modelId];
+	if (!modelPricing) return 0;
+
+	return usageData.reduce((totalCost, usage) => {
+		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
+		const outputCost = (usage.outputTokens / 1_000_000) * modelPricing.outputCost;
+		return totalCost + inputCost + outputCost;
+	}, 0);
+}
+
 interface MetricsOverviewProps {
 	data: DashboardData | null;
 	loading: boolean;
+	selectedModel?: string;
 }
 
-export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
+export function MetricsOverview({ data, loading, selectedModel = "gpt-4o" }: MetricsOverviewProps) {
 	if (loading) {
 		return (
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -30,14 +55,29 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 
 	if (!data) return null;
 
-	const savingsData = data.usageData.map((d) => ({
+	// Calculate dynamic costs for the selected model
+	const usageDataWithDynamicCosts = data.usageData.map((d) => {
+		const adaptiveCost = d.adaptive;
+		const modelCost = calculateDirectModelCost(
+			[{ inputTokens: d.inputTokens || 0, outputTokens: d.outputTokens || 0 }],
+			selectedModel as keyof typeof MODEL_PRICING
+		);
+		return {
+			...d,
+			adaptiveCost,
+			modelCost,
+			savings: Math.max(0, modelCost - adaptiveCost),
+		};
+	});
+
+	const savingsData = usageDataWithDynamicCosts.map((d) => ({
 		date: d.date,
-		value: d.singleProvider - d.adaptive,
+		value: d.savings,
 	}));
 
-	const spendData = data.usageData.map((d) => ({
+	const spendData = usageDataWithDynamicCosts.map((d) => ({
 		date: d.date,
-		value: d.adaptive,
+		value: d.adaptiveCost,
 	}));
 
 	const allMetrics = [
@@ -47,7 +87,15 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 			icon: <FaDollarSign className="h-5 w-5 text-success" />,
 			data: savingsData,
 			color: "hsl(var(--chart-1))",
-			totalValue: `$${data.totalSavings.toFixed(2)}`,
+			totalValue: `$${(() => {
+				const totalSavings = usageDataWithDynamicCosts.reduce((sum, d) => sum + d.savings, 0);
+				const str = totalSavings.toString();
+				const parts = str.split('.');
+				const decimalPart = parts[1] || '';
+				const significantDecimals = decimalPart.replace(/0+$/, '').length;
+				const decimals = Math.min(Math.max(significantDecimals, 2), 8);
+				return totalSavings.toFixed(decimals);
+			})()}`,
 		},
 		{
 			title: "Spending Over Time",

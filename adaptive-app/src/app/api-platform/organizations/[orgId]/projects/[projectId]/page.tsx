@@ -23,6 +23,7 @@ export default function DashboardPage() {
 	const { dateRange, setDateRange } = useDateRange();
 	const [selectedProvider, setSelectedProvider] =
 		useState<ProviderFilter>("all");
+	const [selectedModel, setSelectedModel] = useState<string>("gpt-4o");
 
 	const filters: DashboardFilters = useMemo(
 		() => ({
@@ -110,7 +111,7 @@ export default function DashboardPage() {
 						Real-time insights
 					</div>
 				</div>
-				<MetricsOverview data={data} loading={loading} />
+				<MetricsOverview data={data} loading={loading} selectedModel={selectedModel} />
 			</section>
 
 			{/* Divider */}
@@ -133,6 +134,8 @@ export default function DashboardPage() {
 							loading={loading}
 							selectedProvider={selectedProvider}
 							providers={data?.providers || []}
+							selectedModel={selectedModel}
+							onModelChange={setSelectedModel}
 						/>
 					</div>
 					<TaskDistributionChart data={data} loading={loading} />
