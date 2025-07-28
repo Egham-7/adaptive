@@ -12,14 +12,32 @@ const PROMOTIONAL_CREDIT_AMOUNT = Number.parseFloat(
 	process.env.PROMOTIONAL_CREDIT_AMOUNT || "5.00",
 );
 
-// Helper function for dynamic precision formatting
+// Helper function for dynamic precision formatting based on actual decimal places needed
 const formatCurrency = (amount: number): string => {
-	if (amount < 1) {
-		// For small amounts, show full precision to display micro-transactions
-		return `$${amount}`;
+	// Convert to string to analyze decimal places
+	const numStr = amount.toString();
+
+	// Handle scientific notation (e.g., 1.5e-7)
+	if (numStr.includes("e")) {
+		return `$${amount.toFixed(8)}`;
 	}
-	// For larger amounts, show standard 2 decimal places
-	return `$${amount.toFixed(2)}`;
+
+	// Split by decimal point
+	const parts = numStr.split(".");
+
+	// If no decimal part, show 2 decimal places for standard currency display
+	if (parts.length === 1) {
+		return `$${amount.toFixed(2)}`;
+	}
+
+	// Count significant decimal places (excluding trailing zeros)
+	const decimalPart = parts[1] || "";
+	const significantDecimals = decimalPart.replace(/0+$/, "").length;
+
+	// Show at least 2 decimal places, up to 8 based on actual precision needed
+	const decimalPlaces = Math.max(2, Math.min(8, significantDecimals));
+
+	return `$${amount.toFixed(decimalPlaces)}`;
 };
 
 export const creditsRouter = createTRPCRouter({

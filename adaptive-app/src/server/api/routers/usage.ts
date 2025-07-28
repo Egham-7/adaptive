@@ -189,6 +189,8 @@ export const usageRouter = createTRPCRouter({
 					input.usage.completionTokens,
 				);
 
+				console.log("🔍 Checking credit balance before API usage:.");
+
 				// Check if organization has sufficient credits before processing
 				const hasSufficientCredits = await CreditService.hasSufficientCredits(
 					organizationId,
@@ -200,7 +202,11 @@ export const usageRouter = createTRPCRouter({
 						await CreditService.getOrganizationBalance(organizationId);
 					throw new TRPCError({
 						code: "PAYMENT_REQUIRED",
-						message: `Insufficient credits. Required: $${creditCost.toFixed(4)}, Available: $${currentBalance.toFixed(4)}. Please purchase more credits.`,
+						message: `Insufficient credits. Required: $${creditCost.toFixed(
+							4,
+						)}, Available: $${currentBalance.toFixed(
+							4,
+						)}. Please purchase more credits.`,
 					});
 				}
 
@@ -227,6 +233,8 @@ export const usageRouter = createTRPCRouter({
 						},
 					},
 				});
+
+				console.log("💸 Deducting credits for API usage.");
 
 				// Deduct credits from organization's account
 				const creditTransaction = await CreditService.deductCredits({
@@ -256,6 +264,8 @@ export const usageRouter = createTRPCRouter({
 					apiKey.userId,
 					apiKey.projectId || undefined,
 				);
+
+				console.log("✅ API usage recorded and credits deducted.");
 
 				return {
 					success: true,

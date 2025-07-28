@@ -180,7 +180,7 @@ export class CreditService {
 			throw new Error("Deduction amount must be positive");
 		}
 
-		console.log("💸 Starting deductCredits transaction.");
+		console.log("💸 Starting deductCredits transaction:");
 
 		// Use database transaction for atomicity
 		return await db.$transaction(async (tx) => {
