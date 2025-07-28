@@ -161,6 +161,8 @@ export function MessageInput({
           stop();
           setShowInterruptPrompt(false);
           event.currentTarget.form?.requestSubmit();
+          setSearchEnabled(false);
+          onSearchToggle?.(false);
         } else if (
           props.value ||
           (props.allowAttachments && props.files?.length)
@@ -171,6 +173,8 @@ export function MessageInput({
       }
 
       event.currentTarget.form?.requestSubmit();
+      setSearchEnabled(false);
+      onSearchToggle?.(false);
     }
 
     onKeyDownProp?.(event);
