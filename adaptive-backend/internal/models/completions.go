@@ -237,22 +237,6 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 	}
 }
 
-// CompletionUsage extends OpenAI's CompletionUsage with cost savings
-type CompletionUsage struct {
-	CostSaved float32 `json:"cost_saved,omitempty"`
-
-	// Number of tokens in the generated completion.
-	CompletionTokens int64 `json:"completion_tokens"`
-	// Number of tokens in the prompt.
-	PromptTokens int64 `json:"prompt_tokens"`
-	// Total number of tokens used in the request (prompt + completion).
-	TotalTokens int64 `json:"total_tokens"`
-	// Breakdown of tokens used in a completion.
-	CompletionTokensDetails openai.CompletionUsageCompletionTokensDetails `json:"completion_tokens_details"`
-	// Breakdown of tokens used in the prompt.
-	PromptTokensDetails openai.CompletionUsagePromptTokensDetails `json:"prompt_tokens_details"`
-}
-
 // ChatCompletion extends OpenAI's ChatCompletion with enhanced usage
 type ChatCompletion struct {
 	ID                string                           `json:"id"`
@@ -262,36 +246,20 @@ type ChatCompletion struct {
 	Object            string                           `json:"object"`
 	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                           `json:"system_fingerprint,omitempty"`
-	Usage             CompletionUsage                  `json:"usage"`
+	Usage             openai.CompletionUsage           `json:"usage"`
 	Provider          string                           `json:"provider,omitempty"`
-}
-
-// ChatCompletionChunkChoiceDelta represents the delta of a chat completion chunk choice with proper JSON handling
-type ChatCompletionChunkChoiceDelta struct {
-	Content   string                                          `json:"content,omitempty"`
-	Refusal   string                                          `json:"refusal,omitempty"`
-	Role      string                                          `json:"role,omitempty"`
-	ToolCalls []openai.ChatCompletionChunkChoiceDeltaToolCall `json:"tool_calls,omitempty"`
-}
-
-// ChatCompletionChunkChoice represents a chat completion chunk choice with proper JSON handling
-type ChatCompletionChunkChoice struct {
-	Delta        ChatCompletionChunkChoiceDelta           `json:"delta"`
-	FinishReason string                                   `json:"finish_reason,omitempty"`
-	Index        int64                                    `json:"index"`
-	Logprobs     openai.ChatCompletionChunkChoiceLogprobs `json:"logprobs"`
 }
 
 // ChatCompletionChunk extends OpenAI's ChatCompletionChunk with enhanced usage
 type ChatCompletionChunk struct {
 	ID                string                                `json:"id"`
-	Choices           []ChatCompletionChunkChoice           `json:"choices"`
+	Choices           []openai.ChatCompletionChunkChoice    `json:"choices"`
 	Created           int64                                 `json:"created"`
 	Model             string                                `json:"model"`
 	Object            string                                `json:"object"`
 	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
-	Usage             *CompletionUsage                      `json:"usage,omitempty"`
+	Usage             *openai.CompletionUsage               `json:"usage,omitempty"`
 	Provider          string                                `json:"provider,omitempty"`
 }
 
@@ -305,51 +273,22 @@ func ConvertToAdaptive(completion *openai.ChatCompletion, provider string) *Chat
 		Object:            string(completion.Object),
 		ServiceTier:       completion.ServiceTier,
 		SystemFingerprint: completion.SystemFingerprint,
-		Usage: CompletionUsage{
-			CompletionTokens: completion.Usage.CompletionTokens,
-			PromptTokens:     completion.Usage.PromptTokens,
-			TotalTokens:      completion.Usage.TotalTokens,
-		},
-		Provider: provider,
+		Usage:             completion.Usage,
+		Provider:          provider,
 	}
 }
 
 // ConvertChunkToAdaptive converts OpenAI ChatCompletionChunk to our ChatCompletionChunk
 func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) *ChatCompletionChunk {
-	// Convert choices with proper role handling
-	adaptiveChoices := make([]ChatCompletionChunkChoice, len(chunk.Choices))
-	for i, choice := range chunk.Choices {
-		adaptiveChoices[i] = ChatCompletionChunkChoice{
-			Delta: ChatCompletionChunkChoiceDelta{
-				Content:   choice.Delta.Content,
-				Refusal:   choice.Delta.Refusal,
-				Role:      choice.Delta.Role, // This will be omitted if empty due to omitempty
-				ToolCalls: choice.Delta.ToolCalls,
-			},
-			FinishReason: choice.FinishReason,
-			Index:        choice.Index,
-			Logprobs:     choice.Logprobs,
-		}
-	}
-
 	adaptive := &ChatCompletionChunk{
 		ID:                chunk.ID,
-		Choices:           adaptiveChoices,
+		Choices:           chunk.Choices,
 		Created:           chunk.Created,
 		Model:             chunk.Model,
 		Object:            string(chunk.Object),
 		ServiceTier:       chunk.ServiceTier,
 		SystemFingerprint: chunk.SystemFingerprint,
 		Provider:          provider,
-	}
-
-	// Only add usage if it exists in the original chunk
-	if chunk.Usage.CompletionTokens > 0 || chunk.Usage.PromptTokens > 0 || chunk.Usage.TotalTokens > 0 {
-		adaptive.Usage = &CompletionUsage{
-			CompletionTokens: chunk.Usage.CompletionTokens,
-			PromptTokens:     chunk.Usage.PromptTokens,
-			TotalTokens:      chunk.Usage.TotalTokens,
-		}
 	}
 
 	return adaptive
