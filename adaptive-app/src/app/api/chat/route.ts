@@ -1,4 +1,4 @@
-import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
+import { createAdaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import {
@@ -9,6 +9,7 @@ import {
 	tool,
 	type UIMessage,
 } from "ai";
+import { Exa } from "exa-js";
 import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
@@ -18,7 +19,10 @@ import { api } from "@/trpc/server";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
-import { Exa } from "exa-js";
+const adaptive = createAdaptive({
+	apiKey: process.env.ADAPTIVE_API_KEY,
+	baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+});
 
 // Web search function using Exa API
 async function webSearch(query: string): Promise<
