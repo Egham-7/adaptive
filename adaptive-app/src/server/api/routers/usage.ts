@@ -513,6 +513,8 @@ export const usageRouter = createTRPCRouter({
 						timestamp: z.date(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
+							inputTokens: z.number().nullable(),    // ← Add input tokens validation
+							outputTokens: z.number().nullable(),   // ← Add output tokens validation
 							cost: z
 								.any()
 								.nullable()
@@ -566,6 +568,8 @@ export const usageRouter = createTRPCRouter({
 							where: whereClause,
 							_sum: {
 								totalTokens: true,
+								inputTokens: true,    // ← Add input tokens
+								outputTokens: true,   // ← Add output tokens
 								cost: true,
 								requestCount: true,
 							},
@@ -763,6 +767,8 @@ export const usageRouter = createTRPCRouter({
 								date: usage.timestamp,
 								spend: ensureNumber(usage._sum.cost),
 								tokens: ensureNumber(usage._sum.totalTokens),
+								inputTokens: ensureNumber(usage._sum.inputTokens),    // ← Add input tokens
+								outputTokens: ensureNumber(usage._sum.outputTokens),  // ← Add output tokens
 								requests: ensureNumber(usage._sum.requestCount),
 								errorCount: dateKey ? errorsByDay[dateKey] || 0 : 0,
 							};

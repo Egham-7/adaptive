@@ -14,7 +14,6 @@ import type { UsageDataPoint } from "@/types/api-platform/dashboard";
 interface UsageChartProps {
 	data: UsageDataPoint[];
 	providerName?: string;
-	showMarginBreakdown?: boolean;
 }
 
 const chartConfig = {
@@ -39,7 +38,6 @@ const chartConfig = {
 export function UsageChart({
 	data,
 	providerName = "Single Provider",
-	showMarginBreakdown = false,
 }: UsageChartProps) {
 	if (!data || data.length === 0) {
 		return (
@@ -49,19 +47,8 @@ export function UsageChart({
 		);
 	}
 
-	// Calculate margin breakdown if requested
-	const chartData = showMarginBreakdown
-		? data.map((point) => {
-				// Assume provider cost is ~70% of our charge (30% margin)
-				const providerCost = point.adaptive * 0.7;
-				const ourMargin = point.adaptive * 0.3;
-				return {
-					...point,
-					providerCost,
-					ourMargin,
-				};
-			})
-		: data;
+	// Use data as-is for cost comparison chart
+	const chartData = data;
 
 	const config = {
 		...chartConfig,
@@ -105,44 +92,18 @@ export function UsageChart({
 				/>
 				<ChartLegend content={<ChartLegendContent />} />
 
-				{showMarginBreakdown ? (
-					<>
-						{/* Stacked bars for margin breakdown */}
-						<Bar
-							dataKey="providerCost"
-							stackId="breakdown"
-							fill="var(--color-providerCost)"
-							radius={[0, 0, 0, 0]}
-						/>
-						<Bar
-							dataKey="ourMargin"
-							stackId="breakdown"
-							fill="var(--color-ourMargin)"
-							radius={[2, 2, 0, 0]}
-						/>
-						<Bar
-							dataKey="singleProvider"
-							fill="var(--color-singleProvider)"
-							radius={[2, 2, 0, 0]}
-							opacity={0.6}
-						/>
-					</>
-				) : (
-					<>
-						{/* Original bars */}
-						<Bar
-							dataKey="adaptive"
-							fill="var(--color-adaptive)"
-							radius={[2, 2, 0, 0]}
-						/>
-						<Bar
-							dataKey="singleProvider"
-							fill="var(--color-singleProvider)"
-							radius={[2, 2, 0, 0]}
-							opacity={0.6}
-						/>
-					</>
-				)}
+				{/* Cost comparison bars */}
+				<Bar
+					dataKey="adaptive"
+					fill="var(--color-adaptive)"
+					radius={[2, 2, 0, 0]}
+				/>
+				<Bar
+					dataKey="singleProvider"
+					fill="var(--color-singleProvider)"
+					radius={[2, 2, 0, 0]}
+					opacity={0.6}
+				/>
 			</BarChart>
 		</ChartContainer>
 	);

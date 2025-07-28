@@ -1,10 +1,14 @@
 "use client";
 
-import { PieChart } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
 import { UsageChart } from "./charts/usage-chart";
 import { ChartSkeleton } from "./loading-skeleton";
@@ -16,13 +20,46 @@ interface UsageSectionProps {
 	providers: Provider[];
 }
 
+// Model pricing data (from seed-providers.ts)
+const MODEL_PRICING = {
+	"gpt-4o": { inputCost: 3.0, outputCost: 10.0 },
+	"gpt-4o-mini": { inputCost: 0.15, outputCost: 0.6 },
+	"claude-3.5-sonnet": { inputCost: 3.0, outputCost: 15.0 },
+	"gemini-2.5-pro": { inputCost: 1.25, outputCost: 10.0 },
+	"deepseek-chat": { inputCost: 0.27, outputCost: 1.1 },
+} as const;
+
+// Popular models for comparison
+const COMPARISON_MODELS = [
+	{ id: "gpt-4o", name: "GPT-4o", provider: "OpenAI" },
+	{ id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
+	{ id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", provider: "Anthropic" },
+	{ id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", provider: "Google" },
+	{ id: "deepseek-chat", name: "DeepSeek Chat", provider: "DeepSeek" },
+] as const;
+
+// Calculate direct cost for a specific model using actual token usage
+function calculateDirectModelCost(
+	usageData: { inputTokens: number; outputTokens: number }[],
+	modelId: keyof typeof MODEL_PRICING
+): number {
+	const modelPricing = MODEL_PRICING[modelId];
+	if (!modelPricing) return 0;
+
+	return usageData.reduce((totalCost, usage) => {
+		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
+		const outputCost = (usage.outputTokens / 1_000_000) * modelPricing.outputCost;
+		return totalCost + inputCost + outputCost;
+	}, 0);
+}
+
 export function UsageSection({
 	data,
 	loading,
 	selectedProvider,
 	providers,
 }: UsageSectionProps) {
-	const [showMarginBreakdown, setShowMarginBreakdown] = useState(false);
+	const [selectedModel, setSelectedModel] = useState("gpt-4o");
 
 	if (loading) {
 		return <ChartSkeleton />;
@@ -43,13 +80,19 @@ export function UsageSection({
 		);
 	}
 
-	const currentProvider = providers.find((p) => p.id === selectedProvider);
+	const selectedModelInfo = COMPARISON_MODELS.find((m) => m.id === selectedModel);
 	const totalSpend = data.totalSpend;
-	const totalComparison = currentProvider?.comparisonCosts.single || 0;
-	const totalSavings = totalComparison - totalSpend;
+	
+	// Calculate actual direct model cost using real token usage data
+	const directModelCost = calculateDirectModelCost(
+		data.usageData, 
+		selectedModel as keyof typeof MODEL_PRICING
+	);
+	
+	const totalSavings = directModelCost - totalSpend;
 	const savingsPercentage =
-		totalComparison > 0
-			? ((totalSavings / totalComparison) * 100).toFixed(1)
+		directModelCost > 0
+			? ((totalSavings / directModelCost) * 100).toFixed(1)
 			: "0.0";
 
 	return (
@@ -58,88 +101,73 @@ export function UsageSection({
 				<div className="flex items-center justify-between">
 					<div className="flex-1">
 						<div className="mb-1 flex items-center justify-between">
-							<CardTitle>Total Spend</CardTitle>
+							<CardTitle>Cost Comparison</CardTitle>
 							<div className="flex items-center gap-2">
-								{showMarginBreakdown && (
-									<Badge variant="secondary" className="text-xs">
-										Margin View
-									</Badge>
-								)}
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={() => setShowMarginBreakdown(!showMarginBreakdown)}
-									className="h-8 px-3"
-								>
-									<PieChart className="mr-1 h-3 w-3" />
-									{showMarginBreakdown ? "Cost View" : "Margin View"}
-								</Button>
+								<span className="text-muted-foreground text-sm">Compare vs</span>
+								<Select value={selectedModel} onValueChange={setSelectedModel}>
+									<SelectTrigger className="w-[180px]">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{COMPARISON_MODELS.map((model) => (
+											<SelectItem key={model.id} value={model.id}>
+												{model.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
 							</div>
 						</div>
-						<div className="flex items-baseline gap-4">
-							<span className="font-bold text-3xl text-foreground">
-								$
-								{typeof totalSpend === "number"
-									? totalSpend < 0.01 && totalSpend > 0
-										? totalSpend.toFixed(6)
-										: totalSpend.toFixed(2)
-									: totalSpend}
-							</span>
-							<span className="text-muted-foreground text-sm">
-								vs $
-								{typeof totalComparison === "number"
-									? totalComparison < 0.01 && totalComparison > 0
-										? totalComparison.toFixed(6)
-										: totalComparison.toFixed(2)
-									: totalComparison}{" "}
-								({currentProvider?.name})
-							</span>
+						<div className="space-y-2">
+							<div className="flex items-center justify-between">
+								<span className="text-muted-foreground text-sm">Your Adaptive Cost</span>
+								<span className="font-semibold text-lg">
+									$
+									{typeof totalSpend === "number"
+										? totalSpend < 0.01 && totalSpend > 0
+											? totalSpend.toFixed(6)
+											: totalSpend.toFixed(2)
+										: totalSpend}
+								</span>
+							</div>
+							<div className="flex items-center justify-between">
+								<span className="text-muted-foreground text-sm">
+									Direct {selectedModelInfo?.name} Cost
+								</span>
+								<span className="font-semibold text-lg">
+									$
+									{typeof directModelCost === "number"
+										? directModelCost < 0.01 && directModelCost > 0
+											? directModelCost.toFixed(6)
+											: directModelCost.toFixed(2)
+										: directModelCost}
+								</span>
+							</div>
 						</div>
-						<div className="mt-2 flex items-center gap-2">
-							<span className="font-medium text-sm text-success">
-								$
-								{typeof totalSavings === "number"
-									? totalSavings < 0.01 && totalSavings > 0
-										? totalSavings.toFixed(6)
-										: totalSavings.toFixed(2)
-									: totalSavings}{" "}
-								saved ({savingsPercentage}%)
-							</span>
+						<div className="mt-3 rounded-lg bg-green-50 p-3 dark:bg-green-900/10">
+							<div className="flex items-center justify-between">
+								<span className="font-medium text-sm text-green-700 dark:text-green-400">
+									You saved with Adaptive
+								</span>
+								<span className="font-bold text-green-700 dark:text-green-400">
+									$
+									{typeof totalSavings === "number"
+										? totalSavings < 0.01 && totalSavings > 0
+											? totalSavings.toFixed(6)
+											: totalSavings.toFixed(2)
+										: totalSavings}{" "}
+									({savingsPercentage}%)
+								</span>
+							</div>
 						</div>
 
-						{showMarginBreakdown && (
-							<div className="mt-3 rounded-lg bg-muted/30 p-3">
-								<h4 className="mb-2 font-medium text-sm">
-									Revenue Breakdown (Estimated)
-								</h4>
-								<div className="grid grid-cols-2 gap-4 text-sm">
-									<div>
-										<div className="text-muted-foreground">
-											Provider Cost (~70%)
-										</div>
-										<div className="font-medium font-mono">
-											${(totalSpend * 0.7).toFixed(4)}
-										</div>
-									</div>
-									<div>
-										<div className="text-muted-foreground">
-											Our Margin (~30%)
-										</div>
-										<div className="font-medium font-mono text-green-600">
-											${(totalSpend * 0.3).toFixed(4)}
-										</div>
-									</div>
-								</div>
-							</div>
-						)}
 					</div>
 				</div>
 			</CardHeader>
 			<CardContent>
 				<UsageChart
 					data={data.usageData}
-					providerName={currentProvider?.name}
-					showMarginBreakdown={showMarginBreakdown}
+					providerName={selectedModelInfo?.provider}
 				/>
 			</CardContent>
 		</Card>
