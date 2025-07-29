@@ -54,14 +54,16 @@ type OpenAIStreamReader struct {
 func NewOpenAIStreamReader(
 	stream *ssestream.Stream[openai.ChatCompletionChunk],
 	requestID string,
+	provider string,
 ) *OpenAIStreamReader {
 	return &OpenAIStreamReader{
 		BaseStreamReader: stream_readers.BaseStreamReader{
 			Buffer:    make([]byte, 0, initialBufferSize),
 			RequestID: requestID,
 		},
-		stream: stream,
-		ctx:    context.Background(), // Default context, will be overridden
+		provider: provider,
+		stream:   stream,
+		ctx:      context.Background(), // Default context, will be overridden
 	}
 }
 
