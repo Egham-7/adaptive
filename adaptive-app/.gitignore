@@ -48,3 +48,6 @@ yarn-error.log*
 /.clerk/
 
 prisma/generated/*
+
+# Sentry Config File
+.env.sentry-build-plugin
