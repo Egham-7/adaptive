@@ -7,7 +7,6 @@ import {
   Mic,
   Paperclip,
   Square,
-  Search,
   Plus,
 } from "lucide-react";
 import type React from "react";
@@ -33,7 +32,6 @@ interface MessageInputBaseProps
   enableInterrupt?: boolean;
   transcribeAudio?: (blob: Blob) => Promise<string>;
   enableAdvancedFeatures?: boolean;
-  onSearchToggle?: (enabled: boolean) => void;
 }
 
 interface MessageInputWithoutAttachmentProps extends MessageInputBaseProps {
@@ -60,12 +58,10 @@ export function MessageInput({
   enableInterrupt = true,
   transcribeAudio,
   enableAdvancedFeatures = false,
-  onSearchToggle,
   ...props
 }: MessageInputProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [showInterruptPrompt, setShowInterruptPrompt] = useState(false);
-  const [searchEnabled, setSearchEnabled] = useState(false);
 
   const {
     isSpeechSupported,
@@ -161,8 +157,6 @@ export function MessageInput({
           stop();
           setShowInterruptPrompt(false);
           event.currentTarget.form?.requestSubmit();
-          setSearchEnabled(false);
-          onSearchToggle?.(false);
         } else if (
           props.value ||
           (props.allowAttachments && props.files?.length)
@@ -173,8 +167,6 @@ export function MessageInput({
       }
 
       event.currentTarget.form?.requestSubmit();
-      setSearchEnabled(false);
-      onSearchToggle?.(false);
     }
 
     onKeyDownProp?.(event);
@@ -233,33 +225,19 @@ export function MessageInput({
               ] as (keyof typeof props)[]))}
         />
 
-        {enableAdvancedFeatures && (
-          <div className="px-3 pb-1.5 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <FeatureToggle
-                icon={Search}
-                label="Search"
-                isEnabled={searchEnabled}
-                onToggle={() => {
-                  setSearchEnabled(!searchEnabled);
-                  onSearchToggle?.(!searchEnabled);
-                }}
-                ariaLabel="Toggle Search"
-              />
-            </div>
-            {props.allowAttachments && (
-              <button
-                type="button"
-                onClick={async () => {
-                  const files = await showFileUploadDialog();
-                  addFiles(files);
-                }}
-                className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Upload Files</span>
-              </button>
-            )}
+        {enableAdvancedFeatures && props.allowAttachments && (
+          <div className="px-3 pb-1.5 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={async () => {
+                const files = await showFileUploadDialog();
+                addFiles(files);
+              }}
+              className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Upload Files</span>
+            </button>
           </div>
         )}
 

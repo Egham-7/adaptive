@@ -48,7 +48,7 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 		// Create a context that bridges FastHTTP cancellation to standard context
 		ctx := createBridgeContext(fasthttpCtx)
 
-		streamReader, err := sse.GetSSEStreamReader(ctx, resp, requestID, selectedModel, provider)
+		streamReader, err := sse.GetSSEStreamReader(ctx, resp, requestID)
 		if err != nil {
 			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
 			return

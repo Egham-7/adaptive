@@ -44,29 +44,24 @@ func (se *StreamError) Error() string {
 
 type OpenAIStreamReader struct {
 	stream_readers.BaseStreamReader
-	stream        *ssestream.Stream[openai.ChatCompletionChunk]
-	done          bool
-	doneMux       sync.RWMutex
-	ctx           context.Context
-	selectedModel string
-	provider      string
+	stream   *ssestream.Stream[openai.ChatCompletionChunk]
+	done     bool
+	doneMux  sync.RWMutex
+	ctx      context.Context
+	provider string
 }
 
 func NewOpenAIStreamReader(
 	stream *ssestream.Stream[openai.ChatCompletionChunk],
 	requestID string,
-	selectedModel string,
-	provider string,
 ) *OpenAIStreamReader {
 	return &OpenAIStreamReader{
 		BaseStreamReader: stream_readers.BaseStreamReader{
 			Buffer:    make([]byte, 0, initialBufferSize),
 			RequestID: requestID,
 		},
-		stream:        stream,
-		ctx:           context.Background(), // Default context, will be overridden
-		selectedModel: selectedModel,
-		provider:      provider,
+		stream: stream,
+		ctx:    context.Background(), // Default context, will be overridden
 	}
 }
 

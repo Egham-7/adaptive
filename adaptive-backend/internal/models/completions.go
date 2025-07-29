@@ -288,6 +288,7 @@ func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) 
 		Object:            string(chunk.Object),
 		ServiceTier:       chunk.ServiceTier,
 		SystemFingerprint: chunk.SystemFingerprint,
+		Usage:             &chunk.Usage,
 		Provider:          provider,
 	}
 
