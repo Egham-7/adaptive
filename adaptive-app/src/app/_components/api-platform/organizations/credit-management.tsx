@@ -115,7 +115,7 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 				successUrl: `${process.env.NEXT_PUBLIC_URL}/api-platform/organizations/${organizationId}?purchase=success`,
 				cancelUrl: `${process.env.NEXT_PUBLIC_URL}/api-platform/organizations/${organizationId}?purchase=cancelled`,
 			});
-		} catch (error) {
+		} catch (_error) {
 			setIsProcessing(false);
 		}
 	};

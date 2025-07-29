@@ -314,6 +314,7 @@ export default function OrganizationProjectsPage() {
 				<div className="border-b">
 					<nav className="flex space-x-8">
 						<button
+							type="button"
 							onClick={() => setActiveTab("projects")}
 							className={`border-b-2 px-1 py-2 font-medium text-sm transition-colors ${
 								activeTab === "projects"
@@ -327,6 +328,7 @@ export default function OrganizationProjectsPage() {
 							</div>
 						</button>
 						<button
+							type="button"
 							onClick={() => setActiveTab("credits")}
 							className={`border-b-2 px-1 py-2 font-medium text-sm transition-colors ${
 								activeTab === "credits"

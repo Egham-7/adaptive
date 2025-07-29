@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 								transactionId: result.transaction.id,
 								sessionId: session.id,
 							});
-						} catch (error) {
+						} catch (_error) {
 							console.error("❌ Failed to add credits.");
 						}
 					} else if (isSubscription) {

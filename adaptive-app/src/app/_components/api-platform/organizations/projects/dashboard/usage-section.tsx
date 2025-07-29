@@ -58,8 +58,8 @@ function calculateDirectModelCost(
 export function UsageSection({
 	data,
 	loading,
-	selectedProvider,
-	providers,
+	selectedProvider: _selectedProvider,
+	providers: _providers,
 	selectedModel,
 	onModelChange,
 }: UsageSectionProps) {

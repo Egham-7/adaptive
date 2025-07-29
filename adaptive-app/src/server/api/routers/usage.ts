@@ -591,7 +591,7 @@ export const usageRouter = createTRPCRouter({
 
 					// Calculate comparison costs using database provider pricing
 					const totalSpend = ensureNumber(totalMetrics._sum.creditCost); // Use creditCost for customer spending
-					const totalProviderCost = ensureNumber(totalMetrics._sum.cost); // Keep for admin dashboard
+					const _totalProviderCost = ensureNumber(totalMetrics._sum.cost); // Keep for admin dashboard
 
 					// Get all providers with their pricing data
 					const providers = await ctx.db.provider.findMany({
