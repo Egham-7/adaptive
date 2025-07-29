@@ -5,7 +5,6 @@ import { createFileList } from "./chat-utils";
 export const ChatForm = forwardRef<HTMLFormElement, ChatFormProps>(
   ({ children, handleSubmit, className, hasReachedLimit = false }, ref) => {
     const [files, setFiles] = useState<File[] | null>(null);
-    const [searchEnabled, setSearchEnabled] = useState(false);
 
     const onSubmit = useCallback(
       (event: React.FormEvent) => {
@@ -15,20 +14,20 @@ export const ChatForm = forwardRef<HTMLFormElement, ChatFormProps>(
         }
 
         if (!files) {
-          handleSubmit(event, { searchEnabled });
+          handleSubmit(event);
           return;
         }
 
         const fileList = createFileList(files);
-        handleSubmit(event, { files: fileList, searchEnabled });
+        handleSubmit(event, { files: fileList });
         setFiles(null);
       },
-      [hasReachedLimit, files, handleSubmit, searchEnabled],
+      [hasReachedLimit, files, handleSubmit],
     );
 
     return (
       <form ref={ref} onSubmit={onSubmit} className={className}>
-        {children({ files, setFiles, searchEnabled, setSearchEnabled })}
+        {children({ files, setFiles })}
       </form>
     );
   },

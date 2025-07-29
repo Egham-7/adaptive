@@ -58,24 +58,17 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 	);
 
 	const handleSuggestionSubmit = useCallback(
-		async (text: string, searchEnabled?: boolean) => {
+		async (text: string) => {
 			if (hasReachedLimit) {
 				return;
 			}
 
 			if (!text.trim()) return;
 
-			sendMessage(
-				{
-					role: "user",
-					parts: [{ type: "text", text }],
-				},
-				{
-					body: {
-						searchEnabled: searchEnabled || false,
-					},
-				},
-			);
+			sendMessage({
+				role: "user",
+				parts: [{ type: "text", text }],
+			});
 		},
 		[sendMessage, hasReachedLimit],
 	);
@@ -83,7 +76,7 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 	const handleSubmit = useCallback(
 		async (
 			event?: { preventDefault?: () => void },
-			options?: { files?: FileList; searchEnabled?: boolean },
+			options?: { files?: FileList },
 		) => {
 			event?.preventDefault?.();
 
@@ -103,7 +96,6 @@ export function ChatClient({ conversation, initialMessages }: ChatClientProps) {
 			sendMessage({
 				role: "user",
 				parts,
-				metadata: { searchEnabled: options?.searchEnabled || false },
 			});
 			setInput("");
 		},

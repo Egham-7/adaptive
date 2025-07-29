@@ -20,7 +20,7 @@
 		"stripe": "stripe listen --forward-to localhost:3000/api/stripe-checkout"
 	},
 	"dependencies": {
-		"@adaptive-llm/adaptive-ai-provider": "^1.2.5",
+		"@adaptive-llm/adaptive-ai-provider": "^1.2.11",
 		"@ai-sdk/react": "2.0.0-beta.28",
 		"@clerk/nextjs": "^6.27.1",
 		"@hookform/resolvers": "^5.2.0",
@@ -71,7 +71,7 @@
 		"recharts": "^3.1.0",
 		"redis": "^5.6.1",
 		"remark-gfm": "^4.0.1",
-		"remeda": "^2.26.1",
+		"remeda": "^2.27.0",
 		"server-only": "^0.0.1",
 		"shiki": "^3.8.1",
 		"sonner": "^2.0.6",

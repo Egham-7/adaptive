@@ -5,17 +5,19 @@ import { motion } from "framer-motion";
 import {
   Check,
   ChevronRight,
+  ChevronDown,
   RotateCcw,
   Terminal,
   X,
   Search,
-  ExternalLink,
   Globe,
 } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -39,9 +41,6 @@ type FileUIPart = Extract<MessagePart, { type: "file" }>;
 
 // Extract tool part types - any part that starts with "tool-"
 type ToolPart = Extract<MessagePart, { type: `tool-${string}` }>;
-
-// Extract specific tool types
-type WebSearchToolPart = Extract<MessagePart, { type: "tool-webSearch" }>;
 
 const chatBubbleVariants = cva(
   "relative break-words text-sm transition-colors",
@@ -211,9 +210,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   }
 
   if (role === "assistant" && parts && parts.length > 0) {
+    // Separate reasoning and other parts, ensuring reasoning comes first
+    const reasoningParts = parts.filter((part) => part.type === "reasoning");
+    const otherParts = parts.filter((part) => part.type !== "reasoning");
+    const orderedParts = [...reasoningParts, ...otherParts];
+
     return (
       <div className="w-full">
-        {parts.map((part, index) => {
+        {orderedParts.map((part, index) => {
+          if (part.type === "reasoning") {
+            // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
+            return <ReasoningBlock key={`reasoning-${index}`} part={part} />;
+          }
           if (part.type === "text") {
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
@@ -247,10 +255,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
               </React.Fragment>
             );
           }
-          if (part.type === "reasoning") {
-            // biome-ignore lint/suspicious/noArrayIndexKey: Message parts don't have stable IDs, index is appropriate here
-            return <ReasoningBlock key={`reasoning-${index}`} part={part} />;
-          }
+
           // Handle tool parts following AI SDK 5.0 pattern
           if (part.type === "tool-webSearch") {
             const callId = part.toolCallId;
@@ -258,50 +263,52 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             switch (part.state) {
               case "input-streaming":
                 return (
-                  <div
-                    key={callId}
-                    className="mb-3 rounded-lg border bg-muted/50 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                        <Search className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">
-                            Preparing search...
-                          </span>
-                          <DotsLoader size="sm" />
+                  <Card key={callId} className="mb-3">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                          <Search className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-foreground">
+                              Preparing search...
+                            </span>
+                            <DotsLoader size="sm" />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 );
               case "input-available":
                 return (
-                  <div
-                    key={callId}
-                    className="mb-3 rounded-lg border bg-muted/50 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                        <Search className="h-4 w-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">
-                            Searching the web
-                          </span>
-                          <DotsLoader size="sm" />
+                  <Card key={callId} className="mb-3">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                          <Search className="h-4 w-4 text-primary" />
                         </div>
-                        {(part as any).input?.query && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            "{(part as any).input.query}"
-                          </p>
-                        )}
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-medium text-foreground">
+                              Searching the web
+                            </span>
+                            <DotsLoader size="sm" />
+                          </div>
+                          {(part as any).input?.query && (
+                            <Badge variant="outline" className="text-xs">
+                              "{(part as any).input.query}"
+                            </Badge>
+                          )}
+                          <div className="h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-primary animate-pulse rounded-full"></div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 );
               case "output-available": {
                 const result = (part as any).output;
@@ -317,55 +324,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                 };
 
                 return (
-                  <div
+                  <SearchResultsComponent
                     key={callId}
-                    className="mb-3 rounded-lg border bg-muted/50 px-4 py-3"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success/10">
-                        <Globe className="h-4 w-4 text-success" />
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-sm font-medium text-foreground">
-                          Web Search Results
-                        </span>
-                        <p className="text-xs text-muted-foreground">
-                          "{searchData.query}"
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      {searchData.results.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className="flex-1">
-                              <a
-                                href={item.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="group flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
-                              >
-                                <span className="line-clamp-1">
-                                  {item.title}
-                                </span>
-                                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              </a>
-                              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                                {item.snippet}
-                              </p>
-                              <p className="mt-1 text-xs text-muted-foreground font-mono">
-                                {new URL(item.url).hostname}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                    searchData={searchData}
+                  />
                 );
               }
               case "output-error":
@@ -574,27 +536,110 @@ function base64ToNewFile(
   }
 }
 
+const SearchResultsComponent = ({
+  searchData,
+}: {
+  searchData: {
+    query: string;
+    results: Array<{
+      title: string;
+      url: string;
+      snippet: string;
+    }>;
+  };
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  return (
+    <Card className="mb-3 w-full shadow-2xl">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Globe className="w-5 h-5 text-muted-foreground" />
+            <span className="text-foreground text-sm font-medium">
+              {searchData.query}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground h-auto p-1"
+          >
+            <Badge variant="secondary" className="text-xs">
+              {searchData.results.length} results
+            </Badge>
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${isExpanded ? "" : "rotate-180"}`}
+            />
+          </Button>
+        </div>
+      </CardHeader>
+
+      {isExpanded && (
+        <CardContent className="pt-0">
+          <div className="max-h-80 overflow-y-auto space-y-1">
+            {searchData.results.map((item, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
+              >
+                <div className="flex-shrink-0">
+                  {new URL(item.url).hostname === "pinterest.com" ? (
+                    <div className="w-4 h-4 bg-adaptive-scarlet rounded-full flex items-center justify-center text-white text-xs font-bold">
+                      P
+                    </div>
+                  ) : (
+                    <Globe className="w-4 h-4 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-foreground text-sm truncate hover:text-primary transition-colors block"
+                  >
+                    {item.title}
+                  </a>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {new URL(item.url).hostname}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+};
+
 const ReasoningBlock = ({ part }: { part: ReasoningUIPart }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="mb-2 max-w-3xl">
+    <div className="mb-3 max-w-3xl">
       <Collapsible
         open={isOpen}
         onOpenChange={setIsOpen}
         className="group w-full overflow-hidden rounded-lg border bg-muted/50"
       >
-        <div className="flex items-center p-2">
-          <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-2 text-muted-foreground text-sm hover:text-foreground"
-            >
-              <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]:rotate-90" />
-              <span>Thinking</span>
-            </button>
-          </CollapsibleTrigger>
-        </div>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/70 transition-colors"
+          >
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            )}
+            <span className="text-muted-foreground text-sm font-medium">
+              Thinking
+            </span>
+          </button>
+        </CollapsibleTrigger>
         <CollapsibleContent forceMount>
           <motion.div
             initial={false}
@@ -604,10 +649,28 @@ const ReasoningBlock = ({ part }: { part: ReasoningUIPart }) => {
               closed: { height: 0, opacity: 0 },
             }}
             transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
-            className="border-t"
+            className="border-t border-border"
           >
-            <div className="p-2">
-              <div className="whitespace-pre-wrap text-xs">{part.text}</div>
+            <div className="p-4 max-h-80 overflow-y-auto">
+              <div className="text-muted-foreground text-sm leading-relaxed whitespace-pre-wrap">
+                {part.text.split("\n\n").map((paragraph, index) => (
+                  <div key={index} className="mb-4 last:mb-0">
+                    {paragraph.split("\n").map((line, lineIndex) => (
+                      <div
+                        key={lineIndex}
+                        className={cn(
+                          line.startsWith("•") || line.startsWith("-")
+                            ? "ml-4"
+                            : "",
+                          "mb-1 last:mb-0",
+                        )}
+                      >
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.div>
         </CollapsibleContent>
