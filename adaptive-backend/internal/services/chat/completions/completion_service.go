@@ -156,7 +156,7 @@ func (cs *CompletionService) handleProtocolGeneric(
 			return fmt.Errorf("stream completion failed: %w", err)
 		}
 
-		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+		return stream.HandleStream(c, streamResp, requestID, provider)
 	}
 
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
@@ -190,7 +190,7 @@ func (cs *CompletionService) tryMinionSWithFallback(
 		)
 		if err == nil {
 			provider := minionProv.GetProviderName()
-			return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+			return stream.HandleStream(c, streamResp, requestID, provider)
 		}
 		fiberlog.Warnf("[%s] MinionS stream failed: %v", requestID, err)
 	} else {
@@ -253,7 +253,7 @@ func (cs *CompletionService) tryMinionSStandardAlternatives(
 			return retryErr
 		}
 		provider := minionProv.GetProviderName()
-		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+		return stream.HandleStream(c, streamResp, requestID, provider)
 	}
 
 	result, retryErr := orchestrator.OrchestrateMinionS(
@@ -294,7 +294,7 @@ func (cs *CompletionService) tryMinionSMinionAlternatives(
 			return retryErr
 		}
 		provider := minionResult.Provider.GetProviderName()
-		return stream.HandleStream(c, streamResp, requestID, string(req.Model), provider)
+		return stream.HandleStream(c, streamResp, requestID, provider)
 	}
 
 	result, retryErr := orchestrator.OrchestrateMinionS(
