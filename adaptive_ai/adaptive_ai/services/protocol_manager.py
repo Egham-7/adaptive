@@ -13,7 +13,6 @@ from adaptive_ai.models.llm_orchestration_models import (
     OrchestratorResponse,
     StandardLLMInfo,
 )
-from adaptive_ai.utils.openai_utils import has_tools
 
 
 class LitLoggerProtocol(Protocol):
@@ -160,8 +159,7 @@ class ProtocolManager:
             0.1,
             min(
                 1.0,
-                config["base_temp"] + config["temp_factor"] *
-                config["temp_feature"],
+                config["base_temp"] + config["temp_factor"] * config["temp_feature"],
             ),
         )
         max_tokens = min(
@@ -270,13 +268,11 @@ class ProtocolManager:
         task_type: str,
     ) -> OrchestratorResponse:
         """Create the appropriate protocol response with tuned parameters."""
-        parameters = self._get_tuned_parameters(
-            classification_result, task_type)
+        parameters = self._get_tuned_parameters(classification_result, task_type)
 
         candidates = candidates_map.get(protocol_choice)
         if not candidates:
-            raise ValueError(
-                f"No candidates available for protocol: {protocol_choice}")
+            raise ValueError(f"No candidates available for protocol: {protocol_choice}")
 
         # Protocol handler mapping - easily extensible
         protocol_handlers = {
@@ -338,8 +334,7 @@ class ProtocolManager:
         for entry in model_entries:
             for provider in entry.providers:
                 alternatives.append(
-                    Alternative(provider=provider.value,
-                                model=entry.model_name)
+                    Alternative(provider=provider.value, model=entry.model_name)
                 )
         return alternatives
 
