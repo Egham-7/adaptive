@@ -52,10 +52,6 @@ class ProtocolManager:
         reasoning_score = classification_result.reasoning[0]
         number_of_few_shots = classification_result.number_of_few_shots[0]
 
-        # If request has tools, always use standard protocol
-        if request and has_tools(request.chat_completion_request):
-            return True
-
         # Simple, interpretable logic based on the trained model
         return (
             complexity_score > 0.4
@@ -164,7 +160,8 @@ class ProtocolManager:
             0.1,
             min(
                 1.0,
-                config["base_temp"] + config["temp_factor"] * config["temp_feature"],
+                config["base_temp"] + config["temp_factor"] *
+                config["temp_feature"],
             ),
         )
         max_tokens = min(
@@ -273,11 +270,13 @@ class ProtocolManager:
         task_type: str,
     ) -> OrchestratorResponse:
         """Create the appropriate protocol response with tuned parameters."""
-        parameters = self._get_tuned_parameters(classification_result, task_type)
+        parameters = self._get_tuned_parameters(
+            classification_result, task_type)
 
         candidates = candidates_map.get(protocol_choice)
         if not candidates:
-            raise ValueError(f"No candidates available for protocol: {protocol_choice}")
+            raise ValueError(
+                f"No candidates available for protocol: {protocol_choice}")
 
         # Protocol handler mapping - easily extensible
         protocol_handlers = {
@@ -339,7 +338,8 @@ class ProtocolManager:
         for entry in model_entries:
             for provider in entry.providers:
                 alternatives.append(
-                    Alternative(provider=provider.value, model=entry.model_name)
+                    Alternative(provider=provider.value,
+                                model=entry.model_name)
                 )
         return alternatives
 
