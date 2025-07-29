@@ -1,6 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { CreditService } from "@/lib/credit-service";
+import {
+	awardPromotionalCredits,
+	calculateCreditCost,
+	getOrganizationBalance,
+	getOrganizationCreditStats,
+	getOrganizationTransactionHistory,
+	hasSufficientCredits,
+} from "@/lib/credit-utils";
 import { stripe } from "@/lib/stripe/stripe";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
@@ -55,9 +62,7 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const balance = await CreditService.getOrganizationBalance(
-					input.organizationId,
-				);
+				const balance = await getOrganizationBalance(input.organizationId);
 				return {
 					balance,
 					formattedBalance: formatCurrency(balance),
@@ -96,9 +101,7 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const stats = await CreditService.getOrganizationCreditStats(
-					input.organizationId,
-				);
+				const stats = await getOrganizationCreditStats(input.organizationId);
 				return {
 					...stats,
 					// Add formatted versions for UI display
@@ -138,15 +141,14 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const transactions =
-					await CreditService.getOrganizationTransactionHistory(
-						input.organizationId,
-						{
-							limit: input.limit,
-							offset: input.offset,
-							type: input.type,
-						},
-					);
+				const transactions = await getOrganizationTransactionHistory(
+					input.organizationId,
+					{
+						limit: input.limit,
+						offset: input.offset,
+						type: input.type,
+					},
+				);
 
 				// Format transactions for UI display
 				const formattedTransactions = transactions.map((transaction) => {
@@ -192,10 +194,7 @@ export const creditsRouter = createTRPCRouter({
 			}),
 		)
 		.query(async ({ input }) => {
-			const cost = CreditService.calculateCreditCost(
-				input.inputTokens,
-				input.outputTokens,
-			);
+			const cost = calculateCreditCost(input.inputTokens, input.outputTokens);
 
 			return {
 				cost,
@@ -229,11 +228,11 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const hasSufficient = await CreditService.hasSufficientCredits(
+				const hasSufficient = await hasSufficientCredits(
 					input.organizationId,
 					input.requiredAmount,
 				);
-				const currentBalance = await CreditService.getOrganizationBalance(
+				const currentBalance = await getOrganizationBalance(
 					input.organizationId,
 				);
 
@@ -272,7 +271,7 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const result = await CreditService.awardPromotionalCredits(
+				const result = await awardPromotionalCredits(
 					input.organizationId,
 					userId,
 					input.amount,
@@ -321,9 +320,7 @@ export const creditsRouter = createTRPCRouter({
 			}
 
 			try {
-				const balance = await CreditService.getOrganizationBalance(
-					input.organizationId,
-				);
+				const balance = await getOrganizationBalance(input.organizationId);
 				const LOW_BALANCE_THRESHOLD = 1.0; // $1.00
 				const VERY_LOW_BALANCE_THRESHOLD = 0.1; // $0.10
 
@@ -499,7 +496,7 @@ export const creditsRouter = createTRPCRouter({
 				}
 
 				// Award promotional credit (configurable amount)
-				const result = await CreditService.awardPromotionalCredits(
+				const result = await awardPromotionalCredits(
 					input.organizationId,
 					userId,
 					PROMOTIONAL_CREDIT_AMOUNT,

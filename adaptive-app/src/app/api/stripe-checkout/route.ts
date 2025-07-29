@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { CreditService } from "@/lib/credit-service";
+import { addCredits } from "@/lib/credit-utils";
 import { stripe } from "@/lib/stripe/stripe";
 import { db } from "@/server/db";
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 							console.log("💳 Adding credits to organization.");
 
 							// Add credits to organization's account
-							const result = await CreditService.addCredits({
+							const result = await addCredits({
 								organizationId: session.metadata.organizationId,
 								userId: session.metadata.userId,
 								amount: creditAmount,

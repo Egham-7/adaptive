@@ -2,7 +2,12 @@ import crypto from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { invalidateAnalyticsCache, withCache } from "@/lib/cache-utils";
-import { CreditService } from "@/lib/credit-service";
+import {
+	calculateCreditCost,
+	deductCredits,
+	getOrganizationBalance,
+	hasSufficientCredits,
+} from "@/lib/credit-utils";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -184,7 +189,7 @@ export const usageRouter = createTRPCRouter({
 
 				// Calculate credit cost (what you charge the user)
 				// $0.05 per 1M input tokens, $0.15 per 1M output tokens
-				const creditCost = CreditService.calculateCreditCost(
+				const creditCost = calculateCreditCost(
 					input.usage.promptTokens,
 					input.usage.completionTokens,
 				);
@@ -192,14 +197,13 @@ export const usageRouter = createTRPCRouter({
 				console.log("🔍 Checking credit balance before API usage:.");
 
 				// Check if organization has sufficient credits before processing
-				const hasSufficientCredits = await CreditService.hasSufficientCredits(
+				const hasEnoughCredits = await hasSufficientCredits(
 					organizationId,
 					creditCost,
 				);
 
-				if (!hasSufficientCredits) {
-					const currentBalance =
-						await CreditService.getOrganizationBalance(organizationId);
+				if (!hasEnoughCredits) {
+					const currentBalance = await getOrganizationBalance(organizationId);
 					throw new TRPCError({
 						code: "PAYMENT_REQUIRED",
 						message: `Insufficient credits. Required: $${creditCost.toFixed(
@@ -237,7 +241,7 @@ export const usageRouter = createTRPCRouter({
 				console.log("💸 Deducting credits for API usage.");
 
 				// Deduct credits from organization's account
-				const creditTransaction = await CreditService.deductCredits({
+				const creditTransaction = await deductCredits({
 					organizationId,
 					userId: apiKey.userId,
 					amount: creditCost,
@@ -548,7 +552,17 @@ export const usageRouter = createTRPCRouter({
 
 					// Filter out null providers and provide default for unknown providers
 					const providerUsage = providerUsageSchema.array().parse(
-						rawProviderUsage.map((usage: any) => ({
+						(
+							rawProviderUsage as Array<{
+								provider: string | null;
+								_sum: {
+									totalTokens: number | null;
+									cost: { toNumber(): number } | null;
+									requestCount: number | null;
+								};
+								_count: { id: number };
+							}>
+						).map((usage) => ({
 							...usage,
 							provider: usage.provider || "unknown",
 						})),
@@ -591,7 +605,6 @@ export const usageRouter = createTRPCRouter({
 
 					// Calculate comparison costs using database provider pricing
 					const totalSpend = ensureNumber(totalMetrics._sum.creditCost); // Use creditCost for customer spending
-					const _totalProviderCost = ensureNumber(totalMetrics._sum.cost); // Keep for admin dashboard
 
 					// Get all providers with their pricing data
 					const providers = await ctx.db.provider.findMany({
