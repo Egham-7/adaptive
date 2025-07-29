@@ -8,8 +8,20 @@
 -- DropForeignKey
 ALTER TABLE "CreditTransaction" DROP CONSTRAINT "CreditTransaction_userId_fkey";
 
--- AlterTable
-ALTER TABLE "CreditTransaction" ADD COLUMN     "organizationId" TEXT NOT NULL;
+-- AlterTable (Step 1: Add organizationId as nullable)
+ALTER TABLE "CreditTransaction" ADD COLUMN     "organizationId" TEXT;
+
+-- Update organizationId for existing records
+UPDATE "CreditTransaction" 
+SET "organizationId" = (
+  SELECT om."organizationId" 
+  FROM "OrganizationMember" om 
+  WHERE om."userId" = "CreditTransaction"."userId"
+  LIMIT 1
+);
+
+-- AlterTable (Step 2: Make organizationId NOT NULL after data is populated)
+ALTER TABLE "CreditTransaction" ALTER COLUMN "organizationId" SET NOT NULL;
 
 -- DropTable
 DROP TABLE "UserCredit";
