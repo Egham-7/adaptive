@@ -23,10 +23,7 @@ SET "organizationId" = (
 -- AlterTable (Step 2: Make organizationId NOT NULL after data is populated)
 ALTER TABLE "CreditTransaction" ALTER COLUMN "organizationId" SET NOT NULL;
 
--- DropTable
-DROP TABLE "UserCredit";
-
--- CreateTable
+-- Create OrganizationCredit table first
 CREATE TABLE "OrganizationCredit" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
@@ -39,11 +36,53 @@ CREATE TABLE "OrganizationCredit" (
     CONSTRAINT "OrganizationCredit_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
+-- Create indexes for OrganizationCredit
 CREATE UNIQUE INDEX "OrganizationCredit_organizationId_key" ON "OrganizationCredit"("organizationId");
-
--- CreateIndex
 CREATE INDEX "OrganizationCredit_organizationId_idx" ON "OrganizationCredit"("organizationId");
+
+-- Start transaction for data migration
+BEGIN;
+
+-- Check for users without organization membership and handle them
+DO $$
+BEGIN
+    -- Check if any UserCredit records exist for users without organization membership
+    IF EXISTS (
+        SELECT 1 FROM "UserCredit" uc 
+        WHERE NOT EXISTS (
+            SELECT 1 FROM "OrganizationMember" om 
+            WHERE om."userId" = uc."userId"
+        )
+    ) THEN
+        RAISE EXCEPTION 'Migration cannot proceed: UserCredit records exist for users without organization membership. Please ensure all users are members of an organization before running this migration.';
+    END IF;
+END $$;
+
+-- Migrate UserCredit data to OrganizationCredit
+-- Group user credits by organization and aggregate the balances
+INSERT INTO "OrganizationCredit" ("id", "organizationId", "balance", "totalPurchased", "totalUsed", "createdAt", "updatedAt")
+SELECT 
+    gen_random_uuid() as "id",
+    om."organizationId",
+    COALESCE(SUM(uc."balance"), 0) as "balance",
+    COALESCE(SUM(uc."totalPurchased"), 0) as "totalPurchased", 
+    COALESCE(SUM(uc."totalUsed"), 0) as "totalUsed",
+    MIN(uc."createdAt") as "createdAt",
+    NOW() as "updatedAt"
+FROM "UserCredit" uc
+INNER JOIN "OrganizationMember" om ON om."userId" = uc."userId"
+GROUP BY om."organizationId"
+ON CONFLICT ("organizationId") DO UPDATE SET
+    "balance" = "OrganizationCredit"."balance" + EXCLUDED."balance",
+    "totalPurchased" = "OrganizationCredit"."totalPurchased" + EXCLUDED."totalPurchased",
+    "totalUsed" = "OrganizationCredit"."totalUsed" + EXCLUDED."totalUsed",
+    "updatedAt" = NOW();
+
+-- Commit the transaction
+COMMIT;
+
+-- DropTable
+DROP TABLE "UserCredit";
 
 -- CreateIndex
 CREATE INDEX "CreditTransaction_organizationId_idx" ON "CreditTransaction"("organizationId");
