@@ -13,7 +13,6 @@ from adaptive_ai.models.llm_orchestration_models import (
     OrchestratorResponse,
     StandardLLMInfo,
 )
-from adaptive_ai.utils.openai_utils import has_tools
 
 
 class LitLoggerProtocol(Protocol):
@@ -51,10 +50,6 @@ class ProtocolManager:
         complexity_score = classification_result.prompt_complexity_score[0]
         reasoning_score = classification_result.reasoning[0]
         number_of_few_shots = classification_result.number_of_few_shots[0]
-
-        # If request has tools, always use standard protocol
-        if request and has_tools(request.chat_completion_request):
-            return True
 
         # Simple, interpretable logic based on the trained model
         return (
