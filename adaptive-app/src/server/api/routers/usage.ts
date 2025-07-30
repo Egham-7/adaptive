@@ -32,8 +32,11 @@ export const usageRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			// Hash the API key to find it in database
-			const keyHash = crypto.createHash("sha256").update(input.apiKey).digest("hex");
-			
+			const keyHash = crypto
+				.createHash("sha256")
+				.update(input.apiKey)
+				.digest("hex");
+
 			// Verify API key and get organization
 			const apiKey = await ctx.db.apiKey.findFirst({
 				where: { keyHash },

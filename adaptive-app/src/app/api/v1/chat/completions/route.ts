@@ -46,9 +46,12 @@ export async function POST(req: NextRequest) {
 		// Pre-flight credit check - estimate token usage
 		const messages = body.messages || [];
 		const estimatedInputTokens = messages.reduce((acc, msg) => {
-			return acc + (typeof msg.content === 'string' ? msg.content.length / 4 : 0);
+			return (
+				acc + (typeof msg.content === "string" ? msg.content.length / 4 : 0)
+			);
 		}, 0);
-		const estimatedOutputTokens = body.max_completion_tokens || body.max_tokens || 1000; // Default estimate
+		const estimatedOutputTokens =
+			body.max_completion_tokens || body.max_tokens || 1000; // Default estimate
 
 		try {
 			await api.usage.checkCreditsBeforeUsage({
@@ -57,13 +60,16 @@ export async function POST(req: NextRequest) {
 				estimatedOutputTokens,
 			});
 		} catch (error: any) {
-			const statusCode = error.code === 'PAYMENT_REQUIRED' ? 402 : 400;
-			return new Response(JSON.stringify({ 
-				error: error.message || "Credit check failed" 
-			}), {
-				status: statusCode,
-				headers: { "Content-Type": "application/json" },
-			});
+			const statusCode = error.code === "PAYMENT_REQUIRED" ? 402 : 400;
+			return new Response(
+				JSON.stringify({
+					error: error.message || "Credit check failed",
+				}),
+				{
+					status: statusCode,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
 		}
 
 		// Support both streaming and non-streaming requests
