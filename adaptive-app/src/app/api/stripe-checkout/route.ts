@@ -121,15 +121,16 @@ export async function POST(request: NextRequest) {
 						const subscription = await stripe.subscriptions.retrieve(
 							session.subscription as string,
 						);
-						const currentPeriodEnd = new Date(
-							// @ts-ignore - current_period_end exists in Stripe API but not in TS types
-							subscription.current_period_end * 1000,
-						);
-						const priceId = subscription.items.data[0]?.price.id;
 
-						if (!priceId) {
-							throw new Error("Subscription price ID is missing");
+						const subscriptionItem = subscription.items.data[0];
+						if (!subscriptionItem) {
+							throw new Error("No subscription items found");
 						}
+
+						const currentPeriodEnd = new Date(
+							subscriptionItem.current_period_end * 1000,
+						);
+						const priceId = subscriptionItem.price.id;
 
 						// Ensure customer ID is a string
 						const customerId =
@@ -183,18 +184,21 @@ export async function POST(request: NextRequest) {
 						subscription.id,
 					);
 
+					const subscriptionItem = fullSubscription.items.data[0];
+					if (!subscriptionItem) {
+						throw new Error(
+							"No subscription items found in updated subscription",
+						);
+					}
+
 					await db.subscription.update({
 						where: { stripeSubscriptionId: subscription.id },
 						data: {
 							status: subscription.status,
 							currentPeriodEnd: new Date(
-								// @ts-ignore - current_period_end exists in Stripe API but not in TS types
-
-								fullSubscription.current_period_end * 1000,
+								subscriptionItem.current_period_end * 1000,
 							),
-							stripePriceId:
-								subscription.items.data[0]?.price.id ||
-								existingSub.stripePriceId,
+							stripePriceId: subscriptionItem.price.id,
 						},
 					});
 
@@ -231,7 +235,7 @@ export async function POST(request: NextRequest) {
 									? line.subscription
 									: line.subscription.id;
 
-							await db.subscription.update({
+							await db.subscription.updateMany({
 								where: { stripeSubscriptionId: subscriptionId },
 								data: {
 									status: "active",
@@ -260,7 +264,7 @@ export async function POST(request: NextRequest) {
 									? line.subscription
 									: line.subscription.id;
 
-							await db.subscription.update({
+							await db.subscription.updateMany({
 								where: { stripeSubscriptionId: subscriptionId },
 								data: {
 									status: "past_due",

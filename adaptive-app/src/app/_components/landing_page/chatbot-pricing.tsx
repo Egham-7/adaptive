@@ -1,6 +1,7 @@
 "use client";
 import { SignUpButton, useUser } from "@clerk/nextjs";
-import { Check, Zap } from "lucide-react";
+import { Check } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -13,11 +14,67 @@ import SubscribeButton from "../stripe/subscribe-button";
 
 export default function ChatbotPricing() {
 	const { user } = useUser();
+	const [isSubscribed, setIsSubscribed] = useState(false);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		let aborted = false;
+
+		async function fetchSubscriptionStatus() {
+			if (!user) {
+				setLoading(false);
+				return;
+			}
+
+			try {
+				setError(null);
+				const response = await fetch("/api/subscription-status");
+
+				if (aborted) return;
+
+				if (!response.ok) {
+					throw new Error(
+						`Failed to fetch subscription status: ${response.status}`,
+					);
+				}
+
+				const data = await response.json();
+
+				if (aborted) return;
+
+				setIsSubscribed(data.isSubscribed);
+			} catch (error) {
+				if (aborted) return;
+
+				console.error("Error fetching subscription status:", error);
+				setError(
+					"Unable to load subscription status. Please try refreshing the page.",
+				);
+			} finally {
+				if (!aborted) {
+					setLoading(false);
+				}
+			}
+		}
+
+		fetchSubscriptionStatus();
+
+		return () => {
+			aborted = true;
+		};
+	}, [user]);
 
 	return (
 		<div className="w-full p-6">
 			<h2 className="mb-8 text-center font-bold text-2xl">Choose Your Plan</h2>
+			{error && (
+				<div className="mb-6 rounded-md border border-red-200 bg-red-50 p-4 text-center text-red-800 text-sm">
+					{error}
+				</div>
+			)}
 			<div className="mx-auto grid w-full gap-6 md:grid-cols-2">
+				{/* Free Plan */}
 				<Card>
 					<CardHeader>
 						<CardTitle className="font-medium">Free</CardTitle>
@@ -28,9 +85,15 @@ export default function ChatbotPricing() {
 						<CardDescription className="text-sm">
 							Perfect for trying out our chatbot
 						</CardDescription>
-						<Button asChild variant="outline" className="mt-4 w-full">
-							<SignUpButton />
-						</Button>
+						{user ? (
+							<Button disabled variant="outline" className="mt-4 w-full">
+								You are already signed up
+							</Button>
+						) : (
+							<Button asChild variant="outline" className="mt-4 w-full">
+								<SignUpButton />
+							</Button>
+						)}
 					</CardHeader>
 					<CardContent className="space-y-4">
 						<hr className="border-dashed" />
@@ -49,6 +112,7 @@ export default function ChatbotPricing() {
 					</CardContent>
 				</Card>
 
+				{/* Pro Plan */}
 				<Card className="relative">
 					<span className="-top-3 absolute inset-x-0 mx-auto flex h-6 w-fit items-center rounded-full bg-[linear-gradient(to_right,var(--color-primary),var(--color-secondary))] px-3 py-1 font-medium text-primary-foreground text-xs ring-1 ring-white/20 ring-inset ring-offset-1 ring-offset-gray-950/5">
 						Popular
@@ -62,21 +126,21 @@ export default function ChatbotPricing() {
 						<CardDescription className="text-sm">
 							For unlimited chatbot usage
 						</CardDescription>
-						{user ? (
+						{loading ? (
+							<Button disabled variant="outline" className="mt-4 w-full">
+								Checking subscription status...
+							</Button>
+						) : !user ? (
+							<Button disabled variant="outline" className="mt-4 w-full">
+								Please log in to subscribe
+							</Button>
+						) : !isSubscribed ? (
 							<div className="mt-4 w-full">
 								<SubscribeButton />
 							</div>
 						) : (
-							<Button
-								asChild
-								className="mt-4 w-full bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
-							>
-								<SignUpButton>
-									<Button>
-										<Zap className="relative mr-2 size-4" />
-										<span>Get Started</span>
-									</Button>
-								</SignUpButton>
+							<Button disabled variant="outline" className="mt-4 w-full">
+								You are already subscribed
 							</Button>
 						)}
 					</CardHeader>

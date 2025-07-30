@@ -35,7 +35,7 @@ func createBridgeContext(fasthttpCtx *fasthttp.RequestCtx) context.Context {
 }
 
 // HandleStream manages the streaming response to the client with optimized performance
-func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, selectedModel string, provider string) error {
+func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, provider string) error {
 	fiberlog.Infof("[%s] Starting stream handling", requestID)
 
 	// Get FastHTTP context once to avoid potential nil issues
@@ -48,7 +48,7 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 		// Create a context that bridges FastHTTP cancellation to standard context
 		ctx := createBridgeContext(fasthttpCtx)
 
-		streamReader, err := sse.GetSSEStreamReader(ctx, resp, requestID, selectedModel, provider)
+		streamReader, err := sse.GetSSEStreamReader(ctx, resp, requestID, provider)
 		if err != nil {
 			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
 			return

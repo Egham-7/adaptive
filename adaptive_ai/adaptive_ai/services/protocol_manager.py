@@ -43,6 +43,7 @@ class ProtocolManager:
         self,
         classification_result: ClassificationResult,
         token_count: int,
+        request: ModelSelectionRequest | None = None,
     ) -> bool:
         """Determine if standard protocol should be used based on NVIDIA's trained complexity score."""
         # Use NVIDIA's professionally trained complexity score as primary signal
@@ -63,10 +64,11 @@ class ProtocolManager:
         classification_result: ClassificationResult,
         token_count: int,
         available_protocols: list[str],
+        request: ModelSelectionRequest | None = None,
     ) -> str:
         """Select the best protocol based on NVIDIA's complexity score."""
         should_use_standard = self._should_use_standard_protocol(
-            classification_result, token_count
+            classification_result, token_count, request
         )
 
         # Prefer standard_llm if complexity/tokens are high and available
@@ -199,9 +201,31 @@ class ProtocolManager:
         protocol_choice: str,
         classification_result: ClassificationResult,
         token_count: int,
+        request: ModelSelectionRequest | None = None,
     ) -> None:
         """Log the protocol selection decision using NVIDIA's complexity score."""
         complexity_score = classification_result.prompt_complexity_score[0]
+
+        # Extract cost bias information if available
+        cost_bias = None
+        cost_bias_active = False
+        if request and request.cost_bias is not None:
+            cost_bias = request.cost_bias
+            cost_bias_active = True
+
+        # Determine cost bias impact on model selection
+        cost_bias_impact = None
+        if (
+            cost_bias_active
+            and protocol_choice == "standard_llm"
+            and cost_bias is not None
+        ):
+            if cost_bias <= 0.3:
+                cost_bias_impact = "strongly_budget_focused"
+            elif cost_bias <= 0.7:
+                cost_bias_impact = "balanced_cost_performance"
+            else:
+                cost_bias_impact = "strongly_performance_focused"
 
         self.log(
             "nvidia_complexity_protocol_selection",
@@ -210,9 +234,17 @@ class ProtocolManager:
                 "protocol_choice": protocol_choice,
                 "nvidia_complexity_score": complexity_score,
                 "token_count": token_count,
+                "cost_bias_info": {
+                    "cost_bias": cost_bias,
+                    "cost_bias_active": cost_bias_active,
+                    "cost_bias_impact": cost_bias_impact,
+                    "applies_to_protocol": protocol_choice == "standard_llm",
+                },
                 "decision_factors": {
                     "high_complexity": complexity_score > 0.4,
                     "long_input": token_count > 3000,
+                    "cost_optimization_enabled": cost_bias_active
+                    and protocol_choice == "standard_llm",
                 },
                 "all_classification_features": {
                     "complexity_score": complexity_score,
@@ -338,12 +370,12 @@ class ProtocolManager:
 
         # Select best protocol
         protocol_choice = self._select_best_protocol(
-            classification_result, token_count, available_protocols
+            classification_result, token_count, available_protocols, request
         )
 
         # Log decision with full context
         self._log_protocol_decision(
-            task_type, protocol_choice, classification_result, token_count
+            task_type, protocol_choice, classification_result, token_count, request
         )
 
         # Create and return response

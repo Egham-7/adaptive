@@ -86,10 +86,15 @@ func (h *CompletionHandler) selectProtocol(
 		costBias = &req.CostBias
 	}
 
+	openAIParams := req.ToOpenAIParams()
+	if openAIParams == nil {
+		return nil, fmt.Errorf("failed to convert request to OpenAI parameters")
+	}
+
 	selReq := models.ModelSelectionRequest{
-		Messages:           req.Messages,
-		ProviderConstraint: req.ProviderConstraint,
-		CostBias:           costBias,
+		ChatCompletionRequest: *openAIParams,
+		ProviderConstraint:    req.ProviderConstraint,
+		CostBias:              costBias,
 	}
 
 	resp, _, err = h.protocolMgr.SelectProtocolWithCache(

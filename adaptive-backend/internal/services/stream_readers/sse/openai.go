@@ -25,31 +25,35 @@ const (
 	chunkBufferSize   = 8192      // 8KB chunk processing buffer
 )
 
-// StreamError represents a structured stream error
-type StreamError struct {
-	Type      string `json:"type"`
-	Message   string `json:"message"`
-	RequestID string `json:"request_id"`
+// OpenAIError represents the nested error structure in OpenAI responses
+type OpenAIError struct {
+	Message string  `json:"message"`
+	Type    string  `json:"type"`
+	Param   *string `json:"param"`
+	Code    *string `json:"code"`
 }
 
-func (e *StreamError) Error() string {
-	return e.Message
+// StreamError represents an OpenAI-compatible stream error response
+type StreamError struct {
+	ErrorDetails OpenAIError `json:"error"`
+}
+
+func (se *StreamError) Error() string {
+	return se.ErrorDetails.Message
 }
 
 type OpenAIStreamReader struct {
 	stream_readers.BaseStreamReader
-	stream        *ssestream.Stream[openai.ChatCompletionChunk]
-	done          bool
-	doneMux       sync.RWMutex
-	ctx           context.Context
-	selectedModel string
-	provider      string
+	stream   *ssestream.Stream[openai.ChatCompletionChunk]
+	done     bool
+	doneMux  sync.RWMutex
+	ctx      context.Context
+	provider string
 }
 
 func NewOpenAIStreamReader(
 	stream *ssestream.Stream[openai.ChatCompletionChunk],
 	requestID string,
-	selectedModel string,
 	provider string,
 ) *OpenAIStreamReader {
 	return &OpenAIStreamReader{
@@ -57,10 +61,9 @@ func NewOpenAIStreamReader(
 			Buffer:    make([]byte, 0, initialBufferSize),
 			RequestID: requestID,
 		},
-		stream:        stream,
-		ctx:           context.Background(), // Default context, will be overridden
-		selectedModel: selectedModel,
-		provider:      provider,
+		provider: provider,
+		stream:   stream,
+		ctx:      context.Background(), // Default context, will be overridden
 	}
 }
 
@@ -102,11 +105,14 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 			if errors.Is(err, io.EOF) {
 				fiberlog.Infof("[%s] Stream completed normally", r.RequestID)
 			} else {
-				fiberlog.Errorf("[%s] Stream error detected: %v", r.RequestID, err)
+				fiberlog.Debugf("[%s] Stream error detected: %v", r.RequestID, err)
 				streamErr := &StreamError{
-					Type:      "upstream_error",
-					Message:   err.Error(),
-					RequestID: r.RequestID,
+					ErrorDetails: OpenAIError{
+						Message: err.Error(),
+						Type:    "upstream_error",
+						Param:   nil,
+						Code:    nil,
+					},
 				}
 				return r.handleError(streamErr, p)
 			}
@@ -146,11 +152,12 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 		chunk.Usage.TotalTokens)
 
 	if err := r.processChunk(&chunk); err != nil {
-		fiberlog.Errorf("[%s] Chunk processing failed for chunk ID=%s: %v", r.RequestID, chunk.ID, err)
+		fiberlog.Debugf("[%s] Chunk processing failed for chunk ID=%s: %v", r.RequestID, chunk.ID, err)
 		streamErr := &StreamError{
-			Type:      "chunk_processing_error",
-			Message:   err.Error(),
-			RequestID: r.RequestID,
+			ErrorDetails: OpenAIError{
+				Message: err.Error(),
+				Type:    "chunk_processing_error",
+			},
 		}
 		return r.handleError(streamErr, p)
 	}
@@ -159,7 +166,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 }
 
 func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
-	fiberlog.Errorf("[%s] OpenAI stream error: %v", r.RequestID, err)
+	fiberlog.Debugf("[%s] OpenAI stream error: %v", r.RequestID, err)
 
 	// Create structured error response
 	var errorResponse *StreamError
@@ -167,9 +174,10 @@ func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 		errorResponse = streamErr
 	} else {
 		errorResponse = &StreamError{
-			Type:      "stream_error",
-			Message:   err.Error(),
-			RequestID: r.RequestID,
+			ErrorDetails: OpenAIError{
+				Message: err.Error(),
+				Type:    "stream_error",
+			},
 		}
 	}
 
