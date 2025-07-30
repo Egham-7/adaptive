@@ -10,30 +10,26 @@ import { db } from "@/server/db";
  */
 export async function getOrCreateOrganizationCredit(organizationId: string) {
 	try {
-		let orgCredit = await db.organizationCredit.findUnique({
-			where: { organizationId },
+		// First, verify the organization exists
+		const organization = await db.organization.findUnique({
+			where: { id: organizationId },
 		});
 
-		if (!orgCredit) {
-			// First, verify the organization exists
-			const organization = await db.organization.findUnique({
-				where: { id: organizationId },
-			});
-
-			if (!organization) {
-				throw new Error(`Organization with ID ${organizationId} not found`);
-			}
-
-			// Create the credit record
-			orgCredit = await db.organizationCredit.create({
-				data: {
-					organizationId,
-					balance: 0,
-					totalPurchased: 0,
-					totalUsed: 0,
-				},
-			});
+		if (!organization) {
+			throw new Error(`Organization with ID ${organizationId} not found`);
 		}
+
+		// Use upsert to handle race conditions
+		const orgCredit = await db.organizationCredit.upsert({
+			where: { organizationId },
+			update: {}, // No updates needed if it exists
+			create: {
+				organizationId,
+				balance: 0,
+				totalPurchased: 0,
+				totalUsed: 0,
+			},
+		});
 
 		return orgCredit;
 	} catch (error) {
