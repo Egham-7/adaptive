@@ -137,34 +137,53 @@ class ModelSelectionService:
         prompt_token_count: int,
         domain_classification: DomainClassificationResult | None = None,
     ) -> list[ModelEntry]:
+        # Extract model constraints if available
+        model_constraints = None
+        if (
+            request.protocol_manager_config
+            and request.protocol_manager_config.model_constraints
+        ):
+            model_constraints = [
+                f"{c.provider}:{c.model}"
+                for c in request.protocol_manager_config.model_constraints
+            ]
+
         self.log(
             "select_candidate_models_called",
             {
-                "provider_constraint": request.provider_constraint,
+                "model_constraints": model_constraints,
                 "prompt_token_count": prompt_token_count,
                 "classification_result": classification_result.model_dump(
                     exclude_unset=True
                 ),
             },
         )
-        if request.provider_constraint:
-            all_known_provider_types = {p.value for p in ProviderType}
-            # Filter to only include known providers with capabilities
-            available_providers = set(provider_model_capabilities.keys())
-            eligible_providers: set[ProviderType] = {
-                ProviderType(p)
-                for p in request.provider_constraint
-                if p in all_known_provider_types
-                and ProviderType(p) in available_providers
-            }
-            for p in request.provider_constraint:
-                if p not in all_known_provider_types:
-                    self.log("invalid_provider_constraint", p)
-                elif ProviderType(p) not in available_providers:
-                    self.log("unavailable_provider_constraint", p)
+
+        # Handle provider-model constraints
+        if (
+            request.protocol_manager_config
+            and request.protocol_manager_config.model_constraints
+        ):
+            # Build set of eligible providers and specific model constraints
+            eligible_providers: set[ProviderType] = set()
+            specific_model_constraints: dict[ProviderType, set[str]] = {}
+
+            for constraint in request.protocol_manager_config.model_constraints:
+                try:
+                    provider_type = ProviderType(constraint.provider)
+                    if provider_type in provider_model_capabilities:
+                        eligible_providers.add(provider_type)
+                        if provider_type not in specific_model_constraints:
+                            specific_model_constraints[provider_type] = set()
+                        specific_model_constraints[provider_type].add(constraint.model)
+                    else:
+                        self.log("unavailable_provider_constraint", constraint.provider)
+                except ValueError:
+                    self.log("invalid_provider_constraint", constraint.provider)
         else:
             # Use all providers with defined capabilities
             eligible_providers = set(provider_model_capabilities.keys())
+            specific_model_constraints = {}
 
         primary_task_type: TaskType = (
             TaskType(classification_result.task_type_1[0])
@@ -220,10 +239,34 @@ class ModelSelectionService:
             if task_model_entry.model_name in seen_model_names:
                 continue
 
+            # Check if this model is allowed by specific model constraints
+            model_allowed = True
+            if specific_model_constraints:
+                model_allowed = any(
+                    provider in specific_model_constraints
+                    and task_model_entry.model_name
+                    in specific_model_constraints[provider]
+                    for provider in task_model_entry.providers
+                    if provider in eligible_providers
+                )
+
+            if not model_allowed:
+                continue
+
             # Filter providers to only eligible ones that have capabilities defined
             eligible_providers_for_model = self._get_eligible_providers_for_model(
                 task_model_entry, eligible_providers, prompt_token_count
             )
+
+            # Further filter by specific model constraints if they exist
+            if specific_model_constraints:
+                eligible_providers_for_model = [
+                    provider
+                    for provider in eligible_providers_for_model
+                    if provider in specific_model_constraints
+                    and task_model_entry.model_name
+                    in specific_model_constraints[provider]
+                ]
 
             if eligible_providers_for_model:
                 # Create ModelEntry with only eligible providers
@@ -254,7 +297,12 @@ class ModelSelectionService:
         self.log("candidate_models_count", len(candidate_models))
 
         # Apply cost-based ranking if cost_bias is provided
-        if request.cost_bias is not None and candidate_models:
+        cost_bias = (
+            request.protocol_manager_config.cost_bias
+            if request.protocol_manager_config
+            else None
+        )
+        if cost_bias is not None and candidate_models:
             from adaptive_ai.services.cost_optimizer import (
                 rank_models_by_cost_performance,
             )
@@ -267,7 +315,7 @@ class ModelSelectionService:
             # Apply cost-performance ranking
             candidate_models = rank_models_by_cost_performance(
                 model_entries=candidate_models,
-                cost_bias=request.cost_bias,
+                cost_bias=cost_bias,
                 model_capabilities=self._all_model_capabilities_by_id,
                 estimated_tokens=prompt_token_count,
             )
@@ -277,7 +325,7 @@ class ModelSelectionService:
             self.log(
                 "cost_bias_routing",
                 {
-                    "cost_bias": request.cost_bias,
+                    "cost_bias": cost_bias,
                     "original_model_count": original_count,
                     "original_top_model": original_top_model,
                     "cost_optimized_top_model": new_top_model,

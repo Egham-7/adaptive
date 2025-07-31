@@ -81,11 +81,6 @@ func (h *CompletionHandler) selectProtocol(
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	var costBias *float32
-	if req.CostBias != 0 {
-		costBias = &req.CostBias
-	}
-
 	openAIParams := req.ToOpenAIParams()
 	if openAIParams == nil {
 		return nil, fmt.Errorf("failed to convert request to OpenAI parameters")
@@ -93,8 +88,7 @@ func (h *CompletionHandler) selectProtocol(
 
 	selReq := models.ModelSelectionRequest{
 		ChatCompletionRequest: *openAIParams,
-		ProviderConstraint:    req.ProviderConstraint,
-		CostBias:              costBias,
+		ProtocolManagerConfig: req.ProtocolManagerConfig,
 	}
 
 	resp, _, err = h.protocolMgr.SelectProtocolWithCache(

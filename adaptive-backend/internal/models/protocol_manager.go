@@ -51,9 +51,8 @@ type ModelSelectionRequest struct {
 	ChatCompletionRequest openai.ChatCompletionNewParams `json:"chat_completion_request"`
 
 	// Our custom parameters for model selection
-	UserID             *string  `json:"user_id,omitempty"`
-	ProviderConstraint []string `json:"provider_constraint,omitempty"`
-	CostBias           *float32 `json:"cost_bias,omitempty"`
+	UserID                *string                `json:"user_id,omitempty"`
+	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
 }
 
 // OpenAIParameters aliases the ChatCompletion params type from OpenAI Go SDK.

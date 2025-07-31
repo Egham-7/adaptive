@@ -209,8 +209,12 @@ class ProtocolManager:
         # Extract cost bias information if available
         cost_bias = None
         cost_bias_active = False
-        if request and request.cost_bias is not None:
-            cost_bias = request.cost_bias
+        if (
+            request
+            and request.protocol_manager_config
+            and request.protocol_manager_config.cost_bias is not None
+        ):
+            cost_bias = request.protocol_manager_config.cost_bias
             cost_bias_active = True
 
         # Determine cost bias impact on model selection

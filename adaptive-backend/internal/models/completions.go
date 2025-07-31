@@ -9,6 +9,18 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// ProviderModelConstraint represents a constraint for a specific provider and model
+type ProviderModelConstraint struct {
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+}
+
+// ProtocolManagerConfig holds configuration for the protocol manager
+type ProtocolManagerConfig struct {
+	ModelConstraints []ProviderModelConstraint `json:"model_constraints,omitempty"`
+	CostBias         float32                   `json:"cost_bias,omitempty"`
+}
+
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {
 	// Messages comprising the conversation so far.
@@ -197,9 +209,8 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProviderConstraint []string     `json:"provider_constraint,omitempty"`
-	CostBias           float32      `json:"cost_bias,omitempty"`      // Bias towards cheaper providers
-	SemanticCache      *CacheConfig `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
+	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
+	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.

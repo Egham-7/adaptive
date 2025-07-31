@@ -9,6 +9,20 @@ from pydantic import BaseModel, Field, model_validator
 from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskModelEntry
 
 
+class ProviderModelConstraint(BaseModel):
+    """Represents a constraint for a specific provider and model"""
+
+    provider: str
+    model: str
+
+
+class ProtocolManagerConfig(BaseModel):
+    """Configuration for the protocol manager"""
+
+    model_constraints: list[ProviderModelConstraint] | None = None
+    cost_bias: float | None = None
+
+
 class ModelCapability(BaseModel):
     description: str
     provider: ProviderType
@@ -52,8 +66,7 @@ class ModelSelectionRequest(BaseModel):
 
     # Our custom parameters for model selection
     user_id: str | None = None
-    provider_constraint: list[str] | None = None
-    cost_bias: float | None = None
+    protocol_manager_config: ProtocolManagerConfig | None = None
 
     @model_validator(mode="after")
     def validate_parameters(self) -> "ModelSelectionRequest":
