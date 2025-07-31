@@ -130,6 +130,264 @@ class ModelSelectionService:
         self._eligible_providers_cache.clear()
         self.log("cache_cleared", {"cache_type": "eligible_providers"})
 
+    def _parse_model_constraints(
+        self, request: ModelSelectionRequest
+    ) -> tuple[set[ProviderType], dict[ProviderType, set[str]]]:
+        """Parse model constraints from request and return eligible providers and specific constraints."""
+        if not (
+            request.protocol_manager_config
+            and request.protocol_manager_config.model_constraints
+        ):
+            # No constraints - use all available providers
+            return set(provider_model_capabilities.keys()), {}
+
+        eligible_providers: set[ProviderType] = set()
+        specific_model_constraints: dict[ProviderType, set[str]] = {}
+
+        for constraint in request.protocol_manager_config.model_constraints:
+            try:
+                provider_type = ProviderType(constraint.provider)
+                if provider_type in provider_model_capabilities:
+                    eligible_providers.add(provider_type)
+                    if provider_type not in specific_model_constraints:
+                        specific_model_constraints[provider_type] = set()
+                    specific_model_constraints[provider_type].add(constraint.model)
+                else:
+                    self.log("unavailable_provider_constraint", constraint.provider)
+            except ValueError:
+                self.log("invalid_provider_constraint", constraint.provider)
+
+        return eligible_providers, specific_model_constraints
+
+    def _is_model_allowed_by_constraints(
+        self,
+        model_entry: ModelEntry,
+        eligible_providers: set[ProviderType],
+        specific_model_constraints: dict[ProviderType, set[str]],
+    ) -> bool:
+        """Check if a model is allowed by the specific model constraints."""
+        if not specific_model_constraints:
+            return True
+
+        return any(
+            provider in specific_model_constraints
+            and model_entry.model_name in specific_model_constraints[provider]
+            for provider in model_entry.providers
+            if provider in eligible_providers
+        )
+
+    def _filter_providers_by_constraints(
+        self,
+        providers: list[ProviderType],
+        model_name: str,
+        specific_model_constraints: dict[ProviderType, set[str]],
+    ) -> list[ProviderType]:
+        """Filter providers by specific model constraints if they exist."""
+        if not specific_model_constraints:
+            return providers
+
+        return [
+            provider
+            for provider in providers
+            if provider in specific_model_constraints
+            and model_name in specific_model_constraints[provider]
+        ]
+
+    def _apply_cost_optimization(
+        self,
+        candidate_models: list[ModelEntry],
+        request: ModelSelectionRequest,
+        prompt_token_count: int,
+    ) -> list[ModelEntry]:
+        """Apply cost-based ranking if cost_bias is provided."""
+        cost_bias = (
+            request.protocol_manager_config.cost_bias
+            if request.protocol_manager_config
+            else None
+        )
+
+        if cost_bias is None or not candidate_models:
+            return candidate_models
+
+        from adaptive_ai.services.cost_optimizer import rank_models_by_cost_performance
+
+        original_count = len(candidate_models)
+        original_top_model = (
+            candidate_models[0].model_name if candidate_models else None
+        )
+
+        # Apply cost-performance ranking
+        optimized_models = rank_models_by_cost_performance(
+            model_entries=candidate_models,
+            cost_bias=cost_bias,
+            model_capabilities=self._all_model_capabilities_by_id,
+            estimated_tokens=prompt_token_count,
+        )
+
+        new_top_model = optimized_models[0].model_name if optimized_models else None
+
+        self.log(
+            "cost_bias_routing",
+            {
+                "cost_bias": cost_bias,
+                "original_model_count": original_count,
+                "original_top_model": original_top_model,
+                "cost_optimized_top_model": new_top_model,
+                "reranked_models": [entry.model_name for entry in optimized_models[:5]],
+                "ranking_changed": original_top_model != new_top_model,
+            },
+        )
+
+        return optimized_models
+
+    def _get_initial_candidates(
+        self,
+        classification_result: ClassificationResult,
+        domain_classification: DomainClassificationResult | None = None,
+    ) -> list[ModelEntry]:
+        """Get initial candidate models based on task type."""
+        primary_task_type: TaskType = (
+            TaskType(classification_result.task_type_1[0])
+            if classification_result.task_type_1
+            else TaskType.OTHER
+        )
+
+        self.log("primary_task_type", primary_task_type.value)
+
+        # Get task-appropriate models
+        task_mapping = task_model_mappings_data.get(primary_task_type)
+        if not task_mapping:
+            raise ValueError(
+                f"No task mapping found for task type: {primary_task_type}"
+            )
+
+        candidate_models = task_mapping.model_entries
+
+        self.log(
+            "initial_candidates",
+            {
+                "task_type": primary_task_type.value,
+                "models_count": len(candidate_models),
+                "top_model": (
+                    candidate_models[0].model_name if candidate_models else None
+                ),
+                "domain_info": (
+                    domain_classification.domain.value
+                    if domain_classification
+                    else "not_used"
+                ),
+            },
+        )
+
+        return candidate_models
+
+    def _apply_model_constraints(
+        self,
+        candidate_models: list[ModelEntry],
+        eligible_providers: set[ProviderType],
+        specific_model_constraints: dict[ProviderType, set[str]],
+    ) -> list[ModelEntry]:
+        """Filter models by specific provider-model constraints."""
+        if not specific_model_constraints:
+            return candidate_models
+
+        filtered_models = []
+        for model_entry in candidate_models:
+            if self._is_model_allowed_by_constraints(
+                model_entry, eligible_providers, specific_model_constraints
+            ):
+                filtered_models.append(model_entry)
+
+        self.log(
+            "model_constraints_applied",
+            {
+                "original_count": len(candidate_models),
+                "filtered_count": len(filtered_models),
+                "constraints": len(specific_model_constraints),
+            },
+        )
+
+        return filtered_models
+
+    def _apply_capability_constraints(
+        self,
+        candidate_models: list[ModelEntry],
+        eligible_providers: set[ProviderType],
+        prompt_token_count: int,
+    ) -> list[ModelEntry]:
+        """Filter models based on capability constraints like context length."""
+        filtered_models = []
+        seen_model_names: set[str] = set()
+
+        for model_entry in candidate_models:
+            if model_entry.model_name in seen_model_names:
+                continue
+
+            # Get providers that meet capability requirements
+            eligible_providers_for_model = self._get_eligible_providers_for_model(
+                model_entry, eligible_providers, prompt_token_count
+            )
+
+            if eligible_providers_for_model:
+                # Create new ModelEntry with only eligible providers
+                filtered_entry = ModelEntry(
+                    providers=eligible_providers_for_model,
+                    model_name=model_entry.model_name,
+                )
+                filtered_models.append(filtered_entry)
+                seen_model_names.add(model_entry.model_name)
+
+                self.log(
+                    "model_capability_approved",
+                    {
+                        "model": model_entry.model_name,
+                        "eligible_providers": [
+                            p.value for p in eligible_providers_for_model
+                        ],
+                    },
+                )
+
+        self.log(
+            "capability_constraints_applied",
+            {
+                "original_count": len(candidate_models),
+                "filtered_count": len(filtered_models),
+                "token_limit": prompt_token_count,
+            },
+        )
+
+        return filtered_models
+
+    def _update_metrics(
+        self,
+        classification_result: ClassificationResult,
+        candidate_models: list[ModelEntry],
+    ) -> None:
+        """Update selection metrics."""
+        self.selection_metrics["total_selections"] += 1
+
+        # Track task usage
+        primary_task_type = (
+            TaskType(classification_result.task_type_1[0])
+            if classification_result.task_type_1
+            else TaskType.OTHER
+        )
+        task_key = primary_task_type.value
+        self.selection_metrics["task_usage"][task_key] = (
+            self.selection_metrics["task_usage"].get(task_key, 0) + 1
+        )
+
+        # Track model usage
+        for model_entry in candidate_models:
+            if model_entry.providers:
+                first_provider = model_entry.providers[0]
+                model_key = f"{first_provider.value}:{model_entry.model_name}"
+                self.selection_metrics["model_usage"][model_key] = (
+                    self.selection_metrics["model_usage"].get(model_key, 0) + 1
+                )
+
+        self.log("final_candidate_count", len(candidate_models))
+
     def select_candidate_models(
         self,
         request: ModelSelectionRequest,
@@ -137,7 +395,12 @@ class ModelSelectionService:
         prompt_token_count: int,
         domain_classification: DomainClassificationResult | None = None,
     ) -> list[ModelEntry]:
-        # Extract model constraints if available
+        # Parse model constraints from request
+        eligible_providers, specific_model_constraints = self._parse_model_constraints(
+            request
+        )
+
+        # Extract model constraints for logging
         model_constraints = None
         if (
             request.protocol_manager_config
@@ -159,182 +422,28 @@ class ModelSelectionService:
             },
         )
 
-        # Handle provider-model constraints
-        if (
-            request.protocol_manager_config
-            and request.protocol_manager_config.model_constraints
-        ):
-            # Build set of eligible providers and specific model constraints
-            eligible_providers: set[ProviderType] = set()
-            specific_model_constraints: dict[ProviderType, set[str]] = {}
-
-            for constraint in request.protocol_manager_config.model_constraints:
-                try:
-                    provider_type = ProviderType(constraint.provider)
-                    if provider_type in provider_model_capabilities:
-                        eligible_providers.add(provider_type)
-                        if provider_type not in specific_model_constraints:
-                            specific_model_constraints[provider_type] = set()
-                        specific_model_constraints[provider_type].add(constraint.model)
-                    else:
-                        self.log("unavailable_provider_constraint", constraint.provider)
-                except ValueError:
-                    self.log("invalid_provider_constraint", constraint.provider)
-        else:
-            # Use all providers with defined capabilities
-            eligible_providers = set(provider_model_capabilities.keys())
-            specific_model_constraints = {}
-
-        primary_task_type: TaskType = (
-            TaskType(classification_result.task_type_1[0])
-            if classification_result.task_type_1
-            else TaskType.OTHER
+        # PIPELINE: Start with task-appropriate models
+        candidate_models = self._get_initial_candidates(
+            classification_result, domain_classification
         )
 
-        self.log("primary_task_type", primary_task_type.value)
-
-        # Standard protocol: Use task-based selection only (no domain routing)
-        # Direct lookup: task_model_mappings_data[task_type] - fail fast if missing
-        task_mapping = task_model_mappings_data.get(primary_task_type)
-        if not task_mapping:
-            raise ValueError(
-                f"No task mapping found for task type: {primary_task_type}"
-            )
-
-        candidate_model_entries: list[ModelEntry] = task_mapping.model_entries
-
-        self.log(
-            "task_only_selection",
-            {
-                "task_type": primary_task_type.value,
-                "models_count": len(candidate_model_entries),
-                "top_model": (
-                    candidate_model_entries[0].model_name
-                    if candidate_model_entries
-                    else None
-                ),
-                "domain_info": (
-                    domain_classification.domain.value
-                    if domain_classification
-                    else "not_used"
-                ),
-            },
+        # PIPELINE STEP 1: Apply model constraints (filter by allowed provider-model pairs)
+        candidate_models = self._apply_model_constraints(
+            candidate_models, eligible_providers, specific_model_constraints
         )
 
-        # Track metrics
-        self.selection_metrics["total_selections"] += 1
-
-        # Track task usage only (no domain tracking for standard protocol)
-        # if domain_classification:  # Commented out - no domain tracking for standard
-
-        task_key: str = primary_task_type.value
-        self.selection_metrics["task_usage"][task_key] = (
-            self.selection_metrics["task_usage"].get(task_key, 0) + 1
+        # PIPELINE STEP 2: Apply capability constraints (context length, etc.)
+        candidate_models = self._apply_capability_constraints(
+            candidate_models, eligible_providers, prompt_token_count
         )
 
-        seen_model_names: set[str] = set()
-        candidate_models: list[ModelEntry] = []
-
-        for task_model_entry in candidate_model_entries:
-            if task_model_entry.model_name in seen_model_names:
-                continue
-
-            # Check if this model is allowed by specific model constraints
-            model_allowed = True
-            if specific_model_constraints:
-                model_allowed = any(
-                    provider in specific_model_constraints
-                    and task_model_entry.model_name
-                    in specific_model_constraints[provider]
-                    for provider in task_model_entry.providers
-                    if provider in eligible_providers
-                )
-
-            if not model_allowed:
-                continue
-
-            # Filter providers to only eligible ones that have capabilities defined
-            eligible_providers_for_model = self._get_eligible_providers_for_model(
-                task_model_entry, eligible_providers, prompt_token_count
-            )
-
-            # Further filter by specific model constraints if they exist
-            if specific_model_constraints:
-                eligible_providers_for_model = [
-                    provider
-                    for provider in eligible_providers_for_model
-                    if provider in specific_model_constraints
-                    and task_model_entry.model_name
-                    in specific_model_constraints[provider]
-                ]
-
-            if eligible_providers_for_model:
-                # Create ModelEntry with only eligible providers
-                candidate_entry = ModelEntry(
-                    providers=eligible_providers_for_model,
-                    model_name=task_model_entry.model_name,
-                )
-                candidate_models.append(candidate_entry)
-                seen_model_names.add(task_model_entry.model_name)
-
-                # Track model usage (use first eligible provider for tracking)
-                first_provider = eligible_providers_for_model[0]
-                model_key = f"{first_provider.value}:{task_model_entry.model_name}"
-                self.selection_metrics["model_usage"][model_key] = (
-                    self.selection_metrics["model_usage"].get(model_key, 0) + 1
-                )
-
-                self.log(
-                    "model_candidate_added",
-                    {
-                        "model": task_model_entry.model_name,
-                        "eligible_providers": [
-                            p.value for p in eligible_providers_for_model
-                        ],
-                    },
-                )
-
-        self.log("candidate_models_count", len(candidate_models))
-
-        # Apply cost-based ranking if cost_bias is provided
-        cost_bias = (
-            request.protocol_manager_config.cost_bias
-            if request.protocol_manager_config
-            else None
+        # PIPELINE STEP 3: Apply cost optimization
+        candidate_models = self._apply_cost_optimization(
+            candidate_models, request, prompt_token_count
         )
-        if cost_bias is not None and candidate_models:
-            from adaptive_ai.services.cost_optimizer import (
-                rank_models_by_cost_performance,
-            )
 
-            original_count = len(candidate_models)
-            original_top_model = (
-                candidate_models[0].model_name if candidate_models else None
-            )
-
-            # Apply cost-performance ranking
-            candidate_models = rank_models_by_cost_performance(
-                model_entries=candidate_models,
-                cost_bias=cost_bias,
-                model_capabilities=self._all_model_capabilities_by_id,
-                estimated_tokens=prompt_token_count,
-            )
-
-            new_top_model = candidate_models[0].model_name if candidate_models else None
-
-            self.log(
-                "cost_bias_routing",
-                {
-                    "cost_bias": cost_bias,
-                    "original_model_count": original_count,
-                    "original_top_model": original_top_model,
-                    "cost_optimized_top_model": new_top_model,
-                    "reranked_models": [
-                        entry.model_name for entry in candidate_models[:5]
-                    ],
-                    "ranking_changed": original_top_model != new_top_model,
-                },
-            )
+        # Update metrics
+        self._update_metrics(classification_result, candidate_models)
 
         # Log comprehensive metrics periodically
         if self.selection_metrics["total_selections"] % 10 == 0:
