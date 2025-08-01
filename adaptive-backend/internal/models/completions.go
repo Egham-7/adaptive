@@ -9,6 +9,29 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// ModelCapability represents a model with its capabilities and constraints
+type ModelCapability struct {
+	Description             *string  `json:"description,omitempty"`
+	Provider                string   `json:"provider"`
+	ModelName               string   `json:"model_name"`
+	CostPer1MInputTokens    float64  `json:"cost_per_1m_input_tokens"`
+	CostPer1MOutputTokens   float64  `json:"cost_per_1m_output_tokens"`
+	MaxContextTokens        int      `json:"max_context_tokens"`
+	MaxOutputTokens         *int     `json:"max_output_tokens,omitempty"`
+	SupportsFunctionCalling bool     `json:"supports_function_calling"`
+	LanguagesSupported      []string `json:"languages_supported,omitempty"`
+	ModelSizeParams         *string  `json:"model_size_params,omitempty"`
+	LatencyTier             *string  `json:"latency_tier,omitempty"`
+}
+
+// ProtocolManagerConfig holds configuration for the protocol manager
+type ProtocolManagerConfig struct {
+	Models              []ModelCapability `json:"models,omitempty"`
+	CostBias            float32           `json:"cost_bias,omitempty"`
+	ComplexityThreshold *float32          `json:"complexity_threshold,omitempty"`
+	TokenThreshold      *int              `json:"token_threshold,omitempty"`
+}
+
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {
 	// Messages comprising the conversation so far.
@@ -197,9 +220,8 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProviderConstraint []string     `json:"provider_constraint,omitempty"`
-	CostBias           float32      `json:"cost_bias,omitempty"`      // Bias towards cheaper providers
-	SemanticCache      *CacheConfig `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
+	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
+	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
