@@ -66,12 +66,17 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 ) (*models.ProtocolResponse, string, error) {
 	fiberlog.Debugf("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	if req.CostBias == nil || *req.CostBias <= 0 {
-		bias := float32(defaultCostBiasFactor)
-		req.CostBias = &bias
-		fiberlog.Debugf("[%s] Using default cost bias: %.2f", requestID, bias)
+	// Ensure protocol manager config exists
+	if req.ProtocolManagerConfig == nil {
+		req.ProtocolManagerConfig = &models.ProtocolManagerConfig{}
+	}
+
+	// Set default cost bias if not provided
+	if req.ProtocolManagerConfig.CostBias <= 0 {
+		req.ProtocolManagerConfig.CostBias = float32(defaultCostBiasFactor)
+		fiberlog.Debugf("[%s] Using default cost bias: %.2f", requestID, req.ProtocolManagerConfig.CostBias)
 	} else {
-		fiberlog.Debugf("[%s] Using provided cost bias: %.2f", requestID, *req.CostBias)
+		fiberlog.Debugf("[%s] Using provided cost bias: %.2f", requestID, req.ProtocolManagerConfig.CostBias)
 	}
 
 	// Extract prompt from last message for cache key
