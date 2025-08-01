@@ -56,6 +56,14 @@ class ProtocolManager:
         request: ModelSelectionRequest | None = None,
     ) -> bool:
         """Determine if standard protocol should be used based on complexity score and token length."""
+        # If user explicitly provided models, always use standard protocol
+        if (
+            request
+            and request.protocol_manager_config
+            and request.protocol_manager_config.models
+        ):
+            return True
+
         # Use NVIDIA's professionally trained complexity score and prompt length
         complexity_score = classification_result.prompt_complexity_score[0]
 

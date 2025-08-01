@@ -4,7 +4,7 @@
 from openai.types.chat import (
     CompletionCreateParams,
 )
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskModelEntry
 
@@ -62,11 +62,3 @@ class ModelSelectionRequest(BaseModel):
     # Our custom parameters for model selection
     user_id: str | None = None
     protocol_manager_config: ProtocolManagerConfig | None = None
-
-    @model_validator(mode="after")
-    def validate_parameters(self) -> "ModelSelectionRequest":
-        # Validate the OpenAI request has required fields
-        if not self.chat_completion_request.get("messages"):
-            raise ValueError("messages cannot be empty")
-
-        return self

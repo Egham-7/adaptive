@@ -177,84 +177,150 @@ class ModelSelectionService:
             for model in provider_models
         ]
 
-    def _parse_model_constraints(
-        self, request: ModelSelectionRequest
-    ) -> tuple[frozenset[ProviderType], dict[ProviderType, frozenset[str]]]:
-        """Parse model constraints from request and return eligible providers and specific constraints (optimized)."""
-        # Ensure protocol_manager_config exists and models are set
-        if not request.protocol_manager_config:
-            return frozenset(provider_model_capabilities.keys()), {}
+    def _use_user_specified_models(
+        self,
+        user_models: list[ModelCapability],
+        classification_result: ClassificationResult,
+        prompt_token_count: int,
+        request: ModelSelectionRequest,
+    ) -> list[ModelEntry]:
+        """Convert user-specified ModelCapability objects to ModelEntry objects and apply pipeline."""
+        model_entries = []
 
-        if not request.protocol_manager_config.models:
-            request.protocol_manager_config.models = self._get_default_models()
-
-        eligible_providers: set[ProviderType] = set()
-        specific_model_constraints: dict[ProviderType, set[str]] = {}
-        available_provider_set = frozenset(provider_model_capabilities.keys())
-
-        for model in request.protocol_manager_config.models:
+        # Convert user ModelCapability objects to ModelEntry objects
+        for model_capability in user_models:
             try:
-                provider_type = ProviderType(model.provider)
-                # Use set membership test on frozenset (O(1))
-                if provider_type in available_provider_set:
-                    eligible_providers.add(provider_type)
-                    if provider_type not in specific_model_constraints:
-                        specific_model_constraints[provider_type] = set()
-                    specific_model_constraints[provider_type].add(model.model_name)
-                else:
-                    self.log("unavailable_provider_constraint", model.provider)
+                provider_type = ProviderType(model_capability.provider)
+                model_entry = ModelEntry(
+                    providers=[provider_type], model_name=model_capability.model_name
+                )
+                model_entries.append(model_entry)
             except ValueError:
-                self.log("invalid_provider_constraint", model.provider)
+                self.log("invalid_user_provider", model_capability.provider)
+                continue
 
-        # Convert to frozensets for immutable, faster operations
-        optimized_constraints = {
-            provider: frozenset(models)
-            for provider, models in specific_model_constraints.items()
-        }
+        if not model_entries:
+            raise ValueError("No valid user-specified models found")
 
-        return frozenset(eligible_providers), optimized_constraints
+        # Log initial user-specified models
+        self.log(
+            "user_specified_models_initial",
+            {
+                "models": [
+                    f"{m.providers[0].value}:{m.model_name}" for m in model_entries
+                ],
+                "count": len(model_entries),
+                "prompt_token_count": prompt_token_count,
+            },
+        )
 
-    def _is_model_allowed_by_constraints(
+        # Apply pipeline steps to user models
+        # PIPELINE STEP 1: Apply capability constraints (context length, etc.)
+        eligible_providers = frozenset(m.providers[0] for m in model_entries)
+        candidate_models = self._apply_capability_constraints(
+            model_entries, eligible_providers, prompt_token_count
+        )
+
+        # PIPELINE STEP 2: Apply cost optimization
+        candidate_models = self._apply_cost_optimization(
+            candidate_models, request, prompt_token_count
+        )
+
+        # Check if any models survived the pipeline
+        if not candidate_models:
+            # Fallback to first user-specified model
+            candidate_models = [model_entries[0]]
+            self.log(
+                "user_models_pipeline_fallback",
+                {
+                    "fallback_model": f"{model_entries[0].providers[0].value}:{model_entries[0].model_name}",
+                    "reason": "No user models passed pipeline constraints",
+                    "original_count": len(model_entries),
+                    "prompt_token_count": prompt_token_count,
+                },
+            )
+
+        # Update metrics
+        self._update_metrics(classification_result, candidate_models)
+
+        # Log final user-specified models
+        self.log(
+            "user_specified_models_final",
+            {
+                "models": [
+                    f"{m.providers[0].value}:{m.model_name}" for m in candidate_models
+                ],
+                "count": len(candidate_models),
+                "filtered_count": len(model_entries) - len(candidate_models),
+                "used_fallback": len(candidate_models) == 1 and len(model_entries) > 1,
+            },
+        )
+
+        return candidate_models
+
+    def _use_system_model_selection(
         self,
-        model_entry: ModelEntry,
-        eligible_providers: frozenset[ProviderType],
-        specific_model_constraints: dict[ProviderType, frozenset[str]],
-    ) -> bool:
-        """Check if a model is allowed by the specific model constraints (optimized)."""
-        if not specific_model_constraints:
-            return True
+        request: ModelSelectionRequest,
+        classification_result: ClassificationResult,
+        prompt_token_count: int,
+        domain_classification: DomainClassificationResult | None = None,
+    ) -> list[ModelEntry]:
+        """Use system's default model selection logic."""
+        self.log(
+            "system_model_selection_called",
+            {
+                "prompt_token_count": prompt_token_count,
+                "classification_result": classification_result.model_dump(
+                    exclude_unset=True
+                ),
+            },
+        )
 
-        # Use set intersection for faster filtering
-        eligible_model_providers = frozenset(model_entry.providers) & eligible_providers
+        # PIPELINE: Start with task-appropriate models
+        candidate_models = self._get_initial_candidates(
+            classification_result, domain_classification
+        )
 
-        # Check constraints using frozenset membership (O(1) per check)
-        for provider in eligible_model_providers:
-            if provider in specific_model_constraints:
-                if model_entry.model_name in specific_model_constraints[provider]:
-                    return True
+        # PIPELINE STEP 1: Apply capability constraints (context length, etc.)
+        eligible_providers = frozenset(provider_model_capabilities.keys())
+        candidate_models = self._apply_capability_constraints(
+            candidate_models, eligible_providers, prompt_token_count
+        )
 
-        return False
+        # PIPELINE STEP 2: Apply cost optimization
+        candidate_models = self._apply_cost_optimization(
+            candidate_models, request, prompt_token_count
+        )
 
-    def _filter_providers_by_constraints(
-        self,
-        providers: list[ProviderType],
-        model_name: str,
-        specific_model_constraints: dict[ProviderType, frozenset[str]],
-    ) -> list[ProviderType]:
-        """Filter providers by specific model constraints if they exist (optimized)."""
-        if not specific_model_constraints:
-            return providers
+        # Update metrics
+        self._update_metrics(classification_result, candidate_models)
 
-        # Use set operations for faster filtering
-        provider_set = frozenset(providers)
-        constraint_providers = frozenset(specific_model_constraints.keys())
-        eligible_providers = provider_set & constraint_providers
+        # Log comprehensive metrics periodically
+        if self.selection_metrics["total_selections"] % 10 == 0:
+            cache_stats = self.get_cache_stats()
+            self.log(
+                "model_selection_metrics",
+                {
+                    "total_selections": self.selection_metrics["total_selections"],
+                    "task_coverage_rate": (
+                        len(self.selection_metrics["task_usage"])
+                        / max(1, self.selection_metrics["total_selections"])
+                    ),
+                    "top_tasks": sorted(
+                        self.selection_metrics["task_usage"].items(),
+                        key=lambda x: x[1],
+                        reverse=True,
+                    )[:5],
+                    "top_models": sorted(
+                        self.selection_metrics["model_usage"].items(),
+                        key=lambda x: x[1],
+                        reverse=True,
+                    )[:5],
+                    "cache_performance": cache_stats,
+                },
+            )
 
-        return [
-            provider
-            for provider in eligible_providers
-            if model_name in specific_model_constraints[provider]
-        ]
+        return candidate_models
 
     def _apply_cost_optimization(
         self,
@@ -344,34 +410,6 @@ class ModelSelectionService:
 
         return candidate_models
 
-    def _apply_model_constraints(
-        self,
-        candidate_models: list[ModelEntry],
-        eligible_providers: frozenset[ProviderType],
-        specific_model_constraints: dict[ProviderType, frozenset[str]],
-    ) -> list[ModelEntry]:
-        """Filter models by specific provider-model constraints."""
-        if not specific_model_constraints:
-            return candidate_models
-
-        filtered_models = []
-        for model_entry in candidate_models:
-            if self._is_model_allowed_by_constraints(
-                model_entry, eligible_providers, specific_model_constraints
-            ):
-                filtered_models.append(model_entry)
-
-        self.log(
-            "model_constraints_applied",
-            {
-                "original_count": len(candidate_models),
-                "filtered_count": len(filtered_models),
-                "constraints": len(specific_model_constraints),
-            },
-        )
-
-        return filtered_models
-
     def _apply_capability_constraints(
         self,
         candidate_models: list[ModelEntry],
@@ -458,79 +496,21 @@ class ModelSelectionService:
         prompt_token_count: int,
         domain_classification: DomainClassificationResult | None = None,
     ) -> list[ModelEntry]:
-        # Parse model constraints from request
-        eligible_providers, specific_model_constraints = self._parse_model_constraints(
-            request
-        )
-
-        # Extract model constraints for logging
-        model_constraints = []
+        # Check if user provided their own models
         if request.protocol_manager_config and request.protocol_manager_config.models:
-            model_constraints = [
-                f"{c.provider}:{c.model_name}"
-                for c in request.protocol_manager_config.models
-            ]
-
-        self.log(
-            "select_candidate_models_called",
-            {
-                "model_constraints": model_constraints,
-                "prompt_token_count": prompt_token_count,
-                "classification_result": classification_result.model_dump(
-                    exclude_unset=True
-                ),
-            },
-        )
-
-        # PIPELINE: Start with task-appropriate models
-        candidate_models = self._get_initial_candidates(
-            classification_result, domain_classification
-        )
-
-        # PIPELINE STEP 1: Apply model constraints (filter by allowed provider-model pairs)
-        candidate_models = self._apply_model_constraints(
-            candidate_models, eligible_providers, specific_model_constraints
-        )
-
-        # PIPELINE STEP 2: Apply capability constraints (context length, etc.)
-        candidate_models = self._apply_capability_constraints(
-            candidate_models, eligible_providers, prompt_token_count
-        )
-
-        # PIPELINE STEP 3: Apply cost optimization
-        candidate_models = self._apply_cost_optimization(
-            candidate_models, request, prompt_token_count
-        )
-
-        # Update metrics
-        self._update_metrics(classification_result, candidate_models)
-
-        # Log comprehensive metrics periodically
-        if self.selection_metrics["total_selections"] % 10 == 0:
-            cache_stats = self.get_cache_stats()
-            self.log(
-                "model_selection_metrics",
-                {
-                    "total_selections": self.selection_metrics["total_selections"],
-                    "task_coverage_rate": (
-                        len(self.selection_metrics["task_usage"])
-                        / max(1, self.selection_metrics["total_selections"])
-                    ),
-                    "top_tasks": sorted(
-                        self.selection_metrics["task_usage"].items(),
-                        key=lambda x: x[1],
-                        reverse=True,
-                    )[:5],
-                    "top_models": sorted(
-                        self.selection_metrics["model_usage"].items(),
-                        key=lambda x: x[1],
-                        reverse=True,
-                    )[:5],
-                    "cache_performance": cache_stats,
-                },
+            return self._use_user_specified_models(
+                request.protocol_manager_config.models,
+                classification_result,
+                prompt_token_count,
+                request,
             )
-
-        return candidate_models
+        else:
+            return self._use_system_model_selection(
+                request,
+                classification_result,
+                prompt_token_count,
+                domain_classification,
+            )
 
     def get_minion_candidates(
         self,
