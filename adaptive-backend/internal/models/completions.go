@@ -24,6 +24,14 @@ type ModelCapability struct {
 	LatencyTier             *string  `json:"latency_tier,omitempty"`
 }
 
+// FallbackMode defines the strategy for handling provider failures
+type FallbackMode string
+
+const (
+	FallbackModeSequential FallbackMode = "sequential"
+	FallbackModeParallel   FallbackMode = "parallel"
+)
+
 // ProtocolManagerConfig holds configuration for the protocol manager
 type ProtocolManagerConfig struct {
 	Models              []ModelCapability `json:"models,omitempty"`
@@ -222,6 +230,7 @@ type ChatCompletionRequest struct {
 
 	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
 	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
+	FallbackMode          FallbackMode           `json:"fallback_mode,omitempty"`  // Strategy for handling provider failures
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
