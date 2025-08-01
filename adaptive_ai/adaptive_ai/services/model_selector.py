@@ -169,34 +169,42 @@ class ModelSelectionService:
         self._eligible_providers_cache.clear()
         self.log("cache_cleared", {"cache_type": "eligible_providers"})
 
+    def _get_default_models(self) -> list[ModelCapability]:
+        """Get default model capabilities from provider configuration"""
+        return [
+            model
+            for provider_models in provider_model_capabilities.values()
+            for model in provider_models
+        ]
+
     def _parse_model_constraints(
         self, request: ModelSelectionRequest
     ) -> tuple[frozenset[ProviderType], dict[ProviderType, frozenset[str]]]:
         """Parse model constraints from request and return eligible providers and specific constraints (optimized)."""
-        if not (
-            request.protocol_manager_config
-            and request.protocol_manager_config.model_constraints
-        ):
-            # No constraints - use all available providers as frozenset
+        # Ensure protocol_manager_config exists and models are set
+        if not request.protocol_manager_config:
             return frozenset(provider_model_capabilities.keys()), {}
+
+        if not request.protocol_manager_config.models:
+            request.protocol_manager_config.models = self._get_default_models()
 
         eligible_providers: set[ProviderType] = set()
         specific_model_constraints: dict[ProviderType, set[str]] = {}
         available_provider_set = frozenset(provider_model_capabilities.keys())
 
-        for constraint in request.protocol_manager_config.model_constraints:
+        for model in request.protocol_manager_config.models:
             try:
-                provider_type = ProviderType(constraint.provider)
+                provider_type = ProviderType(model.provider)
                 # Use set membership test on frozenset (O(1))
                 if provider_type in available_provider_set:
                     eligible_providers.add(provider_type)
                     if provider_type not in specific_model_constraints:
                         specific_model_constraints[provider_type] = set()
-                    specific_model_constraints[provider_type].add(constraint.model)
+                    specific_model_constraints[provider_type].add(model.model_name)
                 else:
-                    self.log("unavailable_provider_constraint", constraint.provider)
+                    self.log("unavailable_provider_constraint", model.provider)
             except ValueError:
-                self.log("invalid_provider_constraint", constraint.provider)
+                self.log("invalid_provider_constraint", model.provider)
 
         # Convert to frozensets for immutable, faster operations
         optimized_constraints = {
@@ -456,14 +464,11 @@ class ModelSelectionService:
         )
 
         # Extract model constraints for logging
-        model_constraints = None
-        if (
-            request.protocol_manager_config
-            and request.protocol_manager_config.model_constraints
-        ):
+        model_constraints = []
+        if request.protocol_manager_config and request.protocol_manager_config.models:
             model_constraints = [
-                f"{c.provider}:{c.model}"
-                for c in request.protocol_manager_config.model_constraints
+                f"{c.provider}:{c.model_name}"
+                for c in request.protocol_manager_config.models
             ]
 
         self.log(
