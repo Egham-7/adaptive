@@ -69,8 +69,4 @@ class ModelSelectionRequest(BaseModel):
         if not self.chat_completion_request.get("messages"):
             raise ValueError("messages cannot be empty")
 
-        # Ensure protocol_manager_config exists
-        if not self.protocol_manager_config:
-            self.protocol_manager_config = ProtocolManagerConfig()
-
         return self
