@@ -24,6 +24,7 @@ class LitLoggerProtocol:
 
 class ModelSelectionService:
     def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
+        # Use frozenset for faster lookups and immutable keys
         self._all_model_capabilities_by_id: dict[
             tuple[ProviderType, str], ModelCapability
         ] = {
@@ -32,12 +33,21 @@ class ModelSelectionService:
             for m_cap in provider_list
         }
 
-        # Cache for eligible providers per model and token count
-        self._eligible_providers_cache: dict[tuple[str, int], list[ProviderType]] = {}
+        # Cache for eligible providers per model and token count (optimized with token bucketing)
+        self._eligible_providers_cache: dict[
+            tuple[str, int], frozenset[ProviderType]
+        ] = {}
 
-        # Pre-computed mapping of models to their available providers
-        self._model_to_providers: dict[str, list[ProviderType]] = {}
-        self._build_model_provider_cache()
+        # Pre-computed mapping of models to their available providers (frozenset for O(1) lookups)
+        self._model_to_providers: dict[str, frozenset[ProviderType]] = {}
+
+        # Pre-computed reverse mapping: provider -> models for faster filtering
+        self._provider_to_models: dict[ProviderType, frozenset[str]] = {}
+
+        # Pre-computed context length lookup for faster capability checks
+        self._model_context_limits: dict[tuple[ProviderType, str], int] = {}
+
+        self._build_optimized_caches()
 
         # Performance metrics
         self.selection_metrics: dict[str, Any] = {
@@ -62,54 +72,83 @@ class ModelSelectionService:
         if self.lit_logger:
             self.lit_logger.log(key, value)
 
-    def _build_model_provider_cache(self) -> None:
-        """Pre-compute which providers are available for each model."""
-        for (provider, model_name), _ in self._all_model_capabilities_by_id.items():
-            if model_name not in self._model_to_providers:
-                self._model_to_providers[model_name] = []
-            if provider not in self._model_to_providers[model_name]:
-                self._model_to_providers[model_name].append(provider)
+    def _build_optimized_caches(self) -> None:
+        """Pre-compute optimized lookup structures for faster model selection."""
+        # Temporary builders using sets for O(1) operations during construction
+        model_providers_builder: dict[str, set[ProviderType]] = {}
+        provider_models_builder: dict[ProviderType, set[str]] = {}
+
+        for (
+            provider,
+            model_name,
+        ), capability in self._all_model_capabilities_by_id.items():
+            # Build model -> providers mapping
+            if model_name not in model_providers_builder:
+                model_providers_builder[model_name] = set()
+            model_providers_builder[model_name].add(provider)
+
+            # Build provider -> models mapping
+            if provider not in provider_models_builder:
+                provider_models_builder[provider] = set()
+            provider_models_builder[provider].add(model_name)
+
+            # Pre-compute context limits for O(1) capability checks
+            self._model_context_limits[(provider, model_name)] = (
+                capability.max_context_tokens
+            )
+
+        # Convert to frozensets for immutable, hashable, and faster lookup
+        self._model_to_providers = {
+            model: frozenset(providers)
+            for model, providers in model_providers_builder.items()
+        }
+        self._provider_to_models = {
+            provider: frozenset(models)
+            for provider, models in provider_models_builder.items()
+        }
 
     def _get_eligible_providers_for_model(
         self,
         model_entry: ModelEntry,
-        eligible_providers: set[ProviderType],
+        eligible_providers: frozenset[ProviderType],
         prompt_token_count: int,
     ) -> list[ProviderType]:
-        """Get eligible providers for a model that meet capability requirements."""
-        # Create cache key - use rounded token count to improve cache hit rate
-        cache_key = (model_entry.model_name, (prompt_token_count // 1000) * 1000)
+        """Get eligible providers for a model that meet capability requirements (optimized)."""
+        # Optimize cache key with larger buckets for better hit rate
+        token_bucket = (prompt_token_count // 2000) * 2000  # 2K token buckets
+        cache_key = (model_entry.model_name, token_bucket)
 
-        # Check cache first
+        # Check cache first - use frozenset intersection for O(1) filtering
         if cache_key in self._eligible_providers_cache:
             cached_providers = self._eligible_providers_cache[cache_key]
-            # Filter cached providers by current eligibility
-            return [p for p in cached_providers if p in eligible_providers]
+            # Fast set intersection instead of list comprehension
+            result_set = cached_providers & eligible_providers
+            return list(result_set)
 
-        # Cache miss - compute and cache result
-        eligible_providers_for_model = []
+        # Cache miss - compute using optimized lookups
+        available_providers = self._model_to_providers.get(
+            model_entry.model_name, frozenset()
+        )
 
-        # Use pre-computed available providers to avoid checking non-existent combinations
-        available_providers = self._model_to_providers.get(model_entry.model_name, [])
+        # Fast set intersection to get candidate providers
+        candidate_providers = frozenset(model_entry.providers) & available_providers
 
-        for provider in model_entry.providers:
-            if provider in available_providers and provider in eligible_providers:
-                model_identifier = (provider, model_entry.model_name)
-                model_cap = self._all_model_capabilities_by_id[model_identifier]
-                if model_cap.max_context_tokens >= prompt_token_count:
-                    eligible_providers_for_model.append(provider)
+        # Check context limits using pre-computed lookup
+        token_eligible_providers = set()
+        for provider in candidate_providers:
+            context_limit = self._model_context_limits.get(
+                (provider, model_entry.model_name)
+            )
+            if context_limit and context_limit >= prompt_token_count:
+                token_eligible_providers.add(provider)
 
-        # Cache the result (regardless of current eligible_providers filter)
-        all_token_eligible = []
-        for provider in available_providers:
-            model_identifier = (provider, model_entry.model_name)
-            model_cap = self._all_model_capabilities_by_id[model_identifier]
-            if model_cap.max_context_tokens >= prompt_token_count:
-                all_token_eligible.append(provider)
+        # Cache as frozenset for future intersections
+        token_eligible_frozenset = frozenset(token_eligible_providers)
+        self._eligible_providers_cache[cache_key] = token_eligible_frozenset
 
-        self._eligible_providers_cache[cache_key] = all_token_eligible
-
-        return eligible_providers_for_model
+        # Return intersection with current eligible providers
+        result_set = token_eligible_frozenset & eligible_providers
+        return list(result_set)
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get caching performance statistics."""
@@ -132,22 +171,24 @@ class ModelSelectionService:
 
     def _parse_model_constraints(
         self, request: ModelSelectionRequest
-    ) -> tuple[set[ProviderType], dict[ProviderType, set[str]]]:
-        """Parse model constraints from request and return eligible providers and specific constraints."""
+    ) -> tuple[frozenset[ProviderType], dict[ProviderType, frozenset[str]]]:
+        """Parse model constraints from request and return eligible providers and specific constraints (optimized)."""
         if not (
             request.protocol_manager_config
             and request.protocol_manager_config.model_constraints
         ):
-            # No constraints - use all available providers
-            return set(provider_model_capabilities.keys()), {}
+            # No constraints - use all available providers as frozenset
+            return frozenset(provider_model_capabilities.keys()), {}
 
         eligible_providers: set[ProviderType] = set()
         specific_model_constraints: dict[ProviderType, set[str]] = {}
+        available_provider_set = frozenset(provider_model_capabilities.keys())
 
         for constraint in request.protocol_manager_config.model_constraints:
             try:
                 provider_type = ProviderType(constraint.provider)
-                if provider_type in provider_model_capabilities:
+                # Use set membership test on frozenset (O(1))
+                if provider_type in available_provider_set:
                     eligible_providers.add(provider_type)
                     if provider_type not in specific_model_constraints:
                         specific_model_constraints[provider_type] = set()
@@ -157,40 +198,54 @@ class ModelSelectionService:
             except ValueError:
                 self.log("invalid_provider_constraint", constraint.provider)
 
-        return eligible_providers, specific_model_constraints
+        # Convert to frozensets for immutable, faster operations
+        optimized_constraints = {
+            provider: frozenset(models)
+            for provider, models in specific_model_constraints.items()
+        }
+
+        return frozenset(eligible_providers), optimized_constraints
 
     def _is_model_allowed_by_constraints(
         self,
         model_entry: ModelEntry,
-        eligible_providers: set[ProviderType],
-        specific_model_constraints: dict[ProviderType, set[str]],
+        eligible_providers: frozenset[ProviderType],
+        specific_model_constraints: dict[ProviderType, frozenset[str]],
     ) -> bool:
-        """Check if a model is allowed by the specific model constraints."""
+        """Check if a model is allowed by the specific model constraints (optimized)."""
         if not specific_model_constraints:
             return True
 
-        return any(
-            provider in specific_model_constraints
-            and model_entry.model_name in specific_model_constraints[provider]
-            for provider in model_entry.providers
-            if provider in eligible_providers
-        )
+        # Use set intersection for faster filtering
+        eligible_model_providers = frozenset(model_entry.providers) & eligible_providers
+
+        # Check constraints using frozenset membership (O(1) per check)
+        for provider in eligible_model_providers:
+            if provider in specific_model_constraints:
+                if model_entry.model_name in specific_model_constraints[provider]:
+                    return True
+
+        return False
 
     def _filter_providers_by_constraints(
         self,
         providers: list[ProviderType],
         model_name: str,
-        specific_model_constraints: dict[ProviderType, set[str]],
+        specific_model_constraints: dict[ProviderType, frozenset[str]],
     ) -> list[ProviderType]:
-        """Filter providers by specific model constraints if they exist."""
+        """Filter providers by specific model constraints if they exist (optimized)."""
         if not specific_model_constraints:
             return providers
 
+        # Use set operations for faster filtering
+        provider_set = frozenset(providers)
+        constraint_providers = frozenset(specific_model_constraints.keys())
+        eligible_providers = provider_set & constraint_providers
+
         return [
             provider
-            for provider in providers
-            if provider in specific_model_constraints
-            and model_name in specific_model_constraints[provider]
+            for provider in eligible_providers
+            if model_name in specific_model_constraints[provider]
         ]
 
     def _apply_cost_optimization(
@@ -284,8 +339,8 @@ class ModelSelectionService:
     def _apply_model_constraints(
         self,
         candidate_models: list[ModelEntry],
-        eligible_providers: set[ProviderType],
-        specific_model_constraints: dict[ProviderType, set[str]],
+        eligible_providers: frozenset[ProviderType],
+        specific_model_constraints: dict[ProviderType, frozenset[str]],
     ) -> list[ModelEntry]:
         """Filter models by specific provider-model constraints."""
         if not specific_model_constraints:
@@ -312,7 +367,7 @@ class ModelSelectionService:
     def _apply_capability_constraints(
         self,
         candidate_models: list[ModelEntry],
-        eligible_providers: set[ProviderType],
+        eligible_providers: frozenset[ProviderType],
         prompt_token_count: int,
     ) -> list[ModelEntry]:
         """Filter models based on capability constraints like context length."""

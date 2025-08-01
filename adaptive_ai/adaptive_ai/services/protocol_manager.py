@@ -22,6 +22,11 @@ class LitLoggerProtocol(Protocol):
 class ProtocolManager:
     MAX_TOKEN_COUNT = 10000  # Maximum reasonable token count for normalization
 
+    # Pre-computed threshold constants for faster comparisons
+    DEFAULT_COMPLEXITY_THRESHOLD = 0.4
+    STANDARD_PROTOCOL_TOKEN_THRESHOLD = 60000  # Use standard protocol for long prompts
+    TOKEN_BUCKET_SIZE = 500  # Token bucket size for caching
+
     def __init__(
         self,
         lit_logger: LitLoggerProtocol | None = None,
@@ -30,9 +35,14 @@ class ProtocolManager:
         ) = None,  # Accept but ignore device parameter for compatibility
     ) -> None:
         self.lit_logger: LitLoggerProtocol | None = lit_logger
+
+        # Cache for protocol decisions to avoid repeated computations
+        self._protocol_decision_cache: dict[tuple[float, float, int], bool] = {}
+        self._cache_max_size = 500
+
         self.log(
             "protocol_manager_init",
-            {"rule_based": True, "device_ignored": device},
+            {"rule_based": True, "device_ignored": device, "caching_enabled": True},
         )
 
     def log(self, key: str, value: Any) -> None:
@@ -45,19 +55,44 @@ class ProtocolManager:
         token_count: int,
         request: ModelSelectionRequest | None = None,
     ) -> bool:
-        """Determine if standard protocol should be used based on NVIDIA's trained complexity score."""
-        # Use NVIDIA's professionally trained complexity score as primary signal
+        """Determine if standard protocol should be used based on complexity score and token length."""
+        # Use NVIDIA's professionally trained complexity score and prompt length
         complexity_score = classification_result.prompt_complexity_score[0]
-        reasoning_score = classification_result.reasoning[0]
-        number_of_few_shots = classification_result.number_of_few_shots[0]
 
-        # Simple, interpretable logic based on the trained model
-        return (
-            complexity_score > 0.4
-            or token_count > 3000
-            or number_of_few_shots > 4
-            or reasoning_score > 0.55
+        # Get configurable thresholds or use pre-computed defaults
+        complexity_threshold = self.DEFAULT_COMPLEXITY_THRESHOLD
+        token_threshold = self.STANDARD_PROTOCOL_TOKEN_THRESHOLD
+
+        if request and request.protocol_manager_config:
+            if request.protocol_manager_config.complexity_threshold is not None:
+                complexity_threshold = (
+                    request.protocol_manager_config.complexity_threshold
+                )
+            if request.protocol_manager_config.token_threshold is not None:
+                token_threshold = request.protocol_manager_config.token_threshold
+
+        # Create cache key with token bucket for better cache hits
+        token_bucket = (token_count // self.TOKEN_BUCKET_SIZE) * self.TOKEN_BUCKET_SIZE
+        cache_key = (
+            round(complexity_score, 2),
+            round(complexity_threshold, 2),
+            token_bucket,
         )
+
+        # Check cache first
+        if cache_key in self._protocol_decision_cache:
+            return self._protocol_decision_cache[cache_key]
+
+        # Decision based on complexity score OR token length
+        decision = (
+            complexity_score > complexity_threshold or token_count > token_threshold
+        )
+
+        # Cache the result if we have space
+        if len(self._protocol_decision_cache) < self._cache_max_size:
+            self._protocol_decision_cache[cache_key] = decision
+
+        return decision
 
     def _select_best_protocol(
         self,
@@ -83,93 +118,60 @@ class ProtocolManager:
     def _get_tuned_parameters(
         self, classification_result: ClassificationResult, task_type: str
     ) -> OpenAIParameters:
-        """Get OpenAI parameters tuned based on classification features."""
-        # Extract key features for parameter tuning
+        """Get OpenAI parameters tuned based on classification features (optimized)."""
+        # Extract key features for parameter tuning (single access per feature)
         creativity = classification_result.creativity_scope[0]
         reasoning = classification_result.reasoning[0]
         complexity = classification_result.prompt_complexity_score[0]
         classification_result.domain_knowledge[0]
         classification_result.constraint_ct[0]
 
-        # Task-specific parameter base values and adjustments
-        task_configs = {
-            "Code Generation": {
-                "base_temp": 0.5,
-                "temp_factor": -0.3,
-                "temp_feature": complexity,
-                "base_tokens": 1200,
-                "token_factor": 800,
-                "token_feature": complexity,
-                "freq_penalty": reasoning * 0.2,
-                "pres_penalty": 0.0,
-                "top_p": 0.9,
-            },
-            "Text Generation": {
-                "base_temp": 0.6,
-                "temp_factor": 0.4,
-                "temp_feature": creativity,
-                "base_tokens": 1000,
-                "token_factor": 1000,
-                "token_feature": creativity,
-                "freq_penalty": 0.0,
-                "pres_penalty": 0.0,
-                "top_p": min(0.95, 0.85 + creativity * 0.1),
-            },
-            "Classification": {
-                "base_temp": 0.3,
-                "temp_factor": -0.2,
-                "temp_feature": reasoning,
-                "base_tokens": 200,
-                "token_factor": 300,
-                "token_feature": complexity,
-                "freq_penalty": 0.0,
-                "pres_penalty": 0.0,
-                "top_p": 0.9,
-            },
-            "Brainstorming": {
-                "base_temp": 0.8,
-                "temp_factor": 0.2,
-                "temp_feature": creativity,
-                "base_tokens": 1200,
-                "token_factor": 800,
-                "token_feature": creativity,
-                "freq_penalty": 0.0,
-                "pres_penalty": creativity * 0.4,
-                "top_p": min(0.98, 0.9 + creativity * 0.08),
-            },
-        }
+        # Use pre-computed task configurations for O(1) lookup
+        task_configs = self._get_task_config_optimized(task_type)
 
-        # Default config
-        default_config = {
-            "base_temp": 0.7,
-            "temp_factor": 0.0,
-            "temp_feature": 0.0,
-            "base_tokens": 1000,
-            "token_factor": 0,
-            "token_feature": 0.0,
-            "freq_penalty": 0.0,
-            "pres_penalty": 0.0,
-            "top_p": 0.9,
-        }
-
-        config = task_configs.get(task_type, default_config)
-
-        # Calculate final parameters
+        # Direct computation without intermediate variables
         temperature = max(
             0.1,
             min(
                 1.0,
-                config["base_temp"] + config["temp_factor"] * config["temp_feature"],
+                task_configs["base_temp"]
+                + task_configs["temp_factor"]
+                * (
+                    complexity
+                    if task_type in {"Code Generation", "Classification"}
+                    else creativity
+                ),
             ),
         )
+
         max_tokens = min(
             2500,
-            config["base_tokens"]
-            + int(config["token_factor"] * config["token_feature"]),
+            task_configs["base_tokens"]
+            + int(
+                task_configs["token_factor"]
+                * (
+                    complexity
+                    if task_type in {"Code Generation", "Classification"}
+                    else creativity
+                )
+            ),
         )
-        frequency_penalty = min(0.5, config["freq_penalty"])
-        presence_penalty = min(0.6, config["pres_penalty"])
-        top_p = config["top_p"]
+
+        # Pre-compute penalty values
+        frequency_penalty = min(
+            0.5, reasoning * 0.2 if task_type == "Code Generation" else 0.0
+        )
+        presence_penalty = min(
+            0.6, creativity * 0.4 if task_type == "Brainstorming" else 0.0
+        )
+
+        # Optimized top_p calculation
+        if task_type == "Text Generation":
+            top_p = min(0.95, 0.85 + creativity * 0.1)
+        elif task_type == "Brainstorming":
+            top_p = min(0.98, 0.9 + creativity * 0.08)
+        else:
+            top_p = 0.9
 
         self.log(
             "parameter_tuning",
@@ -195,6 +197,46 @@ class ProtocolManager:
             presence_penalty=round(presence_penalty, 2),
         )
 
+    def _get_task_config_optimized(self, task_type: str) -> dict[str, float]:
+        """Get task configuration with optimized lookup."""
+        # Use dict.get with default for O(1) lookup instead of nested if-else
+        configs = {
+            "Code Generation": {
+                "base_temp": 0.5,
+                "temp_factor": -0.3,
+                "base_tokens": 1200,
+                "token_factor": 800,
+            },
+            "Text Generation": {
+                "base_temp": 0.6,
+                "temp_factor": 0.4,
+                "base_tokens": 1000,
+                "token_factor": 1000,
+            },
+            "Classification": {
+                "base_temp": 0.3,
+                "temp_factor": -0.2,
+                "base_tokens": 200,
+                "token_factor": 300,
+            },
+            "Brainstorming": {
+                "base_temp": 0.8,
+                "temp_factor": 0.2,
+                "base_tokens": 1200,
+                "token_factor": 800,
+            },
+        }
+
+        return configs.get(
+            task_type,
+            {
+                "base_temp": 0.7,
+                "temp_factor": 0.0,
+                "base_tokens": 1000,
+                "token_factor": 0,
+            },
+        )
+
     def _log_protocol_decision(
         self,
         task_type: str,
@@ -206,16 +248,26 @@ class ProtocolManager:
         """Log the protocol selection decision using NVIDIA's complexity score."""
         complexity_score = classification_result.prompt_complexity_score[0]
 
-        # Extract cost bias information if available
+        # Extract configuration information if available
         cost_bias = None
         cost_bias_active = False
-        if (
-            request
-            and request.protocol_manager_config
-            and request.protocol_manager_config.cost_bias is not None
-        ):
-            cost_bias = request.protocol_manager_config.cost_bias
-            cost_bias_active = True
+        complexity_threshold = self.DEFAULT_COMPLEXITY_THRESHOLD
+        complexity_threshold_custom = False
+        token_threshold = self.STANDARD_PROTOCOL_TOKEN_THRESHOLD
+        token_threshold_custom = False
+
+        if request and request.protocol_manager_config:
+            if request.protocol_manager_config.cost_bias is not None:
+                cost_bias = request.protocol_manager_config.cost_bias
+                cost_bias_active = True
+            if request.protocol_manager_config.complexity_threshold is not None:
+                complexity_threshold = (
+                    request.protocol_manager_config.complexity_threshold
+                )
+                complexity_threshold_custom = True
+            if request.protocol_manager_config.token_threshold is not None:
+                token_threshold = request.protocol_manager_config.token_threshold
+                token_threshold_custom = True
 
         # Determine cost bias impact on model selection
         cost_bias_impact = None
@@ -238,6 +290,17 @@ class ProtocolManager:
                 "protocol_choice": protocol_choice,
                 "nvidia_complexity_score": complexity_score,
                 "token_count": token_count,
+                "complexity_config": {
+                    "complexity_threshold": complexity_threshold,
+                    "complexity_threshold_custom": complexity_threshold_custom,
+                    "complexity_threshold_exceeded": complexity_score
+                    > complexity_threshold,
+                },
+                "token_config": {
+                    "token_threshold": token_threshold,
+                    "token_threshold_custom": token_threshold_custom,
+                    "token_threshold_exceeded": token_count > token_threshold,
+                },
                 "cost_bias_info": {
                     "cost_bias": cost_bias,
                     "cost_bias_active": cost_bias_active,
@@ -245,8 +308,8 @@ class ProtocolManager:
                     "applies_to_protocol": protocol_choice == "standard_llm",
                 },
                 "decision_factors": {
-                    "high_complexity": complexity_score > 0.4,
-                    "long_input": token_count > 3000,
+                    "high_complexity": complexity_score > complexity_threshold,
+                    "long_input": token_count > token_threshold,
                     "cost_optimization_enabled": cost_bias_active
                     and protocol_choice == "standard_llm",
                 },

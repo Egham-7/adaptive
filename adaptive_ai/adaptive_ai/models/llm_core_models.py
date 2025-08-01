@@ -21,6 +21,8 @@ class ProtocolManagerConfig(BaseModel):
 
     model_constraints: list[ProviderModelConstraint] | None = None
     cost_bias: float | None = None
+    complexity_threshold: float | None = None
+    token_threshold: int | None = None
 
 
 class ModelCapability(BaseModel):

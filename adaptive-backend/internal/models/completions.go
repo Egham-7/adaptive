@@ -17,8 +17,10 @@ type ProviderModelConstraint struct {
 
 // ProtocolManagerConfig holds configuration for the protocol manager
 type ProtocolManagerConfig struct {
-	ModelConstraints []ProviderModelConstraint `json:"model_constraints,omitempty"`
-	CostBias         float32                   `json:"cost_bias,omitempty"`
+	ModelConstraints    []ProviderModelConstraint `json:"model_constraints,omitempty"`
+	CostBias            float32                   `json:"cost_bias,omitempty"`
+	ComplexityThreshold *float32                  `json:"complexity_threshold,omitempty"`
+	TokenThreshold      *int                      `json:"token_threshold,omitempty"`
 }
 
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
