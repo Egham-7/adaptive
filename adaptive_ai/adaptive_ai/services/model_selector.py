@@ -529,12 +529,8 @@ class ModelSelectionService:
 
     def get_minion_candidates(
         self,
-        domain_classification: DomainClassificationResult | None = None,
+        domain_classification: DomainClassificationResult,
     ) -> list[ModelEntry]:
-
-        # REQUIRE domain classification - strict enforcement
-        if not domain_classification:
-            raise ValueError("Domain classification is required for minion selection")
 
         # Direct lookup - domain maps directly to model entry
         domain = domain_classification.domain

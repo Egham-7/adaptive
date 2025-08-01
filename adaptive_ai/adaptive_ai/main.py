@@ -1,6 +1,5 @@
 from typing import Any
 
-# Removed HuggingFaceEmbeddings import to avoid model downloads
 import litserve as ls
 import tiktoken
 
@@ -135,11 +134,6 @@ class ProtocolManagerAPI(ls.LitAPI):
                 },
             )
 
-            # Rule-based routing is fast enough - no caching needed
-            self.log("cache_disabled", "rule_based_routing_is_fast")
-
-            # Direct routing without cache
-            # Get current prompt (already extracted above)
             current_prompt = prompts[i]
             try:
                 prompt_token_count = len(self.tokenizer.encode(current_prompt))
