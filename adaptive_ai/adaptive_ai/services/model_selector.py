@@ -529,15 +529,8 @@ class ModelSelectionService:
 
     def get_minion_candidates(
         self,
-        classification_result: ClassificationResult,
         domain_classification: DomainClassificationResult | None = None,
     ) -> list[ModelEntry]:
-        """Get minion candidates with the designated model first, then alternatives."""
-        primary_task_type: TaskType = (
-            TaskType(classification_result.task_type_1[0])
-            if classification_result.task_type_1
-            else TaskType.OTHER
-        )
 
         # REQUIRE domain classification - strict enforcement
         if not domain_classification:
@@ -563,7 +556,6 @@ class ModelSelectionService:
             "minion_candidates_selected",
             {
                 "domain": domain.value,
-                "task_type": primary_task_type.value,
                 "confidence": domain_classification.confidence,
                 "primary_model": primary_entry.model_name,
                 "primary_providers": [p.value for p in primary_entry.providers],

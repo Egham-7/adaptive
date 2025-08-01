@@ -37,9 +37,6 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
         self.domain_classifier = get_domain_classifier(lit_logger=self)
 
-        # Cache removed: rule-based routing is fast enough without caching
-        # No need for embedding models or cache infrastructure
-
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
         self.model_selection_service = ModelSelectionService(lit_logger=self)
@@ -165,7 +162,6 @@ class ProtocolManagerAPI(ls.LitAPI):
 
             minion_candidates: list[ModelEntry] = (
                 self.model_selection_service.get_minion_candidates(
-                    classification_result=current_classification_result,
                     domain_classification=current_domain_result,
                 )
             )
