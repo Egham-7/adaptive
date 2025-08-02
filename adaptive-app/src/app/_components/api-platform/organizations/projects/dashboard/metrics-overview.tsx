@@ -8,6 +8,7 @@ import {
 	FaServer,
 } from "react-icons/fa";
 import type { DashboardData } from "@/types/api-platform/dashboard";
+import { formatCurrencyWithDynamicPrecision } from "@/utils/formatting";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
 
@@ -26,7 +27,10 @@ function calculateDirectModelCost(
 	modelId: keyof typeof MODEL_PRICING,
 ): number {
 	const modelPricing = MODEL_PRICING[modelId];
-	if (!modelPricing) return 0;
+	if (!modelPricing) {
+		console.warn(`Unknown model ID: ${modelId}`);
+		return 0;
+	}
 
 	return usageData.reduce((totalCost, usage) => {
 		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
@@ -92,18 +96,9 @@ export function MetricsOverview({
 			icon: <FaDollarSign className="h-5 w-5 text-success" />,
 			data: savingsData,
 			color: "hsl(var(--chart-1))",
-			totalValue: `$${(() => {
-				const totalSavings = usageDataWithDynamicCosts.reduce(
-					(sum, d) => sum + d.savings,
-					0,
-				);
-				const str = totalSavings.toString();
-				const parts = str.split(".");
-				const decimalPart = parts[1] || "";
-				const significantDecimals = decimalPart.replace(/0+$/, "").length;
-				const decimals = Math.min(Math.max(significantDecimals, 2), 8);
-				return totalSavings.toFixed(decimals);
-			})()}`,
+			totalValue: formatCurrencyWithDynamicPrecision(
+				usageDataWithDynamicCosts.reduce((sum, d) => sum + d.savings, 0)
+			),
 		},
 		{
 			title: "Spending Over Time",
