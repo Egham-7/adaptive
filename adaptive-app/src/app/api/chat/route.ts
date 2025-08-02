@@ -21,13 +21,6 @@ import { api } from "@/trpc/server";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
-// Validate required environment variables
-if (!process.env.ADAPTIVE_API_KEY) {
-	throw new Error(
-		"ADAPTIVE_API_KEY environment variable is required but not defined",
-	);
-}
-
 if (!process.env.ADAPTIVE_API_BASE_URL) {
 	throw new Error(
 		"ADAPTIVE_API_BASE_URL environment variable is required but not defined",
@@ -35,7 +28,6 @@ if (!process.env.ADAPTIVE_API_BASE_URL) {
 }
 
 const adaptive = createAdaptive({
-	apiKey: process.env.ADAPTIVE_API_KEY,
 	baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
 });
 
