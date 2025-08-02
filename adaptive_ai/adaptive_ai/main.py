@@ -1,6 +1,7 @@
 from typing import Any
 
 import litserve as ls
+from pydantic import BaseModel
 import tiktoken
 
 from adaptive_ai.core.config import get_settings
@@ -16,12 +17,35 @@ from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
 
 # Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
 from adaptive_ai.services.domain_classifier import get_domain_classifier
+from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.model_selector import (
     ModelSelectionService,
 )
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 from adaptive_ai.services.protocol_manager import ProtocolManager
 from adaptive_ai.utils.openai_utils import extract_last_message_content
+
+
+# Pydantic models for validation endpoint
+class ModelValidationRequest(BaseModel):
+    models: list[str]
+
+
+class ModelValidationResponse(BaseModel):
+    valid_models: list[str]
+    invalid_models: list[str]
+
+
+# Pydantic models for model conversion endpoint
+class ModelConversionRequest(BaseModel):
+    model_names: list[str]
+
+
+class ModelConversionResponse(BaseModel):
+    model_capabilities: list[
+        dict[str, Any]
+    ]  # Will be ModelCapability objects serialized as dicts
+    invalid_models: list[str]
 
 
 # LitServe Console Logger
@@ -44,17 +68,67 @@ class ProtocolManagerAPI(ls.LitAPI):
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
         return ModelSelectionRequest(**request)
 
+    def _process_models_array(
+        self, request: ModelSelectionRequest
+    ) -> ModelSelectionRequest:
+        """
+        Process the models array in a request, validate and convert to protocol_manager_config.
+
+        Args:
+            request: The original request that may contain a models array
+
+        Returns:
+            Modified request with models array converted to protocol_manager_config.models
+
+        Raises:
+            ValueError: If any models in the array are invalid
+        """
+        # If no models array, return request unchanged
+        if not request.models:
+            return request
+
+        # Validate all models in the array
+        valid_models, invalid_models = model_registry.validate_models(request.models)
+
+        # If any models are invalid, raise error
+        if invalid_models:
+            raise ValueError(f"Invalid model(s): {invalid_models}")
+
+        # Convert valid model names to capabilities
+        capabilities, _ = model_registry.convert_names_to_capabilities(valid_models)
+
+        # Create or update protocol_manager_config
+        if request.protocol_manager_config:
+            # Update existing config
+            request.protocol_manager_config.models = capabilities
+        else:
+            # Create new config
+            from adaptive_ai.models.llm_core_models import ProtocolManagerConfig
+
+            request.protocol_manager_config = ProtocolManagerConfig(models=capabilities)
+
+        # Clear the models array since it's now in protocol_manager_config
+        request.models = None
+
+        return request
+
     def predict(
         self, requests: list[ModelSelectionRequest]
     ) -> list[OrchestratorResponse]:
         import time
+
+        # Process model validation and conversion for each request
+        processed_requests = []
+        for req in requests:
+            processed_req = self._process_models_array(req)
+            processed_requests.append(processed_req)
 
         outputs: list[OrchestratorResponse] = []
 
         # Get the most recent message content for classification
         prompts: list[str] = [
             extract_last_message_content(req.chat_completion_request)
-            for req in requests
+            for req in processed_requests
         ]
 
         # Run both task and domain classification in parallel
@@ -100,21 +174,21 @@ class ProtocolManagerAPI(ls.LitAPI):
             # Re-raise the exception instead of creating fallback results
             raise RuntimeError(f"Domain classification failed: {e!s}") from e
 
-        self.log("predict_called", {"batch_size": len(requests)})
+        self.log("predict_called", {"batch_size": len(processed_requests)})
 
-        if len(all_classification_results) != len(requests):
+        if len(all_classification_results) != len(processed_requests):
             raise ValueError(
                 f"Task classification results count ({len(all_classification_results)}) "
-                f"doesn't match requests count ({len(requests)})"
+                f"doesn't match requests count ({len(processed_requests)})"
             )
 
-        if len(all_domain_results) != len(requests):
+        if len(all_domain_results) != len(processed_requests):
             raise ValueError(
                 f"Domain classification results count ({len(all_domain_results)}) "
-                f"doesn't match requests count ({len(requests)})"
+                f"doesn't match requests count ({len(processed_requests)})"
             )
 
-        for i, req in enumerate(requests):
+        for i, req in enumerate(processed_requests):
             current_classification_result: ClassificationResult = (
                 all_classification_results[i]
             )
@@ -201,13 +275,59 @@ def create_app() -> ls.LitServer:
     loggers: list[ConsoleLogger] = [ConsoleLogger()]
     callbacks: list[object] = []
 
-    return ls.LitServer(
+    # Create LitServer
+    server = ls.LitServer(
         api,
         accelerator=settings.litserve.accelerator,
         devices=settings.litserve.devices,
         loggers=loggers,
         callbacks=callbacks,
     )
+
+    # Add custom validation endpoint
+    @server.app.post("/validate-models", response_model=ModelValidationResponse)
+    async def validate_models(
+        request: ModelValidationRequest,
+    ) -> ModelValidationResponse:
+        """Validate a list of model names and return which are valid/invalid."""
+        try:
+            valid_models, invalid_models = model_registry.validate_models(
+                request.models
+            )
+            return ModelValidationResponse(
+                valid_models=valid_models, invalid_models=invalid_models
+            )
+        except Exception:
+            # Return error in response format that Go middleware expects
+            return ModelValidationResponse(
+                valid_models=[],
+                invalid_models=request.models,
+            )
+
+    # Add model conversion endpoint
+    @server.app.post("/convert-model-names", response_model=ModelConversionResponse)
+    async def convert_model_names(
+        request: ModelConversionRequest,
+    ) -> ModelConversionResponse:
+        """Convert model names to full ModelCapability objects."""
+        try:
+            valid_capabilities, invalid_names = (
+                model_registry.convert_names_to_capabilities(request.model_names)
+            )
+            # Convert ModelCapability objects to dicts for JSON serialization
+            capability_dicts = [cap.model_dump() for cap in valid_capabilities]
+            return ModelConversionResponse(
+                model_capabilities=capability_dicts, invalid_models=invalid_names
+            )
+        except Exception as e:
+            fiberlog.error(f"Model conversion failed: {e}")
+            # Return error in response format that Go middleware expects
+            return ModelConversionResponse(
+                model_capabilities=[],
+                invalid_models=request.model_names,
+            )
+
+    return server
 
 
 def main() -> None:
