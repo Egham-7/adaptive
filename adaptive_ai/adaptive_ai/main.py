@@ -321,7 +321,7 @@ def create_app() -> ls.LitServer:
             )
         except Exception as e:
             # Log error using console logging pattern
-            print(f"[LitServe] Model conversion failed: {str(e)}", flush=True)
+            print(f"[LitServe] Model conversion failed: {e!s}", flush=True)
             # Return error in response format that Go middleware expects
             return ModelConversionResponse(
                 model_capabilities=[],
