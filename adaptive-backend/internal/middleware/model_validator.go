@@ -165,7 +165,11 @@ func validateModelsWithAIService(baseURL string, models []string) ([]string, []s
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fiberlog.Warnf("Failed to close response body: %v", err)
+		}
+	}()
 
 	// Read response
 	respBody, err := io.ReadAll(resp.Body)
@@ -256,7 +260,11 @@ func convertModelNamesWithAIService(baseURL string, modelNames []string) ([]map[
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to make request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fiberlog.Warnf("Failed to close response body: %v", err)
+		}
+	}()
 
 	// Read response
 	respBody, err := io.ReadAll(resp.Body)
