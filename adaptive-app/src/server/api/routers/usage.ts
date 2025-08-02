@@ -26,8 +26,12 @@ export const usageRouter = createTRPCRouter({
 		.input(
 			z.object({
 				apiKey: z.string(),
-				estimatedInputTokens: z.number(),
-				estimatedOutputTokens: z.number(),
+				estimatedInputTokens: z
+					.number()
+					.min(0, "Input tokens must be non-negative"),
+				estimatedOutputTokens: z
+					.number()
+					.min(0, "Output tokens must be non-negative"),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -102,9 +106,11 @@ export const usageRouter = createTRPCRouter({
 					.nullable(),
 				model: z.string().nullable(),
 				usage: z.object({
-					promptTokens: z.number(),
-					completionTokens: z.number(),
-					totalTokens: z.number(),
+					promptTokens: z.number().min(0, "Prompt tokens must be non-negative"),
+					completionTokens: z
+						.number()
+						.min(0, "Completion tokens must be non-negative"),
+					totalTokens: z.number().min(0, "Total tokens must be non-negative"),
 				}),
 				duration: z.number(),
 				timestamp: z.date(),
