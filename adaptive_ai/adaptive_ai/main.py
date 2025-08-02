@@ -68,44 +68,41 @@ class ProtocolManagerAPI(ls.LitAPI):
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
         return ModelSelectionRequest(**request)
 
-    def _process_models_array(
+    def _enrich_model_capabilities(
         self, request: ModelSelectionRequest
     ) -> ModelSelectionRequest:
         """
-        Process the models array in a request, validate and convert to protocol_manager_config.
+        Enrich partial ModelCapability objects with complete capability information.
 
         Args:
-            request: The original request that may contain a models array
+            request: The original request that may contain partial ModelCapability objects
 
         Returns:
-            Modified request with models array converted to protocol_manager_config.models
+            Modified request with enriched ModelCapability objects in protocol_manager_config.models
 
         Raises:
-            ValueError: If any models in the array are invalid
+            ValueError: If any models cannot be enriched or are invalid
         """
         # If no models array, return request unchanged
         if not request.models:
             return request
 
-        # Validate all models in the array
-        valid_models, invalid_models = model_registry.validate_models(request.models)
+        # Use ModelSelectionService to enrich the partial models
+        enriched_capabilities = self.model_selection_service.enrich_partial_models(
+            request.models
+        )
 
-        # If any models are invalid, raise error
-        if invalid_models:
-            raise ValueError(f"Invalid model(s): {invalid_models}")
-
-        # Convert valid model names to capabilities
-        capabilities, _ = model_registry.convert_names_to_capabilities(valid_models)
-
-        # Create or update protocol_manager_config
+        # Create or update protocol_manager_config with enriched capabilities
         if request.protocol_manager_config:
             # Update existing config
-            request.protocol_manager_config.models = capabilities
+            request.protocol_manager_config.models = enriched_capabilities
         else:
             # Create new config
             from adaptive_ai.models.llm_core_models import ProtocolManagerConfig
 
-            request.protocol_manager_config = ProtocolManagerConfig(models=capabilities)
+            request.protocol_manager_config = ProtocolManagerConfig(
+                models=enriched_capabilities
+            )
 
         # Clear the models array since it's now in protocol_manager_config
         request.models = None
@@ -120,7 +117,7 @@ class ProtocolManagerAPI(ls.LitAPI):
         # Process model validation and conversion for each request
         processed_requests = []
         for req in requests:
-            processed_req = self._process_models_array(req)
+            processed_req = self._enrich_model_capabilities(req)
             processed_requests.append(processed_req)
 
         outputs: list[OrchestratorResponse] = []
