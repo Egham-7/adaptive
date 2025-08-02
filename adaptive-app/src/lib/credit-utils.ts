@@ -27,7 +27,7 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 
 		// Use upsert to handle race conditions properly
 		const userId = organization.ownerId;
-		
+
 		try {
 			// Try to get existing credit first
 			const existingCredit = await db.organizationCredit.findUnique({
@@ -87,28 +87,32 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 					);
 					return orgCredit;
 				});
-			} else {
-				const reason = !promoStats.available
-					? `promotional credits exhausted (${promoStats.used}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS})`
-					: "user already received promotional credits";
-				console.log(`❌ No promotional credits awarded: ${reason}`);
-
-				// Create organization credit without promotional balance
-				const orgCredit = await db.organizationCredit.create({
-					data: {
-						organizationId,
-						balance: 0,
-						totalPurchased: 0,
-						totalUsed: 0,
-					},
-				});
-
-				return orgCredit;
 			}
+			const reason = !promoStats.available
+				? `promotional credits exhausted (${promoStats.used}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS})`
+				: "user already received promotional credits";
+			console.log(`❌ No promotional credits awarded: ${reason}`);
+
+			// Create organization credit without promotional balance
+			const orgCredit = await db.organizationCredit.create({
+				data: {
+					organizationId,
+					balance: 0,
+					totalPurchased: 0,
+					totalUsed: 0,
+				},
+			});
+
+			return orgCredit;
 		} catch (error: any) {
 			// Handle race condition - if record was created by another request
-			if (error.code === 'P2002' && error.meta?.target?.includes('organizationId')) {
-				console.log(`🔄 Race condition detected, fetching existing organization credit: ${organizationId}`);
+			if (
+				error.code === "P2002" &&
+				error.meta?.target?.includes("organizationId")
+			) {
+				console.log(
+					`🔄 Race condition detected, fetching existing organization credit: ${organizationId}`,
+				);
 				const existingCredit = await db.organizationCredit.findUnique({
 					where: { organizationId },
 				});
