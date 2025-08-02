@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
 		if (!apiKey) {
 			return new Response(
 				JSON.stringify({
-					error: "API key required. Provide it via Authorization: Bearer, X-API-Key, api-key, or X-Stainless-API-Key header",
+					error:
+						"API key required. Provide it via Authorization: Bearer, X-API-Key, api-key, or X-Stainless-API-Key header",
 				}),
 				{
 					status: 401,
