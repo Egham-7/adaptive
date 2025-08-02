@@ -9,28 +9,23 @@ import {
 } from "react-icons/fa";
 import type { DashboardData } from "@/types/api-platform/dashboard";
 import { formatCurrencyWithDynamicPrecision } from "@/utils/formatting";
+import { api } from "@/trpc/react";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
 
-// Model pricing data (same as usage-section.tsx)
-const MODEL_PRICING = {
-	"gpt-4o": { inputCost: 3.0, outputCost: 10.0 },
-	"gpt-4o-mini": { inputCost: 0.15, outputCost: 0.6 },
-	"claude-3.5-sonnet": { inputCost: 3.0, outputCost: 15.0 },
-	"gemini-2.5-pro": { inputCost: 1.25, outputCost: 10.0 },
-	"deepseek-chat": { inputCost: 0.27, outputCost: 1.1 },
-} as const;
 
 // Calculate direct cost for a specific model using actual token usage
 function calculateDirectModelCost(
 	usageData: { inputTokens: number; outputTokens: number }[],
-	modelId: keyof typeof MODEL_PRICING,
+	modelId: string,
+	pricingData: Record<string, { inputCost: number; outputCost: number }> | undefined,
 ): number {
-	const modelPricing = MODEL_PRICING[modelId];
-	if (!modelPricing) {
-		console.warn(`Unknown model ID: ${modelId}`);
+	if (!pricingData || !pricingData[modelId]) {
+		console.warn(`No pricing data found for model: ${modelId}`);
 		return 0;
 	}
+
+	const modelPricing = pricingData[modelId];
 
 	return usageData.reduce((totalCost, usage) => {
 		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
@@ -51,7 +46,10 @@ export function MetricsOverview({
 	loading,
 	selectedModel = "gpt-4o",
 }: MetricsOverviewProps) {
-	if (loading) {
+	// Fetch dynamic pricing data
+	const { data: modelPricing, isLoading: pricingLoading } = api.modelPricing.getAllModelPricing.useQuery();
+
+	if (loading || pricingLoading) {
 		return (
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
 				{Array.from({ length: 5 }).map((_, i) => (
@@ -69,7 +67,8 @@ export function MetricsOverview({
 		const adaptiveCost = d.adaptive;
 		const modelCost = calculateDirectModelCost(
 			[{ inputTokens: d.inputTokens || 0, outputTokens: d.outputTokens || 0 }],
-			selectedModel as keyof typeof MODEL_PRICING,
+			selectedModel,
+			modelPricing,
 		);
 		return {
 			...d,

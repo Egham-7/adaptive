@@ -9,6 +9,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
+import { api } from "@/trpc/react";
 import { UsageChart } from "./charts/usage-chart";
 import { ChartSkeleton } from "./loading-skeleton";
 
@@ -21,14 +22,6 @@ interface UsageSectionProps {
 	onModelChange: (model: string) => void;
 }
 
-// Model pricing data (from seed-providers.ts)
-const MODEL_PRICING = {
-	"gpt-4o": { inputCost: 3.0, outputCost: 10.0 },
-	"gpt-4o-mini": { inputCost: 0.15, outputCost: 0.6 },
-	"claude-3.5-sonnet": { inputCost: 3.0, outputCost: 15.0 },
-	"gemini-2.5-pro": { inputCost: 1.25, outputCost: 10.0 },
-	"deepseek-chat": { inputCost: 0.27, outputCost: 1.1 },
-} as const;
 
 // Popular models for comparison
 const COMPARISON_MODELS = [
@@ -42,10 +35,15 @@ const COMPARISON_MODELS = [
 // Calculate direct cost for a specific model using actual token usage
 function calculateDirectModelCost(
 	usageData: { inputTokens: number; outputTokens: number }[],
-	modelId: keyof typeof MODEL_PRICING,
+	modelId: string,
+	pricingData: Record<string, { inputCost: number; outputCost: number }> | undefined,
 ): number {
-	const modelPricing = MODEL_PRICING[modelId];
-	if (!modelPricing) return 0;
+	if (!pricingData || !pricingData[modelId]) {
+		console.warn(`No pricing data found for model: ${modelId}`);
+		return 0;
+	}
+
+	const modelPricing = pricingData[modelId];
 
 	return usageData.reduce((totalCost, usage) => {
 		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
@@ -63,7 +61,10 @@ export function UsageSection({
 	selectedModel,
 	onModelChange,
 }: UsageSectionProps) {
-	if (loading) {
+	// Fetch dynamic pricing data
+	const { data: modelPricing, isLoading: pricingLoading } = api.modelPricing.getAllModelPricing.useQuery();
+
+	if (loading || pricingLoading) {
 		return <ChartSkeleton />;
 	}
 
@@ -90,7 +91,8 @@ export function UsageSection({
 	// Calculate actual direct model cost using real token usage data
 	const directModelCost = calculateDirectModelCost(
 		data.usageData,
-		selectedModel as keyof typeof MODEL_PRICING,
+		selectedModel,
+		modelPricing,
 	);
 
 	const totalSavings = directModelCost - totalSpend;
@@ -101,13 +103,12 @@ export function UsageSection({
 
 	// Recalculate chart data with selected model pricing
 	const chartData = data.usageData.map((dataPoint) => {
-		const modelPricing =
-			MODEL_PRICING[selectedModel as keyof typeof MODEL_PRICING];
-		if (!modelPricing) return dataPoint;
+		const selectedModelPricing = modelPricing?.[selectedModel];
+		if (!selectedModelPricing) return dataPoint;
 
 		const directCost =
-			(dataPoint.inputTokens / 1_000_000) * modelPricing.inputCost +
-			(dataPoint.outputTokens / 1_000_000) * modelPricing.outputCost;
+			(dataPoint.inputTokens / 1_000_000) * selectedModelPricing.inputCost +
+			(dataPoint.outputTokens / 1_000_000) * selectedModelPricing.outputCost;
 
 		return {
 			...dataPoint,

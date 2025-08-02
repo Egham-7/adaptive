@@ -34,6 +34,39 @@ export const modelPricingRouter = createTRPCRouter({
 			});
 		}),
 
+	getAllModelPricing: publicProcedure.query(async ({ ctx }) => {
+		const models = await ctx.db.providerModel.findMany({
+			where: {
+				isActive: true,
+				type: "chat", // Only chat models
+			},
+			select: {
+				name: true,
+				displayName: true,
+				inputTokenCost: true,
+				outputTokenCost: true,
+				provider: {
+					select: {
+						name: true,
+						displayName: true,
+					},
+				},
+			},
+		});
+
+		// Convert to the format expected by the components
+		const pricingData: Record<string, { inputCost: number; outputCost: number }> = {};
+		
+		for (const model of models) {
+			pricingData[model.name] = {
+				inputCost: model.inputTokenCost.toNumber(),
+				outputCost: model.outputTokenCost.toNumber(),
+			};
+		}
+
+		return pricingData;
+	}),
+
 	calculateCostComparison: publicProcedure
 		.input(
 			z.object({
