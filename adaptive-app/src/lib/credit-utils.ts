@@ -38,72 +38,70 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 				return existingCredit;
 			}
 
-			// New organization - check if this user can receive promotional credits
-			const [promoStats, userAlreadyHasPromo] = await Promise.all([
-				getPromotionalCreditStats(),
-				hasUserReceivedPromotionalCredits(userId),
-			]);
+			// Use transaction to ensure atomic operation and prevent race conditions
+			return await db.$transaction(async (tx) => {
+				// Check eligibility inside transaction for atomicity
+				const [promoStats, userAlreadyHasPromo] = await Promise.all([
+					getPromotionalCreditStats(),
+					hasUserReceivedPromotionalCredits(userId),
+				]);
 
-			const shouldAwardPromoCredits =
-				promoStats.available && !userAlreadyHasPromo;
+				const shouldAwardPromoCredits =
+					promoStats.available && !userAlreadyHasPromo;
 
-			if (shouldAwardPromoCredits) {
-				console.log(
-					`🎉 Awarding promotional credits to user's first organization: ${userId} -> ${organizationId}`,
-				);
+				if (!shouldAwardPromoCredits) {
+					// Create organization credit without promotional balance
+					const reason = !promoStats.available
+						? `promotional credits exhausted (${promoStats.used}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS})`
+						: "user already received promotional credits";
+					console.log(`❌ No promotional credits awarded: ${reason}`);
 
-				// Use transaction to ensure atomic operation
-				return await db.$transaction(async (tx) => {
-					// Create organization credit with promotional balance
-					const orgCredit = await tx.organizationCredit.create({
+					return await tx.organizationCredit.create({
 						data: {
 							organizationId,
-							balance: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
+							balance: 0,
 							totalPurchased: 0,
 							totalUsed: 0,
 						},
 					});
+				}
+				console.log(
+					`🎉 Awarding promotional credits to user's first organization: ${userId} -> ${organizationId}`,
+				);
 
-					// Create promotional credit transaction
-					await tx.creditTransaction.create({
-						data: {
-							organizationId,
-							userId,
-							type: "promotional",
-							amount: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
-							balanceAfter: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
-							description: PROMOTIONAL_CONFIG.DESCRIPTION,
-							metadata: {
-								promotionType: "new_user_bonus",
-								awardedAt: new Date().toISOString(),
-								promotionalUser: promoStats.used + 1,
-								firstOrganization: true,
-							},
-						},
-					});
-
-					console.log(
-						`✅ Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`,
-					);
-					return orgCredit;
+				// Create organization credit with promotional balance
+				const orgCredit = await tx.organizationCredit.create({
+					data: {
+						organizationId,
+						balance: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
+						totalPurchased: 0,
+						totalUsed: 0,
+					},
 				});
-			}
-			const reason = !promoStats.available
-				? `promotional credits exhausted (${promoStats.used}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS})`
-				: "user already received promotional credits";
-			console.log(`❌ No promotional credits awarded: ${reason}`);
 
-			// Create organization credit without promotional balance
-			const orgCredit = await db.organizationCredit.create({
-				data: {
-					organizationId,
-					balance: 0,
-					totalPurchased: 0,
-					totalUsed: 0,
-				},
+				// Create promotional credit transaction
+				await tx.creditTransaction.create({
+					data: {
+						organizationId,
+						userId,
+						type: "promotional",
+						amount: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
+						balanceAfter: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
+						description: PROMOTIONAL_CONFIG.DESCRIPTION,
+						metadata: {
+							promotionType: "new_user_bonus",
+							awardedAt: new Date().toISOString(),
+							promotionalUser: promoStats.used + 1,
+							firstOrganization: true,
+						},
+					},
+				});
+
+				console.log(
+					`✅ Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`,
+				);
+				return orgCredit;
 			});
-
-			return orgCredit;
 		} catch (error: any) {
 			// Handle race condition - if record was created by another request
 			if (
