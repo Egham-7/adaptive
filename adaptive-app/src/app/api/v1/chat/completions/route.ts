@@ -92,6 +92,11 @@ export async function POST(req: NextRequest) {
 			baseURL,
 		});
 
+		const openai = new OpenAI({
+			apiKey,
+			baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+		});
+
 		if (shouldStream) {
 			console.log("🌊 Starting streaming request...");
 			console.log("Streaming request payload:", {
