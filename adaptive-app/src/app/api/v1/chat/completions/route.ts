@@ -6,11 +6,6 @@ import type {
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
 
-const openai = new OpenAI({
-	apiKey: process.env.ADAPTIVE_API_KEY,
-	baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
-});
-
 export async function POST(req: NextRequest) {
 	try {
 		const body: ChatCompletionRequest = await req.json();
@@ -18,7 +13,7 @@ export async function POST(req: NextRequest) {
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
 		const bearerToken = authHeader?.startsWith("Bearer ")
-			? authHeader.slice(7).trim() || null
+			? authHeader.slice(7).replace(/\s+/g, "") || null
 			: null;
 
 		const apiKey =
@@ -52,6 +47,11 @@ export async function POST(req: NextRequest) {
 		}
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
+
+		const openai = new OpenAI({
+			apiKey,
+			baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+		});
 
 		if (shouldStream) {
 			const stream = openai.chat.completions.stream({
