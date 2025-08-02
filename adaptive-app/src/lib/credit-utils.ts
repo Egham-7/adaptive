@@ -1,5 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import type { CreditTransactionType } from "prisma/generated";
+import {
+	getPromotionalCreditStats,
+	hasUserReceivedPromotionalCredits,
+	PROMOTIONAL_CONFIG,
+} from "@/lib/promotional-config";
 import { db } from "@/server/db";
 
 // ---- Core Credit Operations ----
@@ -7,6 +12,7 @@ import { db } from "@/server/db";
 /**
  * Get or create organization credit record
  * Every organization needs an OrganizationCredit record to track their balance
+ * Automatically awards promotional credits to user's first organization (if available)
  */
 export async function getOrCreateOrganizationCredit(organizationId: string) {
 	try {
@@ -19,19 +25,99 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 			throw new Error(`Organization with ID ${organizationId} not found`);
 		}
 
-		// Use upsert to handle race conditions
-		const orgCredit = await db.organizationCredit.upsert({
-			where: { organizationId },
-			update: {}, // No updates needed if it exists
-			create: {
-				organizationId,
-				balance: 0,
-				totalPurchased: 0,
-				totalUsed: 0,
-			},
-		});
+		// Use upsert to handle race conditions properly
+		const userId = organization.ownerId;
+		
+		try {
+			// Try to get existing credit first
+			const existingCredit = await db.organizationCredit.findUnique({
+				where: { organizationId },
+			});
 
-		return orgCredit;
+			if (existingCredit) {
+				return existingCredit;
+			}
+
+			// New organization - check if this user can receive promotional credits
+			const [promoStats, userAlreadyHasPromo] = await Promise.all([
+				getPromotionalCreditStats(),
+				hasUserReceivedPromotionalCredits(userId),
+			]);
+
+			const shouldAwardPromoCredits =
+				promoStats.available && !userAlreadyHasPromo;
+
+			if (shouldAwardPromoCredits) {
+				console.log(
+					`🎉 Awarding promotional credits to user's first organization: ${userId} -> ${organizationId}`,
+				);
+
+				// Use transaction to ensure atomic operation
+				return await db.$transaction(async (tx) => {
+					// Create organization credit with promotional balance
+					const orgCredit = await tx.organizationCredit.create({
+						data: {
+							organizationId,
+							balance: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
+							totalPurchased: 0,
+							totalUsed: 0,
+						},
+					});
+
+					// Create promotional credit transaction
+					await tx.creditTransaction.create({
+						data: {
+							organizationId,
+							userId,
+							type: "promotional",
+							amount: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
+							balanceAfter: PROMOTIONAL_CONFIG.FREE_CREDIT_AMOUNT,
+							description: PROMOTIONAL_CONFIG.DESCRIPTION,
+							metadata: {
+								promotionType: "new_user_bonus",
+								awardedAt: new Date().toISOString(),
+								promotionalUser: promoStats.used + 1,
+								firstOrganization: true,
+							},
+						},
+					});
+
+					console.log(
+						`✅ Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`,
+					);
+					return orgCredit;
+				});
+			} else {
+				const reason = !promoStats.available
+					? `promotional credits exhausted (${promoStats.used}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS})`
+					: "user already received promotional credits";
+				console.log(`❌ No promotional credits awarded: ${reason}`);
+
+				// Create organization credit without promotional balance
+				const orgCredit = await db.organizationCredit.create({
+					data: {
+						organizationId,
+						balance: 0,
+						totalPurchased: 0,
+						totalUsed: 0,
+					},
+				});
+
+				return orgCredit;
+			}
+		} catch (error: any) {
+			// Handle race condition - if record was created by another request
+			if (error.code === 'P2002' && error.meta?.target?.includes('organizationId')) {
+				console.log(`🔄 Race condition detected, fetching existing organization credit: ${organizationId}`);
+				const existingCredit = await db.organizationCredit.findUnique({
+					where: { organizationId },
+				});
+				if (existingCredit) {
+					return existingCredit;
+				}
+			}
+			throw error;
+		}
 	} catch (error) {
 		console.error("Error in getOrCreateOrganizationCredit:", error);
 		throw error;
