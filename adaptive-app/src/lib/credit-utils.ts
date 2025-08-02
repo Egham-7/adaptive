@@ -205,6 +205,14 @@ export async function addCredits(params: {
 		throw new Error("Credit amount must be positive");
 	}
 
+	if (!Number.isFinite(amount)) {
+		throw new Error("Credit amount must be a finite number");
+	}
+
+	if (amount > 10000) { // Adjust limit based on business requirements
+		throw new Error("Credit amount exceeds maximum allowed limit");
+	}
+
 	console.log("💰 Starting addCredits transaction.");
 
 	// Use database transaction to ensure data consistency
@@ -283,6 +291,14 @@ export async function deductCredits(params: {
 
 	if (amount <= 0) {
 		throw new Error("Deduction amount must be positive");
+	}
+
+	if (!Number.isFinite(amount)) {
+		throw new Error("Deduction amount must be a finite number");
+	}
+
+	if (amount > 10000) { // Adjust limit based on business requirements
+		throw new Error("Deduction amount exceeds maximum allowed limit");
 	}
 
 	console.log("💸 Starting deductCredits transaction:");
@@ -400,15 +416,15 @@ export async function getOrganizationCreditStats(organizationId: string) {
 	const orgCredit = await getOrCreateOrganizationCredit(organizationId);
 
 	// Get transaction counts by type
-	const transactionStats = (await db.creditTransaction.groupBy({
+	const transactionStats = await db.creditTransaction.groupBy({
 		by: ["type"],
 		where: { organizationId },
 		_count: { type: true },
 		_sum: { amount: true },
-	})) as Array<{
+	}) as Array<{
 		type: CreditTransactionType;
 		_count: { type: number };
-		_sum: { amount: { toNumber(): number } | null };
+		_sum: { amount: number | null };
 	}>;
 
 	// Calculate statistics
@@ -420,7 +436,7 @@ export async function getOrganizationCreditStats(organizationId: string) {
 	for (const stat of transactionStats) {
 		transactionCounts[stat.type] = {
 			count: stat._count.type || 0,
-			totalAmount: stat._sum.amount?.toNumber() || 0,
+			totalAmount: stat._sum.amount ? Number(stat._sum.amount) : 0,
 		};
 	}
 
