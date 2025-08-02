@@ -948,6 +948,7 @@ export const usageRouter = createTRPCRouter({
 							_sum: {
 								totalTokens: true,
 								cost: true,
+								creditCost: true,
 								requestCount: true,
 							},
 							_count: {
@@ -961,6 +962,10 @@ export const usageRouter = createTRPCRouter({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
 							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
@@ -978,6 +983,7 @@ export const usageRouter = createTRPCRouter({
 							_sum: {
 								totalTokens: true,
 								cost: true,
+								creditCost: true,
 								requestCount: true,
 							},
 							_count: {
@@ -996,7 +1002,7 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					return {
-						totalSpend: ensureNumber(totalMetrics._sum.cost),
+						totalSpend: ensureNumber(totalMetrics._sum.creditCost),
 						totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
 						totalRequests: ensureNumber(totalMetrics._sum.requestCount),
 						totalApiCalls: ensureNumber(totalMetrics._count.id),
@@ -1005,7 +1011,7 @@ export const usageRouter = createTRPCRouter({
 							return {
 								projectId: usage.projectId,
 								projectName: project?.name || "Unknown Project",
-								spend: ensureNumber(usage._sum.cost),
+								spend: ensureNumber(usage._sum.creditCost),
 								tokens: ensureNumber(usage._sum.totalTokens),
 								requests: ensureNumber(usage._sum.requestCount),
 								calls: ensureNumber(usage._count.id),
