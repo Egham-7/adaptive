@@ -9,6 +9,7 @@ import {
 	hasSufficientCredits,
 } from "@/lib/credit-utils";
 import { stripe } from "@/lib/stripe/stripe";
+import { TOKEN_PRICING } from "@/lib/pricing-config";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 // Configuration constants - old promotional system removed
@@ -194,8 +195,8 @@ export const creditsRouter = createTRPCRouter({
 				cost,
 				formattedCost: formatCurrency(cost),
 				breakdown: {
-					inputCost: (input.inputTokens / 1_000_000) * 0.05,
-					outputCost: (input.outputTokens / 1_000_000) * 0.15,
+					inputCost: TOKEN_PRICING.calculateInputCost(input.inputTokens),
+					outputCost: TOKEN_PRICING.calculateOutputCost(input.outputTokens),
 					inputTokens: input.inputTokens,
 					outputTokens: input.outputTokens,
 					totalTokens: input.inputTokens + input.outputTokens,

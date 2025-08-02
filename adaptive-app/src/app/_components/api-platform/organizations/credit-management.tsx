@@ -1,6 +1,7 @@
 "use client";
 
 import { CreditCard, DollarSign, TrendingUp, Zap } from "lucide-react";
+import { TOKEN_PRICING } from "@/lib/pricing-config";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -393,13 +394,13 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 								<span className="text-muted-foreground">
 									Input tokens (per 1M)
 								</span>
-								<span className="font-mono">$0.05</span>
+								<span className="font-mono">${TOKEN_PRICING.INPUT_TOKEN_PRICE_PER_MILLION}</span>
 							</div>
 							<div className="flex justify-between">
 								<span className="text-muted-foreground">
 									Output tokens (per 1M)
 								</span>
-								<span className="font-mono">$0.15</span>
+								<span className="font-mono">${TOKEN_PRICING.OUTPUT_TOKEN_PRICE_PER_MILLION}</span>
 							</div>
 						</div>
 						<p className="mt-2 text-muted-foreground text-xs">

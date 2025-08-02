@@ -6,6 +6,8 @@ import {
 	PROMOTIONAL_CONFIG,
 } from "@/lib/promotional-config";
 import { db } from "@/server/db";
+import { logger } from "@/lib/logger";
+import { CREDIT_LIMITS, TOKEN_PRICING } from "@/lib/pricing-config";
 
 // ---- Core Credit Operations ----
 
@@ -54,7 +56,7 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 					const reason = !promoStats.available
 						? `promotional credits exhausted (${promoStats.used}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS})`
 						: "user already received promotional credits";
-					console.log(`❌ No promotional credits awarded: ${reason}`);
+					logger.failure(`No promotional credits awarded: ${reason}`);
 
 					return await tx.organizationCredit.create({
 						data: {
@@ -65,9 +67,7 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 						},
 					});
 				}
-				console.log(
-					`🎉 Awarding promotional credits to user's first organization: ${userId} -> ${organizationId}`,
-				);
+				logger.promotion(`Awarding promotional credits to user's first organization`);
 
 				// Create organization credit with promotional balance
 				const orgCredit = await tx.organizationCredit.create({
@@ -97,9 +97,7 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 					},
 				});
 
-				console.log(
-					`✅ Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`,
-				);
+				logger.success(`Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`);
 				return orgCredit;
 			});
 		} catch (error: any) {
@@ -108,9 +106,7 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 				error.code === "P2002" &&
 				error.meta?.target?.includes("organizationId")
 			) {
-				console.log(
-					`🔄 Race condition detected, fetching existing organization credit: ${organizationId}`,
-				);
+				logger.info(`Race condition detected, fetching existing organization credit`);
 				const existingCredit = await db.organizationCredit.findUnique({
 					where: { organizationId },
 				});
@@ -159,17 +155,14 @@ export async function hasSufficientCredits(
 
 /**
  * Calculate credit cost for API usage based on token consumption
- * Your pricing: $0.05 per 1M input tokens, $0.15 per 1M output tokens
+ * Uses centralized pricing configuration
  */
 export function calculateCreditCost(
 	inputTokens: number,
 	outputTokens: number,
 ): number {
-	const INPUT_TOKEN_COST_PER_MILLION = 0.05; // $0.05 per 1M tokens
-	const OUTPUT_TOKEN_COST_PER_MILLION = 0.15; // $0.15 per 1M tokens
-
-	const inputCost = (inputTokens / 1_000_000) * INPUT_TOKEN_COST_PER_MILLION;
-	const outputCost = (outputTokens / 1_000_000) * OUTPUT_TOKEN_COST_PER_MILLION;
+	const inputCost = TOKEN_PRICING.calculateInputCost(inputTokens);
+	const outputCost = TOKEN_PRICING.calculateOutputCost(outputTokens);
 
 	return inputCost + outputCost;
 }
@@ -209,12 +202,11 @@ export async function addCredits(params: {
 		throw new Error("Credit amount must be a finite number");
 	}
 
-	if (amount > 10000) {
-		// Adjust limit based on business requirements
+	if (amount > CREDIT_LIMITS.MAXIMUM_PURCHASE) {
 		throw new Error("Credit amount exceeds maximum allowed limit");
 	}
 
-	console.log("💰 Starting addCredits transaction.");
+	logger.credit("Starting addCredits transaction", { type });
 
 	// Use database transaction to ensure data consistency
 	return await db.$transaction(async (tx) => {
@@ -257,7 +249,7 @@ export async function addCredits(params: {
 			},
 		});
 
-		console.log("✅ Credits added successfully.");
+		logger.success("Credits added successfully");
 
 		return {
 			organizationCredit: updatedOrgCredit,
@@ -298,12 +290,11 @@ export async function deductCredits(params: {
 		throw new Error("Deduction amount must be a finite number");
 	}
 
-	if (amount > 10000) {
-		// Adjust limit based on business requirements
+	if (amount > CREDIT_LIMITS.MAXIMUM_DEDUCTION) {
 		throw new Error("Deduction amount exceeds maximum allowed limit");
 	}
 
-	console.log("💸 Starting deductCredits transaction:");
+	logger.credit("Starting deductCredits transaction");
 
 	// Use database transaction for atomicity
 	return await db.$transaction(async (tx) => {
@@ -358,7 +349,7 @@ export async function deductCredits(params: {
 			},
 		});
 
-		console.log("✅ Credits deducted successfully.");
+		logger.success("Credits deducted successfully");
 
 		return {
 			organizationCredit: updatedOrgCredit,
