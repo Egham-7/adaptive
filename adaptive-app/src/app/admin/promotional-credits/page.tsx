@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/trpc/react";
 
-
 export default function PromotionalCreditsAdmin() {
 	const { user, isLoaded } = useUser();
-	const [refreshKey, setRefreshKey] = useState(0);
+	const [_refreshKey, setRefreshKey] = useState(0);
 
 	// Get promotional stats
 	const {

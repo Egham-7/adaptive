@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 							console.log("💳 Adding credits to organization.");
 
 							// Add credits to organization's account
-							const result = await addCredits({
+							const _result = await addCredits({
 								organizationId: session.metadata.organizationId,
 								userId: session.metadata.userId,
 								amount: creditAmount,

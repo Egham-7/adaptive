@@ -209,7 +209,8 @@ export async function addCredits(params: {
 		throw new Error("Credit amount must be a finite number");
 	}
 
-	if (amount > 10000) { // Adjust limit based on business requirements
+	if (amount > 10000) {
+		// Adjust limit based on business requirements
 		throw new Error("Credit amount exceeds maximum allowed limit");
 	}
 
@@ -297,7 +298,8 @@ export async function deductCredits(params: {
 		throw new Error("Deduction amount must be a finite number");
 	}
 
-	if (amount > 10000) { // Adjust limit based on business requirements
+	if (amount > 10000) {
+		// Adjust limit based on business requirements
 		throw new Error("Deduction amount exceeds maximum allowed limit");
 	}
 
@@ -416,12 +418,12 @@ export async function getOrganizationCreditStats(organizationId: string) {
 	const orgCredit = await getOrCreateOrganizationCredit(organizationId);
 
 	// Get transaction counts by type
-	const transactionStats = await db.creditTransaction.groupBy({
+	const transactionStats = (await db.creditTransaction.groupBy({
 		by: ["type"],
 		where: { organizationId },
 		_count: { type: true },
 		_sum: { amount: true },
-	}) as Array<{
+	})) as Array<{
 		type: CreditTransactionType;
 		_count: { type: number };
 		_sum: { amount: number | null };
