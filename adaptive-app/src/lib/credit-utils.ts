@@ -104,11 +104,13 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 				);
 				return orgCredit;
 			});
-		} catch (error: any) {
+		} catch (error: unknown) {
 			// Handle race condition - if record was created by another request
 			if (
-				error.code === "P2002" &&
-				error.meta?.target?.includes("organizationId")
+				(error as { code?: string }).code === "P2002" &&
+				(error as { meta?: { target?: string[] } }).meta?.target?.includes(
+					"organizationId",
+				)
 			) {
 				logger.info(
 					"Race condition detected, fetching existing organization credit",

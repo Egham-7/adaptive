@@ -59,11 +59,13 @@ export async function POST(req: NextRequest) {
 				estimatedInputTokens,
 				estimatedOutputTokens,
 			});
-		} catch (error: any) {
-			const statusCode = error.code === "PAYMENT_REQUIRED" ? 402 : 400;
+		} catch (error: unknown) {
+			const statusCode =
+				(error as { code?: string }).code === "PAYMENT_REQUIRED" ? 402 : 400;
 			return new Response(
 				JSON.stringify({
-					error: error.message || "Credit check failed",
+					error:
+						(error as { message?: string }).message || "Credit check failed",
 				}),
 				{
 					status: statusCode,

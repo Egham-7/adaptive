@@ -16,7 +16,7 @@ type PromotionalTransaction = {
 	organizationName: string;
 	amount: number;
 	awardedAt: Date;
-	metadata: any;
+	metadata: unknown;
 };
 
 export default function PromotionalCreditsAdmin() {
