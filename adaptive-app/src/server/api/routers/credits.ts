@@ -11,13 +11,7 @@ import {
 import { stripe } from "@/lib/stripe/stripe";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
-// Configuration constants
-const PROMOTIONAL_CREDIT_LIMIT = Number.parseInt(
-	process.env.PROMOTIONAL_CREDIT_LIMIT || "20",
-);
-const PROMOTIONAL_CREDIT_AMOUNT = Number.parseFloat(
-	process.env.PROMOTIONAL_CREDIT_AMOUNT || "5.00",
-);
+// Configuration constants - old promotional system removed
 
 // Helper function for dynamic precision formatting based on actual decimal places needed
 const formatCurrency = (amount: number): string => {
@@ -463,83 +457,4 @@ export const creditsRouter = createTRPCRouter({
 			}
 		}),
 
-	// Award $5 promotional credit for new organizations (first 20 organizations)
-	claimWelcomeCredit: protectedProcedure
-		.input(z.object({ organizationId: z.string() }))
-		.mutation(async ({ ctx, input }) => {
-			const userId = ctx.userId;
-
-			if (!userId) {
-				throw new TRPCError({
-					code: "UNAUTHORIZED",
-					message: "User ID not found in context",
-				});
-			}
-
-			try {
-				// Check how many organizations have already claimed promotional credits
-				const promotionalCreditCount = await ctx.db.creditTransaction.count({
-					where: {
-						type: "promotional",
-						description: {
-							contains: "Welcome bonus",
-						},
-					},
-				});
-
-				// Only allow first N users to claim (configurable)
-				if (promotionalCreditCount >= PROMOTIONAL_CREDIT_LIMIT) {
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: `Welcome credit promotion has ended. Limited to first ${PROMOTIONAL_CREDIT_LIMIT} users.`,
-					});
-				}
-
-				// Award promotional credit (configurable amount)
-				const result = await awardPromotionalCredits(
-					input.organizationId,
-					userId,
-					PROMOTIONAL_CREDIT_AMOUNT,
-					`Welcome bonus - ${formatCurrency(
-						PROMOTIONAL_CREDIT_AMOUNT,
-					)} free credits for new API users`,
-				);
-
-				return {
-					success: true,
-					creditAmount: PROMOTIONAL_CREDIT_AMOUNT,
-					newBalance: result.newBalance,
-					message: `Welcome! You've received ${formatCurrency(
-						PROMOTIONAL_CREDIT_AMOUNT,
-					)} in free API credits. You are organization #${
-						promotionalCreditCount + 1
-					} to claim this bonus.`,
-					remainingSlots: Math.max(
-						0,
-						PROMOTIONAL_CREDIT_LIMIT - (promotionalCreditCount + 1),
-					),
-				};
-			} catch (error) {
-				console.error("Error claiming welcome credit:", error);
-
-				if (error instanceof TRPCError) {
-					throw error;
-				}
-
-				if (
-					error instanceof Error &&
-					error.message.includes("already received")
-				) {
-					throw new TRPCError({
-						code: "CONFLICT",
-						message: "You have already claimed your welcome credit.",
-					});
-				}
-
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to claim welcome credit",
-				});
-			}
-		}),
 });
