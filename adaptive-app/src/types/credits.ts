@@ -61,13 +61,6 @@ export type LowBalanceStatus = RouterOutputs["credits"]["getLowBalanceStatus"];
 export type CheckoutSessionResponse =
 	RouterOutputs["credits"]["createCheckoutSession"];
 
-/**
- * The type for welcome credit claim response.
- * Contains success status and credit amount awarded.
- */
-export type WelcomeCreditResponse =
-	RouterOutputs["credits"]["claimWelcomeCredit"];
-
 // ---- Input Types ----
 
 /**
@@ -115,11 +108,6 @@ export type LowBalanceStatusInput =
  */
 export type CheckoutSessionInput =
 	RouterInputs["credits"]["createCheckoutSession"];
-
-/**
- * The type for the input when claiming welcome credit.
- */
-export type WelcomeCreditInput = RouterInputs["credits"]["claimWelcomeCredit"];
 
 // ---- Utility Types ----
 
