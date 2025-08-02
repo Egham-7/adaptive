@@ -51,6 +51,9 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 	isStream := req.Stream
 
+	// Configure fallback mode based on request
+	h.configureFallbackMode(req, reqID)
+
 	resp, err := h.selectProtocol(
 		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
 	)
@@ -81,11 +84,6 @@ func (h *CompletionHandler) selectProtocol(
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	var costBias *float32
-	if req.CostBias != 0 {
-		costBias = &req.CostBias
-	}
-
 	openAIParams := req.ToOpenAIParams()
 	if openAIParams == nil {
 		return nil, fmt.Errorf("failed to convert request to OpenAI parameters")
@@ -93,8 +91,7 @@ func (h *CompletionHandler) selectProtocol(
 
 	selReq := models.ModelSelectionRequest{
 		ChatCompletionRequest: *openAIParams,
-		ProviderConstraint:    req.ProviderConstraint,
-		CostBias:              costBias,
+		ProtocolManagerConfig: req.ProtocolManagerConfig,
 	}
 
 	resp, _, err = h.protocolMgr.SelectProtocolWithCache(
@@ -106,4 +103,24 @@ func (h *CompletionHandler) selectProtocol(
 	}
 
 	return resp, nil
+}
+
+// configureFallbackMode sets the fallback mode based on the request configuration
+func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequest, reqID string) {
+	switch req.FallbackMode {
+	case models.FallbackModeSequential:
+		h.fallbackSvc.SetMode(completions.FallbackModeSequential)
+		fiberlog.Infof("[%s] Configured fallback mode: sequential", reqID)
+	case models.FallbackModeParallel:
+		h.fallbackSvc.SetMode(completions.FallbackModeRace)
+		fiberlog.Infof("[%s] Configured fallback mode: parallel", reqID)
+	case "":
+		// Default to parallel (race) mode when not specified
+		h.fallbackSvc.SetMode(completions.FallbackModeRace)
+		fiberlog.Debugf("[%s] Using default fallback mode: parallel", reqID)
+	default:
+		// Unknown mode, default to parallel with warning
+		h.fallbackSvc.SetMode(completions.FallbackModeRace)
+		fiberlog.Warnf("[%s] Unknown fallback mode '%s', using default: parallel", reqID, req.FallbackMode)
+	}
 }

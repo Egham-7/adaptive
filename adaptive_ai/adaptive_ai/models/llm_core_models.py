@@ -4,13 +4,13 @@
 from openai.types.chat import (
     CompletionCreateParams,
 )
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskModelEntry
 
 
 class ModelCapability(BaseModel):
-    description: str
+    description: str | None = None
     provider: ProviderType
     model_name: str
     cost_per_1m_input_tokens: float = Field(alias="cost_per_1m_input_tokens")
@@ -23,6 +23,15 @@ class ModelCapability(BaseModel):
     )
     model_size_params: str | None = Field(None, alias="model_size_params")
     latency_tier: str | None = Field(None, alias="latency_tier")
+
+
+class ProtocolManagerConfig(BaseModel):
+    """Configuration for the protocol manager"""
+
+    models: list[ModelCapability] | None = None
+    cost_bias: float | None = None
+    complexity_threshold: float | None = None
+    token_threshold: int | None = None
 
 
 class ModelEntry(BaseModel):
@@ -52,13 +61,4 @@ class ModelSelectionRequest(BaseModel):
 
     # Our custom parameters for model selection
     user_id: str | None = None
-    provider_constraint: list[str] | None = None
-    cost_bias: float | None = None
-
-    @model_validator(mode="after")
-    def validate_parameters(self) -> "ModelSelectionRequest":
-        # Validate the OpenAI request has required fields
-        if not self.chat_completion_request.get("messages"):
-            raise ValueError("messages cannot be empty")
-
-        return self
+    protocol_manager_config: ProtocolManagerConfig | None = None
