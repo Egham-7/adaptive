@@ -1,39 +1,44 @@
 package gemini
 
 import (
+	"adaptive-backend/internal/services/providers/gemini/chat"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"context"
 	"fmt"
 	"os"
 
-	"google.golang.org/genai"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
-// GeminiService handles Gemini API interactions.
+// GeminiService handles Gemini API interactions using OpenAI Go SDK
 type GeminiService struct {
-	client *genai.Client
+	client *openai.Client
+	chat   *chat.GeminiChat
 }
 
-// NewGeminiService initializes the GeminiService with the provided API key.
+// NewGeminiService creates a new Gemini service using OpenAI Go SDK with Google base URL
 func NewGeminiService() (*GeminiService, error) {
 	apiKey := os.Getenv("GOOGLE_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("GOOGLE_API_KEY environment variable not set")
 	}
-	ctx := context.Background()
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  apiKey,
-		Backend: genai.BackendGeminiAPI,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create genai client: %w", err)
-	}
-	return &GeminiService{client: client}, nil
+
+	client := openai.NewClient(
+		option.WithAPIKey(apiKey),
+		option.WithBaseURL("https://generativelanguage.googleapis.com/v1beta/openai/"),
+	)
+
+	chatService := chat.NewGeminiChat(&client)
+
+	return &GeminiService{
+		client: &client,
+		chat:   chatService,
+	}, nil
 }
 
-// Chat returns the chat interface
+// Chat implements LLMProvider interface
 func (s *GeminiService) Chat() provider_interfaces.Chat {
-	return &GeminiChat{service: s}
+	return s.chat
 }
 
 func (s *GeminiService) GetProviderName() string {
