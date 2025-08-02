@@ -68,17 +68,67 @@ class ProtocolManagerAPI(ls.LitAPI):
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
         return ModelSelectionRequest(**request)
 
+    def _process_models_array(
+        self, request: ModelSelectionRequest
+    ) -> ModelSelectionRequest:
+        """
+        Process the models array in a request, validate and convert to protocol_manager_config.
+
+        Args:
+            request: The original request that may contain a models array
+
+        Returns:
+            Modified request with models array converted to protocol_manager_config.models
+
+        Raises:
+            ValueError: If any models in the array are invalid
+        """
+        # If no models array, return request unchanged
+        if not request.models:
+            return request
+
+        # Validate all models in the array
+        valid_models, invalid_models = model_registry.validate_models(request.models)
+
+        # If any models are invalid, raise error
+        if invalid_models:
+            raise ValueError(f"Invalid model(s): {invalid_models}")
+
+        # Convert valid model names to capabilities
+        capabilities, _ = model_registry.convert_names_to_capabilities(valid_models)
+
+        # Create or update protocol_manager_config
+        if request.protocol_manager_config:
+            # Update existing config
+            request.protocol_manager_config.models = capabilities
+        else:
+            # Create new config
+            from adaptive_ai.models.llm_core_models import ProtocolManagerConfig
+
+            request.protocol_manager_config = ProtocolManagerConfig(models=capabilities)
+
+        # Clear the models array since it's now in protocol_manager_config
+        request.models = None
+
+        return request
+
     def predict(
         self, requests: list[ModelSelectionRequest]
     ) -> list[OrchestratorResponse]:
         import time
+
+        # Process model validation and conversion for each request
+        processed_requests = []
+        for req in requests:
+            processed_req = self._process_models_array(req)
+            processed_requests.append(processed_req)
 
         outputs: list[OrchestratorResponse] = []
 
         # Get the most recent message content for classification
         prompts: list[str] = [
             extract_last_message_content(req.chat_completion_request)
-            for req in requests
+            for req in processed_requests
         ]
 
         # Run both task and domain classification in parallel
@@ -124,21 +174,21 @@ class ProtocolManagerAPI(ls.LitAPI):
             # Re-raise the exception instead of creating fallback results
             raise RuntimeError(f"Domain classification failed: {e!s}") from e
 
-        self.log("predict_called", {"batch_size": len(requests)})
+        self.log("predict_called", {"batch_size": len(processed_requests)})
 
-        if len(all_classification_results) != len(requests):
+        if len(all_classification_results) != len(processed_requests):
             raise ValueError(
                 f"Task classification results count ({len(all_classification_results)}) "
-                f"doesn't match requests count ({len(requests)})"
+                f"doesn't match requests count ({len(processed_requests)})"
             )
 
-        if len(all_domain_results) != len(requests):
+        if len(all_domain_results) != len(processed_requests):
             raise ValueError(
                 f"Domain classification results count ({len(all_domain_results)}) "
-                f"doesn't match requests count ({len(requests)})"
+                f"doesn't match requests count ({len(processed_requests)})"
             )
 
-        for i, req in enumerate(requests):
+        for i, req in enumerate(processed_requests):
             current_classification_result: ClassificationResult = (
                 all_classification_results[i]
             )

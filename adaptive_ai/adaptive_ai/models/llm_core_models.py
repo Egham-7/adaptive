@@ -62,3 +62,6 @@ class ModelSelectionRequest(BaseModel):
     # Our custom parameters for model selection
     user_id: str | None = None
     protocol_manager_config: ProtocolManagerConfig | None = None
+
+    # Simple model names array (will be converted to protocol_manager_config.models)
+    models: list[str] | None = None
