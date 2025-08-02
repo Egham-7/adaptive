@@ -41,6 +41,13 @@ enum RequestType {
   audio
 }
 
+enum CreditTransactionType {
+  purchase
+  usage
+  refund
+  promotional
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -64,9 +71,10 @@ model ApiKey {
   expiresAt  DateTime?
   lastUsedAt DateTime?
 
-  project    Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  usage      ApiUsage[]
-  revealTokens ApiKeyRevealToken[]
+  project          Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  usage            ApiUsage[]
+  revealTokens     ApiKeyRevealToken[]
+  creditTransactions CreditTransaction[]
 
   @@unique([keyPrefix, keyHash])
   @@index([userId])
@@ -134,6 +142,7 @@ model Organization {
   
   projects    Project[]
   members     OrganizationMember[]
+  credit      OrganizationCredit?
   
   @@index([ownerId])
   @@index([name])
@@ -199,12 +208,14 @@ model ApiUsage {
   outputTokens      Int      @default(0)
   totalTokens       Int      @default(0)
   cost              Decimal  @default(0) @db.Decimal(12,6)
+  creditCost        Decimal  @default(0) @db.Decimal(12,6) // Cost deducted from user credits
   requestCount      Int      @default(1)
   timestamp         DateTime @default(now())
   metadata          Json?    // Additional request metadata
   
   apiKey            ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
   project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creditTransactions CreditTransaction[]
   
   @@index([apiKeyId])
   @@index([projectId])
@@ -262,5 +273,69 @@ model ProviderModel {
   @@index([name])
   @@index([type])
   @@index([isActive])
+}
+
+// Credit system models
+model OrganizationCredit {
+  id              String    @id @default(cuid())
+  organizationId  String    @unique // Organization ID
+  balance         Decimal   @default(0) @db.Decimal(12,6) // Current credit balance in USD
+  totalPurchased  Decimal   @default(0) @db.Decimal(12,6) // Total credits ever purchased
+  totalUsed       Decimal   @default(0) @db.Decimal(12,6) // Total credits ever used
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  transactions    CreditTransaction[]
+  
+  @@index([organizationId])
+}
+
+model CreditTransaction {
+  id              String    @id @default(cuid())
+  organizationId  String    // Organization ID
+  userId          String    // Clerk user ID who initiated the transaction
+  type            CreditTransactionType // 'purchase' | 'usage' | 'refund' | 'promotional'
+  amount          Decimal   @db.Decimal(12,6) // Amount in USD (positive for credits added, negative for usage)
+  balanceAfter    Decimal   @db.Decimal(12,6) // Organization's balance after this transaction
+  description     String?   // Human readable description
+  metadata        Json?     // Additional data (Stripe payment ID, API usage details, etc.)
+  
+  // Stripe-related fields for purchases
+  stripePaymentIntentId String? // For one-time credit purchases
+  stripeSessionId       String? // Checkout session that created this transaction
+  
+  // API usage-related fields
+  apiKeyId        String?   // Which API key was used (for usage transactions)
+  apiUsageId      String?   // Link to the specific API usage record
+  
+  createdAt       DateTime  @default(now())
+  
+  organizationCredit OrganizationCredit @relation(fields: [organizationId], references: [organizationId], onDelete: Cascade)
+  apiKey          ApiKey?    @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  apiUsage        ApiUsage?  @relation(fields: [apiUsageId], references: [id], onDelete: SetNull)
+  
+  @@index([organizationId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([stripePaymentIntentId])
+  @@index([apiKeyId])
+}
+
+model CreditPackage {
+  id              String    @id @default(cuid())
+  name            String    // e.g., "Starter Pack", "Pro Pack"
+  description     String?   // Description of the package
+  creditAmount    Decimal   @db.Decimal(12,6) // Amount of credits in USD
+  price           Decimal   @db.Decimal(12,6) // Price in USD
+  stripePriceId   String    @unique // Stripe price ID for this package
+  isActive        Boolean   @default(true)
+  sortOrder       Int       @default(0) // For ordering packages in UI
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([isActive])
+  @@index([sortOrder])
 }
 

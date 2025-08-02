@@ -25,11 +25,19 @@ const chartConfig = {
 		label: "Single Provider Cost",
 		color: "var(--chart-2)",
 	},
+	providerCost: {
+		label: "Provider Cost",
+		color: "var(--chart-3)",
+	},
+	ourMargin: {
+		label: "Our Margin",
+		color: "var(--chart-4)",
+	},
 } satisfies ChartConfig;
 
 export function UsageChart({
 	data,
-	providerName = "Single Provider",
+	providerName = "Direct Cost",
 }: UsageChartProps) {
 	if (!data || data.length === 0) {
 		return (
@@ -38,6 +46,9 @@ export function UsageChart({
 			</div>
 		);
 	}
+
+	// Use data as-is for cost comparison chart
+	const chartData = data;
 
 	const config = {
 		...chartConfig,
@@ -51,7 +62,7 @@ export function UsageChart({
 		<ChartContainer config={config} className="h-[300px] w-full">
 			<BarChart
 				accessibilityLayer
-				data={data}
+				data={chartData}
 				margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
 			>
 				<CartesianGrid vertical={false} />
@@ -67,9 +78,21 @@ export function UsageChart({
 					axisLine={false}
 					tickMargin={10}
 					fontSize={12}
+					tickFormatter={(value) => `$${value.toFixed(2)}`}
 				/>
-				<ChartTooltip content={<ChartTooltipContent />} />
+				<ChartTooltip
+					content={
+						<ChartTooltipContent
+							formatter={(value, name) => [
+								`$${Number(value).toFixed(4)}`,
+								name,
+							]}
+						/>
+					}
+				/>
 				<ChartLegend content={<ChartLegendContent />} />
+
+				{/* Cost comparison bars */}
 				<Bar
 					dataKey="adaptive"
 					fill="var(--color-adaptive)"

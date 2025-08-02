@@ -55,6 +55,8 @@ export function useProjectDashboardData(
 			requests: trend.requests,
 			spend: trend.spend,
 			tokens: trend.tokens,
+			inputTokens: trend.inputTokens, // ← Add input tokens from backend
+			outputTokens: trend.outputTokens, // ← Add output tokens from backend
 		}));
 
 		// Transform daily trends to token data
