@@ -8,6 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/trpc/react";
 
+// Type for promotional credit transaction from admin stats
+type PromotionalTransaction = {
+	userNumber: number;
+	userId: string;
+	organizationId: string;
+	organizationName: string;
+	amount: number;
+	awardedAt: Date;
+	metadata: any;
+};
+
 export default function PromotionalCreditsAdmin() {
 	const { user, isLoaded } = useUser();
 	const [_refreshKey, setRefreshKey] = useState(0);
@@ -153,7 +164,7 @@ export default function PromotionalCreditsAdmin() {
 						</p>
 					) : (
 						<div className="space-y-4">
-							{stats?.transactions.map((transaction: any) => (
+							{stats?.transactions.map((transaction: PromotionalTransaction) => (
 								<div
 									key={transaction.userId}
 									className="flex items-center justify-between rounded-lg border p-4"
