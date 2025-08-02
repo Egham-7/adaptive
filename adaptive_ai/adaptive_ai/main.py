@@ -1,7 +1,6 @@
 from typing import Any
 
 import litserve as ls
-from pydantic import BaseModel
 import tiktoken
 
 from adaptive_ai.core.config import get_settings
@@ -17,35 +16,12 @@ from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
 
 # Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
 from adaptive_ai.services.domain_classifier import get_domain_classifier
-from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.model_selector import (
     ModelSelectionService,
 )
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 from adaptive_ai.services.protocol_manager import ProtocolManager
 from adaptive_ai.utils.openai_utils import extract_last_message_content
-
-
-# Pydantic models for validation endpoint
-class ModelValidationRequest(BaseModel):
-    models: list[str]
-
-
-class ModelValidationResponse(BaseModel):
-    valid_models: list[str]
-    invalid_models: list[str]
-
-
-# Pydantic models for model conversion endpoint
-class ModelConversionRequest(BaseModel):
-    model_names: list[str]
-
-
-class ModelConversionResponse(BaseModel):
-    model_capabilities: list[
-        dict[str, Any]
-    ]  # Will be ModelCapability objects serialized as dicts
-    invalid_models: list[str]
 
 
 # LitServe Console Logger
@@ -280,50 +256,6 @@ def create_app() -> ls.LitServer:
         loggers=loggers,
         callbacks=callbacks,
     )
-
-    # Add custom validation endpoint
-    @server.app.post("/validate-models", response_model=ModelValidationResponse)
-    async def validate_models(
-        request: ModelValidationRequest,
-    ) -> ModelValidationResponse:
-        """Validate a list of model names and return which are valid/invalid."""
-        try:
-            valid_models, invalid_models = model_registry.validate_models(
-                request.models
-            )
-            return ModelValidationResponse(
-                valid_models=valid_models, invalid_models=invalid_models
-            )
-        except Exception:
-            # Return error in response format that Go middleware expects
-            return ModelValidationResponse(
-                valid_models=[],
-                invalid_models=request.models,
-            )
-
-    # Add model conversion endpoint
-    @server.app.post("/convert-model-names", response_model=ModelConversionResponse)
-    async def convert_model_names(
-        request: ModelConversionRequest,
-    ) -> ModelConversionResponse:
-        """Convert model names to full ModelCapability objects."""
-        try:
-            valid_capabilities, invalid_names = (
-                model_registry.convert_names_to_capabilities(request.model_names)
-            )
-            # Convert ModelCapability objects to dicts for JSON serialization
-            capability_dicts = [cap.model_dump() for cap in valid_capabilities]
-            return ModelConversionResponse(
-                model_capabilities=capability_dicts, invalid_models=invalid_names
-            )
-        except Exception as e:
-            # Log error using console logging pattern
-            print(f"[LitServe] Model conversion failed: {e!s}", flush=True)
-            # Return error in response format that Go middleware expects
-            return ModelConversionResponse(
-                model_capabilities=[],
-                invalid_models=request.model_names,
-            )
 
     return server
 
