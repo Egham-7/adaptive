@@ -55,8 +55,11 @@ export const modelPricingRouter = createTRPCRouter({
 		});
 
 		// Convert to the format expected by the components
-		const pricingData: Record<string, { inputCost: number; outputCost: number }> = {};
-		
+		const pricingData: Record<
+			string,
+			{ inputCost: number; outputCost: number }
+		> = {};
+
 		for (const model of models) {
 			pricingData[model.name] = {
 				inputCost: model.inputTokenCost.toNumber(),

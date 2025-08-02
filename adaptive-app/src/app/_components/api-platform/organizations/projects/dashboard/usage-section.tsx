@@ -8,8 +8,8 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
 import { api } from "@/trpc/react";
+import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
 import { UsageChart } from "./charts/usage-chart";
 import { ChartSkeleton } from "./loading-skeleton";
 
@@ -21,7 +21,6 @@ interface UsageSectionProps {
 	selectedModel: string;
 	onModelChange: (model: string) => void;
 }
-
 
 // Popular models for comparison
 const COMPARISON_MODELS = [
@@ -36,7 +35,9 @@ const COMPARISON_MODELS = [
 function calculateDirectModelCost(
 	usageData: { inputTokens: number; outputTokens: number }[],
 	modelId: string,
-	pricingData: Record<string, { inputCost: number; outputCost: number }> | undefined,
+	pricingData:
+		| Record<string, { inputCost: number; outputCost: number }>
+		| undefined,
 ): number {
 	if (!pricingData || !pricingData[modelId]) {
 		console.warn(`No pricing data found for model: ${modelId}`);
@@ -62,7 +63,8 @@ export function UsageSection({
 	onModelChange,
 }: UsageSectionProps) {
 	// Fetch dynamic pricing data
-	const { data: modelPricing, isLoading: pricingLoading } = api.modelPricing.getAllModelPricing.useQuery();
+	const { data: modelPricing, isLoading: pricingLoading } =
+		api.modelPricing.getAllModelPricing.useQuery();
 
 	if (loading || pricingLoading) {
 		return <ChartSkeleton />;

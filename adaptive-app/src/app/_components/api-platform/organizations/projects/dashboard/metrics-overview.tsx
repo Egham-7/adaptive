@@ -7,18 +7,19 @@ import {
 	FaExclamationTriangle,
 	FaServer,
 } from "react-icons/fa";
+import { api } from "@/trpc/react";
 import type { DashboardData } from "@/types/api-platform/dashboard";
 import { formatCurrencyWithDynamicPrecision } from "@/utils/formatting";
-import { api } from "@/trpc/react";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
-
 
 // Calculate direct cost for a specific model using actual token usage
 function calculateDirectModelCost(
 	usageData: { inputTokens: number; outputTokens: number }[],
 	modelId: string,
-	pricingData: Record<string, { inputCost: number; outputCost: number }> | undefined,
+	pricingData:
+		| Record<string, { inputCost: number; outputCost: number }>
+		| undefined,
 ): number {
 	if (!pricingData || !pricingData[modelId]) {
 		console.warn(`No pricing data found for model: ${modelId}`);
@@ -47,7 +48,8 @@ export function MetricsOverview({
 	selectedModel = "gpt-4o",
 }: MetricsOverviewProps) {
 	// Fetch dynamic pricing data
-	const { data: modelPricing, isLoading: pricingLoading } = api.modelPricing.getAllModelPricing.useQuery();
+	const { data: modelPricing, isLoading: pricingLoading } =
+		api.modelPricing.getAllModelPricing.useQuery();
 
 	if (loading || pricingLoading) {
 		return (
@@ -96,7 +98,7 @@ export function MetricsOverview({
 			data: savingsData,
 			color: "hsl(var(--chart-1))",
 			totalValue: formatCurrencyWithDynamicPrecision(
-				usageDataWithDynamicCosts.reduce((sum, d) => sum + d.savings, 0)
+				usageDataWithDynamicCosts.reduce((sum, d) => sum + d.savings, 0),
 			),
 		},
 		{
