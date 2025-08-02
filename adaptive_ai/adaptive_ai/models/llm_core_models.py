@@ -62,6 +62,3 @@ class ModelSelectionRequest(BaseModel):
     # Our custom parameters for model selection
     user_id: str | None = None
     protocol_manager_config: ProtocolManagerConfig | None = None
-
-    # Model capabilities array (may be partial, will be enriched with full capabilities)
-    models: list[ModelCapability] | None = None
