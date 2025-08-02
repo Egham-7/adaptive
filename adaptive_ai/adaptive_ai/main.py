@@ -320,7 +320,8 @@ def create_app() -> ls.LitServer:
                 model_capabilities=capability_dicts, invalid_models=invalid_names
             )
         except Exception as e:
-            fiberlog.error(f"Model conversion failed: {e}")
+            # Log error using console logging pattern
+            print(f"[LitServe] Model conversion failed: {str(e)}", flush=True)
             # Return error in response format that Go middleware expects
             return ModelConversionResponse(
                 model_capabilities=[],
