@@ -8,11 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/trpc/react";
 
-// Check if user is admin - this will be validated on the server side
-const isAdminUser = (userId: string) => {
-	// Client-side check is just for UI, real validation happens on server
-	return true; // Server will handle the real validation
-};
 
 export default function PromotionalCreditsAdmin() {
 	const { user, isLoaded } = useUser();
