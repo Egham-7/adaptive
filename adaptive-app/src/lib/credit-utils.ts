@@ -1,13 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import type { CreditTransactionType } from "prisma/generated";
+import { logger } from "@/lib/logger";
+import { CREDIT_LIMITS, TOKEN_PRICING } from "@/lib/pricing-config";
 import {
 	getPromotionalCreditStats,
 	hasUserReceivedPromotionalCredits,
 	PROMOTIONAL_CONFIG,
 } from "@/lib/promotional-config";
 import { db } from "@/server/db";
-import { logger } from "@/lib/logger";
-import { CREDIT_LIMITS, TOKEN_PRICING } from "@/lib/pricing-config";
 
 // ---- Core Credit Operations ----
 
@@ -67,7 +67,9 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 						},
 					});
 				}
-				logger.promotion(`Awarding promotional credits to user's first organization`);
+				logger.promotion(
+					`Awarding promotional credits to user's first organization`,
+				);
 
 				// Create organization credit with promotional balance
 				const orgCredit = await tx.organizationCredit.create({
@@ -97,7 +99,9 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 					},
 				});
 
-				logger.success(`Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`);
+				logger.success(
+					`Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`,
+				);
 				return orgCredit;
 			});
 		} catch (error: any) {
@@ -106,7 +110,9 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 				error.code === "P2002" &&
 				error.meta?.target?.includes("organizationId")
 			) {
-				logger.info(`Race condition detected, fetching existing organization credit`);
+				logger.info(
+					"Race condition detected, fetching existing organization credit",
+				);
 				const existingCredit = await db.organizationCredit.findUnique({
 					where: { organizationId },
 				});

@@ -14,7 +14,11 @@ interface LogContext {
 class Logger {
 	private isDevelopment = process.env.NODE_ENV === "development";
 
-	private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
+	private formatMessage(
+		level: LogLevel,
+		message: string,
+		context?: LogContext,
+	): string {
 		const timestamp = new Date().toISOString();
 		const contextStr = context ? ` | ${JSON.stringify(context)}` : "";
 		return `[${timestamp}] ${level.toUpperCase()}: ${message}${contextStr}`;
@@ -29,7 +33,7 @@ class Logger {
 	info(message: string, context?: LogContext) {
 		const formatted = this.formatMessage("info", message, context);
 		console.log(formatted);
-		
+
 		// Add breadcrumb for Sentry
 		Sentry.addBreadcrumb({
 			message,
@@ -41,7 +45,7 @@ class Logger {
 	warn(message: string, context?: LogContext) {
 		const formatted = this.formatMessage("warn", message, context);
 		console.warn(formatted);
-		
+
 		// Add breadcrumb for Sentry
 		Sentry.addBreadcrumb({
 			message,
@@ -53,7 +57,7 @@ class Logger {
 	error(message: string, error?: Error, context?: LogContext) {
 		const formatted = this.formatMessage("error", message, context);
 		console.error(formatted);
-		
+
 		if (error) {
 			console.error(error);
 			// Report to Sentry

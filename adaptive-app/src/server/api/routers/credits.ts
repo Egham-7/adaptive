@@ -8,8 +8,8 @@ import {
 	getOrganizationTransactionHistory,
 	hasSufficientCredits,
 } from "@/lib/credit-utils";
-import { stripe } from "@/lib/stripe/stripe";
 import { TOKEN_PRICING } from "@/lib/pricing-config";
+import { stripe } from "@/lib/stripe/stripe";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 // Configuration constants - old promotional system removed

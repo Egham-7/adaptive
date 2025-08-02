@@ -164,37 +164,41 @@ export default function PromotionalCreditsAdmin() {
 						</p>
 					) : (
 						<div className="space-y-4">
-							{stats?.transactions.map((transaction: PromotionalTransaction) => (
-								<div
-									key={transaction.userId}
-									className="flex items-center justify-between rounded-lg border p-4"
-								>
-									<div className="flex-1">
-										<div className="flex items-center gap-3">
-											<Badge variant="outline">#{transaction.userNumber}</Badge>
-											<div>
-												<p className="font-medium">
-													{transaction.organizationName}
-												</p>
-												<p className="text-muted-foreground text-sm">
-													User ID: {transaction.userId}
-												</p>
-												<p className="text-muted-foreground text-sm">
-													Org ID: {transaction.organizationId}
-												</p>
+							{stats?.transactions.map(
+								(transaction: PromotionalTransaction) => (
+									<div
+										key={transaction.userId}
+										className="flex items-center justify-between rounded-lg border p-4"
+									>
+										<div className="flex-1">
+											<div className="flex items-center gap-3">
+												<Badge variant="outline">
+													#{transaction.userNumber}
+												</Badge>
+												<div>
+													<p className="font-medium">
+														{transaction.organizationName}
+													</p>
+													<p className="text-muted-foreground text-sm">
+														User ID: {transaction.userId}
+													</p>
+													<p className="text-muted-foreground text-sm">
+														Org ID: {transaction.organizationId}
+													</p>
+												</div>
 											</div>
 										</div>
+										<div className="text-right">
+											<p className="font-medium text-green-600">
+												+${transaction.amount.toFixed(2)}
+											</p>
+											<p className="text-muted-foreground text-sm">
+												{new Date(transaction.awardedAt).toLocaleDateString()}
+											</p>
+										</div>
 									</div>
-									<div className="text-right">
-										<p className="font-medium text-green-600">
-											+${transaction.amount.toFixed(2)}
-										</p>
-										<p className="text-muted-foreground text-sm">
-											{new Date(transaction.awardedAt).toLocaleDateString()}
-										</p>
-									</div>
-								</div>
-							))}
+								),
+							)}
 						</div>
 					)}
 				</CardContent>

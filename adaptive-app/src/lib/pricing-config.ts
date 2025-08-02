@@ -19,7 +19,10 @@ export const TOKEN_PRICING = {
 	},
 
 	calculateTotalCost: (inputTokens: number, outputTokens: number): number => {
-		return TOKEN_PRICING.calculateInputCost(inputTokens) + TOKEN_PRICING.calculateOutputCost(outputTokens);
+		return (
+			TOKEN_PRICING.calculateInputCost(inputTokens) +
+			TOKEN_PRICING.calculateOutputCost(outputTokens)
+		);
 	},
 
 	// Format pricing for display
