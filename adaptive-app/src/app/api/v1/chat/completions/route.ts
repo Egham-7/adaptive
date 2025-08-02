@@ -16,24 +16,16 @@ export async function POST(req: NextRequest) {
 		const body: ChatCompletionRequest = await req.json();
 
 		// Extract API key from OpenAI-compatible headers
-		let apiKey: string | null = null;
-
 		const authHeader = req.headers.get("authorization");
-		if (authHeader?.startsWith("Bearer ")) {
-			const token = authHeader.slice(7).trim();
-			if (token) {
-				apiKey = token;
-			}
-		}
+		const bearerToken = authHeader?.startsWith("Bearer ")
+			? authHeader.slice(7).trim() || null
+			: null;
 
-		// Fallback to other headers if Bearer token not found or invalid
-		if (!apiKey) {
-			apiKey =
-				req.headers.get("x-api-key") ||
-				req.headers.get("api-key") ||
-				req.headers.get("x-stainless-api-key") ||
-				null;
-		}
+		const apiKey =
+			bearerToken ||
+			req.headers.get("x-api-key") ||
+			req.headers.get("api-key") ||
+			req.headers.get("x-stainless-api-key");
 
 		if (!apiKey) {
 			return new Response(
