@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 		console.log("=== Chat Completions API Request ===");
 		console.log("Method:", req.method);
 		console.log("URL:", req.url);
-		
+
 		const body: ChatCompletionRequest = await req.json();
 		console.log("Request body model:", body.model);
 		console.log("Request body stream:", body.stream);
@@ -20,8 +20,11 @@ export async function POST(req: NextRequest) {
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
 		console.log("Authorization header present:", !!authHeader);
-		console.log("Authorization header prefix:", authHeader?.substring(0, 10) + "...");
-		
+		console.log(
+			"Authorization header prefix:",
+			`${authHeader?.substring(0, 10)}...`,
+		);
+
 		const bearerToken = authHeader?.startsWith("Bearer ")
 			? authHeader.slice(7).replace(/\s+/g, "") || null
 			: null;
@@ -33,12 +36,20 @@ export async function POST(req: NextRequest) {
 			req.headers.get("x-api-key") ||
 			req.headers.get("api-key") ||
 			req.headers.get("x-stainless-api-key");
-		
+
 		console.log("Final API key found:", !!apiKey);
-		console.log("API key source:", bearerToken ? "Bearer" : 
-			req.headers.get("x-api-key") ? "X-API-Key" :
-			req.headers.get("api-key") ? "api-key" :
-			req.headers.get("x-stainless-api-key") ? "X-Stainless-API-Key" : "none");
+		console.log(
+			"API key source:",
+			bearerToken
+				? "Bearer"
+				: req.headers.get("x-api-key")
+					? "X-API-Key"
+					: req.headers.get("api-key")
+						? "api-key"
+						: req.headers.get("x-stainless-api-key")
+							? "X-Stainless-API-Key"
+							: "none",
+		);
 
 		if (!apiKey) {
 			console.log("❌ No API key found, returning 401");
@@ -54,7 +65,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		console.log("🔍 Verifying API key...", apiKey.substring(0, 8) + "...");
+		console.log("🔍 Verifying API key...", `${apiKey.substring(0, 8)}...`);
 		const { valid } = await api.api_keys.verify({
 			apiKey,
 		});
@@ -67,7 +78,7 @@ export async function POST(req: NextRequest) {
 				headers: { "Content-Type": "application/json" },
 			});
 		}
-		
+
 		console.log("✅ API key valid, proceeding with request");
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
@@ -75,7 +86,7 @@ export async function POST(req: NextRequest) {
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 		console.log("OpenAI client base URL:", baseURL);
-		
+
 		const openai = new OpenAI({
 			apiKey,
 			baseURL,
@@ -85,11 +96,19 @@ export async function POST(req: NextRequest) {
 			console.log("🌊 Starting streaming request...");
 			console.log("Streaming request payload:", {
 				model: body.model,
-				messages: body.messages?.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content.substring(0, 100) + '...' : '[object]' })),
+				messages: body.messages?.map((m) => ({
+					role: m.role,
+					content:
+						typeof m.content === "string"
+							? `${m.content.substring(0, 100)}...`
+							: "[object]",
+				})),
 				stream: true,
-				...Object.fromEntries(Object.entries(body).filter(([key]) => !['messages'].includes(key)))
+				...Object.fromEntries(
+					Object.entries(body).filter(([key]) => !["messages"].includes(key)),
+				),
 			});
-			
+
 			const stream = openai.chat.completions.stream({
 				...body,
 				stream: true,
@@ -163,10 +182,18 @@ export async function POST(req: NextRequest) {
 		console.log("📝 Starting non-streaming request...");
 		console.log("Non-streaming request payload:", {
 			model: body.model,
-			messages: body.messages?.map(m => ({ role: m.role, content: typeof m.content === 'string' ? m.content.substring(0, 100) + '...' : '[object]' })),
-			...Object.fromEntries(Object.entries(body).filter(([key]) => !['messages'].includes(key)))
+			messages: body.messages?.map((m) => ({
+				role: m.role,
+				content:
+					typeof m.content === "string"
+						? `${m.content.substring(0, 100)}...`
+						: "[object]",
+			})),
+			...Object.fromEntries(
+				Object.entries(body).filter(([key]) => !["messages"].includes(key)),
+			),
 		});
-		
+
 		const nonStreamStartTime = Date.now();
 		console.log("Non-stream start time:", nonStreamStartTime);
 
@@ -179,7 +206,7 @@ export async function POST(req: NextRequest) {
 				id: completion.id,
 				model: completion.model,
 				provider: completion.provider,
-				usage: completion.usage
+				usage: completion.usage,
 			});
 
 			// Record usage in background
@@ -233,8 +260,14 @@ export async function POST(req: NextRequest) {
 	} catch (error) {
 		console.error("❌ Chat completions outer error:", error);
 		console.error("Error type:", typeof error);
-		console.error("Error name:", error instanceof Error ? error.name : 'Unknown');
-		console.error("Error message:", error instanceof Error ? error.message : String(error));
+		console.error(
+			"Error name:",
+			error instanceof Error ? error.name : "Unknown",
+		);
+		console.error(
+			"Error message:",
+			error instanceof Error ? error.message : String(error),
+		);
 		if (error instanceof Error && error.stack) {
 			console.error("Error stack:", error.stack);
 		}
