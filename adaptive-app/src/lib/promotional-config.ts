@@ -5,13 +5,13 @@
 
 export const PROMOTIONAL_CONFIG = {
 	// Amount of free credits to give to new users (in USD)
-	FREE_CREDIT_AMOUNT: 1.0,
+	FREE_CREDIT_AMOUNT: 3.14,
 
 	// Maximum number of users who can receive promotional credits
 	MAX_PROMOTIONAL_USERS: 100,
 
 	// Description for promotional credit transactions
-	DESCRIPTION: "Welcome bonus - $1 free credit",
+	DESCRIPTION: "Welcome bonus - $3.14 free credit",
 
 	// Enable/disable promotional credits
 	ENABLED: true,
