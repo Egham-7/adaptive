@@ -758,7 +758,6 @@ export const usageRouter = createTRPCRouter({
 						);
 					};
 
-					// Calculate what each provider would cost if ALL requests went to that provider
 					const allProviderNames = [
 						"openai",
 						"anthropic",
@@ -768,21 +767,17 @@ export const usageRouter = createTRPCRouter({
 						"huggingface",
 					];
 
-					// Function to calculate cost for all usage if sent to a specific provider
 					const calculateSingleProviderCostForAllUsage = (
 						targetProvider: string,
 					) => {
 						return detailedUsage.reduce((sum, usage) => {
 							if (!usage.model) return sum;
 
-							// Get pricing for the target provider's equivalent model
 							const targetProviderModels = providerModelMap.get(targetProvider);
 							if (!targetProviderModels) return sum;
 
-							// Try to find exact model match first
 							let modelPricing = targetProviderModels.get(usage.model);
 
-							// If no exact match, find the most expensive model for that provider as fallback
 							if (!modelPricing) {
 								let maxInputCost = 0;
 								let maxOutputCost = 0;
@@ -807,7 +802,6 @@ export const usageRouter = createTRPCRouter({
 						}, 0);
 					};
 
-					// Calculate breakdown for ALL providers (not just ones with usage)
 					const providerBreakdownWithComparison = allProviderNames.map(
 						(providerName) => {
 							const usage = providerUsage.find(
@@ -815,7 +809,6 @@ export const usageRouter = createTRPCRouter({
 							);
 							const spend = usage ? ensureNumber(usage._sum.cost) : 0;
 
-							// Calculate what ALL requests would cost if sent to this provider
 							const estimatedSingleProviderCost =
 								calculateSingleProviderCostForAllUsage(providerName);
 
@@ -830,11 +823,11 @@ export const usageRouter = createTRPCRouter({
 
 							return {
 								provider: providerName,
-								spend, // Actual spend on this provider (0 if not used)
+								spend,
 								tokens: usage ? ensureNumber(usage._sum.totalTokens) : 0,
 								requests: usage ? ensureNumber(usage._sum.requestCount) : 0,
 								calls: usage ? ensureNumber(usage._count.id) : 0,
-								estimatedSingleProviderCost, // What ALL requests would cost on this provider
+								estimatedSingleProviderCost,
 								savings,
 								savingsPercentage,
 							};

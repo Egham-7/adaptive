@@ -105,7 +105,6 @@ export function useProjectDashboardData(
 			},
 		);
 
-		// Transform provider breakdown to providers - API now returns all providers with correct calculations
 		const providers = analyticsData.providerBreakdown.map((provider) => {
 			return {
 				id: provider.provider,
