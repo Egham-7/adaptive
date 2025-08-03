@@ -10,8 +10,9 @@ import type {
 const PROVIDER_ICONS = {
 	openai: "/logos/openai.webp",
 	anthropic: "/logos/anthropic.jpeg",
-	google: "/logos/google.svg",
+	gemini: "/logos/google.svg",
 	groq: "/logos/groq.png",
+	grok: "/logos/grok.png",
 	deepseek: "/logos/deepseek.svg",
 	huggingface: "/logos/huggingface.png",
 } as const;
@@ -55,6 +56,8 @@ export function useProjectDashboardData(
 			requests: trend.requests,
 			spend: trend.spend,
 			tokens: trend.tokens,
+			inputTokens: trend.inputTokens, // ← Add input tokens from backend
+			outputTokens: trend.outputTokens, // ← Add output tokens from backend
 		}));
 
 		// Transform daily trends to token data
@@ -103,7 +106,6 @@ export function useProjectDashboardData(
 			},
 		);
 
-		// Transform provider breakdown to providers
 		const providers = analyticsData.providerBreakdown.map((provider) => {
 			return {
 				id: provider.provider,
@@ -114,8 +116,8 @@ export function useProjectDashboardData(
 					PROVIDER_ICONS[provider.provider as keyof typeof PROVIDER_ICONS] ||
 					"/logos/default.svg",
 				comparisonCosts: {
-					adaptive: provider.spend,
-					single: provider.estimatedSingleProviderCost, // Use API-provided cost
+					adaptive: analyticsData.totalSpend, // Actual total cost with Adaptive
+					single: provider.estimatedSingleProviderCost, // What ALL requests would cost on this provider
 				},
 			};
 		});

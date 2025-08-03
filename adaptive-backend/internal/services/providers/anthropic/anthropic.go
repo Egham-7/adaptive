@@ -1,38 +1,44 @@
 package anthropic
 
 import (
+	"adaptive-backend/internal/services/providers/anthropic/chat"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
 	"os"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
-// AnthropicService handles Anthropic API interactions
+// AnthropicService handles Anthropic API interactions using OpenAI Go SDK
 type AnthropicService struct {
-	client *anthropic.Client
+	client *openai.Client
+	chat   *chat.AnthropicChat
 }
 
-// NewAnthropicService creates a new Anthropic service
+// NewAnthropicService creates a new Anthropic service using OpenAI Go SDK with Anthropic base URL
 func NewAnthropicService() (*AnthropicService, error) {
 	apiKey := os.Getenv("ANTHROPIC_API_KEY")
 	if apiKey == "" {
 		return nil, fmt.Errorf("ANTHROPIC_API_KEY environment variable not set")
 	}
 
-	client := anthropic.NewClient(
+	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
+		option.WithBaseURL("https://api.anthropic.com/v1/"),
 	)
 
-	return &AnthropicService{client: &client}, nil
+	chatService := chat.NewAnthropicChat(&client)
+
+	return &AnthropicService{
+		client: &client,
+		chat:   chatService,
+	}, nil
 }
 
 // Chat implements LLMProvider interface
 func (s *AnthropicService) Chat() provider_interfaces.Chat {
-	return &AnthropicChat{
-		completions: &AnthropicCompletions{client: s.client},
-	}
+	return s.chat
 }
 
 func (s *AnthropicService) GetProviderName() string {
