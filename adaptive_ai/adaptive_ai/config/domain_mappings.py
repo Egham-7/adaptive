@@ -20,7 +20,7 @@ minion_domains = {
     ),
     DomainType.NEWS: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],
-        model_name="mistralai/Mistral-7B-Instruct-v0.3",
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
     ),
     DomainType.OTHERDOMAINS: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],

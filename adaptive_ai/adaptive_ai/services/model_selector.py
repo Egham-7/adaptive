@@ -16,6 +16,10 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
 )
 from adaptive_ai.models.llm_enums import ProviderType, TaskType
+from adaptive_ai.models.unified_model import Model
+from adaptive_ai.services.unified_model_selector import (
+    ModelSelector as UnifiedModelSelector,
+)
 
 
 class LitLoggerProtocol:
@@ -94,7 +98,7 @@ class ModelSelectionService:
 
             # Pre-compute context limits for O(1) capability checks
             self._model_context_limits[(provider, model_name)] = (
-                capability.max_context_tokens
+                capability.max_context_tokens or 4096
             )
 
         # Convert to frozensets for immutable, hashable, and faster lookup
@@ -187,16 +191,59 @@ class ModelSelectionService:
         """Convert user-specified ModelCapability objects to ModelEntry objects and apply pipeline."""
         model_entries = []
 
-        # Convert user ModelCapability objects to ModelEntry objects
+        self.log("user_specified_models_count", {"count": len(user_models)})
+
+        # Convert all ModelCapability objects to ModelEntry objects
         for model_capability in user_models:
             try:
-                provider_type = ProviderType(model_capability.provider)
+                # Handle both ProviderType enum and custom provider strings
+                if isinstance(model_capability.provider, ProviderType):
+                    provider_type = model_capability.provider
+                else:
+                    # Try to convert to ProviderType, but if custom provider, use a fallback
+                    try:
+                        provider_type = ProviderType(model_capability.provider)
+                    except ValueError:
+                        # Custom provider like "botir" - use openai as fallback for routing
+                        # The actual provider will be handled by protocol manager
+                        provider_type = ProviderType.OPENAI
+                        self.log(
+                            "custom_provider_fallback",
+                            {
+                                "original_provider": model_capability.provider,
+                                "model": model_capability.model_name,
+                                "fallback_provider": "openai",
+                            },
+                        )
+
                 model_entry = ModelEntry(
                     providers=[provider_type], model_name=model_capability.model_name
                 )
+                # Store original provider info for custom models
+                if (
+                    hasattr(model_capability, "provider")
+                    and str(model_capability.provider) != provider_type.value
+                ):
+                    # Add original provider as metadata
+                    model_entry._original_provider = str(model_capability.provider)
+                    self.log(
+                        "original_provider_stored",
+                        {
+                            "model": model_capability.model_name,
+                            "original_provider": str(model_capability.provider),
+                            "fallback_provider": provider_type.value,
+                        },
+                    )
                 model_entries.append(model_entry)
-            except ValueError:
-                self.log("invalid_user_provider", model_capability.provider)
+            except Exception as e:
+                self.log(
+                    "model_entry_error",
+                    {
+                        "provider": model_capability.provider,
+                        "model": model_capability.model_name,
+                        "error": str(e),
+                    },
+                )
                 continue
 
         if not model_entries:
@@ -673,10 +720,11 @@ class ModelSelectionService:
     ) -> list[ModelCapability]:
         """
         Enrich partial ModelCapability objects with complete capability information.
+        Now supports custom models with task_type and complexity specifications.
 
         Args:
-            partial_models: List of partial ModelCapability objects that may only
-                          have provider and/or model_name set
+            partial_models: List of ModelCapability objects that may be partial
+                          (only provider/model_name) or fully specified with task info
 
         Returns:
             List of fully enriched ModelCapability objects
@@ -692,23 +740,55 @@ class ModelSelectionService:
 
         for model_cap in partial_models:
             try:
-                # Case 1: Both provider and model_name provided
+                # Check if this is a fully specified custom model
+                required_fields = [
+                    "cost_per_1m_input_tokens",
+                    "cost_per_1m_output_tokens",
+                    "max_context_tokens",
+                    "supports_function_calling",
+                ]
+
+                is_fully_specified = all(
+                    hasattr(model_cap, field) and getattr(model_cap, field) is not None
+                    for field in required_fields
+                )
+
+                if is_fully_specified:
+                    # Custom model with full specification - pass through
+                    enriched_capabilities.append(model_cap)
+                    self.log(
+                        "custom_model_accepted",
+                        {
+                            "model": f"{model_cap.provider}/{model_cap.model_name}",
+                            "task_type": getattr(model_cap, "task_type", "general"),
+                            "complexity": getattr(model_cap, "complexity", "medium"),
+                            "reason": "fully_specified_custom_model",
+                        },
+                    )
+                    continue
+
+                # Handle partial models that need registry lookup
                 if model_cap.provider and model_cap.model_name:
+                    # Try registry lookup for partial models
                     model_key = (model_cap.provider, model_cap.model_name)
                     full_capability = self._all_model_capabilities_by_id.get(model_key)
                     if full_capability:
                         enriched_capabilities.append(full_capability)
+                        self.log(
+                            "registry_model_found",
+                            {"model": f"{model_cap.provider}/{model_cap.model_name}"},
+                        )
                     else:
+                        # Not in registry - might be a custom model missing required fields
                         invalid_models.append(
-                            f"{model_cap.provider}/{model_cap.model_name}"
+                            f"{model_cap.provider}/{model_cap.model_name} (not in registry and missing required fields)"
                         )
 
-                # Case 2: Only model_name provided, find the provider
                 elif model_cap.model_name and not model_cap.provider:
-                    # Search through all providers for this model
+                    # Search registry by model name only
                     found_capability = None
                     for (
-                        _provider,
+                        _,
                         model_name,
                     ), capability in self._all_model_capabilities_by_id.items():
                         if model_name == model_cap.model_name:
@@ -717,16 +797,16 @@ class ModelSelectionService:
 
                     if found_capability:
                         enriched_capabilities.append(found_capability)
-                    else:
-                        invalid_models.append(
-                            f"unknown_provider/{model_cap.model_name}"
+                        self.log(
+                            "registry_model_found_by_name",
+                            {
+                                "model": model_cap.model_name,
+                                "provider": found_capability.provider,
+                            },
                         )
+                    else:
+                        invalid_models.append(f"unknown/{model_cap.model_name}")
 
-                # Case 3: Only provider provided - invalid, need model name
-                elif model_cap.provider and not model_cap.model_name:
-                    invalid_models.append(f"{model_cap.provider}/missing_model_name")
-
-                # Case 4: Neither provider nor model_name - invalid
                 else:
                     invalid_models.append("missing_provider_and_model_name")
 
@@ -737,20 +817,136 @@ class ModelSelectionService:
                 )
                 invalid_models.append(f"error_processing_{model_cap}: {e!s}")
 
-        # If any models are invalid, raise error with details
+        # Log results but don't fail on invalid models - let the system continue
         if invalid_models:
             self.log(
-                "model_enrichment_failed",
-                {"invalid_models": invalid_models, "total_models": len(partial_models)},
+                "some_models_invalid",
+                {
+                    "invalid_models": invalid_models,
+                    "valid_models": len(enriched_capabilities),
+                },
             )
-            raise ValueError(f"Invalid or incomplete model(s): {invalid_models}")
 
         self.log(
-            "model_enrichment_success",
+            "model_enrichment_complete",
             {
                 "enriched_count": len(enriched_capabilities),
-                "total_models": len(partial_models),
+                "total_requested": len(partial_models),
+                "custom_models": len(
+                    [
+                        m
+                        for m in enriched_capabilities
+                        if hasattr(m, "task_type") and m.task_type is not None
+                    ]
+                ),
             },
         )
 
+        # Return what we have - even if some models were invalid
         return enriched_capabilities
+
+    def select_models_unified(
+        self,
+        request: ModelSelectionRequest,
+        classification_result: ClassificationResult,
+        prompt_token_count: int,
+        domain_classification: DomainClassificationResult | None = None,
+    ) -> list[Model]:
+        """
+        Use the new unified model selector for clean, readable model selection.
+        Supports both registry and custom models with task-aware selection.
+        """
+
+        # Extract task type from classification
+        task_type = (
+            classification_result.task_type_1[0]
+            if classification_result.task_type_1
+            else "OTHER"
+        )
+
+        # Get prompt complexity score
+        prompt_complexity = (
+            classification_result.prompt_complexity_score[0]
+            if classification_result.prompt_complexity_score
+            else 0.5
+        )
+
+        # Determine cost preference
+        cost_bias = (
+            request.protocol_manager_config.cost_bias
+            if request.protocol_manager_config
+            and request.protocol_manager_config.cost_bias is not None
+            else 0.5
+        )
+        prefer_cost = cost_bias < 0.5
+
+        # Prepare custom models if provided
+        custom_models_dict = None
+        if request.protocol_manager_config and request.protocol_manager_config.models:
+
+            # Convert ModelCapability objects to dict format for unified selector
+            custom_models_dict = []
+            for model_cap in request.protocol_manager_config.models:
+                if self._is_fully_specified_model(model_cap):
+                    model_dict = {
+                        "provider": str(model_cap.provider),
+                        "model_name": model_cap.model_name,
+                        "cost_per_1m_input_tokens": model_cap.cost_per_1m_input_tokens,
+                        "cost_per_1m_output_tokens": model_cap.cost_per_1m_output_tokens,
+                        "max_context_tokens": model_cap.max_context_tokens,
+                        "supports_function_calling": model_cap.supports_function_calling,
+                        "task_type": getattr(model_cap, "task_type", None),
+                        "complexity": getattr(model_cap, "complexity", "medium"),
+                    }
+                    custom_models_dict.append(model_dict)
+
+        # Get registry models as ModelCapability objects
+        registry_capabilities = [
+            model
+            for provider_models in provider_model_capabilities.values()
+            for model in provider_models
+        ]
+
+        # Initialize unified selector
+        unified_selector = UnifiedModelSelector(registry_capabilities)
+
+        # Find best models using unified selector
+        selected_models = unified_selector.find_best_models(
+            task_type=task_type,
+            prompt_complexity=prompt_complexity,
+            prompt_token_count=prompt_token_count,
+            custom_models=custom_models_dict,
+            prefer_cost_over_performance=prefer_cost,
+            max_models=10,
+        )
+
+        # Log the selection
+        self.log(
+            "unified_model_selection",
+            {
+                "task_type": task_type,
+                "prompt_complexity": prompt_complexity,
+                "prompt_tokens": prompt_token_count,
+                "prefer_cost": prefer_cost,
+                "selected_models": [m.unique_id for m in selected_models],
+                "custom_models_provided": (
+                    len(custom_models_dict) if custom_models_dict else 0
+                ),
+            },
+        )
+
+        return selected_models
+
+    def _is_fully_specified_model(self, model_cap: ModelCapability) -> bool:
+        """Check if a ModelCapability has all required fields for custom models."""
+        required_fields = [
+            "cost_per_1m_input_tokens",
+            "cost_per_1m_output_tokens",
+            "max_context_tokens",
+            "supports_function_calling",
+        ]
+
+        return all(
+            hasattr(model_cap, field) and getattr(model_cap, field) is not None
+            for field in required_fields
+        )

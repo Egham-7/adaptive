@@ -1,6 +1,8 @@
 # llm_core_models.py
 
 
+from typing import Any
+
 from openai.types.chat import (
     CompletionCreateParams,
 )
@@ -11,18 +13,30 @@ from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskMod
 
 class ModelCapability(BaseModel):
     description: str | None = None
-    provider: ProviderType
+    provider: Any = None  # Accept any provider string or ProviderType
     model_name: str
-    cost_per_1m_input_tokens: float = Field(alias="cost_per_1m_input_tokens")
-    cost_per_1m_output_tokens: float = Field(alias="cost_per_1m_output_tokens")
-    max_context_tokens: int = Field(alias="max_context_tokens")
+    cost_per_1m_input_tokens: float | None = Field(
+        None, alias="cost_per_1m_input_tokens"
+    )
+    cost_per_1m_output_tokens: float | None = Field(
+        None, alias="cost_per_1m_output_tokens"
+    )
+    max_context_tokens: int | None = Field(None, alias="max_context_tokens")
     max_output_tokens: int | None = Field(None, alias="max_output_tokens")
-    supports_function_calling: bool = Field(alias="supports_function_calling")
+    supports_function_calling: bool | None = Field(
+        None, alias="supports_function_calling"
+    )
     languages_supported: list[str] = Field(
         default_factory=list, alias="languages_supported"
     )
     model_size_params: str | None = Field(None, alias="model_size_params")
     latency_tier: str | None = Field(None, alias="latency_tier")
+
+    # NEW: Task-specific capabilities for custom models
+    task_type: str | None = Field(
+        None, alias="task_type"
+    )  # "OPEN_QA", "CODE_GENERATION", etc.
+    complexity: str | None = Field(None, alias="complexity")  # "easy", "medium", "hard"
 
 
 class ProtocolManagerConfig(BaseModel):
@@ -37,6 +51,7 @@ class ProtocolManagerConfig(BaseModel):
 class ModelEntry(BaseModel):
     providers: list[ProviderType]
     model_name: str = Field(alias="model_name")
+    _original_provider: str | None = None
 
 
 class TaskModelMapping(BaseModel):
