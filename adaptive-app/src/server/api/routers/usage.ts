@@ -769,23 +769,21 @@ export const usageRouter = createTRPCRouter({
 							const targetProviderModels = providerModelMap.get(targetProvider);
 							if (!targetProviderModels) return sum;
 
-							let modelPricing = targetProviderModels.get(usage.model);
-
-							if (!modelPricing) {
-								let maxInputCost = 0;
-								let maxOutputCost = 0;
-								for (const [_, pricing] of targetProviderModels.entries()) {
-									maxInputCost = Math.max(maxInputCost, pricing.inputTokenCost);
-									maxOutputCost = Math.max(
-										maxOutputCost,
-										pricing.outputTokenCost,
-									);
-								}
-								modelPricing = {
-									inputTokenCost: maxInputCost,
-									outputTokenCost: maxOutputCost,
-								};
-							}
+							const modelPricing =
+								targetProviderModels.get(usage.model) ??
+								Array.from(targetProviderModels.values()).reduce(
+									(maxPricing, pricing) => ({
+										inputTokenCost: Math.max(
+											maxPricing.inputTokenCost,
+											pricing.inputTokenCost,
+										),
+										outputTokenCost: Math.max(
+											maxPricing.outputTokenCost,
+											pricing.outputTokenCost,
+										),
+									}),
+									{ inputTokenCost: 0, outputTokenCost: 0 },
+								);
 
 							return (
 								sum +
