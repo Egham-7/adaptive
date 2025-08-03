@@ -22,6 +22,8 @@ type ModelCapability struct {
 	LanguagesSupported      []string `json:"languages_supported,omitempty"`
 	ModelSizeParams         *string  `json:"model_size_params,omitempty"`
 	LatencyTier             *string  `json:"latency_tier,omitempty"`
+	TaskType                *string  `json:"task_type,omitempty"`
+	Complexity              *string  `json:"complexity,omitempty"`
 }
 
 // FallbackMode defines the strategy for handling provider failures

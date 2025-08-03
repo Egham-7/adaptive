@@ -67,7 +67,7 @@ class CostOptimizer:
             return self._tier_cache[model_capability.model_name]
 
         cost = model_capability.cost_per_1m_output_tokens
-        index = int(np.searchsorted(self._tier_thresholds, cost))
+        index = int(np.searchsorted(self._tier_thresholds, cost or 0.5))
         tier = self._tier_names[index]
 
         self._tier_cache[model_capability.model_name] = tier
