@@ -741,7 +741,7 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					// Calculate what the cost would be if using only the most expensive provider
-					const calculateAlternativeProviderCost = (usage: {
+					const _calculateAlternativeProviderCost = (usage: {
 						provider: string | null;
 						model: string | null;
 						inputTokens: number;
@@ -758,35 +758,72 @@ export const usageRouter = createTRPCRouter({
 						);
 					};
 
-					// Calculate savings for each provider
-					const providerBreakdownWithComparison = providerUsage.map((usage) => {
-						const spend = ensureNumber(usage._sum.cost);
+					const allProviderNames = providers.map((provider) => provider.name);
 
-						// Calculate what this provider's usage would cost with the most expensive alternative
-						const relevantUsage = detailedUsage.filter(
-							(u) => u.provider === usage.provider,
-						);
-						const estimatedAlternativeCost = relevantUsage.reduce((sum, u) => {
-							return sum + calculateAlternativeProviderCost(u);
+					const calculateSingleProviderCostForAllUsage = (
+						targetProvider: string,
+					) => {
+						return detailedUsage.reduce((sum, usage) => {
+							if (!usage.model) return sum;
+
+							const targetProviderModels = providerModelMap.get(targetProvider);
+							if (!targetProviderModels) return sum;
+
+							const modelPricing =
+								targetProviderModels.get(usage.model) ??
+								Array.from(targetProviderModels.values()).reduce(
+									(maxPricing, pricing) => ({
+										inputTokenCost: Math.max(
+											maxPricing.inputTokenCost,
+											pricing.inputTokenCost,
+										),
+										outputTokenCost: Math.max(
+											maxPricing.outputTokenCost,
+											pricing.outputTokenCost,
+										),
+									}),
+									{ inputTokenCost: 0, outputTokenCost: 0 },
+								);
+
+							return (
+								sum +
+								((usage.inputTokens * modelPricing.inputTokenCost) / 1000000 +
+									(usage.outputTokens * modelPricing.outputTokenCost) / 1000000)
+							);
 						}, 0);
+					};
 
-						const savings = Math.max(0, estimatedAlternativeCost - spend);
-						const savingsPercentage =
-							estimatedAlternativeCost > 0
-								? (savings / estimatedAlternativeCost) * 100
-								: 0;
+					const providerBreakdownWithComparison = allProviderNames.map(
+						(providerName) => {
+							const usage = providerUsage.find(
+								(u) => u.provider === providerName,
+							);
+							const spend = usage ? ensureNumber(usage._sum.cost) : 0;
 
-						return {
-							provider: usage.provider,
-							spend,
-							tokens: ensureNumber(usage._sum.totalTokens),
-							requests: ensureNumber(usage._sum.requestCount),
-							calls: ensureNumber(usage._count.id),
-							estimatedSingleProviderCost: estimatedAlternativeCost,
-							savings,
-							savingsPercentage,
-						};
-					});
+							const estimatedSingleProviderCost =
+								calculateSingleProviderCostForAllUsage(providerName);
+
+							const savings = Math.max(
+								0,
+								estimatedSingleProviderCost - totalSpend,
+							);
+							const savingsPercentage =
+								estimatedSingleProviderCost > 0
+									? (savings / estimatedSingleProviderCost) * 100
+									: 0;
+
+							return {
+								provider: providerName,
+								spend,
+								tokens: usage ? ensureNumber(usage._sum.totalTokens) : 0,
+								requests: usage ? ensureNumber(usage._sum.requestCount) : 0,
+								calls: usage ? ensureNumber(usage._count.id) : 0,
+								estimatedSingleProviderCost,
+								savings,
+								savingsPercentage,
+							};
+						},
+					);
 
 					// Calculate total comparison cost across all providers
 					const totalEstimatedSingleProviderCost =

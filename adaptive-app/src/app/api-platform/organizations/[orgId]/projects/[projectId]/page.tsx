@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
 import { MetricsOverview } from "@/app/_components/api-platform/organizations/projects/dashboard/metrics-overview";
+import { ProviderComparisonTable } from "@/app/_components/api-platform/organizations/projects/dashboard/provider-comparison-table";
 import { TaskDistributionChart } from "@/app/_components/api-platform/organizations/projects/dashboard/task-distribution-chart";
 import { UsageSection } from "@/app/_components/api-platform/organizations/projects/dashboard/usage-section";
 import { Button } from "@/components/ui/button";
@@ -145,6 +146,26 @@ export default function DashboardPage() {
 					<TaskDistributionChart data={data} loading={loading} />
 				</div>
 			</section>
+
+			{/* Provider Comparison Section - Only show when "All Providers" is selected */}
+			{selectedProvider === "all" && (
+				<>
+					{/* Divider */}
+					<div className="border-border border-t" />
+
+					<section className="space-y-4">
+						<div className="flex items-center justify-between">
+							<h2 className="font-semibold text-foreground text-xl">
+								Provider Cost Comparison
+							</h2>
+							<div className="text-muted-foreground text-sm">
+								Compare costs across all providers
+							</div>
+						</div>
+						<ProviderComparisonTable data={data} loading={loading} />
+					</section>
+				</>
+			)}
 
 			{/* Divider */}
 			<div className="border-border border-t" />

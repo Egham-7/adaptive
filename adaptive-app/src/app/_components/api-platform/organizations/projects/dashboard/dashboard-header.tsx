@@ -57,6 +57,9 @@ export function DashboardHeader({
 						</SelectValue>
 					</SelectTrigger>
 					<SelectContent>
+						<SelectItem value="all">
+							<span>All Providers</span>
+						</SelectItem>
 						{providers.map((provider) => (
 							<SelectItem key={provider.id} value={provider.id}>
 								<div className="flex items-center gap-2">
