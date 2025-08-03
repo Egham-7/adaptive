@@ -10,8 +10,9 @@ import type {
 const PROVIDER_ICONS = {
 	openai: "/logos/openai.webp",
 	anthropic: "/logos/anthropic.jpeg",
-	google: "/logos/google.svg",
+	gemini: "/logos/google.svg",
 	groq: "/logos/groq.png",
+	grok: "/logos/grok.png",
 	deepseek: "/logos/deepseek.svg",
 	huggingface: "/logos/huggingface.png",
 } as const;
