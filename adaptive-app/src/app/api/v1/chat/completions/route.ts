@@ -47,6 +47,36 @@ export async function POST(req: NextRequest) {
 			});
 		}
 
+		// Pre-flight credit check - estimate token usage
+		const messages = body.messages || [];
+		const estimatedInputTokens = messages.reduce((acc, msg) => {
+			return (
+				acc + (typeof msg.content === "string" ? msg.content.length / 4 : 0)
+			);
+		}, 0);
+		const estimatedOutputTokens = body.max_completion_tokens || 1000; // Default estimate
+
+		try {
+			await api.usage.checkCreditsBeforeUsage({
+				apiKey,
+				estimatedInputTokens,
+				estimatedOutputTokens,
+			});
+		} catch (error: unknown) {
+			const statusCode =
+				(error as { code?: string }).code === "PAYMENT_REQUIRED" ? 402 : 400;
+			return new Response(
+				JSON.stringify({
+					error:
+						(error as { message?: string }).message || "Credit check failed",
+				}),
+				{
+					status: statusCode,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
 
