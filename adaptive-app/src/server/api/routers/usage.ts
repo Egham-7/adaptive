@@ -3,6 +3,12 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { invalidateAnalyticsCache, withCache } from "@/lib/cache-utils";
 import {
+	calculateCreditCost,
+	deductCredits,
+	getOrganizationBalance,
+	hasSufficientCredits,
+} from "@/lib/credit-utils";
+import {
 	createTRPCRouter,
 	protectedProcedure,
 	publicProcedure,
@@ -15,6 +21,72 @@ const ensureNumber = (value: number | null | undefined): number => {
 };
 
 export const usageRouter = createTRPCRouter({
+	// Pre-flight credit check before API usage
+	checkCreditsBeforeUsage: publicProcedure
+		.input(
+			z.object({
+				apiKey: z.string(),
+				estimatedInputTokens: z
+					.number()
+					.min(0, "Input tokens must be non-negative"),
+				estimatedOutputTokens: z
+					.number()
+					.min(0, "Output tokens must be non-negative"),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			// Hash the API key to find it in database
+			const keyHash = crypto
+				.createHash("sha256")
+				.update(input.apiKey)
+				.digest("hex");
+
+			// Verify API key and get organization
+			const apiKey = await ctx.db.apiKey.findFirst({
+				where: { keyHash },
+				include: { project: { include: { organization: true } } },
+			});
+
+			if (!apiKey || !apiKey.project) {
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Invalid API key",
+				});
+			}
+
+			const organizationId = apiKey.project.organization.id;
+
+			// Calculate estimated credit cost
+			const estimatedCreditCost = calculateCreditCost(
+				input.estimatedInputTokens,
+				input.estimatedOutputTokens,
+			);
+
+			// Check if organization has sufficient credits
+			const hasEnoughCredits = await hasSufficientCredits(
+				organizationId,
+				estimatedCreditCost,
+			);
+
+			if (!hasEnoughCredits) {
+				const currentBalance = await getOrganizationBalance(organizationId);
+				throw new TRPCError({
+					code: "PAYMENT_REQUIRED",
+					message: `Insufficient credits. Estimated cost: $${estimatedCreditCost.toFixed(
+						4,
+					)}, Available: $${currentBalance.toFixed(
+						4,
+					)}. Please purchase more credits.`,
+				});
+			}
+
+			return {
+				hasEnoughCredits: true,
+				currentBalance: await getOrganizationBalance(organizationId),
+				estimatedCost: estimatedCreditCost,
+			};
+		}),
+
 	// Record API usage for chat completions
 	recordApiUsage: publicProcedure
 		.input(
@@ -34,9 +106,11 @@ export const usageRouter = createTRPCRouter({
 					.nullable(),
 				model: z.string().nullable(),
 				usage: z.object({
-					promptTokens: z.number(),
-					completionTokens: z.number(),
-					totalTokens: z.number(),
+					promptTokens: z.number().min(0, "Prompt tokens must be non-negative"),
+					completionTokens: z
+						.number()
+						.min(0, "Completion tokens must be non-negative"),
+					totalTokens: z.number().min(0, "Total tokens must be non-negative"),
 				}),
 				duration: z.number(),
 				timestamp: z.date(),
@@ -59,12 +133,28 @@ export const usageRouter = createTRPCRouter({
 						keyHash,
 						status: "active",
 					},
+					include: {
+						project: {
+							include: {
+								organization: true,
+							},
+						},
+					},
 				});
 
 				if (!apiKey) {
 					throw new TRPCError({
 						code: "FORBIDDEN",
 						message: "Invalid API key",
+					});
+				}
+
+				// Get organization ID from API key's project
+				const organizationId = apiKey.project?.organizationId;
+				if (!organizationId) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "API key is not associated with an organization",
 					});
 				}
 
@@ -156,6 +246,7 @@ export const usageRouter = createTRPCRouter({
 								},
 							);
 
+				// Calculate provider cost (what you pay to the provider)
 				const calculatedCost = providerModel
 					? (input.usage.promptTokens *
 							providerModel.inputTokenCost.toNumber() +
@@ -163,6 +254,33 @@ export const usageRouter = createTRPCRouter({
 								providerModel.outputTokenCost.toNumber()) /
 						1000000
 					: 0;
+
+				// Calculate credit cost (what you charge the user)
+				// $0.05 per 1M input tokens, $0.15 per 1M output tokens
+				const creditCost = calculateCreditCost(
+					input.usage.promptTokens,
+					input.usage.completionTokens,
+				);
+
+				console.log("🔍 Checking credit balance before API usage:.");
+
+				// Check if organization has sufficient credits before processing
+				const hasEnoughCredits = await hasSufficientCredits(
+					organizationId,
+					creditCost,
+				);
+
+				if (!hasEnoughCredits) {
+					const currentBalance = await getOrganizationBalance(organizationId);
+					throw new TRPCError({
+						code: "PAYMENT_REQUIRED",
+						message: `Insufficient credits. Required: $${creditCost.toFixed(
+							4,
+						)}, Available: $${currentBalance.toFixed(
+							4,
+						)}. Please purchase more credits.`,
+					});
+				}
 
 				// Record the usage
 				const usage = await ctx.db.apiUsage.create({
@@ -175,7 +293,8 @@ export const usageRouter = createTRPCRouter({
 						inputTokens: input.usage.promptTokens,
 						outputTokens: input.usage.completionTokens,
 						totalTokens: input.usage.totalTokens,
-						cost: calculatedCost,
+						cost: calculatedCost, // Provider cost
+						creditCost: creditCost, // User credit cost
 						requestCount: input.requestCount,
 						metadata: {
 							...input.metadata,
@@ -185,6 +304,25 @@ export const usageRouter = createTRPCRouter({
 							userId: apiKey.userId, // Get userId from the API key
 						},
 					},
+				});
+
+				console.log("💸 Deducting credits for API usage.");
+
+				// Deduct credits from organization's account
+				const creditTransaction = await deductCredits({
+					organizationId,
+					userId: apiKey.userId,
+					amount: creditCost,
+					description: `API usage: ${input.usage.promptTokens} input + ${input.usage.completionTokens} output tokens`,
+					metadata: {
+						provider: input.provider,
+						model: input.model,
+						inputTokens: input.usage.promptTokens,
+						outputTokens: input.usage.completionTokens,
+						duration: input.duration,
+					},
+					apiKeyId: apiKey.id,
+					apiUsageId: usage.id,
 				});
 
 				// Update the API key's last used timestamp
@@ -199,7 +337,16 @@ export const usageRouter = createTRPCRouter({
 					apiKey.projectId || undefined,
 				);
 
-				return { success: true, usage };
+				console.log("✅ API usage recorded and credits deducted.");
+
+				return {
+					success: true,
+					usage,
+					creditTransaction: {
+						amount: creditTransaction.deductedAmount,
+						newBalance: creditTransaction.newBalance,
+					},
+				};
 			} catch (error) {
 				console.error("Failed to record API usage:", error);
 				if (error instanceof TRPCError) {
@@ -249,6 +396,13 @@ export const usageRouter = createTRPCRouter({
 					where: {
 						keyHash,
 						status: "active",
+					},
+					include: {
+						project: {
+							include: {
+								organization: true,
+							},
+						},
 					},
 				});
 
@@ -376,6 +530,10 @@ export const usageRouter = createTRPCRouter({
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -389,6 +547,7 @@ export const usageRouter = createTRPCRouter({
 						_sum: {
 							totalTokens: true,
 							cost: true,
+							creditCost: true,
 							requestCount: true,
 						},
 						_count: {
@@ -431,7 +590,13 @@ export const usageRouter = createTRPCRouter({
 						timestamp: z.date(),
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
+							inputTokens: z.number().nullable(), // ← Add input tokens validation
+							outputTokens: z.number().nullable(), // ← Add output tokens validation
 							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
@@ -455,7 +620,17 @@ export const usageRouter = createTRPCRouter({
 
 					// Filter out null providers and provide default for unknown providers
 					const providerUsage = providerUsageSchema.array().parse(
-						rawProviderUsage.map((usage: any) => ({
+						(
+							rawProviderUsage as Array<{
+								provider: string | null;
+								_sum: {
+									totalTokens: number | null;
+									cost: { toNumber(): number } | null;
+									requestCount: number | null;
+								};
+								_count: { id: number };
+							}>
+						).map((usage) => ({
 							...usage,
 							provider: usage.provider || "unknown",
 						})),
@@ -484,7 +659,10 @@ export const usageRouter = createTRPCRouter({
 							where: whereClause,
 							_sum: {
 								totalTokens: true,
-								cost: true,
+								inputTokens: true, // ← Add input tokens
+								outputTokens: true, // ← Add output tokens
+								cost: true, // ← Keep for admin dashboard
+								creditCost: true, // ← Add for customer dashboard
 								requestCount: true,
 							},
 							orderBy: {
@@ -494,7 +672,7 @@ export const usageRouter = createTRPCRouter({
 					);
 
 					// Calculate comparison costs using database provider pricing
-					const totalSpend = ensureNumber(totalMetrics._sum.cost);
+					const totalSpend = ensureNumber(totalMetrics._sum.creditCost); // Use creditCost for customer spending
 
 					// Get all providers with their pricing data
 					const providers = await ctx.db.provider.findMany({
@@ -679,8 +857,11 @@ export const usageRouter = createTRPCRouter({
 							const dateKey = usage.timestamp.toISOString().split("T")[0];
 							return {
 								date: usage.timestamp,
-								spend: ensureNumber(usage._sum.cost),
+								spend: ensureNumber(usage._sum.creditCost), // ← Use creditCost for customer spending
+								providerCost: ensureNumber(usage._sum.cost), // ← Keep provider cost for admin
 								tokens: ensureNumber(usage._sum.totalTokens),
+								inputTokens: ensureNumber(usage._sum.inputTokens), // ← Add input tokens
+								outputTokens: ensureNumber(usage._sum.outputTokens), // ← Add output tokens
 								requests: ensureNumber(usage._sum.requestCount),
 								errorCount: dateKey ? errorsByDay[dateKey] || 0 : 0,
 							};
@@ -749,6 +930,10 @@ export const usageRouter = createTRPCRouter({
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
 							requestCount: z.number().nullable(),
 						}),
 						_count: z.object({
@@ -763,6 +948,7 @@ export const usageRouter = createTRPCRouter({
 							_sum: {
 								totalTokens: true,
 								cost: true,
+								creditCost: true,
 								requestCount: true,
 							},
 							_count: {
@@ -776,6 +962,10 @@ export const usageRouter = createTRPCRouter({
 						_sum: z.object({
 							totalTokens: z.number().nullable(),
 							cost: z
+								.any()
+								.nullable()
+								.transform((val) => (val ? Number(val) : 0)),
+							creditCost: z
 								.any()
 								.nullable()
 								.transform((val) => (val ? Number(val) : 0)),
@@ -793,6 +983,7 @@ export const usageRouter = createTRPCRouter({
 							_sum: {
 								totalTokens: true,
 								cost: true,
+								creditCost: true,
 								requestCount: true,
 							},
 							_count: {
@@ -811,7 +1002,7 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					return {
-						totalSpend: ensureNumber(totalMetrics._sum.cost),
+						totalSpend: ensureNumber(totalMetrics._sum.creditCost),
 						totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
 						totalRequests: ensureNumber(totalMetrics._sum.requestCount),
 						totalApiCalls: ensureNumber(totalMetrics._count.id),
@@ -820,7 +1011,7 @@ export const usageRouter = createTRPCRouter({
 							return {
 								projectId: usage.projectId,
 								projectName: project?.name || "Unknown Project",
-								spend: ensureNumber(usage._sum.cost),
+								spend: ensureNumber(usage._sum.creditCost),
 								tokens: ensureNumber(usage._sum.totalTokens),
 								requests: ensureNumber(usage._sum.requestCount),
 								calls: ensureNumber(usage._count.id),

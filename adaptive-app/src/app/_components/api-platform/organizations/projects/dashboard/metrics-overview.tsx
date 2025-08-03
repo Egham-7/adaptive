@@ -7,17 +7,51 @@ import {
 	FaExclamationTriangle,
 	FaServer,
 } from "react-icons/fa";
+import { api } from "@/trpc/react";
 import type { DashboardData } from "@/types/api-platform/dashboard";
+import { formatCurrencyWithDynamicPrecision } from "@/utils/formatting";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
+
+// Calculate direct cost for a specific model using actual token usage
+function calculateDirectModelCost(
+	usageData: { inputTokens: number; outputTokens: number }[],
+	modelId: string,
+	pricingData:
+		| Record<string, { inputCost: number; outputCost: number }>
+		| undefined,
+): number {
+	if (!pricingData || !pricingData[modelId]) {
+		console.warn(`No pricing data found for model: ${modelId}`);
+		return 0;
+	}
+
+	const modelPricing = pricingData[modelId];
+
+	return usageData.reduce((totalCost, usage) => {
+		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
+		const outputCost =
+			(usage.outputTokens / 1_000_000) * modelPricing.outputCost;
+		return totalCost + inputCost + outputCost;
+	}, 0);
+}
 
 interface MetricsOverviewProps {
 	data: DashboardData | null;
 	loading: boolean;
+	selectedModel?: string;
 }
 
-export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
-	if (loading) {
+export function MetricsOverview({
+	data,
+	loading,
+	selectedModel = "gpt-4o",
+}: MetricsOverviewProps) {
+	// Fetch dynamic pricing data
+	const { data: modelPricing, isLoading: pricingLoading } =
+		api.modelPricing.getAllModelPricing.useQuery();
+
+	if (loading || pricingLoading) {
 		return (
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
 				{Array.from({ length: 5 }).map((_, i) => (
@@ -30,14 +64,30 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 
 	if (!data) return null;
 
-	const savingsData = data.usageData.map((d) => ({
+	// Calculate dynamic costs for the selected model
+	const usageDataWithDynamicCosts = data.usageData.map((d) => {
+		const adaptiveCost = d.adaptive;
+		const modelCost = calculateDirectModelCost(
+			[{ inputTokens: d.inputTokens || 0, outputTokens: d.outputTokens || 0 }],
+			selectedModel,
+			modelPricing,
+		);
+		return {
+			...d,
+			adaptiveCost,
+			modelCost,
+			savings: Math.max(0, modelCost - adaptiveCost),
+		};
+	});
+
+	const savingsData = usageDataWithDynamicCosts.map((d) => ({
 		date: d.date,
-		value: d.singleProvider - d.adaptive,
+		value: d.savings,
 	}));
 
 	const spendData = data.usageData.map((d) => ({
 		date: d.date,
-		value: d.adaptive,
+		value: d.adaptive, // This is the actual customer spending (same as adaptive line in usage chart)
 	}));
 
 	const allMetrics = [
@@ -47,7 +97,9 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 			icon: <FaDollarSign className="h-5 w-5 text-success" />,
 			data: savingsData,
 			color: "hsl(var(--chart-1))",
-			totalValue: `$${data.totalSavings.toFixed(2)}`,
+			totalValue: formatCurrencyWithDynamicPrecision(
+				usageDataWithDynamicCosts.reduce((sum, d) => sum + d.savings, 0),
+			),
 		},
 		{
 			title: "Spending Over Time",
@@ -55,7 +107,14 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 			icon: <FaChartLine className="h-5 w-5 text-chart-2" />,
 			data: spendData,
 			color: "hsl(var(--chart-2))",
-			totalValue: `$${data.totalSpend.toFixed(2)}`,
+			totalValue: `$${(() => {
+				const str = data.totalSpend.toString();
+				const parts = str.split(".");
+				const decimalPart = parts[1] || "";
+				const significantDecimals = decimalPart.replace(/0+$/, "").length;
+				const decimals = Math.min(Math.max(significantDecimals, 2), 8);
+				return data.totalSpend.toFixed(decimals);
+			})()}`,
 		},
 		{
 			title: "Token Usage",
