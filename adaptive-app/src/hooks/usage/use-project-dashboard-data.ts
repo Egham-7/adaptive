@@ -105,7 +105,7 @@ export function useProjectDashboardData(
 			},
 		);
 
-		// Transform provider breakdown to providers
+		// Transform provider breakdown to providers - API now returns all providers with correct calculations
 		const providers = analyticsData.providerBreakdown.map((provider) => {
 			return {
 				id: provider.provider,
@@ -116,8 +116,8 @@ export function useProjectDashboardData(
 					PROVIDER_ICONS[provider.provider as keyof typeof PROVIDER_ICONS] ||
 					"/logos/default.svg",
 				comparisonCosts: {
-					adaptive: provider.spend,
-					single: provider.estimatedSingleProviderCost, // Use API-provided cost
+					adaptive: analyticsData.totalSpend, // Actual total cost with Adaptive
+					single: provider.estimatedSingleProviderCost, // What ALL requests would cost on this provider
 				},
 			};
 		});
