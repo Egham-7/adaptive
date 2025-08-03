@@ -758,14 +758,7 @@ export const usageRouter = createTRPCRouter({
 						);
 					};
 
-					const allProviderNames = [
-						"openai",
-						"anthropic",
-						"google",
-						"groq",
-						"deepseek",
-						"huggingface",
-					];
+					const allProviderNames = providers.map((provider) => provider.name);
 
 					const calculateSingleProviderCostForAllUsage = (
 						targetProvider: string,
