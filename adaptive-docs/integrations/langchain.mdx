@@ -2,6 +2,7 @@
 title: "Langchain Integration"
 description: "Connect LangChain (Python & JS) with Adaptive for intelligent routing."
 sidebarTitle: "LangChain"
+icon: "link"
 ---
 
 ## Overview
@@ -57,10 +58,23 @@ for chunk in llm.stream("Tell me a story"):
     print(chunk.content, end="")
 ```
 
-### Cost & Provider Constraints
+### Advanced Configuration
 
 ```python
-llm = ChatOpenAI(..., model_kwargs={"provider_constraint":["openai","anthropic"], "cost_bias":0.2})
+llm = ChatOpenAI(
+    api_key="ADAPTIVE_KEY",
+    base_url="https://llmadaptive.uk/api/v1",
+    model="",
+    model_kwargs={
+        "protocol_manager_config": {
+            "models": [
+                {"provider": "openai"},
+                {"provider": "anthropic"}
+            ],
+            "cost_bias": 0.2
+        }
+    }
+)
 ```
 
 ## Extras
@@ -82,7 +96,6 @@ Simply switch:
 | Tip                            | Description                           |
 | ------------------------------ | ------------------------------------- |
 | **Leave `model=""`**           | Enables intelligent routing           |
-| **Use `cost_bias`**            | Adjusts performance vs cost           |
-| **Add `provider_constraint`** | Controls which API providers are used |
+| **Use `protocol_manager_config`** | Controls routing behavior and providers |
 | **Handle errors**              | Wrap calls in try/catch or retries    |
 

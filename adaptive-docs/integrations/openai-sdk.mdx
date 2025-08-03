@@ -1,6 +1,7 @@
 ---
 title: 'OpenAI SDK'
 description: 'Drop-in replacement for OpenAI with intelligent routing'
+icon: "code"
 ---
 
 ## Installation
@@ -144,22 +145,39 @@ for chunk in stream:
 
 ## Advanced Parameters
 
-Adaptive supports all OpenAI parameters plus additional routing controls:
+Adaptive supports all OpenAI parameters plus intelligent routing controls:
 
 ```javascript
 const completion = await openai.chat.completions.create({
   model: '',
   messages: [{ role: 'user', content: 'Explain quantum computing' }],
+  
   // Standard OpenAI parameters
   temperature: 0.7,
-  max_tokens: 1000,
+  max_completion_tokens: 1000,
   top_p: 1,
   frequency_penalty: 0,
   presence_penalty: 0,
   
-  // Adaptive-specific parameters
-  provider_constraint: ['openai', 'anthropic'], // Limit providers
-  cost_bias: 0.3, // 0 = cheapest, 1 = best performance
+  // Adaptive intelligent routing
+  protocol_manager_config: {
+    models: [
+      { provider: "openai" }, // All OpenAI models
+      { provider: "anthropic", model_name: "claude-3-sonnet-20240229" } // Specific model
+    ],
+    cost_bias: 0.3, // 0 = cheapest, 1 = best performance
+    complexity_threshold: 0.5,
+    token_threshold: 2000
+  },
+  
+  // Semantic caching for performance
+  semantic_cache: {
+    enabled: true,
+    semantic_threshold: 0.85
+  },
+  
+  // Fallback strategy
+  fallback_mode: 'sequential' // or 'parallel'
 });
 ```
 

@@ -1,6 +1,7 @@
 ---
 title: "Authentication"
 description: "How to authenticate with the Adaptive API"
+icon: "key"
 ---
 
 ## API Key Authentication
@@ -23,11 +24,21 @@ Adaptive uses API key authentication with Bearer tokens. You'll need to include 
 
 ### In Headers
 
-Include your API key in the `X-Stainless-API-Key` header:
+Include your API key using any OpenAI-compatible authorization header:
 
 ```bash
+# Option 1: X-Stainless-API-Key (recommended)
 curl https://llmadaptive.uk/api/v1/chat/completions \
   -H "X-Stainless-API-Key: your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+
+# Option 2: Authorization Bearer
+curl https://llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-api-key" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "",

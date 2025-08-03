@@ -1,110 +1,70 @@
 ---
 title: "Intelligent Routing"
-description: "How Adaptive automatically selects the best AI model for each request"
+description: "Automatic model selection for optimal cost and performance"
+icon: "route"
 ---
 
-## Overview
+Adaptive analyzes your requests and automatically routes to the best model. Set `model: ""` to enable intelligent routing.
 
-Adaptive's intelligent routing system analyzes every request and automatically selects the optimal AI model and provider based on content, complexity, cost, and performance requirements. This happens transparently - you send requests and get back the best possible responses at the lowest cost.
-
-## How It Works
-
-<Steps>
-  <Step title="Classification">
-    Neural classifiers analyze your prompt for task type (11 types), domain (25 domains), complexity, and reasoning requirements
-  </Step>
-  <Step title="Route Selection">
-    Routes to **premium models** for complex tasks or **specialist models** for simple domain-specific tasks
-  </Step>
-  <Step title="Model Selection">
-    Selects optimal model using task rankings for premium models or domain-task matrix for specialist models
-  </Step>
-</Steps>
-
-## Active Providers
-
-| Provider     | Models                     | Strengths                          | Best For                               |
-| ------------ | -------------------------- | ---------------------------------- | -------------------------------------- |
-| **OpenAI**   | gpt-4o, gpt-4o-mini, o1, o3 | General purpose, function calling  | Balanced tasks, production workloads   |
-| **DeepSeek** | deepseek-chat, reasoner    | Code generation, math reasoning    | Programming, technical analysis        |
-| **Grok**     | grok-3, grok-3-mini        | Ultra-fast inference, creativity   | Real-time apps, creative writing       |
-| **Groq**     | Fast inference models      | Extremely low latency              | High-throughput applications           |
-
-## Routing Examples
-
-### Simple Q&A → gpt-4o-mini
-*"What's the capital of France?"* → **92% cost savings**
-
-### Code Generation → deepseek-chat  
-*"Write a Python binary search function"* → **78% cost savings**
-
-### Creative Writing → grok-3
-*"Write a marketing story about sustainable tech"* → **65% cost savings**
-
-## Controlling Routing
-
-### Cost Bias Parameter
-
-Control the cost vs performance trade-off:
+## Quick Examples
 
 ```javascript
+// Automatic routing (recommended)
 const completion = await openai.chat.completions.create({
-  model: "",
-  messages: [{ role: "user", content: "Explain machine learning" }],
-  cost_bias: 0.2, // 0 = cheapest, 1 = best performance
+  model: "", // Let Adaptive choose
+  messages: [{ role: "user", content: "Hello!" }]
 });
 ```
 
-- `0.0-0.3`: Maximum savings (cheapest models)
-- `0.4-0.6`: Balanced (default)
-- `0.7-1.0`: Maximum quality (best models)
+## Routing Results
 
-### Provider Constraints
+- **Simple Q&A** → gpt-4o-mini (92% cost savings)
+- **Code Generation** → deepseek-chat (78% cost savings)  
+- **Creative Writing** → grok-3 (65% cost savings)
 
-Limit which providers can be selected:
+## Configuration
+
+### Cost vs Performance
 
 ```javascript
 const completion = await openai.chat.completions.create({
   model: "",
-  messages: [{ role: "user", content: "Write code to sort an array" }],
-  provider_constraints: ["deepseek", "anthropic"],
+  messages: [{ role: "user", content: "Hello" }],
+  protocol_manager_config: {
+    cost_bias: 0.2 // 0 = cheapest, 1 = best performance
+  }
+});
+```
+
+### Limit Providers
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Hello" }],
+  protocol_manager_config: {
+    models: [
+      { provider: "openai" },
+      { provider: "anthropic", model_name: "claude-3-sonnet" }
+    ]
+  }
 });
 ```
 
 ## Performance
 
-- **94% accuracy** in optimal model selection
-- **97% user satisfaction** with routing decisions
-- **2ms latency** for routing decisions
-- **99.9% uptime** across all providers
+- 94% accuracy in model selection
+- Under 1ms model selection
+- 99.9% uptime
 
-## Transparency
-
-Every response includes the selected provider:
+## Response Format
 
 ```json
 {
-  "id": "chatcmpl-123",
-  "model": "gemini-2.0-flash",
-  "provider": "gemini",
+  "model": "gpt-4o-mini",
+  "provider": "openai", // Shows selected provider
   "choices": [...],
   "usage": {...}
 }
 ```
-
-Monitor routing decisions in your dashboard with provider distribution, cost savings, and performance analytics.
-
-## FAQ
-
-<AccordionGroup>
-  <Accordion title="How fast is routing?">
-    Under 50ms on average. Total latency is determined by the selected model's inference time.
-  </Accordion>
-  <Accordion title="Can I see which model was selected?">
-    Yes! Every response includes a `provider` field and detailed analytics are available in your dashboard.
-  </Accordion>
-  <Accordion title="What if my preferred provider is down?">
-    Routing automatically handles outages by selecting alternative providers.
-  </Accordion>
-</AccordionGroup>
 
