@@ -667,3 +667,90 @@ class ModelSelectionService:
             )
 
         return recommendations
+
+    def enrich_partial_models(
+        self, partial_models: list[ModelCapability]
+    ) -> list[ModelCapability]:
+        """
+        Enrich partial ModelCapability objects with complete capability information.
+
+        Args:
+            partial_models: List of partial ModelCapability objects that may only
+                          have provider and/or model_name set
+
+        Returns:
+            List of fully enriched ModelCapability objects
+
+        Raises:
+            ValueError: If any models cannot be enriched or are invalid
+        """
+        if not partial_models:
+            return []
+
+        enriched_capabilities = []
+        invalid_models = []
+
+        for model_cap in partial_models:
+            try:
+                # Case 1: Both provider and model_name provided
+                if model_cap.provider and model_cap.model_name:
+                    model_key = (model_cap.provider, model_cap.model_name)
+                    full_capability = self._all_model_capabilities_by_id.get(model_key)
+                    if full_capability:
+                        enriched_capabilities.append(full_capability)
+                    else:
+                        invalid_models.append(
+                            f"{model_cap.provider}/{model_cap.model_name}"
+                        )
+
+                # Case 2: Only model_name provided, find the provider
+                elif model_cap.model_name and not model_cap.provider:
+                    # Search through all providers for this model
+                    found_capability = None
+                    for (
+                        _provider,
+                        model_name,
+                    ), capability in self._all_model_capabilities_by_id.items():
+                        if model_name == model_cap.model_name:
+                            found_capability = capability
+                            break
+
+                    if found_capability:
+                        enriched_capabilities.append(found_capability)
+                    else:
+                        invalid_models.append(
+                            f"unknown_provider/{model_cap.model_name}"
+                        )
+
+                # Case 3: Only provider provided - invalid, need model name
+                elif model_cap.provider and not model_cap.model_name:
+                    invalid_models.append(f"{model_cap.provider}/missing_model_name")
+
+                # Case 4: Neither provider nor model_name - invalid
+                else:
+                    invalid_models.append("missing_provider_and_model_name")
+
+            except Exception as e:
+                self.log(
+                    "model_enrichment_error",
+                    {"model": str(model_cap), "error": str(e)},
+                )
+                invalid_models.append(f"error_processing_{model_cap}: {e!s}")
+
+        # If any models are invalid, raise error with details
+        if invalid_models:
+            self.log(
+                "model_enrichment_failed",
+                {"invalid_models": invalid_models, "total_models": len(partial_models)},
+            )
+            raise ValueError(f"Invalid or incomplete model(s): {invalid_models}")
+
+        self.log(
+            "model_enrichment_success",
+            {
+                "enriched_count": len(enriched_capabilities),
+                "total_models": len(partial_models),
+            },
+        )
+
+        return enriched_capabilities

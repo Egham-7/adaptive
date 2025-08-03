@@ -49,12 +49,24 @@ class ProtocolManagerAPI(ls.LitAPI):
     ) -> list[OrchestratorResponse]:
         import time
 
+        # Process model validation and conversion for each request
+        processed_requests = []
+        for req in requests:
+            # Enrich partial models if they exist in protocol_manager_config
+            if req.protocol_manager_config and req.protocol_manager_config.models:
+                req.protocol_manager_config.models = (
+                    self.model_selection_service.enrich_partial_models(
+                        req.protocol_manager_config.models
+                    )
+                )
+            processed_requests.append(req)
+
         outputs: list[OrchestratorResponse] = []
 
         # Get the most recent message content for classification
         prompts: list[str] = [
             extract_last_message_content(req.chat_completion_request)
-            for req in requests
+            for req in processed_requests
         ]
 
         # Run both task and domain classification in parallel
@@ -100,21 +112,21 @@ class ProtocolManagerAPI(ls.LitAPI):
             # Re-raise the exception instead of creating fallback results
             raise RuntimeError(f"Domain classification failed: {e!s}") from e
 
-        self.log("predict_called", {"batch_size": len(requests)})
+        self.log("predict_called", {"batch_size": len(processed_requests)})
 
-        if len(all_classification_results) != len(requests):
+        if len(all_classification_results) != len(processed_requests):
             raise ValueError(
                 f"Task classification results count ({len(all_classification_results)}) "
-                f"doesn't match requests count ({len(requests)})"
+                f"doesn't match requests count ({len(processed_requests)})"
             )
 
-        if len(all_domain_results) != len(requests):
+        if len(all_domain_results) != len(processed_requests):
             raise ValueError(
                 f"Domain classification results count ({len(all_domain_results)}) "
-                f"doesn't match requests count ({len(requests)})"
+                f"doesn't match requests count ({len(processed_requests)})"
             )
 
-        for i, req in enumerate(requests):
+        for i, req in enumerate(processed_requests):
             current_classification_result: ClassificationResult = (
                 all_classification_results[i]
             )
@@ -201,13 +213,16 @@ def create_app() -> ls.LitServer:
     loggers: list[ConsoleLogger] = [ConsoleLogger()]
     callbacks: list[object] = []
 
-    return ls.LitServer(
+    # Create LitServer
+    server = ls.LitServer(
         api,
         accelerator=settings.litserve.accelerator,
         devices=settings.litserve.devices,
         loggers=loggers,
         callbacks=callbacks,
     )
+
+    return server
 
 
 def main() -> None:
