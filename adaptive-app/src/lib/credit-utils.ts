@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import type { CreditTransactionType } from "prisma/generated";
-import { logger } from "@/lib/logger";
 import { CREDIT_LIMITS, TOKEN_PRICING } from "@/lib/pricing-config";
 import {
 	getPromotionalCreditStats,
@@ -52,12 +51,6 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 					promoStats.available && !userAlreadyHasPromo;
 
 				if (!shouldAwardPromoCredits) {
-					// Create organization credit without promotional balance
-					const reason = !promoStats.available
-						? `promotional credits exhausted (${promoStats.used}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS})`
-						: "user already received promotional credits";
-					logger.failure(`No promotional credits awarded: ${reason}`);
-
 					return await tx.organizationCredit.create({
 						data: {
 							organizationId,
@@ -67,9 +60,6 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 						},
 					});
 				}
-				logger.promotion(
-					`Awarding promotional credits to user's first organization`,
-				);
 
 				// Create organization credit with promotional balance
 				const orgCredit = await tx.organizationCredit.create({
@@ -99,9 +89,6 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 					},
 				});
 
-				logger.success(
-					`Promotional credits awarded! User ${promoStats.used + 1}/${PROMOTIONAL_CONFIG.MAX_PROMOTIONAL_USERS}`,
-				);
 				return orgCredit;
 			});
 		} catch (error: unknown) {
@@ -112,9 +99,6 @@ export async function getOrCreateOrganizationCredit(organizationId: string) {
 					"organizationId",
 				)
 			) {
-				logger.info(
-					"Race condition detected, fetching existing organization credit",
-				);
 				const existingCredit = await db.organizationCredit.findUnique({
 					where: { organizationId },
 				});
@@ -214,8 +198,6 @@ export async function addCredits(params: {
 		throw new Error("Credit amount exceeds maximum allowed limit");
 	}
 
-	logger.credit("Starting addCredits transaction", { type });
-
 	// Use database transaction to ensure data consistency
 	return await db.$transaction(async (tx) => {
 		// Get current organization credit state
@@ -256,8 +238,6 @@ export async function addCredits(params: {
 				stripeSessionId,
 			},
 		});
-
-		logger.success("Credits added successfully");
 
 		return {
 			organizationCredit: updatedOrgCredit,
@@ -301,8 +281,6 @@ export async function deductCredits(params: {
 	if (amount > CREDIT_LIMITS.MAXIMUM_DEDUCTION) {
 		throw new Error("Deduction amount exceeds maximum allowed limit");
 	}
-
-	logger.credit("Starting deductCredits transaction");
 
 	// Use database transaction for atomicity
 	return await db.$transaction(async (tx) => {
@@ -356,8 +334,6 @@ export async function deductCredits(params: {
 				apiUsageId,
 			},
 		});
-
-		logger.success("Credits deducted successfully");
 
 		return {
 			organizationCredit: updatedOrgCredit,

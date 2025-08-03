@@ -9,7 +9,6 @@ import {
 	getOrganizationTransactionHistory,
 	hasSufficientCredits,
 } from "@/lib/credit-utils";
-import { logger } from "@/lib/logger";
 import { TOKEN_PRICING } from "@/lib/pricing-config";
 import { stripe } from "@/lib/stripe/stripe";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
@@ -73,8 +72,6 @@ export const creditsRouter = createTRPCRouter({
 					formattedBalance: formatCurrency(balance),
 				};
 			} catch (error) {
-				logger.error("Error fetching organization balance", error as Error);
-
 				// Check if it's a specific error we can handle
 				if (error instanceof Error && error.message.includes("not found")) {
 					throw new TRPCError({
@@ -116,8 +113,7 @@ export const creditsRouter = createTRPCRouter({
 						totalUsed: formatCurrency(stats.totalUsed),
 					},
 				};
-			} catch (error) {
-				logger.error("Error fetching user credit stats", error as Error);
+			} catch (_error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch credit statistics",
@@ -180,8 +176,7 @@ export const creditsRouter = createTRPCRouter({
 					hasMore: transactions.length === input.limit,
 					nextOffset: input.offset + transactions.length,
 				};
-			} catch (error) {
-				logger.error("Error fetching transaction history", error as Error);
+			} catch (_error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to fetch transaction history",
@@ -246,8 +241,7 @@ export const creditsRouter = createTRPCRouter({
 					requiredAmount: input.requiredAmount,
 					shortfall: hasSufficient ? 0 : input.requiredAmount - currentBalance,
 				};
-			} catch (error) {
-				logger.error("Error checking sufficient credits", error as Error);
+			} catch (_error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to check credit sufficiency",
@@ -291,8 +285,6 @@ export const creditsRouter = createTRPCRouter({
 					)} in promotional credits`,
 				};
 			} catch (error) {
-				logger.error("Error awarding promotional credits", error as Error);
-
 				if (
 					error instanceof Error &&
 					error.message.includes("already received")
@@ -356,8 +348,7 @@ export const creditsRouter = createTRPCRouter({
 						veryLow: VERY_LOW_BALANCE_THRESHOLD,
 					},
 				};
-			} catch (error) {
-				logger.error("Error checking low balance status", error as Error);
+			} catch (_error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to check balance status",
@@ -458,8 +449,7 @@ export const creditsRouter = createTRPCRouter({
 					amount: input.amount,
 					formattedAmount: formatCurrency(input.amount),
 				};
-			} catch (error) {
-				logger.error("Error creating checkout session", error as Error);
+			} catch (_error) {
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to create checkout session",
