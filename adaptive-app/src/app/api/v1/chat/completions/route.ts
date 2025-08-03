@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
 
 			throw error; // Re-throw to be handled by outer catch
 		}
-	} catch (error) {
+	} catch (_error) {
 		return new Response(JSON.stringify({ error: "Internal server error" }), {
 			status: 500,
 			headers: { "Content-Type": "application/json" },
