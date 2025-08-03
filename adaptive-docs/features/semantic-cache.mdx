@@ -1,0 +1,40 @@
+---
+title: "Semantic Cache"
+description: "Smart caching that understands meaning, not just exact matches"
+icon: "brain"
+---
+
+Semantic cache is **enabled by default**. It understands similar requests even when worded differently.
+
+## Benefits
+
+- Sub-100ms responses for cached queries
+- 60-80% cost reduction for similar requests
+- Matches paraphrases and synonyms
+
+## Examples
+
+Cache hits for similar requests:
+
+**Original:** *"How do I reset my password?"*  
+**Matches:** *"I forgot my password"*, *"Password reset steps"*
+
+## Configuration
+
+```javascript
+// Customize threshold (optional)
+semantic_cache: {
+  semantic_threshold: 0.85 // 0.0-1.0, higher = stricter matching
+}
+
+// Disable for real-time data
+semantic_cache: {
+  enabled: false
+}
+```
+
+## Thresholds
+
+- `0.7-0.8`: Loose matching (FAQs)
+- `0.8-0.9`: Balanced (default)  
+- `0.9+`: Strict matching (technical docs)

@@ -1,0 +1,97 @@
+---
+title: "Prompt Response Cache"
+description: "Ultra-fast caching for identical requests"
+icon: "database"
+---
+
+The fastest cache level - stores complete responses for identical prompts to deliver instant results. **Disabled by default** - enable per request for maximum speed.
+
+## How It Works
+
+- **Exact matching**: Caches responses for identical prompt + parameter combinations
+- **Instant retrieval**: Sub-microsecond cache hits
+- **Opt-in per request**: Enable only when needed
+
+## Benefits
+
+- **Microsecond response times** for repeated requests
+- **Zero API costs** for cached responses  
+- **Perfect accuracy** - exact same response every time
+
+## Cache Keys
+
+Responses are cached based on:
+- Complete message history
+- All parameters (temperature, max_tokens, etc.)
+- Selected model and provider
+- User context (if applicable)
+
+## Examples
+
+### Identical Requests
+```javascript
+// First request - cache miss
+const response1 = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "What is 2+2?" }],
+  temperature: 0.7
+});
+
+// Second identical request - cache hit (microseconds)
+const response2 = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "What is 2+2?" }],
+  temperature: 0.7
+});
+```
+
+### Cache Miss Scenarios
+```javascript
+// Different temperature = cache miss
+const response3 = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "What is 2+2?" }],
+  temperature: 0.8  // Different parameter
+});
+
+// Different message = cache miss  
+const response4 = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "What is 3+3?" }],
+  temperature: 0.7
+});
+```
+
+## Configuration
+
+Enable prompt response caching per request:
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Hello" }],
+  prompt_cache_config: {
+    enabled: true,
+    ttl_seconds: 3600 // 1 hour cache duration
+  }
+});
+```
+
+### Configuration Options
+
+- `enabled`: Boolean to enable/disable caching for this request
+- `ttl_seconds`: Cache duration in seconds (default: 3600)
+
+## Performance
+
+- **Hit latency**: Under 1 microsecond
+- **Storage**: In-memory with Redis backup
+- **Hit rate**: 15-25% for typical applications
+- **Capacity**: Millions of cached responses
+
+## Best Practices
+
+- **Deterministic requests**: Use temperature=0 for consistent caching
+- **Batch similar requests**: Group identical requests together
+- **Monitor hit rates**: Track cache effectiveness in dashboard
+- **Consider TTL**: Shorter TTL for time-sensitive content
