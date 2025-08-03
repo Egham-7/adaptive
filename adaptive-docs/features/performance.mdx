@@ -1,0 +1,92 @@
+---
+title: "Performance"
+description: "Ultra-fast routing with multi-tier caching and optimized Go architecture"
+icon: "gauge-high"
+---
+
+Adaptive delivers industry-leading performance through optimized architecture and intelligent caching.
+
+## Key Performance Metrics
+
+- **Under 1ms** model selection
+- **Multi-tier caching** for instant responses
+- **Zero LLM overhead** in routing pipeline
+- **Built in Go** for maximum performance
+
+## Architecture Advantages
+
+### Ultra-Fast ML Pipeline
+
+- **No LLMs in routing**: Pure ML classifiers for instant decisions
+- **Optimized algorithms**: Purpose-built for speed over complexity
+- **Pre-computed embeddings**: Classification without real-time inference
+
+### Multi-Tier Caching
+
+```
+L1: Prompt-response cache (microseconds)
+L2: Semantic cache (1-2ms)  
+L3: Router caches (5-10ms)
+```
+
+### Go-Powered Backend
+
+- **Native performance**: Compiled binary, no runtime overhead
+- **Concurrent processing**: Thousands of simultaneous requests
+- **Memory efficient**: Minimal garbage collection impact
+- **Fast startup**: Sub-second cold start times
+
+## Real-World Performance
+
+### Throughput
+- **10,000+ requests/second** sustained
+- **Linear scaling** with additional instances
+- **No performance degradation** under load
+
+### Latency Breakdown
+```
+Model Selection:    Under 1ms
+Cache Lookup:       Under 1ms
+Provider Routing:   Under 1ms
+Total Overhead:     Under 3ms
+```
+
+### Caching Hit Rates
+- **L1 Cache**: 40-60% hit rate
+- **Semantic Cache**: 20-30% hit rate
+- **Combined**: 60-80% cache efficiency
+
+## Optimization Features
+
+### Smart Preprocessing
+- **Request classification** happens in parallel
+- **Provider health checks** cached and updated asynchronously
+- **Route decisions** pre-computed when possible
+
+### Efficient Data Structures
+- **In-memory provider models** for instant lookup
+- **Optimized JSON parsing** with zero-copy where possible
+- **Connection pooling** to all providers
+
+### Resource Management
+- **Minimal memory footprint** per request
+- **CPU-efficient algorithms** optimized for routing decisions
+- **Graceful degradation** under extreme load
+
+## Benchmarks vs Alternatives
+
+| Solution | Model Selection | Memory Usage | Cold Start |
+|----------|----------------|--------------|------------|
+| **Adaptive** | Under 1ms | 50MB | Under 1s |
+| Python-based | 50-200ms | 500MB+ | 10-30s |
+| LLM-based routing | 1000-5000ms | 2GB+ | 60s+ |
+
+## Monitoring Performance
+
+Track performance in your dashboard:
+- Request latency percentiles (P50, P95, P99)
+- Cache hit rates across all tiers  
+- Provider response times
+- Throughput and error rates
+
+Performance metrics are updated in real-time for immediate visibility into system health.

@@ -9,7 +9,7 @@
     "light": "#f0e68c",
     "dark": "#b8860b"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.ico",
   "navigation": {
     "dropdowns": [
       {
@@ -31,7 +31,13 @@
           },
           {
             "group": "Key Features",
-            "pages": ["features/intelligent-routing"]
+            "pages": [
+              "features/intelligent-routing",
+              "features/prompt-response-cache",
+              "features/semantic-cache",
+              "features/provider-resiliency",
+              "features/performance"
+            ]
           }
         ]
       },

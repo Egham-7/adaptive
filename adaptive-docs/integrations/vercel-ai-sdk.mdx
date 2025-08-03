@@ -2,6 +2,7 @@
 title: "Vercel AI SDK Integration"
 description: "Use Adaptive with the Vercel AI SDK for streamlined AI applications"
 sidebarTitle: "Vercel AI SDK"
+icon: "triangle"
 ---
 
 ## Overview
@@ -102,17 +103,35 @@ for await (const delta of textStream) {
 
 ---
 
-## Provider Options
+## Advanced Configuration
+
+Control routing behavior with protocol manager configuration:
 
 ```ts
 await generateText({
   model: adaptive(),
   prompt: "Summarize this article",
   providerOptions: {
-    costBias: 0.8, // Value from 0 to 1, higher = prioritize cost savings
-  },
+    adaptive: {
+      protocol_manager_config: {
+        models: [
+          { provider: "anthropic" }, // All Anthropic models
+          { provider: "openai", model_name: "gpt-4" } // Specific OpenAI model
+        ],
+        cost_bias: 0.3, // 0 = cheapest, 1 = best performance
+        complexity_threshold: 0.5,
+        token_threshold: 1000
+      },
+      semantic_cache: {
+        enabled: true,
+        semantic_threshold: 0.85
+      },
+      fallback_mode: "sequential"
+    }
+  }
 });
 ```
+
 
 ---
 
