@@ -12,7 +12,7 @@ const PROVIDER_ICONS = {
 	anthropic: "/logos/anthropic.jpeg",
 	gemini: "/logos/google.svg",
 	groq: "/logos/groq.png",
-	grok: "/logos/grok.png",
+	grok: "/logos/grok.svg",
 	deepseek: "/logos/deepseek.svg",
 	huggingface: "/logos/huggingface.png",
 } as const;
