@@ -12,8 +12,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 5
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "backend"
@@ -31,8 +29,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 5
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "frontend"
@@ -50,8 +46,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 5
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "ai-service"
@@ -69,8 +63,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "classifier"
@@ -88,8 +80,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "benchmarks"
@@ -107,8 +97,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "benchmarks"
@@ -126,8 +114,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "docker"
@@ -144,8 +130,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "docker"
@@ -162,8 +146,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "docker"
@@ -180,8 +162,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "docker"
@@ -199,8 +179,6 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     target-branch: "dev"
-    reviewers:
-      - "@botirkhaltaev"
     labels:
       - "dependencies"
       - "github-actions"
