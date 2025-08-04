@@ -6,47 +6,77 @@ icon: "shield-check"
 
 Adaptive automatically switches to backup providers when your primary provider fails. No downtime, no interruptions.
 
-## Fallback Modes
+## Fallback Configuration
 
-### Sequential (Default)
-Try providers one by one:
+Fallback is **enabled by default** with parallel mode for maximum reliability. You can customize or disable it as needed.
 
+### Default Behavior (Enabled)
+```javascript
+const completion = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Hello" }]
+  // No fallback configuration = enabled with parallel mode
+});
+```
+
+### Customize Fallback
 ```javascript
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
-  fallback_mode: "sequential",
-  protocol_manager: {
-    models: [
-      { provider: "openai" },    // Try first
-      { provider: "anthropic" }  // Fallback
-    ]
+  fallback: {
+    enabled: true,
+    mode: "sequential"
   }
 });
 ```
 
-**Pros:** Lower cost, predictable  
-**Cons:** Higher latency on failures
+### Disable Fallback
+```javascript
+const completion = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Hello" }],
+  fallback: {
+    enabled: false
+  }
+});
+```
 
-### Parallel  
-Try multiple providers at once:
+## Fallback Modes
+
+### Parallel (Default)
+Try multiple providers at once for maximum speed and reliability:
 
 ```javascript
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
-  fallback_mode: "parallel",
-  protocol_manager: {
-    models: [
-      { provider: "openai" },
-      { provider: "anthropic" }
-    ]
+  fallback: {
+    enabled: true,
+    mode: "parallel"
   }
 });
 ```
 
 **Pros:** Ultra-low latency, max reliability  
 **Cons:** Higher cost (multiple calls)
+
+### Sequential
+Try providers one by one:
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Hello" }],
+  fallback: {
+    enabled: true,
+    mode: "sequential"
+  }
+});
+```
+
+**Pros:** Lower cost, predictable  
+**Cons:** Higher latency on failures
 
 ## Performance
 
@@ -61,7 +91,10 @@ try {
   const completion = await openai.chat.completions.create({
     model: "",
     messages: [{ role: "user", content: "Hello" }],
-    fallback_mode: "sequential"
+    fallback: {
+      enabled: true,
+      mode: "sequential"
+    }
   });
 } catch (error) {
   if (error.code === 'all_providers_failed') {

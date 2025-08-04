@@ -34,6 +34,12 @@ const (
 	FallbackModeParallel   FallbackMode = "parallel"
 )
 
+// FallbackConfig holds the fallback configuration with enabled toggle
+type FallbackConfig struct {
+	Enabled bool         `json:"enabled,omitempty"` // Whether fallback is enabled (default: true)
+	Mode    FallbackMode `json:"mode,omitempty"`    // Fallback mode (sequential/parallel)
+}
+
 // ProtocolManagerConfig holds configuration for the protocol manager
 type ProtocolManagerConfig struct {
 	Models              []ModelCapability `json:"models,omitempty"`
@@ -233,7 +239,7 @@ type ChatCompletionRequest struct {
 	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager,omitempty"`
 	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
 	PromptCache           *PromptCacheConfig     `json:"prompt_cache,omitempty"`   // Optional prompt response cache configuration
-	FallbackMode          FallbackMode           `json:"fallback_mode,omitempty"`  // Strategy for handling provider failures
+	Fallback              *FallbackConfig        `json:"fallback,omitempty"`       // Fallback configuration with enabled toggle
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
