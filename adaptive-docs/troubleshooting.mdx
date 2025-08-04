@@ -264,9 +264,9 @@ icon: "wrench"
        ```
 
     2. **Check your rate limits:**
-       - Free tier: 100 requests/minute
-       - Pro tier: 1,000 requests/minute
-       - Enterprise: Custom limits
+       - **Free tier**: 100 requests/minute, 10,000 tokens/minute
+       - **Pro tier**: 1,000 requests/minute, 100,000 tokens/minute
+       - **Enterprise**: Custom limits
 
     3. **Implement request queuing:**
        ```javascript
@@ -683,25 +683,124 @@ When reporting issues, please include:
    - Test in different environments
    - Compare with working examples
 
+## Complete Error Handling Example
+
+Here's a production-ready error handling implementation:
+
+```javascript
+class AdaptiveClient {
+  constructor(apiKey) {
+    this.openai = new OpenAI({
+      apiKey: apiKey,
+      baseURL: 'https://llmadaptive.uk/api/v1'
+    });
+  }
+  
+  async createCompletion(params, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const completion = await this.openai.chat.completions.create({
+          model: "",
+          ...params
+        });
+        
+        // Log success metrics
+        console.log(`✅ Success: ${completion.provider} | ${completion.usage.total_tokens} tokens`);
+        return completion;
+        
+      } catch (error) {
+        // Handle specific errors
+        if (error.status === 401) {
+          throw new Error('Invalid API key - check your credentials');
+        }
+        
+        if (error.status === 429) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+          console.log(`⚠️  Rate limited, retrying in ${delay}ms (attempt ${attempt}/${retries})`);
+          
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new Error('Rate limit exceeded - reduce request frequency');
+        }
+        
+        if (error.status === 400) {
+          throw new Error(`Invalid request: ${error.message}`);
+        }
+        
+        if (error.status >= 500) {
+          const delay = 1000 * attempt;
+          console.log(`🔄 Server error, retrying in ${delay}ms (attempt ${attempt}/${retries})`);
+          
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new Error('Server error - try again later');
+        }
+        
+        // Unexpected error
+        throw new Error(`Unexpected error: ${error.message}`);
+      }
+    }
+  }
+}
+
+// Usage example
+const client = new AdaptiveClient(process.env.ADAPTIVE_API_KEY);
+
+try {
+  const response = await client.createCompletion({
+    messages: [{ role: "user", content: "Hello!" }],
+    protocol_manager: {
+      cost_bias: 0.3,
+      models: [{ provider: "openai" }, { provider: "anthropic" }]
+    }
+  });
+  
+  console.log("Response:", response.choices[0].message.content);
+} catch (error) {
+  console.error("Failed to get completion:", error.message);
+}
+```
+
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="Why am I not getting responses from certain providers?">
-    This could be due to provider constraints, cost bias settings, or the specific requirements of your request. Check your `provider_constraint` parameter and try adjusting your `cost_bias` setting.
+    Check your `protocol_manager.models` configuration. Ensure the providers you want are included and your `cost_bias` setting allows for the provider selection you expect.
   </Accordion>
 
   <Accordion title="How do I know which provider was selected?">
     Check the `provider` field in the response:
     ```javascript
     console.log("Selected provider:", completion.provider);
+    console.log("Model used:", completion.model);
     ```
   </Accordion>
 
   <Accordion title="Can I force a specific model?">
-    While you can use `provider_constraint` to limit options, we recommend letting intelligent routing optimize for you. Manual model selection typically results in higher costs and lower performance.
+    Use the `protocol_manager.models` array with specific model names:
+    ```javascript
+    protocol_manager: {
+      models: [
+        { provider: "openai", model_name: "gpt-4" }
+      ]
+    }
+    ```
   </Accordion>
 
   <Accordion title="Why are my costs higher than expected?">
-    Check your `cost_bias` setting. A higher value (closer to 1) prioritizes quality over cost. Lower values (closer to 0) prioritize cost savings.
+    Check your `cost_bias` setting. A higher value (closer to 1) prioritizes quality over cost. Set it to 0.0-0.3 for maximum cost savings.
+  </Accordion>
+
+  <Accordion title="How do I disable semantic caching?">
+    Set semantic cache to disabled in your request:
+    ```javascript
+    semantic_cache: {
+      enabled: false
+    }
+    ```
   </Accordion>
 </AccordionGroup>

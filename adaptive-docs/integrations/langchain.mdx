@@ -58,24 +58,109 @@ for chunk in llm.stream("Tell me a story"):
     print(chunk.content, end="")
 ```
 
-### Advanced Configuration
+## Configuration Parameters
 
+Configure Adaptive's intelligent routing through `model_kwargs`:
+
+<Tabs>
+<Tab title="Python">
 ```python
 llm = ChatOpenAI(
     api_key="ADAPTIVE_KEY",
     base_url="https://llmadaptive.uk/api/v1",
     model="",
     model_kwargs={
+        # Intelligent routing configuration
         "protocol_manager": {
             "models": [
-                {"provider": "openai"},
-                {"provider": "anthropic"}
+                {"provider": "openai"},  # All OpenAI models
+                {"provider": "anthropic", "model_name": "claude-3-sonnet"}  # Specific model
             ],
-            "cost_bias": 0.2
+            "cost_bias": 0.2,  # 0 = cheapest, 1 = best performance
+            "complexity_threshold": 0.5,  # Override complexity detection
+            "token_threshold": 2000  # Override token threshold
+        },
+        
+        # Fallback configuration
+        "fallback": {
+            "enabled": True,  # Enable/disable fallback (default: True)
+            "mode": "parallel"  # 'sequential' or 'parallel'
+        },
+        
+        # Semantic caching
+        "semantic_cache": {
+            "enabled": True,
+            "semantic_threshold": 0.85  # Similarity threshold for cache hits
         }
     }
 )
 ```
+</Tab>
+<Tab title="JavaScript">
+```js
+const llm = new ChatOpenAI({
+  apiKey: "ADAPTIVE_KEY",
+  baseURL: "https://llmadaptive.uk/api/v1",
+  model: "",
+  modelKwargs: {
+    // Intelligent routing configuration
+    protocol_manager: {
+      models: [
+        { provider: "openai" },  // All OpenAI models
+        { provider: "anthropic", model_name: "claude-3-sonnet" }  // Specific model
+      ],
+      cost_bias: 0.2,  // 0 = cheapest, 1 = best performance
+      complexity_threshold: 0.5,  // Override complexity detection
+      token_threshold: 2000  // Override token threshold
+    },
+    
+    // Fallback configuration
+    fallback: {
+      enabled: true,  // Enable/disable fallback (default: true)
+      mode: "parallel"  // 'sequential' or 'parallel'
+    },
+    
+    // Semantic caching
+    semantic_cache: {
+      enabled: true,
+      semantic_threshold: 0.85  // Similarity threshold for cache hits
+    }
+  }
+});
+```
+</Tab>
+</Tabs>
+
+### Parameter Details
+
+#### `protocol_manager`
+Controls intelligent model selection:
+
+- **`models`**: Array of allowed providers/models
+  - `{"provider": "openai"}` - All models from provider
+  - `{"provider": "anthropic", "model_name": "claude-3-sonnet"}` - Specific model
+- **`cost_bias`**: Balance cost vs performance (0-1)
+  - `0` = Always choose cheapest option
+  - `0.5` = Balanced cost and performance  
+  - `1` = Always choose best performance
+- **`complexity_threshold`**: Override automatic complexity detection (0-1)  
+- **`token_threshold`**: Override automatic token counting threshold
+
+#### `fallback`
+Controls provider fallback behavior:
+
+- **`enabled`**: Enable/disable fallback (default: true)
+- **`mode`**: Fallback strategy
+  - `"sequential"` = Try providers one by one (lower cost)
+  - `"parallel"` = Try multiple providers simultaneously (faster)
+
+#### `semantic_cache`
+Improves performance by caching similar requests:
+
+- **`enabled`**: Enable semantic caching
+- **`semantic_threshold`**: Similarity threshold (0-1) for cache hits
+  - Higher values = more strict matching
+  - Lower values = more cache hits but less accuracy
 
 ## Extras
 

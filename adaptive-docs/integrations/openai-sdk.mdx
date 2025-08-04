@@ -143,7 +143,7 @@ for chunk in stream:
 
 </CodeGroup>
 
-## Advanced Parameters
+## Configuration Parameters
 
 Adaptive supports all OpenAI parameters plus intelligent routing controls:
 
@@ -166,20 +166,54 @@ const completion = await openai.chat.completions.create({
       { provider: "anthropic", model_name: "claude-3-sonnet-20240229" } // Specific model
     ],
     cost_bias: 0.3, // 0 = cheapest, 1 = best performance
-    complexity_threshold: 0.5,
-    token_threshold: 2000
+    complexity_threshold: 0.5, // Override complexity detection
+    token_threshold: 2000 // Override token threshold
+  },
+  
+  // Fallback configuration
+  fallback: {
+    enabled: true, // Enable/disable fallback (default: true)
+    mode: 'parallel' // 'sequential' or 'parallel'
   },
   
   // Semantic caching for performance
   semantic_cache: {
     enabled: true,
-    semantic_threshold: 0.85
-  },
-  
-  // Fallback strategy
-  fallback_mode: 'sequential' // or 'parallel'
+    semantic_threshold: 0.85 // Similarity threshold for cache hits
+  }
 });
 ```
+
+### Parameter Details
+
+#### `protocol_manager`
+Controls intelligent model selection:
+
+- **`models`**: Array of allowed providers/models
+  - `{ provider: "openai" }` - All models from provider
+  - `{ provider: "anthropic", model_name: "claude-3-sonnet" }` - Specific model
+- **`cost_bias`**: Balance cost vs performance (0-1)
+  - `0` = Always choose cheapest option
+  - `0.5` = Balanced cost and performance  
+  - `1` = Always choose best performance
+- **`complexity_threshold`**: Override automatic complexity detection (0-1)
+- **`token_threshold`**: Override automatic token counting threshold
+
+#### `fallback`
+Controls provider fallback behavior:
+
+- **`enabled`**: Enable/disable fallback (default: true)
+- **`mode`**: Fallback strategy
+  - `"sequential"` = Try providers one by one (lower cost)
+  - `"parallel"` = Try multiple providers simultaneously (faster)
+
+#### `semantic_cache`
+Improves performance by caching similar requests:
+
+- **`enabled`**: Enable semantic caching
+- **`semantic_threshold`**: Similarity threshold (0-1) for cache hits
+  - Higher values = more strict matching
+  - Lower values = more cache hits but less accuracy
 
 ## Function Calling
 

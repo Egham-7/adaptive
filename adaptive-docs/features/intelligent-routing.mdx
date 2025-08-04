@@ -57,6 +57,38 @@ const completion = await openai.chat.completions.create({
 - Under 1ms model selection
 - 99.9% uptime
 
+## Routing Protocols
+
+Adaptive uses two intelligent protocols to optimize model selection:
+
+### Standard Protocol
+For complex, general-purpose tasks requiring powerful models:
+
+- **Triggers**: Complex prompts (>0.4 complexity), long prompts (>60K tokens), or user-specified models
+- **Task Types**: Code generation, text generation, brainstorming, analysis
+- **Models**: Multi-tier approach from budget (deepseek-chat, gpt-4o-mini) to premium (claude-3.5-sonnet, gpt-4o)
+- **Providers**: OpenAI, Anthropic, DeepSeek, Groq, Grok
+
+### Minion Protocol  
+For domain-specific, simpler tasks using specialized models:
+
+- **Triggers**: Simple prompts in specific domains (business, health, science, finance)
+- **Focus**: Cost optimization with domain-specialized models
+- **Models**: Primarily open-source HuggingFace models (Llama-3.1-8B, Mistral-7B, DeepSeek-R1)
+- **Benefits**: 80%+ cost savings for routine tasks
+
+### Selection Logic
+
+```
+1. Analyze prompt → complexity + domain + tokens
+2. IF complex OR long OR custom models:
+   → Standard Protocol
+3. ELSE IF domain-specific:
+   → Minion Protocol
+4. ELSE:
+   → Standard Protocol (fallback)
+```
+
 ## Response Format
 
 ```json
