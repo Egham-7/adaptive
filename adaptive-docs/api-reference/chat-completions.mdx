@@ -304,8 +304,18 @@ Use any OpenAI-compatible authorization header:
   </Expandable>
 </ParamField>
 
-<ParamField body="fallback_mode" type="string">
-  Strategy for handling provider failures. Must be one of: `"sequential"`, `"parallel"`
+<ParamField body="fallback" type="object">
+  Configuration for provider fallback behavior.
+  
+  <Expandable title="Fallback Config">
+    <ParamField body="enabled" type="boolean">
+      Whether fallback is enabled. Default: `true`
+    </ParamField>
+    
+    <ParamField body="mode" type="string">
+      Fallback strategy: `"sequential"` or `"parallel"`. Default: `"parallel"`
+    </ParamField>
+  </Expandable>
 </ParamField>
 
 ## Response
@@ -440,7 +450,10 @@ const completion = await openai.chat.completions.create({
     complexity_threshold: 0.3,
     token_threshold: 1000
   },
-  fallback_mode: 'sequential'
+  fallback: {
+    enabled: true,
+    mode: 'sequential'
+  }
 });
 ```
 
@@ -611,7 +624,10 @@ const completion = await openai.chat.completions.create({
     enabled: true,
     semantic_threshold: 0.85
   },
-  fallback_mode: 'sequential'
+  fallback: {
+    enabled: true,
+    mode: 'sequential'
+  }
 });
 ```
 
