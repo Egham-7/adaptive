@@ -160,7 +160,7 @@ const completion = await openai.chat.completions.create({
   presence_penalty: 0,
   
   // Adaptive intelligent routing
-  protocol_manager_config: {
+  protocol_manager: {
     models: [
       { provider: "openai" }, // All OpenAI models
       { provider: "anthropic", model_name: "claude-3-sonnet-20240229" } // Specific model

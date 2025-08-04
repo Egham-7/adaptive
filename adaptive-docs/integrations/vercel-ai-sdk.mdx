@@ -113,7 +113,7 @@ await generateText({
   prompt: "Summarize this article",
   providerOptions: {
     adaptive: {
-      protocol_manager_config: {
+      protocol_manager: {
         models: [
           { provider: "anthropic" }, // All Anthropic models
           { provider: "openai", model_name: "gpt-4" } // Specific OpenAI model
