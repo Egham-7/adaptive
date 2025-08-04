@@ -1,17 +1,17 @@
 """Comprehensive unit tests for custom model selection edge cases."""
 
-import pytest
 from unittest.mock import Mock, patch
-from typing import Any
 
+import pytest
+
+from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
     ModelEntry,
     ModelSelectionRequest,
     ProtocolManagerConfig,
 )
-from adaptive_ai.models.llm_classification_models import ClassificationResult
-from adaptive_ai.models.llm_enums import ProviderType, TaskType
+from adaptive_ai.models.llm_enums import ProviderType
 from adaptive_ai.services.model_selector import ModelSelectionService
 
 
@@ -74,7 +74,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -106,7 +106,7 @@ class TestCustomModelSelection:
                 supports_function_calling=False,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -144,7 +144,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -175,7 +175,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -206,7 +206,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -245,7 +245,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -286,7 +286,7 @@ class TestCustomModelSelection:
                 supports_function_calling=False,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -327,7 +327,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(
             models=user_models,
             cost_bias=0.9,  # Strong cost preference
@@ -371,7 +371,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -405,7 +405,7 @@ class TestCustomModelSelection:
             mock_system.return_value = [
                 ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4")
             ]
-            
+
             result = model_service.select_candidate_models(
                 request=request,
                 classification_result=classification_result,
@@ -454,7 +454,7 @@ class TestCustomModelSelection:
                 complexity="hard",  # Complexity level
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -494,7 +494,7 @@ class TestCustomModelSelection:
                 complexity="medium",
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -535,7 +535,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -553,7 +553,7 @@ class TestCustomModelSelection:
         assert len(result) >= 1
         model_names = [entry.model_name for entry in result]
         providers = [entry.providers[0] for entry in result]
-        
+
         # Should contain both models
         assert any(name in ["gpt-4", "custom-model-v2"] for name in model_names)
         # Should preserve both provider types
@@ -581,7 +581,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(
             models=user_models,
             cost_bias=0.9,  # Strong cost preference
@@ -617,7 +617,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -650,7 +650,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -690,7 +690,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -708,7 +708,7 @@ class TestCustomModelSelection:
         assert len(result) >= 1
         model_names = [entry.model_name for entry in result]
         providers = [entry.providers[0] for entry in result]
-        
+
         assert any(name in ["unicode-model", "accent-model"] for name in model_names)
         assert any(provider in ["模型提供商", "café-ai"] for provider in providers)
 
@@ -726,7 +726,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -766,7 +766,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -784,7 +784,7 @@ class TestCustomModelSelection:
         assert len(result) >= 1
         model_names = [entry.model_name for entry in result]
         providers = [entry.providers[0] for entry in result]
-        
+
         # Both models should be present
         assert any(name in ["capital-model", "lowercase-model"] for name in model_names)
         # Case should be preserved
@@ -823,7 +823,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -841,10 +841,10 @@ class TestCustomModelSelection:
         assert len(result) >= 1
         model_names = [entry.model_name for entry in result]
         providers = [entry.providers[0] for entry in result]
-        
+
         expected_models = ["hyphen-model", "underscore-model", "dot-model"]
         expected_providers = ["ai-provider-2024", "provider_with_underscores", "provider.with.dots"]
-        
+
         assert any(name in expected_models for name in model_names)
         assert any(provider in expected_providers for provider in providers)
 
@@ -869,7 +869,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -887,7 +887,7 @@ class TestCustomModelSelection:
         assert len(result) >= 1
         model_names = [entry.model_name for entry in result]
         providers = [entry.providers[0] for entry in result]
-        
+
         # Both models should be present
         assert any(name in ["model-v1", "model-v2"] for name in model_names)
         # All should have same provider
@@ -907,7 +907,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,
@@ -947,7 +947,7 @@ class TestCustomModelSelection:
                 supports_function_calling=True,
             ),
         ]
-        
+
         protocol_config = ProtocolManagerConfig(models=user_models)
         request = ModelSelectionRequest(
             chat_completion_request=basic_chat_request,

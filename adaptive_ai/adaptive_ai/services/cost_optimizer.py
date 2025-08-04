@@ -107,7 +107,7 @@ class CostOptimizer:
         # Extract model data
         model_data = []
         entries_without_cost_data = []
-        
+
         for entry in model_entries:
             if not entry.providers:
                 continue
@@ -119,7 +119,7 @@ class CostOptimizer:
             else:
                 # Custom provider without cost data - preserve original order
                 entries_without_cost_data.append(entry)
-        
+
         if not model_data:
             # No models have cost data, return original order
             return model_entries
@@ -146,7 +146,7 @@ class CostOptimizer:
         # Sort by scores (descending)
         sorted_indices = np.argsort(final_scores)[::-1]
         sorted_entries = [model_data[i][0] for i in sorted_indices]
-        
+
         # Append entries without cost data at the end
         return sorted_entries + entries_without_cost_data
 

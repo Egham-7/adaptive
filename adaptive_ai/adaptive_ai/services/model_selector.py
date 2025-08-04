@@ -136,7 +136,7 @@ class ModelSelectionService:
 
         # Fast set intersection to get candidate providers
         candidate_providers = frozenset(model_entry.providers) & available_providers
-        
+
         # If no registry providers found, assume custom model and trust user specification
         if not candidate_providers:
             candidate_providers = frozenset(model_entry.providers)
@@ -212,7 +212,7 @@ class ModelSelectionService:
                     providers=[provider], model_name=model_capability.model_name
                 )
                 model_entries.append(model_entry)
-                
+
                 self.log(
                     "user_model_added",
                     {
@@ -240,7 +240,7 @@ class ModelSelectionService:
             "user_specified_models_initial",
             {
                 "models": [
-                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}" 
+                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}"
                     for m in model_entries
                 ],
                 "count": len(model_entries),
@@ -283,7 +283,7 @@ class ModelSelectionService:
             "user_specified_models_final",
             {
                 "models": [
-                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}" 
+                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}"
                     for m in candidate_models
                 ],
                 "count": len(candidate_models),
