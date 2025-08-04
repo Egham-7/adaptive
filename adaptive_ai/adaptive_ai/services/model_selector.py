@@ -136,6 +136,10 @@ class ModelSelectionService:
 
         # Fast set intersection to get candidate providers
         candidate_providers = frozenset(model_entry.providers) & available_providers
+        
+        # If no registry providers found, assume custom model and trust user specification
+        if not candidate_providers:
+            candidate_providers = frozenset(model_entry.providers)
 
         # Check context limits using pre-computed lookup
         token_eligible_providers = set()
@@ -143,7 +147,11 @@ class ModelSelectionService:
             context_limit = self._model_context_limits.get(
                 (provider, model_entry.model_name)
             )
+            # For custom models without registry data, trust the user's specification
             if context_limit and context_limit >= prompt_token_count:
+                token_eligible_providers.add(provider)
+            elif not context_limit:
+                # No registry data - assume custom model can handle the tokens
                 token_eligible_providers.add(provider)
 
         # Cache as frozenset for future intersections
@@ -196,45 +204,23 @@ class ModelSelectionService:
         # Convert all ModelCapability objects to ModelEntry objects
         for model_capability in user_models:
             try:
-                # Handle both ProviderType enum and custom provider strings
-                if isinstance(model_capability.provider, ProviderType):
-                    provider_type = model_capability.provider
-                else:
-                    # Try to convert to ProviderType, but if custom provider, use a fallback
-                    try:
-                        provider_type = ProviderType(model_capability.provider)
-                    except ValueError:
-                        # Custom provider like "botir" - use openai as fallback for routing
-                        # The actual provider will be handled by protocol manager
-                        provider_type = ProviderType.OPENAI
-                        self.log(
-                            "custom_provider_fallback",
-                            {
-                                "original_provider": model_capability.provider,
-                                "model": model_capability.model_name,
-                                "fallback_provider": "openai",
-                            },
-                        )
+                # Use the provider directly - no fallback needed
+                # Supports both ProviderType enum and custom provider strings
+                provider = model_capability.provider
 
                 model_entry = ModelEntry(
-                    providers=[provider_type], model_name=model_capability.model_name
+                    providers=[provider], model_name=model_capability.model_name
                 )
-                # Store original provider info for custom models
-                if (
-                    hasattr(model_capability, "provider")
-                    and str(model_capability.provider) != provider_type.value
-                ):
-                    # Add original provider as metadata
-                    model_entry._original_provider = str(model_capability.provider)
-                    self.log(
-                        "original_provider_stored",
-                        {
-                            "model": model_capability.model_name,
-                            "original_provider": str(model_capability.provider),
-                            "fallback_provider": provider_type.value,
-                        },
-                    )
                 model_entries.append(model_entry)
+                
+                self.log(
+                    "user_model_added",
+                    {
+                        "provider": str(provider),
+                        "model": model_capability.model_name,
+                        "provider_type": type(provider).__name__,
+                    },
+                )
             except Exception as e:
                 self.log(
                     "model_entry_error",
@@ -254,7 +240,8 @@ class ModelSelectionService:
             "user_specified_models_initial",
             {
                 "models": [
-                    f"{m.providers[0].value}:{m.model_name}" for m in model_entries
+                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}" 
+                    for m in model_entries
                 ],
                 "count": len(model_entries),
                 "prompt_token_count": prompt_token_count,
@@ -277,10 +264,11 @@ class ModelSelectionService:
         if not candidate_models:
             # Fallback to first user-specified model
             candidate_models = [model_entries[0]]
+            provider_str = model_entries[0].providers[0].value if hasattr(model_entries[0].providers[0], 'value') else model_entries[0].providers[0]
             self.log(
                 "user_models_pipeline_fallback",
                 {
-                    "fallback_model": f"{model_entries[0].providers[0].value}:{model_entries[0].model_name}",
+                    "fallback_model": f"{provider_str}:{model_entries[0].model_name}",
                     "reason": "No user models passed pipeline constraints",
                     "original_count": len(model_entries),
                     "prompt_token_count": prompt_token_count,
@@ -295,7 +283,8 @@ class ModelSelectionService:
             "user_specified_models_final",
             {
                 "models": [
-                    f"{m.providers[0].value}:{m.model_name}" for m in candidate_models
+                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}" 
+                    for m in candidate_models
                 ],
                 "count": len(candidate_models),
                 "filtered_count": len(model_entries) - len(candidate_models),
@@ -490,7 +479,7 @@ class ModelSelectionService:
                     {
                         "model": model_entry.model_name,
                         "eligible_providers": [
-                            p.value for p in eligible_providers_for_model
+                            p.value if hasattr(p, 'value') else str(p) for p in eligible_providers_for_model
                         ],
                     },
                 )
@@ -529,7 +518,8 @@ class ModelSelectionService:
         for model_entry in candidate_models:
             if model_entry.providers:
                 first_provider = model_entry.providers[0]
-                model_key = f"{first_provider.value}:{model_entry.model_name}"
+                provider_str = first_provider.value if hasattr(first_provider, 'value') else str(first_provider)
+                model_key = f"{provider_str}:{model_entry.model_name}"
                 self.selection_metrics["model_usage"][model_key] = (
                     self.selection_metrics["model_usage"].get(model_key, 0) + 1
                 )

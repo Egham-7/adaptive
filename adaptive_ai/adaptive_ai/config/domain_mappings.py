@@ -48,7 +48,7 @@ minion_domains = {
     ),
     DomainType.JOBS_AND_EDUCATION: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],
-        model_name="mistralai/Mistral-7B-Instruct-v0.3",
+        model_name="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
     ),
     DomainType.LAW_AND_GOVERNMENT: ModelEntry(
         providers=[ProviderType.HUGGINGFACE],

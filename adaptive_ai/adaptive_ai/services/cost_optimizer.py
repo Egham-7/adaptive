@@ -81,7 +81,7 @@ class CostOptimizer:
         self,
         model_entries: list[ModelEntry],
         cost_bias: float,
-        model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+        model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
         estimated_tokens: int,
     ) -> list[ModelEntry]:
         """Rank models using current optimization strategy."""
@@ -97,7 +97,7 @@ class CostOptimizer:
         self,
         model_entries: list[ModelEntry],
         cost_bias: float,
-        model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+        model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
         estimated_tokens: int,
     ) -> list[ModelEntry]:
         """Rank models using sigmoid cost-performance weighting."""
@@ -106,6 +106,8 @@ class CostOptimizer:
 
         # Extract model data
         model_data = []
+        entries_without_cost_data = []
+        
         for entry in model_entries:
             if not entry.providers:
                 continue
@@ -114,7 +116,12 @@ class CostOptimizer:
                 cost = self.calculate_model_cost(model_cap, estimated_tokens)
                 tier = self.get_cost_tier(model_cap)
                 model_data.append((entry, cost, tier))
+            else:
+                # Custom provider without cost data - preserve original order
+                entries_without_cost_data.append(entry)
+        
         if not model_data:
+            # No models have cost data, return original order
             return model_entries
 
         # Vectorized calculations
@@ -138,12 +145,15 @@ class CostOptimizer:
 
         # Sort by scores (descending)
         sorted_indices = np.argsort(final_scores)[::-1]
-        return [model_data[i][0] for i in sorted_indices]
+        sorted_entries = [model_data[i][0] for i in sorted_indices]
+        
+        # Append entries without cost data at the end
+        return sorted_entries + entries_without_cost_data
 
     def get_cost_analysis(
         self,
         model_entries: list[ModelEntry],
-        model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+        model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
         estimated_tokens: int,
     ) -> dict[str, Any]:
         """Get comprehensive cost analysis for a list of models."""
@@ -252,7 +262,7 @@ def get_performance_score_by_tier(tier: str) -> float:
 def rank_models_by_cost_performance(
     model_entries: list[ModelEntry],
     cost_bias: float,
-    model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+    model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
     estimated_tokens: int,
 ) -> list[ModelEntry]:
     """Rank models using sigmoid cost-performance weighting."""
@@ -263,7 +273,7 @@ def rank_models_by_cost_performance(
 
 def get_cost_analysis(
     model_entries: list[ModelEntry],
-    model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+    model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
     estimated_tokens: int,
 ) -> dict[str, Any]:
     """Get cost analysis for a list of models."""
