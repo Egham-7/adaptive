@@ -137,7 +137,7 @@ Run your code to see Adaptive in action:
   "id": "chatcmpl-abc123",
   "object": "chat.completion",
   "created": 1677652288,
-  "model": "gemini-2.0-flash",
+  "model": "",
   "provider": "gemini",  // ← Shows which provider was selected
   "choices": [
     {
@@ -190,7 +190,7 @@ The `provider` field shows which AI provider Adaptive selected for optimal cost 
 const completion = await openai.chat.completions.create({
   model: '',
   messages: [{ role: 'user', content: 'Hello!' }],
-  protocol_manager_config: {
+  protocol_manager: {
     cost_bias: 0.2 // 0 = cheapest, 1 = best performance
   }
 });
@@ -202,7 +202,7 @@ const completion = await openai.chat.completions.create({
 const completion = await openai.chat.completions.create({
   model: '',
   messages: [{ role: 'user', content: 'Hello!' }],
-  protocol_manager_config: {
+  protocol_manager: {
     models: [
       { provider: 'openai' },
       { provider: 'anthropic' }

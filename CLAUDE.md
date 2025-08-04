@@ -196,32 +196,49 @@ This ensures you always have access to the most current and accurate documentati
 
 This is a multi-service intelligent LLM infrastructure project with the following architecture:
 
-### Services Overview
+### Service Index
+
+Each service has its own CLAUDE.md file with specific configuration and development guidelines:
 
 **🔥 Core Services:**
-- **adaptive-backend/** - Go API server (main entry point)
-  - OpenAI-compatible chat completions API
-  - Multi-provider routing (OpenAI, Anthropic, Groq, DeepSeek, Google AI)
-  - Circuit breaker and fallback mechanisms
-  - Built with Fiber framework (Go 1.24+)
+- **[adaptive-backend/](adaptive-backend/CLAUDE.md)** - Go API server (main entry point)
+  - OpenAI-compatible chat completions API (`/v1/chat/completions`)
+  - Multi-provider routing (OpenAI, Anthropic, Groq, DeepSeek, Google AI, etc.)
+  - Circuit breaker and fallback mechanisms with health checks
+  - Built with Fiber framework (Go 1.24+), high performance HTTP server
+  - Port: 8080 | Commands: `go run cmd/api/main.go`, `go test ./...`
 
-- **adaptive_ai/** - Python AI service 
-  - Intelligent model selection using ML classifiers
-  - Prompt analysis and task complexity detection
+- **[adaptive_ai/](adaptive_ai/CLAUDE.md)** - Python AI service 
+  - Intelligent model selection using ML classifiers (PyTorch, scikit-learn)
+  - Prompt analysis and task complexity detection with NLP models
   - Cost optimization and provider routing decisions
-  - Uses transformers, scikit-learn, sentence-transformers
+  - LitServe ML serving framework with sentence-transformers
+  - Port: 8000 | Commands: `uv run adaptive-ai`, `uv run pytest`
 
-- **adaptive-app/** - Next.js frontend
-  - Web interface for chat and analytics
-  - Usage dashboards and cost tracking
-  - Built with React 19, Prisma, tRPC, Clerk auth
-  - Real-time chat with AI SDK integration
+- **[adaptive-app/](adaptive-app/CLAUDE.md)** - Next.js frontend
+  - Multi-tenant web interface for chat and analytics dashboards
+  - Real-time usage tracking, cost analysis, and credit management
+  - Built with React 19, Next.js 15, Prisma ORM, tRPC, Clerk auth
+  - Vercel AI SDK integration for streaming chat
+  - Port: 3000 | Commands: `bun dev`, `bun run build`, `bun run typecheck`
 
 **📊 Supporting Services:**
-- **monitoring/** - Prometheus & Grafana observability stack
-- **analysis/** - Cost analysis and performance benchmarking tools
-- **benchmarks/** - Performance testing (MMLU, genai-perf)
-- **adaptive-docs/** - Documentation site
+- **[analysis/](analysis/CLAUDE.md)** - Cost analysis and performance benchmarking tools
+  - Python-based cost analysis pipelines with visualization
+  - ROI calculations and provider performance metrics
+  - Jupyter notebooks for interactive analysis
+
+- **[benchmarks/](benchmarks/CLAUDE.md)** - Performance testing suite
+  - GenAI-Perf load testing with concurrency analysis
+  - MMLU academic benchmarking for model evaluation
+  - Protocol testing for AI service routing validation
+
+- **[adaptive-docs/](adaptive-docs/CLAUDE.md)** - Documentation site
+  - Mintlify-powered API documentation with interactive examples
+  - Integration guides (OpenAI SDK, Vercel AI SDK, LangChain)
+  - Feature documentation and troubleshooting guides
+
+### Services Overview
 
 ### Technology Stack
 

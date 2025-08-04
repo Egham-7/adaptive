@@ -8,7 +8,7 @@ require (
 	github.com/alitto/pond/v2 v2.5.0
 	github.com/botirk38/semanticcache v0.2.0
 	github.com/gofiber/fiber/v2 v2.52.8
-	github.com/openai/openai-go v1.11.1
+	github.com/openai/openai-go v1.12.0
 	github.com/valyala/fasthttp v1.64.0
 )
 

@@ -194,7 +194,7 @@ Use any OpenAI-compatible authorization header:
 
 ### Adaptive-Specific Parameters
 
-<ParamField body="protocol_manager_config" type="object">
+<ParamField body="protocol_manager" type="object">
   Configuration for intelligent routing and provider selection.
   
   <Expandable title="Protocol Manager Config">
@@ -431,7 +431,7 @@ const completion = await openai.chat.completions.create({
   messages: [
     { role: 'user', content: 'Write a Python function to sort a list' }
   ],
-  protocol_manager_config: {
+  protocol_manager: {
     models: [
       { provider: "anthropic" }, // All Anthropic models
       { provider: "openai", model_name: "gpt-4" } // Specific OpenAI model
@@ -586,7 +586,7 @@ const completion = await openai.chat.completions.create({
   },
   
   // Adaptive-specific
-  protocol_manager_config: {
+  protocol_manager: {
     models: [
       { provider: "openai" }, // Use all OpenAI models
       { provider: "anthropic", model_name: "claude-3-sonnet-20240229" }, // Specific model

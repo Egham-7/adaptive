@@ -1,97 +1,139 @@
 ---
 title: "Prompt Response Cache"
-description: "Ultra-fast caching for identical requests"
+description: "Ultra-fast caching for identical requests with streaming support"
 icon: "database"
 ---
 
-The fastest cache level - stores complete responses for identical prompts to deliver instant results. **Disabled by default** - enable per request for maximum speed.
+The fastest cache level - stores complete responses for identical prompts to deliver instant results. **Disabled by default** - enable per request for maximum speed. Supports both streaming and non-streaming requests.
 
 ## How It Works
 
 - **Exact matching**: Caches responses for identical prompt + parameter combinations
-- **Instant retrieval**: Sub-microsecond cache hits
-- **Opt-in per request**: Enable only when needed
+- **SHA256-based keys**: Deterministic cache key generation for consistency
+- **Redis backend**: Uses existing Redis infrastructure for reliability
+- **Streaming conversion**: Cached responses are converted to Server-Sent Events for streaming compatibility
+- **Success-only caching**: Only successful responses are cached, preventing error propagation
 
 ## Benefits
 
-- **Microsecond response times** for repeated requests
+- **Sub-millisecond response times** for repeated requests
 - **Zero API costs** for cached responses  
 - **Perfect accuracy** - exact same response every time
+- **Streaming support** - cached responses work with both regular and streaming requests
+- **Redis reliability** - Persistent storage with configurable TTL
+
+## Cache Priority
+
+The prompt cache is checked **before** the semantic cache for optimal performance:
+
+1. **Prompt Cache** (fastest) - Exact parameter matches
+2. **Semantic Cache** - Similar meaning matches  
+3. **Provider APIs** - Fresh requests
 
 ## Cache Keys
 
-Responses are cached based on:
+Responses are cached based on SHA256 hash of:
 - Complete message history
-- All parameters (temperature, max_tokens, etc.)
-- Selected model and provider
-- User context (if applicable)
+- Model selection
+- All parameters (temperature, max_tokens, top_p, etc.)
+- Tools and tool choice configuration
 
 ## Examples
 
-### Identical Requests
+### Basic Usage
 ```javascript
-// First request - cache miss
-const response1 = await openai.chat.completions.create({
+// Enable prompt caching with custom TTL
+const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "What is 2+2?" }],
-  temperature: 0.7
+  temperature: 0.7,
+  prompt_cache: {
+    enabled: true,
+    ttl: 7200  // 2 hours in seconds
+  }
+});
+```
+
+### Streaming Support
+```javascript
+// Works with streaming requests
+const stream = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Write a poem" }],
+  stream: true,
+  prompt_cache: {
+    enabled: true,
+    ttl: 3600
+  }
 });
 
-// Second identical request - cache hit (microseconds)
-const response2 = await openai.chat.completions.create({
-  model: "",
-  messages: [{ role: "user", content: "What is 2+2?" }],
-  temperature: 0.7
-});
+// Cached responses are streamed word-by-word for consistent UX
 ```
 
 ### Cache Miss Scenarios
 ```javascript
 // Different temperature = cache miss
-const response3 = await openai.chat.completions.create({
+const response1 = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "What is 2+2?" }],
-  temperature: 0.8  // Different parameter
+  temperature: 0.8,  // Different parameter
+  prompt_cache: { enabled: true }
 });
 
 // Different message = cache miss  
-const response4 = await openai.chat.completions.create({
-  model: "",
+const response2 = await openai.chat.completions.create({
+  model: "", 
   messages: [{ role: "user", content: "What is 3+3?" }],
-  temperature: 0.7
+  temperature: 0.7,
+  prompt_cache: { enabled: true }
 });
 ```
 
 ## Configuration
 
-Enable prompt response caching per request:
+The prompt cache accepts a `prompt_cache` object in requests:
 
 ```javascript
-const completion = await openai.chat.completions.create({
-  model: "",
-  messages: [{ role: "user", content: "Hello" }],
-  prompt_cache_config: {
-    enabled: true,
-    ttl_seconds: 3600 // 1 hour cache duration
+{
+  "prompt_cache": {
+    "enabled": true,        // Required: enable caching for this request
+    "ttl": 3600            // Optional: TTL in seconds (default: 3600)
   }
-});
+}
 ```
 
 ### Configuration Options
 
-- `enabled`: Boolean to enable/disable caching for this request
-- `ttl_seconds`: Cache duration in seconds (default: 3600)
+- `enabled`: **Required** boolean to enable caching for this request
+- `ttl`: Optional cache duration in seconds (default: 3600, i.e., 1 hour)
 
-## Performance
+## Technical Implementation
 
-- **Hit latency**: Under 1 microsecond
-- **Storage**: In-memory with Redis backup
-- **Hit rate**: 15-25% for typical applications
-- **Capacity**: Millions of cached responses
+- **Storage**: Redis with configurable TTL per entry
+- **Key generation**: SHA256 hash of request parameters for consistency
+- **Error handling**: Cache failures don't block requests - fallback to fresh API calls
+- **Memory efficiency**: Only successful responses are stored
+- **Streaming simulation**: Cached responses are chunked and streamed with realistic timing
+
+## Performance Characteristics
+
+- **Hit latency**: ~1-5ms including Redis roundtrip
+- **Storage**: Redis with persistence and replication
+- **Hit rate**: 15-25% for typical applications, higher for repeated workflows
+- **Capacity**: Limited by Redis memory configuration
+- **Streaming delay**: 10ms between chunks for natural feel
 
 ## Best Practices
 
-- **Deterministic requests**: Use temperature=0 for consistent caching
-- **Batch similar requests**: Group identical requests together
-- **Monitor hit rates**: Track cache effectiveness in dashboard
-- **Consider TTL**: Shorter TTL for time-sensitive content
+- **Use with deterministic requests**: Set `temperature: 0` for consistent results
+- **Configure appropriate TTL**: Shorter for time-sensitive content, longer for static responses
+- **Monitor cache effectiveness**: Track hit rates in application metrics
+- **Batch similar requests**: Group identical requests to maximize cache hits
+- **Consider memory usage**: Monitor Redis memory consumption with high TTL values
+
+## Error Handling
+
+- Cache initialization failures don't prevent application startup
+- Cache storage/retrieval errors fallback gracefully to API calls
+- Only successful API responses are cached to prevent error propagation
+- Redis connection issues are logged but don't interrupt request flow

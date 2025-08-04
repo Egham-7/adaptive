@@ -30,7 +30,7 @@ const completion = await openai.chat.completions.create({
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
-  protocol_manager_config: {
+  protocol_manager: {
     cost_bias: 0.2 // 0 = cheapest, 1 = best performance
   }
 });
@@ -42,7 +42,7 @@ const completion = await openai.chat.completions.create({
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
-  protocol_manager_config: {
+  protocol_manager: {
     models: [
       { provider: "openai" },
       { provider: "anthropic", model_name: "claude-3-sonnet" }
@@ -61,7 +61,7 @@ const completion = await openai.chat.completions.create({
 
 ```json
 {
-  "model": "gpt-4o-mini",
+  "model": "",
   "provider": "openai", // Shows selected provider
   "choices": [...],
   "usage": {...}
