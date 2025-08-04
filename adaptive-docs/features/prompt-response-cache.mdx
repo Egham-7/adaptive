@@ -44,7 +44,7 @@ Responses are cached based on SHA256 hash of:
 ```javascript
 // Enable prompt caching with custom TTL
 const completion = await openai.chat.completions.create({
-  model: "gpt-4",
+  model: "",
   messages: [{ role: "user", content: "What is 2+2?" }],
   temperature: 0.7,
   prompt_cache: {
@@ -58,7 +58,7 @@ const completion = await openai.chat.completions.create({
 ```javascript
 // Works with streaming requests
 const stream = await openai.chat.completions.create({
-  model: "gpt-4",
+  model: "",
   messages: [{ role: "user", content: "Write a poem" }],
   stream: true,
   prompt_cache: {
@@ -74,7 +74,7 @@ const stream = await openai.chat.completions.create({
 ```javascript
 // Different temperature = cache miss
 const response1 = await openai.chat.completions.create({
-  model: "gpt-4",
+  model: "",
   messages: [{ role: "user", content: "What is 2+2?" }],
   temperature: 0.8,  // Different parameter
   prompt_cache: { enabled: true }
@@ -82,7 +82,7 @@ const response1 = await openai.chat.completions.create({
 
 // Different message = cache miss  
 const response2 = await openai.chat.completions.create({
-  model: "gpt-4", 
+  model: "", 
   messages: [{ role: "user", content: "What is 3+3?" }],
   temperature: 0.7,
   prompt_cache: { enabled: true }

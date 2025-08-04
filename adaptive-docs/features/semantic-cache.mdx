@@ -47,14 +47,14 @@ Cache hits for similar requests:
 ```javascript
 // Default behavior (enabled with balanced threshold)
 {
-  "model": "gpt-4",
+  "model": "",
   "messages": [{"role": "user", "content": "How do I reset my password?"}]
   // semantic_cache enabled by default
 }
 
 // Customize threshold for stricter matching
 {
-  "model": "gpt-4", 
+  "model": "", 
   "messages": [{"role": "user", "content": "Technical implementation question"}],
   "semantic_cache": {
     "semantic_threshold": 0.9  // Higher = stricter matching
@@ -63,7 +63,7 @@ Cache hits for similar requests:
 
 // Disable for real-time or highly dynamic content
 {
-  "model": "gpt-4",
+  "model": "",
   "messages": [{"role": "user", "content": "What's the current stock price?"}],
   "semantic_cache": {
     "enabled": false
