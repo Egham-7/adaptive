@@ -21,7 +21,7 @@
 	},
 	"dependencies": {
 		"@adaptive-llm/adaptive-ai-provider": "^1.2.11",
-		"@ai-sdk/react": "2.0.1",
+		"@ai-sdk/react": "2.0.2",
 		"@clerk/nextjs": "^6.27.1",
 		"@hookform/resolvers": "^5.2.0",
 		"@prisma/client": "^6.12.0",
