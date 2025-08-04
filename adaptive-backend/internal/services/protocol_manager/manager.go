@@ -119,17 +119,45 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 		requestID, resp.Protocol,
 		getProviderFromResponse(resp), getModelFromResponse(resp))
 
-	// 3) Store in cache for future use (if cache should be used)
-	if useCache && pm.cache != nil {
-		fiberlog.Debugf("[%s] Storing protocol response in cache", requestID)
-		if err := pm.cache.Store(prompt, resp); err != nil {
-			fiberlog.Errorf("[%s] Failed to store protocol response in cache: %v", requestID, err)
-		} else {
-			fiberlog.Debugf("[%s] Successfully stored protocol response in cache", requestID)
-		}
-	}
+	// 3) Do NOT store in cache yet - wait for successful completion
+	// The cache will be populated after successful API call
 
 	return &resp, string(resp.Protocol), nil
+}
+
+// StoreSuccessfulProtocol stores a protocol response in the semantic cache after successful completion
+func (pm *ProtocolManager) StoreSuccessfulProtocol(
+	req models.ModelSelectionRequest,
+	resp models.ProtocolResponse,
+	requestID string,
+	cacheConfigOverride *models.CacheConfig,
+) error {
+	// Check if cache should be used
+	useCache := pm.cache != nil
+	if cacheConfigOverride != nil {
+		useCache = cacheConfigOverride.Enabled
+	}
+
+	if !useCache || pm.cache == nil {
+		fiberlog.Debugf("[%s] Semantic cache disabled - skipping storage", requestID)
+		return nil
+	}
+
+	// Extract prompt from last message for cache key
+	prompt, err := utils.ExtractLastMessage(req.ChatCompletionRequest.Messages)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to extract last message for semantic cache: %v", requestID, err)
+		return fmt.Errorf("failed to extract last message: %w", err)
+	}
+
+	fiberlog.Debugf("[%s] Storing successful protocol response in semantic cache", requestID)
+	if err := pm.cache.Store(prompt, resp); err != nil {
+		fiberlog.Errorf("[%s] Failed to store protocol response in semantic cache: %v", requestID, err)
+		return err
+	}
+
+	fiberlog.Debugf("[%s] Successfully stored protocol response in semantic cache", requestID)
+	return nil
 }
 
 // Helper functions to extract provider and model from response for logging

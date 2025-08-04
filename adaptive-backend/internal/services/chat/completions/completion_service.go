@@ -2,6 +2,7 @@ package completions
 
 import (
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
@@ -15,12 +16,21 @@ import (
 // CompletionService handles completion requests with fallback logic.
 type CompletionService struct {
 	providerSelector *ProviderSelector
+	promptCache      *cache.PromptCache
 }
 
 // NewCompletionService creates a new completion service.
 func NewCompletionService() *CompletionService {
+	// Initialize prompt cache, but don't fail if it can't be created
+	promptCache, err := cache.NewPromptCache()
+	if err != nil {
+		fiberlog.Warnf("Failed to initialize prompt cache: %v", err)
+		promptCache = nil
+	}
+
 	return &CompletionService{
 		providerSelector: NewProviderSelector(),
+		promptCache:      promptCache,
 	}
 }
 
@@ -145,6 +155,18 @@ func (cs *CompletionService) handleProtocolGeneric(
 ) error {
 	provider := prov.GetProviderName() // Get provider name once
 
+	// Check prompt cache first for both streaming and non-streaming requests
+	if cs.promptCache != nil {
+		if cachedResp, found := cs.promptCache.Get(req, requestID); found {
+			fiberlog.Infof("[%s] Prompt cache hit for %s", requestID, protocolName)
+			if isStream {
+				// Convert cached response to streaming format
+				return cache.StreamCachedResponse(c, cachedResp, requestID)
+			}
+			return c.JSON(cachedResp)
+		}
+	}
+
 	if isStream {
 		fiberlog.Infof("[%s] streaming %s response", requestID, protocolName)
 
@@ -169,6 +191,14 @@ func (cs *CompletionService) handleProtocolGeneric(
 	}
 
 	adaptiveResp := models.ConvertToAdaptive(regResp, provider)
+
+	// Store successful response in prompt cache (only for non-streaming requests)
+	if !isStream && cs.promptCache != nil {
+		if err := cs.promptCache.Set(req, adaptiveResp, requestID); err != nil {
+			fiberlog.Warnf("[%s] Failed to store response in prompt cache: %v", requestID, err)
+		}
+	}
+
 	return c.JSON(adaptiveResp)
 }
 

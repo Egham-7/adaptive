@@ -230,8 +230,9 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
+	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager,omitempty"`
 	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
+	PromptCache           *PromptCacheConfig     `json:"prompt_cache,omitempty"`   // Optional prompt response cache configuration
 	FallbackMode          FallbackMode           `json:"fallback_mode,omitempty"`  // Strategy for handling provider failures
 }
 

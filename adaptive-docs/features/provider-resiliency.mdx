@@ -16,7 +16,7 @@ const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
   fallback_mode: "sequential",
-  protocol_manager_config: {
+  protocol_manager: {
     models: [
       { provider: "openai" },    // Try first
       { provider: "anthropic" }  // Fallback
@@ -36,7 +36,7 @@ const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
   fallback_mode: "parallel",
-  protocol_manager_config: {
+  protocol_manager: {
     models: [
       { provider: "openai" },
       { provider: "anthropic" }
