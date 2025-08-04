@@ -1,0 +1,21 @@
+provider:
+  name: Anthropic
+  id: anthropic
+  extracted_at: '2025-08-05T00:12:14.663448'
+  total_models: 2
+models:
+- id: claude-3-5-haiku-20241022
+  name: Claude 3.5 Haiku
+  provider: anthropic
+  input_cost_per_1m_tokens: 0.8
+  output_cost_per_1m_tokens: 4.0
+  context_length: 200000
+  supports_function_calling: true
+- id: claude-sonnet-4-20250514
+  name: Claude Sonnet 4
+  provider: anthropic
+  input_cost_per_1m_tokens: 3.0
+  output_cost_per_1m_tokens: 15.0
+  context_length: 200000
+  supports_function_calling: true
+  supports_vision: true

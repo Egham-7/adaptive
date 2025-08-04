@@ -1,0 +1,41 @@
+extraction_summary:
+  extracted_at: '2025-08-05T00:17:24.542156'
+  total_providers: 5
+  total_models: 11
+providers:
+  openai:
+    name: OpenAI
+    total_models: 4
+    models:
+    - gpt-4
+    - gpt-4-turbo
+    - gpt-4o
+    - gpt-4o-mini
+    has_more: false
+  anthropic:
+    name: Anthropic
+    total_models: 3
+    models:
+    - claude-3-5-haiku-20241022
+    - claude-sonnet-4-20250514
+    - claude-opus-4-20250514
+    has_more: false
+  groq:
+    name: Groq
+    total_models: 1
+    models:
+    - llama-3.1-70b-versatile
+    has_more: false
+  deepseek:
+    name: DeepSeek
+    total_models: 2
+    models:
+    - deepseek-chat
+    - deepseek-reasoner
+    has_more: false
+  grok:
+    name: xAI Grok
+    total_models: 1
+    models:
+    - grok-3-mini
+    has_more: false

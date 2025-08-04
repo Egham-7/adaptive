@@ -1,0 +1,880 @@
+Open QA:
+  description: Models optimized for Open QA
+  preferred_models:
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.98
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.75
+    complexity_levels:
+    - low
+    - medium
+    - high
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.3
+    max_tokens: 1024
+Closed QA:
+  description: Models optimized for Closed QA
+  preferred_models:
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.75
+    complexity_levels:
+    - low
+    - medium
+    - high
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.2
+    max_tokens: 1024
+Summarization:
+  description: Models optimized for Summarization
+  preferred_models:
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.83
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.83
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.3
+    max_tokens: 1024
+Text Generation:
+  description: Models optimized for Text Generation
+  preferred_models:
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 1.0
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 1.0
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  - model_id: claude-3-5-haiku-20241022
+    provider: anthropic
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.8
+    max_tokens: 1024
+Code Generation:
+  description: Models optimized for Code Generation
+  preferred_models:
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 1.0
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.1
+    max_tokens: 2048
+Chatbot:
+  description: Models optimized for Chatbot
+  preferred_models:
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 1.0
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  - model_id: grok-3-mini
+    provider: grok
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.7
+    max_tokens: 512
+Classification:
+  description: Models optimized for Classification
+  preferred_models:
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.83
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.83
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.75
+    complexity_levels:
+    - low
+    - medium
+    - high
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.1
+    max_tokens: 256
+Rewrite:
+  description: Models optimized for Rewrite
+  preferred_models:
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 1.0
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.98
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.5
+    max_tokens: 1024
+Brainstorming:
+  description: Models optimized for Brainstorming
+  preferred_models:
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 1.0
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 1.0
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  - model_id: claude-3-5-haiku-20241022
+    provider: anthropic
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.8
+    max_tokens: 1024
+Extraction:
+  description: Models optimized for Extraction
+  preferred_models:
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.98
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.95
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.93
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.85
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.2
+    max_tokens: 512
+Other:
+  description: Models optimized for Other
+  preferred_models:
+  - model_id: deepseek-reasoner
+    provider: deepseek
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-sonnet-4-20250514
+    provider: anthropic
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: claude-opus-4-20250514
+    provider: anthropic
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o
+    provider: openai
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: gpt-4o-mini
+    provider: openai
+    suitability_score: 0.9
+    complexity_levels:
+    - low
+    - medium
+    - high
+    - expert
+  - model_id: llama-3.1-70b-versatile
+    provider: groq
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4
+    provider: openai
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: gpt-4-turbo
+    provider: openai
+    suitability_score: 0.8
+    complexity_levels:
+    - low
+    - medium
+    - high
+  - model_id: deepseek-chat
+    provider: deepseek
+    suitability_score: 0.7
+    complexity_levels:
+    - low
+    - medium
+  complexity_levels:
+  - expert
+  - high
+  - low
+  - medium
+  recommended_params:
+    temperature: 0.5
+    max_tokens: 1024

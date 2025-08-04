@@ -1,0 +1,48 @@
+provider:
+  name: OpenAI
+  id: openai
+  extracted_at: '2025-08-05T00:17:24.542156'
+  total_models: 4
+models:
+- id: gpt-4
+  name: GPT-4
+  provider: openai
+  type: model
+  max_tokens: 4096
+  input_cost_per_1m_tokens: 30.0
+  output_cost_per_1m_tokens: 60.0
+  context_length: 8192
+  supports_function_calling: true
+  supports_streaming: true
+- id: gpt-4-turbo
+  name: GPT-4 Turbo
+  provider: openai
+  type: model
+  max_tokens: 4096
+  input_cost_per_1m_tokens: 10.0
+  output_cost_per_1m_tokens: 30.0
+  context_length: 128000
+  supports_function_calling: true
+  supports_streaming: true
+- id: gpt-4o
+  name: GPT-4o
+  provider: openai
+  type: model
+  max_tokens: 4096
+  input_cost_per_1m_tokens: 5.0
+  output_cost_per_1m_tokens: 15.0
+  context_length: 128000
+  supports_function_calling: true
+  supports_vision: true
+  supports_streaming: true
+- id: gpt-4o-mini
+  name: GPT-4o Mini
+  provider: openai
+  type: model
+  max_tokens: 16384
+  input_cost_per_1m_tokens: 0.15
+  output_cost_per_1m_tokens: 0.6
+  context_length: 128000
+  supports_function_calling: true
+  supports_vision: true
+  supports_streaming: true

@@ -1,0 +1,16 @@
+provider:
+  name: xAI Grok
+  id: grok
+  extracted_at: '2025-08-05T00:17:24.542156'
+  total_models: 1
+models:
+- id: grok-3-mini
+  name: Grok 3 Mini
+  provider: grok
+  type: model
+  max_tokens: 4096
+  input_cost_per_1m_tokens: 0.1
+  output_cost_per_1m_tokens: 0.3
+  context_length: 32768
+  supports_function_calling: true
+  supports_streaming: true

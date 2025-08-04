@@ -1,0 +1,469 @@
+provider:
+  name: OpenAI
+  id: openai
+  extracted_at: '2024-01-15T10:30:00.123456'
+  total_models: 3
+  enriched_at: '2024-01-15T10:35:00.654321'
+  analysis_version: '1.0'
+
+models:
+- id: gpt-4
+  name: gpt-4
+  provider: openai
+  type: model
+  max_tokens: 4096
+  context_length: 8192
+  supports_function_calling: true
+  supports_vision: false
+  supports_streaming: true
+  created: '2023-03-01'
+  owned_by: openai
+  
+  # AI-Generated Task Capabilities
+  task_capabilities:
+    "Code Generation":
+      suitability_score: 0.92
+      complexity_levels: 
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Excellent code generation with strong debugging and optimization capabilities"
+      recommended_params:
+        temperature: 0.1
+        max_tokens: 2048
+      benchmarks:
+        humaneval: 67.0
+        mbpp: 76.0
+    
+    "Open QA":
+      suitability_score: 0.90
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Comprehensive open-ended question answering across diverse domains"
+      recommended_params:
+        temperature: 0.3
+        max_tokens: 1024
+      benchmarks:
+        mmlu: 86.4
+    
+    "Closed QA":
+      suitability_score: 0.91
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Excellent context-based question answering with document understanding"
+      recommended_params:
+        temperature: 0.2
+        max_tokens: 1024
+    
+    "Text Generation":
+      suitability_score: 0.85
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "High-quality creative content and text generation"
+      recommended_params:
+        temperature: 0.8
+        max_tokens: 1024
+    
+    "Summarization":
+      suitability_score: 0.89
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Excellent text summarization and condensation capabilities"
+      recommended_params:
+        temperature: 0.3
+        max_tokens: 1024
+    
+    "Chatbot":
+      suitability_score: 0.88
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Natural conversational abilities with good context retention"
+      recommended_params:
+        temperature: 0.7
+        max_tokens: 512
+    
+    "Classification":
+      suitability_score: 0.87
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Strong classification and categorization capabilities"
+      recommended_params:
+        temperature: 0.1
+        max_tokens: 256
+    
+    "Rewrite":
+      suitability_score: 0.86
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Good text rewriting and reformulation abilities"
+      recommended_params:
+        temperature: 0.5
+        max_tokens: 1024
+    
+    "Brainstorming":
+      suitability_score: 0.84
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Creative ideation and brainstorming capabilities"
+      recommended_params:
+        temperature: 0.8
+        max_tokens: 1024
+    
+    "Extraction":
+      suitability_score: 0.88
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Effective information extraction from text"
+      recommended_params:
+        temperature: 0.2
+        max_tokens: 512
+    
+    "Other":
+      suitability_score: 0.85
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "General-purpose capabilities for diverse tasks"
+      recommended_params:
+        temperature: 0.5
+        max_tokens: 1024
+  
+  # AI-Generated Performance Profile
+  performance_profile:
+    overall_complexity: expert
+    cost_efficiency: premium
+    latency_tier: medium
+    specializations:
+      - reasoning
+      - analysis
+      - code_generation
+      - complex_problem_solving
+    limitations:
+      - multimodal_tasks
+      - real_time_data
+      - very_long_context
+    estimated_quality_score: 0.90
+    cost_per_quality_ratio: 33.33  # $30 per 1M tokens / 0.90 quality
+    analysis_timestamp: '2024-01-15T10:35:15.789012'
+    confidence_score: 0.95
+    analysis_version: '1.0'
+
+- id: gpt-4-turbo
+  name: gpt-4-turbo
+  provider: openai
+  type: model
+  max_tokens: 4096
+  context_length: 128000
+  supports_function_calling: true
+  supports_vision: false
+  supports_streaming: true
+  created: '2023-11-01'
+  owned_by: openai
+  
+  task_capabilities:
+    "Code Generation":
+      suitability_score: 0.90
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Excellent code generation with long context understanding"
+      recommended_params:
+        temperature: 0.1
+        max_tokens: 2048
+    
+    "Open QA":
+      suitability_score: 0.88
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Comprehensive open-ended QA with long context understanding"
+      recommended_params:
+        temperature: 0.3
+        max_tokens: 1024
+    
+    "Closed QA":
+      suitability_score: 0.92
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Exceptional long document analysis and context-based QA"
+      recommended_params:
+        temperature: 0.2
+        max_tokens: 1024
+    
+    "Summarization":
+      suitability_score: 0.95
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Exceptional long document summarization capabilities"
+      recommended_params:
+        temperature: 0.3
+        max_tokens: 2048
+    
+    "Text Generation":
+      suitability_score: 0.83
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Good creative writing with long-form content capabilities"
+      recommended_params:
+        temperature: 0.8
+        max_tokens: 2048
+    
+    "Chatbot":
+      suitability_score: 0.86
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Natural conversation with excellent context retention"
+      recommended_params:
+        temperature: 0.7
+        max_tokens: 512
+    
+    "Classification":
+      suitability_score: 0.85
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Strong classification with long context analysis"
+      recommended_params:
+        temperature: 0.1
+        max_tokens: 256
+    
+    "Rewrite":
+      suitability_score: 0.87
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Excellent rewriting with context preservation"
+      recommended_params:
+        temperature: 0.5
+        max_tokens: 1024
+    
+    "Brainstorming":
+      suitability_score: 0.82
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Good brainstorming with extended context capabilities"
+      recommended_params:
+        temperature: 0.8
+        max_tokens: 1024
+    
+    "Extraction":
+      suitability_score: 0.90
+      complexity_levels:
+        - low
+        - medium
+        - high
+        - expert
+      reasoning: "Excellent information extraction from long documents"
+      recommended_params:
+        temperature: 0.2
+        max_tokens: 512
+    
+    "Other":
+      suitability_score: 0.85
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Strong general capabilities with long context support"
+      recommended_params:
+        temperature: 0.5
+        max_tokens: 1024
+  
+  performance_profile:
+    overall_complexity: expert
+    cost_efficiency: balanced
+    latency_tier: low
+    specializations:
+      - long_context_processing
+      - document_analysis
+      - reasoning
+      - code_review
+    limitations:
+      - multimodal_tasks
+      - real_time_data
+    estimated_quality_score: 0.88
+    cost_per_quality_ratio: 11.36  # $10 per 1M tokens / 0.88 quality
+    analysis_timestamp: '2024-01-15T10:35:20.123456'
+    confidence_score: 0.93
+    analysis_version: '1.0'
+
+- id: gpt-4o-mini
+  name: gpt-4o-mini
+  provider: openai
+  type: model
+  max_tokens: 16384
+  context_length: 128000
+  supports_function_calling: true
+  supports_vision: true
+  supports_streaming: true
+  created: '2024-07-01'
+  owned_by: openai
+  
+  task_capabilities:
+    code_generation:
+      suitability_score: 0.78
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Good code generation for standard tasks, cost-effective"
+      recommended_params:
+        temperature: 0.1
+        max_tokens: 2048
+    
+    mathematical_reasoning:
+      suitability_score: 0.75
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Solid mathematical reasoning for most problems"
+      recommended_params:
+        temperature: 0.0
+        max_tokens: 1024
+    
+    creative_writing:
+      suitability_score: 0.80
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Good creative writing with cost efficiency"
+      recommended_params:
+        temperature: 0.8
+        max_tokens: 1024
+    
+    text_analysis:
+      suitability_score: 0.82
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Effective text analysis with good speed"
+      recommended_params:
+        temperature: 0.3
+        max_tokens: 1024
+    
+    reasoning_and_logic:
+      suitability_score: 0.76
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Capable reasoning for most logical tasks"
+      recommended_params:
+        temperature: 0.2
+        max_tokens: 1024
+    
+    conversation:
+      suitability_score: 0.85
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Excellent conversational abilities, ideal for chatbots"
+      recommended_params:
+        temperature: 0.7
+        max_tokens: 512
+    
+    question_answering:
+      suitability_score: 0.81
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Good QA performance across various domains"
+      recommended_params:
+        temperature: 0.3
+        max_tokens: 512
+    
+    content_creation:
+      suitability_score: 0.83
+      complexity_levels:
+        - low
+        - medium
+        - high
+      reasoning: "Strong content creation with fast response times"
+      recommended_params:
+        temperature: 0.6
+        max_tokens: 1024
+    
+    translation:
+      suitability_score: 0.77
+      complexity_levels:
+        - low
+        - medium
+      reasoning: "Decent translation capabilities for common languages"
+      recommended_params:
+        temperature: 0.3
+        max_tokens: 1024
+    
+    multimodal_tasks:
+      suitability_score: 0.72
+      complexity_levels:
+        - low
+        - medium
+      reasoning: "Basic vision capabilities for simple multimodal tasks"
+      recommended_params:
+        temperature: 0.5
+        max_tokens: 1024
+  
+  performance_profile:
+    overall_complexity: medium
+    cost_efficiency: budget
+    latency_tier: very_low
+    specializations:
+      - speed
+      - cost_efficiency
+      - conversation
+      - general_tasks
+    limitations:
+      - expert_level_tasks
+      - complex_reasoning
+      - specialized_domains
+    estimated_quality_score: 0.79
+    cost_per_quality_ratio: 0.19  # $0.15 per 1M tokens / 0.79 quality
+    analysis_timestamp: '2024-01-15T10:35:25.456789'
+    confidence_score: 0.91
+    analysis_version: '1.0'

@@ -1,0 +1,82 @@
+pipeline_summary:
+  generated_at: '2025-08-05T00:21:20.849995'
+  analysis_model: rule-based (API fallback)
+  total_providers: 5
+  total_models: 11
+  task_types_analyzed:
+  - Open QA
+  - Closed QA
+  - Summarization
+  - Text Generation
+  - Code Generation
+  - Chatbot
+  - Classification
+  - Rewrite
+  - Brainstorming
+  - Extraction
+  - Other
+  complexity_levels:
+  - low
+  - medium
+  - high
+  - expert
+providers:
+  openai:
+    name: OpenAI
+    total_models: 4
+    models:
+    - gpt-4
+    - gpt-4-turbo
+    - gpt-4o
+    - gpt-4o-mini
+    average_quality_score: 0.82
+    specializations:
+    - reasoning
+    - analysis
+    - general_purpose
+  anthropic:
+    name: Anthropic
+    total_models: 3
+    models:
+    - claude-3-5-haiku-20241022
+    - claude-sonnet-4-20250514
+    - claude-opus-4-20250514
+    average_quality_score: 0.85
+    specializations:
+    - creative_writing
+    - analysis
+    - reasoning
+  groq:
+    name: Groq
+    total_models: 1
+    models:
+    - llama-3.1-70b-versatile
+    average_quality_score: 0.78
+    specializations:
+    - speed
+    - efficiency
+  deepseek:
+    name: DeepSeek
+    total_models: 2
+    models:
+    - deepseek-chat
+    - deepseek-reasoner
+    average_quality_score: 0.8
+    specializations:
+    - coding
+    - reasoning
+    - math
+  grok:
+    name: xAI Grok
+    total_models: 1
+    models:
+    - grok-3-mini
+    average_quality_score: 0.72
+    specializations:
+    - efficiency
+    - general_purpose
+recommendations:
+- Configuration successfully generated with comprehensive model analysis
+- All 11 TaskType enum values have been analyzed and mapped
+- Models ranked by capability and cost-efficiency for each task type
+- Ready for production deployment - replace adaptive_ai/config/providers.py
