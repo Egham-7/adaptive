@@ -232,6 +232,7 @@ type ChatCompletionRequest struct {
 
 	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
 	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
+	PromptCache           *PromptCacheConfig     `json:"prompt_cache,omitempty"`   // Optional prompt response cache configuration
 	FallbackMode          FallbackMode           `json:"fallback_mode,omitempty"`  // Strategy for handling provider failures
 }
 
