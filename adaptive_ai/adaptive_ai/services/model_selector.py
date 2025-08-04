@@ -38,9 +38,7 @@ class ModelSelectionService:
         }
 
         # Cache for eligible providers per model and token count (optimized with token bucketing)
-        self._eligible_providers_cache: dict[
-            tuple[str, int], frozenset[ProviderType]
-        ] = {}
+        self._eligible_providers_cache: dict[str, frozenset[ProviderType]] = {}
 
         # Pre-computed mapping of models to their available providers (frozenset for O(1) lookups)
         self._model_to_providers: dict[str, frozenset[ProviderType]] = {}
@@ -120,7 +118,7 @@ class ModelSelectionService:
         """Get eligible providers for a model that meet capability requirements (optimized)."""
         # Optimize cache key with larger buckets for better hit rate
         token_bucket = (prompt_token_count // 2000) * 2000  # 2K token buckets
-        cache_key = (model_entry.model_name, token_bucket)
+        cache_key = str((model_entry.model_name, token_bucket))
 
         # Check cache first - use frozenset intersection for O(1) filtering
         if cache_key in self._eligible_providers_cache:
@@ -174,6 +172,16 @@ class ModelSelectionService:
                 if self._model_to_providers
                 else 0
             ),
+        }
+
+    @property
+    def cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics in consistent format."""
+        return {
+            "eligible_providers_cache": {
+                "size": len(self._eligible_providers_cache),
+                "total_models_tracked": len(self._model_to_providers),
+            }
         }
 
     def clear_cache(self) -> None:

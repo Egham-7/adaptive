@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import cachetools
 import numpy as np
 
 from adaptive_ai.models.llm_core_models import ModelCapability, ModelEntry
@@ -18,8 +19,8 @@ class CostOptimizer:
             strategy: Optimization strategy ("sigmoid" or future "ml_model")
         """
         self.strategy = strategy
-        self._cost_cache: dict[tuple[str, int, float], float] = {}
-        self._tier_cache: dict[str, str] = {}
+        self._cost_cache = cachetools.LRUCache(maxsize=10000)
+        self._tier_cache = cachetools.LRUCache(maxsize=1000)
 
         # Strategy configuration
         self._tier_scores = {
@@ -44,9 +45,10 @@ class CostOptimizer:
     ) -> float:
         """Calculate estimated cost for a model based on token usage."""
         # Check cache first
-        cache_key = (model_capability.model_name, input_tokens, output_ratio)
-        if cache_key in self._cost_cache:
-            return self._cost_cache[cache_key]
+        cache_key = str((model_capability.model_name, input_tokens, f"{output_ratio:.3f}"))
+        cached_result = self._cost_cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
 
         tokens = np.array([input_tokens, input_tokens * output_ratio])
         costs = np.array(
@@ -63,8 +65,9 @@ class CostOptimizer:
     def get_cost_tier(self, model_capability: ModelCapability) -> str:
         """Classify model tier based on output token cost."""
         # Check cache first
-        if model_capability.model_name in self._tier_cache:
-            return self._tier_cache[model_capability.model_name]
+        cached_tier = self._tier_cache.get(model_capability.model_name)
+        if cached_tier is not None:
+            return cached_tier
 
         cost = model_capability.cost_per_1m_output_tokens
         index = int(np.searchsorted(self._tier_thresholds, cost or 0.5))
@@ -213,6 +216,20 @@ class CostOptimizer:
         """Clear internal caches."""
         self._cost_cache.clear()
         self._tier_cache.clear()
+
+    @property
+    def cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics."""
+        return {
+            "cost_cache": {
+                "size": self._cost_cache.currsize,
+                "max_size": self._cost_cache.maxsize,
+            },
+            "tier_cache": {
+                "size": self._tier_cache.currsize,
+                "max_size": self._tier_cache.maxsize,
+            },
+        }
 
     def set_strategy(self, strategy: str) -> None:
         """Change optimization strategy."""
