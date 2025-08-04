@@ -30,7 +30,7 @@ func NewCompletionHandler() *CompletionHandler {
 	}
 	return &CompletionHandler{
 		reqSvc:      completions.NewRequestService(),
-		respSvc:     completions.NewResponseService(),
+		respSvc:     completions.NewResponseService(protocolMgr),
 		paramSvc:    completions.NewParameterService(),
 		protocolMgr: protocolMgr,
 		fallbackSvc: completions.NewFallbackService(),

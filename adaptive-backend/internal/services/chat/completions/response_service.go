@@ -2,6 +2,7 @@ package completions
 
 import (
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/protocol_manager"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -17,12 +18,14 @@ const (
 // ResponseService handles HTTP responses for all protocols.
 type ResponseService struct {
 	completionService *CompletionService
+	protocolMgr       *protocol_manager.ProtocolManager
 }
 
 // NewResponseService creates a new response service.
-func NewResponseService() *ResponseService {
+func NewResponseService(protocolMgr *protocol_manager.ProtocolManager) *ResponseService {
 	return &ResponseService{
 		completionService: NewCompletionService(),
+		protocolMgr:       protocolMgr,
 	}
 }
 
@@ -44,18 +47,24 @@ func (s *ResponseService) HandleProtocol(
 		if err := s.completionService.HandleStandardCompletion(c, req, resp.Standard, requestID, isStream); err != nil {
 			return s.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
+		// Store successful response in semantic cache
+		s.storeSuccessfulSemanticCache(req, resp, requestID)
 		return nil
 
 	case models.ProtocolMinion:
 		if err := s.completionService.HandleMinionCompletion(c, req, resp.Minion, requestID, isStream); err != nil {
 			return s.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
+		// Store successful response in semantic cache
+		s.storeSuccessfulSemanticCache(req, resp, requestID)
 		return nil
 
 	case models.ProtocolMinionsProtocol:
 		if err := s.completionService.HandleMinionsProtocolCompletion(c, req, resp, requestID, isStream); err != nil {
 			return s.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
+		// Store successful response in semantic cache
+		s.storeSuccessfulSemanticCache(req, resp, requestID)
 		return nil
 
 	default:
@@ -101,4 +110,33 @@ func (s *ResponseService) setStreamHeaders(c *fiber.Ctx) {
 	c.Set("Transfer-Encoding", "chunked")
 	c.Set("Access-Control-Allow-Origin", "*")
 	c.Set("Access-Control-Allow-Headers", "Cache-Control")
+}
+
+// storeSuccessfulSemanticCache stores the protocol response in semantic cache after successful completion
+func (s *ResponseService) storeSuccessfulSemanticCache(
+	req *models.ChatCompletionRequest,
+	resp *models.ProtocolResponse,
+	requestID string,
+) {
+	if s.protocolMgr == nil {
+		fiberlog.Debugf("[%s] Protocol manager not available for semantic cache storage", requestID)
+		return
+	}
+
+	// Create ModelSelectionRequest for cache storage
+	openAIParams := req.ToOpenAIParams()
+	if openAIParams == nil {
+		fiberlog.Errorf("[%s] Failed to convert request to OpenAI parameters for semantic cache", requestID)
+		return
+	}
+
+	selReq := models.ModelSelectionRequest{
+		ChatCompletionRequest: *openAIParams,
+		ProtocolManagerConfig: req.ProtocolManagerConfig,
+	}
+
+	// Store in semantic cache
+	if err := s.protocolMgr.StoreSuccessfulProtocol(selReq, *resp, requestID, req.SemanticCache); err != nil {
+		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
+	}
 }
