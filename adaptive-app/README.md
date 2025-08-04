@@ -1,61 +1,41 @@
 # Adaptive App
 
-Web application providing AI-powered chat interface and API management platform. Built with Next.js 15 and the T3 stack.
+Next.js web application with AI chat interface and API management platform.
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 bun install
-
-# Setup environment
-cp .env.example .env
-# Add your database URL, Clerk keys, and API endpoints
-
-# Initialize database
-bun run db:generate && bun run db:migrate
-
-# Start development
+cp .env.example .env  # Configure database, auth, and API URLs
+bun run db:generate
 bun run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000)
-
 ## Features
 
-- **Chat Platform**: Real-time streaming chat with conversation management
-- **API Platform**: Organization and project management with API keys  
-- **Authentication**: Secure user authentication with Clerk
-- **Subscriptions**: Stripe integration for payment processing
+- **Chat Platform** - Real-time streaming chat with conversation management
+- **API Management** - Organization, project, and API key management
+- **Analytics** - Usage tracking and cost insights dashboard
+- **Authentication** - Clerk-based user authentication
+- **Payments** - Stripe subscription integration
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: Clerk
-- **API**: tRPC for type-safe client-server communication
-- **Package Manager**: Bun
+- **Next.js 15** with App Router and React 19
+- **TypeScript** with strict type checking
+- **Prisma** ORM with PostgreSQL
+- **tRPC** for type-safe APIs
+- **Clerk** for authentication
+- **Tailwind CSS** for styling
+- **Bun** as package manager
 
-## Development Commands
+## Commands
 
 ```bash
-bun run dev          # Start development server
-bun run build        # Build for production
-bun run typecheck    # Run TypeScript checking
-bun run check        # Lint and format code
-bun run db:studio    # Open Prisma Studio
-```
-
-## Environment Variables
-
-```env
-DATABASE_URL="postgresql://..."
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
-CLERK_SECRET_KEY="sk_test_..."
-ADAPTIVE_API_BASE_URL="https://your-backend-url"
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+bun dev              # Development server
+bun build            # Production build
+bun check            # Lint and format (Biome)
+bun typecheck        # TypeScript checking
+bun db:studio        # Database GUI
+bun db:generate      # Run migrations
 ```
