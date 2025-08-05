@@ -6,7 +6,6 @@ import {
 	Preview,
 	Section,
 	Text,
-	Hr,
 } from "@react-email/components";
 import * as React from "react";
 
@@ -14,7 +13,6 @@ interface SupportTicketEmailProps {
 	ticketId: string;
 	name: string;
 	email: string;
-	category: string;
 	categoryLabel: string;
 	priority: "low" | "medium" | "high" | "urgent";
 	priorityLabel: string;
@@ -26,7 +24,6 @@ export const SupportTicketEmail = ({
 	ticketId,
 	name,
 	email,
-	category,
 	categoryLabel,
 	priority,
 	priorityLabel,
@@ -90,10 +87,10 @@ export const SupportTicketEmail = ({
 							<Text style={descriptionTitle}>Description:</Text>
 							<Section style={descriptionBox}>
 								<Text style={descriptionText}>
-									{description.split('\n').map((line, index) => (
+									{description.split("\n").map((line, index) => (
 										<React.Fragment key={index}>
 											{line}
-											{index < description.split('\n').length - 1 && <br />}
+											{index < description.split("\n").length - 1 && <br />}
 										</React.Fragment>
 									))}
 								</Text>

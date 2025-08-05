@@ -1,11 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { Resend } from "resend";
 import { z } from "zod";
-import { render } from "@react-email/render";
+import { CustomerConfirmationEmail } from "@/components/emails/customer-confirmation-email";
+import { SupportTicketEmail } from "@/components/emails/support-ticket-email";
 import { env } from "@/env";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
-import { SupportTicketEmail } from "@/components/emails/support-ticket-email";
-import { CustomerConfirmationEmail } from "@/components/emails/customer-confirmation-email";
 
 const resend = new Resend(env.RESEND_API_KEY);
 
@@ -50,38 +49,23 @@ export const supportRouter = createTRPCRouter({
 				const categoryLabel = categoryLabels[input.category];
 				const priorityLabel = priorityLabels[input.priority];
 
-				// Render support ticket email using React component
-				const supportEmailHtml = await render(
-					<SupportTicketEmail
-						ticketId={ticketId}
-						name={input.name}
-						email={input.email}
-						category={input.category}
-						categoryLabel={categoryLabel}
-						priority={input.priority}
-						priorityLabel={priorityLabel}
-						subject={input.subject}
-						description={input.description}
-					/>
-				);
-
-				// Render customer confirmation email using React component
-				const customerEmailHtml = await render(
-					<CustomerConfirmationEmail
-						ticketId={ticketId}
-						name={input.name}
-						subject={input.subject}
-						categoryLabel={categoryLabel}
-						priorityLabel={priorityLabel}
-					/>
-				);
-
 				// Send email to support team
 				await resend.emails.send({
 					from: "Adaptive Support <info@llmadaptive.uk>",
 					to: ["info@llmadaptive.uk"],
 					subject: `[${priorityLabel}] ${categoryLabel}: ${input.subject} (${ticketId})`,
-					html: supportEmailHtml,
+					react: (
+						<SupportTicketEmail
+							ticketId={ticketId}
+							name={input.name}
+							email={input.email}
+							categoryLabel={categoryLabel}
+							priority={input.priority}
+							priorityLabel={priorityLabel}
+							subject={input.subject}
+							description={input.description}
+						/>
+					),
 					replyTo: input.email,
 				});
 
@@ -90,7 +74,15 @@ export const supportRouter = createTRPCRouter({
 					from: "Adaptive Support <info@llmadaptive.uk>",
 					to: [input.email],
 					subject: `Support Ticket Confirmation - ${ticketId}`,
-					html: customerEmailHtml,
+					react: (
+						<CustomerConfirmationEmail
+							ticketId={ticketId}
+							name={input.name}
+							subject={input.subject}
+							categoryLabel={categoryLabel}
+							priorityLabel={priorityLabel}
+						/>
+					),
 				});
 
 				return {

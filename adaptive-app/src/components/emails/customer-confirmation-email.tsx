@@ -3,12 +3,11 @@ import {
 	Container,
 	Head,
 	Html,
+	Link,
 	Preview,
 	Section,
 	Text,
-	Link,
 } from "@react-email/components";
-import * as React from "react";
 
 interface CustomerConfirmationEmailProps {
 	ticketId: string;
@@ -33,7 +32,9 @@ export const CustomerConfirmationEmail = ({
 				<Container style={container}>
 					<Section style={header}>
 						<Text style={headerTitle}>Support Ticket Received</Text>
-						<Text style={headerSubtitle}>We've received your support request</Text>
+						<Text style={headerSubtitle}>
+							We've received your support request
+						</Text>
 					</Section>
 
 					<Section style={content}>
