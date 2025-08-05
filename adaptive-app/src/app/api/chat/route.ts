@@ -16,6 +16,7 @@ import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
 import type { messageRoleSchema } from "@/lib/chat/schema";
 import { multiTagReasoningMiddleware } from "@/lib/multi-tag-reasoning-middleware";
+import { createBackendJWT } from "@/lib/jwt";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
 
@@ -27,22 +28,31 @@ if (!process.env.ADAPTIVE_API_BASE_URL) {
 	);
 }
 
-const adaptive = createAdaptive({
-	baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
-});
+// Function to create adaptive client with JWT authentication
+async function createAuthenticatedAdaptive(userId?: string) {
+	// Create JWT token for backend authentication
+	const jwtToken = await createBackendJWT('chat-platform', userId);
+	
+	return createAdaptive({
+		baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+		apiKey: jwtToken,
+	});
+}
 
-// Create base adaptive model
-const adaptiveModel = adaptive.chat();
-
-// Conditionally wrap with reasoning middleware - it will gracefully handle models without reasoning
-const adaptiveModelWithReasoning = wrapLanguageModel({
-	model: adaptiveModel,
-	middleware: multiTagReasoningMiddleware({
-		// Common reasoning tags used by different models
-		tagPatterns: ["think", "reasoning", "analysis", "thought", "internal"],
-		startWithReasoning: false,
-	}),
-});
+// Function to create authenticated model with reasoning
+async function createAuthenticatedModel(userId?: string) {
+	const adaptive = await createAuthenticatedAdaptive(userId);
+	const baseModel = adaptive.chat();
+	
+	return wrapLanguageModel({
+		model: baseModel,
+		middleware: multiTagReasoningMiddleware({
+			// Common reasoning tags used by different models
+			tagPatterns: ["think", "reasoning", "analysis", "thought", "internal"],
+			startWithReasoning: false,
+		}),
+	});
+}
 
 // Web search function using Exa API
 async function webSearch(query: string): Promise<
@@ -190,6 +200,9 @@ export async function POST(req: Request) {
 		let provider: string | undefined;
 		let modelId: string | undefined;
 
+		// Create authenticated model for this user
+		const adaptiveModelWithReasoning = await createAuthenticatedModel(userId);
+
 		const result = streamText({
 			model: adaptiveModelWithReasoning,
 			tools,
@@ -215,8 +228,11 @@ export async function POST(req: Request) {
 				// Generate title for the first message
 				if (shouldGenerateTitle) {
 					try {
+						const titleAdaptive = await createAuthenticatedAdaptive(userId);
+						const titleModel = titleAdaptive.chat();
+						
 						const titleResult = await generateText({
-							model: adaptiveModel, // Use base model for title generation (no reasoning needed)
+							model: titleModel, // Use base model for title generation (no reasoning needed)
 							messages: [
 								{
 									role: "system",

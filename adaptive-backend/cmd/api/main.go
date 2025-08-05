@@ -29,8 +29,8 @@ func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	// Health endpoint (no auth required)
 	app.Get("/health", healthHandler.Health)
 
-	// Apply API key authentication to all v1 routes
-	v1Group := app.Group("/v1", middleware.APIKeyAuth())
+	// Apply JWT authentication to all v1 routes
+	v1Group := app.Group("/v1", middleware.JWTAuth())
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 }
 
