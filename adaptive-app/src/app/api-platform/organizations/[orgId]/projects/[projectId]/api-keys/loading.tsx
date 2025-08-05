@@ -45,7 +45,6 @@ export default function Loading() {
 						</thead>
 						<tbody className="divide-y divide-border">
 							{Array.from({ length: 5 }).map((_, i) => (
-								/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 								<tr key={`api-key-row-${i}`} className="hover:bg-muted/50">
 									<td className="whitespace-nowrap px-6 py-4">
 										<div className="h-4 w-24 animate-pulse rounded bg-muted" />

@@ -8,6 +8,7 @@ import { organizationsRouter } from "./routers/organizations";
 import { modelPricingRouter } from "./routers/pricing";
 import { projectsRouter } from "./routers/projects";
 import { subscriptionRouter } from "./routers/subscription";
+import { supportRouter } from "./routers/support";
 import { usageRouter } from "./routers/usage";
 import { userRouter } from "./routers/user";
 
@@ -26,6 +27,7 @@ export const appRouter = createTRPCRouter({
 	modelPricing: modelPricingRouter,
 	projects: projectsRouter,
 	subscription: subscriptionRouter,
+	support: supportRouter,
 	usage: usageRouter,
 	user: userRouter,
 });

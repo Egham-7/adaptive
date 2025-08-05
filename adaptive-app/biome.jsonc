@@ -41,6 +41,9 @@
 				"useNumberNamespace": "error",
 				"noInferrableTypes": "error",
 				"noUselessElse": "error"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off"
 			}
 		}
 	}

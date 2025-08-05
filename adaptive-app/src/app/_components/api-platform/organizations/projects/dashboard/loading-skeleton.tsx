@@ -43,7 +43,6 @@ export function TaskBreakdownSkeleton() {
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				{Array.from({ length: 4 }).map((_, i) => (
 					<div
-						// biome-ignore lint/suspicious/noArrayIndexKey: Using index for skeleton components is acceptable
 						key={`skeleton-${i}`}
 						className="rounded-lg border border-gray-200 p-4 dark:border-[#1F1F23]"
 					>

@@ -40,7 +40,6 @@ export default function Loading() {
 					<div className="grid gap-8 lg:grid-cols-2">
 						{Array.from({ length: 2 }).map((_, i) => (
 							<div
-								/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 								key={`chart-${i}`}
 								className="rounded-lg border border-border bg-card p-6"
 							>
@@ -64,7 +63,6 @@ export default function Loading() {
 					<div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
 						{Array.from({ length: 6 }).map((_, i) => (
 							<div
-								/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 								key={`feature-${i}`}
 								className="rounded-lg border border-border bg-card p-6"
 							>
@@ -108,7 +106,6 @@ export default function Loading() {
 					<div className="grid gap-8 md:grid-cols-3">
 						{Array.from({ length: 3 }).map((_, i) => (
 							<div
-								/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 								key={`pricing-${i}`}
 								className="rounded-lg border border-border bg-card p-6"
 							>
@@ -120,7 +117,6 @@ export default function Loading() {
 									<div className="space-y-3">
 										{Array.from({ length: 5 }).map((_, j) => (
 											<div
-												/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 												key={`pricing-feature-${i}-${j}`}
 												className="h-4 w-full animate-pulse rounded bg-muted"
 											/>
