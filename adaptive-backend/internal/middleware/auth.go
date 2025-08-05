@@ -4,16 +4,21 @@ import (
 	"os"
 	"strings"
 
-	"adaptive-backend/internal/services/auth"
-
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// APIKeyAuth creates middleware for API key authentication
-func APIKeyAuth() fiber.Handler {
-	apiKeyService := auth.NewAPIKeyService()
+// JWTClaims represents the JWT payload structure
+type JWTClaims struct {
+	APIKey         string `json:"apiKey"`
+	UserID         string `json:"userId,omitempty"`
+	OrganizationID string `json:"organizationId,omitempty"`
+	jwt.RegisteredClaims
+}
 
+// JWTAuth creates middleware for JWT authentication
+func JWTAuth() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Skip auth in development environment
 		env := os.Getenv("ENV")
@@ -21,44 +26,96 @@ func APIKeyAuth() fiber.Handler {
 			return c.Next()
 		}
 
-		// Get API key from X-Stainless-API-Key header
-		apiKey := c.Get("X-Stainless-API-Key")
-		if apiKey == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Missing API key. Please provide X-Stainless-API-Key header.",
-				"code":  fiber.StatusUnauthorized,
-			})
-		}
-
-		// Validate API key format (basic validation)
-		apiKey = strings.TrimSpace(apiKey)
-		if len(apiKey) < 10 {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid API key format.",
-				"code":  fiber.StatusUnauthorized,
-			})
-		}
-
-		// Verify API key with frontend service
-		valid, err := apiKeyService.VerifyAPIKey(apiKey)
-		if err != nil {
-			fiberlog.Errorf("API key verification error: %v", err)
+		// Get JWT secret from environment
+		jwtSecret := os.Getenv("JWT_SECRET")
+		if jwtSecret == "" {
+			fiberlog.Error("JWT_SECRET environment variable is required")
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Internal server error during authentication.",
+				"error": "Server configuration error",
 				"code":  fiber.StatusInternalServerError,
 			})
 		}
 
-		if !valid {
+		// Get JWT token from Authorization header
+		authHeader := c.Get("Authorization")
+		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "Invalid API key.",
+				"error": "Missing Authorization header",
 				"code":  fiber.StatusUnauthorized,
 			})
 		}
 
-		// Store API key in context for potential use in handlers
-		c.Locals("api_key", apiKey)
+		// Check Bearer token format
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Invalid Authorization header format. Expected 'Bearer <token>'",
+				"code":  fiber.StatusUnauthorized,
+			})
+		}
 
-		return c.Next()
+		// Parse and validate JWT token
+		token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+			// Validate signing method
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid signing method")
+			}
+			return []byte(jwtSecret), nil
+		})
+
+		if err != nil {
+			fiberlog.Errorf("JWT parsing error: %v", err)
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Invalid JWT token",
+				"code":  fiber.StatusUnauthorized,
+			})
+		}
+
+		// Validate token and extract claims
+		if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+			// Validate required claims
+			if claims.APIKey == "" {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Invalid JWT claims: missing apiKey",
+					"code":  fiber.StatusUnauthorized,
+				})
+			}
+
+			// Validate issuer
+			if claims.Issuer != "adaptive-app" {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Invalid JWT issuer",
+					"code":  fiber.StatusUnauthorized,
+				})
+			}
+
+			// Validate audience - check if "adaptive-backend" is in the audience list
+			validAudience := false
+			for _, aud := range claims.Audience {
+				if aud == "adaptive-backend" {
+					validAudience = true
+					break
+				}
+			}
+			if !validAudience {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Invalid JWT audience",
+					"code":  fiber.StatusUnauthorized,
+				})
+			}
+
+			// Store claims in context for use in handlers
+			c.Locals("jwt_claims", claims)
+			c.Locals("api_key", claims.APIKey)
+			c.Locals("user_id", claims.UserID)
+			c.Locals("organization_id", claims.OrganizationID)
+
+			return c.Next()
+		}
+
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid JWT token claims",
+			"code":  fiber.StatusUnauthorized,
+		})
 	}
 }

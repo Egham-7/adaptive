@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
+import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
@@ -82,8 +83,11 @@ export async function POST(req: NextRequest) {
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 
+		// Create JWT token for backend authentication
+		const jwtToken = await createBackendJWT(apiKey);
+
 		const openai = new OpenAI({
-			apiKey,
+			apiKey: jwtToken, // Use JWT token instead of API key
 			baseURL,
 		});
 
