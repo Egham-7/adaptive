@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
-import { api } from "@/trpc/server";
 import { createBackendJWT } from "@/lib/jwt";
+import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
 	ChatCompletionRequest,

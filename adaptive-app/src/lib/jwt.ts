@@ -1,11 +1,11 @@
-import { SignJWT } from 'jose';
+import { SignJWT } from "jose";
 
 // JWT configuration
 export const JWT_CONFIG = {
-  algorithm: 'HS256' as const,
-  expiresIn: '1h',
-  issuer: 'adaptive-app',
-  audience: 'adaptive-backend',
+	algorithm: "HS256" as const,
+	expiresIn: "1h",
+	issuer: "adaptive-app",
+	audience: "adaptive-backend",
 };
 
 /**
@@ -13,22 +13,24 @@ export const JWT_CONFIG = {
  * @param payload - The payload to include in the JWT
  * @returns Promised signed JWT token
  */
-export async function signJWT(payload: Record<string, unknown>): Promise<string> {
-  const secret = process.env.JWT_SECRET;
-  
-  if (!secret) {
-    throw new Error('JWT_SECRET environment variable is required');
-  }
+export async function signJWT(
+	payload: Record<string, unknown>,
+): Promise<string> {
+	const secret = process.env.JWT_SECRET;
 
-  const secretBytes = new TextEncoder().encode(secret);
+	if (!secret) {
+		throw new Error("JWT_SECRET environment variable is required");
+	}
 
-  return await new SignJWT(payload)
-    .setProtectedHeader({ alg: JWT_CONFIG.algorithm })
-    .setIssuedAt()
-    .setIssuer(JWT_CONFIG.issuer)
-    .setAudience(JWT_CONFIG.audience)
-    .setExpirationTime(JWT_CONFIG.expiresIn)
-    .sign(secretBytes);
+	const secretBytes = new TextEncoder().encode(secret);
+
+	return await new SignJWT(payload)
+		.setProtectedHeader({ alg: JWT_CONFIG.algorithm })
+		.setIssuedAt()
+		.setIssuer(JWT_CONFIG.issuer)
+		.setAudience(JWT_CONFIG.audience)
+		.setExpirationTime(JWT_CONFIG.expiresIn)
+		.sign(secretBytes);
 }
 
 /**
@@ -39,15 +41,15 @@ export async function signJWT(payload: Record<string, unknown>): Promise<string>
  * @returns JWT token for backend authentication
  */
 export async function createBackendJWT(
-  apiKey: string,
-  userId?: string,
-  organizationId?: string
+	apiKey: string,
+	userId?: string,
+	organizationId?: string,
 ): Promise<string> {
-  const payload = {
-    apiKey,
-    userId,
-    organizationId,
-  };
+	const payload = {
+		apiKey,
+		userId,
+		organizationId,
+	};
 
-  return await signJWT(payload);
+	return await signJWT(payload);
 }

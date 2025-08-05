@@ -15,8 +15,8 @@ import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
 import type { messageRoleSchema } from "@/lib/chat/schema";
-import { multiTagReasoningMiddleware } from "@/lib/multi-tag-reasoning-middleware";
 import { createBackendJWT } from "@/lib/jwt";
+import { multiTagReasoningMiddleware } from "@/lib/multi-tag-reasoning-middleware";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
 
@@ -31,8 +31,8 @@ if (!process.env.ADAPTIVE_API_BASE_URL) {
 // Function to create adaptive client with JWT authentication
 async function createAuthenticatedAdaptive(userId?: string) {
 	// Create JWT token for backend authentication
-	const jwtToken = await createBackendJWT('chat-platform', userId);
-	
+	const jwtToken = await createBackendJWT("chat-platform", userId);
+
 	return createAdaptive({
 		baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
 		apiKey: jwtToken,
@@ -43,7 +43,7 @@ async function createAuthenticatedAdaptive(userId?: string) {
 async function createAuthenticatedModel(userId?: string) {
 	const adaptive = await createAuthenticatedAdaptive(userId);
 	const baseModel = adaptive.chat();
-	
+
 	return wrapLanguageModel({
 		model: baseModel,
 		middleware: multiTagReasoningMiddleware({
@@ -230,7 +230,7 @@ export async function POST(req: Request) {
 					try {
 						const titleAdaptive = await createAuthenticatedAdaptive(userId);
 						const titleModel = titleAdaptive.chat();
-						
+
 						const titleResult = await generateText({
 							model: titleModel, // Use base model for title generation (no reasoning needed)
 							messages: [
