@@ -55,7 +55,6 @@ export function MetricsOverview({
 		return (
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
 				{Array.from({ length: 5 }).map((_, i) => (
-					// biome-ignore lint/suspicious/noArrayIndexKey: Using index for skeleton components is acceptable
 					<MetricCardSkeleton key={`skeleton-${i}`} />
 				))}
 			</div>

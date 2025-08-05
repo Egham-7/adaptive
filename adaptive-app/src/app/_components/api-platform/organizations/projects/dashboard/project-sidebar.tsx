@@ -14,6 +14,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { SupportButton } from "@/components/ui/support-button";
 
 export function ProjectSidebar() {
 	const { orgId, projectId } = useParams();
@@ -55,6 +56,11 @@ export function ProjectSidebar() {
 			</SidebarContent>
 			<SidebarFooter>
 				<SidebarMenu>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<SupportButton variant="ghost" className="w-full justify-start" />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<div className="flex w-full items-center justify-between">
 							<SidebarMenuButton asChild className="flex-1">

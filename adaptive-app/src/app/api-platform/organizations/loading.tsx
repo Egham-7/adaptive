@@ -17,7 +17,6 @@ export default function Loading() {
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
 					{Array.from({ length: 4 }).map((_, i) => (
 						<div
-							/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 							key={`org-${i}`}
 							className="rounded-lg border border-border bg-card p-6"
 						>
