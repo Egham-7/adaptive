@@ -107,6 +107,23 @@ The prompt cache accepts a `prompt_cache` object in requests:
 - `enabled`: **Required** boolean to enable caching for this request
 - `ttl`: Optional cache duration in seconds (default: 3600, i.e., 1 hour)
 
+## Cache Tier Tracking
+
+Prompt cache hits include `"prompt_response"` in the usage object:
+
+```json
+{
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 20,
+    "total_tokens": 30,
+    "cache_tier": "prompt_response"
+  }
+}
+```
+
+Field is omitted when no cache is used.
+
 ## Technical Implementation
 
 - **Storage**: Redis with configurable TTL per entry

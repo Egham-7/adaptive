@@ -308,6 +308,23 @@ try {
 }
 ```
 
+## Cache Tier Tracking
+
+Responses include `cache_tier` in the usage object to show if your request hit cache:
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [{ role: 'user', content: 'What is 2+2?' }],
+});
+
+// Check cache tier
+console.log(completion.usage.cache_tier);
+// "semantic_exact" | "semantic_similar" | "prompt_response" | undefined
+```
+
+This helps track costs and cache performance in your analytics.
+
 ## Migrating from OpenAI
 
 Migration is simple - just update two lines:

@@ -387,6 +387,14 @@ Use any OpenAI-compatible authorization header:
     <ResponseField name="total_tokens" type="integer">
       Total tokens used
     </ResponseField>
+    
+    <ResponseField name="cache_tier" type="string">
+      **Adaptive addition:** Cache tier used for this response. Possible values:
+      - `"semantic_exact"` - Exact semantic cache match
+      - `"semantic_similar"` - Similar semantic cache match  
+      - `"prompt_response"` - Prompt response cache hit
+      - Omitted when no cache is used
+    </ResponseField>
   </Expandable>
 </ResponseField>
 
@@ -629,6 +637,44 @@ const completion = await openai.chat.completions.create({
     mode: 'sequential'
   }
 });
+```
+
+## Response Examples
+
+### Cache Tier Tracking
+
+The `usage.cache_tier` field shows which cache served your response:
+
+```json
+// Semantic cache hit
+{
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 8, 
+    "total_tokens": 18,
+    "cache_tier": "semantic_exact"
+  }
+}
+
+// Prompt cache hit  
+{
+  "usage": {
+    "prompt_tokens": 5,
+    "completion_tokens": 4,
+    "total_tokens": 9,
+    "cache_tier": "prompt_response"
+  }
+}
+
+// No cache used
+{
+  "usage": {
+    "prompt_tokens": 8,
+    "completion_tokens": 10,
+    "total_tokens": 18
+    // cache_tier omitted
+  }
+}
 ```
 
 ## Error Responses

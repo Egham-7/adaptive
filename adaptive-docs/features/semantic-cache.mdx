@@ -82,6 +82,24 @@ Cache hits for similar requests:
 - **0.8-0.9**: Balanced - default setting for most use cases  
 - **0.9+**: Strict matching - ideal for technical documentation and precise queries
 
+## Cache Tier Tracking
+
+Responses include `cache_tier` to show the cache type used:
+
+- `"semantic_exact"` - Exact match found
+- `"semantic_similar"` - Similar match found
+
+```json
+{
+  "usage": {
+    "prompt_tokens": 15,
+    "completion_tokens": 25, 
+    "total_tokens": 40,
+    "cache_tier": "semantic_exact"
+  }
+}
+```
+
 ## Technical Implementation
 
 - **Storage**: Uses protocol manager's AI service for embedding generation and matching

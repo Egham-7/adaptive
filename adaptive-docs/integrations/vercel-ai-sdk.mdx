@@ -211,6 +211,21 @@ const { text } = await generateText({
 });
 ```
 
+## Cache Tier Tracking
+
+Access cache information in the response:
+
+```ts
+const result = await generateText({
+  model: adaptive(),
+  prompt: "Hello world",
+});
+
+// Check cache tier
+console.log(result.usage?.cache_tier);
+// "semantic_exact" | "semantic_similar" | "prompt_response" | undefined
+```
+
 ---
 
 ## Environment Setup
