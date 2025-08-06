@@ -1,0 +1,348 @@
+provider_info:
+  name: GROQ
+  total_models: 20
+  data_source: https://helicone.ai/api/llm-costs?provider=groq
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  deepseek_r1_distill_llama_70b:
+    description: ''
+    provider: GROQ
+    model_name: deepseek-r1-distill-llama-70b
+    cost_per_1m_input_tokens: 0.75
+    cost_per_1m_output_tokens: 0.99
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemma_7b_it:
+    description: ''
+    provider: GROQ
+    model_name: gemma-7b-it
+    cost_per_1m_input_tokens: 0.07
+    cost_per_1m_output_tokens: 0.07
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemma2_9b_it:
+    description: ''
+    provider: GROQ
+    model_name: gemma2-9b-it
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama_3.1_8b_instant:
+    description: ''
+    provider: GROQ
+    model_name: llama-3.1-8b-instant
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.08
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama_3.3_70b_versatile:
+    description: ''
+    provider: GROQ
+    model_name: llama-3.3-70b-versatile
+    cost_per_1m_input_tokens: 0.59
+    cost_per_1m_output_tokens: 0.79
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama_guard_3_8b:
+    description: ''
+    provider: GROQ
+    model_name: llama-guard-3-8b
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama2_70b_4096:
+    description: ''
+    provider: GROQ
+    model_name: llama2-70b-4096
+    cost_per_1m_input_tokens: 0.7
+    cost_per_1m_output_tokens: 0.8
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama3_70b_8192:
+    description: ''
+    provider: GROQ
+    model_name: llama3-70b-8192
+    cost_per_1m_input_tokens: 0.59
+    cost_per_1m_output_tokens: 0.79
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama3_8b_8192:
+    description: ''
+    provider: GROQ
+    model_name: llama3-8b-8192
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.08
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama3_groq_70b_8192_tool_use_preview:
+    description: ''
+    provider: GROQ
+    model_name: llama3-groq-70b-8192-tool-use-preview
+    cost_per_1m_input_tokens: 0.89
+    cost_per_1m_output_tokens: 0.89
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  llama3_groq_8b_8192_tool_use_preview:
+    description: ''
+    provider: GROQ
+    model_name: llama3-groq-8b-8192-tool-use-preview
+    cost_per_1m_input_tokens: 0.19
+    cost_per_1m_output_tokens: 0.19
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  meta_llama_llama_4_maverick_17b_128e_instruct:
+    description: ''
+    provider: GROQ
+    model_name: meta-llama/llama-4-maverick-17b-128e-instruct
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  meta_llama_llama_4_scout_17b_16e_instruct:
+    description: ''
+    provider: GROQ
+    model_name: meta-llama/llama-4-scout-17b-16e-instruct
+    cost_per_1m_input_tokens: 0.11
+    cost_per_1m_output_tokens: 0.34
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  meta_llama_llama_guard_4_12b:
+    description: ''
+    provider: GROQ
+    model_name: meta-llama/llama-guard-4-12b
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  mistral_saba_24b:
+    description: ''
+    provider: GROQ
+    model_name: mistral-saba-24b
+    cost_per_1m_input_tokens: 0.79
+    cost_per_1m_output_tokens: 0.79
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  mixtral_8x7b_32768:
+    description: ''
+    provider: GROQ
+    model_name: mixtral-8x7b-32768
+    cost_per_1m_input_tokens: 0.24
+    cost_per_1m_output_tokens: 0.24
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  moonshotai_kimi_k2_instruct:
+    description: ''
+    provider: GROQ
+    model_name: moonshotai/kimi-k2-instruct
+    cost_per_1m_input_tokens: 1.0
+    cost_per_1m_output_tokens: 3.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  openai_gpt_oss_120b:
+    description: ''
+    provider: GROQ
+    model_name: openai/gpt-oss-120b
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.75
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  openai_gpt_oss_20b:
+    description: ''
+    provider: GROQ
+    model_name: openai/gpt-oss-20b
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  qwen_qwen3_32b:
+    description: ''
+    provider: GROQ
+    model_name: qwen/qwen3-32b
+    cost_per_1m_input_tokens: 0.29
+    cost_per_1m_output_tokens: 0.59
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null

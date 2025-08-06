@@ -1,0 +1,7070 @@
+{
+  "metadata": {
+    "total_models": 985,
+    "note": "All costs are per 1 million tokens unless otherwise specified",
+    "operators_explained": {
+      "equals": "Model name must match exactly",
+      "startsWith": "Model name must start with the specified value",
+      "includes": "Model name must contain the specified value"
+    }
+  },
+  "data": [
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-2",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-2.0",
+      "operator": "equals",
+      "input_cost_per_1m": 11.02,
+      "output_cost_per_1m": 32.68
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-3-5-haiku-20241022",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4,
+      "prompt_cache_write_per_1m": 1,
+      "prompt_cache_read_per_1m": 0.08,
+      "show_in_playground": true
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-3-5-sonnet-20240620",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15,
+      "prompt_cache_write_per_1m": 3.75,
+      "prompt_cache_read_per_1m": 0.3,
+      "show_in_playground": true
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-3-5-sonnet-20241022",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15,
+      "prompt_cache_write_per_1m": 3.75,
+      "prompt_cache_read_per_1m": 0.3,
+      "show_in_playground": true
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-3-7-sonnet-20250219",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15,
+      "prompt_cache_write_per_1m": 3.75,
+      "prompt_cache_read_per_1m": 0.3,
+      "show_in_playground": true
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-3-haiku-20240307",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 1.25,
+      "prompt_cache_write_per_1m": 0.3125,
+      "prompt_cache_read_per_1m": 0.025,
+      "show_in_playground": true
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-3-opus-20240229",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75,
+      "prompt_cache_write_per_1m": 18.75,
+      "prompt_cache_read_per_1m": 1.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-3-sonnet-20240229",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15,
+      "prompt_cache_write_per_1m": 3.75,
+      "prompt_cache_read_per_1m": 0.3,
+      "show_in_playground": true
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-instant-1",
+      "operator": "equals",
+      "input_cost_per_1m": 1.63,
+      "output_cost_per_1m": 55.1
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-instant-1.2",
+      "operator": "equals",
+      "input_cost_per_1m": 1.63,
+      "output_cost_per_1m": 5.51
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-opus-4-1-20250805",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75,
+      "prompt_cache_write_per_1m": 18.75,
+      "prompt_cache_read_per_1m": 1.5
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-opus-4-20250514",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75,
+      "prompt_cache_write_per_1m": 18.75,
+      "prompt_cache_read_per_1m": 1.5
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-sonnet-4-20250514",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15,
+      "prompt_cache_write_per_1m": 3.75,
+      "prompt_cache_read_per_1m": 0.3
+    },
+    {
+      "provider": "ANTHROPIC",
+      "model": "claude-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "AVIAN",
+      "model": "Meta-Llama-3.1-405B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "AVIAN",
+      "model": "Meta-Llama-3.1-70B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.45,
+      "output_cost_per_1m": 0.45
+    },
+    {
+      "provider": "AVIAN",
+      "model": "Meta-Llama-3.1-8B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "AVIAN",
+      "model": "Meta-Llama-3.3-70B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.45,
+      "output_cost_per_1m": 0.45
+    },
+    {
+      "provider": "AWS",
+      "model": "amazon.nova-lite-v1%3A0",
+      "operator": "equals",
+      "input_cost_per_1m": 78,
+      "output_cost_per_1m": 312
+    },
+    {
+      "provider": "AWS",
+      "model": "amazon.nova-micro-v1%3A0",
+      "operator": "equals",
+      "input_cost_per_1m": 46,
+      "output_cost_per_1m": 184
+    },
+    {
+      "provider": "AWS",
+      "model": "amazon.nova-pro-v1%3A0",
+      "operator": "equals",
+      "input_cost_per_1m": 1050,
+      "output_cost_per_1m": 4200
+    },
+    {
+      "provider": "AWS",
+      "model": "meta.llama3-8b-instruct-v1%3A0",
+      "operator": "equals",
+      "input_cost_per_1m": 220,
+      "output_cost_per_1m": 720
+    },
+    {
+      "provider": "AZURE",
+      "model": "ada",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "AZURE",
+      "model": "ada-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "babbage",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "AZURE",
+      "model": "babbage-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.25
+    },
+    {
+      "provider": "AZURE",
+      "model": "chatgpt-4o-latest",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "chatgpt-4o-latest-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 7.5
+    },
+    {
+      "provider": "AZURE",
+      "model": "curie",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "curie-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "davinci",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "AZURE",
+      "model": "davinci-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-0125",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-0125-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.75
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-0301",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-0301-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-1106",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-1106-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-16k-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-16k-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-instruct-0914",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-instruct-0914-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-3.5-turbo-instruct-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-16k",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo-1106",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo-16k",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo-16k-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo-16k-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo-16k-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-35-turbo-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-0125-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-0125-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-0314",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-0314-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-1106-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-1106-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-1106-vision-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-1106-vision-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-32k",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-32k-0314",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-32k-0314-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-32k-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-32k-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-32k-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-preview-1106",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-turbo-0125-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-turbo-0125-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-turbo-2024-04-09",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-turbo-2024-04-09-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-turbo-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-turbo-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-vision",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-vision-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4-vision-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8,
+      "prompt_cache_read_per_1m": 0.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-2025-04-14",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8,
+      "prompt_cache_read_per_1m": 0.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-2025-04-14-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6,
+      "prompt_cache_read_per_1m": 0.1,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6,
+      "prompt_cache_read_per_1m": 0.1,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-mini-2025-04-14-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-nano",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4,
+      "prompt_cache_read_per_1m": 0.025,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-nano-2025-04-14",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4,
+      "prompt_cache_read_per_1m": 0.025,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-nano-2025-04-14-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4.1-nano-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-45-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-2024-05-13",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-2024-05-13-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 7.5
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-2024-08-06",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-2024-08-06-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-2024-11-20",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-2024-11-20-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 7.5
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-mini-2024-07-18",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-mini-2024-07-18-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-mini-realtime",
+      "operator": "includes",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6,
+      "prompt_audio_per_1m": 10,
+      "completion_audio_per_1m": 20
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-mini-realtime",
+      "operator": "includes",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6,
+      "prompt_audio_per_1m": 10,
+      "completion_audio_per_1m": 20
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-mini-realtime-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3,
+      "prompt_audio_per_1m": 10,
+      "completion_audio_per_1m": 20
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-realtime",
+      "operator": "includes",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 20,
+      "prompt_cache_read_per_1m": 2.5,
+      "prompt_audio_per_1m": 40,
+      "completion_audio_per_1m": 80
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-realtime",
+      "operator": "includes",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 20,
+      "prompt_cache_read_per_1m": 2.5,
+      "prompt_audio_per_1m": 40,
+      "completion_audio_per_1m": 80
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-realtime-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10,
+      "prompt_audio_per_1m": 40,
+      "completion_audio_per_1m": 80
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-search-preview",
+      "operator": "includes",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt-4o-search-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt35",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "gpt4-turbo-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-2024-12-17",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-2024-12-17-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 12,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-mini-2024-09-12",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 12,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-mini-2024-09-12-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-preview-2024-09-12",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-preview-2024-09-12-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-pro",
+      "operator": "includes",
+      "input_cost_per_1m": 150,
+      "output_cost_per_1m": 600
+    },
+    {
+      "provider": "AZURE",
+      "model": "o1-pro-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 75,
+      "output_cost_per_1m": 300
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-2025-04-16",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8,
+      "prompt_cache_read_per_1m": 0.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-2025-04-16-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-mini-2025-01-31",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-mini-2025-01-31-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-pro",
+      "operator": "includes",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 80
+    },
+    {
+      "provider": "AZURE",
+      "model": "o3-pro-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 40
+    },
+    {
+      "provider": "AZURE",
+      "model": "o4-mini",
+      "operator": "includes",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o4-mini-2025-04-16",
+      "operator": "includes",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "AZURE",
+      "model": "o4-mini-2025-04-16-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "o4-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "openai/gpt-4o-mini-search-preview",
+      "operator": "includes",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "AZURE",
+      "model": "openai/gpt-4o-mini-search-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-ada-001",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-ada-001-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-curie-001",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-curie-001-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-davinci-001",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-davinci-001-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-davinci-002",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-davinci-002-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-davinci-003",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-davinci-003-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-3-large",
+      "operator": "equals",
+      "input_cost_per_1m": 0.13,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-3-large-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.065,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-3-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.02,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-3-small-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.01,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-ada",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-ada-002",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-ada-002-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-ada-002-v2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-ada-002-v2-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "AZURE",
+      "model": "text-embedding-ada-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "COHERE",
+      "model": "cohere/command-r",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "DEEPSEEK",
+      "model": "deepseek-chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.014,
+      "output_cost_per_1m": 0.028
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/deepseek-v3",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/gpt-oss-120b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/gpt-oss-20b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/japanese-stable-diffusion-xl",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/japanese-stable-diffusion-xl-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/llama-v3p1-405b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 3
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/mixtral-8x22b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.2,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/mixtral-8x7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/playground-v2-1024px-aesthetic",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/playground-v2-1024px-aesthetic-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/playground-v2-5-1024px-aesthetic",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/playground-v2-5-1024px-aesthetic-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/sd3",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/sd3-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/sd3-medium",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/sd3-medium-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/sd3-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/sd3-turbo-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/SSD-1B",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/SSD-1B-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/stable-diffusion-xl-1024-v1-0",
+      "operator": "equals",
+      "input_cost_per_1m": 130,
+      "output_cost_per_1m": 130
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/stable-diffusion-xl-1024-v1-0-ControlNet",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 200
+    },
+    {
+      "provider": "FIREWORKS",
+      "model": "accounts/fireworks/models/yi-large",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 3
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "claude-3-5-haiku",
+      "operator": "includes",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "claude-3-5-sonnet",
+      "operator": "includes",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "claude-3-7-sonnet",
+      "operator": "includes",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "claude-3-opus",
+      "operator": "includes",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-1.0-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 0.125,
+      "output_cost_per_1m": 0.375
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-1.0-pro-vision-001",
+      "operator": "equals",
+      "input_cost_per_1m": 0.125,
+      "output_cost_per_1m": 0.375
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-1.5-flash",
+      "operator": "includes",
+      "input_cost_per_1m": 0.35,
+      "output_cost_per_1m": 1.05
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-1.5-pro",
+      "operator": "includes",
+      "input_cost_per_1m": 3.5,
+      "output_cost_per_1m": 10.5
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.0-flash",
+      "operator": "includes",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.0-flash",
+      "operator": "includes",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.0-flash-lite",
+      "operator": "includes",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.5-flash",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 2.5,
+      "prompt_cache_read_per_1m": 0.075
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.5-flash-lite",
+      "operator": "includes",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.5-flash-lite-preview-06-17",
+      "operator": "includes",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.5-flash-preview",
+      "operator": "includes",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.5-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 10,
+      "prompt_cache_read_per_1m": 0.31
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.5-pro-exp-03-25",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-2.5-pro-preview",
+      "operator": "includes",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-flash-1.5-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.0375,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "GOOGLE",
+      "model": "gemini-pro",
+      "operator": "includes",
+      "input_cost_per_1m": 0.125,
+      "output_cost_per_1m": 0.375
+    },
+    {
+      "provider": "GROQ",
+      "model": "deepseek-r1-distill-llama-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 0.99
+    },
+    {
+      "provider": "GROQ",
+      "model": "gemma-7b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.07
+    },
+    {
+      "provider": "GROQ",
+      "model": "gemma2-9b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama-3.1-8b-instant",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.08
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama-3.3-70b-versatile",
+      "operator": "equals",
+      "input_cost_per_1m": 0.59,
+      "output_cost_per_1m": 0.79
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama-guard-3-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama2-70b-4096",
+      "operator": "equals",
+      "input_cost_per_1m": 0.7,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama3-70b-8192",
+      "operator": "equals",
+      "input_cost_per_1m": 0.59,
+      "output_cost_per_1m": 0.79
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama3-8b-8192",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.08
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama3-groq-70b-8192-tool-use-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 0.89,
+      "output_cost_per_1m": 0.89
+    },
+    {
+      "provider": "GROQ",
+      "model": "llama3-groq-8b-8192-tool-use-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 0.19,
+      "output_cost_per_1m": 0.19
+    },
+    {
+      "provider": "GROQ",
+      "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "GROQ",
+      "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.11,
+      "output_cost_per_1m": 0.34
+    },
+    {
+      "provider": "GROQ",
+      "model": "meta-llama/llama-guard-4-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "GROQ",
+      "model": "mistral-saba-24b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.79,
+      "output_cost_per_1m": 0.79
+    },
+    {
+      "provider": "GROQ",
+      "model": "mixtral-8x7b-32768",
+      "operator": "equals",
+      "input_cost_per_1m": 0.24,
+      "output_cost_per_1m": 0.24
+    },
+    {
+      "provider": "GROQ",
+      "model": "moonshotai/kimi-k2-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 3
+    },
+    {
+      "provider": "GROQ",
+      "model": "openai/gpt-oss-120b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.75
+    },
+    {
+      "provider": "GROQ",
+      "model": "openai/gpt-oss-20b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "GROQ",
+      "model": "qwen/qwen3-32b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.29,
+      "output_cost_per_1m": 0.59
+    },
+    {
+      "provider": "LLAMA",
+      "model": "Cerebras-Llama-4-Maverick-17B-128E-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "LLAMA",
+      "model": "Cerebras-Llama-4-Scout-17B-16E-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "LLAMA",
+      "model": "Groq-Llama-4-Maverick-17B-128E-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "LLAMA",
+      "model": "Llama-3.3-70B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "LLAMA",
+      "model": "Llama-3.3-8B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "LLAMA",
+      "model": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "LLAMA",
+      "model": "Llama-4-Scout-17B-16E-Instruct-FP8",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "codestral",
+      "operator": "equals",
+      "input_cost_per_1m": 300,
+      "output_cost_per_1m": 900
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "devstral-medium",
+      "operator": "equals",
+      "input_cost_per_1m": 400,
+      "output_cost_per_1m": 2000
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "magistral-medium",
+      "operator": "equals",
+      "input_cost_per_1m": 2000,
+      "output_cost_per_1m": 5000
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-7b-instruct-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-7b-instruct-v0.2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-7b-instruct-v0.3",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-embed",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-large",
+      "operator": "equals",
+      "input_cost_per_1m": 2000,
+      "output_cost_per_1m": 6000
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-large-latest",
+      "operator": "equals",
+      "input_cost_per_1m": 2000,
+      "output_cost_per_1m": 6000
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-medium",
+      "operator": "equals",
+      "input_cost_per_1m": 2.39,
+      "output_cost_per_1m": 7.17
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-medium-3",
+      "operator": "equals",
+      "input_cost_per_1m": 400,
+      "output_cost_per_1m": 2000
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-medium-latest",
+      "operator": "equals",
+      "input_cost_per_1m": 2.39,
+      "output_cost_per_1m": 7.17
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-saba",
+      "operator": "equals",
+      "input_cost_per_1m": 200,
+      "output_cost_per_1m": 600
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-small-3.2",
+      "operator": "equals",
+      "input_cost_per_1m": 100,
+      "output_cost_per_1m": 300
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-small-latest",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mistral-tiny",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mixtral-8x22b",
+      "operator": "equals",
+      "input_cost_per_1m": 2000,
+      "output_cost_per_1m": 6000
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mixtral-8x22b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 2000,
+      "output_cost_per_1m": 6000
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "mixtral-8x7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.42
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "open-mistral-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.25
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "open-mixtral-8x7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.7,
+      "output_cost_per_1m": 0.7
+    },
+    {
+      "provider": "MISTRAL",
+      "model": "pixtral-large",
+      "operator": "equals",
+      "input_cost_per_1m": 2000,
+      "output_cost_per_1m": 6000
+    },
+    {
+      "provider": "NEBIUS",
+      "model": "black-forest-labs/flux-dev",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0,
+      "per_image": 0.007
+    },
+    {
+      "provider": "NEBIUS",
+      "model": "black-forest-labs/flux-schnell",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0,
+      "per_image": 0.0013
+    },
+    {
+      "provider": "NEBIUS",
+      "model": "stability-ai/sdxl",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0,
+      "per_image": 0.003
+    },
+    {
+      "provider": "NOVITA",
+      "model": "cognitivecomputations/dolphin-mixtral-8x22b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "NOVITA",
+      "model": "deepseek/deepseek_v3",
+      "operator": "equals",
+      "input_cost_per_1m": 0.89,
+      "output_cost_per_1m": 0.89
+    },
+    {
+      "provider": "NOVITA",
+      "model": "deepseek/deepseek-r1",
+      "operator": "equals",
+      "input_cost_per_1m": 4,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "NOVITA",
+      "model": "deepseek/deepseek-r1-distill-llama-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "NOVITA",
+      "model": "deepseek/deepseek-r1-distill-llama-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.04,
+      "output_cost_per_1m": 0.04
+    },
+    {
+      "provider": "NOVITA",
+      "model": "deepseek/deepseek-r1-distill-qwen-14b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "NOVITA",
+      "model": "deepseek/deepseek-r1-distill-qwen-32b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "NOVITA",
+      "model": "google/gemma-2-9b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.08,
+      "output_cost_per_1m": 0.08
+    },
+    {
+      "provider": "NOVITA",
+      "model": "gryphe/mythomax-l2-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.09,
+      "output_cost_per_1m": 0.09
+    },
+    {
+      "provider": "NOVITA",
+      "model": "jondurbin/airoboros-l2-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.51,
+      "output_cost_per_1m": 0.74
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3-8b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.04,
+      "output_cost_per_1m": 0.04
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.1-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.34,
+      "output_cost_per_1m": 0.39
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.1-8b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.05
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.1-8b-instruct-bf16",
+      "operator": "equals",
+      "input_cost_per_1m": 0.06,
+      "output_cost_per_1m": 0.06
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.1-8b-instruct-max",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.05
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.2-11b-vision-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.06,
+      "output_cost_per_1m": 0.06
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.2-1b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.02,
+      "output_cost_per_1m": 0.02
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.2-3b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.03,
+      "output_cost_per_1m": 0.05
+    },
+    {
+      "provider": "NOVITA",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.39,
+      "output_cost_per_1m": 0.39
+    },
+    {
+      "provider": "NOVITA",
+      "model": "microsoft/wizardlm-2-8x22b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.62,
+      "output_cost_per_1m": 0.62
+    },
+    {
+      "provider": "NOVITA",
+      "model": "mistralai/mistral-7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.059,
+      "output_cost_per_1m": 0.059
+    },
+    {
+      "provider": "NOVITA",
+      "model": "mistralai/mistral-nemo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.17,
+      "output_cost_per_1m": 0.17
+    },
+    {
+      "provider": "NOVITA",
+      "model": "nousresearch/hermes-2-pro-llama-3-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.14,
+      "output_cost_per_1m": 0.14
+    },
+    {
+      "provider": "NOVITA",
+      "model": "nousresearch/nous-hermes-llama2-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.17,
+      "output_cost_per_1m": 0.17
+    },
+    {
+      "provider": "NOVITA",
+      "model": "openchat/openchat-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.06,
+      "output_cost_per_1m": 0.06
+    },
+    {
+      "provider": "NOVITA",
+      "model": "qwen/qwen-2-7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.054,
+      "output_cost_per_1m": 0.054
+    },
+    {
+      "provider": "NOVITA",
+      "model": "qwen/qwen-2-vl-72b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.45,
+      "output_cost_per_1m": 0.45
+    },
+    {
+      "provider": "NOVITA",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.38,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "NOVITA",
+      "model": "sao10k/l3-70b-euryale-v2.1",
+      "operator": "equals",
+      "input_cost_per_1m": 1.48,
+      "output_cost_per_1m": 1.48
+    },
+    {
+      "provider": "NOVITA",
+      "model": "sao10k/l3-8b-lunaris",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.05
+    },
+    {
+      "provider": "NOVITA",
+      "model": "Sao10K/L3-8B-Stheno-v3.2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.05
+    },
+    {
+      "provider": "NOVITA",
+      "model": "sao10k/l31-70b-euryale-v2.2",
+      "operator": "equals",
+      "input_cost_per_1m": 1.48,
+      "output_cost_per_1m": 1.48
+    },
+    {
+      "provider": "NOVITA",
+      "model": "sophosympatheia/midnight-rose-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "NOVITA",
+      "model": "teknium/openhermes-2.5-mistral-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.17,
+      "output_cost_per_1m": 0.17
+    },
+    {
+      "provider": "OPENAI",
+      "model": "ada",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENAI",
+      "model": "ada-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "babbage",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENAI",
+      "model": "babbage-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.25
+    },
+    {
+      "provider": "OPENAI",
+      "model": "chatgpt-4o-latest",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "chatgpt-4o-latest-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 7.5
+    },
+    {
+      "provider": "OPENAI",
+      "model": "curie",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "curie-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "davinci",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "OPENAI",
+      "model": "davinci-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENAI",
+      "model": "ft:gpt-3.5-turbo-",
+      "operator": "startsWith",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENAI",
+      "model": "ft:gpt-4o-2024-08-06:",
+      "operator": "startsWith",
+      "input_cost_per_1m": 3.75,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "ft:gpt-4o-mini-2024-07-18:",
+      "operator": "startsWith",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-0125",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-0125-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.75
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-0301",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-0301-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-1106",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-1106-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-16k-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-16k-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-instruct-0914",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-instruct-0914-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-3.5-turbo-instruct-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-35-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-35-turbo-16k",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-35-turbo-16k-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-35-turbo-16k-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-35-turbo-16k-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-35-turbo-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-0125-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-0125-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-0314",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-0314-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-1106-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-1106-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-1106-vision-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-1106-vision-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-32k",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-32k-0314",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-32k-0314-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-32k-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-32k-0613-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-32k-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-turbo-0125-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-turbo-0125-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-turbo-2024-04-09",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-turbo-2024-04-09-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-turbo-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-vision-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4-vision-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8,
+      "prompt_cache_read_per_1m": 0.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-2025-04-14",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8,
+      "prompt_cache_read_per_1m": 0.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-2025-04-14-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6,
+      "prompt_cache_read_per_1m": 0.1,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-mini-2025-04-14",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6,
+      "prompt_cache_read_per_1m": 0.1,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-mini-2025-04-14-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-nano",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4,
+      "prompt_cache_read_per_1m": 0.025,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-nano-2025-04-14",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4,
+      "prompt_cache_read_per_1m": 0.025,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-nano-2025-04-14-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4.1-nano-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-2024-05-13",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-2024-05-13-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 7.5
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-2024-08-06",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-2024-08-06-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-2024-11-20",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-2024-11-20-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 7.5
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-mini-2024-07-18",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-mini-2024-07-18-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-mini-2024-07-18.ft-",
+      "operator": "startsWith",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-mini-realtime",
+      "operator": "includes",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6,
+      "prompt_audio_per_1m": 10,
+      "completion_audio_per_1m": 20
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-mini-realtime-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3,
+      "prompt_audio_per_1m": 10,
+      "completion_audio_per_1m": 20
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-realtime",
+      "operator": "includes",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 20,
+      "prompt_cache_read_per_1m": 2.5,
+      "prompt_audio_per_1m": 40,
+      "completion_audio_per_1m": 80
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-realtime-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10,
+      "prompt_audio_per_1m": 40,
+      "completion_audio_per_1m": 80
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-search-preview",
+      "operator": "includes",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENAI",
+      "model": "gpt-4o-search-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-2024-12-17",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-2024-12-17-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 12,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-mini-2024-09-12",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 12,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-mini-2024-09-12-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-preview-2024-09-12",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-preview-2024-09-12-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 7.5,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-pro",
+      "operator": "includes",
+      "input_cost_per_1m": 150,
+      "output_cost_per_1m": 600
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o1-pro-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 75,
+      "output_cost_per_1m": 300
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-2025-04-16",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8,
+      "prompt_cache_read_per_1m": 0.5,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-2025-04-16-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-mini-2025-01-31",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-mini-2025-01-31-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-pro",
+      "operator": "includes",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 80
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o3-pro-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 40
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o4-mini",
+      "operator": "includes",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o4-mini-2025-04-16",
+      "operator": "includes",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4,
+      "show_in_playground": true
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o4-mini-2025-04-16-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "o4-mini-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "openai/gpt-4o-mini-search-preview",
+      "operator": "includes",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENAI",
+      "model": "openai/gpt-4o-mini-search-preview-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-ada-001",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-ada-001-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-curie-001",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-curie-001-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-davinci-001",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-davinci-001-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-davinci-002",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-davinci-002-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-davinci-003",
+      "operator": "equals",
+      "input_cost_per_1m": 20,
+      "output_cost_per_1m": 20
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-davinci-003-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-3-large",
+      "operator": "equals",
+      "input_cost_per_1m": 0.13,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-3-large-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.065,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-3-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.02,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-3-small-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.01,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-ada",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-ada-002",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-ada-002-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-ada-002-v2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-ada-002-v2-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENAI",
+      "model": "text-embedding-ada-batch",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "01-ai/yi-large",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "aetherwiing/mn-starcannon-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "agentica-org/deepcoder-14b-preview:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "ai21/jamba-1-5-large",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "ai21/jamba-1-5-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "ai21/jamba-1.6-large",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "ai21/jamba-1.6-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "ai21/jamba-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.7
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "aion-labs/aion-1.0",
+      "operator": "equals",
+      "input_cost_per_1m": 4,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "aion-labs/aion-1.0-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.7,
+      "output_cost_per_1m": 1.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "aion-labs/aion-rp-llama-3.1-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "alfredpros/codellama-7b-instruct-solidity",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "all-hands/openhands-lm-32b-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 2.6,
+      "output_cost_per_1m": 3.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "allenai/molmo-7b-d:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "alpindale/goliath-120b",
+      "operator": "equals",
+      "input_cost_per_1m": 6.5625,
+      "output_cost_per_1m": 9.375
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "alpindale/magnum-72b",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "amazon/nova-lite-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.06,
+      "output_cost_per_1m": 0.24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "amazon/nova-micro-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.035,
+      "output_cost_per_1m": 0.14
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "amazon/nova-pro-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 3.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthracite-org/magnum-v2-72b",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthracite-org/magnum-v4-72b",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-2",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-2:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-2.0",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-2.0:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-2.1",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-2.1:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 8,
+      "output_cost_per_1m": 24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3-haiku",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 1.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3-haiku:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 1.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3-opus",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3-opus:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3-sonnet:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-haiku",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-haiku-20241022",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-haiku-20241022:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-haiku:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-sonnet-20240620",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-sonnet-20240620:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.5-sonnet:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.7-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.7-sonnet:beta",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-3.7-sonnet:thinking",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-opus-4",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-opus-4.1",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "anthropic/claude-sonnet-4",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "arliai/qwq-32b-arliai-rpr-v1:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "bytedance-research/ui-tars-72b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cognitivecomputations/dolphin-mixtral-8x22b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cognitivecomputations/dolphin-mixtral-8x7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cognitivecomputations/dolphin3.0-mistral-24b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cognitivecomputations/dolphin3.0-r1-mistral-24b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-a",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-r",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-r-03-2024",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-r-08-2024",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-r-plus",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-r-plus-04-2024",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-r-plus-08-2024",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "cohere/command-r7b-12-2024",
+      "operator": "equals",
+      "input_cost_per_1m": 0.0375,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.38,
+      "output_cost_per_1m": 0.89
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-chat-v3-0324",
+      "operator": "equals",
+      "input_cost_per_1m": 0.27,
+      "output_cost_per_1m": 1.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-chat-v3-0324:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-chat:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-llama-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-llama-70b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-llama-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.04,
+      "output_cost_per_1m": 0.04
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-qwen-1.5b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.18,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-qwen-14b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-qwen-14b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-qwen-32b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.12,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-distill-qwen-32b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1-zero:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-r1:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "deepseek/deepseek-v3-base:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "eleutherai/llemma_7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "eva-unit-01/eva-llama-3.33-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 4,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "eva-unit-01/eva-qwen-2.5-32b",
+      "operator": "equals",
+      "input_cost_per_1m": 2.6,
+      "output_cost_per_1m": 3.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "eva-unit-01/eva-qwen-2.5-72b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "featherless/qwerky-72b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.0-flash-001",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.0-flash-exp:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.0-flash-lite-001",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.0-flash-thinking-exp-1219:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.0-flash-thinking-exp:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.5-flash",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 2.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.5-flash-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.5-flash-preview:thinking",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 3.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.5-pro-exp-03-25:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-2.5-pro-preview-03-25",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-flash-1.5",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-flash-1.5-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.0375,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-flash-1.5-8b-exp",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-pro-1.5",
+      "operator": "equals",
+      "input_cost_per_1m": 1.25,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemini-pro-vision",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-2-27b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-2-9b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.07
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-2-9b-it:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-3-12b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-3-12b-it:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-3-1b-it:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-3-27b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-3-27b-it:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-3-4b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.02,
+      "output_cost_per_1m": 0.04
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/gemma-3-4b-it:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/learnlm-1.5-pro-experimental:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/palm-2-chat-bison",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/palm-2-chat-bison-32k",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/palm-2-codechat-bison",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "google/palm-2-codechat-bison-32k",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "gryphe/mythomax-l2-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.065,
+      "output_cost_per_1m": 0.065
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "huggingfaceh4/zephyr-7b-beta:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "infermatic/mn-inferor-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "inflection/inflection-3-pi",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "inflection/inflection-3-productivity",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "jondurbin/airoboros-l2-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "latitudegames/wayfarer-large-70b-llama-3.3",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "liquid/lfm-3b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.02,
+      "output_cost_per_1m": 0.02
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "liquid/lfm-40b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "liquid/lfm-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.01,
+      "output_cost_per_1m": 0.01
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mancer/weaver",
+      "operator": "equals",
+      "input_cost_per_1m": 1.125,
+      "output_cost_per_1m": 1.125
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-2-13b-chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.22,
+      "output_cost_per_1m": 0.22
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-2-70b-chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3-8b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.03,
+      "output_cost_per_1m": 0.06
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.1-405b",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.1-405b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.1-405b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.1-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.119,
+      "output_cost_per_1m": 0.39
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.1-8b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.02,
+      "output_cost_per_1m": 0.03
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.1-8b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.2-11b-vision-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.049,
+      "output_cost_per_1m": 0.049
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.2-11b-vision-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.2-1b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.01,
+      "output_cost_per_1m": 0.01
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.2-1b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.2-3b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.015,
+      "output_cost_per_1m": 0.025
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.2-3b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.2-90b-vision-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.3-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-3.3-70b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-4-maverick",
+      "operator": "equals",
+      "input_cost_per_1m": 0.17,
+      "output_cost_per_1m": 0.85
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-4-maverick:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-4-scout",
+      "operator": "equals",
+      "input_cost_per_1m": 0.08,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-4-scout:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-guard-2-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "meta-llama/llama-guard-3-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "microsoft/phi-3-medium-128k-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "microsoft/phi-3-mini-128k-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "microsoft/phi-3.5-mini-128k-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "microsoft/phi-4",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.14
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "microsoft/phi-4-multimodal-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "microsoft/wizardlm-2-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.07
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "microsoft/wizardlm-2-8x22b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "minimax/minimax-01",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 1.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistral/ministral-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/codestral-2501",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/codestral-mamba",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/ministral-3b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.04,
+      "output_cost_per_1m": 0.04
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/ministral-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.029,
+      "output_cost_per_1m": 0.059
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-7b-instruct-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-7b-instruct-v0.2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-7b-instruct-v0.3",
+      "operator": "equals",
+      "input_cost_per_1m": 0.029,
+      "output_cost_per_1m": 0.059
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-7b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-large",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-large-2407",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-large-2411",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-medium",
+      "operator": "equals",
+      "input_cost_per_1m": 2.75,
+      "output_cost_per_1m": 8.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-nemo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.035,
+      "output_cost_per_1m": 0.08
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-nemo:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-saba",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-small-24b-instruct-2501",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.14
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-small-24b-instruct-2501:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-small-3.1-24b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-small-3.1-24b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mistral-tiny",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mixtral-8x22b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/mixtral-8x7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.24,
+      "output_cost_per_1m": 0.24
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/pixtral-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "mistralai/pixtral-large-2411",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "moonshotai/kimi-vl-a3b-thinking:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "moonshotai/moonlight-16b-a3b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "neversleep/llama-3-lumimaid-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 3.375,
+      "output_cost_per_1m": 4.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "neversleep/llama-3-lumimaid-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.09375,
+      "output_cost_per_1m": 0.75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "neversleep/llama-3-lumimaid-8b:extended",
+      "operator": "equals",
+      "input_cost_per_1m": 0.09375,
+      "output_cost_per_1m": 0.75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "neversleep/llama-3.1-lumimaid-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2.25
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "neversleep/llama-3.1-lumimaid-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.09375,
+      "output_cost_per_1m": 0.75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "neversleep/noromaid-20b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nothingiisreal/mn-celeste-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nousresearch/deephermes-3-llama-3-8b-preview:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nousresearch/hermes-2-pro-llama-3-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.025,
+      "output_cost_per_1m": 0.04
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nousresearch/hermes-3-llama-3.1-405b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nousresearch/hermes-3-llama-3.1-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.12,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nousresearch/nous-hermes-2-mixtral-8x7b-dpo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.6,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nousresearch/nous-hermes-llama2-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.18,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nvidia/llama-3.1-nemotron-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.12,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nvidia/llama-3.1-nemotron-70b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nvidia/llama-3.1-nemotron-nano-8b-v1:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "nvidia/llama-3.3-nemotron-super-49b-v1:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "open-r1/olympiccoder-32b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "open-r1/olympiccoder-7b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/chatgpt-4o-latest",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-3.5-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-3.5-turbo-0125",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-3.5-turbo-0613",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-3.5-turbo-1106",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-3.5-turbo-16k",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-3.5-turbo-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4-0314",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4-1106-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4-32k",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4-32k-0314",
+      "operator": "equals",
+      "input_cost_per_1m": 60,
+      "output_cost_per_1m": 120
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4-turbo-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4.1",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4.1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4.1-nano",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4.5-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 75,
+      "output_cost_per_1m": 150
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o-2024-05-13",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o-2024-08-06",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o-2024-11-20",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o-mini-2024-07-18",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o-mini-search-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o-search-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-4o:extended",
+      "operator": "equals",
+      "input_cost_per_1m": 6,
+      "output_cost_per_1m": 18
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-oss-120b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/gpt-oss-20b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o1",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o1-mini-2024-09-12",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o1-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o1-preview-2024-09-12",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o1-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 150,
+      "output_cost_per_1m": 600
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o3",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 40
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o3-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o3-mini-high",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o4-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openai/o4-mini-high",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openchat/openchat-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.07
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "openrouter/auto",
+      "operator": "equals",
+      "input_cost_per_1m": -1000000,
+      "output_cost_per_1m": -1000000
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/llama-3.1-sonar-large-128k-online",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/llama-3.1-sonar-small-128k-online",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/r1-1776",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/sonar",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/sonar-deep-research",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/sonar-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/sonar-reasoning",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "perplexity/sonar-reasoning-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "pygmalionai/mythalion-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5625,
+      "output_cost_per_1m": 1.125
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2-72b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-72b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.12,
+      "output_cost_per_1m": 0.39
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-72b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-7b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-coder-32b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-coder-32b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-vl-72b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.6,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-vl-7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-2.5-vl-7b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-max",
+      "operator": "equals",
+      "input_cost_per_1m": 1.6,
+      "output_cost_per_1m": 6.4
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-plus",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-vl-max",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 3.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen-vl-plus",
+      "operator": "equals",
+      "input_cost_per_1m": 0.21,
+      "output_cost_per_1m": 0.63
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen2.5-coder-7b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen2.5-vl-32b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen2.5-vl-32b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen2.5-vl-3b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen2.5-vl-72b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.7,
+      "output_cost_per_1m": 0.7
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwen2.5-vl-72b-instruct:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwq-32b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwq-32b-preview",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwq-32b-preview:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "qwen/qwq-32b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "raifle/sorcererlm-8x22b",
+      "operator": "equals",
+      "input_cost_per_1m": 4.5,
+      "output_cost_per_1m": 4.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "rekaai/reka-flash-3:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "sao10k/fimbulvetr-11b-v2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "sao10k/l3-euryale-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 1.48,
+      "output_cost_per_1m": 1.48
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "sao10k/l3-lunaris-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.02,
+      "output_cost_per_1m": 0.05
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "sao10k/l3.1-euryale-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.7,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "sao10k/l3.3-euryale-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.7,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "scb10x/llama3.1-typhoon2-70b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "scb10x/llama3.1-typhoon2-8b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.18,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "shisa-ai/shisa-v2-llama3.3-70b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "sophosympatheia/midnight-rose-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "sophosympatheia/rogue-rose-103b-v0.2:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "steelskull/l3.3-electra-r1-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.7,
+      "output_cost_per_1m": 0.95
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "thedrummer/anubis-pro-105b-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "thedrummer/rocinante-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "thedrummer/skyfall-36b-v2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "thedrummer/unslopnemo-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "thudm/glm-4-32b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "thudm/glm-z1-32b:free",
+      "operator": "equals",
+      "input_cost_per_1m": 0,
+      "output_cost_per_1m": 0
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "undi95/remm-slerp-l2-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5625,
+      "output_cost_per_1m": 1.125
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "undi95/toppy-m-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.07
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "x-ai/grok-2-1212",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "x-ai/grok-2-vision-1212",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "x-ai/grok-3-beta",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "x-ai/grok-3-mini-beta",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "x-ai/grok-4",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15,
+      "prompt_cache_read_per_1m": 0.75
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "x-ai/grok-beta",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "x-ai/grok-vision-beta",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "OPENROUTER",
+      "model": "xwin-lm/xwin-lm-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 3.75,
+      "output_cost_per_1m": 3.75
+    },
+    {
+      "provider": "PERPLEXITY",
+      "model": "sonar",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 10,
+      "per_call": 5e-8
+    },
+    {
+      "provider": "PERPLEXITY",
+      "model": "sonar-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 30,
+      "output_cost_per_1m": 150,
+      "per_call": 5e-8
+    },
+    {
+      "provider": "PERPLEXITY",
+      "model": "sonar-reasoning",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 50,
+      "per_call": 5e-8
+    },
+    {
+      "provider": "QSTASH",
+      "model": "llama",
+      "operator": "includes",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "QSTASH",
+      "model": "mistral",
+      "operator": "includes",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "allenai/OLMo-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "allenai/OLMo-7B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "allenai/OLMo-7B-Twin-2T",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Austism/chronos-hermes-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "codellama/CodeLlama-13b-Instruct-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.225,
+      "output_cost_per_1m": 0.225
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "codellama/CodeLlama-34b-Instruct-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.776,
+      "output_cost_per_1m": 0.776
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "codellama/CodeLlama-70b-Instruct-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "codellama/CodeLlama-7b-Instruct-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "deepseek-ai/deepseek-coder-33b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "deepseek-ai/DeepSeek-R1",
+      "operator": "equals",
+      "input_cost_per_1m": 3000,
+      "output_cost_per_1m": 7000
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "deepseek-ai/DeepSeek-R1-0528-tput",
+      "operator": "equals",
+      "input_cost_per_1m": 550,
+      "output_cost_per_1m": 2190
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "deepseek-ai/DeepSeek-V3",
+      "operator": "equals",
+      "input_cost_per_1m": 1250,
+      "output_cost_per_1m": 1250
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "garage-bAInd/Platypus2-70B-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "google/gemma-2b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "google/gemma-2b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "google/gemma-2b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "google/gemma-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "google/gemma-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "google/gemma-7b-it",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Gryphe/MythoMax-L2-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "lmsys/vicuna-13b-v1.5",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "lmsys/vicuna-7b-v1.5",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-2-13b-chat-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.225,
+      "output_cost_per_1m": 0.225
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-2-70b-chat-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-2-7b-chat-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-3-70b-chat-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-3-8b-chat-hf",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+      "operator": "equals",
+      "input_cost_per_1m": 270,
+      "output_cost_per_1m": 850
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 180,
+      "output_cost_per_1m": 590
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-70B-Instruct-Lite",
+      "operator": "equals",
+      "input_cost_per_1m": 0.54,
+      "output_cost_per_1m": 0.54
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-70B-Instruct-Lite",
+      "operator": "equals",
+      "input_cost_per_1m": 0.54,
+      "output_cost_per_1m": 0.54
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-70B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-8B-Instruct-Lite",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-8B-Instruct-Lite",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-8B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.18,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3-8B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.18,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 3.5,
+      "output_cost_per_1m": 3.5
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.18,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.18,
+      "output_cost_per_1m": 0.18
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "meta-llama/Meta-Llama-3.3-70B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.88,
+      "output_cost_per_1m": 0.88
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "microsoft/phi-2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "microsoft/phi-2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "microsoft/WizardLM-2-8x22B",
+      "operator": "equals",
+      "input_cost_per_1m": 1.2,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mistral-7B-Instruct-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mistral-7B-Instruct-v0.2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mistral-7B-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mistral-7B-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mixtral-8x22B-Instruct-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 2.4,
+      "output_cost_per_1m": 2.4
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mixtral-8x7B-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "mistralai/Mixtral-8x7B-v0.1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Nexusflow/NexusRaven-V2-13B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Nexusflow/NexusRaven-V2-13B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "NousResearch/Nous-Capybara-7B-V1p9",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-SFT",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "NousResearch/Nous-Hermes-2-Yi-34B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "NousResearch/Nous-Hermes-llama-2-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "NousResearch/Nous-Hermes-Llama2-13b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.225,
+      "output_cost_per_1m": 0.225
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Open-Orca/Mistral-7B-OpenOrca",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "openchat/openchat-3.5-1210",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-0.5B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-0.5B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-0.5B-Chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-1.8B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-1.8B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-1.8B-Chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-14B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-14B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-14B-Chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-4B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-4B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-4B-Chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-72B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-72B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen1.5-7B-Chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen2.5-72B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 1200,
+      "output_cost_per_1m": 1200
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen2.5-7B-Instruct-Turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 300,
+      "output_cost_per_1m": 300
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen2.5-Coder-32B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 800,
+      "output_cost_per_1m": 800
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Qwen/Qwen2.5-VL-72B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1200,
+      "output_cost_per_1m": 1200
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "snorkelai/Snorkel-Mistral-PairRM-DPO",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "teknium/OpenHermes-2-Mistral-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "teknium/OpenHermes-2p5-Mistral-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/alpaca-7b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/GPT-JT-Moderation-6B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/GPT-JT-Moderation-6B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/Llama-2-7B-32K-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-7B-Base",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-7B-Base",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-7B-Chat",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-7B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-7B-Instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-Base-3B-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-Base-3B-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-Chat-3B-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-Instruct-3B-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/RedPajama-INCITE-Instruct-3B-v1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/StripedHyena-Hessian-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/StripedHyena-Hessian-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "togethercomputer/StripedHyena-Nous-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Undi95/ReMM-SLERP-L2-13B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "Undi95/Toppy-M-7B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "upstage/SOLAR-10.7B-Instruct-v1.0",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "WizardLM/WizardLM-13B-V1.2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "zero-one-ai/Yi-34B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "zero-one-ai/Yi-34B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 0.8
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "zero-one-ai/Yi-6B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "TOGETHER",
+      "model": "zero-one-ai/Yi-6B",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "alibaba/qwen-3-14b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.08,
+      "output_cost_per_1m": 0.24
+    },
+    {
+      "provider": "VERCEL",
+      "model": "alibaba/qwen-3-235b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "alibaba/qwen-3-30b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "VERCEL",
+      "model": "alibaba/qwen-3-32b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "VERCEL",
+      "model": "alibaba/qwen3-coder",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "amazon/nova-lite",
+      "operator": "equals",
+      "input_cost_per_1m": 0.06,
+      "output_cost_per_1m": 0.24
+    },
+    {
+      "provider": "VERCEL",
+      "model": "amazon/nova-micro",
+      "operator": "equals",
+      "input_cost_per_1m": 0.035,
+      "output_cost_per_1m": 0.14
+    },
+    {
+      "provider": "VERCEL",
+      "model": "amazon/nova-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 3.2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3-5-haiku",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3-5-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3-7-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3-haiku",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 1.25
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3-opus",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3.5-haiku",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3.5-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-3.7-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-4-opus",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 75
+    },
+    {
+      "provider": "VERCEL",
+      "model": "anthropic/claude-4-sonnet",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "cohere/command-a",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "VERCEL",
+      "model": "cohere/command-r",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "cohere/command-r-plus",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "VERCEL",
+      "model": "deepseek/deepseek-r1",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.19
+    },
+    {
+      "provider": "VERCEL",
+      "model": "deepseek/deepseek-r1-distill-llama-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.75,
+      "output_cost_per_1m": 0.99
+    },
+    {
+      "provider": "VERCEL",
+      "model": "deepseek/deepseek-v3",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2-0-flash",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2-0-flash-lite",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2-5-flash",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 2.5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2-5-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2.0-flash",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2.0-flash-lite",
+      "operator": "equals",
+      "input_cost_per_1m": 0.075,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2.5-flash",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 2.5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemini-2.5-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "VERCEL",
+      "model": "google/gemma-2-9b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "inception/mercury-coder-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.25,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-1-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.72,
+      "output_cost_per_1m": 0.72
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-1-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.08
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-2-11b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.16,
+      "output_cost_per_1m": 0.16
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-2-1b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-2-3b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-2-90b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.72,
+      "output_cost_per_1m": 0.72
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-3-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.72,
+      "output_cost_per_1m": 0.72
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.59,
+      "output_cost_per_1m": 0.79
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.08
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3.1-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.72,
+      "output_cost_per_1m": 0.72
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3.1-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.05,
+      "output_cost_per_1m": 0.08
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3.2-11b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.16,
+      "output_cost_per_1m": 0.16
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3.2-1b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3.2-3b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3.2-90b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.72,
+      "output_cost_per_1m": 0.72
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-3.3-70b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.72,
+      "output_cost_per_1m": 0.72
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-4-maverick",
+      "operator": "equals",
+      "input_cost_per_1m": 0.2,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "meta/llama-4-scout",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/codestral",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.9
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/devstral-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.07,
+      "output_cost_per_1m": 0.28
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/magistral-medium",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/magistral-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/ministral-3b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.04,
+      "output_cost_per_1m": 0.04
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/ministral-8b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.1
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/mistral-large",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/mistral-saba-24b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.79,
+      "output_cost_per_1m": 0.79
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/mistral-small",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.3
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/mixtral-8x22b-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.2,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/pixtral-12b",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "mistral/pixtral-large",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "moonshotai/kimi-k2",
+      "operator": "equals",
+      "input_cost_per_1m": 0.55,
+      "output_cost_per_1m": 2.2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "morph/morph-v3-fast",
+      "operator": "equals",
+      "input_cost_per_1m": 0.8,
+      "output_cost_per_1m": 1.2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "morph/morph-v3-large",
+      "operator": "equals",
+      "input_cost_per_1m": 0.9,
+      "output_cost_per_1m": 1.9
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-3-5-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-3-5-turbo-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-3.5-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 0.5,
+      "output_cost_per_1m": 1.5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-3.5-turbo-instruct",
+      "operator": "equals",
+      "input_cost_per_1m": 1.5,
+      "output_cost_per_1m": 2
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4-1",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4-1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4-1-nano",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4-turbo",
+      "operator": "equals",
+      "input_cost_per_1m": 10,
+      "output_cost_per_1m": 30
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4.1",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4.1-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.4,
+      "output_cost_per_1m": 1.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4.1-nano",
+      "operator": "equals",
+      "input_cost_per_1m": 0.1,
+      "output_cost_per_1m": 0.4
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4o",
+      "operator": "equals",
+      "input_cost_per_1m": 2.5,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/gpt-4o-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.15,
+      "output_cost_per_1m": 0.6
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/o1",
+      "operator": "equals",
+      "input_cost_per_1m": 15,
+      "output_cost_per_1m": 60
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/o3",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/o3-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "VERCEL",
+      "model": "openai/o4-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 1.1,
+      "output_cost_per_1m": 4.4
+    },
+    {
+      "provider": "VERCEL",
+      "model": "perplexity/sonar",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 1
+    },
+    {
+      "provider": "VERCEL",
+      "model": "perplexity/sonar-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "perplexity/sonar-reasoning",
+      "operator": "equals",
+      "input_cost_per_1m": 1,
+      "output_cost_per_1m": 5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "perplexity/sonar-reasoning-pro",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 8
+    },
+    {
+      "provider": "VERCEL",
+      "model": "vercel/v0-1-0-md",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "vercel/v0-1-5-md",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "vercel/v0-1.0-md",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "vercel/v0-1.5-md",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "xai/grok-2",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "VERCEL",
+      "model": "xai/grok-2-vision",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "VERCEL",
+      "model": "xai/grok-3",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "VERCEL",
+      "model": "xai/grok-3-fast",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 25
+    },
+    {
+      "provider": "VERCEL",
+      "model": "xai/grok-3-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "VERCEL",
+      "model": "xai/grok-3-mini-fast",
+      "operator": "equals",
+      "input_cost_per_1m": 0.6,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "VERCEL",
+      "model": "xai/grok-4",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "X",
+      "model": "grok-2-1212",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "X",
+      "model": "grok-2-vision-1212",
+      "operator": "equals",
+      "input_cost_per_1m": 2,
+      "output_cost_per_1m": 10
+    },
+    {
+      "provider": "X",
+      "model": "grok-3",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "X",
+      "model": "grok-3-fast",
+      "operator": "equals",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 25
+    },
+    {
+      "provider": "X",
+      "model": "grok-3-mini",
+      "operator": "equals",
+      "input_cost_per_1m": 0.3,
+      "output_cost_per_1m": 0.5
+    },
+    {
+      "provider": "X",
+      "model": "grok-3-mini-fast",
+      "operator": "equals",
+      "input_cost_per_1m": 0.6,
+      "output_cost_per_1m": 4
+    },
+    {
+      "provider": "X",
+      "model": "grok-4",
+      "operator": "includes",
+      "input_cost_per_1m": 3,
+      "output_cost_per_1m": 15,
+      "prompt_cache_read_per_1m": 0.75
+    },
+    {
+      "provider": "X",
+      "model": "grok-beta",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    },
+    {
+      "provider": "X",
+      "model": "grok-vision-beta",
+      "operator": "equals",
+      "input_cost_per_1m": 5,
+      "output_cost_per_1m": 15
+    }
+  ]
+}

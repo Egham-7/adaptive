@@ -1,0 +1,399 @@
+provider_info:
+  name: FIREWORKS
+  total_models: 23
+  data_source: https://helicone.ai/api/llm-costs?provider=fireworks
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  accounts_fireworks_models_deepseek_v3:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/deepseek-v3
+    cost_per_1m_input_tokens: 0.9
+    cost_per_1m_output_tokens: 0.9
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: 67B
+    latency_tier: low
+    task_type: Chatbot
+    complexity: low
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_gpt_oss_120b:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/gpt-oss-120b
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.1
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_gpt_oss_20b:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/gpt-oss-20b
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.1
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_japanese_stable_diffusion_xl:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/japanese-stable-diffusion-xl
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_japanese_stable_diffusion_xl_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/japanese-stable-diffusion-xl-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_llama_v3p1_405b_instruct:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/llama-v3p1-405b-instruct
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 3.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_mixtral_8x22b_instruct:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/mixtral-8x22b-instruct
+    cost_per_1m_input_tokens: 1.2
+    cost_per_1m_output_tokens: 1.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_mixtral_8x7b_instruct:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/mixtral-8x7b-instruct
+    cost_per_1m_input_tokens: 0.5
+    cost_per_1m_output_tokens: 0.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_playground_v2_1024px_aesthetic:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/playground-v2-1024px-aesthetic
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_playground_v2_1024px_aesthetic_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/playground-v2-1024px-aesthetic-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_playground_v2_5_1024px_aesthetic:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/playground-v2-5-1024px-aesthetic
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_playground_v2_5_1024px_aesthetic_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/playground-v2-5-1024px-aesthetic-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_sd3:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/sd3
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_sd3_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/sd3-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_sd3_medium:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/sd3-medium
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_sd3_medium_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/sd3-medium-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_sd3_turbo:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/sd3-turbo
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_sd3_turbo_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/sd3-turbo-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_SSD_1B:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/SSD-1B
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_SSD_1B_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/SSD-1B-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_stable_diffusion_xl_1024_v1_0:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/stable-diffusion-xl-1024-v1-0
+    cost_per_1m_input_tokens: 130.0
+    cost_per_1m_output_tokens: 130.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_stable_diffusion_xl_1024_v1_0_ControlNet:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/stable-diffusion-xl-1024-v1-0-ControlNet
+    cost_per_1m_input_tokens: 200.0
+    cost_per_1m_output_tokens: 200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  accounts_fireworks_models_yi_large:
+    description: ''
+    provider: FIREWORKS
+    model_name: accounts/fireworks/models/yi-large
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 3.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null

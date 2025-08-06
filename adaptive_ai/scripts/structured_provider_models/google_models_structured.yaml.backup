@@ -1,0 +1,358 @@
+provider_info:
+  name: GOOGLE
+  total_models: 20
+  data_source: https://helicone.ai/api/llm-costs?provider=google
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  claude_3_5_haiku:
+    description: ''
+    provider: GOOGLE
+    model_name: claude-3-5-haiku
+    cost_per_1m_input_tokens: 0.8
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - zh
+    - fr
+    - de
+    - ja
+    - ko
+    - es
+    model_size_params: ''
+    latency_tier: very low
+    task_type: Code Generation
+    complexity: high
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  claude_3_5_sonnet:
+    description: ''
+    provider: GOOGLE
+    model_name: claude-3-5-sonnet
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  claude_3_7_sonnet:
+    description: ''
+    provider: GOOGLE
+    model_name: claude-3-7-sonnet
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  claude_3_opus:
+    description: ''
+    provider: GOOGLE
+    model_name: claude-3-opus
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 75.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_1.0_pro:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-1.0-pro
+    cost_per_1m_input_tokens: 0.125
+    cost_per_1m_output_tokens: 0.375
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemini_1.0_pro_vision_001:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-1.0-pro-vision-001
+    cost_per_1m_input_tokens: 0.125
+    cost_per_1m_output_tokens: 0.375
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemini_1.5_flash:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-1.5-flash
+    cost_per_1m_input_tokens: 0.35
+    cost_per_1m_output_tokens: 1.05
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_1.5_pro:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-1.5-pro
+    cost_per_1m_input_tokens: 3.5
+    cost_per_1m_output_tokens: 10.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_2.0_flash:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-2.0-flash
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_2.0_flash_lite:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-2.0-flash-lite
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.3
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_2.5_flash:
+    description: Gemini 2.5 Flash is Google's fast and versatile model for diverse
+      tasks.
+    provider: GOOGLE
+    model_name: gemini-2.5-flash
+    cost_per_1m_input_tokens: 0.3
+    cost_per_1m_output_tokens: 2.5
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    additional_pricing:
+      cache_read_per_1m: 0.075
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemini_2.5_flash_lite:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-2.5-flash-lite
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_2.5_flash_lite_preview_06_17:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-2.5-flash-lite-preview-06-17
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_2.5_flash_preview:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-2.5-flash-preview
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_2.5_pro:
+    description: Gemini 2.5 Pro is Google's most capable model for complex reasoning
+      tasks.
+    provider: GOOGLE
+    model_name: gemini-2.5-pro
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: high
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      cache_read_per_1m: 0.31
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemini_2.5_pro_exp_03_25:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-2.5-pro-exp-03-25
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemini_2.5_pro_preview:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-2.5-pro-preview
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gemini_flash_1.5_8b:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-flash-1.5-8b
+    cost_per_1m_input_tokens: 0.0375
+    cost_per_1m_output_tokens: 0.15
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gemini_pro:
+    description: ''
+    provider: GOOGLE
+    model_name: gemini-pro
+    cost_per_1m_input_tokens: 0.125
+    cost_per_1m_output_tokens: 0.375
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null

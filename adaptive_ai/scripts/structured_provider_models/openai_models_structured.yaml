@@ -1,0 +1,2819 @@
+provider_info:
+  name: OPENAI
+  total_models: 140
+  data_source: https://helicone.ai/api/llm-costs?provider=openai
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  ada:
+    description: ''
+    provider: OPENAI
+    model_name: ada
+    cost_per_1m_input_tokens: 0.4
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  ada_batch:
+    description: ''
+    provider: OPENAI
+    model_name: ada-batch
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  babbage:
+    description: ''
+    provider: OPENAI
+    model_name: babbage
+    cost_per_1m_input_tokens: 0.5
+    cost_per_1m_output_tokens: 0.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  babbage_batch:
+    description: ''
+    provider: OPENAI
+    model_name: babbage-batch
+    cost_per_1m_input_tokens: 0.25
+    cost_per_1m_output_tokens: 0.25
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  chatgpt_4o_latest:
+    description: ''
+    provider: OPENAI
+    model_name: chatgpt-4o-latest
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  chatgpt_4o_latest_batch:
+    description: ''
+    provider: OPENAI
+    model_name: chatgpt-4o-latest-batch
+    cost_per_1m_input_tokens: 2.5
+    cost_per_1m_output_tokens: 7.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  curie:
+    description: ''
+    provider: OPENAI
+    model_name: curie
+    cost_per_1m_input_tokens: 2.0
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  curie_batch:
+    description: ''
+    provider: OPENAI
+    model_name: curie-batch
+    cost_per_1m_input_tokens: 1.0
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  davinci:
+    description: ''
+    provider: OPENAI
+    model_name: davinci
+    cost_per_1m_input_tokens: 20.0
+    cost_per_1m_output_tokens: 20.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  davinci_batch:
+    description: ''
+    provider: OPENAI
+    model_name: davinci-batch
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  ft_gpt_3.5_turbo_:
+    description: ''
+    provider: OPENAI
+    model_name: ft:gpt-3.5-turbo-
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 6.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: startsWith
+      available_in_playground: null
+  ft_gpt_4o_2024_08_06_:
+    description: ''
+    provider: OPENAI
+    model_name: 'ft:gpt-4o-2024-08-06:'
+    cost_per_1m_input_tokens: 3.75
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: startsWith
+      available_in_playground: null
+  ft_gpt_4o_mini_2024_07_18_:
+    description: ''
+    provider: OPENAI
+    model_name: 'ft:gpt-4o-mini-2024-07-18:'
+    cost_per_1m_input_tokens: 0.3
+    cost_per_1m_output_tokens: 1.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: startsWith
+      available_in_playground: null
+  gpt_3.5_turbo:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_0125:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-0125
+    cost_per_1m_input_tokens: 0.5
+    cost_per_1m_output_tokens: 1.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_0125_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-0125-batch
+    cost_per_1m_input_tokens: 0.25
+    cost_per_1m_output_tokens: 0.75
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_3.5_turbo_0301:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-0301
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_0301_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-0301-batch
+    cost_per_1m_input_tokens: 0.75
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_3.5_turbo_0613:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-0613
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_0613_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-0613-batch
+    cost_per_1m_input_tokens: 0.75
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_3.5_turbo_1106:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-1106
+    cost_per_1m_input_tokens: 1.0
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_1106_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-1106-batch
+    cost_per_1m_input_tokens: 0.5
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_3.5_turbo_16k_0613:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-16k-0613
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_16k_0613_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-16k-0613-batch
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_3.5_turbo_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-batch
+    cost_per_1m_input_tokens: 0.75
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_3.5_turbo_instruct:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-instruct
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_instruct_0914:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-instruct-0914
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_3.5_turbo_instruct_0914_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-instruct-0914-batch
+    cost_per_1m_input_tokens: 0.75
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_3.5_turbo_instruct_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-3.5-turbo-instruct-batch
+    cost_per_1m_input_tokens: 0.75
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_35_turbo:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-35-turbo
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_35_turbo_16k:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-35-turbo-16k
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_35_turbo_16k_0613:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-35-turbo-16k-0613
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_35_turbo_16k_0613_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-35-turbo-16k-0613-batch
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_35_turbo_16k_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-35-turbo-16k-batch
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_35_turbo_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-35-turbo-batch
+    cost_per_1m_input_tokens: 0.75
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4:
+    description: GPT-4 is a large multimodal model with broad general knowledge and
+      advanced reasoning.
+    provider: OPENAI
+    model_name: gpt-4
+    cost_per_1m_input_tokens: 30.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: 8192
+    max_output_tokens: 4096
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_0125_preview:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-0125-preview
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_0125_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-0125-preview-batch
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_0314:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-0314
+    cost_per_1m_input_tokens: 30.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_0314_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-0314-batch
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_0613:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-0613
+    cost_per_1m_input_tokens: 30.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_0613_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-0613-batch
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_1106_preview:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-1106-preview
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_1106_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-1106-preview-batch
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_1106_vision_preview:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-1106-vision-preview
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_1106_vision_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-1106-vision-preview-batch
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_32k:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-32k
+    cost_per_1m_input_tokens: 60.0
+    cost_per_1m_output_tokens: 120.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_32k_0314:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-32k-0314
+    cost_per_1m_input_tokens: 60.0
+    cost_per_1m_output_tokens: 120.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_32k_0314_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-32k-0314-batch
+    cost_per_1m_input_tokens: 30.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_32k_0613:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-32k-0613
+    cost_per_1m_input_tokens: 60.0
+    cost_per_1m_output_tokens: 120.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_32k_0613_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-32k-0613-batch
+    cost_per_1m_input_tokens: 30.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_32k_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-32k-batch
+    cost_per_1m_input_tokens: 30.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-batch
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_turbo:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-turbo
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_turbo_0125_preview:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-turbo-0125-preview
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_turbo_0125_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-turbo-0125-preview-batch
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_turbo_2024_04_09:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-turbo-2024-04-09
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4_turbo_2024_04_09_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-turbo-2024-04-09-batch
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_turbo_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-turbo-batch
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_vision_preview:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-vision-preview
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4_vision_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4-vision-preview-batch
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4.1:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1
+    cost_per_1m_input_tokens: 2.0
+    cost_per_1m_output_tokens: 8.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      cache_read_per_1m: 0.5
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4.1_2025_04_14:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-2025-04-14
+    cost_per_1m_input_tokens: 2.0
+    cost_per_1m_output_tokens: 8.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      cache_read_per_1m: 0.5
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4.1_2025_04_14_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-2025-04-14-batch
+    cost_per_1m_input_tokens: 1.0
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4.1_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-batch
+    cost_per_1m_input_tokens: 1.0
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4.1_mini:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-mini
+    cost_per_1m_input_tokens: 0.4
+    cost_per_1m_output_tokens: 1.6
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    additional_pricing:
+      cache_read_per_1m: 0.1
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4.1_mini_2025_04_14:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-mini-2025-04-14
+    cost_per_1m_input_tokens: 0.4
+    cost_per_1m_output_tokens: 1.6
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    additional_pricing:
+      cache_read_per_1m: 0.1
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4.1_mini_2025_04_14_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-mini-2025-04-14-batch
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.8
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4.1_mini_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-mini-batch
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.8
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4.1_nano:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-nano
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      cache_read_per_1m: 0.025
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4.1_nano_2025_04_14:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-nano-2025-04-14
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      cache_read_per_1m: 0.025
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4.1_nano_2025_04_14_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-nano-2025-04-14-batch
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4.1_nano_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4.1-nano-batch
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o:
+    description: GPT-4o is OpenAI's flagship model with advanced reasoning and multimodal
+      capabilities.
+    provider: OPENAI
+    model_name: gpt-4o
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    - pt
+    - it
+    - ru
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4o_2024_05_13:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-2024-05-13
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4o_2024_05_13_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-2024-05-13-batch
+    cost_per_1m_input_tokens: 2.5
+    cost_per_1m_output_tokens: 7.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_2024_08_06:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-2024-08-06
+    cost_per_1m_input_tokens: 2.5
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4o_2024_08_06_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-2024-08-06-batch
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 5.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_2024_11_20:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-2024-11-20
+    cost_per_1m_input_tokens: 2.5
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4o_2024_11_20_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-2024-11-20-batch
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 5.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-batch
+    cost_per_1m_input_tokens: 2.5
+    cost_per_1m_output_tokens: 7.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_mini:
+    description: GPT-4o mini is a cost-efficient small model with strong performance
+      across diverse tasks.
+    provider: OPENAI
+    model_name: gpt-4o-mini
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: 128000
+    max_output_tokens: 16384
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    - pt
+    - it
+    - ru
+    model_size_params: ''
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4o_mini_2024_07_18:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-mini-2024-07-18
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  gpt_4o_mini_2024_07_18_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-mini-2024-07-18-batch
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.3
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_mini_2024_07_18.ft_:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-mini-2024-07-18.ft-
+    cost_per_1m_input_tokens: 0.3
+    cost_per_1m_output_tokens: 1.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: startsWith
+      available_in_playground: null
+  gpt_4o_mini_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-mini-batch
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.3
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_mini_realtime:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-mini-realtime
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    additional_pricing:
+      input_audio_per_1m: 10.0
+      output_audio_per_1m: 20.0
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gpt_4o_mini_realtime_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-mini-realtime-batch
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.3
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    additional_pricing:
+      input_audio_per_1m: 10.0
+      output_audio_per_1m: 20.0
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_realtime:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-realtime
+    cost_per_1m_input_tokens: 5.0
+    cost_per_1m_output_tokens: 20.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      cache_read_per_1m: 2.5
+      input_audio_per_1m: 40.0
+      output_audio_per_1m: 80.0
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gpt_4o_realtime_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-realtime-batch
+    cost_per_1m_input_tokens: 2.5
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      input_audio_per_1m: 40.0
+      output_audio_per_1m: 80.0
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  gpt_4o_search_preview:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-search-preview
+    cost_per_1m_input_tokens: 2.5
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  gpt_4o_search_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: gpt-4o-search-preview-batch
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 5.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
+    model_size_params: ''
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o1:
+    description: ''
+    provider: OPENAI
+    model_name: o1
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o1_2024_12_17:
+    description: ''
+    provider: OPENAI
+    model_name: o1-2024-12-17
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o1_2024_12_17_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o1-2024-12-17-batch
+    cost_per_1m_input_tokens: 7.5
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o1_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o1-batch
+    cost_per_1m_input_tokens: 7.5
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o1_mini:
+    description: ''
+    provider: OPENAI
+    model_name: o1-mini
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 12.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o1_mini_2024_09_12:
+    description: ''
+    provider: OPENAI
+    model_name: o1-mini-2024-09-12
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 12.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o1_mini_2024_09_12_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o1-mini-2024-09-12-batch
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 6.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o1_mini_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o1-mini-batch
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 6.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o1_preview:
+    description: ''
+    provider: OPENAI
+    model_name: o1-preview
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o1_preview_2024_09_12:
+    description: ''
+    provider: OPENAI
+    model_name: o1-preview-2024-09-12
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 60.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o1_preview_2024_09_12_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o1-preview-2024-09-12-batch
+    cost_per_1m_input_tokens: 7.5
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o1_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o1-preview-batch
+    cost_per_1m_input_tokens: 7.5
+    cost_per_1m_output_tokens: 30.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o1_pro:
+    description: ''
+    provider: OPENAI
+    model_name: o1-pro
+    cost_per_1m_input_tokens: 150.0
+    cost_per_1m_output_tokens: 600.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  o1_pro_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o1-pro-batch
+    cost_per_1m_input_tokens: 75.0
+    cost_per_1m_output_tokens: 300.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o3_2025_04_16:
+    description: ''
+    provider: OPENAI
+    model_name: o3-2025-04-16
+    cost_per_1m_input_tokens: 2.0
+    cost_per_1m_output_tokens: 8.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    additional_pricing:
+      cache_read_per_1m: 0.5
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o3_2025_04_16_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o3-2025-04-16-batch
+    cost_per_1m_input_tokens: 1.0
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o3_mini:
+    description: ''
+    provider: OPENAI
+    model_name: o3-mini
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o3_mini_2025_01_31:
+    description: ''
+    provider: OPENAI
+    model_name: o3-mini-2025-01-31
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: true
+  o3_mini_2025_01_31_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o3-mini-2025-01-31-batch
+    cost_per_1m_input_tokens: 0.55
+    cost_per_1m_output_tokens: 2.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o3_mini_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o3-mini-batch
+    cost_per_1m_input_tokens: 0.55
+    cost_per_1m_output_tokens: 2.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o3_pro:
+    description: ''
+    provider: OPENAI
+    model_name: o3-pro
+    cost_per_1m_input_tokens: 20.0
+    cost_per_1m_output_tokens: 80.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  o3_pro_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o3-pro-batch
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 40.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o4_mini:
+    description: ''
+    provider: OPENAI
+    model_name: o4-mini
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: true
+  o4_mini_2025_04_16:
+    description: ''
+    provider: OPENAI
+    model_name: o4-mini-2025-04-16
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: true
+  o4_mini_2025_04_16_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o4-mini-2025-04-16-batch
+    cost_per_1m_input_tokens: 0.55
+    cost_per_1m_output_tokens: 2.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  o4_mini_batch:
+    description: ''
+    provider: OPENAI
+    model_name: o4-mini-batch
+    cost_per_1m_input_tokens: 0.55
+    cost_per_1m_output_tokens: 2.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  openai_gpt_4o_mini_search_preview:
+    description: ''
+    provider: OPENAI
+    model_name: openai/gpt-4o-mini-search-preview
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+  openai_gpt_4o_mini_search_preview_batch:
+    description: ''
+    provider: OPENAI
+    model_name: openai/gpt-4o-mini-search-preview-batch
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.3
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_ada_001:
+    description: ''
+    provider: OPENAI
+    model_name: text-ada-001
+    cost_per_1m_input_tokens: 0.4
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_ada_001_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-ada-001-batch
+    cost_per_1m_input_tokens: 0.2
+    cost_per_1m_output_tokens: 0.2
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_curie_001:
+    description: ''
+    provider: OPENAI
+    model_name: text-curie-001
+    cost_per_1m_input_tokens: 2.0
+    cost_per_1m_output_tokens: 2.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_curie_001_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-curie-001-batch
+    cost_per_1m_input_tokens: 1.0
+    cost_per_1m_output_tokens: 1.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_davinci_001:
+    description: ''
+    provider: OPENAI
+    model_name: text-davinci-001
+    cost_per_1m_input_tokens: 20.0
+    cost_per_1m_output_tokens: 20.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_davinci_001_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-davinci-001-batch
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_davinci_002:
+    description: ''
+    provider: OPENAI
+    model_name: text-davinci-002
+    cost_per_1m_input_tokens: 20.0
+    cost_per_1m_output_tokens: 20.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_davinci_002_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-davinci-002-batch
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_davinci_003:
+    description: ''
+    provider: OPENAI
+    model_name: text-davinci-003
+    cost_per_1m_input_tokens: 20.0
+    cost_per_1m_output_tokens: 20.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_davinci_003_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-davinci-003-batch
+    cost_per_1m_input_tokens: 10.0
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_3_large:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-3-large
+    cost_per_1m_input_tokens: 0.13
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_3_large_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-3-large-batch
+    cost_per_1m_input_tokens: 0.065
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_3_small:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-3-small
+    cost_per_1m_input_tokens: 0.02
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_3_small_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-3-small-batch
+    cost_per_1m_input_tokens: 0.01
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_ada:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-ada
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_ada_002:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-ada-002
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_ada_002_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-ada-002-batch
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_ada_002_v2:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-ada-002-v2
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_ada_002_v2_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-ada-002-v2-batch
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  text_embedding_ada_batch:
+    description: ''
+    provider: OPENAI
+    model_name: text-embedding-ada-batch
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null

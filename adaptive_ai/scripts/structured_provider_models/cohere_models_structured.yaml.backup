@@ -1,0 +1,25 @@
+provider_info:
+  name: COHERE
+  total_models: 1
+  data_source: https://helicone.ai/api/llm-costs?provider=cohere
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  cohere_command_r:
+    description: ''
+    provider: COHERE
+    model_name: cohere/command-r
+    cost_per_1m_input_tokens: 0.5
+    cost_per_1m_output_tokens: 1.5
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
