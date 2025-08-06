@@ -290,7 +290,7 @@ Use any OpenAI-compatible authorization header:
   </Expandable>
 </ParamField>
 
-<ParamField body="prompt_cache_config" type="object">
+<ParamField body="prompt_cache" type="object">
   Configuration for prompt-response caching (disabled by default).
   
   <Expandable title="Prompt Cache Config">
@@ -298,7 +298,7 @@ Use any OpenAI-compatible authorization header:
       Whether to enable prompt-response caching for this request
     </ParamField>
     
-    <ParamField body="ttl_seconds" type="integer">
+    <ParamField body="ttl" type="integer">
       Cache duration in seconds. Default: 3600 (1 hour)
     </ParamField>
   </Expandable>
