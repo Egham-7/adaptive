@@ -91,6 +91,12 @@ llm = ChatOpenAI(
         "semantic_cache": {
             "enabled": True,
             "semantic_threshold": 0.85  # Similarity threshold for cache hits
+        },
+        
+        # Prompt response cache for identical requests
+        "prompt_cache": {
+            "enabled": True,
+            "ttl": 3600  # Cache duration in seconds (default: 1 hour)
         }
     }
 )
@@ -124,6 +130,12 @@ const llm = new ChatOpenAI({
     semantic_cache: {
       enabled: true,
       semantic_threshold: 0.85  // Similarity threshold for cache hits
+    },
+    
+    // Prompt response cache for identical requests
+    prompt_cache: {
+      enabled: true,
+      ttl: 3600  // Cache duration in seconds (default: 1 hour)
     }
   }
 });
@@ -161,6 +173,14 @@ Improves performance by caching similar requests:
 - **`semantic_threshold`**: Similarity threshold (0-1) for cache hits
   - Higher values = more strict matching
   - Lower values = more cache hits but less accuracy
+
+#### `prompt_cache`
+Ultra-fast caching for identical requests (disabled by default):
+
+- **`enabled`**: Enable prompt response caching for this request
+- **`ttl`**: Cache duration in seconds (default: 3600, i.e., 1 hour)
+  - Provides sub-millisecond response times for repeated requests
+  - Only successful responses are cached
 
 ## Extras
 

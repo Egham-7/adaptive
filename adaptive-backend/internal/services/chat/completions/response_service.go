@@ -37,6 +37,7 @@ func (s *ResponseService) HandleProtocol(
 	resp *models.ProtocolResponse,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	if isStream {
 		s.setStreamHeaders(c)
@@ -44,7 +45,7 @@ func (s *ResponseService) HandleProtocol(
 
 	switch protocol {
 	case models.ProtocolStandardLLM:
-		if err := s.completionService.HandleStandardCompletion(c, req, resp.Standard, requestID, isStream); err != nil {
+		if err := s.completionService.HandleStandardCompletion(c, req, resp.Standard, requestID, isStream, cacheSource); err != nil {
 			return s.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
 		// Store successful response in semantic cache
@@ -52,7 +53,7 @@ func (s *ResponseService) HandleProtocol(
 		return nil
 
 	case models.ProtocolMinion:
-		if err := s.completionService.HandleMinionCompletion(c, req, resp.Minion, requestID, isStream); err != nil {
+		if err := s.completionService.HandleMinionCompletion(c, req, resp.Minion, requestID, isStream, cacheSource); err != nil {
 			return s.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
 		// Store successful response in semantic cache
@@ -60,7 +61,7 @@ func (s *ResponseService) HandleProtocol(
 		return nil
 
 	case models.ProtocolMinionsProtocol:
-		if err := s.completionService.HandleMinionsProtocolCompletion(c, req, resp, requestID, isStream); err != nil {
+		if err := s.completionService.HandleMinionsProtocolCompletion(c, req, resp, requestID, isStream, cacheSource); err != nil {
 			return s.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
 		// Store successful response in semantic cache

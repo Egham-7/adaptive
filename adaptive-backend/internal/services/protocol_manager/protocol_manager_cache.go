@@ -109,7 +109,7 @@ func (pmc *ProtocolManagerCache) Lookup(prompt, requestID string) (*models.Proto
 	fiberlog.Debugf("[%s] ProtocolManagerCache: Trying exact key match", requestID)
 	if hit, found := pmc.cache.Get(prompt); found {
 		fiberlog.Infof("[%s] ProtocolManagerCache: Exact cache hit", requestID)
-		return &hit, "exact", true
+		return &hit, "semantic_exact", true
 	}
 	fiberlog.Debugf("[%s] ProtocolManagerCache: No exact match found", requestID)
 
@@ -117,7 +117,7 @@ func (pmc *ProtocolManagerCache) Lookup(prompt, requestID string) (*models.Proto
 	fiberlog.Debugf("[%s] ProtocolManagerCache: Trying semantic similarity search (threshold: %.2f)", requestID, pmc.semanticThreshold)
 	if hit, found, err := pmc.cache.Lookup(prompt, pmc.semanticThreshold); err == nil && found {
 		fiberlog.Infof("[%s] ProtocolManagerCache: Semantic cache hit", requestID)
-		return &hit, "semantic", true
+		return &hit, "semantic_similar", true
 	} else if err != nil {
 		fiberlog.Errorf("[%s] ProtocolManagerCache: Error during semantic lookup: %v", requestID, err)
 	} else {

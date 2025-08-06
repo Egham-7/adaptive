@@ -54,7 +54,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	// Configure fallback mode based on request
 	h.configureFallbackMode(req, reqID)
 
-	resp, err := h.selectProtocol(
+	resp, cacheSource, err := h.selectProtocol(
 		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
 	)
 	if err != nil {
@@ -70,23 +70,24 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	return h.respSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream)
+	return h.respSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream, cacheSource)
 }
 
-// selectProtocol runs protocol selection and returns the chosen protocol response.
+// selectProtocol runs protocol selection and returns the chosen protocol response and cache source.
 func (h *CompletionHandler) selectProtocol(
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) (
 	resp *models.ProtocolResponse,
+	cacheSource string,
 	err error,
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
 	openAIParams := req.ToOpenAIParams()
 	if openAIParams == nil {
-		return nil, fmt.Errorf("failed to convert request to OpenAI parameters")
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
 	}
 
 	selReq := models.ModelSelectionRequest{
@@ -94,15 +95,15 @@ func (h *CompletionHandler) selectProtocol(
 		ProtocolManagerConfig: req.ProtocolManagerConfig,
 	}
 
-	resp, _, err = h.protocolMgr.SelectProtocolWithCache(
+	resp, cacheSource, err = h.protocolMgr.SelectProtocolWithCache(
 		selReq, userID, requestID, circuitBreakers, req.SemanticCache,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
-		return nil, fmt.Errorf("protocol selection failed: %w", err)
+		return nil, "", fmt.Errorf("protocol selection failed: %w", err)
 	}
 
-	return resp, nil
+	return resp, cacheSource, nil
 }
 
 // configureFallbackMode sets the fallback mode based on the request configuration

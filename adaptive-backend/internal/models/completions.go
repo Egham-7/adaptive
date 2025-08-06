@@ -9,6 +9,13 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// Cache tier constants
+const (
+	CacheTierSemanticExact   = "semantic_exact"
+	CacheTierSemanticSimilar = "semantic_similar"
+	CacheTierPromptResponse  = "prompt_response"
+)
+
 // ModelCapability represents a model with its capabilities and constraints
 type ModelCapability struct {
 	Description             *string  `json:"description,omitempty"`
@@ -277,6 +284,47 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 	}
 }
 
+// AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information
+type AdaptiveUsage struct {
+	PromptTokens     int64 `json:"prompt_tokens"`
+	CompletionTokens int64 `json:"completion_tokens"`
+	TotalTokens      int64 `json:"total_tokens"`
+	// Cache tier information for adaptive system
+	CacheTier string `json:"cache_tier,omitempty"` // e.g., "semantic_exact", "semantic_similar", "prompt_response"
+}
+
+// ToOpenAI converts AdaptiveUsage to OpenAI's CompletionUsage for compatibility
+func (u *AdaptiveUsage) ToOpenAI() openai.CompletionUsage {
+	return openai.CompletionUsage{
+		PromptTokens:     u.PromptTokens,
+		CompletionTokens: u.CompletionTokens,
+		TotalTokens:      u.TotalTokens,
+	}
+}
+
+// FromOpenAI creates AdaptiveUsage from OpenAI's CompletionUsage
+func FromOpenAI(usage openai.CompletionUsage) *AdaptiveUsage {
+	return &AdaptiveUsage{
+		PromptTokens:     usage.PromptTokens,
+		CompletionTokens: usage.CompletionTokens,
+		TotalTokens:      usage.TotalTokens,
+	}
+}
+
+// SetCacheTier sets the cache tier on AdaptiveUsage based on cache source type
+func SetCacheTier(usage *AdaptiveUsage, cacheSource string) {
+	switch cacheSource {
+	case "semantic_exact":
+		usage.CacheTier = CacheTierSemanticExact
+	case "semantic_similar":
+		usage.CacheTier = CacheTierSemanticSimilar
+	case "prompt_response":
+		usage.CacheTier = CacheTierPromptResponse
+	default:
+		usage.CacheTier = ""
+	}
+}
+
 // ChatCompletion extends OpenAI's ChatCompletion with enhanced usage
 type ChatCompletion struct {
 	ID                string                           `json:"id"`
@@ -286,7 +334,7 @@ type ChatCompletion struct {
 	Object            string                           `json:"object"`
 	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                           `json:"system_fingerprint,omitempty"`
-	Usage             openai.CompletionUsage           `json:"usage"`
+	Usage             AdaptiveUsage                    `json:"usage"`
 	Provider          string                           `json:"provider,omitempty"`
 }
 
@@ -299,7 +347,7 @@ type ChatCompletionChunk struct {
 	Object            string                                `json:"object"`
 	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
-	Usage             *openai.CompletionUsage               `json:"usage,omitempty"`
+	Usage             *AdaptiveUsage                        `json:"usage,omitempty"`
 	Provider          string                                `json:"provider,omitempty"`
 }
 
@@ -313,7 +361,7 @@ func ConvertToAdaptive(completion *openai.ChatCompletion, provider string) *Chat
 		Object:            string(completion.Object),
 		ServiceTier:       completion.ServiceTier,
 		SystemFingerprint: completion.SystemFingerprint,
-		Usage:             completion.Usage,
+		Usage:             *FromOpenAI(completion.Usage),
 		Provider:          provider,
 	}
 }
@@ -328,8 +376,12 @@ func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) 
 		Object:            string(chunk.Object),
 		ServiceTier:       chunk.ServiceTier,
 		SystemFingerprint: chunk.SystemFingerprint,
-		Usage:             &chunk.Usage,
 		Provider:          provider,
+	}
+
+	// Only set usage if it exists in the chunk
+	if chunk.Usage.PromptTokens != 0 || chunk.Usage.CompletionTokens != 0 || chunk.Usage.TotalTokens != 0 {
+		adaptive.Usage = FromOpenAI(chunk.Usage)
 	}
 
 	return adaptive

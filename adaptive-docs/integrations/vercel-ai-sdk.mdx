@@ -134,6 +134,12 @@ await generateText({
       semantic_cache: {
         enabled: true,
         semantic_threshold: 0.85 // Similarity threshold for cache hits
+      },
+      
+      // Prompt response cache for identical requests
+      prompt_cache: {
+        enabled: true,
+        ttl: 3600 // Cache duration in seconds (default: 1 hour)
       }
     }
   }
@@ -171,6 +177,14 @@ Improves performance by caching similar requests:
   - Higher values = more strict matching
   - Lower values = more cache hits but less accuracy
 
+#### `prompt_cache`
+Ultra-fast caching for identical requests (disabled by default):
+
+- **`enabled`**: Enable prompt response caching for this request
+- **`ttl`**: Cache duration in seconds (default: 3600, i.e., 1 hour)
+  - Provides sub-millisecond response times for repeated requests
+  - Only successful responses are cached
+
 
 ---
 
@@ -195,6 +209,21 @@ const { text } = await generateText({
     }),
   },
 });
+```
+
+## Cache Tier Tracking
+
+Access cache information in the response:
+
+```ts
+const result = await generateText({
+  model: adaptive(),
+  prompt: "Hello world",
+});
+
+// Check cache tier
+console.log(result.usage?.cache_tier);
+// "semantic_exact" | "semantic_similar" | "prompt_response" | undefined
 ```
 
 ---
