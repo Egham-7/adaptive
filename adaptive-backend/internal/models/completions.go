@@ -11,9 +11,9 @@ import (
 
 // Cache tier constants
 const (
-	CacheTierSemanticExact     = "semantic_exact"
-	CacheTierSemanticSimilar   = "semantic_similar" 
-	CacheTierPromptResponse    = "prompt_response"
+	CacheTierSemanticExact   = "semantic_exact"
+	CacheTierSemanticSimilar = "semantic_similar"
+	CacheTierPromptResponse  = "prompt_response"
 )
 
 // ModelCapability represents a model with its capabilities and constraints
@@ -286,11 +286,11 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 
 // AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information
 type AdaptiveUsage struct {
-	PromptTokens     int64  `json:"prompt_tokens"`
-	CompletionTokens int64  `json:"completion_tokens"`
-	TotalTokens      int64  `json:"total_tokens"`
+	PromptTokens     int64 `json:"prompt_tokens"`
+	CompletionTokens int64 `json:"completion_tokens"`
+	TotalTokens      int64 `json:"total_tokens"`
 	// Cache tier information for adaptive system
-	CacheTier        string `json:"cache_tier,omitempty"`         // e.g., "semantic_exact", "semantic_similar", "prompt_response"
+	CacheTier string `json:"cache_tier,omitempty"` // e.g., "semantic_exact", "semantic_similar", "prompt_response"
 }
 
 // ToOpenAI converts AdaptiveUsage to OpenAI's CompletionUsage for compatibility
