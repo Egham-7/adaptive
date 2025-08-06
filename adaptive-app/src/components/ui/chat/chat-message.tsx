@@ -529,7 +529,7 @@ function base64ToNewFile(
 ): File | null {
   try {
     const uint8Array = base64ToUint8Array(base64Data);
-    return new File([uint8Array], name, { type: mimeType });
+    return new File([uint8Array as BlobPart], name, { type: mimeType });
   } catch (error) {
     console.error("Failed to convert base64 to File:", error);
     return null;
