@@ -41,6 +41,7 @@ func (cs *CompletionService) HandleStandardCompletion(
 	standardInfo *models.StandardLLMInfo,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	// Get provider with fallback
 	prov, model, err := cs.providerSelector.SelectStandardProvider(c.Context(), standardInfo, requestID)
@@ -48,7 +49,7 @@ func (cs *CompletionService) HandleStandardCompletion(
 		return fmt.Errorf("standard provider selection failed: %w", err)
 	}
 
-	return cs.handleCompletionWithFallback(c, req, prov, model, standardInfo.Alternatives, protocolStandard, requestID, isStream)
+	return cs.handleCompletionWithFallback(c, req, prov, model, standardInfo.Alternatives, protocolStandard, requestID, isStream, cacheSource)
 }
 
 // HandleMinionCompletion handles minion protocol completions with fallback.
@@ -58,6 +59,7 @@ func (cs *CompletionService) HandleMinionCompletion(
 	minionInfo *models.MinionInfo,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	// Get provider with fallback
 	prov, model, err := cs.providerSelector.SelectMinionProvider(c.Context(), minionInfo, requestID)
@@ -65,7 +67,7 @@ func (cs *CompletionService) HandleMinionCompletion(
 		return fmt.Errorf("minion provider selection failed: %w", err)
 	}
 
-	return cs.handleCompletionWithFallback(c, req, prov, model, minionInfo.Alternatives, protocolMinion, requestID, isStream)
+	return cs.handleCompletionWithFallback(c, req, prov, model, minionInfo.Alternatives, protocolMinion, requestID, isStream, cacheSource)
 }
 
 // HandleMinionsProtocolCompletion handles MinionS protocol with fallback.
@@ -75,6 +77,7 @@ func (cs *CompletionService) HandleMinionsProtocolCompletion(
 	resp *models.ProtocolResponse,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	orchestrator := minions.NewMinionsOrchestrationService()
 
@@ -110,6 +113,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 	protocolName string,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	// Create mutable copy of alternatives for tracking attempts
 	alternativesCopy := make([]models.Alternative, len(alternatives))
@@ -119,7 +123,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 	req.Model = shared.ChatModel(initialModel)
 
 	// Try the completion with initial provider, fallback if it fails
-	if err := cs.handleProtocolGeneric(c, initialProvider, req, requestID, isStream, protocolName); err != nil {
+	if err := cs.handleProtocolGeneric(c, initialProvider, req, requestID, isStream, protocolName, cacheSource); err != nil {
 		fiberlog.Warnf("[%s] %s completion failed: %v", requestID, protocolName, err)
 
 		// Completion failed, try remaining alternatives
@@ -138,7 +142,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 		fiberlog.Infof("[%s] Using %s fallback after completion failure: %s (%s)", requestID, protocolName, result.ProviderName, result.ModelName)
 
 		// Try the fallback provider
-		return cs.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolName)
+		return cs.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolName, cacheSource)
 	}
 
 	return nil
@@ -152,6 +156,7 @@ func (cs *CompletionService) handleProtocolGeneric(
 	requestID string,
 	isStream bool,
 	protocolName string,
+	cacheSource string,
 ) error {
 	provider := prov.GetProviderName() // Get provider name once
 
@@ -159,6 +164,8 @@ func (cs *CompletionService) handleProtocolGeneric(
 	if cs.promptCache != nil {
 		if cachedResp, found := cs.promptCache.Get(req, requestID); found {
 			fiberlog.Infof("[%s] Prompt cache hit for %s", requestID, protocolName)
+			// Set cache tier for cached response
+			models.SetCacheTier(&cachedResp.Usage, "prompt_response")
 			if isStream {
 				// Convert cached response to streaming format
 				return cache.StreamCachedResponse(c, cachedResp, requestID)
@@ -191,6 +198,8 @@ func (cs *CompletionService) handleProtocolGeneric(
 	}
 
 	adaptiveResp := models.ConvertToAdaptive(regResp, provider)
+	// Set cache tier based on source
+	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
 
 	// Store successful response in prompt cache (only for non-streaming requests)
 	if !isStream && cs.promptCache != nil {

@@ -122,7 +122,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 	// 3) Do NOT store in cache yet - wait for successful completion
 	// The cache will be populated after successful API call
 
-	return &resp, string(resp.Protocol), nil
+	return &resp, "", nil
 }
 
 // StoreSuccessfulProtocol stores a protocol response in the semantic cache after successful completion
