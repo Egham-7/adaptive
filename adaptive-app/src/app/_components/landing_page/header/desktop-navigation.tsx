@@ -50,7 +50,7 @@ export function DesktopNavigation() {
 							className="flex items-center gap-1 text-muted-foreground duration-150 hover:text-accent-foreground"
 							aria-label={`Visit ${item.name}`}
 						>
-							<Icon size={16} aria-hidden="true" />
+							<Icon size={16} aria-hidden={true} />
 							<span className="text-sm">{item.name}</span>
 						</a>
 					);
