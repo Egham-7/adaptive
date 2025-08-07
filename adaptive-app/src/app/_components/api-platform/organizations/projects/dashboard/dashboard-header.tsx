@@ -1,80 +1,23 @@
 import { Download } from "lucide-react";
-import Image from "next/image";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import type { Provider, ProviderFilter } from "@/types/api-platform/dashboard";
 
 interface DashboardHeaderProps {
 	dateRange: DateRange;
 	onDateRangeChange: (range: DateRange) => void;
-	selectedProvider: ProviderFilter;
-	onProviderChange: (provider: ProviderFilter) => void;
-	providers: Provider[];
 	onExport: () => void;
 }
 
 export function DashboardHeader({
 	dateRange,
 	onDateRangeChange,
-	selectedProvider,
-	onProviderChange,
-	providers,
 	onExport,
 }: DashboardHeaderProps) {
 	return (
 		<div className="flex items-center justify-between">
 			<h1 className="font-bold text-2xl text-foreground">Usage Dashboard</h1>
 			<div className="flex items-center gap-3">
-				<Select value={selectedProvider} onValueChange={onProviderChange}>
-					<SelectTrigger className="w-56">
-						<SelectValue>
-							{(() => {
-								const selected = providers.find(
-									(p) => p.id === selectedProvider,
-								);
-								return selected ? (
-									<div className="flex items-center gap-2">
-										<Image
-											width={20}
-											height={20}
-											src={selected.icon}
-											alt={selected.name}
-										/>
-										<span>{selected.name}</span>
-									</div>
-								) : (
-									<span>All Providers</span>
-								);
-							})()}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">
-							<span>All Providers</span>
-						</SelectItem>
-						{providers.map((provider) => (
-							<SelectItem key={provider.id} value={provider.id}>
-								<div className="flex items-center gap-2">
-									<Image
-										width={20}
-										height={20}
-										src={provider.icon}
-										alt={provider.name}
-									/>
-									<span>{provider.name}</span>
-								</div>
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
 
 				<DateRangePicker
 					dateRange={dateRange}
