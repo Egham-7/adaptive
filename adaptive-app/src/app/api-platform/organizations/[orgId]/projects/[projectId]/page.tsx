@@ -132,40 +132,31 @@ export default function DashboardPage() {
 						Spend trends over time
 					</div>
 				</div>
-				<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2">
-						<UsageSection
-							data={data}
-							loading={loading}
-							selectedProvider={selectedProvider}
-							providers={data?.providers || []}
-							selectedModel={selectedModel}
-							onModelChange={setSelectedModel}
-						/>
-					</div>
-					<TaskDistributionChart data={data} loading={loading} />
-				</div>
+				<UsageSection
+					data={data}
+					loading={loading}
+					selectedProvider={selectedProvider}
+					providers={data?.providers || []}
+					selectedModel={selectedModel}
+					onModelChange={setSelectedModel}
+				/>
 			</section>
 
-			{/* Provider Comparison Section - Only show when "All Providers" is selected */}
-			{selectedProvider === "all" && (
-				<>
-					{/* Divider */}
-					<div className="border-border border-t" />
+			{/* Divider */}
+			<div className="border-border border-t" />
 
-					<section className="space-y-4">
-						<div className="flex items-center justify-between">
-							<h2 className="font-semibold text-foreground text-xl">
-								Provider Cost Comparison
-							</h2>
-							<div className="text-muted-foreground text-sm">
-								Compare costs across all providers
-							</div>
-						</div>
-						<ProviderComparisonTable data={data} loading={loading} />
-					</section>
-				</>
-			)}
+			{/* Provider Comparison Section */}
+			<section className="space-y-4">
+				<div className="flex items-center justify-between">
+					<h2 className="font-semibold text-foreground text-xl">
+						Provider Cost Comparison
+					</h2>
+					<div className="text-muted-foreground text-sm">
+						Compare costs across all providers
+					</div>
+				</div>
+				<ProviderComparisonTable data={data} loading={loading} />
+			</section>
 
 			{/* Divider */}
 			<div className="border-border border-t" />
