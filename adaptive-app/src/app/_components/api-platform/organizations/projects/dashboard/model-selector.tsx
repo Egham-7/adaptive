@@ -95,7 +95,7 @@ export function ModelSelector({
 		if (!acc[model.provider]) {
 			acc[model.provider] = [];
 		}
-		acc[model.provider]!.push(model);
+		acc[model.provider]?.push(model);
 		return acc;
 	}, {});
 
@@ -108,6 +108,7 @@ export function ModelSelector({
 			</span>
 			<Popover open={open} onOpenChange={setOpen}>
 				<PopoverTrigger asChild>
+					{/* biome-ignore lint/a11y/useSemanticElements: This is a proper combobox implementation using ARIA patterns */}
 					<Button
 						variant="outline"
 						role="combobox"
