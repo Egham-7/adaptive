@@ -86,7 +86,7 @@ export default function OrganizationProjectsPage() {
 	const [editingProject, setEditingProject] = useState<ProjectListItem | null>(
 		null,
 	);
-	
+
 	// Set active tab based on URL parameter
 	const tabFromUrl = searchParams.get("tab");
 	const [activeTab, setActiveTab] = useState<"projects" | "credits">(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { BadgeCheck, ChevronsUpDown, CreditCard, LogOut } from "lucide-react";
+import { ChevronsUpDown, CreditCard, LogOut } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { MdApps } from "react-icons/md";

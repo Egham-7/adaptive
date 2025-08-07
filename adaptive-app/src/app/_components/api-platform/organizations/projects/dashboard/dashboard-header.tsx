@@ -15,10 +15,16 @@ export function DashboardHeader({
 	onExport,
 }: DashboardHeaderProps) {
 	return (
-		<div className="flex items-center justify-between">
-			<h1 className="font-bold text-2xl text-foreground">Usage Dashboard</h1>
-			<div className="flex items-center gap-3">
-
+		<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="flex-1">
+				<h1 className="font-bold text-2xl text-foreground sm:text-3xl">
+					Usage Dashboard
+				</h1>
+				<p className="mt-1 text-muted-foreground text-sm sm:text-base">
+					Monitor your API usage and optimize costs
+				</p>
+			</div>
+			<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
 				<DateRangePicker
 					dateRange={dateRange}
 					onDateRangeChange={onDateRangeChange}
@@ -142,10 +148,10 @@ export function DashboardHeader({
 					variant="outline"
 					size="sm"
 					onClick={onExport}
-					className="flex items-center gap-2 bg-transparent"
+					className="flex w-full items-center justify-center gap-2 bg-transparent sm:w-auto"
 				>
 					<Download className="h-4 w-4" />
-					Export
+					<span className="sm:inline">Export</span>
 				</Button>
 			</div>
 		</div>
