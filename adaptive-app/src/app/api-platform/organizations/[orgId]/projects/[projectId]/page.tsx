@@ -11,26 +11,21 @@ import { UsageSection } from "@/app/_components/api-platform/organizations/proje
 import { Button } from "@/components/ui/button";
 import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
-import type {
-	DashboardFilters,
-	ProviderFilter,
-} from "@/types/api-platform/dashboard";
+import type { DashboardFilters } from "@/types/api-platform/dashboard";
 
 export default function DashboardPage() {
 	const params = useParams();
 	const orgId = params.orgId as string;
 	const projectId = params.projectId as string;
 	const { dateRange, setDateRange } = useDateRange();
-	const [selectedProvider, _setSelectedProvider] =
-		useState<ProviderFilter>("all");
 	const [selectedModel, setSelectedModel] = useState<string>("gpt-4o");
 
 	const filters: DashboardFilters = useMemo(
 		() => ({
 			dateRange,
-			provider: selectedProvider,
+			provider: "all",
 		}),
-		[dateRange, selectedProvider],
+		[dateRange],
 	);
 
 	const { data, loading, error } = useProjectDashboardData(projectId, filters);
@@ -40,7 +35,7 @@ export default function DashboardPage() {
 
 		const exportData = {
 			dateRange,
-			provider: selectedProvider,
+			provider: "all",
 			metrics: {
 				totalSpend: data.totalSpend,
 				totalSavings: data.totalSavings,
@@ -145,7 +140,7 @@ export default function DashboardPage() {
 								<UsageSection
 									data={data}
 									loading={loading}
-									selectedProvider={selectedProvider}
+									selectedProvider="all"
 									providers={data?.providers || []}
 									selectedModel={selectedModel}
 									onModelChange={setSelectedModel}
