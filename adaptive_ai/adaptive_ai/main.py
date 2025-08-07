@@ -1,6 +1,6 @@
 from typing import Any
 
-import litserve as ls
+import litserve as ls  # type: ignore
 import tiktoken
 
 from adaptive_ai.core.config import get_settings
@@ -204,7 +204,11 @@ class ProtocolManagerAPI(ls.LitAPI):
                 orchestrator_response = OrchestratorResponse(
                     protocol=ProtocolType.STANDARD_LLM,
                     standard=StandardLLMInfo(
-                        provider=standard_candidates[0].providers[0].value,
+                        provider=(
+                            standard_candidates[0].providers[0].value
+                            if hasattr(standard_candidates[0].providers[0], "value")
+                            else str(standard_candidates[0].providers[0])
+                        ),
                         model=standard_candidates[0].model_name,
                         parameters=self.protocol_manager._get_tuned_parameters(
                             current_classification_result,

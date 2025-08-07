@@ -38,10 +38,10 @@ class ModelSelectionService:
         }
 
         # Cache for eligible providers per model and token count (optimized with token bucketing)
-        self._eligible_providers_cache: dict[str, frozenset[ProviderType]] = {}
+        self._eligible_providers_cache: dict[str, frozenset[Any]] = {}
 
         # Pre-computed mapping of models to their available providers (frozenset for O(1) lookups)
-        self._model_to_providers: dict[str, frozenset[ProviderType]] = {}
+        self._model_to_providers: dict[str, frozenset[Any]] = {}
 
         # Pre-computed reverse mapping: provider -> models for faster filtering
         self._provider_to_models: dict[ProviderType, frozenset[str]] = {}
@@ -143,7 +143,7 @@ class ModelSelectionService:
         token_eligible_providers = set()
         for provider in candidate_providers:
             context_limit = self._model_context_limits.get(
-                (provider, model_entry.model_name)
+                (provider, model_entry.model_name)  # type: ignore
             )
             # For custom models without registry data, trust the user's specification
             if context_limit and context_limit >= prompt_token_count:
@@ -157,8 +157,8 @@ class ModelSelectionService:
         self._eligible_providers_cache[cache_key] = token_eligible_frozenset
 
         # Return intersection with current eligible providers
-        result_set = token_eligible_frozenset & eligible_providers
-        return list(result_set)
+        result_set = token_eligible_frozenset & frozenset(eligible_providers)
+        return list(result_set)  # type: ignore
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get caching performance statistics."""
@@ -260,7 +260,7 @@ class ModelSelectionService:
         # PIPELINE STEP 1: Apply capability constraints (context length, etc.)
         eligible_providers = frozenset(m.providers[0] for m in model_entries)
         candidate_models = self._apply_capability_constraints(
-            model_entries, eligible_providers, prompt_token_count
+            model_entries, eligible_providers, prompt_token_count  # type: ignore
         )
 
         # PIPELINE STEP 2: Apply cost optimization
@@ -272,7 +272,11 @@ class ModelSelectionService:
         if not candidate_models:
             # Fallback to first user-specified model
             candidate_models = [model_entries[0]]
-            provider_str = model_entries[0].providers[0].value if hasattr(model_entries[0].providers[0], 'value') else model_entries[0].providers[0]
+            provider_str = (
+                model_entries[0].providers[0].value
+                if hasattr(model_entries[0].providers[0], "value")
+                else model_entries[0].providers[0]
+            )
             self.log(
                 "user_models_pipeline_fallback",
                 {
@@ -393,7 +397,7 @@ class ModelSelectionService:
         optimized_models = rank_models_by_cost_performance(
             model_entries=candidate_models,
             cost_bias=cost_bias,
-            model_capabilities=self._all_model_capabilities_by_id,
+            model_capabilities=self._all_model_capabilities_by_id,  # type: ignore
             estimated_tokens=prompt_token_count,
         )
 
@@ -476,7 +480,7 @@ class ModelSelectionService:
             if eligible_providers_for_model:
                 # Create new ModelEntry with only eligible providers
                 filtered_entry = ModelEntry(
-                    providers=eligible_providers_for_model,
+                    providers=list(eligible_providers_for_model),
                     model_name=model_entry.model_name,
                 )
                 filtered_models.append(filtered_entry)
@@ -487,7 +491,8 @@ class ModelSelectionService:
                     {
                         "model": model_entry.model_name,
                         "eligible_providers": [
-                            p.value if hasattr(p, 'value') else str(p) for p in eligible_providers_for_model
+                            p.value if hasattr(p, "value") else str(p)
+                            for p in eligible_providers_for_model
                         ],
                     },
                 )
@@ -526,7 +531,11 @@ class ModelSelectionService:
         for model_entry in candidate_models:
             if model_entry.providers:
                 first_provider = model_entry.providers[0]
-                provider_str = first_provider.value if hasattr(first_provider, 'value') else str(first_provider)
+                provider_str = (
+                    first_provider.value
+                    if hasattr(first_provider, "value")
+                    else str(first_provider)
+                )
                 model_key = f"{provider_str}:{model_entry.model_name}"
                 self.selection_metrics["model_usage"][model_key] = (
                     self.selection_metrics["model_usage"].get(model_key, 0) + 1
@@ -572,7 +581,11 @@ class ModelSelectionService:
         # Get alternatives (excluding the primary)
         alternatives = self.get_minion_alternatives(
             primary_minion=primary_entry.model_name,
-            primary_provider=primary_entry.providers[0].value,
+            primary_provider=(
+                primary_entry.providers[0].value
+                if hasattr(primary_entry.providers[0], "value")
+                else str(primary_entry.providers[0])
+            ),
         )
 
         # Return with primary first, then alternatives
@@ -584,7 +597,10 @@ class ModelSelectionService:
                 "domain": domain.value,
                 "confidence": domain_classification.confidence,
                 "primary_model": primary_entry.model_name,
-                "primary_providers": [p.value for p in primary_entry.providers],
+                "primary_providers": [
+                    p.value if hasattr(p, "value") else str(p)
+                    for p in primary_entry.providers
+                ],
                 "total_candidates": len(candidates),
             },
         )
@@ -608,7 +624,9 @@ class ModelSelectionService:
         for domain_entry in minion_domains.values():
             if domain_entry.model_name == primary_minion:
                 other_providers = [
-                    p for p in domain_entry.providers if p.value != primary_provider
+                    p
+                    for p in domain_entry.providers
+                    if (p.value if hasattr(p, "value") else str(p)) != primary_provider
                 ]
                 if other_providers:
                     alternatives.append(
@@ -643,7 +661,10 @@ class ModelSelectionService:
                 "alternatives": [
                     {
                         "model": alt.model_name,
-                        "providers": [p.value for p in alt.providers],
+                        "providers": [
+                            p.value if hasattr(p, "value") else str(p)
+                            for p in alt.providers
+                        ],
                     }
                     for alt in alternatives[:5]
                 ],

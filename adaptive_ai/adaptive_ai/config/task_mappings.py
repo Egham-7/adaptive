@@ -22,7 +22,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4.1-mini"),
             # Premium Tier
@@ -51,7 +52,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4.1-mini"),
             # Premium Tier
@@ -79,7 +81,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
         ]
     ),
@@ -95,7 +98,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4.1-mini"),
             # Premium Tier
@@ -122,7 +126,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             # Premium Tier
             ModelEntry(
@@ -145,7 +150,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
         ]
     ),
@@ -160,7 +166,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             # Premium Tier
             ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4o"),
@@ -181,7 +188,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4.1-mini"),
             # Premium Tier
@@ -204,7 +212,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             # Premium Tier
             ModelEntry(providers=[ProviderType.GROK], model_name="grok-3"),
@@ -227,7 +236,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
         ]
     ),
@@ -243,7 +253,8 @@ task_model_mappings_data = {
             ),
             # Budget Tier
             ModelEntry(
-                providers=[ProviderType.ANTHROPIC], model_name="claude-3-5-haiku-20241022"
+                providers=[ProviderType.ANTHROPIC],
+                model_name="claude-3-5-haiku-20241022",
             ),
             ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4.1-mini"),
             # Premium Tier

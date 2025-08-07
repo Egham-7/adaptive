@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-import pytest
+import pytest  # type: ignore
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import (
@@ -53,7 +53,9 @@ class TestCustomModelSelection:
             constraint_ct=[0.3],
         )
 
-    def test_user_specified_models_basic_success(self, model_service, basic_chat_request, classification_result):
+    def test_user_specified_models_basic_success(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test successful selection with user-specified models."""
         # Arrange
         user_models = [
@@ -93,7 +95,9 @@ class TestCustomModelSelection:
         model_names = [entry.model_name for entry in result]
         assert all(name in ["gpt-4", "claude-3-sonnet"] for name in model_names)
 
-    def test_custom_provider_no_fallback(self, model_service, basic_chat_request, classification_result):
+    def test_custom_provider_no_fallback(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test custom provider (e.g., 'botir') is preserved exactly as specified."""
         # Arrange
         user_models = [
@@ -131,7 +135,9 @@ class TestCustomModelSelection:
         # Should NOT have original provider metadata (no longer needed)
         assert not hasattr(result[0], "_original_provider")
 
-    def test_model_exceeds_context_length_fallback(self, model_service, basic_chat_request, classification_result):
+    def test_model_exceeds_context_length_fallback(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test when user model can't handle token count, falls back to first model."""
         # Arrange - model with small context limit
         user_models = [
@@ -162,7 +168,9 @@ class TestCustomModelSelection:
         assert len(result) == 1
         assert result[0].model_name == "gpt-3.5-turbo"
 
-    def test_model_not_in_registry_fallback(self, model_service, basic_chat_request, classification_result):
+    def test_model_not_in_registry_fallback(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test when user specifies model not in system registry."""
         # Arrange - completely custom model not in registry
         user_models = [
@@ -193,7 +201,9 @@ class TestCustomModelSelection:
         assert len(result) == 1
         assert result[0].model_name == "my-custom-fine-tuned-model"
 
-    def test_wrong_provider_for_model_fallback(self, model_service, basic_chat_request, classification_result):
+    def test_wrong_provider_for_model_fallback(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test when user specifies wrong provider for a known model."""
         # Arrange - GPT-4 with wrong provider
         user_models = [
@@ -224,7 +234,9 @@ class TestCustomModelSelection:
         assert len(result) == 1
         assert result[0].model_name == "gpt-4"
 
-    def test_multiple_models_some_filtered_some_survive(self, model_service, basic_chat_request, classification_result):
+    def test_multiple_models_some_filtered_some_survive(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test when some user models pass filtering and some don't."""
         # Arrange - mix of models with different context limits
         user_models = [
@@ -265,7 +277,9 @@ class TestCustomModelSelection:
         model_names = [entry.model_name for entry in result]
         assert any(name in ["claude-3-sonnet", "gpt-3.5-turbo"] for name in model_names)
 
-    def test_mixed_context_limits_with_custom_models(self, model_service, basic_chat_request, classification_result):
+    def test_mixed_context_limits_with_custom_models(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test that custom models are trusted even with large token counts."""
         # Arrange - mix of registry model with known limits and custom model
         user_models = [
@@ -306,7 +320,9 @@ class TestCustomModelSelection:
         # Custom model should be included since it's trusted
         assert "custom-large-model" in model_names
 
-    def test_cost_optimization_preserves_user_models(self, model_service, basic_chat_request, classification_result):
+    def test_cost_optimization_preserves_user_models(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test that cost optimization only reorders user models, doesn't filter them out."""
         # Arrange
         user_models = [
@@ -350,7 +366,9 @@ class TestCustomModelSelection:
         # Should include user's models (possibly reordered by cost)
         assert all(name in ["gpt-4", "gpt-3.5-turbo"] for name in model_names)
 
-    def test_model_creation_error_handling(self, model_service, basic_chat_request, classification_result):
+    def test_model_creation_error_handling(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of invalid ModelCapability objects."""
         # Arrange - model with empty name and valid model
         user_models = [
@@ -392,7 +410,9 @@ class TestCustomModelSelection:
         # Should contain the first model (empty name) due to fallback behavior
         assert any(name == "" for name in model_names)  # Empty name model from fallback
 
-    def test_no_user_models_falls_back_to_system(self, model_service, basic_chat_request, classification_result):
+    def test_no_user_models_falls_back_to_system(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test that when no user models provided, uses system selection."""
         # Arrange - no protocol config (no user models)
         request = ModelSelectionRequest(
@@ -401,7 +421,7 @@ class TestCustomModelSelection:
         )
 
         # Act
-        with patch.object(model_service, '_use_system_model_selection') as mock_system:
+        with patch.object(model_service, "_use_system_model_selection") as mock_system:
             mock_system.return_value = [
                 ModelEntry(providers=[ProviderType.OPENAI], model_name="gpt-4")
             ]
@@ -417,7 +437,9 @@ class TestCustomModelSelection:
         assert len(result) == 1
         assert result[0].model_name == "gpt-4"
 
-    def test_empty_user_models_list(self, model_service, basic_chat_request, classification_result):
+    def test_empty_user_models_list(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of empty user models list falls back to system selection."""
         # Arrange - empty models list
         protocol_config = ProtocolManagerConfig(models=[])
@@ -439,7 +461,9 @@ class TestCustomModelSelection:
         model_names = [entry.model_name for entry in result]
         assert all(name for name in model_names)  # Should have valid model names
 
-    def test_custom_model_with_task_specifications(self, model_service, basic_chat_request, classification_result):
+    def test_custom_model_with_task_specifications(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test custom model with task_type and complexity specifications."""
         # Arrange - custom model with task info
         user_models = [
@@ -472,7 +496,9 @@ class TestCustomModelSelection:
         assert len(result) == 1
         assert result[0].model_name == "code-specialist-model"
 
-    def test_mixed_registry_and_custom_models(self, model_service, basic_chat_request, classification_result):
+    def test_mixed_registry_and_custom_models(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test mix of registry models and fully custom models."""
         # Arrange - mix of known and custom models
         user_models = [
@@ -514,7 +540,9 @@ class TestCustomModelSelection:
         # Should include both models (registry enriched + custom)
         assert any(name in ["gpt-4", "my-custom-model"] for name in model_names)
 
-    def test_mixed_enum_and_string_providers(self, model_service, basic_chat_request, classification_result):
+    def test_mixed_enum_and_string_providers(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test mix of ProviderType enum and custom string providers in same request."""
         # Arrange - mix of enum and string providers
         user_models = [
@@ -560,7 +588,9 @@ class TestCustomModelSelection:
         assert any(provider == ProviderType.OPENAI for provider in providers)
         assert any(provider == "custom-ai" for provider in providers)
 
-    def test_custom_provider_cost_optimization(self, model_service, basic_chat_request, classification_result):
+    def test_custom_provider_cost_optimization(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test that cost optimization works with custom providers."""
         # Arrange - custom provider without registry cost data
         user_models = [
@@ -604,7 +634,9 @@ class TestCustomModelSelection:
         # Both models should be present (cost optimization doesn't filter custom providers)
         assert any(name in ["budget-model", "premium-model"] for name in model_names)
 
-    def test_invalid_provider_type_handling(self, model_service, basic_chat_request, classification_result):
+    def test_invalid_provider_type_handling(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of invalid provider types."""
         # Arrange - provider that's not a string or ProviderType
         user_models = [
@@ -637,7 +669,9 @@ class TestCustomModelSelection:
             # Acceptable to raise an error for invalid types
             pass
 
-    def test_empty_provider_string(self, model_service, basic_chat_request, classification_result):
+    def test_empty_provider_string(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of empty provider string."""
         # Arrange
         user_models = [
@@ -669,7 +703,9 @@ class TestCustomModelSelection:
         assert result[0].model_name == "empty-provider-model"
         assert result[0].providers[0] == ""
 
-    def test_unicode_custom_provider(self, model_service, basic_chat_request, classification_result):
+    def test_unicode_custom_provider(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of unicode/special characters in custom provider names."""
         # Arrange
         user_models = [
@@ -712,7 +748,9 @@ class TestCustomModelSelection:
         assert any(name in ["unicode-model", "accent-model"] for name in model_names)
         assert any(provider in ["模型提供商", "café-ai"] for provider in providers)
 
-    def test_very_long_provider_name(self, model_service, basic_chat_request, classification_result):
+    def test_very_long_provider_name(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of very long provider names."""
         # Arrange
         long_provider = "a" * 1000  # 1000 character provider name
@@ -745,7 +783,9 @@ class TestCustomModelSelection:
         assert result[0].model_name == "long-provider-model"
         assert result[0].providers[0] == long_provider
 
-    def test_case_sensitive_provider_names(self, model_service, basic_chat_request, classification_result):
+    def test_case_sensitive_provider_names(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test that provider names are case-sensitive."""
         # Arrange
         user_models = [
@@ -794,7 +834,9 @@ class TestCustomModelSelection:
             # This might be converted to ProviderType.OPENAI enum
             pass
 
-    def test_provider_with_special_characters(self, model_service, basic_chat_request, classification_result):
+    def test_provider_with_special_characters(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test provider names with special characters, numbers, and symbols."""
         # Arrange
         user_models = [
@@ -843,12 +885,18 @@ class TestCustomModelSelection:
         providers = [entry.providers[0] for entry in result]
 
         expected_models = ["hyphen-model", "underscore-model", "dot-model"]
-        expected_providers = ["ai-provider-2024", "provider_with_underscores", "provider.with.dots"]
+        expected_providers = [
+            "ai-provider-2024",
+            "provider_with_underscores",
+            "provider.with.dots",
+        ]
 
         assert any(name in expected_models for name in model_names)
         assert any(provider in expected_providers for provider in providers)
 
-    def test_duplicate_custom_providers(self, model_service, basic_chat_request, classification_result):
+    def test_duplicate_custom_providers(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of duplicate custom provider names with different models."""
         # Arrange
         user_models = [
@@ -894,7 +942,9 @@ class TestCustomModelSelection:
         custom_ai_entries = [p for p in providers if p == "custom-ai"]
         assert len(custom_ai_entries) >= 1
 
-    def test_extreme_token_counts(self, model_service, basic_chat_request, classification_result):
+    def test_extreme_token_counts(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test handling of extreme token counts (very small and very large)."""
         # Arrange
         user_models = [
@@ -934,7 +984,9 @@ class TestCustomModelSelection:
         assert result_small[0].model_name == "flexible-model"
         assert result_large[0].model_name == "flexible-model"
 
-    def test_concurrent_requests_with_custom_providers(self, model_service, basic_chat_request, classification_result):
+    def test_concurrent_requests_with_custom_providers(
+        self, model_service, basic_chat_request, classification_result
+    ):
         """Test that custom providers work correctly with concurrent/repeated requests."""
         # Arrange
         user_models = [
@@ -967,8 +1019,12 @@ class TestCustomModelSelection:
         # Assert - all results should be consistent
         for i, result in enumerate(results):
             assert len(result) >= 1, f"Request {i} failed"
-            assert result[0].model_name == "concurrent-model", f"Request {i} wrong model"
-            assert result[0].providers[0] == "concurrent-ai", f"Request {i} wrong provider"
+            assert (
+                result[0].model_name == "concurrent-model"
+            ), f"Request {i} wrong model"
+            assert (
+                result[0].providers[0] == "concurrent-ai"
+            ), f"Request {i} wrong provider"
 
 
 class TestModelEnrichment:

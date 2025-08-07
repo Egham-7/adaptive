@@ -19,8 +19,12 @@ class CostOptimizer:
             strategy: Optimization strategy ("sigmoid" or future "ml_model")
         """
         self.strategy = strategy
-        self._cost_cache = cachetools.LRUCache(maxsize=10000)
-        self._tier_cache = cachetools.LRUCache(maxsize=1000)
+        self._cost_cache: cachetools.LRUCache[str, float] = cachetools.LRUCache(
+            maxsize=10000
+        )
+        self._tier_cache: cachetools.LRUCache[str, str] = cachetools.LRUCache(
+            maxsize=1000
+        )
 
         # Strategy configuration
         self._tier_scores = {
@@ -45,10 +49,12 @@ class CostOptimizer:
     ) -> float:
         """Calculate estimated cost for a model based on token usage."""
         # Check cache first
-        cache_key = str((model_capability.model_name, input_tokens, f"{output_ratio:.3f}"))
+        cache_key = str(
+            (model_capability.model_name, input_tokens, f"{output_ratio:.3f}")
+        )
         cached_result = self._cost_cache.get(cache_key)
         if cached_result is not None:
-            return cached_result
+            return float(cached_result)
 
         tokens = np.array([input_tokens, input_tokens * output_ratio])
         costs = np.array(
@@ -67,7 +73,7 @@ class CostOptimizer:
         # Check cache first
         cached_tier = self._tier_cache.get(model_capability.model_name)
         if cached_tier is not None:
-            return cached_tier
+            return str(cached_tier)
 
         cost = model_capability.cost_per_1m_output_tokens
         index = int(np.searchsorted(self._tier_thresholds, cost or 0.5))
@@ -177,10 +183,15 @@ class CostOptimizer:
                 cost = self.calculate_model_cost(model_cap, estimated_tokens)
                 tier = self.get_cost_tier(model_cap)
 
+                provider_value = (
+                    entry.providers[0].value
+                    if hasattr(entry.providers[0], "value")
+                    else str(entry.providers[0])
+                )
                 model_costs.append(
                     {
                         "model_name": entry.model_name,
-                        "provider": entry.providers[0].value,
+                        "provider": provider_value,
                         "cost": cost,
                         "tier": tier,
                         "cost_per_1m_input": model_cap.cost_per_1m_input_tokens,

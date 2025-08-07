@@ -32,7 +32,9 @@ class ProtocolManager:
         self.lit_logger: LitLoggerProtocol | None = lit_logger
 
         # Cache for protocol decisions to avoid repeated computations
-        self._protocol_decision_cache = cachetools.LRUCache(maxsize=500)
+        self._protocol_decision_cache: cachetools.LRUCache[str, bool] = (
+            cachetools.LRUCache(maxsize=500)
+        )
 
         self.log(
             "protocol_manager_init",
@@ -84,16 +86,18 @@ class ProtocolManager:
                 token_threshold = request.protocol_manager_config.token_threshold
 
         # Create cache key based on actual decision factors
-        cache_key = str((
-            f"{complexity_score:.3f}",
-            f"{complexity_threshold:.3f}",
-            token_count,
-        ))
+        cache_key = str(
+            (
+                f"{complexity_score:.3f}",
+                f"{complexity_threshold:.3f}",
+                token_count,
+            )
+        )
 
         # Check cache first
         cached_result = self._protocol_decision_cache.get(cache_key)
         if cached_result is not None:
-            return cached_result
+            return bool(cached_result)
 
         # Decision based on complexity score OR token length
         decision = (
