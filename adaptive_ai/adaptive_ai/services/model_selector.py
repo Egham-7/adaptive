@@ -20,6 +20,7 @@ from adaptive_ai.models.unified_model import Model
 from adaptive_ai.services.unified_model_selector import (
     ModelSelector as UnifiedModelSelector,
 )
+from adaptive_ai.services.model_registry import model_registry
 
 
 class LitLoggerProtocol:
@@ -804,7 +805,7 @@ class ModelSelectionService:
                         )
 
                 elif model_cap.model_name and not model_cap.provider:
-                    # Search registry by model name only
+                    # Search registry by model name only - try hardcoded first
                     found_capability = None
                     for (
                         _,
@@ -814,6 +815,10 @@ class ModelSelectionService:
                             found_capability = capability
                             break
 
+                    # If not found in hardcoded registry, try YAML database
+                    if not found_capability:
+                        found_capability = model_registry.get_model_capability(model_cap.model_name)
+
                     if found_capability:
                         enriched_capabilities.append(found_capability)
                         self.log(
@@ -821,6 +826,7 @@ class ModelSelectionService:
                             {
                                 "model": model_cap.model_name,
                                 "provider": found_capability.provider,
+                                "source": "yaml_database" if model_cap.model_name not in [mc[1] for mc in self._all_model_capabilities_by_id.keys()] else "hardcoded_registry",
                             },
                         )
                     else:

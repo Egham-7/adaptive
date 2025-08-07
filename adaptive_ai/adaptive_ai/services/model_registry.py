@@ -5,6 +5,7 @@ Model registry service for validating model names across all providers.
 from adaptive_ai.config.providers import provider_model_capabilities
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import ProviderType
+from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
 
 class ModelRegistry:
@@ -43,7 +44,12 @@ class ModelRegistry:
         Returns:
             True if the model exists, False otherwise
         """
-        return model_name in self._valid_models
+        # Check hardcoded models first
+        if model_name in self._valid_models:
+            return True
+            
+        # Fallback to YAML database
+        return yaml_model_db.has_model(model_name)
 
     def validate_models(self, models: list[str]) -> tuple[list[str], list[str]]:
         """
@@ -94,7 +100,7 @@ class ModelRegistry:
         Returns:
             Total count of valid models
         """
-        return len(self._valid_models)
+        return len(self._valid_models) + yaml_model_db.get_model_count()
 
     def get_model_capability(self, model_name: str) -> ModelCapability | None:
         """
@@ -106,7 +112,13 @@ class ModelRegistry:
         Returns:
             ModelCapability object if model exists, None otherwise
         """
-        return self._model_to_capability.get(model_name)
+        # Check hardcoded models first
+        capability = self._model_to_capability.get(model_name)
+        if capability:
+            return capability
+            
+        # Fallback to YAML database
+        return yaml_model_db.get_model(model_name)
 
     def convert_names_to_capabilities(
         self, model_names: list[str]
