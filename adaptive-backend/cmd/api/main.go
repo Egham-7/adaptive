@@ -30,16 +30,16 @@ func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	reqSvc := completions.NewRequestService()
 	paramSvc := completions.NewParameterService()
 	fallbackSvc := completions.NewFallbackService()
-	
+
 	// Create protocol manager (shared between handlers)
 	protocolMgr, err := protocol_manager.NewProtocolManager(nil)
 	if err != nil {
 		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
 	}
-	
+
 	// Create response service (depends on protocol manager)
 	respSvc := completions.NewResponseService(protocolMgr)
-	
+
 	// Initialize handlers with shared dependencies
 	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)
 	selectModelHandler := api.NewSelectModelHandler(reqSvc, protocolMgr)
