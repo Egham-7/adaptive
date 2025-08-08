@@ -25,6 +25,7 @@ import (
 // SetupRoutes configures all the application routes for the Fiber app.
 func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	chatCompletionHandler := api.NewCompletionHandler()
+	selectModelHandler := api.NewSelectModelHandler()
 
 	// Health endpoint (no auth required)
 	app.Get("/health", healthHandler.Health)
@@ -32,6 +33,7 @@ func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	// Apply JWT authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.JWTAuth())
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
+	v1Group.Post("/select-model", selectModelHandler.SelectModel)
 }
 
 const (
