@@ -43,6 +43,13 @@ enum FallbackMode {
   parallel
 }
 
+enum ProviderVisibility {
+  system
+  project
+  organization
+  community
+}
+
 
 datasource db {
   provider = "postgresql"
@@ -174,6 +181,7 @@ model Project {
   apiKeys        ApiKey[]
   usage          ApiUsage[]
   llmClusters    LLMCluster[]
+  providers      Provider[]
   
   @@index([organizationId])
   @@index([status])
@@ -240,16 +248,34 @@ model Subscription {
 }
 
 model Provider {
-  id          String    @id @default(cuid())
-  name        String    @unique // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
-  displayName String    // 'OpenAI' | 'Anthropic' | 'Google' | 'Groq' | 'DeepSeek' | 'Hugging Face'
-  description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String             @id @default(cuid())
+  projectId       String?            // Required for project/organization/community, null for system
+  name            String             // 'openai' | 'anthropic' | 'custom-provider-name'
+  displayName     String             // 'OpenAI' | 'Anthropic' | 'My Custom Provider'
+  description     String?
+  visibility      ProviderVisibility @default(project) // system | project | organization | community
   
-  models      ProviderModel[]
+  // Custom provider configuration
+  baseUrl         String?            // API base URL for custom providers (e.g., "https://api.custom.com/v1")
+  authType        String?            // "bearer" | "api_key" | "basic" | "custom"
+  authHeaderName  String?            // Custom auth header name (default: "Authorization")
+  apiKeyPrefix    String?            // API key prefix (e.g., "Bearer ", "sk-")
+  healthEndpoint  String?            // Health check endpoint (e.g., "/health")
+  rateLimitRpm    Int?               // Rate limit requests per minute
+  timeoutMs       Int?               // Request timeout in milliseconds
+  retryConfig     Json?              // Custom retry configuration
+  headers         Json?              // Additional headers to send with requests
   
+  isActive        Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  project         Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  models          ProviderModel[]
+  
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([visibility])
   @@index([name])
   @@index([isActive])
 }

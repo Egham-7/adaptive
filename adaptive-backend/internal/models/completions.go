@@ -16,6 +16,19 @@ const (
 	CacheTierPromptResponse  = "prompt_response"
 )
 
+// CustomProviderConfig represents configuration for custom providers
+type CustomProviderConfig struct {
+	BaseURL        *string           `json:"base_url,omitempty"`         // API base URL
+	AuthType       *string           `json:"auth_type,omitempty"`        // "bearer" | "api_key" | "basic" | "custom"
+	AuthHeaderName *string           `json:"auth_header_name,omitempty"` // Custom auth header name
+	APIKeyPrefix   *string           `json:"api_key_prefix,omitempty"`   // API key prefix
+	HealthEndpoint *string           `json:"health_endpoint,omitempty"`  // Health check endpoint
+	RateLimitRPM   *int              `json:"rate_limit_rpm,omitempty"`   // Rate limit requests per minute
+	TimeoutMs      *int              `json:"timeout_ms,omitempty"`       // Request timeout
+	RetryConfig    map[string]any    `json:"retry_config,omitempty"`     // Custom retry configuration
+	Headers        map[string]string `json:"headers,omitempty"`          // Additional headers
+}
+
 // ModelCapability represents a model with its capabilities and constraints
 type ModelCapability struct {
 	Description             *string  `json:"description,omitempty"`
@@ -244,9 +257,10 @@ type ChatCompletionRequest struct {
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
 	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager,omitempty"`
-	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
-	PromptCache           *PromptCacheConfig     `json:"prompt_cache,omitempty"`   // Optional prompt response cache configuration
-	Fallback              *FallbackConfig        `json:"fallback,omitempty"`       // Fallback configuration with enabled toggle
+	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"`  // Optional semantic cache configuration
+	PromptCache           *PromptCacheConfig     `json:"prompt_cache,omitempty"`    // Optional prompt response cache configuration
+	Fallback              *FallbackConfig        `json:"fallback,omitempty"`        // Fallback configuration with enabled toggle
+	CustomProvider        *CustomProviderConfig  `json:"custom_provider,omitempty"` // Custom provider configuration
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.

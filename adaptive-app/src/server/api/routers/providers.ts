@@ -44,7 +44,43 @@ export const providersRouter = createTRPCRouter({
 					}
 				}
 
+				// Build visibility-based where clause
+				const orConditions: Prisma.ProviderWhereInput[] = [
+					// System providers (always visible)
+					{ visibility: "system" },
+					// Community providers (always visible)
+					{ visibility: "community" },
+				];
+
+				const whereClause: Prisma.ProviderWhereInput = {
+					isActive: true,
+					OR: orConditions,
+				};
+
+				// Add project/organization scoped providers if projectId provided
+				if (input.projectId) {
+					// Get user's organization projects for organization-scoped providers
+					const project = await ctx.db.project.findFirst({
+						where: { id: input.projectId },
+						include: { organization: { include: { projects: true } } },
+					});
+
+					if (project) {
+						const orgProjectIds = project.organization.projects.map(
+							(p) => p.id,
+						);
+
+						orConditions.push(
+							// Project-scoped providers
+							{ visibility: "project", projectId: input.projectId },
+							// Organization-scoped providers (any project in the org)
+							{ visibility: "organization", projectId: { in: orgProjectIds } },
+						);
+					}
+				}
+
 				const providers = await ctx.db.provider.findMany({
+					where: whereClause,
 					include: {
 						models: {
 							where: { isActive: true },
@@ -182,24 +218,38 @@ export const providersRouter = createTRPCRouter({
 
 				// Atomic transaction for provider creation
 				const provider = await ctx.db.$transaction(async (tx) => {
-					// Check if provider name already exists
+					// Check if provider name already exists in the same project scope
 					const existingProvider = await tx.provider.findFirst({
-						where: { name: input.name },
+						where: {
+							projectId: input.projectId,
+							name: input.name,
+						},
 					});
 
 					if (existingProvider) {
 						throw new TRPCError({
 							code: "CONFLICT",
-							message: "Provider name already exists",
+							message: "Provider name already exists in this project",
 						});
 					}
 
 					// Create provider
 					const newProvider = await tx.provider.create({
 						data: {
+							projectId: input.projectId,
 							name: input.name,
 							displayName: input.displayName,
 							description: input.description,
+							visibility: input.visibility,
+							baseUrl: input.baseUrl,
+							authType: input.authType,
+							authHeaderName: input.authHeaderName,
+							apiKeyPrefix: input.apiKeyPrefix,
+							healthEndpoint: input.healthEndpoint,
+							rateLimitRpm: input.rateLimitRpm,
+							timeoutMs: input.timeoutMs,
+							retryConfig: input.retryConfig,
+							headers: input.headers,
 							isActive: true,
 						},
 					});

@@ -22,6 +22,7 @@ func NewProviderSelector() *ProviderSelector {
 func (ps *ProviderSelector) SelectStandardProvider(
 	ctx context.Context,
 	standardInfo *models.StandardLLMInfo,
+	customConfig *models.CustomProviderConfig,
 	requestID string,
 ) (provider_interfaces.LLMProvider, string, error) {
 	return ps.selectProviderWithFallback(
@@ -29,6 +30,7 @@ func (ps *ProviderSelector) SelectStandardProvider(
 		standardInfo.Provider,
 		standardInfo.Model,
 		standardInfo.Alternatives,
+		customConfig,
 		"standard",
 		requestID,
 	)
@@ -38,6 +40,7 @@ func (ps *ProviderSelector) SelectStandardProvider(
 func (ps *ProviderSelector) SelectMinionProvider(
 	ctx context.Context,
 	minionInfo *models.MinionInfo,
+	customConfig *models.CustomProviderConfig,
 	requestID string,
 ) (provider_interfaces.LLMProvider, string, error) {
 	return ps.selectProviderWithFallback(
@@ -45,6 +48,7 @@ func (ps *ProviderSelector) SelectMinionProvider(
 		minionInfo.Provider,
 		minionInfo.Model,
 		minionInfo.Alternatives,
+		customConfig,
 		"minion",
 		requestID,
 	)
@@ -56,11 +60,12 @@ func (ps *ProviderSelector) selectProviderWithFallback(
 	primaryProvider string,
 	primaryModel string,
 	alternatives []models.Alternative,
+	customConfig *models.CustomProviderConfig,
 	providerType string,
 	requestID string,
 ) (provider_interfaces.LLMProvider, string, error) {
 	// Try primary provider first
-	prov, err := providers.NewLLMProvider(primaryProvider)
+	prov, err := providers.NewLLMProvider(primaryProvider, customConfig)
 	if err == nil {
 		fiberlog.Infof("[%s] Using primary %s provider: %s (%s)", requestID, providerType, primaryProvider, primaryModel)
 		return prov, primaryModel, nil
@@ -76,7 +81,7 @@ func (ps *ProviderSelector) selectProviderWithFallback(
 	fallbackSvc := NewFallbackService()
 	alternativesCopy := make([]models.Alternative, len(alternatives))
 	copy(alternativesCopy, alternatives)
-	result, fallbackErr := fallbackSvc.SelectAlternative(ctx, &alternativesCopy, requestID)
+	result, fallbackErr := fallbackSvc.SelectAlternative(ctx, &alternativesCopy, customConfig, requestID)
 	if fallbackErr != nil {
 		return nil, "", fmt.Errorf("all %s providers failed: %v", providerType, fallbackErr)
 	}

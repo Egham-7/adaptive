@@ -552,6 +552,7 @@ export const llmClustersRouter = createTRPCRouter({
 	getAvailableModels: publicProcedure
 		.input(
 			z.object({
+				projectId: z.string().optional(),
 				apiKey: z.string().optional(),
 			}),
 		)
@@ -570,10 +571,45 @@ export const llmClustersRouter = createTRPCRouter({
 					}
 				}
 
+				// Build visibility-based provider filter
+				const providerOrConditions: Prisma.ProviderWhereInput[] = [
+					// System providers (always visible)
+					{ visibility: "system" },
+					// Community providers (always visible)
+					{ visibility: "community" },
+				];
+
+				const providerWhereClause: Prisma.ProviderWhereInput = {
+					isActive: true,
+					OR: providerOrConditions,
+				};
+
+				// Add project/organization scoped providers if projectId provided
+				if (input.projectId) {
+					// Get user's organization projects for organization-scoped providers
+					const project = await ctx.db.project.findFirst({
+						where: { id: input.projectId },
+						include: { organization: { include: { projects: true } } },
+					});
+
+					if (project) {
+						const orgProjectIds = project.organization.projects.map(
+							(p) => p.id,
+						);
+
+						providerOrConditions.push(
+							// Project-scoped providers
+							{ visibility: "project", projectId: input.projectId },
+							// Organization-scoped providers (any project in the org)
+							{ visibility: "organization", projectId: { in: orgProjectIds } },
+						);
+					}
+				}
+
 				const models = await ctx.db.providerModel.findMany({
 					where: {
 						isActive: true,
-						provider: { isActive: true },
+						provider: providerWhereClause,
 					},
 					include: {
 						provider: true,
