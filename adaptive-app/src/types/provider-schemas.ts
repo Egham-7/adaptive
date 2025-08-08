@@ -39,7 +39,7 @@ export const createProviderSchema = z.object({
 	displayName: z.string().min(1, "Display name is required").max(100),
 	description: z.string().max(500).optional(),
 	visibility: z
-		.enum(["system", "project", "organization", "community"])
+		.enum(["project", "organization", "community"])
 		.default("project"),
 
 	// Custom provider configuration
@@ -65,7 +65,7 @@ export const updateProviderSchema = z.object({
 	displayName: z.string().min(1).max(100).optional(),
 	description: z.string().max(500).optional(),
 	visibility: z
-		.enum(["system", "project", "organization", "community"])
+		.enum(["project", "organization", "community"])
 		.optional(),
 
 	// Custom provider configuration updates
