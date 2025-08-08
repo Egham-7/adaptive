@@ -390,6 +390,43 @@ const completion = await openai.chat.completions.create({
 });
 ```
 
+## Customizing Standard Providers
+
+You can also override configuration for standard providers like OpenAI, Anthropic, etc.:
+
+```javascript
+// Use custom OpenAI endpoint or proxy
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Hello from my custom endpoint!' }
+  ],
+  protocol_manager: {
+    models: [
+      { provider: "openai" }, // Will use custom config below
+      { provider: "anthropic" }
+    ]
+  },
+  
+  // Override standard provider settings
+  provider_configs: {
+    "openai": {
+      base_url: "https://my-openai-proxy.com/v1",
+      api_key: "sk-my-custom-openai-key",
+      timeout_ms: 60000,
+      headers: {
+        "X-Proxy-Auth": "proxy-key-123"
+      }
+    },
+    "anthropic": {
+      base_url: "https://my-anthropic-proxy.com/v1", 
+      api_key: "sk-ant-custom-key",
+      timeout_ms: 45000
+    }
+  }
+});
+```
+
 ## Response Format
 
 Adaptive returns OpenAI-compatible responses with additional metadata:

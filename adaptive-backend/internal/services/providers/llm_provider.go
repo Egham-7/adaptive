@@ -14,71 +14,90 @@ import (
 	"strings"
 )
 
-func NewLLMProvider(providerName string, providerConfigs map[string]*models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
-	switch strings.ToLower(providerName) {
-	case "openai":
-		service, err := openai.NewOpenAIService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
+func createOpenAI() (provider_interfaces.LLMProvider, error) { return openai.NewOpenAIService() }
+func createAnthropic() (provider_interfaces.LLMProvider, error) {
+	return anthropic.NewAnthropicService()
+}
+func createDeepSeek() (provider_interfaces.LLMProvider, error) { return deepseek.NewDeepSeekService() }
+func createGemini() (provider_interfaces.LLMProvider, error)   { return gemini.NewGeminiService() }
+func createHuggingFace() (provider_interfaces.LLMProvider, error) {
+	return huggingface.NewHuggingFaceService()
+}
+func createGroq() (provider_interfaces.LLMProvider, error) { return groq.NewGroqService() }
+func createGrok() (provider_interfaces.LLMProvider, error) { return grok.NewGrokService() }
 
-	case "deepseek":
-		service, err := deepseek.NewDeepSeekService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
-	case "anthropic":
-		service, err := anthropic.NewAnthropicService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
-	case "gemini":
-		service, err := gemini.NewGeminiService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
-
-	case "huggingface":
-		service, err := huggingface.NewHuggingFaceService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
-
-	case "groq":
-		service, err := groq.NewGroqService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
-
-	case "grok":
-		service, err := grok.NewGrokService()
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
-
-	default:
-		// Handle custom provider using OpenAI SDK with base URL override
-		if providerConfigs == nil {
-			return nil, errors.New("custom provider '" + providerName + "' requires provider_configs")
-		}
-		customConfig, exists := providerConfigs[providerName]
-		if !exists || customConfig == nil {
-			return nil, errors.New("custom provider '" + providerName + "' configuration not found")
-		}
-		if customConfig.BaseURL == nil {
-			return nil, errors.New("custom provider '" + providerName + "' requires base URL")
-		}
-		service, err := openai.NewCustomOpenAIService(*customConfig.BaseURL, customConfig)
-		if err != nil {
-			return nil, err
-		}
-		return service, nil
+func createCustomOpenAI(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	if config.BaseURL == nil {
+		return nil, errors.New("custom OpenAI provider requires base URL")
 	}
+	return openai.NewCustomOpenAIService(*config.BaseURL, config)
+}
+func createCustomAnthropic(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	return anthropic.NewCustomAnthropicService(config)
+}
+func createCustomDeepSeek(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	return deepseek.NewCustomDeepSeekService(config)
+}
+func createCustomGemini(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	return gemini.NewCustomGeminiService(config)
+}
+func createCustomHuggingFace(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	return huggingface.NewCustomHuggingFaceService(config)
+}
+func createCustomGroq(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	return groq.NewCustomGroqService(config)
+}
+func createCustomGrok(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	return grok.NewCustomGrokService(config)
+}
+
+type providerConstructor func() (provider_interfaces.LLMProvider, error)
+type customProviderConstructor func(*models.ProviderConfig) (provider_interfaces.LLMProvider, error)
+
+var defaultConstructors = map[string]providerConstructor{
+	"openai":      createOpenAI,
+	"anthropic":   createAnthropic,
+	"deepseek":    createDeepSeek,
+	"gemini":      createGemini,
+	"huggingface": createHuggingFace,
+	"groq":        createGroq,
+	"grok":        createGrok,
+}
+
+var customConstructors = map[string]customProviderConstructor{
+	"openai":      createCustomOpenAI,
+	"anthropic":   createCustomAnthropic,
+	"deepseek":    createCustomDeepSeek,
+	"gemini":      createCustomGemini,
+	"huggingface": createCustomHuggingFace,
+	"groq":        createCustomGroq,
+	"grok":        createCustomGrok,
+}
+
+func NewLLMProvider(providerName string, providerConfigs map[string]*models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	normalizedName := strings.ToLower(providerName)
+
+	// Check if custom config exists for this provider
+	if providerConfigs != nil {
+		if customConfig, exists := providerConfigs[providerName]; exists && customConfig != nil {
+			// Use provider-specific custom constructor if available
+			if customConstructor, exists := customConstructors[normalizedName]; exists {
+				return customConstructor(customConfig)
+			}
+
+			// For unknown providers, use OpenAI SDK with custom base URL
+			if customConfig.BaseURL == nil {
+				return nil, errors.New("custom provider '" + providerName + "' requires base URL")
+			}
+			return openai.NewCustomOpenAIService(*customConfig.BaseURL, customConfig)
+		}
+	}
+
+	// Use default provider constructor if available
+	if defaultConstructor, exists := defaultConstructors[normalizedName]; exists {
+		return defaultConstructor()
+	}
+
+	// Unknown provider
+	return nil, errors.New("unknown provider '" + providerName + "'")
 }
