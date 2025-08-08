@@ -144,7 +144,7 @@ export async function POST(
 					clusterId: newCluster.id,
 					provider: model.provider,
 					modelName: model.modelName,
-					priority: model.priority ?? (index + 1),
+					priority: model.priority ?? index + 1,
 				})),
 			});
 

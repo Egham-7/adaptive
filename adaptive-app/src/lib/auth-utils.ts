@@ -10,7 +10,7 @@ const API_KEY_PREFIX_LENGTH = 11;
 // Utility to normalize and validate API key
 export const normalizeAndValidateApiKey = (apiKey: string) => {
 	const normalizedKey = apiKey.trim();
-	
+
 	if (!API_KEY_REGEX.test(normalizedKey)) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
@@ -48,7 +48,7 @@ export const authenticateAndGetProject = async (
 ): Promise<AuthResult> => {
 	// Try API key authentication first
 	if (input.apiKey) {
-		const { normalizedKey, prefix, hash } = normalizeAndValidateApiKey(input.apiKey);
+		const { prefix, hash } = normalizeAndValidateApiKey(input.apiKey);
 
 		const record = await ctx.db.apiKey.findFirst({
 			where: {
@@ -138,7 +138,7 @@ export const authenticateApiKey = async (
 	apiKey: { id: string; projectId: string };
 	project: { id: string; name: string };
 }> => {
-	const { normalizedKey, prefix, hash } = (() => {
+	const { prefix, hash } = (() => {
 		try {
 			return normalizeAndValidateApiKey(apiKey);
 		} catch (error) {

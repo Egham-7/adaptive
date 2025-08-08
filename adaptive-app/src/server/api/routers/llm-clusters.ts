@@ -279,12 +279,18 @@ export const llmClustersRouter = createTRPCRouter({
 							...(input.fallbackEnabled !== undefined && {
 								fallbackEnabled: input.fallbackEnabled,
 							}),
-							...(input.fallbackMode !== undefined && { fallbackMode: input.fallbackMode }),
+							...(input.fallbackMode !== undefined && {
+								fallbackMode: input.fallbackMode,
+							}),
 							...(input.enableCircuitBreaker !== undefined && {
 								enableCircuitBreaker: input.enableCircuitBreaker,
 							}),
-							...(input.maxRetries !== undefined && { maxRetries: input.maxRetries }),
-							...(input.timeoutMs !== undefined && { timeoutMs: input.timeoutMs }),
+							...(input.maxRetries !== undefined && {
+								maxRetries: input.maxRetries,
+							}),
+							...(input.timeoutMs !== undefined && {
+								timeoutMs: input.timeoutMs,
+							}),
 							...(input.costBias !== undefined && { costBias: input.costBias }),
 							...(input.complexityThreshold !== undefined && {
 								complexityThreshold: input.complexityThreshold,
