@@ -549,6 +549,43 @@ const completion = await openai.chat.completions.create({
 });
 ```
 
+### Customizing Standard Providers
+
+You can also customize standard providers (OpenAI, Anthropic, etc.) with custom base URLs, API keys, and settings:
+
+```javascript
+// Override standard provider configuration
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Hello from custom OpenAI endpoint!' }
+  ],
+  protocol_manager: {
+    models: [
+      { provider: "openai" }, // Will use custom config below
+      { provider: "anthropic" } // Will also use custom config
+    ]
+  },
+  
+  // Custom configurations for standard providers
+  provider_configs: {
+    "openai": {
+      base_url: "https://my-custom-openai-proxy.com/v1",
+      api_key: "sk-my-custom-openai-key",
+      timeout_ms: 60000,
+      headers: {
+        "X-Proxy-Key": "proxy-auth-123"
+      }
+    },
+    "anthropic": {
+      base_url: "https://my-anthropic-proxy.com/v1",
+      api_key: "sk-ant-custom-key",
+      timeout_ms: 45000
+    }
+  }
+});
+```
+
 ### Streaming Response
 
 ```javascript
