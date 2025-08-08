@@ -13,7 +13,7 @@ export const selectModelRouter = createTRPCRouter({
 	selectModel: publicProcedure
 		.input(
 			z.object({
-				apiKey: z.string(),
+				apiKey: z.string().min(1, "API key cannot be empty"),
 				request: selectModelRequestSchema,
 			}),
 		)
@@ -27,19 +27,20 @@ export const selectModelRouter = createTRPCRouter({
 				// Create JWT token for backend authentication
 				const jwtToken = await createBackendJWT(apiKey);
 
+				// Construct URL properly to avoid double slashes
+				const url = new URL("/v1/select-model", backendUrl);
+
 				// Call the Go backend select-model endpoint with schema validation
-				const { data, error } = await betterFetch(
-					`${backendUrl}/v1/select-model`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							"X-Stainless-API-Key": jwtToken,
-						},
-						body: request,
-						output: selectModelResponseSchema, // Runtime validation using Zod schema
+				const { data, error } = await betterFetch(url.toString(), {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Accept: "application/json",
+						Authorization: `Bearer ${jwtToken}`,
 					},
-				);
+					body: JSON.stringify(request),
+					output: selectModelResponseSchema, // Runtime validation using Zod schema
+				});
 
 				if (error) {
 					console.error("Backend select-model error:", error);

@@ -23,17 +23,19 @@ type CompletionHandler struct {
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
-func NewCompletionHandler() *CompletionHandler {
-	protocolMgr, err := protocol_manager.NewProtocolManager(nil)
-	if err != nil {
-		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
-	}
+func NewCompletionHandler(
+	reqSvc *completions.RequestService,
+	respSvc *completions.ResponseService,
+	paramSvc *completions.ParameterService,
+	protocolMgr *protocol_manager.ProtocolManager,
+	fallbackSvc *completions.FallbackService,
+) *CompletionHandler {
 	return &CompletionHandler{
-		reqSvc:      completions.NewRequestService(),
-		respSvc:     completions.NewResponseService(protocolMgr),
-		paramSvc:    completions.NewParameterService(),
+		reqSvc:      reqSvc,
+		respSvc:     respSvc,
+		paramSvc:    paramSvc,
 		protocolMgr: protocolMgr,
-		fallbackSvc: completions.NewFallbackService(),
+		fallbackSvc: fallbackSvc,
 	}
 }
 

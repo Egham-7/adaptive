@@ -1,9 +1,19 @@
 import { z } from "zod";
 
 // Cache tier constants
-export const CACHE_TIER_SEMANTIC_EXACT = "semantic_exact";
-export const CACHE_TIER_SEMANTIC_SIMILAR = "semantic_similar";
-export const CACHE_TIER_PROMPT_RESPONSE = "prompt_response";
+export const CACHE_TIER_VALUES = [
+	"semantic_exact",
+	"semantic_similar",
+	"prompt_response",
+] as const;
+
+export const cacheTierSchema = z.enum(CACHE_TIER_VALUES);
+export type CacheTier = z.infer<typeof cacheTierSchema>;
+
+// Export individual constants for backward compatibility
+export const CACHE_TIER_SEMANTIC_EXACT = CACHE_TIER_VALUES[0];
+export const CACHE_TIER_SEMANTIC_SIMILAR = CACHE_TIER_VALUES[1];
+export const CACHE_TIER_PROMPT_RESPONSE = CACHE_TIER_VALUES[2];
 
 // Model capability schema
 export const modelCapabilitySchema = z.object({
@@ -109,7 +119,7 @@ export const adaptiveUsageSchema = z.object({
 	prompt_tokens: z.number(),
 	completion_tokens: z.number(),
 	total_tokens: z.number(),
-	cache_tier: z.string().optional(),
+	cache_tier: cacheTierSchema.optional(),
 });
 
 // Chat completion choice schema

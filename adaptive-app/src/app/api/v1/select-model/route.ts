@@ -2,11 +2,50 @@ import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 import type { NextRequest } from "next/server";
 import { api } from "@/trpc/server";
-import type { SelectModelRequest } from "@/types/select-model";
+import { selectModelRequestSchema } from "@/types/select-model";
 
 export async function POST(req: NextRequest) {
 	try {
-		const body: SelectModelRequest = await req.json();
+		let rawBody: unknown;
+		try {
+			rawBody = await req.json();
+		} catch (jsonError) {
+			// Handle JSON parsing errors specifically
+			if (jsonError instanceof SyntaxError) {
+				return new Response(
+					JSON.stringify({
+						error: {
+							message: "Invalid JSON input",
+							details: "Request body must be valid JSON",
+						},
+					}),
+					{
+						status: 400,
+						headers: { "Content-Type": "application/json" },
+					},
+				);
+			}
+			throw jsonError; // Re-throw non-JSON errors
+		}
+
+		// Validate request body against schema
+		const validationResult = selectModelRequestSchema.safeParse(rawBody);
+		if (!validationResult.success) {
+			return new Response(
+				JSON.stringify({
+					error: {
+						message: "Invalid request format",
+						details: validationResult.error.issues,
+					},
+				}),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		const body = validationResult.data;
 
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");

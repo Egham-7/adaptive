@@ -19,14 +19,10 @@ type SelectModelHandler struct {
 	protocolMgr *protocol_manager.ProtocolManager
 }
 
-// NewSelectModelHandler initializes the select model handler with required dependencies.
-func NewSelectModelHandler() *SelectModelHandler {
-	protocolMgr, err := protocol_manager.NewProtocolManager(nil)
-	if err != nil {
-		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
-	}
+// NewSelectModelHandler initializes the select model handler with injected dependencies.
+func NewSelectModelHandler(reqSvc *completions.RequestService, protocolMgr *protocol_manager.ProtocolManager) *SelectModelHandler {
 	return &SelectModelHandler{
-		reqSvc:      completions.NewRequestService(),
+		reqSvc:      reqSvc,
 		protocolMgr: protocolMgr,
 	}
 }

@@ -170,7 +170,10 @@ Want to see which model Adaptive would choose before running the completion? Use
 // Preview what model would be selected
 const selection = await fetch('https://llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
-  headers: { 'X-Stainless-API-Key': 'your-key' },
+  headers: { 
+    'Content-Type': 'application/json',
+    'X-Stainless-API-Key': 'your-key' 
+  },
   body: JSON.stringify({
     model: '',
     messages: [{ role: 'user', content: 'Complex analysis task' }],
