@@ -1,17 +1,11 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { api } from "@/trpc/react";
 import type { DashboardData, Provider } from "@/types/api-platform/dashboard";
 import { UsageChart } from "./charts/usage-chart";
 import { ChartSkeleton } from "./loading-skeleton";
+import { ModelSelector } from "./model-selector";
 
 interface UsageSectionProps {
 	data: DashboardData | null;
@@ -21,15 +15,6 @@ interface UsageSectionProps {
 	selectedModel: string;
 	onModelChange: (model: string) => void;
 }
-
-// Popular models for comparison
-const COMPARISON_MODELS = [
-	{ id: "gpt-4o", name: "GPT-4o", provider: "OpenAI" },
-	{ id: "gpt-4o-mini", name: "GPT-4o Mini", provider: "OpenAI" },
-	{ id: "claude-3.5-sonnet", name: "Claude 3.5 Sonnet", provider: "Anthropic" },
-	{ id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", provider: "Google" },
-	{ id: "deepseek-chat", name: "DeepSeek Chat", provider: "DeepSeek" },
-] as const;
 
 // Calculate direct cost for a specific model using actual token usage
 function calculateDirectModelCost(
@@ -85,9 +70,15 @@ export function UsageSection({
 		);
 	}
 
-	const selectedModelInfo = COMPARISON_MODELS.find(
-		(m) => m.id === selectedModel,
-	);
+	// Get selected model info from pricing data
+	const selectedModelInfo = modelPricing?.[selectedModel]
+		? {
+				id: selectedModel,
+				name:
+					selectedModel.charAt(0).toUpperCase() +
+					selectedModel.slice(1).replace(/-/g, " "),
+			}
+		: null;
 	const totalSpend = data.totalSpend;
 
 	// Calculate actual direct model cost using real token usage data
@@ -121,72 +112,55 @@ export function UsageSection({
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex items-center justify-between">
-					<div className="flex-1">
-						<div className="mb-1 flex items-center justify-between">
-							<CardTitle>Cost Comparison</CardTitle>
-							<div className="flex items-center gap-2">
-								<span className="text-muted-foreground text-sm">
-									Compare vs
-								</span>
-								<Select value={selectedModel} onValueChange={onModelChange}>
-									<SelectTrigger className="w-[180px]">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{COMPARISON_MODELS.map((model) => (
-											<SelectItem key={model.id} value={model.id}>
-												{model.name}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
-						</div>
-						<div className="space-y-2">
-							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground text-sm">
-									Your Adaptive Cost
-								</span>
-								<span className="font-semibold text-lg">
-									$
-									{typeof totalSpend === "number"
-										? totalSpend < 0.01 && totalSpend > 0
-											? totalSpend.toFixed(6)
-											: totalSpend.toFixed(2)
-										: totalSpend}
-								</span>
-							</div>
-							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground text-sm">
-									Direct {selectedModelInfo?.name} Cost
-								</span>
-								<span className="font-semibold text-lg">
-									$
-									{typeof directModelCost === "number"
-										? directModelCost < 0.01 && directModelCost > 0
-											? directModelCost.toFixed(6)
-											: directModelCost.toFixed(2)
-										: directModelCost}
-								</span>
-							</div>
-						</div>
-						<div className="mt-3 rounded-lg bg-green-50 p-3 dark:bg-green-900/10">
-							<div className="flex items-center justify-between">
-								<span className="font-medium text-green-700 text-sm dark:text-green-400">
-									You saved with Adaptive
-								</span>
-								<span className="font-bold text-green-700 dark:text-green-400">
-									$
-									{typeof totalSavings === "number"
-										? totalSavings < 0.01 && totalSavings > 0
-											? totalSavings.toFixed(6)
-											: totalSavings.toFixed(2)
-										: totalSavings}{" "}
-									({savingsPercentage}%)
-								</span>
-							</div>
-						</div>
+				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+					<CardTitle>Cost Comparison</CardTitle>
+					<ModelSelector
+						selectedModel={selectedModel}
+						onModelChange={onModelChange}
+					/>
+				</div>
+				<div className="space-y-2">
+					<div className="flex items-center justify-between">
+						<span className="text-muted-foreground text-sm">
+							Your Adaptive Cost
+						</span>
+						<span className="font-semibold text-lg">
+							$
+							{typeof totalSpend === "number"
+								? totalSpend < 0.01 && totalSpend > 0
+									? totalSpend.toFixed(6)
+									: totalSpend.toFixed(2)
+								: totalSpend}
+						</span>
+					</div>
+					<div className="flex items-center justify-between">
+						<span className="text-muted-foreground text-sm">
+							Direct {selectedModelInfo?.name || "Model"} Cost
+						</span>
+						<span className="font-semibold text-lg">
+							$
+							{typeof directModelCost === "number"
+								? directModelCost < 0.01 && directModelCost > 0
+									? directModelCost.toFixed(6)
+									: directModelCost.toFixed(2)
+								: directModelCost}
+						</span>
+					</div>
+				</div>
+				<div className="mt-3 rounded-lg bg-green-50 p-3 dark:bg-green-900/10">
+					<div className="flex items-center justify-between">
+						<span className="font-medium text-green-700 text-sm dark:text-green-400">
+							You saved with Adaptive
+						</span>
+						<span className="font-bold text-green-700 dark:text-green-400">
+							$
+							{typeof totalSavings === "number"
+								? totalSavings < 0.01 && totalSavings > 0
+									? totalSavings.toFixed(6)
+									: totalSavings.toFixed(2)
+								: totalSavings}{" "}
+							({savingsPercentage}%)
+						</span>
 					</div>
 				</div>
 			</CardHeader>

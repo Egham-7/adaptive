@@ -20,7 +20,7 @@ import {
 	XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -79,14 +79,18 @@ const updateProjectSchema = z.object({
 
 export default function OrganizationProjectsPage() {
 	const params = useParams();
+	const searchParams = useSearchParams();
 	const orgId = params.orgId as string;
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [editingProject, setEditingProject] = useState<ProjectListItem | null>(
 		null,
 	);
+
+	// Set active tab based on URL parameter
+	const tabFromUrl = searchParams.get("tab");
 	const [activeTab, setActiveTab] = useState<"projects" | "credits">(
-		"projects",
+		tabFromUrl === "credits" ? "credits" : "projects",
 	);
 
 	const { user } = useUser();
