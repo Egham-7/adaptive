@@ -26,6 +26,12 @@ func createHuggingFace() (provider_interfaces.LLMProvider, error) {
 func createGroq() (provider_interfaces.LLMProvider, error) { return groq.NewGroqService() }
 func createGrok() (provider_interfaces.LLMProvider, error) { return grok.NewGrokService() }
 
+func createCustomOpenAI(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
+	if config.BaseURL == nil {
+		return nil, errors.New("custom OpenAI provider requires base URL")
+	}
+	return openai.NewCustomOpenAIService(*config.BaseURL, config)
+}
 func createCustomAnthropic(config *models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
 	return anthropic.NewCustomAnthropicService(config)
 }
@@ -59,6 +65,7 @@ var defaultConstructors = map[string]providerConstructor{
 }
 
 var customConstructors = map[string]customProviderConstructor{
+	"openai":      createCustomOpenAI,
 	"anthropic":   createCustomAnthropic,
 	"deepseek":    createCustomDeepSeek,
 	"gemini":      createCustomGemini,
@@ -73,14 +80,6 @@ func NewLLMProvider(providerName string, providerConfigs map[string]*models.Prov
 	// Check if custom config exists for this provider
 	if providerConfigs != nil {
 		if customConfig, exists := providerConfigs[providerName]; exists && customConfig != nil {
-			// Handle OpenAI special case (requires base URL parameter)
-			if normalizedName == "openai" {
-				if customConfig.BaseURL == nil {
-					return nil, errors.New("custom OpenAI provider requires base URL")
-				}
-				return openai.NewCustomOpenAIService(*customConfig.BaseURL, customConfig)
-			}
-
 			// Use provider-specific custom constructor if available
 			if customConstructor, exists := customConstructors[normalizedName]; exists {
 				return customConstructor(customConfig)
