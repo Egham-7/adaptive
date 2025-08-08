@@ -259,7 +259,7 @@ model Provider {
   baseUrl         String?            // API base URL for custom providers (e.g., "https://api.custom.com/v1")
   authType        String?            // "bearer" | "api_key" | "basic" | "custom"
   authHeaderName  String?            // Custom auth header name (default: "Authorization")
-  apiKeyPrefix    String?            // API key prefix (e.g., "Bearer ", "sk-")
+  apiKey          String?            // Full API key for authentication
   healthEndpoint  String?            // Health check endpoint (e.g., "/health")
   rateLimitRpm    Int?               // Rate limit requests per minute
   timeoutMs       Int?               // Request timeout in milliseconds

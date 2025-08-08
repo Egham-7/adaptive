@@ -44,7 +44,7 @@ func (cs *CompletionService) HandleStandardCompletion(
 	cacheSource string,
 ) error {
 	// Get provider with fallback
-	prov, model, err := cs.providerSelector.SelectStandardProvider(c.Context(), standardInfo, req.CustomProvider, requestID)
+	prov, model, err := cs.providerSelector.SelectStandardProvider(c.Context(), standardInfo, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("standard provider selection failed: %w", err)
 	}
@@ -62,7 +62,7 @@ func (cs *CompletionService) HandleMinionCompletion(
 	cacheSource string,
 ) error {
 	// Get provider with fallback
-	prov, model, err := cs.providerSelector.SelectMinionProvider(c.Context(), minionInfo, req.CustomProvider, requestID)
+	prov, model, err := cs.providerSelector.SelectMinionProvider(c.Context(), minionInfo, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("minion provider selection failed: %w", err)
 	}
@@ -82,14 +82,14 @@ func (cs *CompletionService) HandleMinionsProtocolCompletion(
 	orchestrator := minions.NewMinionsOrchestrationService()
 
 	// Get standard provider with fallback
-	remoteProv, standardModel, err := cs.providerSelector.SelectStandardProvider(c.Context(), resp.Standard, req.CustomProvider, requestID)
+	remoteProv, standardModel, err := cs.providerSelector.SelectStandardProvider(c.Context(), resp.Standard, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("standard provider selection failed: %w", err)
 	}
 	req.Model = shared.ChatModel(standardModel)
 
 	// Get minion provider with fallback
-	minionProv, minionModel, err := cs.providerSelector.SelectMinionProvider(c.Context(), resp.Minion, req.CustomProvider, requestID)
+	minionProv, minionModel, err := cs.providerSelector.SelectMinionProvider(c.Context(), resp.Minion, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("minion provider selection failed: %w", err)
 	}
@@ -133,7 +133,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 
 		fiberlog.Infof("[%s] Trying %d remaining %s alternatives after completion failure", requestID, len(alternativesCopy), protocolName)
 		fallbackSvc := NewFallbackService()
-		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), &alternativesCopy, req.CustomProvider, requestID)
+		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), &alternativesCopy, req.ProviderConfigs, requestID)
 		if fallbackErr != nil {
 			return fmt.Errorf("all %s providers failed: %w", protocolName, fallbackErr)
 		}
@@ -278,7 +278,7 @@ func (cs *CompletionService) tryMinionSStandardAlternatives(
 ) error {
 	fiberlog.Infof("[%s] Trying standard alternatives for MinionS restart", requestID)
 	fallbackSvc := NewFallbackService()
-	standardResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.CustomProvider, requestID)
+	standardResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.ProviderConfigs, requestID)
 	if err != nil {
 		return err
 	}
@@ -320,7 +320,7 @@ func (cs *CompletionService) tryMinionSMinionAlternatives(
 ) error {
 	fiberlog.Infof("[%s] Trying minion alternatives for MinionS restart", requestID)
 	fallbackSvc := NewFallbackService()
-	minionResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.CustomProvider, requestID)
+	minionResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.ProviderConfigs, requestID)
 	if err != nil {
 		return err
 	}

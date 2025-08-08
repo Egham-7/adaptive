@@ -70,7 +70,7 @@ func (fs *FallbackService) SetTimeout(timeout time.Duration) {
 func (fs *FallbackService) SelectAlternative(
 	ctx context.Context,
 	alternatives *[]models.Alternative,
-	customConfig *models.CustomProviderConfig,
+	providerConfigs map[string]*models.ProviderConfig,
 	requestID string,
 ) (*models.RaceResult, error) {
 	if len(*alternatives) == 0 {
@@ -79,9 +79,9 @@ func (fs *FallbackService) SelectAlternative(
 
 	switch fs.mode {
 	case FallbackModeRace:
-		return fs.raceAlternatives(ctx, alternatives, customConfig, requestID)
+		return fs.raceAlternatives(ctx, alternatives, providerConfigs, requestID)
 	case FallbackModeSequential:
-		return fs.selectSequentialAlternative(ctx, alternatives, customConfig, requestID)
+		return fs.selectSequentialAlternative(ctx, alternatives, providerConfigs, requestID)
 	default:
 		return nil, fmt.Errorf("unsupported fallback mode: %d", fs.mode)
 	}
@@ -91,13 +91,13 @@ func (fs *FallbackService) SelectAlternative(
 func (fs *FallbackService) raceAlternatives(
 	ctx context.Context,
 	alternatives *[]models.Alternative,
-	customConfig *models.CustomProviderConfig,
+	providerConfigs map[string]*models.ProviderConfig,
 	requestID string,
 ) (*models.RaceResult, error) {
 	fiberlog.Infof("[%s] Racing %d alternative providers", requestID, len(*alternatives))
 
 	// For race mode, we try all alternatives at once
-	result, err := fs.raceAllProviders(ctx, *alternatives, customConfig, requestID)
+	result, err := fs.raceAllProviders(ctx, *alternatives, providerConfigs, requestID)
 
 	// Always clear the slice since we tried all providers
 	alternativeCount := len(*alternatives)
@@ -118,7 +118,7 @@ func (fs *FallbackService) raceAlternatives(
 func (fs *FallbackService) selectSequentialAlternative(
 	ctx context.Context,
 	alternatives *[]models.Alternative,
-	customConfig *models.CustomProviderConfig,
+	providerConfigs map[string]*models.ProviderConfig,
 	requestID string,
 ) (*models.RaceResult, error) {
 	if len(*alternatives) == 0 {
@@ -130,7 +130,7 @@ func (fs *FallbackService) selectSequentialAlternative(
 	// Try the first alternative
 	alt := (*alternatives)[0]
 	fiberlog.Infof("[%s] Trying alternative: %s (%s)", requestID, alt.Provider, alt.Model)
-	result := fs.tryProviderConnection(alt, customConfig, requestID)
+	result := fs.tryProviderConnection(alt, providerConfigs, requestID)
 
 	if result.Error == nil {
 		// Success - remove this alternative from the slice and return it
@@ -150,7 +150,7 @@ func (fs *FallbackService) selectSequentialAlternative(
 func (fs *FallbackService) raceAllProviders(
 	ctx context.Context,
 	options []models.Alternative,
-	customConfig *models.CustomProviderConfig,
+	providerConfigs map[string]*models.ProviderConfig,
 	requestID string,
 ) (*models.RaceResult, error) {
 	// Create context with timeout
@@ -166,7 +166,7 @@ func (fs *FallbackService) raceAllProviders(
 		wg.Add(1)
 		go func(idx int, opt models.Alternative) {
 			defer wg.Done()
-			result := fs.tryProviderConnection(opt, customConfig, requestID)
+			result := fs.tryProviderConnection(opt, providerConfigs, requestID)
 
 			select {
 			case resultCh <- result:
@@ -216,7 +216,7 @@ func (fs *FallbackService) raceAllProviders(
 // tryProviderConnection tests if a provider is available and creates it
 func (fs *FallbackService) tryProviderConnection(
 	option models.Alternative,
-	customConfig *models.CustomProviderConfig,
+	providerConfigs map[string]*models.ProviderConfig,
 	requestID string,
 ) *models.RaceResult {
 	fiberlog.Debugf("[%s] Testing connection to provider %s (%s)", requestID, option.Provider, option.Model)
@@ -232,7 +232,7 @@ func (fs *FallbackService) tryProviderConnection(
 	var err error
 
 	fiberlog.Debugf("[%s] Creating LLM provider: %s", requestID, option.Provider)
-	provider, err = providers.NewLLMProvider(option.Provider, customConfig)
+	provider, err = providers.NewLLMProvider(option.Provider, providerConfigs)
 	if err != nil {
 		result.Error = fmt.Errorf("failed to create provider %s: %w", option.Provider, err)
 		result.Duration = time.Since(start)
@@ -255,18 +255,18 @@ func (fs *FallbackService) BuildCandidates(resp *models.ProtocolResponse) ([]Can
 }
 
 // BuildCandidatesWithCustomConfig builds candidates from protocol response with custom config support
-func (fs *FallbackService) BuildCandidatesWithCustomConfig(resp *models.ProtocolResponse, customConfig *models.CustomProviderConfig) ([]Candidate, error) {
+func (fs *FallbackService) BuildCandidatesWithCustomConfig(resp *models.ProtocolResponse, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
 	switch resp.Protocol {
 	case models.ProtocolStandardLLM:
-		return fs.buildStandardCandidates(resp.Standard, customConfig)
+		return fs.buildStandardCandidates(resp.Standard, providerConfigs)
 	case models.ProtocolMinion:
-		return fs.buildMinionCandidates(resp.Minion, customConfig)
+		return fs.buildMinionCandidates(resp.Minion, providerConfigs)
 	case models.ProtocolMinionsProtocol:
-		stds, err := fs.buildStandardCandidates(resp.Standard, customConfig)
+		stds, err := fs.buildStandardCandidates(resp.Standard, providerConfigs)
 		if err != nil {
 			return nil, err
 		}
-		mins, err := fs.buildMinionCandidates(resp.Minion, customConfig)
+		mins, err := fs.buildMinionCandidates(resp.Minion, providerConfigs)
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +283,7 @@ func (fs *FallbackService) BuildCandidatesWithCustomConfig(resp *models.Protocol
 }
 
 // buildStandardCandidates returns primary + fallback LLMs.
-func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo, customConfig *models.CustomProviderConfig) ([]Candidate, error) {
+func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
 	if std == nil {
 		return nil, fmt.Errorf("standard info is nil")
 	}
@@ -307,7 +307,7 @@ func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo, 
 }
 
 // buildMinionCandidates returns primary + fallback minions.
-func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo, customConfig *models.CustomProviderConfig) ([]Candidate, error) {
+func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
 	if min == nil {
 		return nil, fmt.Errorf("minion info is nil")
 	}

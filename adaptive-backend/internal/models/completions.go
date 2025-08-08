@@ -16,12 +16,12 @@ const (
 	CacheTierPromptResponse  = "prompt_response"
 )
 
-// CustomProviderConfig represents configuration for custom providers
-type CustomProviderConfig struct {
+// ProviderConfig represents configuration for custom providers
+type ProviderConfig struct {
 	BaseURL        *string           `json:"base_url,omitempty"`         // API base URL
 	AuthType       *string           `json:"auth_type,omitempty"`        // "bearer" | "api_key" | "basic" | "custom"
 	AuthHeaderName *string           `json:"auth_header_name,omitempty"` // Custom auth header name
-	APIKeyPrefix   *string           `json:"api_key_prefix,omitempty"`   // API key prefix
+	APIKey         *string           `json:"api_key,omitempty"`          // Full API key for authentication
 	HealthEndpoint *string           `json:"health_endpoint,omitempty"`  // Health check endpoint
 	RateLimitRPM   *int              `json:"rate_limit_rpm,omitempty"`   // Rate limit requests per minute
 	TimeoutMs      *int              `json:"timeout_ms,omitempty"`       // Request timeout
@@ -260,7 +260,7 @@ type ChatCompletionRequest struct {
 	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"`  // Optional semantic cache configuration
 	PromptCache           *PromptCacheConfig     `json:"prompt_cache,omitempty"`    // Optional prompt response cache configuration
 	Fallback              *FallbackConfig        `json:"fallback,omitempty"`        // Fallback configuration with enabled toggle
-	CustomProvider        *CustomProviderConfig  `json:"custom_provider,omitempty"` // Custom provider configuration
+	ProviderConfigs       map[string]*ProviderConfig `json:"provider_configs,omitempty"` // Custom provider configurations by provider name
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.

@@ -2,7 +2,10 @@ import { auth as getClerkAuth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
-import { validateAndAuthenticateApiKey } from "@/lib/auth-utils";
+import {
+	authenticateAndGetProject,
+	validateAndAuthenticateApiKey,
+} from "@/lib/auth-utils";
 import { upsertModelCapability } from "@/lib/model-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
@@ -59,22 +62,40 @@ export const providersRouter = createTRPCRouter({
 
 				// Add project/organization scoped providers if projectId provided
 				if (input.projectId) {
-					// Get user's organization projects for organization-scoped providers
-					const project = await ctx.db.project.findFirst({
-						where: { id: input.projectId },
-						include: { organization: { include: { projects: true } } },
-					});
+					try {
+						// Verify user/API key has access to the specified project
+						await authenticateAndGetProject(ctx, {
+							projectId: input.projectId,
+							apiKey: input.apiKey,
+						});
 
-					if (project) {
-						const orgProjectIds = project.organization.projects.map(
-							(p) => p.id,
-						);
+						// Get project with organization projects for organization-scoped providers
+						const project = await ctx.db.project.findFirst({
+							where: { id: input.projectId },
+							include: { organization: { include: { projects: true } } },
+						});
 
-						orConditions.push(
-							// Project-scoped providers
-							{ visibility: "project", projectId: input.projectId },
-							// Organization-scoped providers (any project in the org)
-							{ visibility: "organization", projectId: { in: orgProjectIds } },
+						if (project) {
+							const orgProjectIds = project.organization.projects.map(
+								(p) => p.id,
+							);
+
+							orConditions.push(
+								// Project-scoped providers
+								{ visibility: "project", projectId: input.projectId },
+								// Organization-scoped providers (any project in the org)
+								{
+									visibility: "organization",
+									projectId: { in: orgProjectIds },
+								},
+							);
+						}
+					} catch (authError) {
+						// If authorization fails, silently exclude project/org providers
+						// Only system and community providers will be returned
+						console.warn(
+							`Project access denied for projectId ${input.projectId}:`,
+							authError,
 						);
 					}
 				}
@@ -216,6 +237,51 @@ export const providersRouter = createTRPCRouter({
 					});
 				}
 
+				// Validate visibility and projectId consistency
+				if (input.visibility === "system") {
+					if (input.projectId !== null) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "System providers cannot be associated with a project",
+						});
+					}
+					// TODO: Add admin role check here when role system is implemented
+					// For now, restrict system provider creation
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Creating system providers requires admin privileges",
+					});
+				}
+
+				if (input.visibility === "community") {
+					// TODO: Add admin role check here when role system is implemented
+					// For now, restrict community provider creation
+					throw new TRPCError({
+						code: "FORBIDDEN",
+						message: "Creating community providers requires admin privileges",
+					});
+				}
+
+				// For project/organization visibility, projectId is required
+				if (
+					(input.visibility === "project" ||
+						input.visibility === "organization") &&
+					!input.projectId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Project ID is required for project and organization visibility",
+					});
+				}
+
+				// Verify user has access to the specified project
+				if (input.projectId) {
+					await authenticateAndGetProject(ctx, {
+						projectId: input.projectId,
+					});
+				}
+
 				// Atomic transaction for provider creation
 				const provider = await ctx.db.$transaction(async (tx) => {
 					// Check if provider name already exists in the same project scope
@@ -244,7 +310,7 @@ export const providersRouter = createTRPCRouter({
 							baseUrl: input.baseUrl,
 							authType: input.authType,
 							authHeaderName: input.authHeaderName,
-							apiKeyPrefix: input.apiKeyPrefix,
+							apiKey: input.apiKey,
 							healthEndpoint: input.healthEndpoint,
 							rateLimitRpm: input.rateLimitRpm,
 							timeoutMs: input.timeoutMs,
@@ -327,6 +393,7 @@ export const providersRouter = createTRPCRouter({
 				// Find provider first
 				const provider = await ctx.db.provider.findFirst({
 					where: { id: input.id },
+					include: { project: true },
 				});
 
 				if (!provider) {
@@ -334,6 +401,35 @@ export const providersRouter = createTRPCRouter({
 						code: "NOT_FOUND",
 						message: "Provider not found",
 					});
+				}
+
+				// Verify user has access to the provider's project
+				if (provider.projectId) {
+					await authenticateAndGetProject(ctx, {
+						projectId: provider.projectId,
+						apiKey: input.apiKey,
+					});
+				}
+
+				// Validate visibility changes if specified
+				if (input.visibility !== undefined) {
+					if (input.visibility === "system") {
+						// TODO: Add admin role check when role system is implemented
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message:
+								"Updating to system visibility requires admin privileges",
+						});
+					}
+
+					if (input.visibility === "community") {
+						// TODO: Add admin role check when role system is implemented
+						throw new TRPCError({
+							code: "FORBIDDEN",
+							message:
+								"Updating to community visibility requires admin privileges",
+						});
+					}
 				}
 
 				// Update provider
@@ -344,6 +440,30 @@ export const providersRouter = createTRPCRouter({
 						...(input.description !== undefined && {
 							description: input.description,
 						}),
+						...(input.visibility !== undefined && {
+							visibility: input.visibility,
+						}),
+						...(input.baseUrl !== undefined && { baseUrl: input.baseUrl }),
+						...(input.authType !== undefined && { authType: input.authType }),
+						...(input.authHeaderName !== undefined && {
+							authHeaderName: input.authHeaderName,
+						}),
+						...(input.apiKey !== undefined && {
+							apiKey: input.apiKey,
+						}),
+						...(input.healthEndpoint !== undefined && {
+							healthEndpoint: input.healthEndpoint,
+						}),
+						...(input.rateLimitRpm !== undefined && {
+							rateLimitRpm: input.rateLimitRpm,
+						}),
+						...(input.timeoutMs !== undefined && {
+							timeoutMs: input.timeoutMs,
+						}),
+						...(input.retryConfig !== undefined && {
+							retryConfig: input.retryConfig,
+						}),
+						...(input.headers !== undefined && { headers: input.headers }),
 						...(input.isActive !== undefined && { isActive: input.isActive }),
 					},
 					include: {

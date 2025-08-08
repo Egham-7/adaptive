@@ -47,7 +47,7 @@ func (s *OpenAIService) GetProviderName() string {
 }
 
 // NewCustomOpenAIService creates a custom OpenAI-compatible service with base URL override
-func NewCustomOpenAIService(baseURL string, customConfig *models.CustomProviderConfig) (*OpenAIService, error) {
+func NewCustomOpenAIService(baseURL string, customConfig *models.ProviderConfig) (*OpenAIService, error) {
 	if baseURL == "" {
 		return nil, fmt.Errorf("base URL is required for custom provider")
 	}
@@ -59,6 +59,11 @@ func NewCustomOpenAIService(baseURL string, customConfig *models.CustomProviderC
 
 	// Configure client options from custom config
 	if customConfig != nil {
+		// Configure API key if specified
+		if customConfig.APIKey != nil {
+			opts = append(opts, option.WithAPIKey(*customConfig.APIKey))
+		}
+
 		// Configure timeout if specified
 		if customConfig.TimeoutMs != nil {
 			timeout := time.Duration(*customConfig.TimeoutMs) * time.Millisecond

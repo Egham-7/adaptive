@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func NewLLMProvider(providerName string, customConfig *models.CustomProviderConfig) (provider_interfaces.LLMProvider, error) {
+func NewLLMProvider(providerName string, providerConfigs map[string]*models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
 	switch strings.ToLower(providerName) {
 	case "openai":
 		service, err := openai.NewOpenAIService()
@@ -65,13 +65,20 @@ func NewLLMProvider(providerName string, customConfig *models.CustomProviderConf
 
 	default:
 		// Handle custom provider using OpenAI SDK with base URL override
-		if customConfig != nil && customConfig.BaseURL != nil {
-			service, err := openai.NewCustomOpenAIService(*customConfig.BaseURL, customConfig)
-			if err != nil {
-				return nil, err
-			}
-			return service, nil
+		if providerConfigs == nil {
+			return nil, errors.New("custom provider '" + providerName + "' requires provider_configs")
 		}
-		return nil, errors.New("unsupported provider: " + providerName)
+		customConfig, exists := providerConfigs[providerName]
+		if !exists || customConfig == nil {
+			return nil, errors.New("custom provider '" + providerName + "' configuration not found")
+		}
+		if customConfig.BaseURL == nil {
+			return nil, errors.New("custom provider '" + providerName + "' requires base URL")
+		}
+		service, err := openai.NewCustomOpenAIService(*customConfig.BaseURL, customConfig)
+		if err != nil {
+			return nil, err
+		}
+		return service, nil
 	}
 }
