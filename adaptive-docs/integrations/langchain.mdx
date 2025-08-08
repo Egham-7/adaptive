@@ -182,6 +182,16 @@ Ultra-fast caching for identical requests (disabled by default):
   - Provides sub-millisecond response times for repeated requests
   - Only successful responses are cached
 
+## Cache Tier Tracking
+
+LangChain responses include cache information:
+
+```python
+response = llm.invoke("Hello world")
+print(response.usage_metadata.get('cache_tier'))
+# "semantic_exact" | "semantic_similar" | "prompt_response" | None
+```
+
 ## Extras
 
 - **Function calling**, **tools**, **chains**, **memory** support — works out of the box.
