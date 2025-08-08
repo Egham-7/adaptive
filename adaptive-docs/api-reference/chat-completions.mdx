@@ -318,6 +318,48 @@ Use any OpenAI-compatible authorization header:
   </Expandable>
 </ParamField>
 
+<ParamField body="provider_configs" type="object">
+  Configuration for custom providers. Required when using custom providers in your model list.
+  
+  <Expandable title="Provider Config Object">
+    <ParamField body="base_url" type="string" required>
+      API base URL for the custom provider (e.g., `"https://api.custom.com/v1"`)
+    </ParamField>
+    
+    <ParamField body="api_key" type="string" required>
+      Full API key for authentication with the custom provider
+    </ParamField>
+    
+    <ParamField body="auth_type" type="string">
+      Authentication type: `"bearer"`, `"api_key"`, `"basic"`, or `"custom"`. Default: `"bearer"`
+    </ParamField>
+    
+    <ParamField body="auth_header_name" type="string">
+      Custom authentication header name. Default: `"Authorization"`
+    </ParamField>
+    
+    <ParamField body="headers" type="object">
+      Additional headers to send with requests to the custom provider
+    </ParamField>
+    
+    <ParamField body="timeout_ms" type="integer">
+      Request timeout in milliseconds. Range: 1000-120000. Default: 30000
+    </ParamField>
+    
+    <ParamField body="rate_limit_rpm" type="integer">
+      Rate limit in requests per minute. Range: 1-100000
+    </ParamField>
+    
+    <ParamField body="health_endpoint" type="string">
+      Health check endpoint for monitoring provider availability
+    </ParamField>
+    
+    <ParamField body="retry_config" type="object">
+      Custom retry configuration for failed requests
+    </ParamField>
+  </Expandable>
+</ParamField>
+
 ## Response
 
 <ResponseField name="id" type="string">
@@ -461,6 +503,48 @@ const completion = await openai.chat.completions.create({
   fallback: {
     enabled: true,
     mode: 'sequential'
+  }
+});
+```
+
+### Using Custom Providers
+
+```javascript
+// Custom provider example
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Explain machine learning concepts' }
+  ],
+  protocol_manager: {
+    models: [
+      { provider: "openai" }, // Standard provider
+      { 
+        provider: "my-custom-llm", // Custom provider
+        model_name: "custom-model-v1",
+        cost_per_1m_input_tokens: 2.0,
+        cost_per_1m_output_tokens: 6.0,
+        max_context_tokens: 16000,
+        max_output_tokens: 4000,
+        supports_function_calling: true,
+        task_type: "Text Generation",
+        complexity: "medium"
+      }
+    ],
+    cost_bias: 0.5
+  },
+  
+  // Configure each custom provider
+  provider_configs: {
+    "my-custom-llm": {
+      base_url: "https://api.mycustom.com/v1",
+      api_key: "sk-custom-api-key-here",
+      auth_type: "bearer",
+      headers: {
+        "X-Custom-Header": "value"
+      },
+      timeout_ms: 45000
+    }
   }
 });
 ```
@@ -613,7 +697,7 @@ const completion = await openai.chat.completions.create({
       { provider: "anthropic", model_name: "claude-3-sonnet-20240229" }, // Specific model
       // Custom model example (all params required):
       {
-        provider: "custom-provider",
+        provider: "my-custom-provider",
         model_name: "custom-model-v1",
         cost_per_1m_input_tokens: 5.0,
         cost_per_1m_output_tokens: 10.0,
@@ -628,6 +712,20 @@ const completion = await openai.chat.completions.create({
     complexity_threshold: 0.5,
     token_threshold: 2000
   },
+  
+  provider_configs: {
+    "my-custom-provider": {
+      base_url: "https://api.custom.com/v1",
+      api_key: "sk-custom-key-123",
+      auth_type: "bearer",
+      headers: {
+        "Custom-Header": "custom-value"
+      },
+      timeout_ms: 30000,
+      rate_limit_rpm: 1000
+    }
+  },
+  
   semantic_cache: {
     enabled: true,
     semantic_threshold: 0.85
@@ -726,8 +824,8 @@ Rate limits are applied per API key and reset every minute.
   <Card title="Cost Control" icon="dollar-sign">
     Use `cost_bias` parameter to balance cost vs performance for your use case
   </Card>
-  <Card title="Provider Limits" icon="filter">
-    Use `provider_constraint` to limit which providers can be selected
+  <Card title="Custom Providers" icon="plug">
+    When using custom providers, always include their configuration in `provider_configs`
   </Card>
   <Card title="Error Handling" icon="shield-check">
     Always implement proper error handling for network and API failures

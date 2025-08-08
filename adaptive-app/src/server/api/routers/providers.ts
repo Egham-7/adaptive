@@ -238,20 +238,6 @@ export const providersRouter = createTRPCRouter({
 				}
 
 				// Validate visibility and projectId consistency
-				if (input.visibility === "system") {
-					if (input.projectId !== null) {
-						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "System providers cannot be associated with a project",
-						});
-					}
-					// TODO: Add admin role check here when role system is implemented
-					// For now, restrict system provider creation
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Creating system providers requires admin privileges",
-					});
-				}
 
 				if (input.visibility === "community") {
 					// TODO: Add admin role check here when role system is implemented
@@ -413,15 +399,6 @@ export const providersRouter = createTRPCRouter({
 
 				// Validate visibility changes if specified
 				if (input.visibility !== undefined) {
-					if (input.visibility === "system") {
-						// TODO: Add admin role check when role system is implemented
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message:
-								"Updating to system visibility requires admin privileges",
-						});
-					}
-
 					if (input.visibility === "community") {
 						// TODO: Add admin role check when role system is implemented
 						throw new TRPCError({

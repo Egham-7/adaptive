@@ -345,6 +345,51 @@ const openai = new OpenAI({
 // Everything else stays the same!
 ```
 
+## Custom Providers
+
+Use custom providers alongside standard ones:
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Explain machine learning concepts' }
+  ],
+  
+  // Intelligent routing with custom provider
+  protocol_manager: {
+    models: [
+      { provider: "openai" }, // Standard provider
+      { 
+        provider: "my-custom-llm", // Custom provider
+        model_name: "custom-model-v1",
+        cost_per_1m_input_tokens: 2.0,
+        cost_per_1m_output_tokens: 6.0,
+        max_context_tokens: 16000,
+        max_output_tokens: 4000,
+        supports_function_calling: true,
+        task_type: "Text Generation",
+        complexity: "medium"
+      }
+    ],
+    cost_bias: 0.5
+  },
+  
+  // Configure each custom provider
+  provider_configs: {
+    "my-custom-llm": {
+      base_url: "https://api.mycustom.com/v1",
+      api_key: "sk-custom-api-key-here",
+      auth_type: "bearer",
+      headers: {
+        "X-Custom-Header": "value"
+      },
+      timeout_ms: 45000
+    }
+  }
+});
+```
+
 ## Response Format
 
 Adaptive returns OpenAI-compatible responses with additional metadata:
