@@ -64,9 +64,7 @@ export const updateProviderSchema = z.object({
 	id: z.string(),
 	displayName: z.string().min(1).max(100).optional(),
 	description: z.string().max(500).optional(),
-	visibility: z
-		.enum(["project", "organization", "community"])
-		.optional(),
+	visibility: z.enum(["project", "organization", "community"]).optional(),
 
 	// Custom provider configuration updates
 	baseUrl: z.string().url("Must be a valid URL").optional(),
