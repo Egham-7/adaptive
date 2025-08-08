@@ -27,6 +27,7 @@ export const providerModelSchema = z.object({
 
 // Create provider schema
 export const createProviderSchema = z.object({
+	projectId: z.string(),
 	name: z
 		.string()
 		.min(1, "Provider name is required")
@@ -37,8 +38,25 @@ export const createProviderSchema = z.object({
 		),
 	displayName: z.string().min(1, "Display name is required").max(100),
 	description: z.string().max(500).optional(),
+	visibility: z
+		.enum(["project", "organization", "community"])
+		.default("project"),
+
+	// Custom provider configuration
+	baseUrl: z.string().url("Must be a valid URL").optional(),
+	authType: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
+	authHeaderName: z.string().max(100).optional(),
+	apiKey: z
+		.string()
+		.min(1, "API key is required for custom providers")
+		.optional(),
+	healthEndpoint: z.string().max(200).optional(),
+	rateLimitRpm: z.number().min(1).max(100000).optional(),
+	timeoutMs: z.number().min(1000).max(120000).optional(),
+	retryConfig: z.record(z.string(), z.any()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
+
 	models: z.array(providerModelSchema).min(1, "At least one model is required"),
-	apiKey: z.string().optional(),
 });
 
 // Update provider schema
@@ -46,8 +64,23 @@ export const updateProviderSchema = z.object({
 	id: z.string(),
 	displayName: z.string().min(1).max(100).optional(),
 	description: z.string().max(500).optional(),
+	visibility: z.enum(["project", "organization", "community"]).optional(),
+
+	// Custom provider configuration updates
+	baseUrl: z.string().url("Must be a valid URL").optional(),
+	authType: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
+	authHeaderName: z.string().max(100).optional(),
+	apiKey: z
+		.string()
+		.min(1, "API key is required for custom providers")
+		.optional(),
+	healthEndpoint: z.string().max(200).optional(),
+	rateLimitRpm: z.number().min(1).max(100000).optional(),
+	timeoutMs: z.number().min(1000).max(120000).optional(),
+	retryConfig: z.record(z.string(), z.any()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
+
 	isActive: z.boolean().optional(),
-	apiKey: z.string().optional(),
 });
 
 // Add model to existing provider schema
@@ -97,6 +130,7 @@ export const providerByNameSchema = z.object({
 });
 
 export const getAllProvidersSchema = z.object({
+	projectId: z.string().optional(), // Required to see project/org providers
 	apiKey: z.string().optional(),
 });
 

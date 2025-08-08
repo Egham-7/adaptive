@@ -146,6 +146,52 @@ await generateText({
 });
 ```
 
+## Custom Providers
+
+Configure custom providers alongside standard ones:
+
+```ts
+await generateText({
+  model: adaptive(),
+  prompt: "Explain machine learning concepts",
+  providerOptions: {
+    adaptive: {
+      // Include custom provider in model list
+      protocol_manager: {
+        models: [
+          { provider: "openai" }, // Standard provider
+          {
+            provider: "my-custom-llm", // Custom provider
+            model_name: "custom-model-v1",
+            cost_per_1m_input_tokens: 2.0,
+            cost_per_1m_output_tokens: 6.0,
+            max_context_tokens: 16000,
+            max_output_tokens: 4000,
+            supports_function_calling: true,
+            task_type: "Text Generation",
+            complexity: "medium"
+          }
+        ],
+        cost_bias: 0.5
+      },
+      
+      // Configure each custom provider
+      provider_configs: {
+        "my-custom-llm": {
+          base_url: "https://api.mycustom.com/v1",
+          api_key: "sk-custom-api-key-here",
+          auth_type: "bearer",
+          headers: {
+            "X-Custom-Header": "value"
+          },
+          timeout_ms: 45000
+        }
+      }
+    }
+  }
+});
+```
+
 ### Parameter Details
 
 #### `protocol_manager`

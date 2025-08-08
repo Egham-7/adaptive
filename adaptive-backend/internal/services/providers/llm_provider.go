@@ -1,6 +1,7 @@
 package providers
 
 import (
+	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/anthropic"
 	"adaptive-backend/internal/services/providers/deepseek"
 	"adaptive-backend/internal/services/providers/gemini"
@@ -13,7 +14,7 @@ import (
 	"strings"
 )
 
-func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error) {
+func NewLLMProvider(providerName string, providerConfigs map[string]*models.ProviderConfig) (provider_interfaces.LLMProvider, error) {
 	switch strings.ToLower(providerName) {
 	case "openai":
 		service, err := openai.NewOpenAIService()
@@ -63,6 +64,21 @@ func NewLLMProvider(providerName string) (provider_interfaces.LLMProvider, error
 		return service, nil
 
 	default:
-		return nil, errors.New("unsupported provider: " + providerName)
+		// Handle custom provider using OpenAI SDK with base URL override
+		if providerConfigs == nil {
+			return nil, errors.New("custom provider '" + providerName + "' requires provider_configs")
+		}
+		customConfig, exists := providerConfigs[providerName]
+		if !exists || customConfig == nil {
+			return nil, errors.New("custom provider '" + providerName + "' configuration not found")
+		}
+		if customConfig.BaseURL == nil {
+			return nil, errors.New("custom provider '" + providerName + "' requires base URL")
+		}
+		service, err := openai.NewCustomOpenAIService(*customConfig.BaseURL, customConfig)
+		if err != nil {
+			return nil, err
+		}
+		return service, nil
 	}
 }

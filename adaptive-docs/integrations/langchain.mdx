@@ -182,6 +182,95 @@ Ultra-fast caching for identical requests (disabled by default):
   - Provides sub-millisecond response times for repeated requests
   - Only successful responses are cached
 
+## Custom Providers
+
+You can configure custom providers alongside standard ones:
+
+<Tabs>
+<Tab title="Python">
+```python
+llm = ChatOpenAI(
+    api_key="ADAPTIVE_KEY",
+    base_url="https://llmadaptive.uk/api/v1",
+    model="",
+    model_kwargs={
+        # Include custom provider in model list
+        "protocol_manager": {
+            "models": [
+                {"provider": "openai"},  # Standard provider
+                {
+                    "provider": "my-custom-llm",  # Custom provider
+                    "model_name": "custom-model-v1",
+                    "cost_per_1m_input_tokens": 2.0,
+                    "cost_per_1m_output_tokens": 6.0,
+                    "max_context_tokens": 16000,
+                    "max_output_tokens": 4000,
+                    "supports_function_calling": True,
+                    "task_type": "Text Generation",
+                    "complexity": "medium"
+                }
+            ],
+            "cost_bias": 0.5
+        },
+        
+        # Configure each custom provider
+        "provider_configs": {
+            "my-custom-llm": {
+                "base_url": "https://api.mycustom.com/v1",
+                "api_key": "sk-custom-api-key-here",
+                "auth_type": "bearer",
+                "headers": {
+                    "X-Custom-Header": "value"
+                },
+                "timeout_ms": 45000
+            }
+    }
+)
+```
+</Tab>
+<Tab title="JavaScript">
+```js
+const llm = new ChatOpenAI({
+  apiKey: "ADAPTIVE_KEY",
+  baseURL: "https://llmadaptive.uk/api/v1",
+  model: "",
+  modelKwargs: {
+    // Include custom provider in model list
+    protocol_manager: {
+      models: [
+        { provider: "openai" },  // Standard provider
+        {
+          provider: "my-custom-llm",  // Custom provider
+          model_name: "custom-model-v1",
+          cost_per_1m_input_tokens: 2.0,
+          cost_per_1m_output_tokens: 6.0,
+          max_context_tokens: 16000,
+          max_output_tokens: 4000,
+          supports_function_calling: true,
+          task_type: "Text Generation",
+          complexity: "medium"
+        }
+      ],
+      cost_bias: 0.5
+    },
+    
+    // Required: Configuration for each custom provider (top-level)
+    provider_configs: {
+      "my-custom-llm": {
+        base_url: "https://api.mycustom.com/v1",
+        api_key: "sk-custom-api-key-here",
+        auth_type: "bearer",
+        headers: {
+          "X-Custom-Header": "value"
+        },
+        timeout_ms: 45000
+      }
+  }
+});
+```
+</Tab>
+</Tabs>
+
 ## Cache Tier Tracking
 
 LangChain responses include cache information:
