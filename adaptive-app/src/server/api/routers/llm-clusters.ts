@@ -1,9 +1,12 @@
-import crypto from "node:crypto";
 import { auth as getClerkAuth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
-import { authenticateAndGetProject, getCacheKey } from "@/lib/auth-utils";
+import {
+	authenticateAndGetProject,
+	getCacheKey,
+	validateAndAuthenticateApiKey,
+} from "@/lib/auth-utils";
 import { invalidateProjectCache, withCache } from "@/lib/cache-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
@@ -556,28 +559,7 @@ export const llmClustersRouter = createTRPCRouter({
 			try {
 				// Basic auth check (no specific project required)
 				if (input.apiKey) {
-					const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
-					if (!apiKeyRegex.test(input.apiKey)) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid API key format",
-						});
-					}
-					// Just verify key exists and is active
-					const prefix = input.apiKey.slice(0, 11);
-					const hash = crypto
-						.createHash("sha256")
-						.update(input.apiKey)
-						.digest("hex");
-					const record = await ctx.db.apiKey.findFirst({
-						where: { keyPrefix: prefix, keyHash: hash, status: "active" },
-					});
-					if (!record || (record.expiresAt && record.expiresAt < new Date())) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid or expired API key",
-						});
-					}
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
 				} else {
 					const clerkAuthResult = await getClerkAuth();
 					if (!clerkAuthResult.userId) {

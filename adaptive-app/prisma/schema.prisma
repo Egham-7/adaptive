@@ -41,7 +41,6 @@ enum CreditTransactionType {
 enum FallbackMode {
   sequential
   parallel
-  disabled
 }
 
 
@@ -355,12 +354,10 @@ model CreditPackage {
   price           Decimal   @db.Decimal(12,6) // Price in USD
   stripePriceId   String    @unique // Stripe price ID for this package
   isActive        Boolean   @default(true)
-  sortOrder       Int       @default(0) // For ordering packages in UI
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
   @@index([isActive])
-  @@index([sortOrder])
 }
 
 // Intelligent LLM Cluster - Adapter pattern for ChatCompletionRequest configuration

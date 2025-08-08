@@ -1,8 +1,9 @@
-import crypto from "node:crypto";
 import { auth as getClerkAuth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
+import { validateAndAuthenticateApiKey } from "@/lib/auth-utils";
+import { upsertModelCapability } from "@/lib/model-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	addProviderModelSchema,
@@ -32,28 +33,7 @@ export const providersRouter = createTRPCRouter({
 			try {
 				// Basic auth check (no specific project required)
 				if (input.apiKey) {
-					const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
-					if (!apiKeyRegex.test(input.apiKey)) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid API key format",
-						});
-					}
-					// Just verify key exists and is active
-					const prefix = input.apiKey.slice(0, 11);
-					const hash = crypto
-						.createHash("sha256")
-						.update(input.apiKey)
-						.digest("hex");
-					const record = await ctx.db.apiKey.findFirst({
-						where: { keyPrefix: prefix, keyHash: hash, status: "active" },
-					});
-					if (!record || (record.expiresAt && record.expiresAt < new Date())) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid or expired API key",
-						});
-					}
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
 				} else {
 					const clerkAuthResult = await getClerkAuth();
 					if (!clerkAuthResult.userId) {
@@ -97,27 +77,7 @@ export const providersRouter = createTRPCRouter({
 			try {
 				// Basic auth check
 				if (input.apiKey) {
-					const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
-					if (!apiKeyRegex.test(input.apiKey)) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid API key format",
-						});
-					}
-					const prefix = input.apiKey.slice(0, 11);
-					const hash = crypto
-						.createHash("sha256")
-						.update(input.apiKey)
-						.digest("hex");
-					const record = await ctx.db.apiKey.findFirst({
-						where: { keyPrefix: prefix, keyHash: hash, status: "active" },
-					});
-					if (!record || (record.expiresAt && record.expiresAt < new Date())) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid or expired API key",
-						});
-					}
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
 				} else {
 					const clerkAuthResult = await getClerkAuth();
 					if (!clerkAuthResult.userId) {
@@ -165,27 +125,7 @@ export const providersRouter = createTRPCRouter({
 			try {
 				// Basic auth check
 				if (input.apiKey) {
-					const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
-					if (!apiKeyRegex.test(input.apiKey)) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid API key format",
-						});
-					}
-					const prefix = input.apiKey.slice(0, 11);
-					const hash = crypto
-						.createHash("sha256")
-						.update(input.apiKey)
-						.digest("hex");
-					const record = await ctx.db.apiKey.findFirst({
-						where: { keyPrefix: prefix, keyHash: hash, status: "active" },
-					});
-					if (!record || (record.expiresAt && record.expiresAt < new Date())) {
-						throw new TRPCError({
-							code: "UNAUTHORIZED",
-							message: "Invalid or expired API key",
-						});
-					}
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
 				} else {
 					const clerkAuthResult = await getClerkAuth();
 					if (!clerkAuthResult.userId) {
@@ -280,21 +220,11 @@ export const providersRouter = createTRPCRouter({
 
 						// Create capabilities if provided
 						if (model.capabilities) {
-							await tx.modelCapability.create({
-								data: {
-									providerModelId: createdModel.id,
-									description: model.capabilities.description,
-									maxContextTokens: model.capabilities.maxContextTokens,
-									maxOutputTokens: model.capabilities.maxOutputTokens,
-									supportsFunctionCalling:
-										model.capabilities.supportsFunctionCalling ?? false,
-									languagesSupported: model.capabilities.languagesSupported,
-									modelSizeParams: model.capabilities.modelSizeParams,
-									latencyTier: model.capabilities.latencyTier,
-									taskType: model.capabilities.taskType,
-									complexity: model.capabilities.complexity,
-								},
-							});
+							await upsertModelCapability(
+								tx,
+								createdModel.id,
+								model.capabilities,
+							);
 						}
 					}
 
@@ -331,13 +261,17 @@ export const providersRouter = createTRPCRouter({
 		.input(updateProviderSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// Auth check
-				const clerkAuthResult = await getClerkAuth();
-				if (!clerkAuthResult.userId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "Authentication required",
-					});
+				// Auth check - support both API key and Clerk authentication
+				if (input.apiKey) {
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
+				} else {
+					const clerkAuthResult = await getClerkAuth();
+					if (!clerkAuthResult.userId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Authentication required",
+						});
+					}
 				}
 
 				// Find provider first
@@ -391,13 +325,17 @@ export const providersRouter = createTRPCRouter({
 		.input(providerByIdSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// Auth check
-				const clerkAuthResult = await getClerkAuth();
-				if (!clerkAuthResult.userId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "Authentication required",
-					});
+				// Auth check - support both API key and Clerk authentication
+				if (input.apiKey) {
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
+				} else {
+					const clerkAuthResult = await getClerkAuth();
+					if (!clerkAuthResult.userId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Authentication required",
+						});
+					}
 				}
 
 				// Find provider first
@@ -451,13 +389,17 @@ export const providersRouter = createTRPCRouter({
 		.input(addProviderModelSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// Auth check
-				const clerkAuthResult = await getClerkAuth();
-				if (!clerkAuthResult.userId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "Authentication required",
-					});
+				// Auth check - support both API key and Clerk authentication
+				if (input.apiKey) {
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
+				} else {
+					const clerkAuthResult = await getClerkAuth();
+					if (!clerkAuthResult.userId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Authentication required",
+						});
+					}
 				}
 
 				// Find provider first
@@ -504,21 +446,11 @@ export const providersRouter = createTRPCRouter({
 
 					// Create capabilities if provided
 					if (input.capabilities) {
-						await tx.modelCapability.create({
-							data: {
-								providerModelId: createdModel.id,
-								description: input.capabilities.description,
-								maxContextTokens: input.capabilities.maxContextTokens,
-								maxOutputTokens: input.capabilities.maxOutputTokens,
-								supportsFunctionCalling:
-									input.capabilities.supportsFunctionCalling ?? false,
-								languagesSupported: input.capabilities.languagesSupported,
-								modelSizeParams: input.capabilities.modelSizeParams,
-								latencyTier: input.capabilities.latencyTier,
-								taskType: input.capabilities.taskType,
-								complexity: input.capabilities.complexity,
-							},
-						});
+						await upsertModelCapability(
+							tx,
+							createdModel.id,
+							input.capabilities,
+						);
 					}
 
 					// Return model with capabilities
@@ -548,13 +480,17 @@ export const providersRouter = createTRPCRouter({
 		.input(updateProviderModelSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// Auth check
-				const clerkAuthResult = await getClerkAuth();
-				if (!clerkAuthResult.userId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "Authentication required",
-					});
+				// Auth check - support both API key and Clerk authentication
+				if (input.apiKey) {
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
+				} else {
+					const clerkAuthResult = await getClerkAuth();
+					if (!clerkAuthResult.userId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Authentication required",
+						});
+					}
 				}
 
 				// Find model first
@@ -590,62 +526,7 @@ export const providersRouter = createTRPCRouter({
 
 					// Update or create capabilities if provided
 					if (input.capabilities) {
-						const existingCapabilities = await tx.modelCapability.findUnique({
-							where: { providerModelId: input.id },
-						});
-
-						if (existingCapabilities) {
-							await tx.modelCapability.update({
-								where: { providerModelId: input.id },
-								data: {
-									...(input.capabilities.description !== undefined && {
-										description: input.capabilities.description,
-									}),
-									...(input.capabilities.maxContextTokens !== undefined && {
-										maxContextTokens: input.capabilities.maxContextTokens,
-									}),
-									...(input.capabilities.maxOutputTokens !== undefined && {
-										maxOutputTokens: input.capabilities.maxOutputTokens,
-									}),
-									...(input.capabilities.supportsFunctionCalling !==
-										undefined && {
-										supportsFunctionCalling:
-											input.capabilities.supportsFunctionCalling,
-									}),
-									...(input.capabilities.languagesSupported !== undefined && {
-										languagesSupported: input.capabilities.languagesSupported,
-									}),
-									...(input.capabilities.modelSizeParams !== undefined && {
-										modelSizeParams: input.capabilities.modelSizeParams,
-									}),
-									...(input.capabilities.latencyTier !== undefined && {
-										latencyTier: input.capabilities.latencyTier,
-									}),
-									...(input.capabilities.taskType !== undefined && {
-										taskType: input.capabilities.taskType,
-									}),
-									...(input.capabilities.complexity !== undefined && {
-										complexity: input.capabilities.complexity,
-									}),
-								},
-							});
-						} else {
-							await tx.modelCapability.create({
-								data: {
-									providerModelId: input.id,
-									description: input.capabilities.description,
-									maxContextTokens: input.capabilities.maxContextTokens,
-									maxOutputTokens: input.capabilities.maxOutputTokens,
-									supportsFunctionCalling:
-										input.capabilities.supportsFunctionCalling ?? false,
-									languagesSupported: input.capabilities.languagesSupported,
-									modelSizeParams: input.capabilities.modelSizeParams,
-									latencyTier: input.capabilities.latencyTier,
-									taskType: input.capabilities.taskType,
-									complexity: input.capabilities.complexity,
-								},
-							});
-						}
+						await upsertModelCapability(tx, input.id, input.capabilities);
 					}
 
 					// Return updated model with capabilities
@@ -680,13 +561,17 @@ export const providersRouter = createTRPCRouter({
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// Auth check
-				const clerkAuthResult = await getClerkAuth();
-				if (!clerkAuthResult.userId) {
-					throw new TRPCError({
-						code: "UNAUTHORIZED",
-						message: "Authentication required",
-					});
+				// Auth check - support both API key and Clerk authentication
+				if (input.apiKey) {
+					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
+				} else {
+					const clerkAuthResult = await getClerkAuth();
+					if (!clerkAuthResult.userId) {
+						throw new TRPCError({
+							code: "UNAUTHORIZED",
+							message: "Authentication required",
+						});
+					}
 				}
 
 				// Find model first

@@ -85,7 +85,14 @@ export const providerByIdSchema = z.object({
 });
 
 export const providerByNameSchema = z.object({
-	name: z.string(),
+	name: z
+		.string()
+		.min(1, "Provider name is required")
+		.max(50, "Provider name too long")
+		.regex(
+			/^[a-z0-9-_]+$/,
+			"Provider name must be lowercase alphanumeric with hyphens and underscores only",
+		),
 	apiKey: z.string().optional(),
 });
 

@@ -24,6 +24,27 @@ export const normalizeAndValidateApiKey = (apiKey: string) => {
 	return { normalizedKey, prefix, hash };
 };
 
+// Utility to validate API key and check if it exists in database
+export const validateAndAuthenticateApiKey = async (
+	apiKey: string,
+	db: Context["db"],
+) => {
+	const { prefix, hash } = normalizeAndValidateApiKey(apiKey);
+
+	const record = await db.apiKey.findFirst({
+		where: { keyPrefix: prefix, keyHash: hash, status: "active" },
+	});
+
+	if (!record || (record.expiresAt && record.expiresAt < new Date())) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Invalid or expired API key",
+		});
+	}
+
+	return record;
+};
+
 export type AuthResult =
 	| {
 			authType: "api_key";
