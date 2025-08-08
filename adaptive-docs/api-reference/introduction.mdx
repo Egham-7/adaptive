@@ -119,8 +119,9 @@ Responses include provider selection info and cost savings:
 
 Adaptive is compatible with all OpenAI SDKs. Simply change the base URL:
 
-### Python (OpenAI SDK)
-```python
+<CodeGroup>
+
+```python Python
 from openai import OpenAI
 
 client = OpenAI(
@@ -129,8 +130,7 @@ client = OpenAI(
 )
 ```
 
-### JavaScript/TypeScript
-```javascript
+```javascript JavaScript
 import OpenAI from 'openai';
 
 const client = new OpenAI({
@@ -139,8 +139,7 @@ const client = new OpenAI({
 });
 ```
 
-### cURL
-```bash
+```bash cURL
 curl https://llmadaptive.uk/api/v1/chat/completions \
   -H "X-Stainless-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
@@ -150,13 +149,22 @@ curl https://llmadaptive.uk/api/v1/chat/completions \
   }'
 ```
 
+</CodeGroup>
+
+## API Endpoints
+
+<CardGroup cols={2}>
+<Card title="Chat Completions" icon="message" href="/api-reference/chat-completions">
+  OpenAI-compatible completions with intelligent routing
+</Card>
+<Card title="Select Model" icon="brain" href="/api-reference/select-model">
+  Get intelligent model selection for your own inference
+</Card>
+</CardGroup>
+
 ## Getting Started
 
 1. **Get an API key** from [llmadaptive.uk](https://llmadaptive.uk)
 2. **Set up billing** or check your free credit balance
 3. **Make your first request** using the examples above
 4. **Monitor usage** and cost savings in your dashboard
-
-<Card title="Chat Completions" icon="message" href="/api-reference/chat-completions">
-  Start with our main endpoint for chat completions
-</Card>

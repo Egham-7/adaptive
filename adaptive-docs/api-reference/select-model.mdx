@@ -1,0 +1,296 @@
+---
+title: 'Select Model'
+api: 'POST https://llmadaptive.uk/api/v1/select-model'
+description: 'Get intelligent model selection for your own inference'
+icon: "brain"
+---
+
+Get Adaptive's intelligent model selection without using our inference. Perfect when you want to use your own provider accounts, on-premise models, or custom inference infrastructure.
+
+## Why Use This?
+
+**Use Adaptive's intelligence, run inference wherever you want:**
+
+- **"I have my own OpenAI/Anthropic accounts"** - Get optimal model selection, pay your providers directly
+- **"I run models on-premise"** - Get routing decisions for your local infrastructure  
+- **"I have enterprise contracts"** - Use your existing provider relationships with intelligent routing
+- **"I need data privacy"** - Keep inference local while getting smart model selection
+
+## Request
+
+Send the **exact same request** you'd send to `/chat/completions` - same parameters, same format. The only difference is this endpoint shows you the selection instead of running inference.
+
+<ParamField body="model" type="string" required>
+  Model identifier. Use `""` for intelligent routing.
+</ParamField>
+
+<ParamField body="messages" type="array" required>
+  Your conversation messages - same format as chat completions.
+</ParamField>
+
+<ParamField body="protocol_manager" type="object">
+  Your routing configuration - test different settings here.
+</ParamField>
+
+**All other chat completion parameters are supported** - temperature, max_tokens, tools, etc. They all affect model selection.
+
+## Response
+
+<ResponseField name="request" type="object">
+  **The optimized request ready to send to your provider**
+  
+  This is what you actually use - the complete request object with:
+  - Selected model name
+  - Optimized parameters  
+  - Your original messages and settings
+  - Ready to send directly to OpenAI, Anthropic, etc.
+</ResponseField>
+
+<ResponseField name="metadata" type="object">
+  **Optional info about the selection** (for logging/debugging)
+  
+  <Expandable title="Selection Details">
+    <ResponseField name="provider" type="string">
+      Which provider was selected
+    </ResponseField>
+    
+    <ResponseField name="model" type="string">
+      Which specific model was selected
+    </ResponseField>
+    
+    <ResponseField name="cost_per_1m_tokens" type="number">
+      Cost info (optional, for your reference)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Quick Examples
+
+### "What model will this use?"
+
+```bash
+curl https://llmadaptive.uk/api/v1/select-model \
+  -H "X-Stainless-API-Key: $API_KEY" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello"}]
+  }'
+
+# Response: Shows gpt-4o-mini was selected
+{
+  "metadata": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "cost_per_1m_tokens": 0.15
+  }
+}
+```
+
+### "Test my cost_bias setting"
+
+```javascript
+// Will this actually use cheaper models?
+const result = await fetch('/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': apiKey },
+  body: JSON.stringify({
+    model: '',
+    messages: [{ role: 'user', content: 'Complex analysis task' }],
+    protocol_manager: {
+      cost_bias: 0.1  // Max cost savings
+    }
+  })
+});
+
+console.log(await result.json());
+// See if it actually picked a cheaper model
+```
+
+### "Compare different configurations"
+
+```python
+import requests
+
+base_request = {
+    "model": "",
+    "messages": [{"role": "user", "content": "Write Python code"}]
+}
+
+# Test cost-focused vs performance-focused
+configs = [
+    {"cost_bias": 0.1, "name": "cheap"},
+    {"cost_bias": 0.9, "name": "premium"}
+]
+
+for config in configs:
+    response = requests.post('/api/v1/select-model', json={
+        **base_request,
+        "protocol_manager": {"cost_bias": config["cost_bias"]}
+    })
+    
+    result = response.json()
+    print(f"{config['name']}: {result['metadata']['model']}")
+```
+
+## Real-World Integration Patterns
+
+### 1. Use Your Own Provider Accounts
+```javascript
+// Get intelligent selection, use your own OpenAI/Anthropic accounts
+const selection = await fetch('/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey },
+  body: JSON.stringify(originalRequest)
+});
+
+const result = await selection.json();
+
+// Just send the optimized request to your provider
+const yourOpenAI = new OpenAI({ 
+  apiKey: process.env.YOUR_OPENAI_KEY 
+});
+
+const completion = await yourOpenAI.chat.completions.create(result.request);
+// That's it! The request already has the right model and parameters
+```
+
+### 2. On-Premise Model Routing
+```javascript
+// Configure Adaptive to know about your local models
+const selection = await selectModel({
+  model: '',
+  messages: userRequest,
+  protocol_manager: {
+    models: [
+      { provider: "local", model_name: "llama-3-8b" },
+      { provider: "local", model_name: "llama-3-70b" },
+      { provider: "openai", model_name: "gpt-4" } // Cloud fallback
+    ]
+  }
+});
+
+// The response tells you which to use
+const optimizedRequest = selection.request;
+
+// Send to the appropriate infrastructure  
+if (optimizedRequest.model === "llama-3-8b") {
+  await yourLocalServer.infer(optimizedRequest);
+} else if (optimizedRequest.model === "gpt-4") {
+  await yourOpenAI.chat.completions.create(optimizedRequest);
+}
+```
+
+### 3. Enterprise Contract Optimization
+```javascript
+// Maximize usage of your enterprise contracts
+const selection = await selectModel({
+  messages: request,
+  protocol_manager: {
+    models: [
+      { provider: "anthropic" }, // Your enterprise contract
+      { provider: "openai" },    // Your enterprise contract  
+      { provider: "google" }     // Pay-per-use fallback
+    ],
+    cost_bias: 0.8 // Prefer your contracted providers
+  }
+});
+
+// Always use your own accounts
+const completion = await yourProviderClients[selection.metadata.provider]
+  .create(selection.request);
+```
+
+### 4. Data Privacy & Compliance
+```javascript
+// Keep sensitive data local while getting smart routing
+const selection = await selectModel({
+  model: '',
+  messages: [{ role: "user", content: "NON_SENSITIVE_TASK_DESCRIPTION" }],
+  // Don't send actual sensitive data to Adaptive
+});
+
+// Run inference on your secure infrastructure
+if (selection.metadata.complexity === "high") {
+  // Use your high-end local model
+  const result = await yourLocalGPU.infer(actualSensitiveData);
+} else {
+  // Use your efficient local model
+  const result = await yourLocalCPU.infer(actualSensitiveData);
+}
+```
+
+## Understanding the Response
+
+### What You Get Back
+
+```json
+{
+  "request": {
+    "model": "claude-3-5-sonnet-20241022",  // ← Exact model chosen
+    "messages": [...],                       // ← Your original messages
+    "temperature": 0.7                       // ← Optimized parameters
+  },
+  "metadata": {
+    "provider": "anthropic",                 // ← Which service
+    "model": "claude-3-5-sonnet-20241022",  // ← Specific model
+    "cost_per_1m_tokens": 3.0,             // ← Cost info
+    "complexity": "high"                     // ← Why this was chosen
+  }
+}
+```
+
+### Key Insights
+
+- **`request.model`** - This is what gets sent to the actual provider
+- **`metadata.provider`** - Which API service will be called
+- **`metadata.cost_per_1m_tokens`** - Calculate your costs upfront
+- **`metadata.complexity`** - How Adaptive classified your task
+
+## Common Patterns
+
+### Before/After Comparison
+```javascript
+// See what changes with different parameters
+const baseline = await selectModel(request);
+const withConstraints = await selectModel({
+  ...request,
+  protocol_manager: { cost_bias: 0.1 }
+});
+
+console.log(`Baseline: ${baseline.metadata.model}`);
+console.log(`Cost-optimized: ${withConstraints.metadata.model}`);
+```
+
+### Validate Your Setup
+```javascript
+// Make sure your routing rules work
+const shouldUseCheap = await selectModel({
+  model: "",
+  messages: [{ role: "user", content: "Hi" }]
+});
+
+const shouldUseExpensive = await selectModel({
+  model: "",
+  messages: [{ role: "user", content: "Analyze this complex dataset..." }]
+});
+
+// Verify different complexity tasks get different models
+```
+
+## Authentication
+
+Same as chat completions:
+```bash
+# Any of these work
+-H "X-Stainless-API-Key: your-key"
+-H "Authorization: Bearer your-key"
+```
+
+## No Inference = Fast & Cheap
+
+This endpoint:
+- ✅ **Fast** - No LLM inference, just routing logic
+- ✅ **Cheap** - Doesn't count against token usage
+- ✅ **Accurate** - Uses exact same selection logic as real completions
+
+Perfect for testing, debugging, and cost planning without burning through your budget.
