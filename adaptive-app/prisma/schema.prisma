@@ -22,16 +22,6 @@ enum ProjectMemberRole {
   member
 }
 
-enum ProviderType {
-  openai
-  anthropic
-  gemini
-  groq
-  grok
-  deepseek
-  huggingface
-  adaptive
-}
 
 enum RequestType {
   completion
@@ -47,6 +37,13 @@ enum CreditTransactionType {
   refund
   promotional
 }
+
+enum FallbackMode {
+  sequential
+  parallel
+  disabled
+}
+
 
 datasource db {
   provider = "postgresql"
@@ -177,6 +174,7 @@ model Project {
   members        ProjectMember[]
   apiKeys        ApiKey[]
   usage          ApiUsage[]
+  llmClusters    LLMCluster[]
   
   @@index([organizationId])
   @@index([status])
@@ -201,7 +199,8 @@ model ApiUsage {
   id                String   @id @default(cuid())
   apiKeyId          String
   projectId         String?
-  provider          ProviderType?   // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
+  clusterId         String?  // LLM cluster used for this request
+  provider          String?  // Provider name (e.g., 'openai', 'anthropic', 'custom-provider')
   model             String?   // Model name used
   requestType       RequestType   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
   inputTokens       Int      @default(0)
@@ -215,10 +214,12 @@ model ApiUsage {
   
   apiKey            ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
   project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cluster           LLMCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
   creditTransactions CreditTransaction[]
   
   @@index([apiKeyId])
   @@index([projectId])
+  @@index([clusterId])
   @@index([provider])
   @@index([timestamp])
   @@index([requestType])
@@ -267,12 +268,35 @@ model ProviderModel {
   updatedAt       DateTime  @updatedAt
   
   provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  capabilities    ModelCapability?
   
   @@unique([providerId, name])
   @@index([providerId])
   @@index([name])
   @@index([type])
   @@index([isActive])
+}
+
+model ModelCapability {
+  id                      String    @id @default(cuid())
+  providerModelId         String    @unique
+  description             String?
+  maxContextTokens        Int?      // Maximum context window size
+  maxOutputTokens         Int?      // Maximum output tokens
+  supportsFunctionCalling Boolean   @default(false)
+  languagesSupported      String?   // Comma-separated list of language codes
+  modelSizeParams         String?   // Model size information (e.g., "7B", "70B")
+  latencyTier             String?   // "low" | "medium" | "high"
+  taskType                String?   // Specialized task type (e.g., "reasoning", "code", "chat")
+  complexity              String?   // "low" | "medium" | "high"
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  providerModel           ProviderModel @relation(fields: [providerModelId], references: [id], onDelete: Cascade)
+  
+  @@index([latencyTier])
+  @@index([taskType])
+  @@index([complexity])
 }
 
 // Credit system models
@@ -337,5 +361,67 @@ model CreditPackage {
   
   @@index([isActive])
   @@index([sortOrder])
+}
+
+// Intelligent LLM Cluster - Adapter pattern for ChatCompletionRequest configuration
+model LLMCluster {
+  id          String    @id @default(cuid())
+  projectId   String    // Project this cluster belongs to
+  name        String    // User-defined name (e.g., "Production", "Fast", "Cheap")
+  description String?   // Optional description
+  isActive    Boolean   @default(true)
+  
+  // Fallback Config fields
+  fallbackEnabled      Boolean      @default(true)
+  fallbackMode         FallbackMode @default(parallel)
+  
+  // Protocol Manager Config fields
+  enableCircuitBreaker Boolean      @default(true)
+  maxRetries          Int          @default(3)
+  timeoutMs           Int          @default(30000)
+  costBias            Float        @default(0.5)      // 0.0 = prioritize cost, 1.0 = prioritize performance
+  complexityThreshold Float?                          // Optional complexity threshold for model selection
+  tokenThreshold      Int?                            // Optional token threshold for model selection
+  
+  // Semantic Cache Config
+  enableSemanticCache Boolean      @default(true)
+  semanticThreshold   Float        @default(0.85)     // Similarity threshold for semantic cache hits
+  
+  // Prompt Cache Config
+  enablePromptCache   Boolean      @default(true)
+  promptCacheTTL      Int          @default(3600)     // TTL in seconds
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  models      ClusterModel[]
+  usage       ApiUsage[]
+  
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model ClusterModel {
+  id         String    @id @default(cuid())
+  clusterId  String    // LLM cluster this model belongs to
+  provider   String    // Provider name (e.g., "openai", "anthropic", "custom-provider")
+  modelName  String    // Model name (e.g., "gpt-4", "claude-3-opus")
+  priority   Int       @default(1) // Lower = higher priority
+  isActive   Boolean   @default(true)
+  
+  // Model parameter overrides
+  maxTokens   Int?     // Override max tokens
+  temperature Float?   // Override temperature
+  topP        Float?   // Override top_p
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  cluster     LLMCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  
+  @@unique([clusterId, provider, modelName])
+  @@index([clusterId])
+  @@index([priority])
 }
 
