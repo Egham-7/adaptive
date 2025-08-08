@@ -138,13 +138,13 @@ export async function POST(
 				},
 			});
 
-			// Create cluster models
+			// Create cluster models with incremental priorities
 			await tx.clusterModel.createMany({
-				data: body.models.map((model) => ({
+				data: body.models.map((model, index) => ({
 					clusterId: newCluster.id,
 					provider: model.provider,
 					modelName: model.modelName,
-					priority: model.priority ?? 1,
+					priority: model.priority ?? (index + 1),
 				})),
 			});
 

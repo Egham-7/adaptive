@@ -3,6 +3,27 @@ import { auth as getClerkAuth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { Context } from "@/server/api/trpc";
 
+// API key validation constants
+const API_KEY_REGEX = /^sk-[A-Za-z0-9_-]+$/;
+const API_KEY_PREFIX_LENGTH = 11;
+
+// Utility to normalize and validate API key
+export const normalizeAndValidateApiKey = (apiKey: string) => {
+	const normalizedKey = apiKey.trim();
+	
+	if (!API_KEY_REGEX.test(normalizedKey)) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "Invalid API key format",
+		});
+	}
+
+	const prefix = normalizedKey.slice(0, API_KEY_PREFIX_LENGTH);
+	const hash = crypto.createHash("sha256").update(normalizedKey).digest("hex");
+
+	return { normalizedKey, prefix, hash };
+};
+
 export type AuthResult =
 	| {
 			authType: "api_key";
@@ -27,16 +48,7 @@ export const authenticateAndGetProject = async (
 ): Promise<AuthResult> => {
 	// Try API key authentication first
 	if (input.apiKey) {
-		const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
-		if (!apiKeyRegex.test(input.apiKey)) {
-			throw new TRPCError({
-				code: "UNAUTHORIZED",
-				message: "Invalid API key format",
-			});
-		}
-
-		const prefix = input.apiKey.slice(0, 11);
-		const hash = crypto.createHash("sha256").update(input.apiKey).digest("hex");
+		const { normalizedKey, prefix, hash } = normalizeAndValidateApiKey(input.apiKey);
 
 		const record = await ctx.db.apiKey.findFirst({
 			where: {
@@ -126,13 +138,16 @@ export const authenticateApiKey = async (
 	apiKey: { id: string; projectId: string };
 	project: { id: string; name: string };
 }> => {
-	const apiKeyRegex = /^sk-[A-Za-z0-9_-]+$/;
-	if (!apiKeyRegex.test(apiKey)) {
-		throw new Error("Invalid API key format");
-	}
-
-	const prefix = apiKey.slice(0, 11);
-	const hash = crypto.createHash("sha256").update(apiKey).digest("hex");
+	const { normalizedKey, prefix, hash } = (() => {
+		try {
+			return normalizeAndValidateApiKey(apiKey);
+		} catch (error) {
+			if (error instanceof TRPCError) {
+				throw new Error(error.message);
+			}
+			throw new Error("Invalid API key format");
+		}
+	})();
 
 	const record = await db.apiKey.findFirst({
 		where: {

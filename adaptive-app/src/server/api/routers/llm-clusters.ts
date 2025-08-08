@@ -272,19 +272,19 @@ export const llmClustersRouter = createTRPCRouter({
 					return await tx.lLMCluster.update({
 						where: { id: input.id },
 						data: {
-							...(input.name && { name: input.name }),
+							...(input.name !== undefined && { name: input.name }),
 							...(input.description !== undefined && {
 								description: input.description,
 							}),
 							...(input.fallbackEnabled !== undefined && {
 								fallbackEnabled: input.fallbackEnabled,
 							}),
-							...(input.fallbackMode && { fallbackMode: input.fallbackMode }),
+							...(input.fallbackMode !== undefined && { fallbackMode: input.fallbackMode }),
 							...(input.enableCircuitBreaker !== undefined && {
 								enableCircuitBreaker: input.enableCircuitBreaker,
 							}),
-							...(input.maxRetries && { maxRetries: input.maxRetries }),
-							...(input.timeoutMs && { timeoutMs: input.timeoutMs }),
+							...(input.maxRetries !== undefined && { maxRetries: input.maxRetries }),
+							...(input.timeoutMs !== undefined && { timeoutMs: input.timeoutMs }),
 							...(input.costBias !== undefined && { costBias: input.costBias }),
 							...(input.complexityThreshold !== undefined && {
 								complexityThreshold: input.complexityThreshold,

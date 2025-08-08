@@ -288,8 +288,7 @@ export const providersRouter = createTRPCRouter({
 									maxOutputTokens: model.capabilities.maxOutputTokens,
 									supportsFunctionCalling:
 										model.capabilities.supportsFunctionCalling ?? false,
-									languagesSupported:
-										model.capabilities.languagesSupported?.join(","),
+									languagesSupported: model.capabilities.languagesSupported,
 									modelSizeParams: model.capabilities.modelSizeParams,
 									latencyTier: model.capabilities.latencyTier,
 									taskType: model.capabilities.taskType,
@@ -513,8 +512,7 @@ export const providersRouter = createTRPCRouter({
 								maxOutputTokens: input.capabilities.maxOutputTokens,
 								supportsFunctionCalling:
 									input.capabilities.supportsFunctionCalling ?? false,
-								languagesSupported:
-									input.capabilities.languagesSupported?.join(","),
+								languagesSupported: input.capabilities.languagesSupported,
 								modelSizeParams: input.capabilities.modelSizeParams,
 								latencyTier: input.capabilities.latencyTier,
 								taskType: input.capabilities.taskType,
@@ -615,8 +613,7 @@ export const providersRouter = createTRPCRouter({
 											input.capabilities.supportsFunctionCalling,
 									}),
 									...(input.capabilities.languagesSupported !== undefined && {
-										languagesSupported:
-											input.capabilities.languagesSupported?.join(","),
+										languagesSupported: input.capabilities.languagesSupported,
 									}),
 									...(input.capabilities.modelSizeParams !== undefined && {
 										modelSizeParams: input.capabilities.modelSizeParams,
@@ -641,8 +638,7 @@ export const providersRouter = createTRPCRouter({
 									maxOutputTokens: input.capabilities.maxOutputTokens,
 									supportsFunctionCalling:
 										input.capabilities.supportsFunctionCalling ?? false,
-									languagesSupported:
-										input.capabilities.languagesSupported?.join(","),
+									languagesSupported: input.capabilities.languagesSupported,
 									modelSizeParams: input.capabilities.modelSizeParams,
 									latencyTier: input.capabilities.latencyTier,
 									taskType: input.capabilities.taskType,
@@ -706,41 +702,44 @@ export const providersRouter = createTRPCRouter({
 					});
 				}
 
-				// Check business rule: don't allow removing last model
-				const modelCount = await ctx.db.providerModel.count({
-					where: {
-						providerId: model.providerId,
-						isActive: true,
-					},
-				});
-
-				if (modelCount <= 1) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Cannot remove the last model from a provider",
+				// Atomic transaction to prevent race conditions
+				await ctx.db.$transaction(async (tx) => {
+					// Check business rule: don't allow removing last model
+					const modelCount = await tx.providerModel.count({
+						where: {
+							providerId: model.providerId,
+							isActive: true,
+						},
 					});
-				}
 
-				// Check if model is being used in any clusters
-				const clusterModels = await ctx.db.clusterModel.findFirst({
-					where: {
-						provider: model.provider.name,
-						modelName: model.name,
-						isActive: true,
-					},
-				});
+					if (modelCount <= 1) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Cannot remove the last model from a provider",
+						});
+					}
 
-				if (clusterModels) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Cannot remove model that is being used in clusters",
+					// Check if model is being used in any clusters
+					const clusterModels = await tx.clusterModel.findFirst({
+						where: {
+							provider: model.provider.name,
+							modelName: model.name,
+							isActive: true,
+						},
 					});
-				}
 
-				// Soft delete
-				await ctx.db.providerModel.update({
-					where: { id: input.modelId },
-					data: { isActive: false },
+					if (clusterModels) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Cannot remove model that is being used in clusters",
+						});
+					}
+
+					// Soft delete within the same transaction
+					await tx.providerModel.update({
+						where: { id: input.modelId },
+						data: { isActive: false },
+					});
 				});
 
 				return { success: true };
