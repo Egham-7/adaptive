@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { authenticateApiKey } from "@/lib/auth-utils";
-import { createClusterSchema } from "@/lib/cluster-schemas";
 import { db } from "@/server/db";
+import { createClusterSchema } from "@/types/cluster-schemas";
 
 // GET /api/v1/clusters/{projectId} - List all clusters for project
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: { projectId: string } },
+	{ params }: { params: Promise<{ projectId: string }> },
 ) {
+	const { projectId } = await params;
 	try {
 		const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
 		if (!apiKey) {
@@ -17,7 +18,7 @@ export async function GET(
 		const auth = await authenticateApiKey(apiKey, db);
 
 		// Verify API key has access to this project
-		if (auth.apiKey.projectId !== params.projectId) {
+		if (auth.apiKey.projectId !== projectId) {
 			return NextResponse.json(
 				{ error: "API key does not have access to this project" },
 				{ status: 403 },
@@ -26,7 +27,7 @@ export async function GET(
 
 		const clusters = await db.lLMCluster.findMany({
 			where: {
-				projectId: params.projectId,
+				projectId: projectId,
 				isActive: true,
 			},
 			include: {
@@ -51,8 +52,9 @@ export async function GET(
 // POST /api/v1/clusters/{projectId} - Create new cluster
 export async function POST(
 	request: NextRequest,
-	{ params }: { params: { projectId: string } },
+	{ params }: { params: Promise<{ projectId: string }> },
 ) {
+	const { projectId } = await params;
 	try {
 		const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
 		if (!apiKey) {
@@ -62,7 +64,7 @@ export async function POST(
 		const auth = await authenticateApiKey(apiKey, db);
 
 		// Verify API key has access to this project
-		if (auth.apiKey.projectId !== params.projectId) {
+		if (auth.apiKey.projectId !== projectId) {
 			return NextResponse.json(
 				{ error: "API key does not have access to this project" },
 				{ status: 403 },
@@ -89,7 +91,7 @@ export async function POST(
 			// Check if cluster name already exists
 			const existing = await tx.lLMCluster.findFirst({
 				where: {
-					projectId: params.projectId,
+					projectId: projectId,
 					name: body.name,
 				},
 			});
@@ -118,7 +120,7 @@ export async function POST(
 			// Create cluster
 			const newCluster = await tx.lLMCluster.create({
 				data: {
-					projectId: params.projectId,
+					projectId: projectId,
 					name: body.name,
 					description: body.description,
 					fallbackEnabled: body.fallbackEnabled ?? true,

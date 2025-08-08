@@ -6,8 +6,9 @@ import { db } from "@/server/db";
 // POST /api/v1/clusters/{projectId}/{name}/chat/completions - OpenAI-compatible chat completions with cluster routing
 export async function POST(
 	request: NextRequest,
-	{ params }: { params: { projectId: string; name: string } },
+	{ params }: { params: Promise<{ projectId: string; name: string }> },
 ) {
+	const { projectId, name } = await params;
 	try {
 		const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
 		if (!apiKey) {
@@ -17,7 +18,7 @@ export async function POST(
 		const auth = await authenticateApiKey(apiKey, db);
 
 		// Verify API key has access to this project
-		if (auth.apiKey.projectId !== params.projectId) {
+		if (auth.apiKey.projectId !== projectId) {
 			return NextResponse.json(
 				{ error: "API key does not have access to this project" },
 				{ status: 403 },
@@ -27,8 +28,8 @@ export async function POST(
 		// Get cluster configuration
 		const cluster = await db.lLMCluster.findFirst({
 			where: {
-				projectId: params.projectId,
-				name: params.name,
+				projectId: projectId,
+				name: name,
 				isActive: true,
 			},
 			include: {
@@ -48,7 +49,7 @@ export async function POST(
 		// Build the enhanced chat completion request with cluster config
 		const enhancedRequest = {
 			...body,
-			user: params.name, // Pass cluster name in user field for backend routing
+			user: name, // Pass cluster name in user field for backend routing
 			protocol_manager: {
 				models: cluster.models.map((m) => ({
 					provider: m.provider,

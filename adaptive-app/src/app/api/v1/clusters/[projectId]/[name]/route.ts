@@ -1,14 +1,15 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { authenticateApiKey } from "@/lib/auth-utils";
-import { updateClusterSchema } from "@/lib/cluster-schemas";
 import { db } from "@/server/db";
+import { updateClusterSchema } from "@/types/cluster-schemas";
 
 // GET /api/v1/clusters/{projectId}/{name} - Get cluster by name
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: { projectId: string; name: string } },
+	{ params }: { params: Promise<{ projectId: string; name: string }> },
 ) {
+	const { projectId, name } = await params;
 	try {
 		const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
 		if (!apiKey) {
@@ -18,7 +19,7 @@ export async function GET(
 		const auth = await authenticateApiKey(apiKey, db);
 
 		// Verify API key has access to this project
-		if (auth.apiKey.projectId !== params.projectId) {
+		if (auth.apiKey.projectId !== projectId) {
 			return NextResponse.json(
 				{ error: "API key does not have access to this project" },
 				{ status: 403 },
@@ -27,8 +28,8 @@ export async function GET(
 
 		const cluster = await db.lLMCluster.findFirst({
 			where: {
-				projectId: params.projectId,
-				name: params.name,
+				projectId: projectId,
+				name: name,
 				isActive: true,
 			},
 			include: {
@@ -56,8 +57,9 @@ export async function GET(
 // PUT /api/v1/clusters/{projectId}/{name} - Update cluster
 export async function PUT(
 	request: NextRequest,
-	{ params }: { params: { projectId: string; name: string } },
+	{ params }: { params: Promise<{ projectId: string; name: string }> },
 ) {
+	const { projectId, name } = await params;
 	try {
 		const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
 		if (!apiKey) {
@@ -67,7 +69,7 @@ export async function PUT(
 		const auth = await authenticateApiKey(apiKey, db);
 
 		// Verify API key has access to this project
-		if (auth.apiKey.projectId !== params.projectId) {
+		if (auth.apiKey.projectId !== projectId) {
 			return NextResponse.json(
 				{ error: "API key does not have access to this project" },
 				{ status: 403 },
@@ -92,8 +94,8 @@ export async function PUT(
 		// Find cluster first
 		const cluster = await db.lLMCluster.findFirst({
 			where: {
-				projectId: params.projectId,
-				name: params.name,
+				projectId: projectId,
+				name: name,
 				isActive: true,
 			},
 		});
@@ -160,8 +162,9 @@ export async function PUT(
 // DELETE /api/v1/clusters/{projectId}/{name} - Delete cluster
 export async function DELETE(
 	request: NextRequest,
-	{ params }: { params: { projectId: string; name: string } },
+	{ params }: { params: Promise<{ projectId: string; name: string }> },
 ) {
+	const { projectId, name } = await params;
 	try {
 		const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
 		if (!apiKey) {
@@ -171,7 +174,7 @@ export async function DELETE(
 		const auth = await authenticateApiKey(apiKey, db);
 
 		// Verify API key has access to this project
-		if (auth.apiKey.projectId !== params.projectId) {
+		if (auth.apiKey.projectId !== projectId) {
 			return NextResponse.json(
 				{ error: "API key does not have access to this project" },
 				{ status: 403 },
@@ -181,8 +184,8 @@ export async function DELETE(
 		// Find cluster first
 		const cluster = await db.lLMCluster.findFirst({
 			where: {
-				projectId: params.projectId,
-				name: params.name,
+				projectId: projectId,
+				name: name,
 				isActive: true,
 			},
 		});

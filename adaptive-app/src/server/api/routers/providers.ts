@@ -3,6 +3,7 @@ import { auth as getClerkAuth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
+import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	addProviderModelSchema,
 	createProviderSchema,
@@ -11,8 +12,7 @@ import {
 	providerByNameSchema,
 	updateProviderModelSchema,
 	updateProviderSchema,
-} from "@/lib/provider-schemas";
-import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+} from "@/types/provider-schemas";
 
 type ProviderWithModels = Prisma.ProviderGetPayload<{
 	include: {

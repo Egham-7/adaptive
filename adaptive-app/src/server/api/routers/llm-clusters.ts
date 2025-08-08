@@ -5,14 +5,14 @@ import type { Prisma } from "prisma/generated";
 import { z } from "zod";
 import { authenticateAndGetProject, getCacheKey } from "@/lib/auth-utils";
 import { invalidateProjectCache, withCache } from "@/lib/cache-utils";
+import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	addModelSchema,
 	clusterByNameParamsSchema,
 	createClusterSchema,
 	projectClusterParamsSchema,
 	updateClusterSchema,
-} from "@/lib/cluster-schemas";
-import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+} from "@/types/cluster-schemas";
 
 type LLMClusterWithModels = Prisma.LLMClusterGetPayload<{
 	include: {
