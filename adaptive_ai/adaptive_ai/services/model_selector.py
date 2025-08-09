@@ -97,10 +97,7 @@ class ModelSelectionService:
         # Get all models from registry with error handling
         try:
             all_models = model_registry.get_all_valid_models()
-            self.log(
-                "registry_models_discovered",
-                {"total_models": len(all_models)}
-            )
+            self.log("registry_models_discovered", {"total_models": len(all_models)})
         except Exception as e:
             self.log(
                 "registry_access_failed",
@@ -172,7 +169,9 @@ class ModelSelectionService:
                     "successful_models": successful_models,
                     "failed_models": failed_models,
                     "success_rate": round(success_rate, 3),
-                    "total_capabilities_loaded": len(self._all_model_capabilities_by_id),
+                    "total_capabilities_loaded": len(
+                        self._all_model_capabilities_by_id
+                    ),
                 },
             )
 
@@ -197,7 +196,9 @@ class ModelSelectionService:
             provider_models_builder[provider].add(model_name)
 
             # Pre-compute context limits for O(1) capability checks - normalize provider key
-            provider_key = provider.value if hasattr(provider, "value") else str(provider)
+            provider_key = (
+                provider.value if hasattr(provider, "value") else str(provider)
+            )
             self._model_context_limits[(provider_key, model_name)] = (
                 capability.max_context_tokens or 4096
             )
@@ -257,13 +258,19 @@ class ModelSelectionService:
         # If no registry providers found, assume custom model and use available_providers if possible
         if not candidate_providers:
             # Prefer available_providers (registry enums) over model_entry.providers (may be strings)
-            candidate_providers = available_providers if available_providers else frozenset(model_entry.providers)
+            candidate_providers = (
+                available_providers
+                if available_providers
+                else frozenset(model_entry.providers)
+            )
 
         # Check context limits using pre-computed lookup
         token_eligible_providers = set()
         for provider in candidate_providers:
             # Normalize provider key for consistent lookup
-            provider_key = provider.value if hasattr(provider, "value") else str(provider)
+            provider_key = (
+                provider.value if hasattr(provider, "value") else str(provider)
+            )
             context_limit = self._model_context_limits.get(
                 (provider_key, model_entry.model_name)
             )
