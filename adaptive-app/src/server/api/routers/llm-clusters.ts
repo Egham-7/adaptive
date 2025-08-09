@@ -37,11 +37,10 @@ export const llmClustersRouter = createTRPCRouter({
 					const clusters = await ctx.db.lLMCluster.findMany({
 						where: {
 							projectId: input.projectId,
-							isActive: true,
 						},
 						include: {
 							models: {
-								where: { isActive: true },
+								where: {},
 								orderBy: { priority: "asc" },
 							},
 						},
@@ -73,11 +72,10 @@ export const llmClustersRouter = createTRPCRouter({
 					where: {
 						projectId: input.projectId,
 						name: input.name,
-						isActive: true,
 					},
 					include: {
 						models: {
-							where: { isActive: true },
+							where: {},
 							orderBy: { priority: "asc" },
 						},
 					},
@@ -111,10 +109,10 @@ export const llmClustersRouter = createTRPCRouter({
 		.query(async ({ ctx, input }) => {
 			try {
 				const cluster = await ctx.db.lLMCluster.findFirst({
-					where: { id: input.id, isActive: true },
+					where: { id: input.id },
 					include: {
 						models: {
-							where: { isActive: true },
+							where: {},
 							orderBy: { priority: "asc" },
 						},
 						project: true,
@@ -174,7 +172,6 @@ export const llmClustersRouter = createTRPCRouter({
 							where: {
 								provider: { name: model.provider },
 								name: model.modelName,
-								isActive: true,
 							},
 						});
 
@@ -317,7 +314,7 @@ export const llmClustersRouter = createTRPCRouter({
 						},
 						include: {
 							models: {
-								where: { isActive: true },
+								where: {},
 								orderBy: { priority: "asc" },
 							},
 						},
@@ -370,10 +367,9 @@ export const llmClustersRouter = createTRPCRouter({
 					apiKey: input.apiKey,
 				});
 
-				// Soft delete
-				await ctx.db.lLMCluster.update({
+				// Hard delete since we removed isActive field
+				await ctx.db.lLMCluster.delete({
 					where: { id: input.id },
-					data: { isActive: false },
 				});
 
 				// Invalidate cache
@@ -400,7 +396,7 @@ export const llmClustersRouter = createTRPCRouter({
 			try {
 				// Find cluster first
 				const cluster = await ctx.db.lLMCluster.findFirst({
-					where: { id: input.clusterId, isActive: true },
+					where: { id: input.clusterId },
 					include: { project: true },
 				});
 
@@ -424,7 +420,6 @@ export const llmClustersRouter = createTRPCRouter({
 						where: {
 							provider: { name: input.provider },
 							name: input.modelName,
-							isActive: true,
 						},
 					});
 
@@ -514,7 +509,6 @@ export const llmClustersRouter = createTRPCRouter({
 				const modelCount = await ctx.db.clusterModel.count({
 					where: {
 						clusterId: model.clusterId,
-						isActive: true,
 					},
 				});
 
@@ -525,10 +519,9 @@ export const llmClustersRouter = createTRPCRouter({
 					});
 				}
 
-				// Soft delete
-				await ctx.db.clusterModel.update({
+				// Hard delete since we removed isActive field
+				await ctx.db.clusterModel.delete({
 					where: { id: input.modelId },
-					data: { isActive: false },
 				});
 
 				// Invalidate cache
@@ -580,7 +573,6 @@ export const llmClustersRouter = createTRPCRouter({
 				];
 
 				const providerWhereClause: Prisma.ProviderWhereInput = {
-					isActive: true,
 					OR: providerOrConditions,
 				};
 
@@ -608,7 +600,6 @@ export const llmClustersRouter = createTRPCRouter({
 
 				const models = await ctx.db.providerModel.findMany({
 					where: {
-						isActive: true,
 						provider: providerWhereClause,
 					},
 					include: {

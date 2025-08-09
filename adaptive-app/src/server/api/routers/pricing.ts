@@ -4,7 +4,7 @@ import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 export const modelPricingRouter = createTRPCRouter({
 	getProviders: publicProcedure.query(async ({ ctx }) => {
 		return await ctx.db.provider.findMany({
-			where: { isActive: true },
+			where: {},
 			select: {
 				id: true,
 				name: true,
@@ -20,8 +20,8 @@ export const modelPricingRouter = createTRPCRouter({
 			return await ctx.db.providerModel.findMany({
 				where: {
 					providerId: input.providerId,
-					isActive: true,
-					type: "chat", // Only chat models for cost comparison
+
+					// Only chat models for cost comparison
 				},
 				select: {
 					id: true,
@@ -37,8 +37,7 @@ export const modelPricingRouter = createTRPCRouter({
 	getAllModelPricing: publicProcedure.query(async ({ ctx }) => {
 		const models = await ctx.db.providerModel.findMany({
 			where: {
-				isActive: true,
-				type: "chat", // Only chat models
+				// Only chat models
 			},
 			select: {
 				name: true,
@@ -107,7 +106,6 @@ export const modelPricingRouter = createTRPCRouter({
 				const allModels = await ctx.db.providerModel.findMany({
 					where: {
 						provider: { name: providerName },
-						isActive: true,
 					},
 					select: {
 						name: true,

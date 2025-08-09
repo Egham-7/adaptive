@@ -30,11 +30,10 @@ export async function GET(
 			where: {
 				projectId: projectId,
 				name: name,
-				isActive: true,
 			},
 			include: {
 				models: {
-					where: { isActive: true },
+					where: {},
 					orderBy: { priority: "asc" },
 				},
 			},
@@ -96,7 +95,6 @@ export async function PUT(
 			where: {
 				projectId: projectId,
 				name: name,
-				isActive: true,
 			},
 		});
 
@@ -143,7 +141,7 @@ export async function PUT(
 			},
 			include: {
 				models: {
-					where: { isActive: true },
+					where: {},
 					orderBy: { priority: "asc" },
 				},
 			},
@@ -186,7 +184,6 @@ export async function DELETE(
 			where: {
 				projectId: projectId,
 				name: name,
-				isActive: true,
 			},
 		});
 

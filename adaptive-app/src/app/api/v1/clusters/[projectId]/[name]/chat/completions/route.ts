@@ -1,64 +1,234 @@
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
-import { authenticateApiKey } from "@/lib/auth-utils";
-import { db } from "@/server/db";
+import OpenAI from "openai";
+import { withCache } from "@/lib/cache-utils";
+import { createBackendJWT } from "@/lib/jwt";
+import { api } from "@/trpc/server";
+import type {
+	ChatCompletion,
+	ChatCompletionRequest,
+} from "@/types/chat-completion";
 
 // POST /api/v1/clusters/{projectId}/{name}/chat/completions - OpenAI-compatible chat completions with cluster routing
 export async function POST(
 	request: NextRequest,
 	{ params }: { params: Promise<{ projectId: string; name: string }> },
 ) {
-	const { projectId, name } = await params;
 	try {
-		const apiKey = request.headers.get("authorization")?.replace("Bearer ", "");
+		const { projectId, name } = await params;
+		const body: ChatCompletionRequest = await request.json();
+
+		// Extract API key from OpenAI-compatible headers
+		const authHeader = request.headers.get("authorization");
+		const bearerToken = authHeader?.startsWith("Bearer ")
+			? authHeader.slice(7).replace(/\s+/g, "") || null
+			: null;
+
+		const apiKey =
+			bearerToken ||
+			request.headers.get("x-api-key") ||
+			request.headers.get("api-key") ||
+			request.headers.get("x-stainless-api-key");
+
 		if (!apiKey) {
-			return NextResponse.json({ error: "API key required" }, { status: 401 });
-		}
-
-		const auth = await authenticateApiKey(apiKey, db);
-
-		// Verify API key has access to this project
-		if (auth.apiKey.projectId !== projectId) {
-			return NextResponse.json(
-				{ error: "API key does not have access to this project" },
-				{ status: 403 },
+			return new Response(
+				JSON.stringify({
+					error:
+						"API key required. Provide it via Authorization: Bearer, X-API-Key, api-key, or X-Stainless-API-Key header",
+				}),
+				{
+					status: 401,
+					headers: { "Content-Type": "application/json" },
+				},
 			);
 		}
 
-		// Get cluster configuration
-		const cluster = await db.lLMCluster.findFirst({
-			where: {
-				projectId: projectId,
-				name: name,
-				isActive: true,
-			},
-			include: {
-				models: {
-					where: { isActive: true },
-					orderBy: { priority: "asc" },
-				},
-			},
+		const verificationResult = await api.api_keys.verify({
+			apiKey,
 		});
 
-		if (!cluster) {
-			return NextResponse.json({ error: "Cluster not found" }, { status: 404 });
+		if (!verificationResult.valid) {
+			return new Response(JSON.stringify({ error: "Invalid API key" }), {
+				status: 401,
+				headers: { "Content-Type": "application/json" },
+			});
 		}
 
-		const body = await request.json();
+		// Verify API key has access to this project
+		if (verificationResult.projectId !== projectId) {
+			return new Response(
+				JSON.stringify({
+					error: "API key does not have access to this project",
+				}),
+				{ status: 403, headers: { "Content-Type": "application/json" } },
+			);
+		}
 
-		// Build the enhanced chat completion request with cluster config
+		// Get cluster configuration with caching
+		const cluster = await withCache(
+			`cluster:${projectId}:${name}`,
+			() => api.llmClusters.getByName({ projectId, name, apiKey }),
+			300, // 5 minutes cache
+		);
+
+		if (!cluster) {
+			return new Response(JSON.stringify({ error: "Cluster not found" }), {
+				status: 404,
+				headers: { "Content-Type": "application/json" },
+			});
+		}
+
+		// Fetch provider configurations from database
+		const providerConfigs: Record<
+			string,
+			{
+				base_url?: string;
+				auth_type?: string;
+				auth_header_name?: string;
+				api_key?: string;
+				health_endpoint?: string;
+				rate_limit_rpm?: number;
+				timeout_ms?: number;
+				retry_config?: Record<string, unknown>;
+				headers?: Record<string, string>;
+			}
+		> = {};
+
+		try {
+			const configs = await withCache(
+				`provider-configs:${projectId}`,
+				() => api.providerConfigs.getAll({ projectId, apiKey }),
+				60, // 1 minute cache (shorter for user configs)
+			);
+
+			configs.forEach((config) => {
+				const provider = config.provider;
+				providerConfigs[provider.name] = {
+					base_url: provider.baseUrl ?? undefined,
+					auth_type: provider.authType ?? undefined,
+					auth_header_name: provider.authHeaderName ?? undefined,
+					api_key: config.providerApiKey, // Use user's API key from config
+					health_endpoint: provider.healthEndpoint ?? undefined,
+					rate_limit_rpm: provider.rateLimitRpm ?? undefined,
+					timeout_ms: provider.timeoutMs ?? undefined,
+					retry_config:
+						(provider.retryConfig as Record<string, unknown>) ?? undefined,
+					headers: {
+						...(provider.headers as Record<string, string>),
+						...(config.customHeaders as Record<string, string>),
+					},
+				};
+			});
+		} catch (error) {
+			console.warn("Failed to fetch provider configs:", error);
+		}
+
+		// Get full model details from provider models with caching
+		const modelDetails = await withCache(
+			`model-details:${cluster.id}`,
+			() =>
+				Promise.all(
+					cluster.models.map(async (clusterModel) => {
+						try {
+							const provider = await api.providers.getByName({
+								name: clusterModel.provider,
+								apiKey,
+							});
+
+							const model = provider?.models.find(
+								(m) => m.name === clusterModel.modelName,
+							);
+
+							if (!model) {
+								throw new Error(
+									`Model ${clusterModel.modelName} not found in provider ${clusterModel.provider}`,
+								);
+							}
+
+							if (!model.capabilities) {
+								throw new Error(
+									`Model ${clusterModel.modelName} from ${clusterModel.provider} must have capabilities defined`,
+								);
+							}
+
+							return {
+								provider: clusterModel.provider,
+								model_name: clusterModel.modelName,
+								cost_per_1m_input_tokens: model.inputTokenCost,
+								cost_per_1m_output_tokens: model.outputTokenCost,
+								max_context_tokens: model.capabilities.maxContextTokens ?? 4096,
+								max_output_tokens: model.capabilities.maxOutputTokens,
+								supports_function_calling:
+									model.capabilities.supportsFunctionCalling,
+								languages_supported: model.capabilities.languagesSupported,
+								model_size_params: model.capabilities.modelSizeParams,
+								latency_tier: model.capabilities.latencyTier,
+								task_type: model.capabilities.taskType,
+								complexity: model.capabilities.complexity,
+							};
+						} catch (error) {
+							console.warn(
+								`Failed to get model details for ${clusterModel.provider}:${clusterModel.modelName}:`,
+								error,
+							);
+							return {
+								provider: clusterModel.provider,
+								model_name: clusterModel.modelName,
+								cost_per_1m_input_tokens: 0,
+								cost_per_1m_output_tokens: 0,
+								max_context_tokens: 4096,
+								supports_function_calling: true,
+							};
+						}
+					}),
+				),
+			300, // 5 minutes cache for model details
+		);
+
+		// Pre-flight credit check
+		const messages = body.messages || [];
+		const estimatedInputTokens = messages.reduce((acc, msg) => {
+			return (
+				acc + (typeof msg.content === "string" ? msg.content.length / 4 : 0)
+			);
+		}, 0);
+		const estimatedOutputTokens = body.max_completion_tokens || 1000;
+
+		try {
+			await api.usage.checkCreditsBeforeUsage({
+				apiKey,
+				estimatedInputTokens,
+				estimatedOutputTokens,
+			});
+		} catch (error: unknown) {
+			const statusCode =
+				(error as { code?: string }).code === "PAYMENT_REQUIRED" ? 402 : 400;
+			return new Response(
+				JSON.stringify({
+					error:
+						(error as { message?: string }).message || "Credit check failed",
+				}),
+				{
+					status: statusCode,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		const shouldStream = body.stream === true;
+		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
+		const jwtToken = await createBackendJWT(apiKey);
+
+		const openai = new OpenAI({
+			apiKey: jwtToken,
+			baseURL,
+		});
+
+		// Build enhanced request with cluster config and real model data
 		const enhancedRequest = {
 			...body,
-			user: name, // Pass cluster name in user field for backend routing
+			user: name,
 			protocol_manager: {
-				models: cluster.models.map((m) => ({
-					provider: m.provider,
-					model_name: m.modelName,
-					cost_per_1m_input_tokens: 0, // Will be filled by backend
-					cost_per_1m_output_tokens: 0,
-					max_context_tokens: 0,
-					supports_function_calling: true,
-				})),
+				models: modelDetails,
 				cost_bias: cluster.costBias,
 				complexity_threshold: cluster.complexityThreshold,
 				token_threshold: cluster.tokenThreshold,
@@ -77,47 +247,148 @@ export async function POST(
 			},
 		};
 
-		// Forward to backend Go API
-		const backendUrl =
-			process.env.NEXT_PUBLIC_ADAPTIVE_API_URL || "http://localhost:8080";
-		const response = await fetch(`${backendUrl}/v1/chat/completions`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${apiKey}`,
-			},
-			body: JSON.stringify(enhancedRequest),
-		});
-
-		if (!response.ok) {
-			const errorData = await response
-				.json()
-				.catch(() => ({ error: "Unknown error" }));
-			return NextResponse.json(
-				{ error: errorData.error || "Backend request failed" },
-				{ status: response.status },
+		if (shouldStream) {
+			const stream = openai.chat.completions.stream(
+				{
+					...enhancedRequest,
+					stream: true,
+				},
+				{
+					body: {
+						...enhancedRequest,
+						provider_configs: providerConfigs,
+					},
+				},
 			);
-		}
 
-		// Handle streaming response
-		if (body.stream) {
-			return new Response(response.body, {
-				status: response.status,
+			const startTime = Date.now();
+
+			stream.on("finalChatCompletion", (completion) => {
+				const adaptiveCompletion = completion as ChatCompletion;
+				if (adaptiveCompletion.usage) {
+					setImmediate(async () => {
+						try {
+							await api.usage.recordApiUsage({
+								apiKey,
+								provider: adaptiveCompletion.provider,
+								model: adaptiveCompletion.model,
+								usage: {
+									promptTokens: adaptiveCompletion.usage?.prompt_tokens ?? 0,
+									completionTokens:
+										adaptiveCompletion.usage?.completion_tokens ?? 0,
+									totalTokens: adaptiveCompletion.usage?.total_tokens ?? 0,
+								},
+								duration: Date.now() - startTime,
+								timestamp: new Date(),
+								clusterId: cluster.id,
+							});
+						} catch (error) {
+							console.error("Failed to record usage:", error);
+						}
+					});
+				}
+			});
+
+			stream.on("error", (error) => {
+				setImmediate(async () => {
+					try {
+						await api.usage.recordApiUsage({
+							apiKey,
+							provider: null,
+							model: null,
+							usage: {
+								promptTokens: 0,
+								completionTokens: 0,
+								totalTokens: 0,
+							},
+							duration: Date.now() - startTime,
+							timestamp: new Date(),
+							requestCount: 1,
+							error: error.message,
+							clusterId: cluster.id,
+						});
+					} catch (err) {
+						console.error("Failed to record error:", err);
+					}
+				});
+			});
+
+			return new Response(stream.toReadableStream(), {
 				headers: {
-					"Content-Type": "text/event-stream",
+					"Content-Type": "text/plain; charset=utf-8",
 					"Cache-Control": "no-cache",
 					Connection: "keep-alive",
+					"Access-Control-Allow-Origin": "*",
 				},
 			});
 		}
 
-		const data = await response.json();
-		return NextResponse.json(data);
-	} catch (error) {
-		console.error("Error calling cluster chat completion:", error);
-		return NextResponse.json(
-			{ error: "Failed to process chat completion" },
-			{ status: 500 },
-		);
+		// Non-streaming request
+		const nonStreamStartTime = Date.now();
+
+		try {
+			const completion = (await openai.chat.completions.create(
+				enhancedRequest,
+				{
+					body: {
+						...enhancedRequest,
+						provider_configs: providerConfigs,
+					},
+				},
+			)) as ChatCompletion;
+
+			if (completion.usage) {
+				setImmediate(async () => {
+					try {
+						await api.usage.recordApiUsage({
+							apiKey,
+							provider: completion.provider,
+							model: completion.model,
+							usage: {
+								promptTokens: completion.usage?.prompt_tokens ?? 0,
+								completionTokens: completion.usage?.completion_tokens ?? 0,
+								totalTokens: completion.usage?.total_tokens ?? 0,
+							},
+							duration: Date.now() - nonStreamStartTime,
+							timestamp: new Date(),
+							clusterId: cluster.id,
+						});
+					} catch (error) {
+						console.error("Failed to record usage:", error);
+					}
+				});
+			}
+
+			return Response.json(completion);
+		} catch (error) {
+			setImmediate(async () => {
+				try {
+					await api.usage.recordApiUsage({
+						apiKey,
+						provider: null,
+						model: null,
+						usage: {
+							promptTokens: 0,
+							completionTokens: 0,
+							totalTokens: 0,
+						},
+						duration: Date.now() - nonStreamStartTime,
+						timestamp: new Date(),
+						requestCount: 1,
+						error: error instanceof Error ? error.message : String(error),
+						clusterId: cluster.id,
+					});
+				} catch (err) {
+					console.error("Failed to record error:", err);
+				}
+			});
+
+			throw error;
+		}
+	} catch (_error) {
+		return new Response(JSON.stringify({ error: "Internal server error" }), {
+			status: 500,
+			headers: { "Content-Type": "application/json" },
+		});
 	}
 }

@@ -115,6 +115,7 @@ export const usageRouter = createTRPCRouter({
 				duration: z.number(),
 				timestamp: z.date(),
 				requestCount: z.number().default(1),
+				clusterId: z.string().optional(), // Link usage to cluster
 				metadata: z.record(z.string(), z.any()).optional(),
 				error: z.string().optional(), // Add error field for failed requests
 			}),
@@ -167,8 +168,7 @@ export const usageRouter = createTRPCRouter({
 					const exactMatch = await ctx.db.providerModel.findFirst({
 						where: {
 							name: modelName,
-							provider: { name: providerName, isActive: true },
-							isActive: true,
+							provider: { name: providerName },
 						},
 						select: {
 							inputTokenCost: true,
@@ -181,8 +181,7 @@ export const usageRouter = createTRPCRouter({
 					// If no exact match, get all models for the provider and find best similarity
 					const allModels = await ctx.db.providerModel.findMany({
 						where: {
-							provider: { name: providerName, isActive: true },
-							isActive: true,
+							provider: { name: providerName },
 						},
 						select: {
 							name: true,
@@ -287,6 +286,7 @@ export const usageRouter = createTRPCRouter({
 					data: {
 						apiKeyId: apiKey.id,
 						projectId: apiKey.projectId,
+						clusterId: input.clusterId, // Link to cluster if provided
 						provider: input.provider,
 						model: input.model,
 						requestType: "chat", // Default to chat for chat completions
@@ -676,10 +676,10 @@ export const usageRouter = createTRPCRouter({
 
 					// Get all providers with their pricing data
 					const providers = await ctx.db.provider.findMany({
-						where: { isActive: true },
+						where: {},
 						include: {
 							models: {
-								where: { isActive: true },
+								where: {},
 							},
 						},
 					});

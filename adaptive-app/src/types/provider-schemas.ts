@@ -17,17 +17,14 @@ export const modelCapabilitySchema = z.object({
 export const providerModelSchema = z.object({
 	name: z.string().min(1, "Model name is required"),
 	displayName: z.string().min(1, "Display name is required"),
-	type: z
-		.enum(["completion", "chat", "embedding", "image", "audio"])
-		.default("chat"),
 	inputTokenCost: z.number().min(0, "Input token cost must be non-negative"),
 	outputTokenCost: z.number().min(0, "Output token cost must be non-negative"),
 	capabilities: modelCapabilitySchema.optional(),
 });
 
-// Create provider schema
+// Create provider schema (template without API keys)
 export const createProviderSchema = z.object({
-	projectId: z.string(),
+	projectId: z.string().optional(), // Optional for system/community providers
 	name: z
 		.string()
 		.min(1, "Provider name is required")
@@ -39,17 +36,13 @@ export const createProviderSchema = z.object({
 	displayName: z.string().min(1, "Display name is required").max(100),
 	description: z.string().max(500).optional(),
 	visibility: z
-		.enum(["project", "organization", "community"])
+		.enum(["system", "project", "organization", "community"])
 		.default("project"),
 
-	// Custom provider configuration
+	// Provider template configuration (no secrets)
 	baseUrl: z.string().url("Must be a valid URL").optional(),
 	authType: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
 	authHeaderName: z.string().max(100).optional(),
-	apiKey: z
-		.string()
-		.min(1, "API key is required for custom providers")
-		.optional(),
 	healthEndpoint: z.string().max(200).optional(),
 	rateLimitRpm: z.number().min(1).max(100000).optional(),
 	timeoutMs: z.number().min(1000).max(120000).optional(),
@@ -57,30 +50,32 @@ export const createProviderSchema = z.object({
 	headers: z.record(z.string(), z.string()).optional(),
 
 	models: z.array(providerModelSchema).min(1, "At least one model is required"),
+
+	// Authentication for API call
+	apiKey: z.string().optional(),
 });
 
-// Update provider schema
+// Update provider schema (template updates only)
 export const updateProviderSchema = z.object({
 	id: z.string(),
 	displayName: z.string().min(1).max(100).optional(),
 	description: z.string().max(500).optional(),
-	visibility: z.enum(["project", "organization", "community"]).optional(),
+	visibility: z
+		.enum(["system", "project", "organization", "community"])
+		.optional(),
 
-	// Custom provider configuration updates
+	// Provider template configuration updates (no secrets)
 	baseUrl: z.string().url("Must be a valid URL").optional(),
 	authType: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
 	authHeaderName: z.string().max(100).optional(),
-	apiKey: z
-		.string()
-		.min(1, "API key is required for custom providers")
-		.optional(),
 	healthEndpoint: z.string().max(200).optional(),
 	rateLimitRpm: z.number().min(1).max(100000).optional(),
 	timeoutMs: z.number().min(1000).max(120000).optional(),
 	retryConfig: z.record(z.string(), z.any()).optional(),
 	headers: z.record(z.string(), z.string()).optional(),
 
-	isActive: z.boolean().optional(),
+	// Authentication for API call
+	apiKey: z.string().optional(),
 });
 
 // Add model to existing provider schema
@@ -88,9 +83,6 @@ export const addProviderModelSchema = z.object({
 	providerId: z.string(),
 	name: z.string().min(1, "Model name is required"),
 	displayName: z.string().min(1, "Display name is required"),
-	type: z
-		.enum(["completion", "chat", "embedding", "image", "audio"])
-		.default("chat"),
 	inputTokenCost: z.number().min(0, "Input token cost must be non-negative"),
 	outputTokenCost: z.number().min(0, "Output token cost must be non-negative"),
 	capabilities: modelCapabilitySchema.optional(),
@@ -101,19 +93,16 @@ export const addProviderModelSchema = z.object({
 export const updateProviderModelSchema = z.object({
 	id: z.string(),
 	displayName: z.string().min(1).max(100).optional(),
-	type: z
-		.enum(["completion", "chat", "embedding", "image", "audio"])
-		.optional(),
 	inputTokenCost: z.number().min(0).optional(),
 	outputTokenCost: z.number().min(0).optional(),
 	capabilities: modelCapabilitySchema.optional(),
-	isActive: z.boolean().optional(),
 	apiKey: z.string().optional(),
 });
 
 // Input schemas for API endpoints
 export const providerByIdSchema = z.object({
 	id: z.string(),
+	projectId: z.string().optional(), // Required to see project/org scoped providers
 	apiKey: z.string().optional(),
 });
 
@@ -126,6 +115,7 @@ export const providerByNameSchema = z.object({
 			/^[a-z0-9-_]+$/,
 			"Provider name must be lowercase alphanumeric with hyphens and underscores only",
 		),
+	projectId: z.string().optional(), // Required to see project/org scoped providers
 	apiKey: z.string().optional(),
 });
 
