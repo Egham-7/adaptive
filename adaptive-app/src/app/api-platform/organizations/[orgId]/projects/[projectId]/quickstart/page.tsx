@@ -24,9 +24,10 @@ const API_BASE_URL =
 	(typeof window !== "undefined" ? window.location.origin : "");
 
 export default function QuickstartPage() {
-	const params = useParams();
-	const orgId = params.orgId as string;
-	const projectId = params.projectId as string;
+	const { orgId, projectId } = useParams<{
+		orgId: string;
+		projectId: string;
+	}>();
 
 	// Fetch project API keys for examples
 	const { data: apiKeys, error: apiKeysError } =
