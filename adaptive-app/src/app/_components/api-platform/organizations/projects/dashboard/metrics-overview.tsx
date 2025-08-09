@@ -110,14 +110,14 @@ export function MetricsOverview({
 	}));
 
 	// Create credit balance history data from transactions
-	const creditBalanceData = creditTransactions?.transactions
-		? creditTransactions.transactions
-				.reverse() // Reverse to show chronological order
-				.map((transaction) => ({
-					date: new Date(transaction.createdAt).toLocaleDateString(),
-					value: Number.parseFloat(transaction.balanceAfter.toString()),
-				}))
-		: [];
+	const creditBalanceData = (creditTransactions?.transactions ?? [])
+		.slice() // clone to avoid mutating cached data
+		.reverse() // chronological order
+		.map((transaction) => ({
+			// Stable date string for charting (YYYY-MM-DD, UTC)
+			date: new Date(transaction.createdAt).toISOString().slice(0, 10),
+			value: Number.parseFloat(transaction.balanceAfter.toString()),
+		}));
 
 	const allMetrics = [
 		{
