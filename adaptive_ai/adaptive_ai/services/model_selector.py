@@ -3,7 +3,6 @@ from typing import Any
 
 from adaptive_ai.config import (
     minion_domains,
-    provider_model_capabilities,
     task_model_mappings_data,
 )
 from adaptive_ai.models.llm_classification_models import (
@@ -29,15 +28,10 @@ class LitLoggerProtocol:
 
 class ModelSelectionService:
     def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
-        # Use frozenset for faster lookups and immutable keys
+        # Build model capabilities from YAML database via model registry
         self._all_model_capabilities_by_id: dict[
             tuple[ProviderType, str], ModelCapability
-        ] = {
-            (m_cap.provider, m_cap.model_name): m_cap
-            for provider_list in provider_model_capabilities.values()
-            for m_cap in provider_list
-        }
-
+        ] = {}
         # Cache for eligible providers per model and token count (optimized with token bucketing)
         self._eligible_providers_cache: dict[str, frozenset[ProviderType | str]] = {}
 
@@ -50,6 +44,7 @@ class ModelSelectionService:
         # Pre-computed context length lookup for faster capability checks
         self._model_context_limits: dict[tuple[ProviderType | str, str], int] = {}
 
+        self._build_capabilities_from_registry()
         self._build_optimized_caches()
 
         # Performance metrics
@@ -74,6 +69,22 @@ class ModelSelectionService:
     def log(self, key: str, value: Any) -> None:
         if self.lit_logger:
             self.lit_logger.log(key, value)
+
+    def _build_capabilities_from_registry(self) -> None:
+        """Build model capabilities from YAML database via model registry."""
+        from adaptive_ai.services.yaml_model_loader import yaml_model_db
+
+        # Load YAML models
+        yaml_model_db.load_models()
+
+        # Get all models from registry and build capability lookup
+        all_models = model_registry.get_all_valid_models()
+        for model_name in all_models:
+            capability = model_registry.get_model_capability(model_name)
+            if capability:
+                self._all_model_capabilities_by_id[
+                    (capability.provider, capability.model_name)
+                ] = capability
 
     def _build_optimized_caches(self) -> None:
         """Pre-compute optimized lookup structures for faster model selection."""
@@ -136,17 +147,18 @@ class ModelSelectionService:
         # Fast set intersection to get candidate providers
         # Normalize both sets to strings for proper intersection
         model_providers_str = frozenset(
-            p.value if hasattr(p, 'value') else str(p) for p in model_entry.providers
+            p.value if hasattr(p, "value") else str(p) for p in model_entry.providers
         )
         available_providers_str = frozenset(
-            p.value if hasattr(p, 'value') else str(p) for p in available_providers
+            p.value if hasattr(p, "value") else str(p) for p in available_providers
         )
         candidate_providers_str = model_providers_str & available_providers_str
 
         # Convert back to original provider objects for consistency
         candidate_providers = frozenset(
-            p for p in model_entry.providers
-            if (p.value if hasattr(p, 'value') else str(p)) in candidate_providers_str
+            p
+            for p in model_entry.providers
+            if (p.value if hasattr(p, "value") else str(p)) in candidate_providers_str
         )
 
         # If no registry providers found, assume custom model and trust user specification
@@ -204,12 +216,8 @@ class ModelSelectionService:
         self.log("cache_cleared", {"cache_type": "eligible_providers"})
 
     def _get_default_models(self) -> list[ModelCapability]:
-        """Get default model capabilities from provider configuration"""
-        return [
-            model
-            for provider_models in provider_model_capabilities.values()
-            for model in provider_models
-        ]
+        """Get default model capabilities from YAML database"""
+        return list(self._all_model_capabilities_by_id.values())
 
     def _use_user_specified_models(
         self,
@@ -344,7 +352,10 @@ class ModelSelectionService:
         )
 
         # PIPELINE STEP 1: Apply capability constraints (context length, etc.)
-        eligible_providers = frozenset(provider_model_capabilities.keys())
+        eligible_providers = frozenset(
+            capability.provider
+            for capability in self._all_model_capabilities_by_id.values()
+        )
         candidate_models = self._apply_capability_constraints(
             candidate_models, eligible_providers, prompt_token_count
         )
@@ -948,12 +959,8 @@ class ModelSelectionService:
                     }
                     custom_models_dict.append(model_dict)
 
-        # Get registry models as ModelCapability objects
-        registry_capabilities = [
-            model
-            for provider_models in provider_model_capabilities.values()
-            for model in provider_models
-        ]
+        # Get registry models as ModelCapability objects from YAML database
+        registry_capabilities = list(self._all_model_capabilities_by_id.values())
 
         # Initialize unified selector
         unified_selector = UnifiedModelSelector(registry_capabilities)

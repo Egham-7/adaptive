@@ -9,7 +9,9 @@ from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import ProviderType
 
 
-def yaml_to_model_capability(yaml_data: dict[str, Any], provider_name: str) -> ModelCapability:
+def yaml_to_model_capability(
+    yaml_data: dict[str, Any], provider_name: str
+) -> ModelCapability:
     """
     Convert YAML model data to ModelCapability object.
 
@@ -34,7 +36,9 @@ def yaml_to_model_capability(yaml_data: dict[str, Any], provider_name: str) -> M
 
     # Normalize provider name for case-insensitive lookup
     normalized_provider = provider_name.casefold()
-    provider_type = provider_mapping.get(normalized_provider.upper(), ProviderType.OPENAI)
+    provider_type = provider_mapping.get(
+        normalized_provider.upper(), ProviderType.OPENAI
+    )
 
     return ModelCapability(
         description=yaml_data.get("description"),
@@ -45,7 +49,8 @@ def yaml_to_model_capability(yaml_data: dict[str, Any], provider_name: str) -> M
         max_context_tokens=yaml_data.get("max_context_tokens"),
         max_output_tokens=yaml_data.get("max_output_tokens"),
         supports_function_calling=yaml_data.get("supports_function_calling"),
-        languages_supported=yaml_data.get("languages_supported") or [],  # List field expects empty list, not None
+        languages_supported=yaml_data.get("languages_supported")
+        or [],  # List field expects empty list, not None
         model_size_params=yaml_data.get("model_size_params"),
         latency_tier=yaml_data.get("latency_tier"),
         task_type=yaml_data.get("task_type"),

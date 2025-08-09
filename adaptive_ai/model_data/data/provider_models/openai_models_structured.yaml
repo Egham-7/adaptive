@@ -4819,3 +4819,65 @@ models:
       method: langgraph_workflow
       confidence_score: 0.85
       enriched_at: 1754742824.0659049
+  gpt_4_1_nano:
+    description: Cost-effective, highly efficient version of GPT-4, suitable for simple queries.
+    provider: OPENAI
+    model_name: gpt-4.1-nano
+    cost_per_1m_input_tokens: 0.10
+    cost_per_1m_output_tokens: 0.40
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - en
+    model_size_params: Proprietary-Mini
+    latency_tier: very low
+    task_type: general
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742825.0
+  gpt_4_1_mini:
+    description: Compact and efficient GPT-4 variant optimized for cost-conscious applications with good general capabilities.
+    provider: OPENAI
+    model_name: gpt-4.1-mini
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.60
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - en
+    model_size_params: Proprietary-Small
+    latency_tier: low
+    task_type: general
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742826.0

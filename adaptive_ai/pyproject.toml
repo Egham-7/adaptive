@@ -149,6 +149,15 @@ warn_return_any = true
 strict_equality = true
 show_error_codes = true
 follow_imports = "silent"
+exclude = [
+    "benchmarks",
+    "analysis",
+    "adaptive-app",
+    "adaptive-backend", 
+    "adaptive-docs",
+    "model_data/agent",
+    "model_data/update_from_helicone.py"
+]
 
 [[tool.mypy.overrides]]
 module = [

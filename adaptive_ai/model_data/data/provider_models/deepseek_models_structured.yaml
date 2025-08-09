@@ -40,3 +40,35 @@ models:
       last_updated: '2025-08-09'
       matching_operator: equals
       available_in_playground: true
+  deepseek_reasoner:
+    description: A specialized DeepSeek model for reasoning tasks.
+    provider: DEEPSEEK
+    model_name: deepseek-reasoner
+    cost_per_1m_input_tokens: 0.55
+    cost_per_1m_output_tokens: 2.19
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - Chinese
+    model_size_params: 685B (r1)
+    latency_tier: medium
+    task_type: reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742840.0

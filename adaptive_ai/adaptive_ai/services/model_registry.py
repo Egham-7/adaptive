@@ -2,7 +2,7 @@
 Model registry service for validating model names across all providers.
 """
 
-from adaptive_ai.config.providers import provider_model_capabilities
+from adaptive_ai.config.providers import provider_model_names
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import ProviderType
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
@@ -15,24 +15,19 @@ class ModelRegistry:
         """Initialize the model registry with all available models."""
         self._valid_models: set[str] = set()
         self._model_to_providers: dict[str, set[ProviderType]] = {}
-        self._model_to_capability: dict[str, ModelCapability] = {}
 
-        # Build lookup structures from provider capabilities
+        # Build lookup structures from provider model names (lightweight)
         self._build_model_registry()
 
     def _build_model_registry(self) -> None:
         """Build internal lookup structures for fast model validation."""
-        for provider, model_capabilities in provider_model_capabilities.items():
-            for model_cap in model_capabilities:
-                model_name = model_cap.model_name
+        for provider, model_names in provider_model_names.items():
+            for model_name in model_names:
                 self._valid_models.add(model_name)
 
                 if model_name not in self._model_to_providers:
                     self._model_to_providers[model_name] = set()
                 self._model_to_providers[model_name].add(provider)
-
-                # Store the full capability for conversion
-                self._model_to_capability[model_name] = model_cap
 
     def is_valid_model(self, model_name: str) -> bool:
         """
@@ -44,12 +39,12 @@ class ModelRegistry:
         Returns:
             True if the model exists, False otherwise
         """
-        # Check hardcoded models first
-        if model_name in self._valid_models:
+        # Check YAML database first (primary source)
+        if yaml_model_db.has_model(model_name):
             return True
 
-        # Fallback to YAML database
-        return yaml_model_db.has_model(model_name)
+        # Fallback to hardcoded model names
+        return model_name in self._valid_models
 
     def validate_models(self, models: list[str]) -> tuple[list[str], list[str]]:
         """
@@ -79,7 +74,15 @@ class ModelRegistry:
         Returns:
             Set of all valid model names
         """
-        return self._valid_models.copy()
+        # Combine hardcoded models with YAML models
+        all_models = self._valid_models.copy()
+
+        # Add all YAML models by iterating through the internal dict
+        yaml_model_db.load_models()
+        for model_capability in yaml_model_db._models.values():
+            all_models.add(model_capability.model_name)
+
+        return all_models
 
     def get_providers_for_model(self, model_name: str) -> set[ProviderType]:
         """
@@ -100,7 +103,20 @@ class ModelRegistry:
         Returns:
             Total count of valid models
         """
-        return len(self._valid_models) + yaml_model_db.get_model_count()
+        # YAML database now contains all models (including previously hardcoded ones)
+        # Add any unique models from hardcoded config that aren't in YAML (should be 0)
+        yaml_count = yaml_model_db.get_model_count()
+        unique_hardcoded = len(
+            self._valid_models
+            - {
+                model.model_name
+                for model in [
+                    yaml_model_db.get_model(name) for name in self._valid_models
+                ]
+                if model is not None
+            }
+        )
+        return yaml_count + unique_hardcoded
 
     def get_model_capability(self, model_name: str) -> ModelCapability | None:
         """
@@ -112,13 +128,13 @@ class ModelRegistry:
         Returns:
             ModelCapability object if model exists, None otherwise
         """
-        # Check hardcoded models first
-        capability = self._model_to_capability.get(model_name)
+        # Check YAML database first (primary source with full capabilities)
+        capability = yaml_model_db.get_model(model_name)
         if capability:
             return capability
 
-        # Fallback to YAML database
-        return yaml_model_db.get_model(model_name)
+        # No fallback needed - YAML now contains all models
+        return None
 
     def convert_names_to_capabilities(
         self, model_names: list[str]

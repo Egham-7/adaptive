@@ -500,3 +500,108 @@ models:
       method: langgraph_workflow
       confidence_score: 0.75
       enriched_at: 1754572770.7081861
+  gemini_2_5_flash_lite_preview_06_17:
+    description: Compact and very fast, suitable for simple, low-latency tasks.
+    provider: GOOGLE
+    model_name: gemini-2.5-flash-lite-preview-06-17
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.30
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Proprietary-Very-Small
+    latency_tier: very low
+    task_type: general
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742830.0
+  gemini_2_5_flash:
+    description: Google's flexible and fast model, good for many tasks including complex reasoning.
+    provider: GOOGLE
+    model_name: gemini-2.5-flash
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.60
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - Spanish
+    - French
+    - German
+    - Japanese
+    - Korean
+    - Chinese
+    model_size_params: Proprietary-Medium
+    latency_tier: medium
+    task_type: general
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742831.0
+  gemini_2_5_pro:
+    description: Google's most capable model, designed for highly complex tasks and long contexts.
+    provider: GOOGLE
+    model_name: gemini-2.5-pro
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10.00
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - Spanish
+    - French
+    - German
+    - Japanese
+    - Korean
+    - Chinese
+    model_size_params: Proprietary-Large
+    latency_tier: high
+    task_type: reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742832.0

@@ -6,8 +6,8 @@
 # 
 # 📊 Database Statistics:
 #   • Total Providers: 20
-#   • Total Models: 962
-#   • Data Source: Live Helicone API
+#   • Total Models: 967 (962 + 5 adaptive_ai hardcoded models)
+#   • Data Source: Live Helicone API + adaptive_ai config
 #   • Last Updated: 2025-08-09
 # 
 # 💡 Usage:
@@ -20,7 +20,7 @@ database_info:
   title: Helicone AI Models - Complete Database
   description: Live pricing data for all AI models across major providers
   total_providers: 20
-  total_models: 962
+  total_models: 967
   data_source: https://helicone.ai/api/llm-costs
   last_updated: '2025-08-09'
   currency: USD
@@ -69,7 +69,7 @@ providers:
     sample_models:
     - cohere_command_r
   deepseek:
-    total_models: 1
+    total_models: 2
     yaml_file: deepseek_models_structured.yaml
     api_endpoint: https://helicone.ai/api/llm-costs?provider=deepseek
     sample_models:
@@ -84,7 +84,7 @@ providers:
     - accounts_fireworks_models_gpt_oss_20b
     - '... and 20 more'
   google:
-    total_models: 19
+    total_models: 22
     yaml_file: google_models_structured.yaml
     api_endpoint: https://helicone.ai/api/llm-costs?provider=google
     sample_models:
@@ -93,7 +93,7 @@ providers:
     - claude_3_7_sonnet
     - '... and 16 more'
   groq:
-    total_models: 20
+    total_models: 21
     yaml_file: groq_models_structured.yaml
     api_endpoint: https://helicone.ai/api/llm-costs?provider=groq
     sample_models:
@@ -137,7 +137,7 @@ providers:
     - deepseek_deepseek_r1_distill_llama_70b
     - '... and 32 more'
   openai:
-    total_models: 148
+    total_models: 150
     yaml_file: openai_models_structured.yaml
     api_endpoint: https://helicone.ai/api/llm-costs?provider=openai
     sample_models:

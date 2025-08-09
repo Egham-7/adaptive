@@ -32,7 +32,7 @@ class YAMLModelDatabase:
         # Double-checked locking pattern for thread safety
         if self._loaded:
             return
-            
+
         with self._load_lock:
             # Check again in case another thread loaded while we were waiting
             if self._loaded:

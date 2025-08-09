@@ -648,3 +648,34 @@ models:
       last_updated: '2025-08-09'
       matching_operator: equals
       available_in_playground: true
+  llama_3_1_70b_versatile:
+    description: Llama 3.1 70B model optimized for fast inference and cost efficiency.
+    provider: GROQ
+    model_name: llama-3.1-70b-versatile
+    cost_per_1m_input_tokens: 0.59
+    cost_per_1m_output_tokens: 0.79
+    max_context_tokens: 131072
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: 70B
+    latency_tier: very low
+    task_type: general
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742835.0
