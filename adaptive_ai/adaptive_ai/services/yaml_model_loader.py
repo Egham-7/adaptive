@@ -5,6 +5,7 @@ Loads YAML files once at startup for fast in-memory lookups.
 
 import logging
 from pathlib import Path
+from threading import Lock
 
 import yaml
 
@@ -24,11 +25,18 @@ class YAMLModelDatabase:
         """Initialize empty database."""
         self._models: dict[str, ModelCapability] = {}
         self._loaded = False
+        self._load_lock = Lock()
 
     def load_models(self) -> None:
         """Load models from YAML files for supported providers."""
+        # Double-checked locking pattern for thread safety
         if self._loaded:
             return
+            
+        with self._load_lock:
+            # Check again in case another thread loaded while we were waiting
+            if self._loaded:
+                return
 
         # Get the model_data directory path
         current_dir = Path(__file__).parent.parent.parent

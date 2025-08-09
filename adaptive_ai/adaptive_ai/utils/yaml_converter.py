@@ -18,8 +18,8 @@ def yaml_to_model_capability(yaml_data: dict, provider_name: str) -> ModelCapabi
     Returns:
         ModelCapability object with enriched data
     """
-    # Map provider name to ProviderType enum
-    provider_mapping = {
+    # Map provider name to ProviderType enum (case-insensitive)
+    provider_mapping: dict[str, ProviderType] = {
         "ANTHROPIC": ProviderType.ANTHROPIC,
         "OPENAI": ProviderType.OPENAI,
         "GOOGLE": ProviderType.GOOGLE,
@@ -30,22 +30,24 @@ def yaml_to_model_capability(yaml_data: dict, provider_name: str) -> ModelCapabi
         "GROK": ProviderType.GROK,  # GROK provider maps to GROK enum
     }
 
-    provider_type = provider_mapping.get(provider_name, ProviderType.OPENAI)
+    # Normalize provider name for case-insensitive lookup
+    normalized_provider = provider_name.casefold()
+    provider_type = provider_mapping.get(normalized_provider.upper(), ProviderType.OPENAI)
 
     return ModelCapability(
-        description=yaml_data.get("description", ""),
+        description=yaml_data.get("description"),
         provider=provider_type,
-        model_name=yaml_data.get("model_name", ""),
-        cost_per_1m_input_tokens=yaml_data.get("cost_per_1m_input_tokens", 0.0),
-        cost_per_1m_output_tokens=yaml_data.get("cost_per_1m_output_tokens", 0.0),
-        max_context_tokens=yaml_data.get("max_context_tokens", 4096),
-        max_output_tokens=yaml_data.get("max_output_tokens", 2048),
-        supports_function_calling=yaml_data.get("supports_function_calling", False),
-        languages_supported=yaml_data.get("languages_supported", ["English"]),
-        model_size_params=yaml_data.get("model_size_params", "Unknown"),
-        latency_tier=yaml_data.get("latency_tier", "medium"),
-        task_type=yaml_data.get("task_type", "general"),
-        complexity=yaml_data.get("complexity", "medium"),
+        model_name=yaml_data.get("model_name", ""),  # Keep default for required field
+        cost_per_1m_input_tokens=yaml_data.get("cost_per_1m_input_tokens"),
+        cost_per_1m_output_tokens=yaml_data.get("cost_per_1m_output_tokens"),
+        max_context_tokens=yaml_data.get("max_context_tokens"),
+        max_output_tokens=yaml_data.get("max_output_tokens"),
+        supports_function_calling=yaml_data.get("supports_function_calling"),
+        languages_supported=yaml_data.get("languages_supported") or [],  # List field expects empty list, not None
+        model_size_params=yaml_data.get("model_size_params"),
+        latency_tier=yaml_data.get("latency_tier"),
+        task_type=yaml_data.get("task_type"),
+        complexity=yaml_data.get("complexity"),
     )
 
 

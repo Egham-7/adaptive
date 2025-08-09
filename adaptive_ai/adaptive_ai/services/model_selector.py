@@ -39,16 +39,16 @@ class ModelSelectionService:
         }
 
         # Cache for eligible providers per model and token count (optimized with token bucketing)
-        self._eligible_providers_cache: dict[str, frozenset[Any]] = {}
+        self._eligible_providers_cache: dict[str, frozenset[ProviderType | str]] = {}
 
         # Pre-computed mapping of models to their available providers (frozenset for O(1) lookups)
-        self._model_to_providers: dict[str, frozenset[Any]] = {}
+        self._model_to_providers: dict[str, frozenset[ProviderType | str]] = {}
 
         # Pre-computed reverse mapping: provider -> models for faster filtering
-        self._provider_to_models: dict[ProviderType, frozenset[str]] = {}
+        self._provider_to_models: dict[ProviderType | str, frozenset[str]] = {}
 
         # Pre-computed context length lookup for faster capability checks
-        self._model_context_limits: dict[tuple[ProviderType, str], int] = {}
+        self._model_context_limits: dict[tuple[ProviderType | str, str], int] = {}
 
         self._build_optimized_caches()
 
@@ -78,8 +78,8 @@ class ModelSelectionService:
     def _build_optimized_caches(self) -> None:
         """Pre-compute optimized lookup structures for faster model selection."""
         # Temporary builders using sets for O(1) operations during construction
-        model_providers_builder: dict[str, set[ProviderType]] = {}
-        provider_models_builder: dict[ProviderType, set[str]] = {}
+        model_providers_builder: dict[str, set[ProviderType | str]] = {}
+        provider_models_builder: dict[ProviderType | str, set[str]] = {}
 
         for (
             provider,
@@ -113,9 +113,9 @@ class ModelSelectionService:
     def _get_eligible_providers_for_model(
         self,
         model_entry: ModelEntry,
-        eligible_providers: frozenset[ProviderType],
+        eligible_providers: frozenset[ProviderType | str],
         prompt_token_count: int,
-    ) -> list[ProviderType]:
+    ) -> list[ProviderType | str]:
         """Get eligible providers for a model that meet capability requirements (optimized)."""
         # Optimize cache key with larger buckets for better hit rate
         token_bucket = (prompt_token_count // 2000) * 2000  # 2K token buckets
@@ -134,7 +134,20 @@ class ModelSelectionService:
         )
 
         # Fast set intersection to get candidate providers
-        candidate_providers = frozenset(model_entry.providers) & available_providers
+        # Normalize both sets to strings for proper intersection
+        model_providers_str = frozenset(
+            p.value if hasattr(p, 'value') else str(p) for p in model_entry.providers
+        )
+        available_providers_str = frozenset(
+            p.value if hasattr(p, 'value') else str(p) for p in available_providers
+        )
+        candidate_providers_str = model_providers_str & available_providers_str
+
+        # Convert back to original provider objects for consistency
+        candidate_providers = frozenset(
+            p for p in model_entry.providers
+            if (p.value if hasattr(p, 'value') else str(p)) in candidate_providers_str
+        )
 
         # If no registry providers found, assume custom model and trust user specification
         if not candidate_providers:
@@ -462,7 +475,7 @@ class ModelSelectionService:
     def _apply_capability_constraints(
         self,
         candidate_models: list[ModelEntry],
-        eligible_providers: frozenset[ProviderType],
+        eligible_providers: frozenset[ProviderType | str],
         prompt_token_count: int,
     ) -> list[ModelEntry]:
         """Filter models based on capability constraints like context length."""

@@ -1,3 +1,4 @@
+from threading import RLock
 from typing import Any, Protocol
 
 import cachetools
@@ -32,9 +33,11 @@ class ProtocolManager:
         self.lit_logger: LitLoggerProtocol | None = lit_logger
 
         # Cache for protocol decisions to avoid repeated computations
-        self._protocol_decision_cache: cachetools.LRUCache[str, bool] = (
+        self._protocol_decision_cache: cachetools.LRUCache[tuple[float, float, int], bool] = (  # type: ignore[type-arg]
             cachetools.LRUCache(maxsize=500)
         )
+        # Thread safety lock for cache access
+        self._cache_lock = RLock()
 
         self.log(
             "protocol_manager_init",
@@ -44,12 +47,13 @@ class ProtocolManager:
     @property
     def cache_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
-        return {
-            "protocol_decision_cache": {
-                "size": self._protocol_decision_cache.currsize,
-                "max_size": self._protocol_decision_cache.maxsize,
+        with self._cache_lock:
+            return {
+                "protocol_decision_cache": {
+                    "size": self._protocol_decision_cache.currsize,
+                    "max_size": self._protocol_decision_cache.maxsize,
+                }
             }
-        }
 
     def log(self, key: str, value: Any) -> None:
         if self.lit_logger:
@@ -86,26 +90,22 @@ class ProtocolManager:
                 token_threshold = request.protocol_manager_config.token_threshold
 
         # Create cache key based on actual decision factors
-        cache_key = str(
-            (
-                f"{complexity_score:.3f}",
-                f"{complexity_threshold:.3f}",
-                token_count,
-            )
-        )
+        cache_key = (complexity_score, complexity_threshold, token_count)
 
-        # Check cache first
-        cached_result = self._protocol_decision_cache.get(cache_key)
-        if cached_result is not None:
-            return bool(cached_result)
+        # Check cache first (thread-safe)
+        with self._cache_lock:
+            cached_result = self._protocol_decision_cache.get(cache_key)
+            if cached_result is not None:
+                return bool(cached_result)
 
         # Decision based on complexity score OR token length
         decision = (
             complexity_score > complexity_threshold or token_count > token_threshold
         )
 
-        # Cache the result (LRU cache handles eviction automatically)
-        self._protocol_decision_cache[cache_key] = decision
+        # Cache the result (LRU cache handles eviction automatically, thread-safe)
+        with self._cache_lock:
+            self._protocol_decision_cache[cache_key] = decision
 
         return decision
 

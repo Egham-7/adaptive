@@ -59,8 +59,8 @@ class CostOptimizer:
         tokens = np.array([input_tokens, input_tokens * output_ratio])
         costs = np.array(
             [
-                model_capability.cost_per_1m_input_tokens,
-                model_capability.cost_per_1m_output_tokens,
+                model_capability.cost_per_1m_input_tokens or 0.0,
+                model_capability.cost_per_1m_output_tokens or 0.0,
             ]
         )
 
