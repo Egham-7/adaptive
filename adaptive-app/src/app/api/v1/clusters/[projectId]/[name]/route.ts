@@ -32,9 +32,15 @@ export async function GET(
 				name: name,
 			},
 			include: {
-				models: {
-					where: {},
-					orderBy: { priority: "asc" },
+				providers: {
+					include: {
+						provider: {
+							include: {
+								models: true,
+							},
+						},
+						config: true,
+					},
 				},
 			},
 		});
@@ -137,12 +143,18 @@ export async function PUT(
 				...(body.promptCacheTTL !== undefined && {
 					promptCacheTTL: body.promptCacheTTL,
 				}),
-				...(body.isActive !== undefined && { isActive: body.isActive }),
+				// Note: isActive field was removed from schema
 			},
 			include: {
-				models: {
-					where: {},
-					orderBy: { priority: "asc" },
+				providers: {
+					include: {
+						provider: {
+							include: {
+								models: true,
+							},
+						},
+						config: true,
+					},
 				},
 			},
 		});
@@ -191,10 +203,9 @@ export async function DELETE(
 			return NextResponse.json({ error: "Cluster not found" }, { status: 404 });
 		}
 
-		// Soft delete
-		await db.lLMCluster.update({
+		// Hard delete (since isActive was removed from schema)
+		await db.lLMCluster.delete({
 			where: { id: cluster.id },
-			data: { isActive: false },
 		});
 
 		return NextResponse.json({ success: true });

@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
+import { decryptProviderApiKey } from "@/lib/auth-utils";
 import { withCache } from "@/lib/cache-utils";
 import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
@@ -106,7 +107,7 @@ export async function POST(
 					base_url: provider.baseUrl ?? undefined,
 					auth_type: provider.authType ?? undefined,
 					auth_header_name: provider.authHeaderName ?? undefined,
-					api_key: config.providerApiKey, // Use user's API key from config
+					api_key: decryptProviderApiKey(config.providerApiKey), // Decrypt user's API key from config
 					health_endpoint: provider.healthEndpoint ?? undefined,
 					rate_limit_rpm: provider.rateLimitRpm ?? undefined,
 					timeout_ms: provider.timeoutMs ?? undefined,
@@ -125,62 +126,91 @@ export async function POST(
 		// Get full model details from provider models with caching
 		const modelDetails = await withCache(
 			`model-details:${cluster.id}`,
-			() =>
-				Promise.all(
-					cluster.models.map(async (clusterModel) => {
+			async () => {
+				// Process each cluster provider and get their model details
+				const modelDetailsArray: Array<{
+					provider: string;
+					model_name: string;
+					cost_per_1m_input_tokens: number;
+					cost_per_1m_output_tokens: number;
+					max_context_tokens: number;
+					max_output_tokens?: number;
+					supports_function_calling: boolean;
+					languages_supported: string[];
+					model_size_params?: string;
+					latency_tier?: string;
+					task_type?: string;
+					complexity?: string;
+				}> = [];
+
+				// Fetch all provider models in parallel using Promise.allSettled
+				const providerModelPromises = cluster.providers.map(
+					async (clusterProvider) => {
 						try {
-							const provider = await api.providers.getByName({
-								name: clusterModel.provider,
+							// Get models for this provider config
+							const models = await api.providerModels.getForConfig({
+								projectId,
+								providerId: clusterProvider.providerId,
+								configId: clusterProvider.configId ?? undefined,
 								apiKey,
 							});
 
-							const model = provider?.models.find(
-								(m) => m.name === clusterModel.modelName,
-							);
-
-							if (!model) {
-								throw new Error(
-									`Model ${clusterModel.modelName} not found in provider ${clusterModel.provider}`,
-								);
-							}
-
-							if (!model.capabilities) {
-								throw new Error(
-									`Model ${clusterModel.modelName} from ${clusterModel.provider} must have capabilities defined`,
-								);
-							}
-
-							return {
-								provider: clusterModel.provider,
-								model_name: clusterModel.modelName,
-								cost_per_1m_input_tokens: model.inputTokenCost,
-								cost_per_1m_output_tokens: model.outputTokenCost,
-								max_context_tokens: model.capabilities.maxContextTokens ?? 4096,
-								max_output_tokens: model.capabilities.maxOutputTokens,
-								supports_function_calling:
-									model.capabilities.supportsFunctionCalling,
-								languages_supported: model.capabilities.languagesSupported,
-								model_size_params: model.capabilities.modelSizeParams,
-								latency_tier: model.capabilities.latencyTier,
-								task_type: model.capabilities.taskType,
-								complexity: model.capabilities.complexity,
-							};
+							return { clusterProvider, models, error: null };
 						} catch (error) {
 							console.warn(
-								`Failed to get model details for ${clusterModel.provider}:${clusterModel.modelName}:`,
+								`Failed to get models for provider ${clusterProvider.provider.name}:`,
 								error,
 							);
-							return {
-								provider: clusterModel.provider,
-								model_name: clusterModel.modelName,
-								cost_per_1m_input_tokens: 0,
-								cost_per_1m_output_tokens: 0,
-								max_context_tokens: 4096,
-								supports_function_calling: true,
-							};
+							return { clusterProvider, models: [], error };
 						}
-					}),
-				),
+					},
+				);
+
+				// Wait for all provider model fetches to complete
+				const providerResults = await Promise.allSettled(providerModelPromises);
+
+				// Process results and build model details array
+				for (const result of providerResults) {
+					if (result.status === "fulfilled") {
+						const { clusterProvider, models } = result.value;
+
+						for (const model of models) {
+							if (!model.capabilities) {
+								console.warn(
+									`Model ${model.name} from ${clusterProvider.provider.name} missing capabilities`,
+								);
+								continue;
+							}
+
+							modelDetailsArray.push({
+								provider: clusterProvider.provider.name,
+								model_name: model.name,
+								cost_per_1m_input_tokens: Number(model.inputTokenCost),
+								cost_per_1m_output_tokens: Number(model.outputTokenCost),
+								max_context_tokens: model.capabilities.maxContextTokens ?? 4096,
+								max_output_tokens:
+									model.capabilities.maxOutputTokens ?? undefined,
+								supports_function_calling:
+									model.capabilities.supportsFunctionCalling,
+								languages_supported:
+									model.capabilities.languagesSupported ?? [],
+								model_size_params:
+									model.capabilities.modelSizeParams ?? undefined,
+								latency_tier: model.capabilities.latencyTier ?? undefined,
+								task_type: model.capabilities.taskType ?? undefined,
+								complexity: model.capabilities.complexity ?? undefined,
+							});
+						}
+					} else {
+						console.warn(
+							"Promise.allSettled rejected unexpectedly:",
+							result.reason,
+						);
+					}
+				}
+
+				return modelDetailsArray;
+			},
 			300, // 5 minutes cache for model details
 		);
 

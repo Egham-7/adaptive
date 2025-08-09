@@ -25,7 +25,6 @@ const updateConfigSchema = z.object({
 	displayName: z.string().min(1).max(100).optional(),
 	customHeaders: z.record(z.string(), z.string()).optional(),
 	customSettings: z.record(z.string(), z.any()).optional(),
-	isActive: z.boolean().optional(),
 });
 
 // POST /api/v1/providers/{providerId}/config - Create config for provider

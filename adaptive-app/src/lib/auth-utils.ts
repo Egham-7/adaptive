@@ -202,3 +202,137 @@ export const getCacheKey = (auth: AuthResult, suffix: string): string => {
 	const prefix = auth.authType === "api_key" ? auth.apiKey.id : auth.userId;
 	return `llm-clusters:${auth.authType}:${prefix}:${suffix}`;
 };
+
+// =============================================================================
+// PROVIDER API KEY ENCRYPTION
+// =============================================================================
+
+// Encryption configuration for provider API keys
+const ALGORITHM = "aes-256-gcm";
+const KEY_LENGTH = 32; // 32 bytes for AES-256
+const IV_LENGTH = 16; // 16 bytes for AES-GCM
+const TAG_LENGTH = 16; // 16 bytes for authentication tag
+
+/**
+ * Derives an encryption key from the environment variable
+ * Uses PBKDF2 for key derivation with a fixed salt for consistency
+ */
+function getEncryptionKey(): Buffer {
+	const encryptionSecret = process.env.ENCRYPTION_SECRET;
+	if (!encryptionSecret) {
+		throw new Error(
+			"ENCRYPTION_SECRET environment variable is required for provider API key encryption",
+		);
+	}
+
+	// Use a fixed salt derived from the secret itself for deterministic key derivation
+	const salt = crypto
+		.createHash("sha256")
+		.update(`${encryptionSecret}:provider-api-keys`)
+		.digest()
+		.subarray(0, 16);
+
+	return crypto.pbkdf2Sync(
+		encryptionSecret,
+		salt,
+		100000,
+		KEY_LENGTH,
+		"sha512",
+	);
+}
+
+/**
+ * Encrypts a provider API key using AES-256-GCM
+ * Returns base64-encoded encrypted data with IV and auth tag
+ */
+export function encryptProviderApiKey(apiKey: string): string {
+	if (!apiKey || apiKey.trim().length === 0) {
+		throw new Error("Provider API key cannot be empty");
+	}
+
+	try {
+		const key = getEncryptionKey();
+		const iv = crypto.randomBytes(IV_LENGTH);
+		const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+		cipher.setAAD(Buffer.from("provider-api-key", "utf8"));
+
+		let encrypted = cipher.update(apiKey.trim(), "utf8");
+		encrypted = Buffer.concat([encrypted, cipher.final()]);
+		const tag = cipher.getAuthTag();
+
+		// Combine IV + tag + encrypted data and encode as base64
+		const combined = Buffer.concat([iv, tag, encrypted]);
+		return combined.toString("base64");
+	} catch (error) {
+		throw new Error(
+			`Failed to encrypt provider API key: ${error instanceof Error ? error.message : "Unknown error"}`,
+		);
+	}
+}
+
+/**
+ * Decrypts a provider API key using AES-256-GCM
+ * Expects base64-encoded encrypted data with IV and auth tag
+ */
+export function decryptProviderApiKey(encryptedData: string): string {
+	if (!encryptedData || encryptedData.trim().length === 0) {
+		throw new Error("Encrypted provider API key data cannot be empty");
+	}
+
+	try {
+		const key = getEncryptionKey();
+		const combined = Buffer.from(encryptedData.trim(), "base64");
+
+		// Extract IV, tag, and encrypted data
+		const iv = combined.subarray(0, IV_LENGTH);
+		const tag = combined.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
+		const encrypted = combined.subarray(IV_LENGTH + TAG_LENGTH);
+
+		const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+		decipher.setAuthTag(tag);
+		decipher.setAAD(Buffer.from("provider-api-key", "utf8"));
+
+		let decrypted = decipher.update(encrypted, undefined, "utf8");
+		decrypted += decipher.final("utf8");
+
+		return decrypted;
+	} catch (error) {
+		throw new Error(
+			`Failed to decrypt provider API key: ${error instanceof Error ? error.message : "Invalid or corrupted encrypted data"}`,
+		);
+	}
+}
+
+/**
+ * Validates that an encrypted provider API key can be successfully decrypted
+ * Used for testing encryption/decryption roundtrip
+ */
+export function validateEncryptedProviderApiKey(
+	encryptedData: string,
+): boolean {
+	try {
+		const decrypted = decryptProviderApiKey(encryptedData);
+		return decrypted.length > 0;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Securely compares a plain provider API key with an encrypted one
+ * This prevents timing attacks on API key comparison
+ */
+export function secureCompareProviderApiKeys(
+	plainKey: string,
+	encryptedKey: string,
+): boolean {
+	try {
+		const decryptedKey = decryptProviderApiKey(encryptedKey);
+		return crypto.timingSafeEqual(
+			Buffer.from(plainKey.trim(), "utf8"),
+			Buffer.from(decryptedKey, "utf8"),
+		);
+	} catch {
+		return false;
+	}
+}

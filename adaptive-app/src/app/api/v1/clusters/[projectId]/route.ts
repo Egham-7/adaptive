@@ -30,9 +30,15 @@ export async function GET(
 				projectId: projectId,
 			},
 			include: {
-				models: {
-					where: {},
-					orderBy: { priority: "asc" },
+				providers: {
+					include: {
+						provider: {
+							include: {
+								models: true,
+							},
+						},
+						config: true,
+					},
 				},
 			},
 			orderBy: { createdAt: "desc" },
@@ -96,22 +102,60 @@ export async function POST(
 			});
 
 			if (existing) {
-				throw new Error("Cluster name already exists in this project");
+				return NextResponse.json(
+					{ error: "Cluster name already exists in this project" },
+					{ status: 409 },
+				);
 			}
 
-			// Validate all models exist
-			for (const model of body.models) {
-				const providerModel = await tx.providerModel.findFirst({
+			// Validate all providers and models exist and are accessible
+			for (const providerInput of body.providers) {
+				// Check if provider exists and is accessible to this project
+				const provider = await tx.provider.findFirst({
 					where: {
-						provider: { name: model.provider },
-						name: model.modelName,
+						id: providerInput.providerId,
+						OR: [
+							{ visibility: "system" },
+							{ visibility: "community" },
+							{ projectId: projectId },
+							// TODO: Add organization-scoped providers
+						],
+					},
+					include: {
+						models: {
+							include: {
+								capabilities: true,
+							},
+						},
 					},
 				});
 
-				if (!providerModel) {
-					throw new Error(
-						`Model ${model.modelName} from ${model.provider} not found`,
+				if (!provider) {
+					return NextResponse.json(
+						{ error: "Provider not found or not accessible" },
+						{ status: 404 },
 					);
+				}
+
+				// Note: Model selection is now handled via the ProviderConfigModel junction table
+				// The new schema uses selectedModels relationship (empty = use all models)
+
+				// If configId is specified, validate it exists and belongs to this project
+				if (providerInput.configId) {
+					const providerConfig = await tx.providerConfig.findFirst({
+						where: {
+							id: providerInput.configId,
+							projectId: projectId,
+							providerId: providerInput.providerId,
+						},
+					});
+
+					if (!providerConfig) {
+						return NextResponse.json(
+							{ error: "Provider config not found or not accessible" },
+							{ status: 404 },
+						);
+					}
 				}
 			}
 
@@ -136,22 +180,28 @@ export async function POST(
 				},
 			});
 
-			// Create cluster models with incremental priorities
-			await tx.clusterModel.createMany({
-				data: body.models.map((model, index) => ({
+			// Create cluster providers
+			await tx.clusterProvider.createMany({
+				data: body.providers.map((provider) => ({
 					clusterId: newCluster.id,
-					provider: model.provider,
-					modelName: model.modelName,
-					priority: model.priority ?? index + 1,
+					providerId: provider.providerId,
+					configId: provider.configId,
 				})),
 			});
 
-			// Return cluster with models
+			// Return cluster with providers
 			return await tx.lLMCluster.findUnique({
 				where: { id: newCluster.id },
 				include: {
-					models: {
-						orderBy: { priority: "asc" },
+					providers: {
+						include: {
+							provider: {
+								include: {
+									models: true,
+								},
+							},
+							config: true,
+						},
 					},
 				},
 			});
