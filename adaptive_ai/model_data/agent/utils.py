@@ -11,29 +11,17 @@ import time
 from typing import Any
 
 import config
-from cost_tracker import CostTracker
 import yaml
 
 logger = logging.getLogger(__name__)
 
 
 def load_models_to_process() -> list[tuple[str, dict[str, Any], str, str]]:
-    """Load models that need enrichment from YAML files (filtered providers only)"""
+    """Load models that need enrichment - simple field-based check, no caching"""
     models_to_process = []
-    processed_cache = set()
 
     # Only process these providers as requested
-    target_providers = {"ANTHROPIC", "X", "GROQ", "GOOGLE", "DEEPSEEK", "OPENAI"}
-
-    # Load processing cache
-    cache_file = Path(config.CACHE_PATH) / "langgraph_processed_models.json"
-    if cache_file.exists():
-        try:
-            with open(cache_file) as f:
-                data = json.load(f)
-                processed_cache = set(data.get("processed", []))
-        except Exception as e:
-            logger.warning(f"Could not load cache: {e}")
+    target_providers = {"ANTHROPIC", "GROK", "GROQ", "GOOGLE", "DEEPSEEK", "OPENAI"}
 
     # Load models from structured YAML files (only target providers)
     structured_path = Path(config.STRUCTURED_MODELS_PATH)
@@ -52,30 +40,42 @@ def load_models_to_process() -> list[tuple[str, dict[str, Any], str, str]]:
 
             provider = data["provider_info"]["name"]
             print(f"📂 Loading {provider} models from {yaml_file.name}...")
+            
+            empty_count = 0
+            filled_count = 0
 
             for model_key, model_data in data.get("models", {}).items():
-                model_id = f"{provider}:{model_data['model_name']}"
-
-                # Skip if already processed
-                if model_id in processed_cache:
-                    continue
-
-                # Check for ANY empty fields that need enrichment
-                needs_enrichment = (
-                    not model_data.get("description")
-                    or model_data.get("max_context_tokens") is None
-                    or model_data.get("max_output_tokens") is None
-                    or not model_data.get("task_type")
-                    or not model_data.get("complexity")
-                    or model_data.get("supports_function_calling") is None
-                    or not model_data.get("model_size_params")
-                    or not model_data.get("latency_tier")
-                )
-
-                if needs_enrichment:
+                # Check if this model has ANY empty fields that need enrichment
+                empty_fields = []
+                
+                if not model_data.get("description") or model_data.get("description") == "":
+                    empty_fields.append("description")
+                if model_data.get("max_context_tokens") is None:
+                    empty_fields.append("max_context_tokens")
+                if model_data.get("max_output_tokens") is None:
+                    empty_fields.append("max_output_tokens")
+                if not model_data.get("task_type") or model_data.get("task_type") == "":
+                    empty_fields.append("task_type")
+                if not model_data.get("complexity") or model_data.get("complexity") == "":
+                    empty_fields.append("complexity")
+                if model_data.get("supports_function_calling") is None:
+                    empty_fields.append("supports_function_calling")
+                if not model_data.get("model_size_params") or model_data.get("model_size_params") == "":
+                    empty_fields.append("model_size_params")
+                if not model_data.get("latency_tier") or model_data.get("latency_tier") == "":
+                    empty_fields.append("latency_tier")
+                
+                # Only process if there are empty fields
+                if empty_fields:
                     models_to_process.append(
                         (provider, model_data, str(yaml_file), model_key)
                     )
+                    empty_count += 1
+                    print(f"  📝 {model_data['model_name']}: needs {', '.join(empty_fields)}")
+                else:
+                    filled_count += 1
+            
+            print(f"  ✅ {provider}: {filled_count} already enriched, {empty_count} need enrichment")
 
         except Exception as e:
             logger.error(f"Error loading {yaml_file}: {e}")
@@ -207,22 +207,17 @@ class ProcessingTracker:
         logger.warning(f"❌ Failed to enrich {model_id}")
 
     def print_progress(
-        self, current: int, total: int, cost_tracker: CostTracker
+        self, current: int, total: int
     ) -> None:
         """Print progress update"""
         progress_pct = (current / total) * 100 if total > 0 else 0
-        cost_summary = cost_tracker.get_usage_summary()
 
         print("\\n📈 PROGRESS UPDATE")
         print(f"   Progress: {current}/{total} ({progress_pct:.1f}%)")
         print(f"   Successful: {self.successful_count}")
         print(f"   Failed: {self.failed_count}")
-        print(
-            f"   Cost: ${cost_summary['total_cost']:.4f} (Budget: {cost_summary['budget_used_percent']:.1f}%)"
-        )
-        print(f"   Remaining: ${cost_summary['remaining_budget']:.4f}")
 
-    def print_final_summary(self, cost_tracker: CostTracker) -> None:
+    def print_final_summary(self) -> None:
         """Print final processing summary"""
         elapsed_time = time.time() - self.start_time
         total_processed = self.successful_count + self.failed_count
@@ -239,5 +234,4 @@ class ProcessingTracker:
         print(f"❌ Failed to enrich: {self.failed_count} models")
         print(f"📈 Success rate: {success_rate:.1f}%")
         print(f"⏱️  Processing time: {elapsed_time/60:.1f} minutes")
-        print(f"💰 Total cost: ${cost_tracker.total_cost:.4f}")
         print("=" * 60)

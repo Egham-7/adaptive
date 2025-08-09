@@ -27,6 +27,7 @@ def yaml_to_model_capability(yaml_data: dict, provider_name: str) -> ModelCapabi
         "DEEPSEEK": ProviderType.DEEPSEEK,
         "MISTRAL": ProviderType.MISTRAL,
         "X": ProviderType.GROK,  # X provider maps to GROK enum
+        "GROK": ProviderType.GROK,  # GROK provider maps to GROK enum
     }
     
     provider_type = provider_mapping.get(provider_name, ProviderType.OPENAI)

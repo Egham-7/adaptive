@@ -1,8 +1,15 @@
+# ================================================================================
+# Provider: DEEPSEEK Models Database
+# Total Models: 1
+# Source: Helicone API (https://helicone.ai/api/llm-costs)
+# Updated: 2025-08-09 13:14:59 UTC
+# ================================================================================
+
 provider_info:
   name: DEEPSEEK
   total_models: 1
   data_source: https://helicone.ai/api/llm-costs?provider=deepseek
-  last_updated: '2025-08-06'
+  last_updated: '2025-08-09'
   currency: USD
   pricing_unit: per 1 million tokens
 models:
@@ -14,7 +21,11 @@ models:
     cost_per_1m_output_tokens: 0.028
     max_context_tokens: 128000
     max_output_tokens: 4096
+    supports_streaming: true
     supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - en
     - zh
@@ -22,6 +33,10 @@ models:
     latency_tier: medium
     task_type: Text Generation
     complexity: high
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true

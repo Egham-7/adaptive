@@ -41,7 +41,7 @@ class YAMLModelDatabase:
         # Supported providers (matching ProviderType enum)
         supported_providers = [
             "anthropic", "groq", "openai", "google", 
-            "deepseek", "mistral", "x"
+            "deepseek", "mistral", "grok"
         ]
         
         models_loaded = 0

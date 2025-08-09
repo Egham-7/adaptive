@@ -9,7 +9,6 @@ import time
 from typing import Any
 
 import config
-from cost_tracker import CostTracker
 from langgraph.graph import END, StateGraph
 
 from .nodes import ai_analysis_node, extraction_node, search_node, validation_node
@@ -17,7 +16,6 @@ from .state import ModelExtractionState
 from .utils import (
     ProcessingTracker,
     load_models_to_process,
-    save_processed_cache,
     update_yaml_file,
 )
 
@@ -69,17 +67,11 @@ def create_workflow() -> Any:
 def process_models_batch(
     models_batch: list[Any],
     app: Any,
-    cost_tracker: CostTracker,
     tracker: ProcessingTracker,
 ) -> None:
     """Process a batch of models using LangGraph workflow"""
     for provider, model_data, yaml_file, model_key in models_batch:
         model_name = model_data["model_name"]
-
-        # Check budget before processing
-        if not cost_tracker.can_afford(0.003):
-            logger.warning("Budget limit reached, stopping processing")
-            break
 
         # Initial state
         initial_state = ModelExtractionState(
@@ -137,8 +129,7 @@ def run_enrichment(workflow: Any | None = None) -> None:
     print("=" * 60 + "\\n")
 
     try:
-        # Initialize cost tracker and processing tracker
-        cost_tracker = CostTracker(config.MAX_COST_LIMIT)
+        # Initialize processing tracker
         tracker = ProcessingTracker()
 
         # Load models to process
@@ -197,24 +188,20 @@ def run_enrichment(workflow: Any | None = None) -> None:
             )
 
             # Process batch
-            process_models_batch(batch, workflow, cost_tracker, tracker)
+            process_models_batch(batch, workflow, tracker)
 
             # Print progress
             current_processed = end_idx
             tracker.print_progress(
-                current_processed, len(models_to_process), cost_tracker
+                current_processed, len(models_to_process)
             )
 
             # Save cache every few batches
             if (batch_num + 1) % 3 == 0:
-                save_processed_cache(tracker.processed_models, tracker.failed_models)
 
         # Final summary
-        tracker.print_final_summary(cost_tracker)
-        cost_tracker.print_summary()
+        tracker.print_final_summary()
 
-        # Save final cache
-        save_processed_cache(tracker.processed_models, tracker.failed_models)
 
         print("\\n📊 Processing complete! Check YAML files for enriched data.")
 
@@ -226,8 +213,6 @@ def run_enrichment(workflow: Any | None = None) -> None:
 
     except KeyboardInterrupt:
         print("\\n⏹️  Processing interrupted by user")
-        if "cost_tracker" in locals():
-            cost_tracker.print_summary()
     except Exception as e:
         logger.error(f"Fatal error: {e}")
         raise

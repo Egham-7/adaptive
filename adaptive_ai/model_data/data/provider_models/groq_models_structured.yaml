@@ -2,7 +2,7 @@ provider_info:
   name: GROQ
   total_models: 20
   data_source: https://helicone.ai/api/llm-costs?provider=groq
-  last_updated: '2025-08-06'
+  last_updated: '2025-08-09'
   currency: USD
   pricing_unit: per 1 million tokens
 models:
@@ -16,21 +16,29 @@ models:
     cost_per_1m_output_tokens: 0.99
     max_context_tokens: 4096
     max_output_tokens: 1024
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754572379.8369126
+      confidence_score: 0.8
+      enriched_at: 1754742390.020361
   gemma_7b_it:
     description: GROQ's gemma-7b-it is a 7 billion parameter model designed for various
       tasks, likely including text generation and classification, based on its size
@@ -41,21 +49,29 @@ models:
     cost_per_1m_output_tokens: 0.07
     max_context_tokens: 2048
     max_output_tokens: 512
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 7b
     latency_tier: medium
     task_type: Other
     complexity: medium
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754572383.0406604
+      confidence_score: 0.8
+      enriched_at: 1754742392.672132
   gemma2_9b_it:
     description: gemma2-9b-it is a language model designed for various natural language
       processing tasks, likely optimized for text generation and classification based
@@ -66,71 +82,96 @@ models:
     cost_per_1m_output_tokens: 0.2
     max_context_tokens: 2048
     max_output_tokens: 512
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 9b
     latency_tier: medium
     task_type: Text Generation
     complexity: medium
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754572386.158196
-  llama_3.1_8b_instant:
-    description: Llama-3.1-8b-instant is a state-of-the-art language model designed
-      for efficient natural language processing tasks, offering robust capabilities
-      for text generation and conversational applications.
+      confidence_score: 0.8
+      enriched_at: 1754742395.027393
+  llama_3_1_8b_instant:
+    description: Llama-3.1-8b-instant is a mid-sized language model designed for efficient
+      text generation and conversational tasks, leveraging advanced capabilities for
+      quick responses.
     provider: GROQ
     model_name: llama-3.1-8b-instant
     cost_per_1m_input_tokens: 0.05
     cost_per_1m_output_tokens: 0.08
-    max_context_tokens: 10000
-    max_output_tokens: 2500
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 8b
     latency_tier: medium
     task_type: Text Generation
     complexity: medium
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754572389.0082624
-  llama_3.3_70b_versatile:
-    description: The GROQ Llama 3.3 70B Versatile model is a high-performance AI solution
-      designed for a wide range of applications, including text generation, classification,
-      and more, leveraging a large context window for complex tasks.
+      confidence_score: 0.8
+      enriched_at: 1754742397.587641
+  llama_3_3_70b_versatile:
+    description: Llama-3.3-70b-versatile is a large language model designed for a
+      wide range of tasks, including text generation and conversational interactions,
+      leveraging its extensive parameter count for sophisticated reasoning and contextual
+      understanding.
     provider: GROQ
     model_name: llama-3.3-70b-versatile
     cost_per_1m_input_tokens: 0.59
     cost_per_1m_output_tokens: 0.79
-    max_context_tokens: 131072
-    max_output_tokens: 32768
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_streaming: true
     supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754572392.0783393
+      confidence_score: 0.8
+      enriched_at: 1754742400.455114
   llama_guard_3_8b:
     description: Llama-guard-3-8b is a model designed for various language tasks,
       likely optimized for text generation and classification, with a focus on handling
@@ -141,21 +182,29 @@ models:
     cost_per_1m_output_tokens: 0.2
     max_context_tokens: 4096
     max_output_tokens: 1024
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 8b
     latency_tier: medium
     task_type: Classification
     complexity: medium
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
       confidence_score: 0.8
-      enriched_at: 1754572396.324991
+      enriched_at: 1754742404.9026408
   llama2_70b_4096:
     description: The Llama2-70b-4096 model by GROQ is a large language model designed
       for advanced text generation and conversational tasks, leveraging a substantial
@@ -166,21 +215,29 @@ models:
     cost_per_1m_output_tokens: 0.8
     max_context_tokens: 4096
     max_output_tokens: 1024
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
       confidence_score: 0.85
-      enriched_at: 1754572401.529591
+      enriched_at: 1754742407.624161
   llama3_70b_8192:
     description: The GROQ llama3-70b-8192 is a large language model designed for advanced
       text generation and processing tasks, capable of handling complex queries and
@@ -191,21 +248,29 @@ models:
     cost_per_1m_output_tokens: 0.79
     max_context_tokens: 8192
     max_output_tokens: 2048
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754572404.4174988
+      confidence_score: 0.9
+      enriched_at: 1754742410.390282
   llama3_8b_8192:
     description: Llama3-8b-8192 is a large language model designed for versatile applications,
       including text generation and classification tasks, with a focus on accessibility
@@ -216,21 +281,29 @@ models:
     cost_per_1m_output_tokens: 0.08
     max_context_tokens: 8192
     max_output_tokens: 2048
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 8b
     latency_tier: medium
     task_type: Text Generation
     complexity: medium
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754572407.2107868
+      confidence_score: 0.8
+      enriched_at: 1754742413.485157
   llama3_groq_70b_8192_tool_use_preview:
     description: The Llama3-GROQ-70B-8192-Tool-Use-Preview is a large language model
       designed for advanced text generation and tool usage, leveraging a substantial
@@ -241,21 +314,24 @@ models:
     cost_per_1m_output_tokens: 0.89
     max_context_tokens: 8192
     max_output_tokens: 2048
+    supports_streaming: true
     supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754572409.853268
+      available_in_playground: true
   llama3_groq_8b_8192_tool_use_preview:
     description: The Llama3-GROQ-8B-8192-Tool-Use-Preview model is a large language
       model designed for versatile applications, including text generation and tool
@@ -266,21 +342,24 @@ models:
     cost_per_1m_output_tokens: 0.19
     max_context_tokens: 8192
     max_output_tokens: 2048
+    supports_streaming: true
     supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 8b
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754572412.715802
+      available_in_playground: true
   meta_llama_llama_4_maverick_17b_128e_instruct:
     description: The meta-llama/llama-4-maverick-17b-128e-instruct model is a sophisticated
       language model designed for various natural language processing tasks, likely
@@ -291,21 +370,29 @@ models:
     cost_per_1m_output_tokens: 0.6
     max_context_tokens: 4096
     max_output_tokens: 1024
-    supports_function_calling: false
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 17b
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754572415.4070055
+      confidence_score: 0.85
+      enriched_at: 1754742416.227683
   meta_llama_llama_4_scout_17b_16e_instruct:
     description: The meta-llama/llama-4-scout-17b-16e-instruct model is a sophisticated
       language model designed for high-performance text generation and complex tasks,
@@ -316,7 +403,11 @@ models:
     cost_per_1m_output_tokens: 0.34
     max_context_tokens: 128000
     max_output_tokens: 32000
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - Arabic
     - English
@@ -327,14 +418,18 @@ models:
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754572418.1925013
+      confidence_score: 0.8
+      enriched_at: 1754742558.664875
   meta_llama_llama_guard_4_12b:
     description: The meta-llama/llama-guard-4-12b model is designed for advanced language
       processing tasks, likely incorporating features for text generation and possibly
@@ -345,21 +440,29 @@ models:
     cost_per_1m_output_tokens: 0.2
     max_context_tokens: 4096
     max_output_tokens: 1024
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 12b
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754572420.8145378
+      confidence_score: 0.8
+      enriched_at: 1754742561.633247
   mistral_saba_24b:
     description: The mistral-saba-24b model by GROQ is a large language model designed
       for various natural language processing tasks, potentially including text generation
@@ -371,21 +474,29 @@ models:
     cost_per_1m_output_tokens: 0.79
     max_context_tokens: 2048
     max_output_tokens: 512
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 24b
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754572423.4263394
+      confidence_score: 0.8
+      enriched_at: 1754742564.605484
   mixtral_8x7b_32768:
     description: Mixtral-8x7b-32768 is a sophisticated language model designed for
       high-performance AI tasks, featuring a large context window and optimized for
@@ -396,46 +507,57 @@ models:
     cost_per_1m_output_tokens: 0.24
     max_context_tokens: 32768
     max_output_tokens: 8192
+    supports_streaming: true
     supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 8x7b
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754572426.8730876
+      available_in_playground: true
   moonshotai_kimi_k2_instruct:
     description: The moonshotai/kimi-k2-instruct model is designed for instruction-following
       tasks, likely optimized for generating responses based on user prompts in a
       conversational context.
     provider: GROQ
     model_name: moonshotai/kimi-k2-instruct
-    cost_per_1m_input_tokens: 1.0
-    cost_per_1m_output_tokens: 3.0
+    cost_per_1m_input_tokens: 1
+    cost_per_1m_output_tokens: 3
     max_context_tokens: 4096
     max_output_tokens: 1024
+    supports_streaming: true
     supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: Unknown
     latency_tier: medium
     task_type: Chatbot
     complexity: medium
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
       confidence_score: 0.7
-      enriched_at: 1754572429.6223764
+      enriched_at: 1754742567.368334
   openai_gpt_oss_120b:
     description: The openai/gpt-oss-120b model is a large language model designed
       for advanced text generation and conversational tasks, leveraging a substantial
@@ -446,21 +568,29 @@ models:
     cost_per_1m_output_tokens: 0.75
     max_context_tokens: 8192
     max_output_tokens: 2048
-    supports_function_calling: false
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 120b
     latency_tier: slow
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
     _enrichment:
       enriched: true
       method: langgraph_workflow
       confidence_score: 0.8
-      enriched_at: 1754572432.0929277
+      enriched_at: 1754742570.64694
   openai_gpt_oss_20b:
     description: gpt-oss-20b is an open-weight language model designed for powerful
       reasoning and versatile developer use cases, capable of function calling, web
@@ -471,21 +601,24 @@ models:
     cost_per_1m_output_tokens: 0.5
     max_context_tokens: 2048
     max_output_tokens: 512
+    supports_streaming: true
     supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     model_size_params: 20b
     latency_tier: medium
     task_type: Text Generation
     complexity: medium
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754572435.188306
+      available_in_playground: true
   qwen_qwen3_32b:
     description: Qwen3-32B is a state-of-the-art language model optimized for complex
       reasoning and efficient dialogue, capable of handling sophisticated tasks and
@@ -496,7 +629,11 @@ models:
     cost_per_1m_output_tokens: 0.59
     max_context_tokens: 131072
     max_output_tokens: 32768
+    supports_streaming: true
     supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
     languages_supported:
     - English
     - Chinese
@@ -504,11 +641,10 @@ models:
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
     metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
       matching_operator: equals
-      available_in_playground: null
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754574067.115139
+      available_in_playground: true
