@@ -49,9 +49,9 @@ class ProtocolManagerConfig(BaseModel):
 
 
 class ModelEntry(BaseModel):
-    providers: list[ProviderType]
+    providers: list[ProviderType | str]
     model_name: str = Field(alias="model_name")
-    _original_provider: str | None = None
+    # Remove _original_provider since we no longer need fallback metadata
 
 
 class TaskModelMapping(BaseModel):

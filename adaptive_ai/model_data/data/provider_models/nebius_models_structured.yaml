@@ -1,0 +1,65 @@
+provider_info:
+  name: NEBIUS
+  total_models: 3
+  data_source: https://helicone.ai/api/llm-costs?provider=nebius
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  black_forest_labs_flux_dev:
+    description: ''
+    provider: NEBIUS
+    model_name: black-forest-labs/flux-dev
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    additional_pricing:
+      cost_per_image: 0.007
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  black_forest_labs_flux_schnell:
+    description: ''
+    provider: NEBIUS
+    model_name: black-forest-labs/flux-schnell
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    additional_pricing:
+      cost_per_image: 0.0013
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  stability_ai_sdxl:
+    description: ''
+    provider: NEBIUS
+    model_name: stability-ai/sdxl
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    additional_pricing:
+      cost_per_image: 0.003
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
