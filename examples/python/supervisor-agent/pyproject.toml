@@ -1,0 +1,140 @@
+[project]
+name = "supervisor-agent"
+version = "0.1.0"
+description = "Multi-Agent Supervisor System with LangGraph"
+authors = [{ name = "Adaptive Team", email = "team@adaptive.com" }]
+requires-python = ">=3.10,<4.0"
+readme = "README.md"
+license = "MIT"
+keywords = [
+    "langraph",
+    "multi-agent",
+    "supervisor",
+    "ai",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",  
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+dependencies = [
+    "langgraph>=0.2.0,<0.3",
+    "langchain>=0.3.0,<0.4",
+    "langchain-openai>=0.2.0,<0.3",
+    "langchain-core>=0.3.0,<0.4",
+    "click>=8.1.0,<9.0",
+    "pydantic>=2.5.0,<3.0",
+    "pydantic-settings>=2.5.0,<3.0",
+    "python-dotenv>=1.0.0,<2.0",
+    "rich>=13.7.0,<14.0",
+    "pandas>=2.0.0,<3.0",
+    "matplotlib>=3.7.0,<4.0",
+    "numpy>=1.24.0,<2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/adaptive/supervisor-agent"
+Repository = "https://github.com/adaptive/supervisor-agent"
+Documentation = "https://github.com/adaptive/supervisor-agent#readme"
+"Bug Tracker" = "https://github.com/adaptive/supervisor-agent/issues"
+
+[project.scripts]
+supervisor-agent = "supervisor_agent.main:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0,<9.0",
+    "pytest-cov>=5.0.0,<6.0",
+    "mypy>=1.8.0,<2.0",
+    "black>=24.0.0,<25.0",
+    "ruff>=0.6.0,<0.7",
+    "types-click>=7.1.8,<8.0",
+]
+
+[tool.uv]
+default-groups = [
+    "dev",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "N", "S", "T20", "RUF"]
+ignore = ["E501", "B008", "C901", "S101", "T201"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101", "S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["supervisor_agent"]
+force-sort-within-sections = true
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+show_error_codes = true
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = [
+  "langgraph.*",
+  "langchain.*",
+  "langchain_openai.*",
+  "langchain_core.*",
+]
+ignore_missing_imports = true
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
+]
