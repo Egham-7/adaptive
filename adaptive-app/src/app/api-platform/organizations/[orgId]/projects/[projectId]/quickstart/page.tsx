@@ -107,7 +107,7 @@ export default function QuickstartPage() {
 
 	const curlExample = `curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${exampleKey}..." \\
+  -H "Authorization: Bearer ${exampleKey}" \\
   -d '{
     "model": "gpt-4o",
     "messages": [
@@ -123,7 +123,7 @@ export default function QuickstartPage() {
 	const jsExample = `import OpenAI from 'openai';
 
 const client = new OpenAI({
-  apiKey: '${exampleKey}...',
+  apiKey: '${exampleKey}',
   baseURL: '${API_BASE_URL}/api/v1',
 });
 
