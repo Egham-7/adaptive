@@ -58,7 +58,7 @@ export default function QuickstartPage() {
 		};
 
 		return (
-			<div className="relative rounded-lg border bg-muted/50">
+			<div className="relative overflow-hidden rounded-lg border bg-muted/50">
 				{title && (
 					<div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
 						<span className="font-medium text-sm">{title}</span>
@@ -68,8 +68,10 @@ export default function QuickstartPage() {
 					</div>
 				)}
 				<div className="relative">
-					<pre className="overflow-x-auto p-4 text-sm">
-						<code>{code}</code>
+					<pre className="max-w-full overflow-x-auto p-4 text-sm">
+						<code className="whitespace-pre-wrap break-all sm:whitespace-pre sm:break-normal">
+							{code}
+						</code>
 					</pre>
 					<Button
 						variant="outline"
@@ -90,7 +92,7 @@ export default function QuickstartPage() {
 
 	const curlExample = `curl -X POST "${API_BASE_URL}/v1/chat/completions" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${exampleKey}" \\
+  -H "Authorization: Bearer ${exampleKey}..." \\
   -d '{
     "model": "gpt-4o",
     "messages": [
@@ -106,7 +108,7 @@ export default function QuickstartPage() {
 	const jsExample = `import OpenAI from 'openai';
 
 const client = new OpenAI({
-  apiKey: '${exampleKey}',
+  apiKey: '${exampleKey}...',
   baseURL: '${API_BASE_URL}/v1',
 });
 
@@ -131,7 +133,7 @@ main();`;
 	const pythonExample = `from openai import OpenAI
 
 client = OpenAI(
-    api_key="${exampleKey}",
+    api_key="${exampleKey}...",
     base_url="${API_BASE_URL}/v1"
 )
 
@@ -172,7 +174,7 @@ print(completion.choices[0].message.content)`;
 }`;
 
 	return (
-		<div className="w-full px-6 py-2">
+		<div className="mx-auto max-w-7xl px-2 py-2 sm:px-4">
 			{/* Back Navigation */}
 			<div className="mb-6">
 				<Link
