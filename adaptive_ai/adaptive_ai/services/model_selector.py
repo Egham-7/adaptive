@@ -29,6 +29,9 @@ class LitLoggerProtocol:
 
 class ModelSelectionService:
     def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
+        # Set up logging first to enable error handling during initialization
+        self.lit_logger: LitLoggerProtocol | None = lit_logger
+
         # Build model capabilities from YAML database via model registry
         self._all_model_capabilities_by_id: dict[
             tuple[ProviderType, str], ModelCapability
@@ -43,7 +46,7 @@ class ModelSelectionService:
         self._provider_to_models: dict[ProviderType | str, frozenset[str]] = {}
 
         # Pre-computed context length lookup for faster capability checks
-        self._model_context_limits: dict[tuple[ProviderType | str, str], int] = {}
+        self._model_context_limits: dict[tuple[str, str], int] = {}
 
         self._build_capabilities_from_registry()
         self._build_optimized_caches()
@@ -56,8 +59,6 @@ class ModelSelectionService:
             "model_usage": {},
             "performance_times": [],
         }
-
-        self.lit_logger: LitLoggerProtocol | None = lit_logger
         self.log(
             "model_selection_service_init",
             {
@@ -75,17 +76,105 @@ class ModelSelectionService:
         """Build model capabilities from YAML database via model registry."""
         from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
-        # Load YAML models
-        yaml_model_db.load_models()
+        successful_models = 0
+        failed_models = 0
 
-        # Get all models from registry and build capability lookup
-        all_models = model_registry.get_all_valid_models()
+        # Load YAML models with error handling
+        try:
+            yaml_model_db.load_models()
+            self.log("yaml_models_loaded", {"status": "success"})
+        except Exception as e:
+            self.log(
+                "yaml_models_load_failed",
+                {
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "impact": "Service will continue with reduced model availability",
+                },
+            )
+            # Continue with empty registry - service can still function
+
+        # Get all models from registry with error handling
+        try:
+            all_models = model_registry.get_all_valid_models()
+            self.log(
+                "registry_models_discovered",
+                {"total_models": len(all_models)}
+            )
+        except Exception as e:
+            self.log(
+                "registry_access_failed",
+                {
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "impact": "No models will be available from registry",
+                },
+            )
+            # Continue with empty model set - graceful degradation
+            all_models = set()
+
+        # Load individual model capabilities with error handling
         for model_name in all_models:
-            capability = model_registry.get_model_capability(model_name)
-            if capability:
-                self._all_model_capabilities_by_id[
-                    (capability.provider, capability.model_name)
-                ] = capability
+            try:
+                capability = model_registry.get_model_capability(model_name)
+                if capability:
+                    self._all_model_capabilities_by_id[
+                        (capability.provider, capability.model_name)
+                    ] = capability
+                    successful_models += 1
+                else:
+                    failed_models += 1
+                    self.log(
+                        "model_capability_none",
+                        {
+                            "model_name": model_name,
+                            "reason": "Registry returned None capability",
+                        },
+                    )
+            except Exception as e:
+                failed_models += 1
+                self.log(
+                    "model_capability_load_failed",
+                    {
+                        "model_name": model_name,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                # Continue with next model - partial success is acceptable
+
+        # Log final loading statistics
+        total_attempted = successful_models + failed_models
+        if total_attempted == 0:
+            self.log(
+                "registry_loading_complete",
+                {
+                    "status": "no_models_attempted",
+                    "warning": "No models were available to load from registry",
+                },
+            )
+        elif successful_models == 0:
+            self.log(
+                "registry_loading_complete",
+                {
+                    "status": "all_failed",
+                    "successful_models": 0,
+                    "failed_models": failed_models,
+                    "warning": "All model capability loading failed - service will have limited functionality",
+                },
+            )
+        else:
+            success_rate = successful_models / total_attempted
+            self.log(
+                "registry_loading_complete",
+                {
+                    "status": "partial_success" if failed_models > 0 else "success",
+                    "successful_models": successful_models,
+                    "failed_models": failed_models,
+                    "success_rate": round(success_rate, 3),
+                    "total_capabilities_loaded": len(self._all_model_capabilities_by_id),
+                },
+            )
 
     def _build_optimized_caches(self) -> None:
         """Pre-compute optimized lookup structures for faster model selection."""
@@ -107,8 +196,9 @@ class ModelSelectionService:
                 provider_models_builder[provider] = set()
             provider_models_builder[provider].add(model_name)
 
-            # Pre-compute context limits for O(1) capability checks
-            self._model_context_limits[(provider, model_name)] = (
+            # Pre-compute context limits for O(1) capability checks - normalize provider key
+            provider_key = provider.value if hasattr(provider, "value") else str(provider)
+            self._model_context_limits[(provider_key, model_name)] = (
                 capability.max_context_tokens or 4096
             )
 
@@ -155,22 +245,27 @@ class ModelSelectionService:
         )
         candidate_providers_str = model_providers_str & available_providers_str
 
-        # Convert back to original provider objects for consistency
+        # Convert back to registry provider objects for consistency
+        # IMPORTANT: Use available_providers (from registry) instead of model_entry.providers
+        # to ensure consistent enum objects for later lookups and avoid string/enum mismatches
         candidate_providers = frozenset(
             p
-            for p in model_entry.providers
+            for p in available_providers
             if (p.value if hasattr(p, "value") else str(p)) in candidate_providers_str
         )
 
-        # If no registry providers found, assume custom model and trust user specification
+        # If no registry providers found, assume custom model and use available_providers if possible
         if not candidate_providers:
-            candidate_providers = frozenset(model_entry.providers)
+            # Prefer available_providers (registry enums) over model_entry.providers (may be strings)
+            candidate_providers = available_providers if available_providers else frozenset(model_entry.providers)
 
         # Check context limits using pre-computed lookup
         token_eligible_providers = set()
         for provider in candidate_providers:
+            # Normalize provider key for consistent lookup
+            provider_key = provider.value if hasattr(provider, "value") else str(provider)
             context_limit = self._model_context_limits.get(
-                (provider, model_entry.model_name)  # type: ignore
+                (provider_key, model_entry.model_name)
             )
             # For custom models without registry data, trust the user's specification
             if context_limit and context_limit >= prompt_token_count:

@@ -12,7 +12,13 @@ from adaptive_ai.models.llm_core_models import (
     ModelEntry,
     ModelSelectionRequest,
 )
-from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
+from adaptive_ai.models.llm_enums import ProtocolType
+from adaptive_ai.models.llm_orchestration_models import (
+    Alternative,
+    MinionInfo,
+    OrchestratorResponse,
+    StandardLLMInfo,
+)
 
 # Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
 from adaptive_ai.services.domain_classifier import get_domain_classifier
@@ -204,7 +210,7 @@ class ProtocolManagerAPI(ls.LitAPI):
             if minion_candidates:
                 available_protocols.append("minion")
 
-            selected_protocol = self.protocol_manager._select_best_protocol(
+            selected_protocol = self.protocol_manager.select_best_protocol(
                 classification_result=current_classification_result,
                 token_count=prompt_token_count,
                 available_protocols=available_protocols,
@@ -212,12 +218,6 @@ class ProtocolManagerAPI(ls.LitAPI):
             )
 
             # Use the protocol manager's decision instead of defaulting to standard
-            from adaptive_ai.models.llm_enums import ProtocolType
-            from adaptive_ai.models.llm_orchestration_models import (
-                Alternative,
-                MinionInfo,
-                StandardLLMInfo,
-            )
 
             # Create response based on protocol manager's decision
             if selected_protocol == "minion" and minion_candidates:

@@ -106,7 +106,7 @@ class ProtocolManager:
 
         return decision
 
-    def _select_best_protocol(
+    def select_best_protocol(
         self,
         classification_result: ClassificationResult,
         token_count: int,
