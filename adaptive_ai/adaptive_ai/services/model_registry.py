@@ -47,7 +47,7 @@ class ModelRegistry:
         # Check hardcoded models first
         if model_name in self._valid_models:
             return True
-            
+
         # Fallback to YAML database
         return yaml_model_db.has_model(model_name)
 
@@ -116,7 +116,7 @@ class ModelRegistry:
         capability = self._model_to_capability.get(model_name)
         if capability:
             return capability
-            
+
         # Fallback to YAML database
         return yaml_model_db.get_model(model_name)
 

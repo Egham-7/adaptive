@@ -10,11 +10,11 @@ from adaptive_ai.models.llm_enums import ProviderType
 def yaml_to_model_capability(yaml_data: dict, provider_name: str) -> ModelCapability:
     """
     Convert YAML model data to ModelCapability object.
-    
+
     Args:
         yaml_data: Dictionary from YAML model entry
         provider_name: Provider name (e.g., "ANTHROPIC", "OPENAI")
-    
+
     Returns:
         ModelCapability object with enriched data
     """
@@ -29,9 +29,9 @@ def yaml_to_model_capability(yaml_data: dict, provider_name: str) -> ModelCapabi
         "X": ProviderType.GROK,  # X provider maps to GROK enum
         "GROK": ProviderType.GROK,  # GROK provider maps to GROK enum
     }
-    
+
     provider_type = provider_mapping.get(provider_name, ProviderType.OPENAI)
-    
+
     return ModelCapability(
         description=yaml_data.get("description", ""),
         provider=provider_type,
@@ -52,16 +52,16 @@ def yaml_to_model_capability(yaml_data: dict, provider_name: str) -> ModelCapabi
 def normalize_model_name(model_name: str) -> str:
     """
     Normalize model name for consistent lookup.
-    
+
     Args:
         model_name: Raw model name
-        
+
     Returns:
         Normalized model name for consistent matching
     """
     # Convert to lowercase and strip whitespace
     normalized = model_name.lower().strip()
-    
+
     # Handle common variations
     common_variations = {
         "gpt4": "gpt-4",
@@ -69,5 +69,5 @@ def normalize_model_name(model_name: str) -> str:
         "claude3": "claude-3-sonnet",
         "claude3.5": "claude-3-5-sonnet",
     }
-    
+
     return common_variations.get(normalized, normalized)

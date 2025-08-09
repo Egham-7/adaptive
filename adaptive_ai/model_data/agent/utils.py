@@ -40,15 +40,18 @@ def load_models_to_process() -> list[tuple[str, dict[str, Any], str, str]]:
 
             provider = data["provider_info"]["name"]
             print(f"📂 Loading {provider} models from {yaml_file.name}...")
-            
+
             empty_count = 0
             filled_count = 0
 
             for model_key, model_data in data.get("models", {}).items():
                 # Check if this model has ANY empty fields that need enrichment
                 empty_fields = []
-                
-                if not model_data.get("description") or model_data.get("description") == "":
+
+                if (
+                    not model_data.get("description")
+                    or model_data.get("description") == ""
+                ):
                     empty_fields.append("description")
                 if model_data.get("max_context_tokens") is None:
                     empty_fields.append("max_context_tokens")
@@ -56,26 +59,39 @@ def load_models_to_process() -> list[tuple[str, dict[str, Any], str, str]]:
                     empty_fields.append("max_output_tokens")
                 if not model_data.get("task_type") or model_data.get("task_type") == "":
                     empty_fields.append("task_type")
-                if not model_data.get("complexity") or model_data.get("complexity") == "":
+                if (
+                    not model_data.get("complexity")
+                    or model_data.get("complexity") == ""
+                ):
                     empty_fields.append("complexity")
                 if model_data.get("supports_function_calling") is None:
                     empty_fields.append("supports_function_calling")
-                if not model_data.get("model_size_params") or model_data.get("model_size_params") == "":
+                if (
+                    not model_data.get("model_size_params")
+                    or model_data.get("model_size_params") == ""
+                ):
                     empty_fields.append("model_size_params")
-                if not model_data.get("latency_tier") or model_data.get("latency_tier") == "":
+                if (
+                    not model_data.get("latency_tier")
+                    or model_data.get("latency_tier") == ""
+                ):
                     empty_fields.append("latency_tier")
-                
+
                 # Only process if there are empty fields
                 if empty_fields:
                     models_to_process.append(
                         (provider, model_data, str(yaml_file), model_key)
                     )
                     empty_count += 1
-                    print(f"  📝 {model_data['model_name']}: needs {', '.join(empty_fields)}")
+                    print(
+                        f"  📝 {model_data['model_name']}: needs {', '.join(empty_fields)}"
+                    )
                 else:
                     filled_count += 1
-            
-            print(f"  ✅ {provider}: {filled_count} already enriched, {empty_count} need enrichment")
+
+            print(
+                f"  ✅ {provider}: {filled_count} already enriched, {empty_count} need enrichment"
+            )
 
         except Exception as e:
             logger.error(f"Error loading {yaml_file}: {e}")
@@ -206,9 +222,7 @@ class ProcessingTracker:
         self.failed_count += 1
         logger.warning(f"❌ Failed to enrich {model_id}")
 
-    def print_progress(
-        self, current: int, total: int
-    ) -> None:
+    def print_progress(self, current: int, total: int) -> None:
         """Print progress update"""
         progress_pct = (current / total) * 100 if total > 0 else 0
 

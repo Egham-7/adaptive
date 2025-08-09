@@ -192,16 +192,10 @@ def run_enrichment(workflow: Any | None = None) -> None:
 
             # Print progress
             current_processed = end_idx
-            tracker.print_progress(
-                current_processed, len(models_to_process)
-            )
-
-            # Save cache every few batches
-            if (batch_num + 1) % 3 == 0:
+            tracker.print_progress(current_processed, len(models_to_process))
 
         # Final summary
         tracker.print_final_summary()
-
 
         print("\\n📊 Processing complete! Check YAML files for enriched data.")
 

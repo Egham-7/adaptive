@@ -17,10 +17,10 @@ from adaptive_ai.models.llm_core_models import (
 )
 from adaptive_ai.models.llm_enums import ProviderType, TaskType
 from adaptive_ai.models.unified_model import Model
+from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.unified_model_selector import (
     ModelSelector as UnifiedModelSelector,
 )
-from adaptive_ai.services.model_registry import model_registry
 
 
 class LitLoggerProtocol:
@@ -817,7 +817,9 @@ class ModelSelectionService:
 
                     # If not found in hardcoded registry, try YAML database
                     if not found_capability:
-                        found_capability = model_registry.get_model_capability(model_cap.model_name)
+                        found_capability = model_registry.get_model_capability(
+                            model_cap.model_name
+                        )
 
                     if found_capability:
                         enriched_capabilities.append(found_capability)
@@ -826,7 +828,15 @@ class ModelSelectionService:
                             {
                                 "model": model_cap.model_name,
                                 "provider": found_capability.provider,
-                                "source": "yaml_database" if model_cap.model_name not in [mc[1] for mc in self._all_model_capabilities_by_id.keys()] else "hardcoded_registry",
+                                "source": (
+                                    "yaml_database"
+                                    if model_cap.model_name
+                                    not in [
+                                        mc[1]
+                                        for mc in self._all_model_capabilities_by_id.keys()
+                                    ]
+                                    else "hardcoded_registry"
+                                ),
                             },
                         )
                     else:
