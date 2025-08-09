@@ -192,14 +192,14 @@ print(completion.choices[0].message.content)`;
 		<div className="mx-auto max-w-7xl px-2 py-2 sm:px-4">
 			{/* Back Navigation */}
 			<div className="mb-6">
-				<Link
-					href={`/api-platform/organizations/${orgId}/projects/${projectId}`}
-				>
-					<Button variant="ghost" size="sm">
+				<Button variant="ghost" size="sm" asChild>
+					<Link
+						href={`/api-platform/organizations/${orgId}/projects/${projectId}`}
+					>
 						<ArrowLeft className="mr-2 h-4 w-4" />
 						Back to Dashboard
-					</Button>
-				</Link>
+					</Link>
+				</Button>
 			</div>
 
 			{/* Header Section */}
@@ -280,11 +280,13 @@ print(completion.choices[0].message.content)`;
 									You'll need to create an API key first.
 								</p>
 								<div className="mt-3">
-									<Link
-										href={`/api-platform/organizations/${orgId}/projects/${projectId}/api-keys`}
-									>
-										<Button size="sm">Create API Key</Button>
-									</Link>
+									<Button size="sm" asChild>
+										<Link
+											href={`/api-platform/organizations/${orgId}/projects/${projectId}/api-keys`}
+										>
+											Create API Key
+										</Link>
+									</Button>
 								</div>
 							</div>
 						)}
