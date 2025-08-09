@@ -132,7 +132,7 @@ export default function DashboardPage() {
 										Cost Comparison
 									</h2>
 									<p className="text-muted-foreground">
-										Compare costs and performance across all models ands
+										Compare costs and performance across all models and
 										providers
 									</p>
 								</div>
