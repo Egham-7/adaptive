@@ -56,7 +56,6 @@ export const providerConfigsRouter = createTRPCRouter({
 				// Build where clause
 				const whereClause: Prisma.ProviderConfigWhereInput = {
 					projectId: input.projectId,
-					isActive: true,
 				};
 
 				// Filter by specific provider if requested

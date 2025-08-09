@@ -10,45 +10,54 @@ import {
 import { invalidateProjectCache, withCache } from "@/lib/cache-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
-	addModelSchema,
+	addProviderToClusterSchema,
 	clusterByNameParamsSchema,
 	createClusterSchema,
 	projectClusterParamsSchema,
 	updateClusterSchema,
 } from "@/types/cluster-schemas";
-
-type LLMClusterWithModels = Prisma.LLMClusterGetPayload<{
-	include: {
-		models: true;
-	};
-}>;
+import type { ClusterWithProviders } from "@/types/prisma-types";
 
 export const llmClustersRouter = createTRPCRouter({
 	// Get all clusters for a project
 	getByProject: publicProcedure
 		.input(projectClusterParamsSchema)
-		.query(async ({ ctx, input }): Promise<LLMClusterWithModels[]> => {
+		.query(async ({ ctx, input }): Promise<ClusterWithProviders[]> => {
 			try {
-				const auth = await authenticateAndGetProject(ctx, input);
+				const _auth = await authenticateAndGetProject(ctx, input);
 
-				const cacheKey = getCacheKey(auth, input.projectId);
-
-				return withCache(cacheKey, async () => {
-					const clusters = await ctx.db.lLMCluster.findMany({
-						where: {
-							projectId: input.projectId,
-						},
-						include: {
-							models: {
-								where: {},
-								orderBy: { priority: "asc" },
+				return await withCache(
+					`clusters:project:${input.projectId}`,
+					async () => {
+						const clusters = await ctx.db.lLMCluster.findMany({
+							where: {
+								projectId: input.projectId,
 							},
-						},
-						orderBy: { createdAt: "desc" },
-					});
+							include: {
+								providers: {
+									include: {
+										provider: {
+											include: {
+												models: {
+													include: {
+														capabilities: true,
+													},
+													orderBy: { name: "asc" },
+												},
+											},
+										},
+										config: true,
+									},
+									orderBy: { createdAt: "asc" },
+								},
+							},
+							orderBy: { createdAt: "desc" },
+						});
 
-					return clusters as LLMClusterWithModels[];
-				});
+						return clusters;
+					},
+					300, // 5 minutes cache
+				);
 			} catch (error) {
 				console.error("Error fetching LLM clusters:", error);
 				if (error instanceof TRPCError) {
@@ -61,128 +70,114 @@ export const llmClustersRouter = createTRPCRouter({
 			}
 		}),
 
-	// Get cluster by name (for backend integration)
+	// Get cluster by name
 	getByName: publicProcedure
 		.input(clusterByNameParamsSchema)
-		.query(async ({ ctx, input }) => {
+		.query(async ({ ctx, input }): Promise<ClusterWithProviders | null> => {
 			try {
-				await authenticateAndGetProject(ctx, input);
+				const _auth = await authenticateAndGetProject(ctx, input);
 
 				const cluster = await ctx.db.lLMCluster.findFirst({
+					where: {
+						name: input.name,
+						projectId: input.projectId,
+					},
+					include: {
+						providers: {
+							include: {
+								provider: {
+									include: {
+										models: {
+											include: {
+												capabilities: true,
+											},
+											orderBy: { name: "asc" },
+										},
+									},
+								},
+								config: true,
+							},
+							orderBy: { createdAt: "asc" },
+						},
+					},
+				});
+
+				return cluster;
+			} catch (error) {
+				console.error("Error fetching LLM cluster by name:", error);
+				if (error instanceof TRPCError) {
+					throw error;
+				}
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to fetch LLM cluster",
+				});
+			}
+		}),
+
+	// Create new cluster
+	create: publicProcedure
+		.input(createClusterSchema)
+		.mutation(async ({ ctx, input }): Promise<ClusterWithProviders> => {
+			try {
+				const auth = await authenticateAndGetProject(ctx, input);
+
+				// Pre-validation outside transaction
+				const existingCluster = await ctx.db.lLMCluster.findFirst({
 					where: {
 						projectId: input.projectId,
 						name: input.name,
 					},
-					include: {
-						models: {
-							where: {},
-							orderBy: { priority: "asc" },
-						},
-					},
 				});
 
-				if (!cluster) {
+				if (existingCluster) {
 					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Cluster not found",
+						code: "CONFLICT",
+						message: "Cluster name already exists in this project",
 					});
 				}
 
-				return cluster;
-			} catch (error) {
-				if (error instanceof TRPCError) throw error;
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch cluster",
-				});
-			}
-		}),
-
-	// Get cluster by ID
-	getById: publicProcedure
-		.input(
-			z.object({
-				id: z.string(),
-				apiKey: z.string().optional(),
-			}),
-		)
-		.query(async ({ ctx, input }) => {
-			try {
-				const cluster = await ctx.db.lLMCluster.findFirst({
-					where: { id: input.id },
-					include: {
-						models: {
-							where: {},
-							orderBy: { priority: "asc" },
-						},
-						project: true,
-					},
-				});
-
-				if (!cluster) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Cluster not found",
-					});
-				}
-
-				// Check access to the project
-				await authenticateAndGetProject(ctx, {
-					projectId: cluster.projectId,
-					apiKey: input.apiKey,
-				});
-				return cluster;
-			} catch (error) {
-				if (error instanceof TRPCError) throw error;
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to fetch cluster",
-				});
-			}
-		}),
-
-	// Create a new LLM cluster (atomic transaction)
-	create: publicProcedure
-		.input(createClusterSchema)
-		.mutation(async ({ ctx, input }) => {
-			try {
-				// Check project access
-				const auth = await authenticateAndGetProject(ctx, input);
-
-				// Atomic transaction for cluster creation
-				const cluster = await ctx.db.$transaction(async (tx) => {
-					// Check if cluster name already exists in project
-					const existingCluster = await tx.lLMCluster.findFirst({
+				// Validate all providers exist and are accessible
+				for (const provider of input.providers) {
+					const providerExists = await ctx.db.provider.findFirst({
 						where: {
-							projectId: input.projectId,
-							name: input.name,
+							id: provider.providerId,
+							OR: [
+								{ visibility: "system" },
+								{ visibility: "community" },
+								{ projectId: input.projectId },
+							],
 						},
 					});
 
-					if (existingCluster) {
+					if (!providerExists) {
 						throw new TRPCError({
-							code: "CONFLICT",
-							message: "Cluster name already exists in this project",
+							code: "NOT_FOUND",
+							message: `Provider with ID ${provider.providerId} not found`,
 						});
 					}
 
-					// Validate all models exist
-					for (const model of input.models) {
-						const providerModel = await tx.providerModel.findFirst({
+					// Validate config if specified
+					if (provider.configId) {
+						const configExists = await ctx.db.providerConfig.findFirst({
 							where: {
-								provider: { name: model.provider },
-								name: model.modelName,
+								id: provider.configId,
+								projectId: input.projectId,
+								providerId: provider.providerId,
 							},
 						});
 
-						if (!providerModel) {
+						if (!configExists) {
 							throw new TRPCError({
-								code: "BAD_REQUEST",
-								message: `Model ${model.modelName} from ${model.provider} not found or not available`,
+								code: "NOT_FOUND",
+								message: `Provider config with ID ${provider.configId} not found`,
 							});
 						}
 					}
+				}
 
+				// Atomic cluster creation
+				const cluster = await ctx.db.$transaction(async (tx) => {
 					// Create cluster
 					const newCluster = await tx.lLMCluster.create({
 						data: {
@@ -204,26 +199,44 @@ export const llmClustersRouter = createTRPCRouter({
 						},
 					});
 
-					// Create cluster models
-					await tx.clusterModel.createMany({
-						data: input.models.map((model) => ({
+					// Create cluster providers
+					await tx.clusterProvider.createMany({
+						data: input.providers.map((provider) => ({
 							clusterId: newCluster.id,
-							provider: model.provider,
-							modelName: model.modelName,
-							priority: model.priority,
+							providerId: provider.providerId,
+							configId: provider.configId,
 						})),
 					});
 
-					// Return cluster with models
+					// Return cluster with providers
 					return await tx.lLMCluster.findUnique({
 						where: { id: newCluster.id },
 						include: {
-							models: {
-								orderBy: { priority: "asc" },
+							providers: {
+								include: {
+									provider: {
+										include: {
+											models: {
+												include: {
+													capabilities: true,
+												},
+											},
+										},
+									},
+									config: true,
+								},
+								orderBy: { createdAt: "asc" },
 							},
 						},
 					});
 				});
+
+				if (!cluster) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create cluster",
+					});
+				}
 
 				// Invalidate cache
 				const cacheKey = getCacheKey(auth, input.projectId);
@@ -245,9 +258,9 @@ export const llmClustersRouter = createTRPCRouter({
 	// Update an LLM cluster
 	update: publicProcedure
 		.input(updateClusterSchema)
-		.mutation(async ({ ctx, input }) => {
+		.mutation(async ({ ctx, input }): Promise<ClusterWithProviders> => {
 			try {
-				// Find cluster first
+				// Find cluster first to get project info
 				const cluster = await ctx.db.lLMCluster.findFirst({
 					where: { id: input.id },
 					include: { project: true },
@@ -266,9 +279,26 @@ export const llmClustersRouter = createTRPCRouter({
 					apiKey: input.apiKey,
 				});
 
+				// Check for name conflicts if name is being updated
+				if (input.name && input.name !== cluster.name) {
+					const existingCluster = await ctx.db.lLMCluster.findFirst({
+						where: {
+							projectId: cluster.projectId,
+							name: input.name,
+							id: { not: input.id },
+						},
+					});
+
+					if (existingCluster) {
+						throw new TRPCError({
+							code: "CONFLICT",
+							message: "Cluster name already exists in this project",
+						});
+					}
+				}
+
 				// Atomic update
 				const updatedCluster = await ctx.db.$transaction(async (tx) => {
-					// Update cluster
 					return await tx.lLMCluster.update({
 						where: { id: input.id },
 						data: {
@@ -310,12 +340,23 @@ export const llmClustersRouter = createTRPCRouter({
 							...(input.promptCacheTTL !== undefined && {
 								promptCacheTTL: input.promptCacheTTL,
 							}),
-							...(input.isActive !== undefined && { isActive: input.isActive }),
+							// Note: isActive field was removed from schema
 						},
 						include: {
-							models: {
-								where: {},
-								orderBy: { priority: "asc" },
+							providers: {
+								include: {
+									provider: {
+										include: {
+											models: {
+												include: {
+													capabilities: true,
+												},
+											},
+										},
+									},
+									config: true,
+								},
+								orderBy: { createdAt: "asc" },
 							},
 						},
 					});
@@ -367,7 +408,7 @@ export const llmClustersRouter = createTRPCRouter({
 					apiKey: input.apiKey,
 				});
 
-				// Hard delete since we removed isActive field
+				// Hard delete since isActive field was removed
 				await ctx.db.lLMCluster.delete({
 					where: { id: input.id },
 				});
@@ -389,9 +430,9 @@ export const llmClustersRouter = createTRPCRouter({
 			}
 		}),
 
-	// Add existing model to cluster
-	addModel: publicProcedure
-		.input(addModelSchema)
+	// Add provider to cluster
+	addProvider: publicProcedure
+		.input(addProviderToClusterSchema)
 		.mutation(async ({ ctx, input }) => {
 			try {
 				// Find cluster first
@@ -413,46 +454,77 @@ export const llmClustersRouter = createTRPCRouter({
 					apiKey: input.apiKey,
 				});
 
-				// Atomic model addition
-				const model = await ctx.db.$transaction(async (tx) => {
-					// Verify the model exists in our system
-					const providerModel = await tx.providerModel.findFirst({
+				// Pre-validation outside transaction
+				const provider = await ctx.db.provider.findFirst({
+					where: {
+						id: input.providerId,
+						OR: [
+							{ visibility: "system" },
+							{ visibility: "community" },
+							{ projectId: cluster.projectId },
+						],
+					},
+				});
+
+				if (!provider) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Provider with ID ${input.providerId} not found`,
+					});
+				}
+
+				// Validate provider config if specified
+				if (input.configId) {
+					const providerConfig = await ctx.db.providerConfig.findFirst({
 						where: {
-							provider: { name: input.provider },
-							name: input.modelName,
+							id: input.configId,
+							projectId: cluster.projectId,
+							providerId: input.providerId,
 						},
 					});
 
-					if (!providerModel) {
+					if (!providerConfig) {
 						throw new TRPCError({
-							code: "BAD_REQUEST",
-							message: "Model not found or not available",
+							code: "NOT_FOUND",
+							message: `Provider config with ID ${input.configId} not found`,
 						});
 					}
+				}
 
-					// Check if model already exists in cluster
-					const existingModel = await tx.clusterModel.findFirst({
-						where: {
-							clusterId: input.clusterId,
-							provider: input.provider,
-							modelName: input.modelName,
-						},
+				// Check if provider already exists in cluster
+				const existingClusterProvider = await ctx.db.clusterProvider.findFirst({
+					where: {
+						clusterId: input.clusterId,
+						providerId: input.providerId,
+					},
+				});
+
+				if (existingClusterProvider) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Provider already exists in this cluster",
 					});
+				}
 
-					if (existingModel) {
-						throw new TRPCError({
-							code: "CONFLICT",
-							message: "Model already exists in this cluster",
-						});
-					}
-
-					// Create cluster model
-					return await tx.clusterModel.create({
+				// Atomic provider addition
+				const clusterProvider = await ctx.db.$transaction(async (tx) => {
+					return await tx.clusterProvider.create({
 						data: {
 							clusterId: input.clusterId,
-							provider: input.provider,
-							modelName: input.modelName,
-							priority: input.priority,
+							providerId: input.providerId,
+							configId: input.configId,
+						},
+						include: {
+							provider: {
+								include: {
+									models: {
+										include: {
+											capabilities: true,
+										},
+									},
+								},
+							},
+							config: true,
 						},
 					});
 				});
@@ -461,82 +533,85 @@ export const llmClustersRouter = createTRPCRouter({
 				const cacheKey = getCacheKey(auth, cluster.projectId);
 				await invalidateProjectCache(cacheKey, cluster.projectId);
 
-				return model;
+				return clusterProvider;
 			} catch (error) {
-				console.error("Error adding model to cluster:", error);
+				console.error("Error adding provider to cluster:", error);
 				if (error instanceof TRPCError) {
 					throw error;
 				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to add model to cluster",
+					message: "Failed to add provider to cluster",
 				});
 			}
 		}),
 
-	// Remove model from cluster
-	removeModel: publicProcedure
+	// Remove provider from cluster
+	removeProvider: publicProcedure
 		.input(
 			z.object({
-				modelId: z.string(),
+				clusterProviderId: z.string(),
 				apiKey: z.string().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			try {
-				// Find model first
-				const model = await ctx.db.clusterModel.findFirst({
-					where: { id: input.modelId },
+				// Find cluster provider first
+				const clusterProvider = await ctx.db.clusterProvider.findFirst({
+					where: { id: input.clusterProviderId },
 					include: {
 						cluster: { include: { project: true } },
 					},
 				});
 
-				if (!model) {
+				if (!clusterProvider) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
-						message: "Model not found in cluster",
+						message: "Provider not found in cluster",
 					});
 				}
 
 				// Check project access
 				const auth = await authenticateAndGetProject(ctx, {
-					projectId: model.cluster.projectId,
+					projectId: clusterProvider.cluster.projectId,
 					apiKey: input.apiKey,
 				});
 
-				// Check business rule: don't allow removing last model
-				const modelCount = await ctx.db.clusterModel.count({
+				// Check business rule: don't allow removing last provider
+				const providerCount = await ctx.db.clusterProvider.count({
 					where: {
-						clusterId: model.clusterId,
+						clusterId: clusterProvider.clusterId,
 					},
 				});
 
-				if (modelCount <= 1) {
+				if (providerCount <= 1) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
-						message: "Cannot remove the last model from a cluster",
+						message: "Cannot remove the last provider from a cluster",
 					});
 				}
 
-				// Hard delete since we removed isActive field
-				await ctx.db.clusterModel.delete({
-					where: { id: input.modelId },
+				// Delete cluster provider
+				await ctx.db.clusterProvider.delete({
+					where: { id: input.clusterProviderId },
 				});
 
 				// Invalidate cache
-				const cacheKey = getCacheKey(auth, model.cluster.projectId);
-				await invalidateProjectCache(cacheKey, model.cluster.projectId);
+				const cacheKey = getCacheKey(auth, clusterProvider.cluster.projectId);
+				await invalidateProjectCache(
+					cacheKey,
+					clusterProvider.cluster.projectId,
+				);
 
 				return { success: true };
 			} catch (error) {
-				console.error("Error removing model from cluster:", error);
+				console.error("Error removing provider from cluster:", error);
 				if (error instanceof TRPCError) {
 					throw error;
 				}
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
-					message: "Failed to remove model from cluster",
+					message: "Failed to remove provider from cluster",
 				});
 			}
 		}),
@@ -572,10 +647,6 @@ export const llmClustersRouter = createTRPCRouter({
 					{ visibility: "community" },
 				];
 
-				const providerWhereClause: Prisma.ProviderWhereInput = {
-					OR: providerOrConditions,
-				};
-
 				// Add project/organization scoped providers if projectId provided
 				if (input.projectId) {
 					// Get user's organization projects for organization-scoped providers
@@ -598,12 +669,17 @@ export const llmClustersRouter = createTRPCRouter({
 					}
 				}
 
+				const providerWhereClause: Prisma.ProviderWhereInput = {
+					OR: providerOrConditions,
+				};
+
 				const models = await ctx.db.providerModel.findMany({
 					where: {
 						provider: providerWhereClause,
 					},
 					include: {
 						provider: true,
+						capabilities: true,
 					},
 					orderBy: [{ provider: { name: "asc" } }, { name: "asc" }],
 				});

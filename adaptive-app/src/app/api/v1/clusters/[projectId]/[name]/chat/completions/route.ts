@@ -125,62 +125,69 @@ export async function POST(
 		// Get full model details from provider models with caching
 		const modelDetails = await withCache(
 			`model-details:${cluster.id}`,
-			() =>
-				Promise.all(
-					cluster.models.map(async (clusterModel) => {
-						try {
-							const provider = await api.providers.getByName({
-								name: clusterModel.provider,
-								apiKey,
-							});
+			async () => {
+				// Process each cluster provider and get their model details
+				const modelDetailsArray: Array<{
+					provider: string;
+					model_name: string;
+					cost_per_1m_input_tokens: number;
+					cost_per_1m_output_tokens: number;
+					max_context_tokens: number;
+					max_output_tokens?: number;
+					supports_function_calling: boolean;
+					languages_supported: string[];
+					model_size_params?: string;
+					latency_tier?: string;
+					task_type?: string;
+					complexity?: string;
+				}> = [];
 
-							const model = provider?.models.find(
-								(m) => m.name === clusterModel.modelName,
-							);
+				for (const clusterProvider of cluster.providers) {
+					try {
+						// Get models for this provider config
+						const models = await api.providerModels.getForConfig({
+							projectId,
+							providerId: clusterProvider.providerId,
+							configId: clusterProvider.configId ?? undefined,
+							apiKey,
+						});
 
-							if (!model) {
-								throw new Error(
-									`Model ${clusterModel.modelName} not found in provider ${clusterModel.provider}`,
-								);
-							}
-
+						for (const model of models) {
 							if (!model.capabilities) {
-								throw new Error(
-									`Model ${clusterModel.modelName} from ${clusterModel.provider} must have capabilities defined`,
+								console.warn(
+									`Model ${model.name} from ${clusterProvider.provider.name} missing capabilities`,
 								);
+								continue;
 							}
 
-							return {
-								provider: clusterModel.provider,
-								model_name: clusterModel.modelName,
-								cost_per_1m_input_tokens: model.inputTokenCost,
-								cost_per_1m_output_tokens: model.outputTokenCost,
+							modelDetailsArray.push({
+								provider: clusterProvider.provider.name,
+								model_name: model.name,
+								cost_per_1m_input_tokens: Number(model.inputTokenCost),
+								cost_per_1m_output_tokens: Number(model.outputTokenCost),
 								max_context_tokens: model.capabilities.maxContextTokens ?? 4096,
-								max_output_tokens: model.capabilities.maxOutputTokens,
+								max_output_tokens:
+									model.capabilities.maxOutputTokens ?? undefined,
 								supports_function_calling:
 									model.capabilities.supportsFunctionCalling,
 								languages_supported: model.capabilities.languagesSupported,
-								model_size_params: model.capabilities.modelSizeParams,
-								latency_tier: model.capabilities.latencyTier,
-								task_type: model.capabilities.taskType,
-								complexity: model.capabilities.complexity,
-							};
-						} catch (error) {
-							console.warn(
-								`Failed to get model details for ${clusterModel.provider}:${clusterModel.modelName}:`,
-								error,
-							);
-							return {
-								provider: clusterModel.provider,
-								model_name: clusterModel.modelName,
-								cost_per_1m_input_tokens: 0,
-								cost_per_1m_output_tokens: 0,
-								max_context_tokens: 4096,
-								supports_function_calling: true,
-							};
+								model_size_params:
+									model.capabilities.modelSizeParams ?? undefined,
+								latency_tier: model.capabilities.latencyTier ?? undefined,
+								task_type: model.capabilities.taskType ?? undefined,
+								complexity: model.capabilities.complexity ?? undefined,
+							});
 						}
-					}),
-				),
+					} catch (error) {
+						console.warn(
+							`Failed to get models for provider ${clusterProvider.provider.name}:`,
+							error,
+						);
+					}
+				}
+
+				return modelDetailsArray;
+			},
 			300, // 5 minutes cache for model details
 		);
 

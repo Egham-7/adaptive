@@ -1,142 +1,96 @@
 import { z } from "zod";
 
-// Shared Zod schemas for LLM clusters - single source of truth
-
-export const clusterModelSchema = z.object({
-	provider: z.string().min(1, "Provider is required"),
-	modelName: z.string().min(1),
-	priority: z.number().min(1).default(1),
+// Simple cluster provider schema
+export const clusterProviderSchema = z.object({
+	providerId: z.string().min(1, "Provider ID is required"),
+	configId: z.string().optional(), // Updated from providerConfigId
 });
 
-export const createClusterSchema = z
-	.object({
-		projectId: z.string(),
-		name: z.string().min(1, "Cluster name is required").max(50),
-		description: z.string().max(500).optional(),
-		fallbackEnabled: z.boolean().default(true),
-		fallbackMode: z.enum(["sequential", "parallel"]).default("parallel"),
-		enableCircuitBreaker: z.boolean().default(true),
-		maxRetries: z.number().min(1).max(10).default(3),
-		timeoutMs: z.number().min(1000).max(120000).default(30000),
-		costBias: z.number().min(0).max(1).default(0.5),
-		complexityThreshold: z.number().min(0).max(1).optional(),
-		tokenThreshold: z.number().min(1).optional(),
-		enableSemanticCache: z.boolean().default(true),
-		semanticThreshold: z.number().min(0).max(1).default(0.85),
-		enablePromptCache: z.boolean().default(true),
-		promptCacheTTL: z.number().min(60).max(86400).default(3600),
-		apiKey: z.string().optional(),
-		models: z
-			.array(clusterModelSchema)
-			.min(1, "At least one model is required"),
-	})
-	.superRefine((data, ctx) => {
-		// Validate fallback configuration
-		if (!data.fallbackEnabled && data.models.length > 1) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["fallbackEnabled"],
-				message:
-					"Fallback must be enabled when using multiple models in a cluster",
-			});
-		}
+// Full cluster creation schema with all cluster configuration fields
+export const createClusterSchema = z.object({
+	projectId: z.string().min(1, "Project ID is required"),
+	name: z.string().min(1, "Cluster name is required").max(50),
+	description: z.string().max(500).optional(),
 
-		// Validate semantic cache configuration
-		if (
-			!data.enableSemanticCache &&
-			data.semanticThreshold !== undefined &&
-			data.semanticThreshold !== 0.85
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["semanticThreshold"],
-				message:
-					"Semantic threshold can only be set when semantic cache is enabled",
-			});
-		}
+	// Fallback Config fields
+	fallbackEnabled: z.boolean().default(true),
+	fallbackMode: z.enum(["sequential", "parallel"]).default("parallel"),
 
-		// Validate prompt cache configuration
-		if (
-			!data.enablePromptCache &&
-			data.promptCacheTTL !== undefined &&
-			data.promptCacheTTL !== 3600
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["promptCacheTTL"],
-				message:
-					"Prompt cache TTL can only be set when prompt cache is enabled",
-			});
-		}
-	});
+	// Protocol Manager Config fields
+	enableCircuitBreaker: z.boolean().default(true),
+	maxRetries: z.number().int().min(0).max(10).default(3),
+	timeoutMs: z.number().int().min(1000).max(300000).default(30000),
+	costBias: z.number().min(0).max(1).default(0.5),
+	complexityThreshold: z.number().min(0).max(1).optional(),
+	tokenThreshold: z.number().int().min(1).optional(),
 
-export const updateClusterSchema = z
-	.object({
-		id: z.string(),
-		name: z.string().min(1).max(50).optional(),
-		description: z.string().max(500).optional(),
-		fallbackEnabled: z.boolean().optional(),
-		fallbackMode: z.enum(["sequential", "parallel"]).optional(),
-		enableCircuitBreaker: z.boolean().optional(),
-		maxRetries: z.number().min(1).max(10).optional(),
-		timeoutMs: z.number().min(1000).max(120000).optional(),
-		costBias: z.number().min(0).max(1).optional(),
-		complexityThreshold: z.number().min(0).max(1).optional(),
-		tokenThreshold: z.number().min(1).optional(),
-		enableSemanticCache: z.boolean().optional(),
-		semanticThreshold: z.number().min(0).max(1).optional(),
-		enablePromptCache: z.boolean().optional(),
-		promptCacheTTL: z.number().min(60).max(86400).optional(),
-		isActive: z.boolean().optional(),
-		apiKey: z.string().optional(),
-	})
-	.superRefine((data, ctx) => {
-		// Validate semantic cache configuration
-		if (
-			data.enableSemanticCache === false &&
-			data.semanticThreshold !== undefined
-		) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["semanticThreshold"],
-				message:
-					"Semantic threshold can only be set when semantic cache is enabled",
-			});
-		}
+	// Semantic Cache Config
+	enableSemanticCache: z.boolean().default(true),
+	semanticThreshold: z.number().min(0).max(1).default(0.85),
 
-		// Validate prompt cache configuration
-		if (data.enablePromptCache === false && data.promptCacheTTL !== undefined) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				path: ["promptCacheTTL"],
-				message:
-					"Prompt cache TTL can only be set when prompt cache is enabled",
-			});
-		}
-	});
+	// Prompt Cache Config
+	enablePromptCache: z.boolean().default(true),
+	promptCacheTTL: z.number().int().min(1).default(3600),
 
-export const addModelSchema = z.object({
-	clusterId: z.string(),
-	provider: clusterModelSchema.shape.provider,
-	modelName: z.string(),
-	priority: z.number().min(1).default(1),
+	providers: z
+		.array(clusterProviderSchema)
+		.min(1, "At least one provider is required"),
 	apiKey: z.string().optional(),
 });
 
-// Input schemas for API endpoints
+// Simple cluster update schema
+export const updateClusterSchema = z.object({
+	id: z.string().min(1, "Cluster ID is required"),
+	name: z.string().min(1).max(50).optional(),
+	description: z.string().max(500).optional(),
+
+	// Fallback Config fields
+	fallbackEnabled: z.boolean().optional(),
+	fallbackMode: z.enum(["sequential", "parallel"]).optional(),
+
+	// Protocol Manager Config fields
+	enableCircuitBreaker: z.boolean().optional(),
+	maxRetries: z.number().int().min(0).max(10).optional(),
+	timeoutMs: z.number().int().min(1000).max(300000).optional(),
+	costBias: z.number().min(0).max(1).optional(),
+	complexityThreshold: z.number().min(0).max(1).optional(),
+	tokenThreshold: z.number().int().min(1).optional(),
+
+	// Semantic Cache Config
+	enableSemanticCache: z.boolean().optional(),
+	semanticThreshold: z.number().min(0).max(1).optional(),
+
+	// Prompt Cache Config
+	enablePromptCache: z.boolean().optional(),
+	promptCacheTTL: z.number().int().min(1).optional(),
+
+	apiKey: z.string().optional(),
+});
+
+// Route parameter schemas
 export const projectClusterParamsSchema = z.object({
-	projectId: z.string(),
+	projectId: z.string().min(1, "Project ID is required"),
 	apiKey: z.string().optional(),
 });
 
 export const clusterByNameParamsSchema = z.object({
-	projectId: z.string(),
-	name: z.string(),
+	projectId: z.string().min(1, "Project ID is required"),
+	name: z.string().min(1, "Cluster name is required"),
+	apiKey: z.string().optional(),
+});
+
+// Add provider to cluster schema
+export const addProviderToClusterSchema = z.object({
+	clusterId: z.string().min(1, "Cluster ID is required"),
+	providerId: z.string().min(1, "Provider ID is required"),
+	configId: z.string().optional(), // Updated from providerConfigId
 	apiKey: z.string().optional(),
 });
 
 // Type exports
 export type CreateClusterInput = z.infer<typeof createClusterSchema>;
 export type UpdateClusterInput = z.infer<typeof updateClusterSchema>;
-export type AddModelInput = z.infer<typeof addModelSchema>;
-export type ClusterModel = z.infer<typeof clusterModelSchema>;
+export type AddProviderToClusterInput = z.infer<
+	typeof addProviderToClusterSchema
+>;
+export type ClusterProvider = z.infer<typeof clusterProviderSchema>;
