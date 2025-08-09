@@ -1,6 +1,12 @@
 "use client";
 
-import { ArrowLeft, Check, Copy, ExternalLink } from "lucide-react";
+import {
+	AlertCircle,
+	ArrowLeft,
+	Check,
+	Copy,
+	ExternalLink,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -15,6 +21,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/trpc/react";
 
@@ -30,10 +37,11 @@ export default function QuickstartPage() {
 	}>();
 
 	// Fetch project API keys for examples
-	const { data: apiKeys, error: apiKeysError } =
-		api.api_keys.getByProject.useQuery({
-			projectId,
-		});
+	const {
+		data: apiKeys,
+		isLoading: apiKeysLoading,
+		isError: apiKeysError,
+	} = api.api_keys.getByProject.useQuery({ projectId });
 
 	const firstApiKey = apiKeys?.[0];
 	const exampleKey = firstApiKey ? firstApiKey.key_preview : EXAMPLE_API_KEY;
@@ -225,7 +233,28 @@ print(completion.choices[0].message.content)`;
 						</div>
 					</CardHeader>
 					<CardContent className="space-y-4">
-						{firstApiKey && !apiKeysError ? (
+						{apiKeysLoading ? (
+							<div className="rounded-lg border p-4">
+								<div className="flex items-center gap-2">
+									<Skeleton className="h-4 w-4 rounded" />
+									<Skeleton className="h-4 w-32" />
+								</div>
+								<Skeleton className="mt-2 h-3 w-full max-w-xs" />
+							</div>
+						) : apiKeysError ? (
+							<div className="rounded-lg border bg-red-50 p-4 dark:bg-red-950/20">
+								<div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+									<AlertCircle className="h-4 w-4" />
+									<span className="font-medium text-sm">
+										Error Loading API Keys
+									</span>
+								</div>
+								<p className="mt-2 text-red-600 text-sm dark:text-red-300">
+									There was an error loading your API keys. Please try
+									refreshing the page.
+								</p>
+							</div>
+						) : firstApiKey ? (
 							<div className="rounded-lg border bg-green-50 p-4 dark:bg-green-950/20">
 								<div className="flex items-center gap-2 text-green-700 dark:text-green-400">
 									<Check className="h-4 w-4" />
