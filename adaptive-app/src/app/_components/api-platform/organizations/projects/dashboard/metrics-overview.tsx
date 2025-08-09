@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import {
 	FaChartLine,
 	FaCoins,
@@ -8,7 +9,6 @@ import {
 	FaExclamationTriangle,
 	FaServer,
 } from "react-icons/fa";
-import { useParams } from "next/navigation";
 import { api } from "@/trpc/react";
 import type { DashboardData } from "@/types/api-platform/dashboard";
 import { formatCurrencyWithDynamicPrecision } from "@/utils/formatting";
@@ -59,16 +59,17 @@ export function MetricsOverview({
 	// Fetch credit balance and transaction history for credit chart
 	const { data: creditBalance } = api.credits.getBalance.useQuery(
 		{ organizationId: orgId },
-		{ enabled: !!orgId }
+		{ enabled: !!orgId },
 	);
 
-	const { data: creditTransactions } = api.credits.getTransactionHistory.useQuery(
-		{ 
-			organizationId: orgId,
-			limit: 30, // Last 30 transactions for chart data
-		},
-		{ enabled: !!orgId }
-	);
+	const { data: creditTransactions } =
+		api.credits.getTransactionHistory.useQuery(
+			{
+				organizationId: orgId,
+				limit: 30, // Last 30 transactions for chart data
+			},
+			{ enabled: !!orgId },
+		);
 
 	if (loading || pricingLoading) {
 		return (
@@ -111,11 +112,11 @@ export function MetricsOverview({
 	// Create credit balance history data from transactions
 	const creditBalanceData = creditTransactions?.transactions
 		? creditTransactions.transactions
-			.reverse() // Reverse to show chronological order
-			.map((transaction) => ({
-				date: new Date(transaction.createdAt).toLocaleDateString(),
-				value: parseFloat(transaction.balanceAfter.toString()),
-			}))
+				.reverse() // Reverse to show chronological order
+				.map((transaction) => ({
+					date: new Date(transaction.createdAt).toLocaleDateString(),
+					value: Number.parseFloat(transaction.balanceAfter.toString()),
+				}))
 		: [];
 
 	const allMetrics = [
