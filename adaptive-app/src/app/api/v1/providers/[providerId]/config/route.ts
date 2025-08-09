@@ -28,13 +28,13 @@ const updateConfigSchema = z.object({
 	isActive: z.boolean().optional(),
 });
 
-// POST /api/v1/providers/{providerName}/config - Create config for provider
+// POST /api/v1/providers/{providerId}/config - Create config for provider
 export async function POST(
 	req: NextRequest,
-	{ params }: { params: Promise<{ providerName: string }> },
+	{ params }: { params: Promise<{ providerId: string }> },
 ) {
 	try {
-		const { providerName } = await params;
+		const { providerId } = await params;
 		const body = await req.json();
 
 		// Extract API key from headers
@@ -55,15 +55,18 @@ export async function POST(
 
 		const { projectId, ...configData } = validationResult.data;
 
-		// Find provider by name with caching
+		// Get provider by ID with caching
 		const provider = await withCache(
-			`provider:${providerName}:${projectId}`,
-			() => api.providers.getByName({ name: providerName, projectId, apiKey }),
+			`provider:${providerId}:${projectId}`,
+			() => api.providers.getById({ id: providerId, apiKey }),
 			300, // 5 minutes cache
 		);
 
 		if (!provider) {
-			return createErrorResponse(`Provider '${providerName}' not found`, 404);
+			return createErrorResponse(
+				`Provider with ID '${providerId}' not found`,
+				404,
+			);
 		}
 
 		// Create provider config
@@ -89,13 +92,13 @@ export async function POST(
 	}
 }
 
-// GET /api/v1/providers/{providerName}/config - Get config for provider
+// GET /api/v1/providers/{providerId}/config - Get config for provider
 export async function GET(
 	req: NextRequest,
-	{ params }: { params: Promise<{ providerName: string }> },
+	{ params }: { params: Promise<{ providerId: string }> },
 ) {
 	try {
-		const { providerName } = await params;
+		const { providerId } = await params;
 		const url = new URL(req.url);
 		const projectId = url.searchParams.get("project_id");
 
@@ -109,15 +112,18 @@ export async function GET(
 			return createErrorResponse("project_id parameter is required", 400);
 		}
 
-		// Find provider by name with caching
+		// Get provider by ID with caching
 		const provider = await withCache(
-			`provider:${providerName}:${projectId}`,
-			() => api.providers.getByName({ name: providerName, projectId, apiKey }),
+			`provider:${providerId}:${projectId}`,
+			() => api.providers.getById({ id: providerId, apiKey }),
 			300, // 5 minutes cache
 		);
 
 		if (!provider) {
-			return createErrorResponse(`Provider '${providerName}' not found`, 404);
+			return createErrorResponse(
+				`Provider with ID '${providerId}' not found`,
+				404,
+			);
 		}
 
 		// Get provider configs for this project and provider with caching
@@ -134,7 +140,7 @@ export async function GET(
 
 		if (configs.length === 0) {
 			return createErrorResponse(
-				`No configuration found for provider '${providerName}' in this project`,
+				`No configuration found for provider with ID '${providerId}' in this project`,
 				404,
 			);
 		}
@@ -152,13 +158,13 @@ export async function GET(
 	}
 }
 
-// PUT /api/v1/providers/{providerName}/config - Update config for provider
+// PUT /api/v1/providers/{providerId}/config - Update config for provider
 export async function PUT(
 	req: NextRequest,
-	{ params }: { params: Promise<{ providerName: string }> },
+	{ params }: { params: Promise<{ providerId: string }> },
 ) {
 	try {
-		const { providerName } = await params;
+		const { providerId } = await params;
 		const body = await req.json();
 		const url = new URL(req.url);
 		const projectId = url.searchParams.get("project_id");
@@ -183,15 +189,18 @@ export async function PUT(
 			);
 		}
 
-		// Find provider by name with caching
+		// Get provider by ID with caching
 		const provider = await withCache(
-			`provider:${providerName}:${projectId}`,
-			() => api.providers.getByName({ name: providerName, projectId, apiKey }),
+			`provider:${providerId}:${projectId}`,
+			() => api.providers.getById({ id: providerId, apiKey }),
 			300, // 5 minutes cache
 		);
 
 		if (!provider) {
-			return createErrorResponse(`Provider '${providerName}' not found`, 404);
+			return createErrorResponse(
+				`Provider with ID '${providerId}' not found`,
+				404,
+			);
 		}
 
 		// Get existing config with caching
@@ -209,7 +218,7 @@ export async function PUT(
 		const config = configs[0];
 		if (!config) {
 			return createErrorResponse(
-				`No configuration found for provider '${providerName}' in this project`,
+				`No configuration found for provider with ID '${providerId}' in this project`,
 				404,
 			);
 		}
@@ -236,13 +245,13 @@ export async function PUT(
 	}
 }
 
-// DELETE /api/v1/providers/{providerName}/config - Delete config for provider
+// DELETE /api/v1/providers/{providerId}/config - Delete config for provider
 export async function DELETE(
 	req: NextRequest,
-	{ params }: { params: Promise<{ providerName: string }> },
+	{ params }: { params: Promise<{ providerId: string }> },
 ) {
 	try {
-		const { providerName } = await params;
+		const { providerId } = await params;
 		const url = new URL(req.url);
 		const projectId = url.searchParams.get("project_id");
 
@@ -256,15 +265,18 @@ export async function DELETE(
 			return createErrorResponse("project_id parameter is required", 400);
 		}
 
-		// Find provider by name with caching
+		// Get provider by ID with caching
 		const provider = await withCache(
-			`provider:${providerName}:${projectId}`,
-			() => api.providers.getByName({ name: providerName, projectId, apiKey }),
+			`provider:${providerId}:${projectId}`,
+			() => api.providers.getById({ id: providerId, apiKey }),
 			300, // 5 minutes cache
 		);
 
 		if (!provider) {
-			return createErrorResponse(`Provider '${providerName}' not found`, 404);
+			return createErrorResponse(
+				`Provider with ID '${providerId}' not found`,
+				404,
+			);
 		}
 
 		// Get existing config with caching
@@ -282,7 +294,7 @@ export async function DELETE(
 		const config = configs[0];
 		if (!config) {
 			return createErrorResponse(
-				`No configuration found for provider '${providerName}' in this project`,
+				`No configuration found for provider with ID '${providerId}' in this project`,
 				404,
 			);
 		}
