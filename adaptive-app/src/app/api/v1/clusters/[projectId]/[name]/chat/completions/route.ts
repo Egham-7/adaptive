@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
+import { decryptProviderApiKey } from "@/lib/auth-utils";
 import { withCache } from "@/lib/cache-utils";
 import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
@@ -106,7 +107,7 @@ export async function POST(
 					base_url: provider.baseUrl ?? undefined,
 					auth_type: provider.authType ?? undefined,
 					auth_header_name: provider.authHeaderName ?? undefined,
-					api_key: config.providerApiKey, // Use user's API key from config
+					api_key: decryptProviderApiKey(config.providerApiKey), // Decrypt user's API key from config
 					health_endpoint: provider.healthEndpoint ?? undefined,
 					rate_limit_rpm: provider.rateLimitRpm ?? undefined,
 					timeout_ms: provider.timeoutMs ?? undefined,

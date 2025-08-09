@@ -3,6 +3,8 @@ import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import {
 	authenticateAndGetProject,
+	decryptProviderApiKey,
+	encryptProviderApiKey,
 	validateAndAuthenticateApiKey,
 } from "@/lib/auth-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
@@ -80,7 +82,13 @@ export const providerConfigsRouter = createTRPCRouter({
 					orderBy: { createdAt: "desc" },
 				});
 
-				return configs as ProviderConfigWithProvider[];
+				// Decrypt provider API keys for response
+				const decryptedConfigs = configs.map((config) => ({
+					...config,
+					providerApiKey: decryptProviderApiKey(config.providerApiKey),
+				}));
+
+				return decryptedConfigs as ProviderConfigWithProvider[];
 			} catch (error) {
 				console.error("Error fetching provider configs:", error);
 				if (error instanceof TRPCError) {
@@ -140,7 +148,13 @@ export const providerConfigsRouter = createTRPCRouter({
 					apiKey: input.apiKey,
 				});
 
-				return config;
+				// Decrypt provider API key for response
+				const decryptedConfig = {
+					...config,
+					providerApiKey: decryptProviderApiKey(config.providerApiKey),
+				};
+
+				return decryptedConfig;
 			} catch (error) {
 				if (error instanceof TRPCError) throw error;
 				throw new TRPCError({
@@ -202,13 +216,16 @@ export const providerConfigsRouter = createTRPCRouter({
 					});
 				}
 
+				// Encrypt the provider API key before storing
+				const encryptedApiKey = encryptProviderApiKey(input.providerApiKey);
+
 				// Create provider config
 				const config = await ctx.db.providerConfig.create({
 					data: {
 						projectId: input.projectId,
 						providerId: input.providerId,
 						displayName: input.displayName,
-						providerApiKey: input.providerApiKey,
+						providerApiKey: encryptedApiKey,
 						customHeaders: input.customHeaders,
 						customSettings: input.customSettings,
 					},
@@ -226,7 +243,13 @@ export const providerConfigsRouter = createTRPCRouter({
 					},
 				});
 
-				return config;
+				// Decrypt provider API key for response
+				const decryptedConfig = {
+					...config,
+					providerApiKey: decryptProviderApiKey(config.providerApiKey),
+				};
+
+				return decryptedConfig;
 			} catch (error) {
 				console.error("Error creating provider config:", error);
 				if (error instanceof TRPCError) {
@@ -283,7 +306,7 @@ export const providerConfigsRouter = createTRPCRouter({
 							displayName: input.displayName,
 						}),
 						...(input.providerApiKey !== undefined && {
-							providerApiKey: input.providerApiKey,
+							providerApiKey: encryptProviderApiKey(input.providerApiKey),
 						}),
 						...(input.customHeaders !== undefined && {
 							customHeaders: input.customHeaders,
@@ -307,7 +330,13 @@ export const providerConfigsRouter = createTRPCRouter({
 					},
 				});
 
-				return updatedConfig;
+				// Decrypt provider API key for response
+				const decryptedConfig = {
+					...updatedConfig,
+					providerApiKey: decryptProviderApiKey(updatedConfig.providerApiKey),
+				};
+
+				return decryptedConfig;
 			} catch (error) {
 				console.error("Error updating provider config:", error);
 				if (error instanceof TRPCError) {
