@@ -3,6 +3,8 @@ package main
 import (
 	"adaptive-backend/internal/api"
 	"adaptive-backend/internal/middleware"
+	"adaptive-backend/internal/services/chat/completions"
+	"adaptive-backend/internal/services/protocol_manager"
 	"context"
 	"fmt"
 	"os"
@@ -24,14 +26,31 @@ import (
 
 // SetupRoutes configures all the application routes for the Fiber app.
 func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
-	chatCompletionHandler := api.NewCompletionHandler()
+	// Create shared services once
+	reqSvc := completions.NewRequestService()
+	paramSvc := completions.NewParameterService()
+	fallbackSvc := completions.NewFallbackService()
+
+	// Create protocol manager (shared between handlers)
+	protocolMgr, err := protocol_manager.NewProtocolManager(nil)
+	if err != nil {
+		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
+	}
+
+	// Create response service (depends on protocol manager)
+	respSvc := completions.NewResponseService(protocolMgr)
+
+	// Initialize handlers with shared dependencies
+	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)
+	selectModelHandler := api.NewSelectModelHandler(reqSvc, protocolMgr)
 
 	// Health endpoint (no auth required)
 	app.Get("/health", healthHandler.Health)
 
-	// Apply API key authentication to all v1 routes
-	v1Group := app.Group("/v1", middleware.APIKeyAuth())
+	// Apply JWT authentication to all v1 routes
+	v1Group := app.Group("/v1", middleware.JWTAuth())
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
+	v1Group.Post("/select-model", selectModelHandler.SelectModel)
 }
 
 const (

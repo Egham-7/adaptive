@@ -31,7 +31,6 @@ export function ProviderComparisonTable({
 						<div className="mb-4 h-4 w-1/3 rounded bg-muted" />
 						<div className="space-y-3">
 							{[...Array(5)].map((_, i) => (
-								/* biome-ignore lint/suspicious/noArrayIndexKey: skeleton loading doesn't need stable keys */
 								<div key={i} className="flex space-x-4">
 									<div className="h-4 w-1/4 rounded bg-muted" />
 									<div className="h-4 w-1/4 rounded bg-muted" />

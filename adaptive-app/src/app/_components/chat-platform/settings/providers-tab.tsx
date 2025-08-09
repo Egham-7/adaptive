@@ -51,7 +51,7 @@ export const ProvidersTab: React.FC<ProvidersTabProps> = ({
 												alt={provider.name}
 												width={40}
 												height={40}
-												className=" object-contain"
+												className="object-contain"
 											/>
 										</div>
 										<div className="text-center">

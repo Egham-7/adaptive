@@ -41,6 +41,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { SupportButton } from "@/components/ui/support-button";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateOrganization } from "@/hooks/organizations/use-create-organization";
 import { useDeleteOrganization } from "@/hooks/organizations/use-delete-organization";
@@ -220,13 +221,16 @@ export default function OrganizationsPage() {
 	return (
 		<div className="min-h-screen bg-background">
 			<div className="container mx-auto max-w-6xl px-4 py-8">
-				<div className="mb-8">
-					<h1 className="mb-2 font-bold text-3xl text-foreground">
-						Organizations
-					</h1>
-					<p className="text-muted-foreground">
-						Manage your AI projects and collaborate with teams
-					</p>
+				<div className="mb-8 flex items-start justify-between">
+					<div>
+						<h1 className="mb-2 font-bold text-3xl text-foreground">
+							Organizations
+						</h1>
+						<p className="text-muted-foreground">
+							Manage your AI projects and collaborate with teams
+						</p>
+					</div>
+					<SupportButton />
 				</div>
 
 				<div className="mb-8">

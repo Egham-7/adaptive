@@ -1,18 +1,18 @@
 "use client";
-import { motion } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { MdDashboard, MdKey } from "react-icons/md";
-import { ModeToggle } from "@/app/_components/mode-toggle";
+import { ApiSidebarNavFooter } from "@/app/_components/api-platform/sidebar-nav-footer";
+import CommonSidebarHeader from "@/components/sidebar-header";
 import {
 	Sidebar,
 	SidebarContent,
-	SidebarFooter,
-	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarRail,
+	SidebarSeparator,
+	SidebarTrigger,
 } from "@/components/ui/sidebar";
 
 export function ProjectSidebar() {
@@ -35,10 +35,15 @@ export function ProjectSidebar() {
 		},
 	];
 	return (
-		<Sidebar>
-			<SidebarHeader>
-				<Logo />
-			</SidebarHeader>
+		<Sidebar className="h-screen">
+			<div className="flex items-center justify-between space-x-2 p-2">
+				<CommonSidebarHeader
+					href={`/api-platform/organizations/${orgId}/projects/${projectId}`}
+				/>
+				<SidebarTrigger />
+			</div>
+			<SidebarSeparator />
+
 			<SidebarContent>
 				<SidebarMenu>
 					{links.map((link) => (
@@ -53,56 +58,10 @@ export function ProjectSidebar() {
 					))}
 				</SidebarMenu>
 			</SidebarContent>
-			<SidebarFooter>
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<div className="flex w-full items-center justify-between">
-							<SidebarMenuButton asChild className="flex-1">
-								<Link href="#" className="flex items-center gap-2">
-									<Image
-										src="https://assets.aceternity.com/manu.png"
-										className="h-7 w-7 flex-shrink-0 rounded-full"
-										width={50}
-										height={50}
-										alt="Avatar"
-									/>
-									<span>Manu Arora</span>
-								</Link>
-							</SidebarMenuButton>
-							<ModeToggle />
-						</div>
-					</SidebarMenuItem>
-				</SidebarMenu>
-			</SidebarFooter>
+
+			<ApiSidebarNavFooter />
+
+			<SidebarRail />
 		</Sidebar>
 	);
 }
-
-export const Logo = () => {
-	return (
-		<Link
-			href="#"
-			className="relative z-20 flex items-center space-x-2 py-1 font-normal text-black text-sm"
-		>
-			<div className="h-5 w-6 flex-shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
-			<motion.span
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				className="whitespace-pre font-medium text-black dark:text-white"
-			>
-				Adaptive
-			</motion.span>
-		</Link>
-	);
-};
-
-export const LogoIcon = () => {
-	return (
-		<Link
-			href="#"
-			className="relative z-20 flex items-center space-x-2 py-1 font-normal text-black text-sm"
-		>
-			<div className="h-5 w-6 flex-shrink-0 rounded-tl-lg rounded-tr-sm rounded-br-lg rounded-bl-sm bg-black dark:bg-white" />
-		</Link>
-	);
-};

@@ -7,31 +7,25 @@ import { useMemo, useState } from "react";
 import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
 import { MetricsOverview } from "@/app/_components/api-platform/organizations/projects/dashboard/metrics-overview";
 import { ProviderComparisonTable } from "@/app/_components/api-platform/organizations/projects/dashboard/provider-comparison-table";
-import { TaskDistributionChart } from "@/app/_components/api-platform/organizations/projects/dashboard/task-distribution-chart";
 import { UsageSection } from "@/app/_components/api-platform/organizations/projects/dashboard/usage-section";
 import { Button } from "@/components/ui/button";
 import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
-import type {
-	DashboardFilters,
-	ProviderFilter,
-} from "@/types/api-platform/dashboard";
+import type { DashboardFilters } from "@/types/api-platform/dashboard";
 
 export default function DashboardPage() {
 	const params = useParams();
 	const orgId = params.orgId as string;
 	const projectId = params.projectId as string;
 	const { dateRange, setDateRange } = useDateRange();
-	const [selectedProvider, setSelectedProvider] =
-		useState<ProviderFilter>("all");
 	const [selectedModel, setSelectedModel] = useState<string>("gpt-4o");
 
 	const filters: DashboardFilters = useMemo(
 		() => ({
 			dateRange,
-			provider: selectedProvider,
+			provider: "all",
 		}),
-		[dateRange, selectedProvider],
+		[dateRange],
 	);
 
 	const { data, loading, error } = useProjectDashboardData(projectId, filters);
@@ -41,7 +35,7 @@ export default function DashboardPage() {
 
 		const exportData = {
 			dateRange,
-			provider: selectedProvider,
+			provider: "all",
 			metrics: {
 				totalSpend: data.totalSpend,
 				totalSavings: data.totalSavings,
@@ -81,9 +75,9 @@ export default function DashboardPage() {
 	}
 
 	return (
-		<div className="space-y-8">
+		<div className="container mx-auto max-w-7xl px-4 py-6">
 			{/* Back Navigation */}
-			<div className="mb-4">
+			<div className="mb-6">
 				<Link href={`/api-platform/organizations/${orgId}`}>
 					<Button variant="ghost" size="sm">
 						<ArrowLeft className="mr-2 h-4 w-4" />
@@ -93,82 +87,89 @@ export default function DashboardPage() {
 			</div>
 
 			{/* Header Section */}
-			<DashboardHeader
-				dateRange={dateRange}
-				onDateRangeChange={setDateRange}
-				selectedProvider={selectedProvider}
-				onProviderChange={setSelectedProvider}
-				providers={data?.providers || []}
-				onExport={handleExport}
-			/>
-
-			{/* Key Metrics Section */}
-			<section className="space-y-4">
-				<div className="flex items-center justify-between">
-					<h2 className="font-semibold text-foreground text-xl">
-						Key Performance Metrics
-					</h2>
-					<div className="text-muted-foreground text-sm">
-						Real-time insights
-					</div>
-				</div>
-				<MetricsOverview
-					data={data}
-					loading={loading}
-					selectedModel={selectedModel}
+			<div className="mb-8">
+				<DashboardHeader
+					dateRange={dateRange}
+					onDateRangeChange={setDateRange}
+					onExport={handleExport}
 				/>
-			</section>
+			</div>
 
-			{/* Divider */}
-			<div className="border-border border-t" />
-
-			{/* Usage Analytics Section */}
-			<section className="space-y-4">
-				<div className="flex items-center justify-between">
-					<h2 className="font-semibold text-foreground text-xl">
-						Usage Analytics
-					</h2>
-					<div className="text-muted-foreground text-sm">
-						Spend trends over time
-					</div>
-				</div>
-				<div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-					<div className="lg:col-span-2">
-						<UsageSection
-							data={data}
-							loading={loading}
-							selectedProvider={selectedProvider}
-							providers={data?.providers || []}
-							selectedModel={selectedModel}
-							onModelChange={setSelectedModel}
-						/>
-					</div>
-					<TaskDistributionChart data={data} loading={loading} />
-				</div>
-			</section>
-
-			{/* Provider Comparison Section - Only show when "All Providers" is selected */}
-			{selectedProvider === "all" && (
-				<>
-					{/* Divider */}
-					<div className="border-border border-t" />
-
-					<section className="space-y-4">
-						<div className="flex items-center justify-between">
-							<h2 className="font-semibold text-foreground text-xl">
-								Provider Cost Comparison
+			{/* Main Dashboard Grid */}
+			<div className="space-y-8">
+				{/* Key Metrics Section */}
+				<section className="space-y-6">
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+						<div>
+							<h2 className="font-semibold text-2xl text-foreground">
+								Key Performance Metrics
 							</h2>
-							<div className="text-muted-foreground text-sm">
-								Compare costs across all providers
-							</div>
+							<p className="text-muted-foreground">
+								Real-time insights into your API usage and costs
+							</p>
 						</div>
-						<ProviderComparisonTable data={data} loading={loading} />
-					</section>
-				</>
-			)}
+						<div className="flex items-center gap-2 text-muted-foreground text-sm">
+							<div className="h-2 w-2 rounded-full bg-green-500" />
+							<span>Live data</span>
+						</div>
+					</div>
+					<MetricsOverview
+						data={data}
+						loading={loading}
+						selectedModel={selectedModel}
+					/>
+				</section>
 
-			{/* Divider */}
-			<div className="border-border border-t" />
+				{/* Analytics Grid Layout */}
+				<div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+					{/* Main Analytics Area */}
+					<div className="space-y-8 lg:col-span-4">
+						{/* Usage Analytics Section */}
+						<section className="space-y-6">
+							<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+								<div>
+									<h2 className="font-semibold text-2xl text-foreground">
+										Usage Analytics
+									</h2>
+									<p className="text-muted-foreground">
+										Track spending trends and optimize costs over time
+									</p>
+								</div>
+							</div>
+							<div className="rounded-lg border bg-card p-6 shadow-sm">
+								<UsageSection
+									data={data}
+									loading={loading}
+									selectedProvider="all"
+									providers={data?.providers || []}
+									selectedModel={selectedModel}
+									onModelChange={setSelectedModel}
+								/>
+							</div>
+						</section>
+
+						{/* Provider Comparison Section */}
+						<section className="space-y-6">
+							<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+								<div>
+									<h2 className="font-semibold text-2xl text-foreground">
+										Provider Cost Comparison
+									</h2>
+									<p className="text-muted-foreground">
+										Compare costs and performance across all providers
+									</p>
+								</div>
+								<div className="text-muted-foreground text-sm">
+									Based on current usage patterns
+								</div>
+							</div>
+							<div className="rounded-lg border bg-card p-6 shadow-sm">
+								<ProviderComparisonTable data={data} loading={loading} />
+							</div>
+						</section>
+					</div>
+				</div>
+			</div>
 		</div>
 	);
 }

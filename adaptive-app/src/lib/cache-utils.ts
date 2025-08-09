@@ -94,3 +94,95 @@ export async function invalidateAnalyticsCache(
 	}
 	await invalidateUserCache(userId, patterns);
 }
+
+export async function invalidateProviderCache(
+	projectId: string,
+	providerName?: string,
+) {
+	try {
+		const patterns = [
+			`providers:${projectId}`,
+			`provider-configs:${projectId}`,
+		];
+
+		if (providerName) {
+			patterns.push(`provider:${providerName}:${projectId}`);
+		}
+
+		for (const pattern of patterns) {
+			const keys = await redis.keys(`${pattern}*`);
+			if (keys.length > 0) {
+				await redis.del(keys);
+				console.log(
+					`[CACHE INVALIDATED] ${keys.length} keys for pattern: ${pattern}`,
+				);
+			}
+		}
+	} catch (error) {
+		console.error("[PROVIDER CACHE INVALIDATION ERROR]:", error);
+	}
+}
+
+export async function invalidateProviderConfigCache(
+	projectId: string,
+	providerId?: string,
+) {
+	try {
+		const patterns = [`provider-configs:${projectId}`];
+
+		if (providerId) {
+			patterns.push(`provider-config:${projectId}:${providerId}`);
+		}
+
+		for (const pattern of patterns) {
+			const keys = await redis.keys(`${pattern}*`);
+			if (keys.length > 0) {
+				await redis.del(keys);
+				console.log(
+					`[CACHE INVALIDATED] ${keys.length} keys for pattern: ${pattern}`,
+				);
+			}
+		}
+	} catch (error) {
+		console.error("[PROVIDER CONFIG CACHE INVALIDATION ERROR]:", error);
+	}
+}
+
+export async function invalidateClusterCache(
+	projectId: string,
+	clusterName?: string,
+) {
+	try {
+		const patterns = [];
+
+		if (clusterName) {
+			patterns.push(`cluster:${projectId}:${clusterName}`);
+			// Also invalidate model details cache for this specific cluster
+			const clusterKeys = await redis.keys(
+				`cluster:${projectId}:${clusterName}`,
+			);
+			for (const key of clusterKeys) {
+				const cluster = await redis.get(key);
+				if (cluster) {
+					const clusterData = JSON.parse(cluster);
+					patterns.push(`model-details:${clusterData.id}`);
+				}
+			}
+		} else {
+			patterns.push(`cluster:${projectId}:*`);
+			patterns.push("model-details:*");
+		}
+
+		for (const pattern of patterns) {
+			const keys = await redis.keys(pattern);
+			if (keys.length > 0) {
+				await redis.del(keys);
+				console.log(
+					`[CACHE INVALIDATED] ${keys.length} keys for pattern: ${pattern}`,
+				);
+			}
+		}
+	} catch (error) {
+		console.error("[CLUSTER CACHE INVALIDATION ERROR]:", error);
+	}
+}

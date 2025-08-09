@@ -9,6 +9,26 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
+// Cache tier constants
+const (
+	CacheTierSemanticExact   = "semantic_exact"
+	CacheTierSemanticSimilar = "semantic_similar"
+	CacheTierPromptResponse  = "prompt_response"
+)
+
+// ProviderConfig represents configuration for custom providers
+type ProviderConfig struct {
+	BaseURL        *string           `json:"base_url,omitempty"`         // API base URL
+	AuthType       *string           `json:"auth_type,omitempty"`        // "bearer" | "api_key" | "basic" | "custom"
+	AuthHeaderName *string           `json:"auth_header_name,omitempty"` // Custom auth header name
+	APIKey         *string           `json:"api_key,omitempty"`          // Full API key for authentication
+	HealthEndpoint *string           `json:"health_endpoint,omitempty"`  // Health check endpoint
+	RateLimitRPM   *int              `json:"rate_limit_rpm,omitempty"`   // Rate limit requests per minute
+	TimeoutMs      *int              `json:"timeout_ms,omitempty"`       // Request timeout
+	RetryConfig    map[string]any    `json:"retry_config,omitempty"`     // Custom retry configuration
+	Headers        map[string]string `json:"headers,omitempty"`          // Additional headers
+}
+
 // ModelCapability represents a model with its capabilities and constraints
 type ModelCapability struct {
 	Description             *string  `json:"description,omitempty"`
@@ -33,6 +53,12 @@ const (
 	FallbackModeSequential FallbackMode = "sequential"
 	FallbackModeParallel   FallbackMode = "parallel"
 )
+
+// FallbackConfig holds the fallback configuration with enabled toggle
+type FallbackConfig struct {
+	Enabled bool         `json:"enabled,omitempty"` // Whether fallback is enabled (default: true)
+	Mode    FallbackMode `json:"mode,omitempty"`    // Fallback mode (sequential/parallel)
+}
 
 // ProtocolManagerConfig holds configuration for the protocol manager
 type ProtocolManagerConfig struct {
@@ -230,10 +256,11 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager,omitempty"`
-	SemanticCache         *CacheConfig           `json:"semantic_cache,omitempty"` // Optional semantic cache configuration
-	PromptCache           *PromptCacheConfig     `json:"prompt_cache,omitempty"`   // Optional prompt response cache configuration
-	FallbackMode          FallbackMode           `json:"fallback_mode,omitempty"`  // Strategy for handling provider failures
+	ProtocolManagerConfig *ProtocolManagerConfig     `json:"protocol_manager,omitempty"`
+	SemanticCache         *CacheConfig               `json:"semantic_cache,omitempty"`   // Optional semantic cache configuration
+	PromptCache           *PromptCacheConfig         `json:"prompt_cache,omitempty"`     // Optional prompt response cache configuration
+	Fallback              *FallbackConfig            `json:"fallback,omitempty"`         // Fallback configuration with enabled toggle
+	ProviderConfigs       map[string]*ProviderConfig `json:"provider_configs,omitempty"` // Custom provider configurations by provider name
 }
 
 // ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
@@ -271,6 +298,47 @@ func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams
 	}
 }
 
+// AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information
+type AdaptiveUsage struct {
+	PromptTokens     int64 `json:"prompt_tokens"`
+	CompletionTokens int64 `json:"completion_tokens"`
+	TotalTokens      int64 `json:"total_tokens"`
+	// Cache tier information for adaptive system
+	CacheTier string `json:"cache_tier,omitempty"` // e.g., "semantic_exact", "semantic_similar", "prompt_response"
+}
+
+// ToOpenAI converts AdaptiveUsage to OpenAI's CompletionUsage for compatibility
+func (u *AdaptiveUsage) ToOpenAI() openai.CompletionUsage {
+	return openai.CompletionUsage{
+		PromptTokens:     u.PromptTokens,
+		CompletionTokens: u.CompletionTokens,
+		TotalTokens:      u.TotalTokens,
+	}
+}
+
+// FromOpenAI creates AdaptiveUsage from OpenAI's CompletionUsage
+func FromOpenAI(usage openai.CompletionUsage) *AdaptiveUsage {
+	return &AdaptiveUsage{
+		PromptTokens:     usage.PromptTokens,
+		CompletionTokens: usage.CompletionTokens,
+		TotalTokens:      usage.TotalTokens,
+	}
+}
+
+// SetCacheTier sets the cache tier on AdaptiveUsage based on cache source type
+func SetCacheTier(usage *AdaptiveUsage, cacheSource string) {
+	switch cacheSource {
+	case "semantic_exact":
+		usage.CacheTier = CacheTierSemanticExact
+	case "semantic_similar":
+		usage.CacheTier = CacheTierSemanticSimilar
+	case "prompt_response":
+		usage.CacheTier = CacheTierPromptResponse
+	default:
+		usage.CacheTier = ""
+	}
+}
+
 // ChatCompletion extends OpenAI's ChatCompletion with enhanced usage
 type ChatCompletion struct {
 	ID                string                           `json:"id"`
@@ -280,7 +348,7 @@ type ChatCompletion struct {
 	Object            string                           `json:"object"`
 	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                           `json:"system_fingerprint,omitempty"`
-	Usage             openai.CompletionUsage           `json:"usage"`
+	Usage             AdaptiveUsage                    `json:"usage"`
 	Provider          string                           `json:"provider,omitempty"`
 }
 
@@ -293,7 +361,7 @@ type ChatCompletionChunk struct {
 	Object            string                                `json:"object"`
 	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitempty"`
 	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
-	Usage             *openai.CompletionUsage               `json:"usage,omitempty"`
+	Usage             *AdaptiveUsage                        `json:"usage,omitempty"`
 	Provider          string                                `json:"provider,omitempty"`
 }
 
@@ -307,7 +375,7 @@ func ConvertToAdaptive(completion *openai.ChatCompletion, provider string) *Chat
 		Object:            string(completion.Object),
 		ServiceTier:       completion.ServiceTier,
 		SystemFingerprint: completion.SystemFingerprint,
-		Usage:             completion.Usage,
+		Usage:             *FromOpenAI(completion.Usage),
 		Provider:          provider,
 	}
 }
@@ -322,8 +390,12 @@ func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) 
 		Object:            string(chunk.Object),
 		ServiceTier:       chunk.ServiceTier,
 		SystemFingerprint: chunk.SystemFingerprint,
-		Usage:             &chunk.Usage,
 		Provider:          provider,
+	}
+
+	// Only set usage if it exists in the chunk
+	if chunk.Usage.PromptTokens != 0 || chunk.Usage.CompletionTokens != 0 || chunk.Usage.TotalTokens != 0 {
+		adaptive.Usage = FromOpenAI(chunk.Usage)
 	}
 
 	return adaptive

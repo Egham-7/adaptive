@@ -3,6 +3,7 @@
 import { AlertTriangle, MessageCircleX, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { SupportButton } from "@/components/ui/support-button";
 
 //biome-ignore lint/suspicious/noShadowRestrictedNames: Next.js error boundary requires this parameter name
 export default function Error({
@@ -118,24 +119,12 @@ export default function Error({
 						</div>
 					</div>
 
-					{/* Status Message */}
+					{/* Support Section */}
 					<div className="mt-8 border-border border-t pt-6">
-						<p className="text-muted-foreground text-sm">
-							If this keeps happening, check our{" "}
-							<a
-								href="/status"
-								className="text-primary underline underline-offset-4 hover:text-primary/80"
-							>
-								status page
-							</a>{" "}
-							or{" "}
-							<a
-								href="mailto:support@yourapp.com"
-								className="text-primary underline underline-offset-4 hover:text-primary/80"
-							>
-								contact support
-							</a>
+						<p className="mb-4 text-muted-foreground text-sm">
+							Need help? Get support from our team
 						</p>
+						<SupportButton className="mx-auto" />
 					</div>
 				</div>
 			</div>

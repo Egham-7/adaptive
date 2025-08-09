@@ -23,17 +23,19 @@ type CompletionHandler struct {
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
-func NewCompletionHandler() *CompletionHandler {
-	protocolMgr, err := protocol_manager.NewProtocolManager(nil)
-	if err != nil {
-		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
-	}
+func NewCompletionHandler(
+	reqSvc *completions.RequestService,
+	respSvc *completions.ResponseService,
+	paramSvc *completions.ParameterService,
+	protocolMgr *protocol_manager.ProtocolManager,
+	fallbackSvc *completions.FallbackService,
+) *CompletionHandler {
 	return &CompletionHandler{
-		reqSvc:      completions.NewRequestService(),
-		respSvc:     completions.NewResponseService(protocolMgr),
-		paramSvc:    completions.NewParameterService(),
+		reqSvc:      reqSvc,
+		respSvc:     respSvc,
+		paramSvc:    paramSvc,
 		protocolMgr: protocolMgr,
-		fallbackSvc: completions.NewFallbackService(),
+		fallbackSvc: fallbackSvc,
 	}
 }
 
@@ -54,7 +56,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	// Configure fallback mode based on request
 	h.configureFallbackMode(req, reqID)
 
-	resp, err := h.selectProtocol(
+	resp, cacheSource, err := h.selectProtocol(
 		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
 	)
 	if err != nil {
@@ -70,23 +72,24 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	return h.respSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream)
+	return h.respSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream, cacheSource)
 }
 
-// selectProtocol runs protocol selection and returns the chosen protocol response.
+// selectProtocol runs protocol selection and returns the chosen protocol response and cache source.
 func (h *CompletionHandler) selectProtocol(
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) (
 	resp *models.ProtocolResponse,
+	cacheSource string,
 	err error,
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
 	openAIParams := req.ToOpenAIParams()
 	if openAIParams == nil {
-		return nil, fmt.Errorf("failed to convert request to OpenAI parameters")
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
 	}
 
 	selReq := models.ModelSelectionRequest{
@@ -94,33 +97,49 @@ func (h *CompletionHandler) selectProtocol(
 		ProtocolManagerConfig: req.ProtocolManagerConfig,
 	}
 
-	resp, _, err = h.protocolMgr.SelectProtocolWithCache(
+	resp, cacheSource, err = h.protocolMgr.SelectProtocolWithCache(
 		selReq, userID, requestID, circuitBreakers, req.SemanticCache,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
-		return nil, fmt.Errorf("protocol selection failed: %w", err)
+		return nil, "", fmt.Errorf("protocol selection failed: %w", err)
 	}
 
-	return resp, nil
+	return resp, cacheSource, nil
 }
 
 // configureFallbackMode sets the fallback mode based on the request configuration
 func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequest, reqID string) {
-	switch req.FallbackMode {
+	// Default fallback behavior: enabled with parallel mode
+	enabled := true
+	mode := models.FallbackModeParallel
+
+	// Override defaults if fallback config is provided
+	if req.Fallback != nil {
+		enabled = req.Fallback.Enabled
+		if req.Fallback.Mode != "" {
+			mode = req.Fallback.Mode
+		}
+	}
+
+	// Check if fallback is disabled
+	if !enabled {
+		h.fallbackSvc.SetMode(completions.FallbackModeSequential)
+		fiberlog.Debugf("[%s] Fallback is explicitly disabled, using single provider only", reqID)
+		return
+	}
+
+	// Fallback is enabled, configure the mode
+	switch mode {
 	case models.FallbackModeSequential:
 		h.fallbackSvc.SetMode(completions.FallbackModeSequential)
-		fiberlog.Infof("[%s] Configured fallback mode: sequential", reqID)
+		fiberlog.Infof("[%s] Fallback enabled with mode: sequential", reqID)
 	case models.FallbackModeParallel:
 		h.fallbackSvc.SetMode(completions.FallbackModeRace)
-		fiberlog.Infof("[%s] Configured fallback mode: parallel", reqID)
-	case "":
-		// Default to parallel (race) mode when not specified
-		h.fallbackSvc.SetMode(completions.FallbackModeRace)
-		fiberlog.Debugf("[%s] Using default fallback mode: parallel", reqID)
+		fiberlog.Infof("[%s] Fallback enabled with mode: parallel", reqID)
 	default:
 		// Unknown mode, default to parallel with warning
 		h.fallbackSvc.SetMode(completions.FallbackModeRace)
-		fiberlog.Warnf("[%s] Unknown fallback mode '%s', using default: parallel", reqID, req.FallbackMode)
+		fiberlog.Warnf("[%s] Fallback enabled with unknown mode '%s', using default: parallel", reqID, mode)
 	}
 }

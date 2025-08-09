@@ -22,16 +22,6 @@ enum ProjectMemberRole {
   member
 }
 
-enum ProviderType {
-  openai
-  anthropic
-  gemini
-  groq
-  grok
-  deepseek
-  huggingface
-  adaptive
-}
 
 enum RequestType {
   completion
@@ -47,6 +37,19 @@ enum CreditTransactionType {
   refund
   promotional
 }
+
+enum FallbackMode {
+  sequential
+  parallel
+}
+
+enum ProviderVisibility {
+  system
+  project
+  organization
+  community
+}
+
 
 datasource db {
   provider = "postgresql"
@@ -177,6 +180,9 @@ model Project {
   members        ProjectMember[]
   apiKeys        ApiKey[]
   usage          ApiUsage[]
+  llmClusters    LLMCluster[]
+  providers      Provider[]
+  providerConfigs ProviderConfig[]
   
   @@index([organizationId])
   @@index([status])
@@ -201,7 +207,8 @@ model ApiUsage {
   id                String   @id @default(cuid())
   apiKeyId          String
   projectId         String?
-  provider          ProviderType?   // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
+  clusterId         String?  // LLM cluster used for this request
+  provider          String?  // Provider name (e.g., 'openai', 'anthropic', 'custom-provider')
   model             String?   // Model name used
   requestType       RequestType   // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
   inputTokens       Int      @default(0)
@@ -215,10 +222,12 @@ model ApiUsage {
   
   apiKey            ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
   project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  cluster           LLMCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
   creditTransactions CreditTransaction[]
   
   @@index([apiKeyId])
   @@index([projectId])
+  @@index([clusterId])
   @@index([provider])
   @@index([timestamp])
   @@index([requestType])
@@ -240,18 +249,63 @@ model Subscription {
 }
 
 model Provider {
-  id          String    @id @default(cuid())
-  name        String    @unique // 'openai' | 'anthropic' | 'gemini' | 'groq' | 'deepseek' | 'huggingface'
-  displayName String    // 'OpenAI' | 'Anthropic' | 'Google' | 'Groq' | 'DeepSeek' | 'Hugging Face'
-  description String?
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String             @id @default(cuid())
+  projectId       String?            // Required for project/organization visibility, null for system/community
+  name            String             // 'openai' | 'anthropic' | 'custom-provider-name'
+  displayName     String             // 'OpenAI' | 'Anthropic' | 'My Custom Provider'
+  description     String?
+  visibility      ProviderVisibility @default(project) // system | project | organization | community
   
-  models      ProviderModel[]
+  // Provider template configuration (no secrets)
+  baseUrl         String?            // API base URL for custom providers (e.g., "https://api.custom.com/v1")
+  authType        String?            // "bearer" | "api_key" | "basic" | "custom"
+  authHeaderName  String?            // Custom auth header name (default: "Authorization")
+  healthEndpoint  String?            // Health check endpoint (e.g., "/health")
+  rateLimitRpm    Int?               // Rate limit requests per minute
+  timeoutMs       Int?               // Request timeout in milliseconds
+  retryConfig     Json?              // Custom retry configuration
+  headers         Json?              // Additional headers to send with requests
   
+  createdBy       String?            // User ID who created this provider (for community providers)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  project         Project?           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  models          ProviderModel[]
+  configs         ProviderConfig[]   // User configurations for this provider
+  clusterProviders ClusterProvider[] // Clusters using this provider
+  
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([visibility])
   @@index([name])
-  @@index([isActive])
+  @@index([createdBy])
+}
+
+model ProviderConfig {
+  id              String    @id @default(cuid())
+  projectId       String    // Always project-scoped
+  providerId      String    // References Provider template
+  
+  // User's custom configuration
+  displayName     String?   // User's custom name for this config
+  providerApiKey  String    @db.VarChar(500) // User's API key for this provider
+  customHeaders   Json?     // User's additional headers
+  customSettings  Json?     // User's custom configuration overrides
+  
+  // Model selection: if selectedModels is empty/null, use all provider models
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  selectedModels  ProviderConfigModel[] // Specific model selections when useAllModels is false
+  clusterProviders ClusterProvider[] // Clusters using this specific config
+  
+  @@unique([projectId, providerId]) // One config per provider per project
+  @@index([projectId])
+  @@index([providerId])
 }
 
 model ProviderModel {
@@ -259,20 +313,44 @@ model ProviderModel {
   providerId      String
   name            String    // Model name like 'gpt-4' | 'claude-3-opus' | 'gemini-pro'
   displayName     String    // Human readable name
-  type            String    // 'completion' | 'chat' | 'embedding' | 'image' | 'audio'
   inputTokenCost  Decimal   @db.Decimal(12,6) // Cost per 1M input tokens
   outputTokenCost Decimal   @db.Decimal(12,6) // Cost per 1M output tokens
-  isActive        Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
   provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  capabilities    ModelCapability?
+  configModels    ProviderConfigModel[] // Configurations that selected this model
   
   @@unique([providerId, name])
   @@index([providerId])
   @@index([name])
-  @@index([type])
-  @@index([isActive])
+  @@index([inputTokenCost])
+  @@index([outputTokenCost])
+}
+
+model ModelCapability {
+  id                      String    @id @default(cuid())
+  providerModelId         String    @unique
+  description             String?
+  maxContextTokens        Int?      // Maximum context window size
+  maxOutputTokens         Int?      // Maximum output tokens
+  supportsFunctionCalling Boolean   @default(false)
+  languagesSupported      String[]  // Array of supported language codes
+  modelSizeParams         String?   // Model size information (e.g., "7B", "70B")
+  latencyTier             String?   // "low" | "medium" | "high"
+  taskType                String?   // Specialized task type (e.g., "reasoning", "code", "chat")
+  complexity              String?   // "low" | "medium" | "high"
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  providerModel           ProviderModel @relation(fields: [providerModelId], references: [id], onDelete: Cascade)
+  
+  @@index([latencyTier])
+  @@index([taskType])
+  @@index([complexity])
+  @@index([maxContextTokens])
+  @@index([supportsFunctionCalling])
 }
 
 // Credit system models
@@ -330,12 +408,86 @@ model CreditPackage {
   creditAmount    Decimal   @db.Decimal(12,6) // Amount of credits in USD
   price           Decimal   @db.Decimal(12,6) // Price in USD
   stripePriceId   String    @unique // Stripe price ID for this package
-  isActive        Boolean   @default(true)
-  sortOrder       Int       @default(0) // For ordering packages in UI
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
-  @@index([isActive])
-  @@index([sortOrder])
 }
+
+// Intelligent LLM Cluster - Adapter pattern for ChatCompletionRequest configuration
+model LLMCluster {
+  id          String    @id @default(cuid())
+  projectId   String    // Project this cluster belongs to
+  name        String    // User-defined name (e.g., "Production", "Fast", "Cheap")
+  description String?   // Optional description
+  
+  // Fallback Config fields
+  fallbackEnabled      Boolean      @default(true)
+  fallbackMode         FallbackMode @default(parallel)
+  
+  // Protocol Manager Config fields
+  enableCircuitBreaker Boolean      @default(true)
+  maxRetries          Int          @default(3)
+  timeoutMs           Int          @default(30000)
+  costBias            Float        @default(0.5)      // 0.0 = prioritize cost, 1.0 = prioritize performance
+  complexityThreshold Float?                          // Optional complexity threshold for model selection
+  tokenThreshold      Int?                            // Optional token threshold for model selection
+  
+  // Semantic Cache Config
+  enableSemanticCache Boolean      @default(true)
+  semanticThreshold   Float        @default(0.85)     // Similarity threshold for semantic cache hits
+  
+  // Prompt Cache Config
+  enablePromptCache   Boolean      @default(true)
+  promptCacheTTL      Int          @default(3600)     // TTL in seconds
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  providers   ClusterProvider[] // Junction table to providers
+  usage       ApiUsage[]
+  
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+
+
+// Junction table for clusters to configure which providers they use
+model ClusterProvider {
+  id           String    @id @default(cuid())
+  clusterId    String    
+  providerId   String    // References Provider template
+  configId     String?   // Optional: specific ProviderConfig if user wants custom config
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  cluster      LLMCluster      @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  provider     Provider        @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  config       ProviderConfig? @relation(fields: [configId], references: [id], onDelete: SetNull)
+  
+  @@unique([clusterId, providerId])
+  @@index([clusterId])
+  @@index([providerId])
+  @@index([configId])
+}
+
+// Junction table for provider config model selections (when selectedModels is empty, use all models)
+model ProviderConfigModel {
+  id               String    @id @default(cuid())
+  providerConfigId String    // References ProviderConfig
+  providerModelId  String    // References ProviderModel
+  priority         Int       @default(0) // Order preference for model selection
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  config    ProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade)
+  model     ProviderModel @relation(fields: [providerModelId], references: [id], onDelete: Cascade)
+  
+  @@unique([providerConfigId, providerModelId])
+  @@index([providerConfigId])
+  @@index([providerModelId])
+  @@index([priority])
+}
+
 

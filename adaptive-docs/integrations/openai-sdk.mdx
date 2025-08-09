@@ -143,7 +143,7 @@ for chunk in stream:
 
 </CodeGroup>
 
-## Advanced Parameters
+## Configuration Parameters
 
 Adaptive supports all OpenAI parameters plus intelligent routing controls:
 
@@ -166,20 +166,68 @@ const completion = await openai.chat.completions.create({
       { provider: "anthropic", model_name: "claude-3-sonnet-20240229" } // Specific model
     ],
     cost_bias: 0.3, // 0 = cheapest, 1 = best performance
-    complexity_threshold: 0.5,
-    token_threshold: 2000
+    complexity_threshold: 0.5, // Override complexity detection
+    token_threshold: 2000 // Override token threshold
+  },
+  
+  // Fallback configuration
+  fallback: {
+    enabled: true, // Enable/disable fallback (default: true)
+    mode: 'parallel' // 'sequential' or 'parallel'
   },
   
   // Semantic caching for performance
   semantic_cache: {
     enabled: true,
-    semantic_threshold: 0.85
+    semantic_threshold: 0.85 // Similarity threshold for cache hits
   },
   
-  // Fallback strategy
-  fallback_mode: 'sequential' // or 'parallel'
+  // Prompt response cache for identical requests
+  prompt_cache: {
+    enabled: true,
+    ttl: 3600 // Cache duration in seconds (default: 1 hour)
+  }
 });
 ```
+
+### Parameter Details
+
+#### `protocol_manager`
+Controls intelligent model selection:
+
+- **`models`**: Array of allowed providers/models
+  - `{ provider: "openai" }` - All models from provider
+  - `{ provider: "anthropic", model_name: "claude-3-sonnet" }` - Specific model
+- **`cost_bias`**: Balance cost vs performance (0-1)
+  - `0` = Always choose cheapest option
+  - `0.5` = Balanced cost and performance  
+  - `1` = Always choose best performance
+- **`complexity_threshold`**: Override automatic complexity detection (0-1)
+- **`token_threshold`**: Override automatic token counting threshold
+
+#### `fallback`
+Controls provider fallback behavior:
+
+- **`enabled`**: Enable/disable fallback (default: true)
+- **`mode`**: Fallback strategy
+  - `"sequential"` = Try providers one by one (lower cost)
+  - `"parallel"` = Try multiple providers simultaneously (faster)
+
+#### `semantic_cache`
+Improves performance by caching similar requests:
+
+- **`enabled`**: Enable semantic caching
+- **`semantic_threshold`**: Similarity threshold (0-1) for cache hits
+  - Higher values = more strict matching
+  - Lower values = more cache hits but less accuracy
+
+#### `prompt_cache`
+Ultra-fast caching for identical requests (disabled by default):
+
+- **`enabled`**: Enable prompt response caching for this request
+- **`ttl`**: Cache duration in seconds (default: 3600, i.e., 1 hour)
+  - Provides sub-millisecond response times for repeated requests
+  - Only successful responses are cached
 
 ## Function Calling
 
@@ -260,6 +308,23 @@ try {
 }
 ```
 
+## Cache Tier Tracking
+
+Responses include `cache_tier` in the usage object to show if your request hit cache:
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [{ role: 'user', content: 'What is 2+2?' }],
+});
+
+// Check cache tier
+console.log(completion.usage.cache_tier);
+// "semantic_exact" | "semantic_similar" | "prompt_response" | undefined
+```
+
+This helps track costs and cache performance in your analytics.
+
 ## Migrating from OpenAI
 
 Migration is simple - just update two lines:
@@ -278,6 +343,88 @@ const openai = new OpenAI({
 });
 
 // Everything else stays the same!
+```
+
+## Custom Providers
+
+Use custom providers alongside standard ones:
+
+```javascript
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Explain machine learning concepts' }
+  ],
+  
+  // Intelligent routing with custom provider
+  protocol_manager: {
+    models: [
+      { provider: "openai" }, // Standard provider
+      { 
+        provider: "my-custom-llm", // Custom provider
+        model_name: "custom-model-v1",
+        cost_per_1m_input_tokens: 2.0,
+        cost_per_1m_output_tokens: 6.0,
+        max_context_tokens: 16000,
+        max_output_tokens: 4000,
+        supports_function_calling: true,
+        task_type: "Text Generation",
+        complexity: "medium"
+      }
+    ],
+    cost_bias: 0.5
+  },
+  
+  // Configure each custom provider
+  provider_configs: {
+    "my-custom-llm": {
+      base_url: "https://api.mycustom.com/v1",
+      api_key: "sk-custom-api-key-here",
+      auth_type: "bearer",
+      headers: {
+        "X-Custom-Header": "value"
+      },
+      timeout_ms: 45000
+    }
+  }
+});
+```
+
+## Customizing Standard Providers
+
+You can also override configuration for standard providers like OpenAI, Anthropic, etc.:
+
+```javascript
+// Use custom OpenAI endpoint or proxy
+const completion = await openai.chat.completions.create({
+  model: '',
+  messages: [
+    { role: 'user', content: 'Hello from my custom endpoint!' }
+  ],
+  protocol_manager: {
+    models: [
+      { provider: "openai" }, // Will use custom config below
+      { provider: "anthropic" }
+    ]
+  },
+  
+  // Override standard provider settings
+  provider_configs: {
+    "openai": {
+      base_url: "https://my-openai-proxy.com/v1",
+      api_key: "sk-my-custom-openai-key",
+      timeout_ms: 60000,
+      headers: {
+        "X-Proxy-Auth": "proxy-key-123"
+      }
+    },
+    "anthropic": {
+      base_url: "https://my-anthropic-proxy.com/v1", 
+      api_key: "sk-ant-custom-key",
+      timeout_ms: 45000
+    }
+  }
+});
 ```
 
 ## Response Format

@@ -13,7 +13,6 @@ export default function Loading() {
 					{/* Stats */}
 					<div className="flex flex-wrap gap-8">
 						{Array.from({ length: 2 }).map((_, i) => (
-							/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 							<div key={`stat-${i}`} className="flex items-center gap-2">
 								<div className="h-10 w-10 animate-pulse rounded-lg bg-muted" />
 								<div className="space-y-1">
@@ -34,7 +33,6 @@ export default function Loading() {
 				<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 					{Array.from({ length: 6 }).map((_, i) => (
 						<div
-							/* biome-ignore lint/suspicious/noArrayIndexKey: Static loading skeleton */
 							key={`project-${i}`}
 							className="rounded-lg border border-border bg-card p-6"
 						>

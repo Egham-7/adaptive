@@ -48,7 +48,12 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["api-reference/chat-completions"]
+            "pages": ["api-reference/introduction"]
+          },
+          {
+            "group": "Core Endpoints",
+            "icon": "terminal",
+            "pages": ["api-reference/chat-completions", "api-reference/select-model"]
           },
           {
             "group": "OpenAPI",
@@ -85,7 +90,7 @@
       },
       {
         "label": "Support",
-        "href": "mailto:support@adaptive.com"
+        "href": "https://llmadaptive.uk/support"
       }
     ],
     "primary": {

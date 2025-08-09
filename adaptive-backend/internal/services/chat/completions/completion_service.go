@@ -41,14 +41,15 @@ func (cs *CompletionService) HandleStandardCompletion(
 	standardInfo *models.StandardLLMInfo,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	// Get provider with fallback
-	prov, model, err := cs.providerSelector.SelectStandardProvider(c.Context(), standardInfo, requestID)
+	prov, model, err := cs.providerSelector.SelectStandardProvider(c.Context(), standardInfo, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("standard provider selection failed: %w", err)
 	}
 
-	return cs.handleCompletionWithFallback(c, req, prov, model, standardInfo.Alternatives, protocolStandard, requestID, isStream)
+	return cs.handleCompletionWithFallback(c, req, prov, model, standardInfo.Alternatives, protocolStandard, requestID, isStream, cacheSource)
 }
 
 // HandleMinionCompletion handles minion protocol completions with fallback.
@@ -58,14 +59,15 @@ func (cs *CompletionService) HandleMinionCompletion(
 	minionInfo *models.MinionInfo,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	// Get provider with fallback
-	prov, model, err := cs.providerSelector.SelectMinionProvider(c.Context(), minionInfo, requestID)
+	prov, model, err := cs.providerSelector.SelectMinionProvider(c.Context(), minionInfo, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("minion provider selection failed: %w", err)
 	}
 
-	return cs.handleCompletionWithFallback(c, req, prov, model, minionInfo.Alternatives, protocolMinion, requestID, isStream)
+	return cs.handleCompletionWithFallback(c, req, prov, model, minionInfo.Alternatives, protocolMinion, requestID, isStream, cacheSource)
 }
 
 // HandleMinionsProtocolCompletion handles MinionS protocol with fallback.
@@ -75,18 +77,19 @@ func (cs *CompletionService) HandleMinionsProtocolCompletion(
 	resp *models.ProtocolResponse,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	orchestrator := minions.NewMinionsOrchestrationService()
 
 	// Get standard provider with fallback
-	remoteProv, standardModel, err := cs.providerSelector.SelectStandardProvider(c.Context(), resp.Standard, requestID)
+	remoteProv, standardModel, err := cs.providerSelector.SelectStandardProvider(c.Context(), resp.Standard, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("standard provider selection failed: %w", err)
 	}
 	req.Model = shared.ChatModel(standardModel)
 
 	// Get minion provider with fallback
-	minionProv, minionModel, err := cs.providerSelector.SelectMinionProvider(c.Context(), resp.Minion, requestID)
+	minionProv, minionModel, err := cs.providerSelector.SelectMinionProvider(c.Context(), resp.Minion, req.ProviderConfigs, requestID)
 	if err != nil {
 		return fmt.Errorf("minion provider selection failed: %w", err)
 	}
@@ -97,7 +100,7 @@ func (cs *CompletionService) HandleMinionsProtocolCompletion(
 		fiberlog.Infof("[%s] generating MinionS completion", requestID)
 	}
 
-	return cs.tryMinionSWithFallback(c, orchestrator, remoteProv, minionProv, req, minionModel, resp, requestID, isStream)
+	return cs.tryMinionSWithFallback(c, orchestrator, remoteProv, minionProv, req, minionModel, resp, requestID, isStream, cacheSource)
 }
 
 // handleCompletionWithFallback handles completion requests with fallback logic (DRY)
@@ -110,6 +113,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 	protocolName string,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	// Create mutable copy of alternatives for tracking attempts
 	alternativesCopy := make([]models.Alternative, len(alternatives))
@@ -119,7 +123,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 	req.Model = shared.ChatModel(initialModel)
 
 	// Try the completion with initial provider, fallback if it fails
-	if err := cs.handleProtocolGeneric(c, initialProvider, req, requestID, isStream, protocolName); err != nil {
+	if err := cs.handleProtocolGeneric(c, initialProvider, req, requestID, isStream, protocolName, cacheSource); err != nil {
 		fiberlog.Warnf("[%s] %s completion failed: %v", requestID, protocolName, err)
 
 		// Completion failed, try remaining alternatives
@@ -129,7 +133,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 
 		fiberlog.Infof("[%s] Trying %d remaining %s alternatives after completion failure", requestID, len(alternativesCopy), protocolName)
 		fallbackSvc := NewFallbackService()
-		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), &alternativesCopy, requestID)
+		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), &alternativesCopy, req.ProviderConfigs, requestID)
 		if fallbackErr != nil {
 			return fmt.Errorf("all %s providers failed: %w", protocolName, fallbackErr)
 		}
@@ -138,7 +142,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 		fiberlog.Infof("[%s] Using %s fallback after completion failure: %s (%s)", requestID, protocolName, result.ProviderName, result.ModelName)
 
 		// Try the fallback provider
-		return cs.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolName)
+		return cs.handleProtocolGeneric(c, result.Provider, req, requestID, isStream, protocolName, cacheSource)
 	}
 
 	return nil
@@ -152,6 +156,7 @@ func (cs *CompletionService) handleProtocolGeneric(
 	requestID string,
 	isStream bool,
 	protocolName string,
+	cacheSource string,
 ) error {
 	provider := prov.GetProviderName() // Get provider name once
 
@@ -159,6 +164,8 @@ func (cs *CompletionService) handleProtocolGeneric(
 	if cs.promptCache != nil {
 		if cachedResp, found := cs.promptCache.Get(req, requestID); found {
 			fiberlog.Infof("[%s] Prompt cache hit for %s", requestID, protocolName)
+			// Set cache tier for cached response
+			models.SetCacheTier(&cachedResp.Usage, "prompt_response")
 			if isStream {
 				// Convert cached response to streaming format
 				return cache.StreamCachedResponse(c, cachedResp, requestID)
@@ -178,7 +185,7 @@ func (cs *CompletionService) handleProtocolGeneric(
 			return fmt.Errorf("stream completion failed: %w", err)
 		}
 
-		return stream.HandleStream(c, streamResp, requestID, provider)
+		return stream.HandleStream(c, streamResp, requestID, provider, cacheSource)
 	}
 
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
@@ -191,6 +198,8 @@ func (cs *CompletionService) handleProtocolGeneric(
 	}
 
 	adaptiveResp := models.ConvertToAdaptive(regResp, provider)
+	// Set cache tier based on source
+	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
 
 	// Store successful response in prompt cache (only for non-streaming requests)
 	if !isStream && cs.promptCache != nil {
@@ -212,6 +221,7 @@ func (cs *CompletionService) tryMinionSWithFallback(
 	resp *models.ProtocolResponse,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	// Try initial orchestration
 	if isStream {
@@ -220,7 +230,7 @@ func (cs *CompletionService) tryMinionSWithFallback(
 		)
 		if err == nil {
 			provider := minionProv.GetProviderName()
-			return stream.HandleStream(c, streamResp, requestID, provider)
+			return stream.HandleStream(c, streamResp, requestID, provider, cacheSource)
 		}
 		fiberlog.Warnf("[%s] MinionS stream failed: %v", requestID, err)
 	} else {
@@ -237,7 +247,7 @@ func (cs *CompletionService) tryMinionSWithFallback(
 	standardAlternatives := make([]models.Alternative, len(resp.Standard.Alternatives))
 	copy(standardAlternatives, resp.Standard.Alternatives)
 	if len(standardAlternatives) > 0 {
-		if altErr := cs.tryMinionSStandardAlternatives(c, orchestrator, minionProv, req, minionModel, &standardAlternatives, requestID, isStream); altErr == nil {
+		if altErr := cs.tryMinionSStandardAlternatives(c, orchestrator, minionProv, req, minionModel, &standardAlternatives, requestID, isStream, cacheSource); altErr == nil {
 			return nil
 		}
 	}
@@ -246,7 +256,7 @@ func (cs *CompletionService) tryMinionSWithFallback(
 	minionAlternatives := make([]models.Alternative, len(resp.Minion.Alternatives))
 	copy(minionAlternatives, resp.Minion.Alternatives)
 	if len(minionAlternatives) > 0 {
-		if altErr := cs.tryMinionSMinionAlternatives(c, orchestrator, remoteProv, req, &minionAlternatives, requestID, isStream); altErr == nil {
+		if altErr := cs.tryMinionSMinionAlternatives(c, orchestrator, remoteProv, req, &minionAlternatives, requestID, isStream, cacheSource); altErr == nil {
 			return nil
 		}
 	}
@@ -264,10 +274,11 @@ func (cs *CompletionService) tryMinionSStandardAlternatives(
 	alternatives *[]models.Alternative,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	fiberlog.Infof("[%s] Trying standard alternatives for MinionS restart", requestID)
 	fallbackSvc := NewFallbackService()
-	standardResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, requestID)
+	standardResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.ProviderConfigs, requestID)
 	if err != nil {
 		return err
 	}
@@ -283,7 +294,7 @@ func (cs *CompletionService) tryMinionSStandardAlternatives(
 			return retryErr
 		}
 		provider := minionProv.GetProviderName()
-		return stream.HandleStream(c, streamResp, requestID, provider)
+		return stream.HandleStream(c, streamResp, requestID, provider, cacheSource)
 	}
 
 	result, retryErr := orchestrator.OrchestrateMinionS(
@@ -305,10 +316,11 @@ func (cs *CompletionService) tryMinionSMinionAlternatives(
 	alternatives *[]models.Alternative,
 	requestID string,
 	isStream bool,
+	cacheSource string,
 ) error {
 	fiberlog.Infof("[%s] Trying minion alternatives for MinionS restart", requestID)
 	fallbackSvc := NewFallbackService()
-	minionResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, requestID)
+	minionResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.ProviderConfigs, requestID)
 	if err != nil {
 		return err
 	}
@@ -324,7 +336,7 @@ func (cs *CompletionService) tryMinionSMinionAlternatives(
 			return retryErr
 		}
 		provider := minionResult.Provider.GetProviderName()
-		return stream.HandleStream(c, streamResp, requestID, provider)
+		return stream.HandleStream(c, streamResp, requestID, provider, cacheSource)
 	}
 
 	result, retryErr := orchestrator.OrchestrateMinionS(

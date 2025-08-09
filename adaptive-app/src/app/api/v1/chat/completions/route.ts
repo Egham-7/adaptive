@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
+import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
@@ -36,15 +37,65 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
-		const { valid } = await api.api_keys.verify({
+		const verificationResult = await api.api_keys.verify({
 			apiKey,
 		});
 
-		if (!valid) {
+		if (!verificationResult.valid) {
 			return new Response(JSON.stringify({ error: "Invalid API key" }), {
 				status: 401,
 				headers: { "Content-Type": "application/json" },
 			});
+		}
+
+		const { projectId } = verificationResult;
+
+		// Fetch provider configurations from database if project is specified
+		const providerConfigs: Record<
+			string,
+			{
+				base_url?: string;
+				auth_type?: string;
+				auth_header_name?: string;
+				api_key?: string;
+				health_endpoint?: string;
+				rate_limit_rpm?: number;
+				timeout_ms?: number;
+				retry_config?: Record<string, unknown>;
+				headers?: Record<string, string>;
+			}
+		> = {};
+
+		if (projectId) {
+			try {
+				const configs = await api.providerConfigs.getAll({
+					projectId,
+					apiKey,
+				});
+
+				// Transform database provider configs to Go backend format
+				configs.forEach((config) => {
+					const provider = config.provider;
+					providerConfigs[provider.name] = {
+						base_url: provider.baseUrl ?? undefined,
+						auth_type: provider.authType ?? undefined,
+						auth_header_name: provider.authHeaderName ?? undefined,
+						api_key: config.providerApiKey, // Use user's API key from config
+						health_endpoint: provider.healthEndpoint ?? undefined,
+						rate_limit_rpm: provider.rateLimitRpm ?? undefined,
+						timeout_ms: provider.timeoutMs ?? undefined,
+						retry_config:
+							(provider.retryConfig as Record<string, unknown>) ?? undefined,
+						headers: {
+							...(provider.headers as Record<string, string>),
+							...(config.customHeaders as Record<string, string>),
+						},
+					};
+				});
+			} catch (error) {
+				console.warn("Failed to fetch provider configs:", error);
+				// Continue without provider configs - will use default providers
+			}
 		}
 
 		// Pre-flight credit check - estimate token usage
@@ -82,16 +133,27 @@ export async function POST(req: NextRequest) {
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 
+		// Create JWT token for backend authentication
+		const jwtToken = await createBackendJWT(apiKey);
+
 		const openai = new OpenAI({
-			apiKey,
+			apiKey: jwtToken, // Use JWT token instead of API key
 			baseURL,
 		});
 
 		if (shouldStream) {
-			const stream = openai.chat.completions.stream({
-				...body,
-				stream: true,
-			});
+			const stream = openai.chat.completions.stream(
+				{
+					...body,
+					stream: true,
+				},
+				{
+					body: {
+						...body,
+						provider_configs: providerConfigs,
+					},
+				},
+			);
 
 			const startTime = Date.now();
 
@@ -160,9 +222,12 @@ export async function POST(req: NextRequest) {
 		const nonStreamStartTime = Date.now();
 
 		try {
-			const completion = (await openai.chat.completions.create(
-				body,
-			)) as ChatCompletion;
+			const completion = (await openai.chat.completions.create(body, {
+				body: {
+					...body,
+					provider_configs: providerConfigs,
+				},
+			})) as ChatCompletion;
 
 			// Record usage in background
 			if (completion.usage) {

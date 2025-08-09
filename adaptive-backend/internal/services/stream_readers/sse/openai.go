@@ -44,26 +44,29 @@ func (se *StreamError) Error() string {
 
 type OpenAIStreamReader struct {
 	stream_readers.BaseStreamReader
-	stream   *ssestream.Stream[openai.ChatCompletionChunk]
-	done     bool
-	doneMux  sync.RWMutex
-	ctx      context.Context
-	provider string
+	stream      *ssestream.Stream[openai.ChatCompletionChunk]
+	done        bool
+	doneMux     sync.RWMutex
+	ctx         context.Context
+	provider    string
+	cacheSource string
 }
 
 func NewOpenAIStreamReader(
 	stream *ssestream.Stream[openai.ChatCompletionChunk],
 	requestID string,
 	provider string,
+	cacheSource string,
 ) *OpenAIStreamReader {
 	return &OpenAIStreamReader{
 		BaseStreamReader: stream_readers.BaseStreamReader{
 			Buffer:    make([]byte, 0, initialBufferSize),
 			RequestID: requestID,
 		},
-		provider: provider,
-		stream:   stream,
-		ctx:      context.Background(), // Default context, will be overridden
+		provider:    provider,
+		cacheSource: cacheSource,
+		stream:      stream,
+		ctx:         context.Background(), // Default context, will be overridden
 	}
 }
 
@@ -234,6 +237,11 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 
 	// Convert OpenAI chunk to our adaptive chunk with cost savings
 	adaptiveChunk := models.ConvertChunkToAdaptive(chunk, r.provider)
+
+	// Set cache tier if usage is present and cache source is available
+	if adaptiveChunk.Usage != nil && r.cacheSource != "" {
+		models.SetCacheTier(adaptiveChunk.Usage, r.cacheSource)
+	}
 	conversionTime := time.Since(startTime)
 
 	// Use buffer pool for JSON marshaling

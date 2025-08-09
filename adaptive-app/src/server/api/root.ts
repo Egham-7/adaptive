@@ -3,11 +3,17 @@ import { adminRouter } from "./routers/admin";
 import { apiKeysRouter } from "./routers/api_keys";
 import { conversationRouter } from "./routers/conversations";
 import { creditsRouter } from "./routers/credits";
+import { llmClustersRouter } from "./routers/llm-clusters";
 import { messageRouter } from "./routers/message";
 import { organizationsRouter } from "./routers/organizations";
 import { modelPricingRouter } from "./routers/pricing";
 import { projectsRouter } from "./routers/projects";
+import { providerConfigsRouter } from "./routers/provider-configs";
+import { providerModelsRouter } from "./routers/provider-models";
+import { providersRouter } from "./routers/providers";
+import { selectModelRouter } from "./routers/select-model";
 import { subscriptionRouter } from "./routers/subscription";
+import { supportRouter } from "./routers/support";
 import { usageRouter } from "./routers/usage";
 import { userRouter } from "./routers/user";
 
@@ -22,10 +28,16 @@ export const appRouter = createTRPCRouter({
 	messages: messageRouter,
 	api_keys: apiKeysRouter,
 	credits: creditsRouter,
+	llmClusters: llmClustersRouter,
 	organizations: organizationsRouter,
 	modelPricing: modelPricingRouter,
 	projects: projectsRouter,
+	providerConfigs: providerConfigsRouter,
+	providerModels: providerModelsRouter,
+	providers: providersRouter,
+	selectModel: selectModelRouter,
 	subscription: subscriptionRouter,
+	support: supportRouter,
 	usage: usageRouter,
 	user: userRouter,
 });
