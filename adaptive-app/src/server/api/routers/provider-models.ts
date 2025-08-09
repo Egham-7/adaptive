@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { validateAndAuthenticateApiKey } from "@/lib/auth-utils";
+import { authenticateAndGetProject } from "@/lib/auth-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import type { ProviderWithModels } from "@/types/prisma-types";
 
@@ -12,13 +12,16 @@ export const providerModelsRouter = createTRPCRouter({
 				projectId: z.string(),
 				providerId: z.string(),
 				configId: z.string().optional(),
-				apiKey: z.string(),
+				apiKey: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			try {
-				// Validate API key
-				await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
+				// Use the unified authentication function to handle both API key and Clerk auth
+				await authenticateAndGetProject(ctx, {
+					projectId: input.projectId,
+					apiKey: input.apiKey,
+				});
 
 				// Get the provider config if specified
 				if (input.configId) {
@@ -122,16 +125,17 @@ export const providerModelsRouter = createTRPCRouter({
 		.input(
 			z.object({
 				providerId: z.string(),
-				projectId: z.string().optional(),
+				projectId: z.string(),
 				apiKey: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			try {
-				// Validate API key if provided
-				if (input.apiKey) {
-					await validateAndAuthenticateApiKey(input.apiKey, ctx.db);
-				}
+				// Use the unified authentication function to handle both API key and Clerk auth
+				await authenticateAndGetProject(ctx, {
+					projectId: input.projectId,
+					apiKey: input.apiKey,
+				});
 
 				const models = await ctx.db.providerModel.findMany({
 					where: {

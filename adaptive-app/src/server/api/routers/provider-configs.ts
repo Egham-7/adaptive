@@ -314,7 +314,6 @@ export const providerConfigsRouter = createTRPCRouter({
 						...(input.customSettings !== undefined && {
 							customSettings: input.customSettings,
 						}),
-						...(input.isActive !== undefined && { isActive: input.isActive }),
 					},
 					include: {
 						provider: {
