@@ -1,16 +1,9 @@
 "use client";
 
-import {
-	AlertCircle,
-	ArrowLeft,
-	Check,
-	Copy,
-	ExternalLink,
-} from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +13,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import {
+	CodeBlock,
+	CodeBlockCode,
+	CodeBlockGroup,
+} from "@/components/ui/code-block";
+import { CopyButton } from "@/components/ui/copy-button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,16 +45,7 @@ export default function QuickstartPage() {
 	const firstApiKey = apiKeys?.[0];
 	const exampleKey = firstApiKey ? firstApiKey.key_preview : EXAMPLE_API_KEY;
 
-	const copyToClipboard = async (text: string, label: string) => {
-		try {
-			await navigator.clipboard.writeText(text);
-			toast.success(`${label} copied to clipboard!`);
-		} catch {
-			toast.error(`Failed to copy ${label}.`);
-		}
-	};
-
-	const CodeBlock = ({
+	const CustomCodeBlock = ({
 		code,
 		language,
 		title,
@@ -64,44 +54,24 @@ export default function QuickstartPage() {
 		language: string;
 		title?: string;
 	}) => {
-		const [copied, setCopied] = useState(false);
-
-		const handleCopy = async () => {
-			await copyToClipboard(code, title || "Code");
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
-		};
-
 		return (
-			<div className="relative overflow-hidden rounded-lg border bg-muted/50">
+			<CodeBlock>
 				{title && (
-					<div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
+					<CodeBlockGroup className="border-b px-4 py-2">
 						<span className="font-medium text-sm">{title}</span>
-						<Badge variant="secondary" className="text-xs">
-							{language}
-						</Badge>
-					</div>
+						<div className="flex items-center gap-2">
+							<Badge variant="secondary" className="text-xs">
+								{language}
+							</Badge>
+							<CopyButton
+								content={code}
+								copyMessage={`${title || "Code"} copied to clipboard!`}
+							/>
+						</div>
+					</CodeBlockGroup>
 				)}
-				<div className="relative">
-					<pre className="max-w-full overflow-x-auto p-4 text-sm">
-						<code className="whitespace-pre-wrap break-all sm:whitespace-pre sm:break-normal">
-							{code}
-						</code>
-					</pre>
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={handleCopy}
-						className="absolute top-2 right-2"
-					>
-						{copied ? (
-							<Check className="h-4 w-4" />
-						) : (
-							<Copy className="h-4 w-4" />
-						)}
-					</Button>
-				</div>
-			</div>
+				<CodeBlockCode code={code} language={language} />
+			</CodeBlock>
 		);
 	};
 
@@ -317,7 +287,7 @@ print(completion.choices[0].message.content)`;
 							</TabsList>
 
 							<TabsContent value="curl" className="mt-4">
-								<CodeBlock
+								<CustomCodeBlock
 									code={curlExample}
 									language="bash"
 									title="cURL Request"
@@ -334,7 +304,7 @@ print(completion.choices[0].message.content)`;
 											npm install openai
 										</code>
 									</div>
-									<CodeBlock
+									<CustomCodeBlock
 										code={jsExample}
 										language="javascript"
 										title="JavaScript/Node.js"
@@ -352,7 +322,7 @@ print(completion.choices[0].message.content)`;
 											pip install openai
 										</code>
 									</div>
-									<CodeBlock
+									<CustomCodeBlock
 										code={pythonExample}
 										language="python"
 										title="Python"
@@ -379,7 +349,7 @@ print(completion.choices[0].message.content)`;
 						</div>
 					</CardHeader>
 					<CardContent>
-						<CodeBlock
+						<CustomCodeBlock
 							code={exampleResponse}
 							language="json"
 							title="Example Response"
