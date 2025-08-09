@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/trpc/react";
 
-const EXAMPLE_API_KEY = "ak_adaptive_1234567890abcdef";
+const EXAMPLE_API_KEY = "your_api_key_here_placeholder_12345";
 const API_BASE_URL = process.env.NEXT_PUBLIC_URL;
 
 export default function QuickstartPage() {
