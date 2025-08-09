@@ -56,7 +56,6 @@ export const providersRouter = createTRPCRouter({
 				];
 
 				const whereClause: Prisma.ProviderWhereInput = {
-					isActive: true,
 					OR: orConditions,
 				};
 
@@ -104,7 +103,6 @@ export const providersRouter = createTRPCRouter({
 					where: whereClause,
 					include: {
 						models: {
-							where: { isActive: true },
 							include: {
 								capabilities: true,
 							},
@@ -145,11 +143,60 @@ export const providersRouter = createTRPCRouter({
 					}
 				}
 
+				// Build visibility-based where clause for security
+				const orConditions: Prisma.ProviderWhereInput[] = [
+					// System providers (always visible)
+					{ visibility: "system" },
+					// Community providers (always visible)
+					{ visibility: "community" },
+				];
+
+				// Add project-scoped access if projectId provided
+				if (input.projectId) {
+					try {
+						// Verify user/API key has access to the specified project
+						await authenticateAndGetProject(ctx, {
+							projectId: input.projectId,
+							apiKey: input.apiKey,
+						});
+
+						// Get project with organization projects for organization-scoped providers
+						const project = await ctx.db.project.findFirst({
+							where: { id: input.projectId },
+							include: { organization: { include: { projects: true } } },
+						});
+
+						if (project) {
+							const orgProjectIds = project.organization.projects.map(
+								(p) => p.id,
+							);
+
+							orConditions.push(
+								// Project-scoped providers
+								{ visibility: "project", projectId: input.projectId },
+								// Organization-scoped providers (any project in the org)
+								{
+									visibility: "organization",
+									projectId: { in: orgProjectIds },
+								},
+							);
+						}
+					} catch (authError) {
+						// If authorization fails, only return public providers
+						console.warn(
+							`Project access denied for projectId ${input.projectId}:`,
+							authError,
+						);
+					}
+				}
+
 				const provider = await ctx.db.provider.findFirst({
-					where: { id: input.id, isActive: true },
+					where: {
+						id: input.id,
+						OR: orConditions,
+					},
 					include: {
 						models: {
-							where: { isActive: true },
 							include: {
 								capabilities: true,
 							},
@@ -161,7 +208,7 @@ export const providersRouter = createTRPCRouter({
 				if (!provider) {
 					throw new TRPCError({
 						code: "NOT_FOUND",
-						message: "Provider not found",
+						message: "Provider not found or access denied",
 					});
 				}
 
@@ -193,11 +240,60 @@ export const providersRouter = createTRPCRouter({
 					}
 				}
 
+				// Build visibility-based where clause for security
+				const orConditions: Prisma.ProviderWhereInput[] = [
+					// System providers (always visible)
+					{ visibility: "system" },
+					// Community providers (always visible)
+					{ visibility: "community" },
+				];
+
+				// Add project-scoped access if projectId provided
+				if (input.projectId) {
+					try {
+						// Verify user/API key has access to the specified project
+						await authenticateAndGetProject(ctx, {
+							projectId: input.projectId,
+							apiKey: input.apiKey,
+						});
+
+						// Get project with organization projects for organization-scoped providers
+						const project = await ctx.db.project.findFirst({
+							where: { id: input.projectId },
+							include: { organization: { include: { projects: true } } },
+						});
+
+						if (project) {
+							const orgProjectIds = project.organization.projects.map(
+								(p) => p.id,
+							);
+
+							orConditions.push(
+								// Project-scoped providers
+								{ visibility: "project", projectId: input.projectId },
+								// Organization-scoped providers (any project in the org)
+								{
+									visibility: "organization",
+									projectId: { in: orgProjectIds },
+								},
+							);
+						}
+					} catch (authError) {
+						// If authorization fails, only return public providers
+						console.warn(
+							`Project access denied for projectId ${input.projectId}:`,
+							authError,
+						);
+					}
+				}
+
 				const provider = await ctx.db.provider.findFirst({
-					where: { name: input.name, isActive: true },
+					where: {
+						name: input.name,
+						OR: orConditions,
+					},
 					include: {
 						models: {
-							where: { isActive: true },
 							include: {
 								capabilities: true,
 							},
@@ -237,17 +333,6 @@ export const providersRouter = createTRPCRouter({
 					});
 				}
 
-				// Validate visibility and projectId consistency
-
-				if (input.visibility === "community") {
-					// TODO: Add admin role check here when role system is implemented
-					// For now, restrict community provider creation
-					throw new TRPCError({
-						code: "FORBIDDEN",
-						message: "Creating community providers requires admin privileges",
-					});
-				}
-
 				// For project/organization visibility, projectId is required
 				if (
 					(input.visibility === "project" ||
@@ -270,18 +355,50 @@ export const providersRouter = createTRPCRouter({
 
 				// Atomic transaction for provider creation
 				const provider = await ctx.db.$transaction(async (tx) => {
-					// Check if provider name already exists in the same project scope
+					// Check if provider name already exists in the same project/visibility scope
+					const whereClause: Prisma.ProviderWhereInput = {
+						name: input.name,
+					};
+
+					// For project visibility, check within project
+					if (input.visibility === "project") {
+						whereClause.projectId = input.projectId;
+					}
+					// For organization visibility, check within organization
+					else if (input.visibility === "organization") {
+						// Get all project IDs in this organization
+						const project = await tx.project.findUnique({
+							where: { id: input.projectId },
+							include: { organization: { include: { projects: true } } },
+						});
+
+						if (project) {
+							const orgProjectIds = project.organization.projects.map(
+								(p) => p.id,
+							);
+							whereClause.projectId = { in: orgProjectIds };
+							whereClause.visibility = "organization";
+						}
+					}
+					// For community visibility, check globally
+					else if (input.visibility === "community") {
+						whereClause.visibility = "community";
+					}
+
 					const existingProvider = await tx.provider.findFirst({
-						where: {
-							projectId: input.projectId,
-							name: input.name,
-						},
+						where: whereClause,
 					});
 
 					if (existingProvider) {
+						const scope =
+							input.visibility === "project"
+								? "project"
+								: input.visibility === "organization"
+									? "organization"
+									: "community";
 						throw new TRPCError({
 							code: "CONFLICT",
-							message: "Provider name already exists in this project",
+							message: `Provider name '${input.name}' already exists in this ${scope}`,
 						});
 					}
 
@@ -296,13 +413,11 @@ export const providersRouter = createTRPCRouter({
 							baseUrl: input.baseUrl,
 							authType: input.authType,
 							authHeaderName: input.authHeaderName,
-							apiKey: input.apiKey,
 							healthEndpoint: input.healthEndpoint,
 							rateLimitRpm: input.rateLimitRpm,
 							timeoutMs: input.timeoutMs,
 							retryConfig: input.retryConfig,
 							headers: input.headers,
-							isActive: true,
 						},
 					});
 
@@ -313,10 +428,8 @@ export const providersRouter = createTRPCRouter({
 								providerId: newProvider.id,
 								name: model.name,
 								displayName: model.displayName,
-								type: model.type,
 								inputTokenCost: model.inputTokenCost,
 								outputTokenCost: model.outputTokenCost,
-								isActive: true,
 							},
 						});
 
@@ -335,7 +448,6 @@ export const providersRouter = createTRPCRouter({
 						where: { id: newProvider.id },
 						include: {
 							models: {
-								where: { isActive: true },
 								include: {
 									capabilities: true,
 								},
@@ -397,18 +509,6 @@ export const providersRouter = createTRPCRouter({
 					});
 				}
 
-				// Validate visibility changes if specified
-				if (input.visibility !== undefined) {
-					if (input.visibility === "community") {
-						// TODO: Add admin role check when role system is implemented
-						throw new TRPCError({
-							code: "FORBIDDEN",
-							message:
-								"Updating to community visibility requires admin privileges",
-						});
-					}
-				}
-
 				// Update provider
 				const updatedProvider = await ctx.db.provider.update({
 					where: { id: input.id },
@@ -441,11 +541,9 @@ export const providersRouter = createTRPCRouter({
 							retryConfig: input.retryConfig,
 						}),
 						...(input.headers !== undefined && { headers: input.headers }),
-						...(input.isActive !== undefined && { isActive: input.isActive }),
 					},
 					include: {
 						models: {
-							where: { isActive: true },
 							include: {
 								capabilities: true,
 							},
@@ -501,7 +599,6 @@ export const providersRouter = createTRPCRouter({
 				const clusterModels = await ctx.db.clusterModel.findFirst({
 					where: {
 						provider: provider.name,
-						isActive: true,
 					},
 				});
 
@@ -512,10 +609,9 @@ export const providersRouter = createTRPCRouter({
 					});
 				}
 
-				// Soft delete
-				await ctx.db.provider.update({
+				// Hard delete since we removed isActive field
+				await ctx.db.provider.delete({
 					where: { id: input.id },
-					data: { isActive: false },
 				});
 
 				return { success: true };
@@ -551,7 +647,7 @@ export const providersRouter = createTRPCRouter({
 
 				// Find provider first
 				const provider = await ctx.db.provider.findFirst({
-					where: { id: input.providerId, isActive: true },
+					where: { id: input.providerId },
 				});
 
 				if (!provider) {
@@ -584,10 +680,8 @@ export const providersRouter = createTRPCRouter({
 							providerId: input.providerId,
 							name: input.name,
 							displayName: input.displayName,
-							type: input.type,
 							inputTokenCost: input.inputTokenCost,
 							outputTokenCost: input.outputTokenCost,
-							isActive: true,
 						},
 					});
 
@@ -660,14 +754,12 @@ export const providersRouter = createTRPCRouter({
 						where: { id: input.id },
 						data: {
 							...(input.displayName && { displayName: input.displayName }),
-							...(input.type && { type: input.type }),
 							...(input.inputTokenCost !== undefined && {
 								inputTokenCost: input.inputTokenCost,
 							}),
 							...(input.outputTokenCost !== undefined && {
 								outputTokenCost: input.outputTokenCost,
 							}),
-							...(input.isActive !== undefined && { isActive: input.isActive }),
 						},
 					});
 
@@ -740,7 +832,6 @@ export const providersRouter = createTRPCRouter({
 					const modelCount = await tx.providerModel.count({
 						where: {
 							providerId: model.providerId,
-							isActive: true,
 						},
 					});
 
@@ -756,7 +847,6 @@ export const providersRouter = createTRPCRouter({
 						where: {
 							provider: model.provider.name,
 							modelName: model.name,
-							isActive: true,
 						},
 					});
 
@@ -767,10 +857,9 @@ export const providersRouter = createTRPCRouter({
 						});
 					}
 
-					// Soft delete within the same transaction
-					await tx.providerModel.update({
+					// Hard delete since we removed isActive field
+					await tx.providerModel.delete({
 						where: { id: input.modelId },
-						data: { isActive: false },
 					});
 				});
 

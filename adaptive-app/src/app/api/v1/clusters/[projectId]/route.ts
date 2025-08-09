@@ -28,11 +28,10 @@ export async function GET(
 		const clusters = await db.lLMCluster.findMany({
 			where: {
 				projectId: projectId,
-				isActive: true,
 			},
 			include: {
 				models: {
-					where: { isActive: true },
+					where: {},
 					orderBy: { priority: "asc" },
 				},
 			},
@@ -106,7 +105,6 @@ export async function POST(
 					where: {
 						provider: { name: model.provider },
 						name: model.modelName,
-						isActive: true,
 					},
 				});
 

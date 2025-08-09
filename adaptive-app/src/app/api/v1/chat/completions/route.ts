@@ -68,29 +68,30 @@ export async function POST(req: NextRequest) {
 
 		if (projectId) {
 			try {
-				const providers = await api.providers.getAll({
+				const configs = await api.providerConfigs.getAll({
 					projectId,
 					apiKey,
 				});
 
 				// Transform database provider configs to Go backend format
-				providers
-					.filter((provider) => provider.apiKey)
-					.forEach((provider) => {
-						providerConfigs[provider.name] = {
-							base_url: provider.baseUrl ?? undefined,
-							auth_type: provider.authType ?? undefined,
-							auth_header_name: provider.authHeaderName ?? undefined,
-							api_key: provider.apiKey ?? undefined,
-							health_endpoint: provider.healthEndpoint ?? undefined,
-							rate_limit_rpm: provider.rateLimitRpm ?? undefined,
-							timeout_ms: provider.timeoutMs ?? undefined,
-							retry_config:
-								(provider.retryConfig as Record<string, unknown>) ?? undefined,
-							headers:
-								(provider.headers as Record<string, string>) ?? undefined,
-						};
-					});
+				configs.forEach((config) => {
+					const provider = config.provider;
+					providerConfigs[provider.name] = {
+						base_url: provider.baseUrl ?? undefined,
+						auth_type: provider.authType ?? undefined,
+						auth_header_name: provider.authHeaderName ?? undefined,
+						api_key: config.providerApiKey, // Use user's API key from config
+						health_endpoint: provider.healthEndpoint ?? undefined,
+						rate_limit_rpm: provider.rateLimitRpm ?? undefined,
+						timeout_ms: provider.timeoutMs ?? undefined,
+						retry_config:
+							(provider.retryConfig as Record<string, unknown>) ?? undefined,
+						headers: {
+							...(provider.headers as Record<string, string>),
+							...(config.customHeaders as Record<string, string>),
+						},
+					};
+				});
 			} catch (error) {
 				console.warn("Failed to fetch provider configs:", error);
 				// Continue without provider configs - will use default providers
