@@ -26,9 +26,6 @@ class ProtocolManager:
     def __init__(
         self,
         lit_logger: LitLoggerProtocol | None = None,
-        device: (
-            str | None
-        ) = None,  # Accept but ignore device parameter for compatibility
     ) -> None:
         self.lit_logger: LitLoggerProtocol | None = lit_logger
 
@@ -41,7 +38,7 @@ class ProtocolManager:
 
         self.log(
             "protocol_manager_init",
-            {"rule_based": True, "device_ignored": device, "caching_enabled": True},
+            {"rule_based": True, "caching_enabled": True},
         )
 
     @property

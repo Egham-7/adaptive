@@ -1,10 +1,6 @@
 # mypy: disable-error-code=import
 from typing import Any
 
-from adaptive_ai.config import (
-    minion_domains,
-    task_model_mappings_data,
-)
 from adaptive_ai.models.llm_classification_models import (
     ClassificationResult,
     DomainClassificationResult,
@@ -20,6 +16,11 @@ from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.unified_model_selector import (
     ModelSelector as UnifiedModelSelector,
 )
+from adaptive_ai.utils.mapping_loader import mapping_loader
+
+# Load mappings directly from YAML
+minion_domains = mapping_loader.get_domain_mappings()
+task_model_mappings_data = mapping_loader.get_task_mappings()
 
 
 class LitLoggerProtocol:

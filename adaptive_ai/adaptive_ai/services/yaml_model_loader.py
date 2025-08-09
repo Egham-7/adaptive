@@ -6,14 +6,12 @@ Loads YAML files once at startup for fast in-memory lookups.
 import logging
 from pathlib import Path
 from threading import Lock
+from typing import Any
 
 import yaml
 
 from adaptive_ai.models.llm_core_models import ModelCapability
-from adaptive_ai.utils.yaml_converter import (
-    normalize_model_name,
-    yaml_to_model_capability,
-)
+from adaptive_ai.models.llm_enums import ProviderType
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +74,39 @@ class YAMLModelDatabase:
         self._loaded = True
         logger.info(f"Loaded {models_loaded} models from YAML files")
 
+    def _yaml_to_model_capability(
+        self, yaml_data: dict[str, Any], provider_name: str
+    ) -> ModelCapability:
+        """Convert YAML model data to ModelCapability object."""
+        # Map provider name to ProviderType enum
+        provider_mapping = {
+            "ANTHROPIC": ProviderType.ANTHROPIC,
+            "OPENAI": ProviderType.OPENAI,
+            "GOOGLE": ProviderType.GOOGLE,
+            "GROQ": ProviderType.GROQ,
+            "DEEPSEEK": ProviderType.DEEPSEEK,
+            "MISTRAL": ProviderType.MISTRAL,
+            "GROK": ProviderType.GROK,
+        }
+
+        provider_type = provider_mapping.get(provider_name.upper(), ProviderType.OPENAI)
+
+        return ModelCapability(
+            description=yaml_data.get("description"),
+            provider=provider_type,
+            model_name=yaml_data.get("model_name", ""),
+            cost_per_1m_input_tokens=yaml_data.get("cost_per_1m_input_tokens"),
+            cost_per_1m_output_tokens=yaml_data.get("cost_per_1m_output_tokens"),
+            max_context_tokens=yaml_data.get("max_context_tokens"),
+            max_output_tokens=yaml_data.get("max_output_tokens"),
+            supports_function_calling=yaml_data.get("supports_function_calling"),
+            languages_supported=yaml_data.get("languages_supported") or [],
+            model_size_params=yaml_data.get("model_size_params"),
+            latency_tier=yaml_data.get("latency_tier"),
+            task_type=yaml_data.get("task_type"),
+            complexity=yaml_data.get("complexity"),
+        )
+
     def _load_provider_yaml(self, yaml_file: Path, provider_name: str) -> int:
         """Load models from a single provider YAML file."""
         try:
@@ -87,18 +118,13 @@ class YAMLModelDatabase:
 
             for yaml_key, model_data in models_section.items():
                 try:
-                    model_capability = yaml_to_model_capability(
+                    model_capability = self._yaml_to_model_capability(
                         model_data, provider_name
                     )
 
-                    # Store by normalized model name for fast lookup
+                    # Store by model name for fast lookup
                     model_name = model_capability.model_name
-                    normalized_name = normalize_model_name(model_name)
-
                     self._models[model_name] = model_capability
-                    if normalized_name != model_name:
-                        self._models[normalized_name] = model_capability
-
                     models_loaded += 1
 
                 except Exception as e:
@@ -129,9 +155,11 @@ class YAMLModelDatabase:
         if model_name in self._models:
             return self._models[model_name]
 
-        # Try normalized name
-        normalized = normalize_model_name(model_name)
-        return self._models.get(normalized)
+        # Try case-insensitive lookup
+        for key in self._models.keys():
+            if key.lower() == model_name.lower():
+                return self._models[key]
+        return None
 
     def has_model(self, model_name: str) -> bool:
         """Check if model exists in database."""

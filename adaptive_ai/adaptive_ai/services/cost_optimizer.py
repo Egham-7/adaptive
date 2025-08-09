@@ -258,11 +258,11 @@ class CostOptimizer:
     #     pass
 
 
-# Global instance for backward compatibility and shared caching
+# Global instance for shared caching
 _default_optimizer = CostOptimizer()
 
 
-# Backward compatibility functions that use the global optimizer
+# Global functions that use the shared optimizer instance
 def sigmoid_cost_bias(cost_bias: float) -> float:
     """Convert cost_bias (0-1) to sigmoid for smooth cost-performance interpolation."""
     return _default_optimizer.sigmoid_cost_bias(cost_bias)
