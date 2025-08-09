@@ -75,7 +75,7 @@ export default function DashboardPage() {
 	}
 
 	return (
-		<div className="container mx-auto max-w-7xl px-4 py-6">
+		<div className="w-full px-6 py-2">
 			{/* Back Navigation */}
 			<div className="mb-6">
 				<Link href={`/api-platform/organizations/${orgId}`}>
@@ -124,16 +124,20 @@ export default function DashboardPage() {
 				<div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
 					{/* Main Analytics Area */}
 					<div className="space-y-8 lg:col-span-4">
-						{/* Usage Analytics Section */}
+						{/* Provider Comparison Section */}
 						<section className="space-y-6">
 							<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 								<div>
 									<h2 className="font-semibold text-2xl text-foreground">
-										Usage Analytics
+										Cost Comparison
 									</h2>
 									<p className="text-muted-foreground">
-										Track spending trends and optimize costs over time
+										Compare costs and performance across all models and
+										providers
 									</p>
+								</div>
+								<div className="text-muted-foreground text-sm">
+									Based on current usage patterns
 								</div>
 							</div>
 							<div className="rounded-lg border bg-card p-6 shadow-sm">
@@ -145,23 +149,6 @@ export default function DashboardPage() {
 									selectedModel={selectedModel}
 									onModelChange={setSelectedModel}
 								/>
-							</div>
-						</section>
-
-						{/* Provider Comparison Section */}
-						<section className="space-y-6">
-							<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-								<div>
-									<h2 className="font-semibold text-2xl text-foreground">
-										Provider Cost Comparison
-									</h2>
-									<p className="text-muted-foreground">
-										Compare costs and performance across all providers
-									</p>
-								</div>
-								<div className="text-muted-foreground text-sm">
-									Based on current usage patterns
-								</div>
 							</div>
 							<div className="rounded-lg border bg-card p-6 shadow-sm">
 								<ProviderComparisonTable data={data} loading={loading} />
