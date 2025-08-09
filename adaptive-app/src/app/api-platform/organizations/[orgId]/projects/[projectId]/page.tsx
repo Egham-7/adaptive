@@ -75,7 +75,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-7xl px-4 py-6">
+    <div className="w-full px-6 py-2">
       {/* Back Navigation */}
       <div className="mb-6">
         <Link href={`/api-platform/organizations/${orgId}`}>
