@@ -33,13 +33,12 @@ export function VersatileMetricChart({
 	chartType,
 	data,
 	icon,
-	color,
 	totalValue,
 }: MetricChartProps) {
 	const chartConfig = {
 		value: {
 			label: "Value",
-			color: color,
+			color: "var(--chart-1)",
 		},
 	} satisfies ChartConfig;
 
