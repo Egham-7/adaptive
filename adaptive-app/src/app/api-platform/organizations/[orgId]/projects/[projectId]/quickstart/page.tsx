@@ -46,9 +46,13 @@ export default function QuickstartPage() {
 	const firstApiKey = apiKeys?.[0];
 	const exampleKey = firstApiKey ? firstApiKey.key_preview : EXAMPLE_API_KEY;
 
-	const copyToClipboard = (text: string, label: string) => {
-		navigator.clipboard.writeText(text);
-		toast.success(`${label} copied to clipboard!`);
+	const copyToClipboard = async (text: string, label: string) => {
+		try {
+			await navigator.clipboard.writeText(text);
+			toast.success(`${label} copied to clipboard!`);
+		} catch {
+			toast.error(`Failed to copy ${label}.`);
+		}
 	};
 
 	const CodeBlock = ({
@@ -62,8 +66,8 @@ export default function QuickstartPage() {
 	}) => {
 		const [copied, setCopied] = useState(false);
 
-		const handleCopy = () => {
-			copyToClipboard(code, title || "Code");
+		const handleCopy = async () => {
+			await copyToClipboard(code, title || "Code");
 			setCopied(true);
 			setTimeout(() => setCopied(false), 2000);
 		};
