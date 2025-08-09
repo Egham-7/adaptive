@@ -1,0 +1,127 @@
+provider_info:
+  name: LLAMA
+  total_models: 7
+  data_source: https://helicone.ai/api/llm-costs?provider=llama
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  Cerebras_Llama_4_Maverick_17B_128E_Instruct:
+    description: ''
+    provider: LLAMA
+    model_name: Cerebras-Llama-4-Maverick-17B-128E-Instruct
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  Cerebras_Llama_4_Scout_17B_16E_Instruct:
+    description: ''
+    provider: LLAMA
+    model_name: Cerebras-Llama-4-Scout-17B-16E-Instruct
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  Groq_Llama_4_Maverick_17B_128E_Instruct:
+    description: ''
+    provider: LLAMA
+    model_name: Groq-Llama-4-Maverick-17B-128E-Instruct
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  Llama_3.3_70B_Instruct:
+    description: ''
+    provider: LLAMA
+    model_name: Llama-3.3-70B-Instruct
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  Llama_3.3_8B_Instruct:
+    description: ''
+    provider: LLAMA
+    model_name: Llama-3.3-8B-Instruct
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  Llama_4_Maverick_17B_128E_Instruct_FP8:
+    description: ''
+    provider: LLAMA
+    model_name: Llama-4-Maverick-17B-128E-Instruct-FP8
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  Llama_4_Scout_17B_16E_Instruct_FP8:
+    description: ''
+    provider: LLAMA
+    model_name: Llama-4-Scout-17B-16E-Instruct-FP8
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
