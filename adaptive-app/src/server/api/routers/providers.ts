@@ -595,23 +595,26 @@ export const providersRouter = createTRPCRouter({
 					});
 				}
 
-				// Check if provider is being used in any clusters
-				const clusterProviders = await ctx.db.clusterProvider.findFirst({
-					where: {
-						providerId: provider.id,
-					},
-				});
-
-				if (clusterProviders) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Cannot delete provider that is being used in clusters",
+				// Use transaction to prevent race condition between check and delete
+				await ctx.db.$transaction(async (tx) => {
+					// Check if provider is being used in any clusters
+					const existingClusterProvider = await tx.clusterProvider.findFirst({
+						where: {
+							providerId: provider.id,
+						},
 					});
-				}
 
-				// Hard delete since we removed isActive field
-				await ctx.db.provider.delete({
-					where: { id: input.id },
+					if (existingClusterProvider) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Cannot delete provider that is being used in clusters",
+						});
+					}
+
+					// Hard delete since we removed isActive field
+					await tx.provider.delete({
+						where: { id: input.id },
+					});
 				});
 
 				return { success: true };

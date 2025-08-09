@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
+import { decryptProviderApiKey } from "@/lib/auth-utils";
 import { withCache } from "@/lib/cache-utils";
 import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
@@ -106,7 +107,7 @@ export async function POST(
 					base_url: provider.baseUrl ?? undefined,
 					auth_type: provider.authType ?? undefined,
 					auth_header_name: provider.authHeaderName ?? undefined,
-					api_key: config.providerApiKey, // Use user's API key from config
+					api_key: decryptProviderApiKey(config.providerApiKey), // Decrypt user's API key from config
 					health_endpoint: provider.healthEndpoint ?? undefined,
 					rate_limit_rpm: provider.rateLimitRpm ?? undefined,
 					timeout_ms: provider.timeoutMs ?? undefined,
@@ -142,15 +143,36 @@ export async function POST(
 					complexity?: string;
 				}> = [];
 
-				for (const clusterProvider of cluster.providers) {
-					try {
-						// Get models for this provider config
-						const models = await api.providerModels.getForConfig({
-							projectId,
-							providerId: clusterProvider.providerId,
-							configId: clusterProvider.configId ?? undefined,
-							apiKey,
-						});
+				// Fetch all provider models in parallel using Promise.allSettled
+				const providerModelPromises = cluster.providers.map(
+					async (clusterProvider) => {
+						try {
+							// Get models for this provider config
+							const models = await api.providerModels.getForConfig({
+								projectId,
+								providerId: clusterProvider.providerId,
+								configId: clusterProvider.configId ?? undefined,
+								apiKey,
+							});
+
+							return { clusterProvider, models, error: null };
+						} catch (error) {
+							console.warn(
+								`Failed to get models for provider ${clusterProvider.provider.name}:`,
+								error,
+							);
+							return { clusterProvider, models: [], error };
+						}
+					},
+				);
+
+				// Wait for all provider model fetches to complete
+				const providerResults = await Promise.allSettled(providerModelPromises);
+
+				// Process results and build model details array
+				for (const result of providerResults) {
+					if (result.status === "fulfilled") {
+						const { clusterProvider, models } = result.value;
 
 						for (const model of models) {
 							if (!model.capabilities) {
@@ -170,7 +192,8 @@ export async function POST(
 									model.capabilities.maxOutputTokens ?? undefined,
 								supports_function_calling:
 									model.capabilities.supportsFunctionCalling,
-								languages_supported: model.capabilities.languagesSupported,
+								languages_supported:
+									model.capabilities.languagesSupported ?? [],
 								model_size_params:
 									model.capabilities.modelSizeParams ?? undefined,
 								latency_tier: model.capabilities.latencyTier ?? undefined,
@@ -178,10 +201,10 @@ export async function POST(
 								complexity: model.capabilities.complexity ?? undefined,
 							});
 						}
-					} catch (error) {
+					} else {
 						console.warn(
-							`Failed to get models for provider ${clusterProvider.provider.name}:`,
-							error,
+							"Promise.allSettled rejected unexpectedly:",
+							result.reason,
 						);
 					}
 				}
