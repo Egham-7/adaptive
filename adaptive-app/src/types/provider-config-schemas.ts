@@ -24,7 +24,6 @@ export const updateProviderConfigSchema = z.object({
 	providerApiKey: z.string().min(1, "API key is required").optional(),
 	customHeaders: z.record(z.string(), z.string()).optional(),
 	customSettings: z.record(z.string(), z.any()).optional(),
-	isActive: z.boolean().optional(),
 
 	// Authentication for API call
 	apiKey: z.string().optional(),

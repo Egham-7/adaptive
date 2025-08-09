@@ -595,23 +595,26 @@ export const providersRouter = createTRPCRouter({
 					});
 				}
 
-				// Check if provider is being used in any clusters
-				const clusterModels = await ctx.db.clusterModel.findFirst({
-					where: {
-						provider: provider.name,
-					},
-				});
-
-				if (clusterModels) {
-					throw new TRPCError({
-						code: "BAD_REQUEST",
-						message: "Cannot delete provider that is being used in clusters",
+				// Use transaction to prevent race condition between check and delete
+				await ctx.db.$transaction(async (tx) => {
+					// Check if provider is being used in any clusters
+					const existingClusterProvider = await tx.clusterProvider.findFirst({
+						where: {
+							providerId: provider.id,
+						},
 					});
-				}
 
-				// Hard delete since we removed isActive field
-				await ctx.db.provider.delete({
-					where: { id: input.id },
+					if (existingClusterProvider) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: "Cannot delete provider that is being used in clusters",
+						});
+					}
+
+					// Hard delete since we removed isActive field
+					await tx.provider.delete({
+						where: { id: input.id },
+					});
 				});
 
 				return { success: true };
@@ -843,14 +846,43 @@ export const providersRouter = createTRPCRouter({
 					}
 
 					// Check if model is being used in any clusters
-					const clusterModels = await tx.clusterModel.findFirst({
+					// With the new schema, we need to check:
+					// 1. ClusterProviders using this provider with no config (uses all models)
+					// 2. ProviderConfigs with no selectedModels (uses all models)
+					// 3. ProviderConfigModels that specifically select this model
+
+					// Check cluster providers with no config
+					const clusterProvidersUsingAll = await tx.clusterProvider.findFirst({
 						where: {
-							provider: model.provider.name,
-							modelName: model.name,
+							providerId: model.providerId,
+							configId: null, // No config means use all models
 						},
 					});
 
-					if (clusterModels) {
+					// Check if any configs exist with no model selections (atomic check)
+					const configsUsingAll = await tx.providerConfig.findFirst({
+						where: {
+							providerId: model.providerId,
+							selectedModels: {
+								none: {
+									// No active selections means using all models
+								},
+							},
+						},
+					});
+
+					// Check if this specific model is selected in any config
+					const configsUsingSpecific = await tx.providerConfigModel.findFirst({
+						where: {
+							providerModelId: model.id,
+						},
+					});
+
+					if (
+						clusterProvidersUsingAll ||
+						configsUsingAll ||
+						configsUsingSpecific
+					) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: "Cannot remove model that is being used in clusters",

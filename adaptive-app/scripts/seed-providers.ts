@@ -288,7 +288,7 @@ async function seedProviders() {
 					name: providerName,
 					displayName: providerData.displayName,
 					description: providerData.description,
-					isActive: true,
+					visibility: "system", // System providers are globally visible
 				},
 			});
 
