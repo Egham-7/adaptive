@@ -3,11 +3,13 @@ Convert YAML model data to ModelCapability objects.
 Simple, fast converter for production use.
 """
 
+from typing import Any
+
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import ProviderType
 
 
-def yaml_to_model_capability(yaml_data: dict, provider_name: str) -> ModelCapability:
+def yaml_to_model_capability(yaml_data: dict[str, Any], provider_name: str) -> ModelCapability:
     """
     Convert YAML model data to ModelCapability object.
 
