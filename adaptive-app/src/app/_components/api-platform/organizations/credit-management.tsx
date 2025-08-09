@@ -116,8 +116,8 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 			await createCheckout.mutateAsync({
 				organizationId,
 				amount,
-				successUrl: `${process.env.NEXT_PUBLIC_URL}/api-platform/organizations/${organizationId}?purchase=success`,
-				cancelUrl: `${process.env.NEXT_PUBLIC_URL}/api-platform/organizations/${organizationId}?purchase=cancelled`,
+				successUrl: `${process.env.NEXT_PUBLIC_URL ?? (typeof window !== "undefined" ? window.location.origin : "")}/api-platform/organizations/${organizationId}?purchase=success`,
+				cancelUrl: `${process.env.NEXT_PUBLIC_URL ?? (typeof window !== "undefined" ? window.location.origin : "")}/api-platform/organizations/${organizationId}?purchase=cancelled`,
 			});
 		} catch (_error) {
 			setIsProcessing(false);

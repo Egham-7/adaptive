@@ -113,11 +113,17 @@ export function UsageSection({
 		<Card>
 			<CardHeader>
 				<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-					<CardTitle>Cost Comparison</CardTitle>
+					<CardTitle>Cost Comparison By Model</CardTitle>
+
 					<ModelSelector
 						selectedModel={selectedModel}
 						onModelChange={onModelChange}
 					/>
+				</div>
+				<div>
+					<p className="text-muted-foreground text-sm">
+						Compare your Adaptive costs against specifc models
+					</p>
 				</div>
 				<div className="space-y-2">
 					<div className="flex items-center justify-between">
