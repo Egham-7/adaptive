@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/trpc/react";
 
 const EXAMPLE_API_KEY = "ak_adaptive_1234567890abcdef";
-const API_BASE_URL = "https://api.adaptive.so";
+const API_BASE_URL = process.env.NEXT_PUBLIC_URL;
 
 export default function QuickstartPage() {
 	const params = useParams();
@@ -90,7 +90,7 @@ export default function QuickstartPage() {
 		);
 	};
 
-	const curlExample = `curl -X POST "${API_BASE_URL}/v1/chat/completions" \\
+	const curlExample = `curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${exampleKey}..." \\
   -d '{
@@ -109,7 +109,7 @@ export default function QuickstartPage() {
 
 const client = new OpenAI({
   apiKey: '${exampleKey}...',
-  baseURL: '${API_BASE_URL}/v1',
+  baseURL: '${API_BASE_URL}/api/v1',
 });
 
 async function main() {
@@ -134,7 +134,7 @@ main();`;
 
 client = OpenAI(
     api_key="${exampleKey}...",
-    base_url="${API_BASE_URL}/v1"
+    base_url="${API_BASE_URL}/api/v1"
 )
 
 completion = client.chat.completions.create(
