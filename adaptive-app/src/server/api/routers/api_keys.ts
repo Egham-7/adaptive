@@ -275,7 +275,17 @@ export const apiKeysRouter = createTRPCRouter({
 			}
 
 			const hash = crypto.createHash("sha256").update(apiKey).digest("hex");
-			return { valid: hash === record.keyHash };
+			const isValid = hash === record.keyHash;
+
+			if (!isValid) {
+				return { valid: false };
+			}
+
+			return {
+				valid: true,
+				projectId: record.projectId,
+				userId: record.userId,
+			};
 		}),
 
 	// Get API keys for a specific project

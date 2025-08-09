@@ -16,15 +16,10 @@ export type Provider =
 	| "adaptive"
 	| null;
 
-// Provider configuration schema for custom providers
 export const providerConfigSchema = z.object({
 	base_url: z.string().url("Must be a valid URL").optional(),
 	auth_type: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
 	auth_header_name: z.string().max(100).optional(),
-	api_key: z
-		.string()
-		.min(1, "API key is required for custom providers")
-		.optional(),
 	health_endpoint: z.string().max(200).optional(),
 	rate_limit_rpm: z.number().min(1).max(100000).optional(),
 	timeout_ms: z.number().min(1000).max(120000).optional(),
