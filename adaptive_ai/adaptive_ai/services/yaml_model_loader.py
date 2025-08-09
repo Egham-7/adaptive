@@ -43,6 +43,8 @@ class YAMLModelDatabase:
         supported_providers = [
             "anthropic",
             "groq",
+            "azure",
+            "together",
             "openai",
             "google",
             "deepseek",
