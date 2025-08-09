@@ -1,8 +1,10 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import {
 	FaChartLine,
 	FaCoins,
+	FaCreditCard,
 	FaDollarSign,
 	FaExclamationTriangle,
 	FaServer,
@@ -47,14 +49,32 @@ export function MetricsOverview({
 	loading,
 	selectedModel = "gpt-4o",
 }: MetricsOverviewProps) {
+	const params = useParams();
+	const orgId = params.orgId as string;
+
 	// Fetch dynamic pricing data
 	const { data: modelPricing, isLoading: pricingLoading } =
 		api.modelPricing.getAllModelPricing.useQuery();
 
+	// Fetch credit balance and transaction history for credit chart
+	const { data: creditBalance } = api.credits.getBalance.useQuery(
+		{ organizationId: orgId },
+		{ enabled: !!orgId },
+	);
+
+	const { data: creditTransactions } =
+		api.credits.getTransactionHistory.useQuery(
+			{
+				organizationId: orgId,
+				limit: 30, // Last 30 transactions for chart data
+			},
+			{ enabled: !!orgId },
+		);
+
 	if (loading || pricingLoading) {
 		return (
-			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-				{Array.from({ length: 5 }).map((_, i) => (
+			<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+				{Array.from({ length: 6 }).map((_, i) => (
 					<MetricCardSkeleton key={`skeleton-${i}`} />
 				))}
 			</div>
@@ -89,7 +109,25 @@ export function MetricsOverview({
 		value: d.adaptive, // This is the actual customer spending (same as adaptive line in usage chart)
 	}));
 
+	// Create credit balance history data from transactions
+	const creditBalanceData = (creditTransactions?.transactions ?? [])
+		.slice() // clone to avoid mutating cached data
+		.reverse() // chronological order
+		.map((transaction) => ({
+			// Stable date string for charting (YYYY-MM-DD, UTC)
+			date: new Date(transaction.createdAt).toISOString().slice(0, 10),
+			value: Number.parseFloat(transaction.balanceAfter.toString()),
+		}));
+
 	const allMetrics = [
+		{
+			title: "Credit Balance",
+			chartType: "line" as const,
+			icon: <FaCreditCard className="h-5 w-5 text-primary" />,
+			data: creditBalanceData,
+			color: "hsl(var(--primary))",
+			totalValue: creditBalance?.formattedBalance || "$0.00",
+		},
 		{
 			title: "Cost Savings Trend",
 			chartType: "area" as const,
@@ -145,7 +183,7 @@ export function MetricsOverview({
 	];
 
 	return (
-		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+		<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 			{allMetrics.map((metric) => (
 				<VersatileMetricChart
 					key={metric.title}

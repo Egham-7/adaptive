@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MdDashboard, MdKey } from "react-icons/md";
+import { MdDashboard, MdKey, MdPlayArrow } from "react-icons/md";
 import { ApiSidebarNavFooter } from "@/app/_components/api-platform/sidebar-nav-footer";
 import CommonSidebarHeader from "@/components/sidebar-header";
 import {
@@ -24,6 +24,13 @@ export function ProjectSidebar() {
 			href: `/api-platform/organizations/${orgId}/projects/${projectId}`,
 			icon: (
 				<MdDashboard className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
+			),
+		},
+		{
+			label: "Quickstart",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}/quickstart`,
+			icon: (
+				<MdPlayArrow className="h-5 w-5 flex-shrink-0 text-neutral-700 dark:text-neutral-200" />
 			),
 		},
 		{
