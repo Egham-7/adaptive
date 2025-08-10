@@ -37,27 +37,16 @@ export default function CallToAction() {
 						</SignedOut>
 
 						<SignedIn>
-							{redirectPath ? (
-								<Button
-									size="lg"
-									className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
-									asChild
-								>
-									<Link href={redirectPath}>
-										<Rocket className="relative mr-2 size-4" />
-										Get Started
-									</Link>
-								</Button>
-							) : (
-								<Button
-									size="lg"
-									className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
-									disabled
-								>
+							<Button
+								size="lg"
+								className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
+								asChild
+							>
+								<Link href={redirectPath || "/api-platform/organizations"}>
 									<Rocket className="relative mr-2 size-4" />
 									Get Started
-								</Button>
-							)}
+								</Link>
+							</Button>
 						</SignedIn>
 
 						<Button

@@ -14,7 +14,10 @@ export function DesktopNavigation() {
 			{/* Main navigation */}
 			<nav className="flex items-center gap-1 text-sm">
 				{menuItems.map((item) => {
-					const isActive = pathname === item.href;
+					const isActive =
+						item.href === "/"
+							? pathname === item.href
+							: pathname.startsWith(item.href);
 					return (
 						<div key={item.name} className="relative">
 							{item.external ? (
@@ -23,7 +26,6 @@ export function DesktopNavigation() {
 									target="_blank"
 									rel="noopener noreferrer"
 									className="relative cursor-pointer rounded-full px-4 py-2 font-medium text-muted-foreground text-sm transition-colors hover:text-accent-foreground"
-									role="menuitem"
 								>
 									{item.name}
 								</a>
@@ -35,7 +37,7 @@ export function DesktopNavigation() {
 											? "text-primary"
 											: "text-muted-foreground hover:text-accent-foreground"
 									}`}
-									role="menuitem"
+									aria-current={isActive ? "page" : undefined}
 								>
 									{item.name}
 									{isActive && (

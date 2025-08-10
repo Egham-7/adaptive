@@ -1,9 +1,15 @@
+"use client";
+
 import React, { useCallback, useMemo, useRef } from "react";
 import { motion, useAnimationControls } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 
 import { cn } from "@/lib/utils";
-import { useDimensions } from "../hooks/use-debounced-dimensions";
+import { useDimensions } from "@/components/hooks/use-debounced-dimensions";
+
+interface PixelElement extends HTMLElement {
+  __animatePixel?: () => void;
+}
 
 interface PixelTrailProps {
   pixelSize: number; // px
@@ -34,9 +40,9 @@ const PixelTrail: React.FC<PixelTrailProps> = ({
 
       const pixelElement = document.getElementById(
         `${trailId.current}-pixel-${x}-${y}`,
-      );
+      ) as PixelElement | null;
       if (pixelElement) {
-        const animatePixel = (pixelElement as any).__animatePixel;
+        const animatePixel = pixelElement.__animatePixel;
         if (animatePixel) animatePixel();
       }
     },
@@ -96,13 +102,13 @@ const PixelDot: React.FC<PixelDotProps> = React.memo(
         opacity: [1, 0],
         transition: { duration: fadeDuration / 1000, delay: delay / 1000 },
       });
-    }, []);
+    }, [controls, fadeDuration, delay]);
 
     // Attach the animatePixel function to the DOM element
     const ref = useCallback(
       (node: HTMLDivElement | null) => {
         if (node) {
-          (node as any).__animatePixel = animatePixel;
+          (node as PixelElement).__animatePixel = animatePixel;
         }
       },
       [animatePixel],
@@ -112,7 +118,7 @@ const PixelDot: React.FC<PixelDotProps> = React.memo(
       <motion.div
         id={id}
         ref={ref}
-        className={cn("cursor-pointer-none", className)}
+        className={cn("pointer-events-none", className)}
         style={{
           width: `${size}px`,
           height: `${size}px`,

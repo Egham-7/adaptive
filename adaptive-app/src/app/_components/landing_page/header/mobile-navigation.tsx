@@ -58,7 +58,10 @@ export function MobileNavigation({
 			<div className="relative flex min-h-full flex-col items-center justify-center space-y-8 p-6">
 				<ul className="space-y-4 text-center text-base">
 					{menuItems.map((item) => {
-						const isActive = pathname === item.href;
+						const isActive =
+							item.href === "/"
+								? pathname === item.href
+								: pathname.startsWith(item.href);
 						return (
 							<li key={item.name}>
 								{item.external ? (
@@ -79,6 +82,7 @@ export function MobileNavigation({
 												: "text-muted-foreground"
 										}`}
 										onClick={() => setMenuState(false)}
+										aria-current={isActive ? "page" : undefined}
 									>
 										<span>{item.name}</span>
 									</Link>
@@ -187,27 +191,15 @@ export function MobileNavigation({
 								Chatbot App
 							</Button>
 						</LoadingLink>
-						{redirectPath ? (
-							<LoadingLink href={redirectPath}>
-								<Button
-									variant="outline"
-									className="w-full"
-									onClick={() => setMenuState(false)}
-								>
-									API Platform
-								</Button>
-							</LoadingLink>
-						) : (
-							<LoadingLink href="/api-platform/organizations">
-								<Button
-									variant="outline"
-									className="w-full"
-									onClick={() => setMenuState(false)}
-								>
-									API Platform
-								</Button>
-							</LoadingLink>
-						)}
+						<LoadingLink href={redirectPath || "/api-platform/organizations"}>
+							<Button
+								variant="outline"
+								className="w-full"
+								onClick={() => setMenuState(false)}
+							>
+								API Platform
+							</Button>
+						</LoadingLink>
 					</div>
 				</SignedIn>
 
