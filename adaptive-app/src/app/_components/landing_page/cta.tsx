@@ -1,9 +1,14 @@
+"use client";
+
 import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { Rocket } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useSmartRedirect } from "@/hooks/use-smart-redirect";
 
 export default function CallToAction() {
+	const redirectPath = useSmartRedirect();
+
 	return (
 		<section className="py-16 md:py-32">
 			<div className="mx-auto max-w-5xl px-6">
@@ -17,7 +22,10 @@ export default function CallToAction() {
 					</p>
 					<div className="mt-12 flex flex-wrap justify-center gap-4">
 						<SignedOut>
-							<SignUpButton mode="modal">
+							<SignUpButton
+								mode="modal"
+								signInForceRedirectUrl="/api-platform/organizations"
+							>
 								<Button
 									size="lg"
 									className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
@@ -29,13 +37,27 @@ export default function CallToAction() {
 						</SignedOut>
 
 						<SignedIn>
-							<Button
-								size="lg"
-								className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
-							>
-								<Rocket className="relative mr-2 size-4" />
-								<Link href="/chat-platform">Get Started</Link>
-							</Button>
+							{redirectPath ? (
+								<Button
+									size="lg"
+									className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
+									asChild
+								>
+									<Link href={redirectPath}>
+										<Rocket className="relative mr-2 size-4" />
+										Get Started
+									</Link>
+								</Button>
+							) : (
+								<Button
+									size="lg"
+									className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
+									disabled
+								>
+									<Rocket className="relative mr-2 size-4" />
+									Get Started
+								</Button>
+							)}
 						</SignedIn>
 
 						<Button

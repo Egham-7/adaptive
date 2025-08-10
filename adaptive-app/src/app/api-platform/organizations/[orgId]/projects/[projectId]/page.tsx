@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
 import { MetricsOverview } from "@/app/_components/api-platform/organizations/projects/dashboard/metrics-overview";
 import { ProviderComparisonTable } from "@/app/_components/api-platform/organizations/projects/dashboard/provider-comparison-table";
@@ -11,6 +11,7 @@ import { UsageSection } from "@/app/_components/api-platform/organizations/proje
 import { Button } from "@/components/ui/button";
 import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
+import { setLastProject } from "@/hooks/use-smart-redirect";
 import type { DashboardFilters } from "@/types/api-platform/dashboard";
 
 export default function DashboardPage() {
@@ -29,6 +30,14 @@ export default function DashboardPage() {
 	);
 
 	const { data, loading, error } = useProjectDashboardData(projectId, filters);
+
+	// Track project visit for smart redirect
+	useEffect(() => {
+		console.log("📍 Project page - Tracking visit:", { orgId, projectId });
+		if (orgId && projectId) {
+			setLastProject(orgId, projectId);
+		}
+	}, [orgId, projectId]);
 
 	const handleExport = () => {
 		if (!data) return;

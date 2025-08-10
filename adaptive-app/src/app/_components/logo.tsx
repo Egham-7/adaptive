@@ -1,14 +1,16 @@
+"use client";
+
 import Image from "next/image";
 import { useTheme } from "next-themes";
 
 export function Logo() {
-	const { theme } = useTheme();
+	const { resolvedTheme } = useTheme();
 
 	return (
 		<div className="flex items-center">
 			<Image
 				src={
-					theme === "dark"
+					resolvedTheme === "dark"
 						? "/logos/adaptive-dark.svg"
 						: "/logos/adaptive-light.svg"
 				}
