@@ -58,7 +58,7 @@ export const FloatingNav = ({
   const { scrollYProgress } = useScroll();
   const [visible, setVisible] = useState(false);
   const pathname = usePathname();
-  const { getSmartRedirectPath } = useSmartRedirect();
+  const smartRedirectPath = useSmartRedirect();
 
   useMotionValueEvent(scrollYProgress, "change", (current) => {
     if (typeof current === "number") {
@@ -168,7 +168,7 @@ export const FloatingNav = ({
                   </SignInButton>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <SignInButton signUpForceRedirectUrl={getSmartRedirectPath()}>
+                  <SignInButton signUpForceRedirectUrl={smartRedirectPath || "/api-platform/organizations"}>
                     <Button variant="ghost" className="w-full justify-start">
                       API Platform
                     </Button>
@@ -197,7 +197,7 @@ export const FloatingNav = ({
                   </SignUpButton>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <SignUpButton signInForceRedirectUrl={getSmartRedirectPath()}>
+                  <SignUpButton signInForceRedirectUrl={smartRedirectPath || "/api-platform/organizations"}>
                     <Button variant="ghost" className="w-full justify-start">
                       API Platform
                     </Button>
@@ -228,7 +228,7 @@ export const FloatingNav = ({
                   </LoadingLink>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <LoadingLink href={getSmartRedirectPath()}>
+                  <LoadingLink href={smartRedirectPath || "/api-platform/organizations"}>
                     <Button variant="ghost" className="w-full justify-start">
                       API Platform
                     </Button>
