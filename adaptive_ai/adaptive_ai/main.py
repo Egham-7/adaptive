@@ -1,6 +1,6 @@
 from typing import Any
 
-import litserve as ls
+import litserve as ls  # type: ignore
 import tiktoken
 
 from adaptive_ai.core.config import get_settings
@@ -12,7 +12,13 @@ from adaptive_ai.models.llm_core_models import (
     ModelEntry,
     ModelSelectionRequest,
 )
-from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
+from adaptive_ai.models.llm_enums import ProtocolType
+from adaptive_ai.models.llm_orchestration_models import (
+    Alternative,
+    MinionInfo,
+    OrchestratorResponse,
+    StandardLLMInfo,
+)
 
 # Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
 from adaptive_ai.services.domain_classifier import get_domain_classifier
@@ -39,9 +45,24 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
         self.model_selection_service = ModelSelectionService(lit_logger=self)
-        self.protocol_manager = ProtocolManager(lit_logger=self, device=device)
+        self.protocol_manager = ProtocolManager(lit_logger=self)
 
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
+        # Convert cost_preference strings to cost_bias numbers (preserving backward compatibility)
+        if "protocol_manager_config" in request:
+            config = request["protocol_manager_config"]
+            # Only derive cost_bias from cost_preference if cost_bias is not already present
+            if "cost_preference" in config and "cost_bias" not in config:
+                cost_preference = config["cost_preference"]  # Keep the original key
+                # Convert cost_preference to cost_bias
+                cost_bias_map = {
+                    "budget": 0.1,  # Strong preference for cheap models
+                    "balanced": 0.5,  # Balanced between cost and performance
+                    "performance": 0.8,  # Strong preference for performance
+                    "premium": 0.9,  # Premium models preferred
+                }
+                config["cost_bias"] = cost_bias_map.get(cost_preference, 0.5)
+
         return ModelSelectionRequest(**request)
 
     def predict(
@@ -188,25 +209,28 @@ class ProtocolManagerAPI(ls.LitAPI):
             if minion_candidates:
                 available_protocols.append("minion")
 
-            self.protocol_manager._select_best_protocol(
+            selected_protocol = self.protocol_manager.select_best_protocol(
                 classification_result=current_classification_result,
                 token_count=prompt_token_count,
                 available_protocols=available_protocols,
                 request=req,
             )
 
-            # For now, create a simple response - this should be properly implemented
-            from adaptive_ai.models.llm_enums import ProtocolType
-            from adaptive_ai.models.llm_orchestration_models import StandardLLMInfo
+            # Use the protocol manager's decision instead of defaulting to standard
 
-            # Simple fallback to create a valid OrchestratorResponse
-            if standard_candidates:
+            # Create response based on protocol manager's decision
+            if selected_protocol == "minion" and minion_candidates:
+                # Create minion protocol response
                 orchestrator_response = OrchestratorResponse(
-                    protocol=ProtocolType.STANDARD_LLM,
-                    standard=StandardLLMInfo(
-                        provider=standard_candidates[0].providers[0].value,
-                        model=standard_candidates[0].model_name,
-                        parameters=self.protocol_manager._get_tuned_parameters(
+                    protocol=ProtocolType.MINION,
+                    minion=MinionInfo(
+                        provider=(
+                            minion_candidates[0].providers[0].value
+                            if hasattr(minion_candidates[0].providers[0], "value")
+                            else str(minion_candidates[0].providers[0])
+                        ),
+                        model=minion_candidates[0].model_name,
+                        parameters=self.protocol_manager.get_tuned_parameters(
                             current_classification_result,
                             (
                                 current_classification_result.task_type_1[0]
@@ -214,11 +238,59 @@ class ProtocolManagerAPI(ls.LitAPI):
                                 else "general"
                             ),
                         ),
-                        alternatives=[],
+                        alternatives=[
+                            Alternative(
+                                provider=(
+                                    alt.providers[0].value
+                                    if hasattr(alt.providers[0], "value")
+                                    else str(alt.providers[0])
+                                ),
+                                model=alt.model_name,
+                            )
+                            for alt in minion_candidates[
+                                1:3
+                            ]  # Include top 2 alternatives
+                        ],
+                    ),
+                )
+            elif selected_protocol == "standard_llm" and standard_candidates:
+                # Create standard protocol response
+                orchestrator_response = OrchestratorResponse(
+                    protocol=ProtocolType.STANDARD_LLM,
+                    standard=StandardLLMInfo(
+                        provider=(
+                            standard_candidates[0].providers[0].value
+                            if hasattr(standard_candidates[0].providers[0], "value")
+                            else str(standard_candidates[0].providers[0])
+                        ),
+                        model=standard_candidates[0].model_name,
+                        parameters=self.protocol_manager.get_tuned_parameters(
+                            current_classification_result,
+                            (
+                                current_classification_result.task_type_1[0]
+                                if current_classification_result.task_type_1
+                                else "general"
+                            ),
+                        ),
+                        alternatives=[
+                            Alternative(
+                                provider=(
+                                    alt.providers[0].value
+                                    if hasattr(alt.providers[0], "value")
+                                    else str(alt.providers[0])
+                                ),
+                                model=alt.model_name,
+                            )
+                            for alt in standard_candidates[
+                                1:3
+                            ]  # Include top 2 alternatives
+                        ],
                     ),
                 )
             else:
-                raise ValueError("No available candidates")
+                raise ValueError(
+                    f"No available candidates for selected protocol: {selected_protocol}"
+                )
             protocol_t1 = time.perf_counter()
             self.log("protocol_selection_time", protocol_t1 - protocol_t0)
 
@@ -229,7 +301,8 @@ class ProtocolManagerAPI(ls.LitAPI):
         return outputs
 
     def encode_response(self, output: OrchestratorResponse) -> dict[str, Any]:
-        return output.model_dump()
+        result = output.model_dump()
+        return result if isinstance(result, dict) else {}
 
 
 def create_app() -> ls.LitServer:

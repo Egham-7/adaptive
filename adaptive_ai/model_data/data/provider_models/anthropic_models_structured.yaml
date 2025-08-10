@@ -1,0 +1,513 @@
+provider_info:
+  name: ANTHROPIC
+  total_models: 15
+  data_source: https://helicone.ai/api/llm-costs?provider=anthropic
+  last_updated: '2025-08-09'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  claude_2:
+    description: Claude 2 is an advanced AI language model developed by Anthropic,
+      designed for a variety of text-based tasks.
+    provider: ANTHROPIC
+    model_name: claude-2
+    cost_per_1m_input_tokens: 8
+    cost_per_1m_output_tokens: 24
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - Spanish
+    - French
+    model_size_params: 70B
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.8
+      enriched_at: 1754742573.705906
+  claude_2_0:
+    description: Claude 2.0 is an advanced conversational AI model designed for a
+      variety of tasks including text generation, summarization, and open question
+      answering, with a focus on safety and alignment.
+    provider: ANTHROPIC
+    model_name: claude-2.0
+    cost_per_1m_input_tokens: 11.02
+    cost_per_1m_output_tokens: 32.68
+    max_context_tokens: 10000
+    max_output_tokens: 2500
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Chatbot
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754742576.574218
+  claude_3_5_haiku_20241022:
+    description: Claude 3.5 Haiku is Anthropic's fastest model optimized for speed
+      while maintaining intelligence, with tool use and multimodal capabilities.
+    provider: ANTHROPIC
+    model_name: claude-3-5-haiku-20241022
+    cost_per_1m_input_tokens: 0.8
+    cost_per_1m_output_tokens: 4
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_3_5_sonnet_20240620:
+    description: Claude 3.5 Sonnet is Anthropic's most capable model with advanced
+      reasoning, coding abilities, and multimodal capabilities including vision and
+      tool use.
+    provider: ANTHROPIC
+    model_name: claude-3-5-sonnet-20240620
+    cost_per_1m_input_tokens: 3
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Code Generation
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_3_5_sonnet_20241022:
+    description: Claude 3.5 Sonnet (October 2024) with enhanced computer use capabilities,
+      improved reasoning, and advanced tool use for complex tasks.
+    provider: ANTHROPIC
+    model_name: claude-3-5-sonnet-20241022
+    cost_per_1m_input_tokens: 3
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Code Generation
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_3_7_sonnet_20250219:
+    description: Claude 3.7 Sonnet is Anthropic's latest model with enhanced capabilities,
+      advanced reasoning, and comprehensive multimodal support.
+    provider: ANTHROPIC
+    model_name: claude-3-7-sonnet-20250219
+    cost_per_1m_input_tokens: 3
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_3_haiku_20240307:
+    description: Claude 3 Haiku is the fastest and most cost-effective model in the
+      Claude 3 family, optimized for speed while maintaining strong performance.
+    provider: ANTHROPIC
+    model_name: claude-3-haiku-20240307
+    cost_per_1m_input_tokens: 0.25
+    cost_per_1m_output_tokens: 1.25
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_3_opus_20240229:
+    description: Claude 3 Opus is Anthropic's most powerful model with exceptional
+      reasoning, analysis, and complex task capabilities including advanced tool use.
+    provider: ANTHROPIC
+    model_name: claude-3-opus-20240229
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 75
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Open QA
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_3_sonnet_20240229:
+    description: Claude 3 Sonnet balances intelligence and speed for complex reasoning
+      and analysis tasks with multimodal capabilities and tool use.
+    provider: ANTHROPIC
+    model_name: claude-3-sonnet-20240229
+    cost_per_1m_input_tokens: 3
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_instant_1:
+    description: Claude Instant 1 is a conversational AI model designed for interactive
+      dialogue and text generation tasks.
+    provider: ANTHROPIC
+    model_name: claude-instant-1
+    cost_per_1m_input_tokens: 1.63
+    cost_per_1m_output_tokens: 55.1
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Chatbot
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.8
+      enriched_at: 1754742579.11362
+  claude_instant_1_2:
+    description: Claude Instant 1.2 is a conversational AI model optimized for quick
+      and efficient interactions, designed to handle a variety of text generation
+      tasks with a focus on responsiveness.
+    provider: ANTHROPIC
+    model_name: claude-instant-1.2
+    cost_per_1m_input_tokens: 1.63
+    cost_per_1m_output_tokens: 5.51
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Chatbot
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.8
+      enriched_at: 1754742581.788666
+  claude_opus_4_1_20250805:
+    description: Claude Opus 4.1 is Anthropic's most advanced model with exceptional
+      reasoning, analysis capabilities, and sophisticated tool use for complex tasks.
+    provider: ANTHROPIC
+    model_name: claude-opus-4-1-20250805
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 75
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Open QA
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_opus_4_20250514:
+    description: Claude Opus 4 represents Anthropic's flagship model with superior
+      reasoning, complex analysis capabilities, and advanced multimodal understanding.
+    provider: ANTHROPIC
+    model_name: claude-opus-4-20250514
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 75
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Open QA
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_sonnet_4_20250514:
+    description: Claude Sonnet 4 balances high intelligence with efficiency, featuring
+      advanced reasoning and comprehensive tool use capabilities.
+    provider: ANTHROPIC
+    model_name: claude-sonnet-4-20250514
+    cost_per_1m_input_tokens: 3
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - French
+    - German
+    - Spanish
+    - Italian
+    - Portuguese
+    - Chinese
+    - Japanese
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Code Generation
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  claude_v1:
+    description: Claude v1 is a language model developed by Anthropic, designed for
+      various natural language processing tasks.
+    provider: ANTHROPIC
+    model_name: claude-v1
+    cost_per_1m_input_tokens: 8
+    cost_per_1m_output_tokens: 24
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.8
+      enriched_at: 1754742584.153604

@@ -1,0 +1,76 @@
+provider_info:
+  name: AWS
+  total_models: 4
+  data_source: https://helicone.ai/api/llm-costs?provider=aws
+  last_updated: '2025-08-06'
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  amazon.nova_lite_v1_3A0:
+    description: ''
+    provider: AWS
+    model_name: amazon.nova-lite-v1%3A0
+    cost_per_1m_input_tokens: 78.0
+    cost_per_1m_output_tokens: 312.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  amazon.nova_micro_v1_3A0:
+    description: ''
+    provider: AWS
+    model_name: amazon.nova-micro-v1%3A0
+    cost_per_1m_input_tokens: 46.0
+    cost_per_1m_output_tokens: 184.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  amazon.nova_pro_v1_3A0:
+    description: ''
+    provider: AWS
+    model_name: amazon.nova-pro-v1%3A0
+    cost_per_1m_input_tokens: 1050.0
+    cost_per_1m_output_tokens: 4200.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+  meta.llama3_8b_instruct_v1_3A0:
+    description: ''
+    provider: AWS
+    model_name: meta.llama3-8b-instruct-v1%3A0
+    cost_per_1m_input_tokens: 220.0
+    cost_per_1m_output_tokens: 720.0
+    max_context_tokens: null
+    max_output_tokens: null
+    supports_function_calling: null
+    languages_supported: []
+    model_size_params: ''
+    latency_tier: ''
+    task_type: ''
+    complexity: ''
+    metadata:
+      matching_operator: equals
+      available_in_playground: null

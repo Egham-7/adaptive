@@ -2,6 +2,7 @@
 
 from typing import Any
 
+import cachetools
 import numpy as np
 
 from adaptive_ai.models.llm_core_models import ModelCapability, ModelEntry
@@ -18,8 +19,12 @@ class CostOptimizer:
             strategy: Optimization strategy ("sigmoid" or future "ml_model")
         """
         self.strategy = strategy
-        self._cost_cache: dict[tuple[str, int, float], float] = {}
-        self._tier_cache: dict[str, str] = {}
+        self._cost_cache: cachetools.LRUCache[str, float] = cachetools.LRUCache(
+            maxsize=10000
+        )
+        self._tier_cache: cachetools.LRUCache[str, str] = cachetools.LRUCache(
+            maxsize=1000
+        )
 
         # Strategy configuration
         self._tier_scores = {
@@ -44,15 +49,18 @@ class CostOptimizer:
     ) -> float:
         """Calculate estimated cost for a model based on token usage."""
         # Check cache first
-        cache_key = (model_capability.model_name, input_tokens, output_ratio)
-        if cache_key in self._cost_cache:
-            return self._cost_cache[cache_key]
+        cache_key = str(
+            (model_capability.model_name, input_tokens, f"{output_ratio:.3f}")
+        )
+        cached_result = self._cost_cache.get(cache_key)
+        if cached_result is not None:
+            return float(cached_result)
 
         tokens = np.array([input_tokens, input_tokens * output_ratio])
         costs = np.array(
             [
-                model_capability.cost_per_1m_input_tokens,
-                model_capability.cost_per_1m_output_tokens,
+                model_capability.cost_per_1m_input_tokens or 0.0,
+                model_capability.cost_per_1m_output_tokens or 0.0,
             ]
         )
 
@@ -63,8 +71,9 @@ class CostOptimizer:
     def get_cost_tier(self, model_capability: ModelCapability) -> str:
         """Classify model tier based on output token cost."""
         # Check cache first
-        if model_capability.model_name in self._tier_cache:
-            return self._tier_cache[model_capability.model_name]
+        cached_tier = self._tier_cache.get(model_capability.model_name)
+        if cached_tier is not None:
+            return str(cached_tier)
 
         cost = model_capability.cost_per_1m_output_tokens
         index = int(np.searchsorted(self._tier_thresholds, cost or 0.5))
@@ -81,7 +90,7 @@ class CostOptimizer:
         self,
         model_entries: list[ModelEntry],
         cost_bias: float,
-        model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+        model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
         estimated_tokens: int,
     ) -> list[ModelEntry]:
         """Rank models using current optimization strategy."""
@@ -97,7 +106,7 @@ class CostOptimizer:
         self,
         model_entries: list[ModelEntry],
         cost_bias: float,
-        model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+        model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
         estimated_tokens: int,
     ) -> list[ModelEntry]:
         """Rank models using sigmoid cost-performance weighting."""
@@ -106,6 +115,8 @@ class CostOptimizer:
 
         # Extract model data
         model_data = []
+        entries_without_cost_data = []
+
         for entry in model_entries:
             if not entry.providers:
                 continue
@@ -114,7 +125,12 @@ class CostOptimizer:
                 cost = self.calculate_model_cost(model_cap, estimated_tokens)
                 tier = self.get_cost_tier(model_cap)
                 model_data.append((entry, cost, tier))
+            else:
+                # Custom provider without cost data - preserve original order
+                entries_without_cost_data.append(entry)
+
         if not model_data:
+            # No models have cost data, return original order
             return model_entries
 
         # Vectorized calculations
@@ -138,12 +154,15 @@ class CostOptimizer:
 
         # Sort by scores (descending)
         sorted_indices = np.argsort(final_scores)[::-1]
-        return [model_data[i][0] for i in sorted_indices]
+        sorted_entries = [model_data[i][0] for i in sorted_indices]
+
+        # Append entries without cost data at the end
+        return sorted_entries + entries_without_cost_data
 
     def get_cost_analysis(
         self,
         model_entries: list[ModelEntry],
-        model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+        model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
         estimated_tokens: int,
     ) -> dict[str, Any]:
         """Get comprehensive cost analysis for a list of models."""
@@ -164,10 +183,15 @@ class CostOptimizer:
                 cost = self.calculate_model_cost(model_cap, estimated_tokens)
                 tier = self.get_cost_tier(model_cap)
 
+                provider_value = (
+                    entry.providers[0].value
+                    if hasattr(entry.providers[0], "value")
+                    else str(entry.providers[0])
+                )
                 model_costs.append(
                     {
                         "model_name": entry.model_name,
-                        "provider": entry.providers[0].value,
+                        "provider": provider_value,
                         "cost": cost,
                         "tier": tier,
                         "cost_per_1m_input": model_cap.cost_per_1m_input_tokens,
@@ -204,6 +228,20 @@ class CostOptimizer:
         self._cost_cache.clear()
         self._tier_cache.clear()
 
+    @property
+    def cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics."""
+        return {
+            "cost_cache": {
+                "size": self._cost_cache.currsize,
+                "max_size": self._cost_cache.maxsize,
+            },
+            "tier_cache": {
+                "size": self._tier_cache.currsize,
+                "max_size": self._tier_cache.maxsize,
+            },
+        }
+
     def set_strategy(self, strategy: str) -> None:
         """Change optimization strategy."""
         if strategy not in ["sigmoid"]:  # Future: add "ml_model"
@@ -220,11 +258,11 @@ class CostOptimizer:
     #     pass
 
 
-# Global instance for backward compatibility and shared caching
+# Global instance for shared caching
 _default_optimizer = CostOptimizer()
 
 
-# Backward compatibility functions that use the global optimizer
+# Global functions that use the shared optimizer instance
 def sigmoid_cost_bias(cost_bias: float) -> float:
     """Convert cost_bias (0-1) to sigmoid for smooth cost-performance interpolation."""
     return _default_optimizer.sigmoid_cost_bias(cost_bias)
@@ -252,7 +290,7 @@ def get_performance_score_by_tier(tier: str) -> float:
 def rank_models_by_cost_performance(
     model_entries: list[ModelEntry],
     cost_bias: float,
-    model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+    model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
     estimated_tokens: int,
 ) -> list[ModelEntry]:
     """Rank models using sigmoid cost-performance weighting."""
@@ -263,7 +301,7 @@ def rank_models_by_cost_performance(
 
 def get_cost_analysis(
     model_entries: list[ModelEntry],
-    model_capabilities: dict[tuple[ProviderType, str], ModelCapability],
+    model_capabilities: dict[tuple[ProviderType | str, str], ModelCapability],
     estimated_tokens: int,
 ) -> dict[str, Any]:
     """Get cost analysis for a list of models."""

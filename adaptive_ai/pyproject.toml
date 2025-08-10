@@ -48,6 +48,16 @@ dependencies = [
     "accelerate>=1.8.1,<2",
     "cachetools>=5.3.0,<7",
     "openai>=1.97.1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "beautifulsoup4>=4.13.4",
+    "lxml>=6.0.0",
+    "langgraph>=0.2.68,<0.3",
+    "langchain-openai>=0.3.0,<0.4",
+    "langchain-anthropic>=0.3.0,<0.4",
+    "httpx>=0.25.0,<1.0",
+    "aiohttp>=3.8.0,<4.0",
+    "langchain-community>=0.3.27",
 ]
 
 [project.urls]
@@ -139,6 +149,15 @@ warn_return_any = true
 strict_equality = true
 show_error_codes = true
 follow_imports = "silent"
+exclude = [
+    "benchmarks",
+    "analysis",
+    "adaptive-app",
+    "adaptive-backend", 
+    "adaptive-docs",
+    "model_data/agent",
+    "model_data/update_from_helicone.py"
+]
 
 [[tool.mypy.overrides]]
 module = [
