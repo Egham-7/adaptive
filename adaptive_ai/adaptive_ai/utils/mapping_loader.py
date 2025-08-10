@@ -5,7 +5,6 @@ Loads provider models, task mappings, and domain mappings from centralized YAML 
 
 import logging
 from pathlib import Path
-from threading import Lock
 from typing import Any, cast
 
 import yaml
@@ -24,21 +23,14 @@ class MappingLoader:
         """Initialize the mapping loader."""
         self._data: dict[str, Any] = {}
         self._loaded = False
-        self._load_lock = Lock()
 
     def load_mappings(self) -> None:
         """Load mappings from YAML file."""
-        # Double-checked locking pattern for thread safety
         if self._loaded:
             return
 
-        with self._load_lock:
-            # Check again in case another thread loaded while we were waiting
-            if self._loaded:
-                return
-
-            self._load_yaml_data()
-            self._loaded = True
+        self._load_yaml_data()
+        self._loaded = True
 
     def _load_yaml_data(self) -> None:
         """Load data from YAML file."""
