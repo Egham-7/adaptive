@@ -1,6 +1,6 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { ChevronDown, Loader2 } from "lucide-react";
 import Link, { useLinkStatus } from "next/link";
 import { Button } from "@/components/ui/button";
@@ -54,18 +54,18 @@ export function UserActions() {
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuItem asChild>
-								<SignInButton signUpForceRedirectUrl="/chat-platform">
+								<Link href="/sign-in?redirect_url=/chat-platform">
 									<Button variant="ghost" className="w-full justify-start">
 										Chatbot App
 									</Button>
-								</SignInButton>
+								</Link>
 							</DropdownMenuItem>
 							<DropdownMenuItem asChild>
-								<SignInButton signUpForceRedirectUrl="/api-platform/organizations">
+								<Link href="/sign-in?redirect_url=/api-platform/organizations">
 									<Button variant="ghost" className="w-full justify-start">
 										API Platform
 									</Button>
-								</SignInButton>
+								</Link>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -82,18 +82,18 @@ export function UserActions() {
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuItem asChild>
-								<SignUpButton signInForceRedirectUrl="/chat-platform">
+								<Link href="/sign-up?redirect_url=/chat-platform">
 									<Button variant="ghost" className="w-full justify-start">
 										Chatbot App
 									</Button>
-								</SignUpButton>
+								</Link>
 							</DropdownMenuItem>
 							<DropdownMenuItem asChild>
-								<SignUpButton signInForceRedirectUrl="/api-platform/organizations">
+								<Link href="/sign-up?redirect_url=/api-platform/organizations">
 									<Button variant="ghost" className="w-full justify-start">
 										API Platform
 									</Button>
-								</SignUpButton>
+								</Link>
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>

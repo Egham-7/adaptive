@@ -1,6 +1,6 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -80,7 +80,7 @@ export function MobileHeader() {
 						{/* Auth Buttons */}
 						<div className="flex w-full max-w-xs flex-col items-center space-y-4">
 							<SignedOut>
-								<SignInButton signUpForceRedirectUrl="/chat-platform">
+								<Link href="/sign-in?redirect_url=/chat-platform">
 									<Button
 										variant="outline"
 										size="lg"
@@ -89,9 +89,9 @@ export function MobileHeader() {
 									>
 										Sign In - Chat App
 									</Button>
-								</SignInButton>
+								</Link>
 
-								<SignInButton signUpForceRedirectUrl="/api-platform/organizations">
+								<Link href="/sign-in?redirect_url=/api-platform/organizations">
 									<Button
 										variant="outline"
 										size="lg"
@@ -100,21 +100,21 @@ export function MobileHeader() {
 									>
 										Sign In - API Platform
 									</Button>
-								</SignInButton>
+								</Link>
 
 								<div className="my-2 h-px w-full bg-border" />
 
-								<SignUpButton signInForceRedirectUrl="/chat-platform">
+								<Link href="/sign-up?redirect_url=/chat-platform">
 									<Button size="lg" className="w-full" onClick={closeMenu}>
 										Get Started - Chat App
 									</Button>
-								</SignUpButton>
+								</Link>
 
-								<SignUpButton signInForceRedirectUrl="/api-platform/organizations">
+								<Link href="/sign-up?redirect_url=/api-platform/organizations">
 									<Button size="lg" className="w-full" onClick={closeMenu}>
 										Get Started - API Platform
 									</Button>
-								</SignUpButton>
+								</Link>
 							</SignedOut>
 
 							<SignedIn>
