@@ -35,6 +35,7 @@ import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateOrganization } from "@/hooks/organizations/use-create-organization";
 import { useCreateProject } from "@/hooks/projects/use-create-project";
+import { setLastProject } from "@/hooks/use-smart-redirect";
 import type {
 	OrganizationCreateResponse,
 	ProjectCreateResponse,
@@ -104,6 +105,10 @@ export default function OnboardingPage() {
 			{
 				onSuccess: (data) => {
 					setCreatedProject(data);
+					// Update localStorage with the created organization and project
+					if (createdOrganization) {
+						setLastProject(createdOrganization.id, data.id);
+					}
 					setCurrentStep("complete");
 				},
 

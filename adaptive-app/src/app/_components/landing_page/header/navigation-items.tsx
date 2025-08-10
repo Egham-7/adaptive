@@ -14,6 +14,7 @@ export type IconMenuItem = {
 };
 
 export const menuItems: MenuItem[] = [
+	{ name: "Home", href: "/" },
 	{ name: "Features", href: "/features" },
 	{ name: "Solution", href: "/solution" },
 	{ name: "Pricing", href: "/pricing" },

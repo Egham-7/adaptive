@@ -6,10 +6,12 @@ import { Rocket } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TextRotate } from "@/components/ui/text-rotate";
+import { useSmartRedirect } from "@/hooks/use-smart-redirect";
 import AnimatedBeamGraph from "./animated-beam-graph";
 
 export default function HeroSection() {
 	const rotatingTexts = ["Intelligent Inference", "Cost Effective AI"];
+	const redirectPath = useSmartRedirect();
 
 	return (
 		<section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white dark:bg-neutral-950">
@@ -70,7 +72,7 @@ export default function HeroSection() {
 				<fieldset className="mt-8 flex flex-col justify-center gap-4 border-0 p-0 md:flex-row">
 					<legend className="sr-only">Hero actions</legend>
 					<SignedOut>
-						<SignUpButton signInForceRedirectUrl="/chat-platform">
+						<SignUpButton signInForceRedirectUrl="/api-platform/organizations">
 							<Button
 								size="lg"
 								className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
@@ -81,16 +83,27 @@ export default function HeroSection() {
 						</SignUpButton>
 					</SignedOut>
 					<SignedIn>
-						<Button
-							size="lg"
-							className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
-							asChild
-						>
-							<Link href="/chat-platform">
+						{redirectPath ? (
+							<Button
+								size="lg"
+								className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
+								asChild
+							>
+								<Link href={redirectPath}>
+									<Rocket className="relative mr-2 size-4" aria-hidden="true" />
+									Go to Dashboard
+								</Link>
+							</Button>
+						) : (
+							<Button
+								size="lg"
+								className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
+								disabled
+							>
 								<Rocket className="relative mr-2 size-4" aria-hidden="true" />
 								Go to Dashboard
-							</Link>
-						</Button>
+							</Button>
+						)}
 					</SignedIn>
 					<Button
 						variant="outline"
@@ -98,7 +111,7 @@ export default function HeroSection() {
 						className="border-primary text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
 						asChild
 					>
-						<a href="#features">Learn More</a>
+						<Link href="/features">Learn More</Link>
 					</Button>
 				</fieldset>
 			</div>
