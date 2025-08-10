@@ -1,11 +1,6 @@
 # mypy: disable-error-code=import
 from typing import Any
 
-from adaptive_ai.config import (
-    minion_domains,
-    provider_model_capabilities,
-    task_model_mappings_data,
-)
 from adaptive_ai.models.llm_classification_models import (
     ClassificationResult,
     DomainClassificationResult,
@@ -17,9 +12,15 @@ from adaptive_ai.models.llm_core_models import (
 )
 from adaptive_ai.models.llm_enums import ProviderType, TaskType
 from adaptive_ai.models.unified_model import Model
+from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.unified_model_selector import (
     ModelSelector as UnifiedModelSelector,
 )
+from adaptive_ai.utils.mapping_loader import mapping_loader
+
+# Load mappings directly from YAML
+minion_domains = mapping_loader.get_domain_mappings()
+task_model_mappings_data = mapping_loader.get_task_mappings()
 
 
 class LitLoggerProtocol:
@@ -28,29 +29,24 @@ class LitLoggerProtocol:
 
 class ModelSelectionService:
     def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
-        # Use frozenset for faster lookups and immutable keys
-        self._all_model_capabilities_by_id: dict[
-            tuple[ProviderType, str], ModelCapability
-        ] = {
-            (m_cap.provider, m_cap.model_name): m_cap
-            for provider_list in provider_model_capabilities.values()
-            for m_cap in provider_list
-        }
+        # Set up logging first to enable error handling during initialization
+        self.lit_logger: LitLoggerProtocol | None = lit_logger
 
+        # Build model capabilities from YAML database via model registry
+        self._all_model_capabilities_by_id: dict[tuple[str, str], ModelCapability] = {}
         # Cache for eligible providers per model and token count (optimized with token bucketing)
-        self._eligible_providers_cache: dict[
-            tuple[str, int], frozenset[ProviderType]
-        ] = {}
+        self._eligible_providers_cache: dict[str, frozenset[ProviderType | str]] = {}
 
         # Pre-computed mapping of models to their available providers (frozenset for O(1) lookups)
-        self._model_to_providers: dict[str, frozenset[ProviderType]] = {}
+        self._model_to_providers: dict[str, frozenset[ProviderType | str]] = {}
 
         # Pre-computed reverse mapping: provider -> models for faster filtering
-        self._provider_to_models: dict[ProviderType, frozenset[str]] = {}
+        self._provider_to_models: dict[ProviderType | str, frozenset[str]] = {}
 
         # Pre-computed context length lookup for faster capability checks
-        self._model_context_limits: dict[tuple[ProviderType, str], int] = {}
+        self._model_context_limits: dict[tuple[str, str], int] = {}
 
+        self._build_capabilities_from_registry()
         self._build_optimized_caches()
 
         # Performance metrics
@@ -61,8 +57,6 @@ class ModelSelectionService:
             "model_usage": {},
             "performance_times": [],
         }
-
-        self.lit_logger: LitLoggerProtocol | None = lit_logger
         self.log(
             "model_selection_service_init",
             {
@@ -76,16 +70,128 @@ class ModelSelectionService:
         if self.lit_logger:
             self.lit_logger.log(key, value)
 
+    def _build_capabilities_from_registry(self) -> None:
+        """Build model capabilities from YAML database via model registry."""
+        from adaptive_ai.services.yaml_model_loader import yaml_model_db
+
+        successful_models = 0
+        failed_models = 0
+
+        # Load YAML models with error handling
+        try:
+            yaml_model_db.load_models()
+            self.log("yaml_models_loaded", {"status": "success"})
+        except Exception as e:
+            self.log(
+                "yaml_models_load_failed",
+                {
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "impact": "Service will continue with reduced model availability",
+                },
+            )
+            # Continue with empty registry - service can still function
+
+        # Get all models from registry with error handling
+        try:
+            all_models = model_registry.get_all_valid_models()
+            self.log("registry_models_discovered", {"total_models": len(all_models)})
+        except Exception as e:
+            self.log(
+                "registry_access_failed",
+                {
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "impact": "No models will be available from registry",
+                },
+            )
+            # Continue with empty model set - graceful degradation
+            all_models = set()
+
+        # Load individual model capabilities with error handling
+        for model_name in all_models:
+            try:
+                capability = model_registry.get_model_capability(model_name)
+                if capability:
+                    # Normalize provider key for consistent lookup
+                    provider_key = (
+                        capability.provider.value
+                        if hasattr(capability.provider, "value")
+                        else str(capability.provider)
+                    )
+                    self._all_model_capabilities_by_id[
+                        (provider_key, capability.model_name)
+                    ] = capability
+                    successful_models += 1
+                else:
+                    failed_models += 1
+                    self.log(
+                        "model_capability_none",
+                        {
+                            "model_name": model_name,
+                            "reason": "Registry returned None capability",
+                        },
+                    )
+            except Exception as e:
+                failed_models += 1
+                self.log(
+                    "model_capability_load_failed",
+                    {
+                        "model_name": model_name,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+                # Continue with next model - partial success is acceptable
+
+        # Log final loading statistics
+        total_attempted = successful_models + failed_models
+        if total_attempted == 0:
+            self.log(
+                "registry_loading_complete",
+                {
+                    "status": "no_models_attempted",
+                    "warning": "No models were available to load from registry",
+                },
+            )
+        elif successful_models == 0:
+            self.log(
+                "registry_loading_complete",
+                {
+                    "status": "all_failed",
+                    "successful_models": 0,
+                    "failed_models": failed_models,
+                    "warning": "All model capability loading failed - service will have limited functionality",
+                },
+            )
+        else:
+            success_rate = successful_models / total_attempted
+            self.log(
+                "registry_loading_complete",
+                {
+                    "status": "partial_success" if failed_models > 0 else "success",
+                    "successful_models": successful_models,
+                    "failed_models": failed_models,
+                    "success_rate": round(success_rate, 3),
+                    "total_capabilities_loaded": len(
+                        self._all_model_capabilities_by_id
+                    ),
+                },
+            )
+
     def _build_optimized_caches(self) -> None:
         """Pre-compute optimized lookup structures for faster model selection."""
         # Temporary builders using sets for O(1) operations during construction
-        model_providers_builder: dict[str, set[ProviderType]] = {}
-        provider_models_builder: dict[ProviderType, set[str]] = {}
+        model_providers_builder: dict[str, set[ProviderType | str]] = {}
+        provider_models_builder: dict[ProviderType | str, set[str]] = {}
 
         for (
-            provider,
+            provider_key,
             model_name,
         ), capability in self._all_model_capabilities_by_id.items():
+            # Get the original provider object from capability
+            provider = capability.provider
+
             # Build model -> providers mapping
             if model_name not in model_providers_builder:
                 model_providers_builder[model_name] = set()
@@ -96,8 +202,8 @@ class ModelSelectionService:
                 provider_models_builder[provider] = set()
             provider_models_builder[provider].add(model_name)
 
-            # Pre-compute context limits for O(1) capability checks
-            self._model_context_limits[(provider, model_name)] = (
+            # Pre-compute context limits for O(1) capability checks - use the string key
+            self._model_context_limits[(provider_key, model_name)] = (
                 capability.max_context_tokens or 4096
             )
 
@@ -114,13 +220,13 @@ class ModelSelectionService:
     def _get_eligible_providers_for_model(
         self,
         model_entry: ModelEntry,
-        eligible_providers: frozenset[ProviderType],
+        eligible_providers: frozenset[ProviderType | str],
         prompt_token_count: int,
-    ) -> list[ProviderType]:
+    ) -> list[ProviderType | str]:
         """Get eligible providers for a model that meet capability requirements (optimized)."""
         # Optimize cache key with larger buckets for better hit rate
         token_bucket = (prompt_token_count // 2000) * 2000  # 2K token buckets
-        cache_key = (model_entry.model_name, token_bucket)
+        cache_key = str((model_entry.model_name, token_bucket))
 
         # Check cache first - use frozenset intersection for O(1) filtering
         if cache_key in self._eligible_providers_cache:
@@ -135,15 +241,48 @@ class ModelSelectionService:
         )
 
         # Fast set intersection to get candidate providers
-        candidate_providers = frozenset(model_entry.providers) & available_providers
+        # Normalize both sets to strings for proper intersection
+        model_providers_str = frozenset(
+            p.value if hasattr(p, "value") else str(p) for p in model_entry.providers
+        )
+        available_providers_str = frozenset(
+            p.value if hasattr(p, "value") else str(p) for p in available_providers
+        )
+        candidate_providers_str = model_providers_str & available_providers_str
+
+        # Convert back to registry provider objects for consistency
+        # IMPORTANT: Use available_providers (from registry) instead of model_entry.providers
+        # to ensure consistent enum objects for later lookups and avoid string/enum mismatches
+        candidate_providers = frozenset(
+            p
+            for p in available_providers
+            if (p.value if hasattr(p, "value") else str(p)) in candidate_providers_str
+        )
+
+        # If no registry providers found, assume custom model and use available_providers if possible
+        if not candidate_providers:
+            # Prefer available_providers (registry enums) over model_entry.providers (may be strings)
+            candidate_providers = (
+                available_providers
+                if available_providers
+                else frozenset(model_entry.providers)
+            )
 
         # Check context limits using pre-computed lookup
         token_eligible_providers = set()
         for provider in candidate_providers:
-            context_limit = self._model_context_limits.get(
-                (provider, model_entry.model_name)
+            # Normalize provider key for consistent lookup
+            provider_key = (
+                provider.value if hasattr(provider, "value") else str(provider)
             )
+            context_limit = self._model_context_limits.get(
+                (provider_key, model_entry.model_name)
+            )
+            # For custom models without registry data, trust the user's specification
             if context_limit and context_limit >= prompt_token_count:
+                token_eligible_providers.add(provider)
+            elif not context_limit:
+                # No registry data - assume custom model can handle the tokens
                 token_eligible_providers.add(provider)
 
         # Cache as frozenset for future intersections
@@ -151,8 +290,8 @@ class ModelSelectionService:
         self._eligible_providers_cache[cache_key] = token_eligible_frozenset
 
         # Return intersection with current eligible providers
-        result_set = token_eligible_frozenset & eligible_providers
-        return list(result_set)
+        result_set = token_eligible_frozenset & frozenset(eligible_providers)
+        return list(result_set)  # type: ignore
 
     def get_cache_stats(self) -> dict[str, Any]:
         """Get caching performance statistics."""
@@ -168,18 +307,24 @@ class ModelSelectionService:
             ),
         }
 
+    @property
+    def cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics in consistent format."""
+        return {
+            "eligible_providers_cache": {
+                "size": len(self._eligible_providers_cache),
+                "total_models_tracked": len(self._model_to_providers),
+            }
+        }
+
     def clear_cache(self) -> None:
         """Clear the eligible providers cache (useful for testing or memory management)."""
         self._eligible_providers_cache.clear()
         self.log("cache_cleared", {"cache_type": "eligible_providers"})
 
     def _get_default_models(self) -> list[ModelCapability]:
-        """Get default model capabilities from provider configuration"""
-        return [
-            model
-            for provider_models in provider_model_capabilities.values()
-            for model in provider_models
-        ]
+        """Get default model capabilities from YAML database"""
+        return list(self._all_model_capabilities_by_id.values())
 
     def _use_user_specified_models(
         self,
@@ -196,45 +341,23 @@ class ModelSelectionService:
         # Convert all ModelCapability objects to ModelEntry objects
         for model_capability in user_models:
             try:
-                # Handle both ProviderType enum and custom provider strings
-                if isinstance(model_capability.provider, ProviderType):
-                    provider_type = model_capability.provider
-                else:
-                    # Try to convert to ProviderType, but if custom provider, use a fallback
-                    try:
-                        provider_type = ProviderType(model_capability.provider)
-                    except ValueError:
-                        # Custom provider like "botir" - use openai as fallback for routing
-                        # The actual provider will be handled by protocol manager
-                        provider_type = ProviderType.OPENAI
-                        self.log(
-                            "custom_provider_fallback",
-                            {
-                                "original_provider": model_capability.provider,
-                                "model": model_capability.model_name,
-                                "fallback_provider": "openai",
-                            },
-                        )
+                # Use the provider directly - no fallback needed
+                # Supports both ProviderType enum and custom provider strings
+                provider = model_capability.provider
 
                 model_entry = ModelEntry(
-                    providers=[provider_type], model_name=model_capability.model_name
+                    providers=[provider], model_name=model_capability.model_name
                 )
-                # Store original provider info for custom models
-                if (
-                    hasattr(model_capability, "provider")
-                    and str(model_capability.provider) != provider_type.value
-                ):
-                    # Add original provider as metadata
-                    model_entry._original_provider = str(model_capability.provider)
-                    self.log(
-                        "original_provider_stored",
-                        {
-                            "model": model_capability.model_name,
-                            "original_provider": str(model_capability.provider),
-                            "fallback_provider": provider_type.value,
-                        },
-                    )
                 model_entries.append(model_entry)
+
+                self.log(
+                    "user_model_added",
+                    {
+                        "provider": str(provider),
+                        "model": model_capability.model_name,
+                        "provider_type": type(provider).__name__,
+                    },
+                )
             except Exception as e:
                 self.log(
                     "model_entry_error",
@@ -254,7 +377,8 @@ class ModelSelectionService:
             "user_specified_models_initial",
             {
                 "models": [
-                    f"{m.providers[0].value}:{m.model_name}" for m in model_entries
+                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}"
+                    for m in model_entries
                 ],
                 "count": len(model_entries),
                 "prompt_token_count": prompt_token_count,
@@ -265,7 +389,7 @@ class ModelSelectionService:
         # PIPELINE STEP 1: Apply capability constraints (context length, etc.)
         eligible_providers = frozenset(m.providers[0] for m in model_entries)
         candidate_models = self._apply_capability_constraints(
-            model_entries, eligible_providers, prompt_token_count
+            model_entries, eligible_providers, prompt_token_count  # type: ignore
         )
 
         # PIPELINE STEP 2: Apply cost optimization
@@ -277,10 +401,15 @@ class ModelSelectionService:
         if not candidate_models:
             # Fallback to first user-specified model
             candidate_models = [model_entries[0]]
+            provider_str = (
+                model_entries[0].providers[0].value
+                if hasattr(model_entries[0].providers[0], "value")
+                else model_entries[0].providers[0]
+            )
             self.log(
                 "user_models_pipeline_fallback",
                 {
-                    "fallback_model": f"{model_entries[0].providers[0].value}:{model_entries[0].model_name}",
+                    "fallback_model": f"{provider_str}:{model_entries[0].model_name}",
                     "reason": "No user models passed pipeline constraints",
                     "original_count": len(model_entries),
                     "prompt_token_count": prompt_token_count,
@@ -295,7 +424,8 @@ class ModelSelectionService:
             "user_specified_models_final",
             {
                 "models": [
-                    f"{m.providers[0].value}:{m.model_name}" for m in candidate_models
+                    f"{m.providers[0].value if hasattr(m.providers[0], 'value') else m.providers[0]}:{m.model_name}"
+                    for m in candidate_models
                 ],
                 "count": len(candidate_models),
                 "filtered_count": len(model_entries) - len(candidate_models),
@@ -329,7 +459,10 @@ class ModelSelectionService:
         )
 
         # PIPELINE STEP 1: Apply capability constraints (context length, etc.)
-        eligible_providers = frozenset(provider_model_capabilities.keys())
+        eligible_providers = frozenset(
+            capability.provider
+            for capability in self._all_model_capabilities_by_id.values()
+        )
         candidate_models = self._apply_capability_constraints(
             candidate_models, eligible_providers, prompt_token_count
         )
@@ -396,7 +529,7 @@ class ModelSelectionService:
         optimized_models = rank_models_by_cost_performance(
             model_entries=candidate_models,
             cost_bias=cost_bias,
-            model_capabilities=self._all_model_capabilities_by_id,
+            model_capabilities=self._all_model_capabilities_by_id,  # type: ignore
             estimated_tokens=prompt_token_count,
         )
 
@@ -460,7 +593,7 @@ class ModelSelectionService:
     def _apply_capability_constraints(
         self,
         candidate_models: list[ModelEntry],
-        eligible_providers: frozenset[ProviderType],
+        eligible_providers: frozenset[ProviderType | str],
         prompt_token_count: int,
     ) -> list[ModelEntry]:
         """Filter models based on capability constraints like context length."""
@@ -479,7 +612,7 @@ class ModelSelectionService:
             if eligible_providers_for_model:
                 # Create new ModelEntry with only eligible providers
                 filtered_entry = ModelEntry(
-                    providers=eligible_providers_for_model,
+                    providers=list(eligible_providers_for_model),
                     model_name=model_entry.model_name,
                 )
                 filtered_models.append(filtered_entry)
@@ -490,7 +623,8 @@ class ModelSelectionService:
                     {
                         "model": model_entry.model_name,
                         "eligible_providers": [
-                            p.value for p in eligible_providers_for_model
+                            p.value if hasattr(p, "value") else str(p)
+                            for p in eligible_providers_for_model
                         ],
                     },
                 )
@@ -529,7 +663,12 @@ class ModelSelectionService:
         for model_entry in candidate_models:
             if model_entry.providers:
                 first_provider = model_entry.providers[0]
-                model_key = f"{first_provider.value}:{model_entry.model_name}"
+                provider_str = (
+                    first_provider.value
+                    if hasattr(first_provider, "value")
+                    else str(first_provider)
+                )
+                model_key = f"{provider_str}:{model_entry.model_name}"
                 self.selection_metrics["model_usage"][model_key] = (
                     self.selection_metrics["model_usage"].get(model_key, 0) + 1
                 )
@@ -574,7 +713,11 @@ class ModelSelectionService:
         # Get alternatives (excluding the primary)
         alternatives = self.get_minion_alternatives(
             primary_minion=primary_entry.model_name,
-            primary_provider=primary_entry.providers[0].value,
+            primary_provider=(
+                primary_entry.providers[0].value
+                if hasattr(primary_entry.providers[0], "value")
+                else str(primary_entry.providers[0])
+            ),
         )
 
         # Return with primary first, then alternatives
@@ -586,7 +729,10 @@ class ModelSelectionService:
                 "domain": domain.value,
                 "confidence": domain_classification.confidence,
                 "primary_model": primary_entry.model_name,
-                "primary_providers": [p.value for p in primary_entry.providers],
+                "primary_providers": [
+                    p.value if hasattr(p, "value") else str(p)
+                    for p in primary_entry.providers
+                ],
                 "total_candidates": len(candidates),
             },
         )
@@ -610,7 +756,9 @@ class ModelSelectionService:
         for domain_entry in minion_domains.values():
             if domain_entry.model_name == primary_minion:
                 other_providers = [
-                    p for p in domain_entry.providers if p.value != primary_provider
+                    p
+                    for p in domain_entry.providers
+                    if (p.value if hasattr(p, "value") else str(p)) != primary_provider
                 ]
                 if other_providers:
                     alternatives.append(
@@ -645,7 +793,10 @@ class ModelSelectionService:
                 "alternatives": [
                     {
                         "model": alt.model_name,
-                        "providers": [p.value for p in alt.providers],
+                        "providers": [
+                            p.value if hasattr(p, "value") else str(p)
+                            for p in alt.providers
+                        ],
                     }
                     for alt in alternatives[:5]
                 ],
@@ -769,8 +920,13 @@ class ModelSelectionService:
 
                 # Handle partial models that need registry lookup
                 if model_cap.provider and model_cap.model_name:
-                    # Try registry lookup for partial models
-                    model_key = (model_cap.provider, model_cap.model_name)
+                    # Try registry lookup for partial models - normalize provider key
+                    provider_key = (
+                        model_cap.provider.value
+                        if hasattr(model_cap.provider, "value")
+                        else str(model_cap.provider)
+                    )
+                    model_key = (provider_key, model_cap.model_name)
                     full_capability = self._all_model_capabilities_by_id.get(model_key)
                     if full_capability:
                         enriched_capabilities.append(full_capability)
@@ -785,7 +941,7 @@ class ModelSelectionService:
                         )
 
                 elif model_cap.model_name and not model_cap.provider:
-                    # Search registry by model name only
+                    # Search registry by model name only - try hardcoded first
                     found_capability = None
                     for (
                         _,
@@ -795,6 +951,12 @@ class ModelSelectionService:
                             found_capability = capability
                             break
 
+                    # If not found in hardcoded registry, try YAML database
+                    if not found_capability:
+                        found_capability = model_registry.get_model_capability(
+                            model_cap.model_name
+                        )
+
                     if found_capability:
                         enriched_capabilities.append(found_capability)
                         self.log(
@@ -802,6 +964,15 @@ class ModelSelectionService:
                             {
                                 "model": model_cap.model_name,
                                 "provider": found_capability.provider,
+                                "source": (
+                                    "yaml_database"
+                                    if model_cap.model_name
+                                    not in [
+                                        mc[1]
+                                        for mc in self._all_model_capabilities_by_id.keys()
+                                    ]
+                                    else "hardcoded_registry"
+                                ),
                             },
                         )
                     else:
@@ -900,12 +1071,8 @@ class ModelSelectionService:
                     }
                     custom_models_dict.append(model_dict)
 
-        # Get registry models as ModelCapability objects
-        registry_capabilities = [
-            model
-            for provider_models in provider_model_capabilities.values()
-            for model in provider_models
-        ]
+        # Get registry models as ModelCapability objects from YAML database
+        registry_capabilities = list(self._all_model_capabilities_by_id.values())
 
         # Initialize unified selector
         unified_selector = UnifiedModelSelector(registry_capabilities)

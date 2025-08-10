@@ -1,4 +1,7 @@
+from threading import RLock
 from typing import Any, Protocol
+
+import cachetools
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import (
@@ -23,20 +26,31 @@ class ProtocolManager:
     def __init__(
         self,
         lit_logger: LitLoggerProtocol | None = None,
-        device: (
-            str | None
-        ) = None,  # Accept but ignore device parameter for compatibility
     ) -> None:
         self.lit_logger: LitLoggerProtocol | None = lit_logger
 
         # Cache for protocol decisions to avoid repeated computations
-        self._protocol_decision_cache: dict[tuple[float, float, int], bool] = {}
-        self._cache_max_size = 500
+        self._protocol_decision_cache: cachetools.LRUCache[tuple[float, float, int], bool] = (  # type: ignore[type-arg]
+            cachetools.LRUCache(maxsize=500)
+        )
+        # Thread safety lock for cache access
+        self._cache_lock = RLock()
 
         self.log(
             "protocol_manager_init",
-            {"rule_based": True, "device_ignored": device, "caching_enabled": True},
+            {"rule_based": True, "caching_enabled": True},
         )
+
+    @property
+    def cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics."""
+        with self._cache_lock:
+            return {
+                "protocol_decision_cache": {
+                    "size": self._protocol_decision_cache.currsize,
+                    "max_size": self._protocol_decision_cache.maxsize,
+                }
+            }
 
     def log(self, key: str, value: Any) -> None:
         if self.lit_logger:
@@ -73,31 +87,26 @@ class ProtocolManager:
                 token_threshold = request.protocol_manager_config.token_threshold
 
         # Create cache key based on actual decision factors
-        # Replace bools by int(bool) to get a tuple of floats and ints
-        cache_key = (
-            round(complexity_score, 2),
-            round(complexity_threshold, 2),
-            int(
-                complexity_score > complexity_threshold or token_count > token_threshold
-            ),
-        )
+        cache_key = (complexity_score, complexity_threshold, token_count)
 
-        # Check cache first
-        if cache_key in self._protocol_decision_cache:
-            return self._protocol_decision_cache[cache_key]
+        # Check cache first (thread-safe)
+        with self._cache_lock:
+            cached_result = self._protocol_decision_cache.get(cache_key)
+            if cached_result is not None:
+                return bool(cached_result)
 
         # Decision based on complexity score OR token length
         decision = (
             complexity_score > complexity_threshold or token_count > token_threshold
         )
 
-        # Cache the result if we have space
-        if len(self._protocol_decision_cache) < self._cache_max_size:
+        # Cache the result (LRU cache handles eviction automatically, thread-safe)
+        with self._cache_lock:
             self._protocol_decision_cache[cache_key] = decision
 
         return decision
 
-    def _select_best_protocol(
+    def select_best_protocol(
         self,
         classification_result: ClassificationResult,
         token_count: int,
@@ -117,6 +126,22 @@ class ProtocolManager:
         else:
             # Fallback to first available protocol
             return available_protocols[0]
+
+    def get_tuned_parameters(
+        self, classification_result: ClassificationResult, task_type: str
+    ) -> OpenAIParameters:
+        """Get OpenAI parameters tuned based on classification features.
+
+        Public interface for parameter tuning functionality.
+
+        Args:
+            classification_result: The classification result containing complexity scores
+            task_type: The task type string for parameter customization
+
+        Returns:
+            OpenAIParameters: Tuned parameters optimized for the given task and complexity
+        """
+        return self._get_tuned_parameters(classification_result, task_type)
 
     def _get_tuned_parameters(
         self, classification_result: ClassificationResult, task_type: str
