@@ -26,12 +26,9 @@ export default function ContentSection() {
 				<div className="grid gap-6 md:grid-cols-2 md:gap-12 lg:gap-24">
 					<div className="relative space-y-4">
 						<p className="text-muted-foreground">
-							Adaptive is more than just model routing.{" "}
-							<span className="font-bold text-accent-foreground">
-								It's an intelligent inference platform
-							</span>{" "}
-							— with smart protocols that handle your entire request flow
-							automatically.
+							Adaptive is more than just model routing. It's an intelligent
+							inference platform with smart protocols that handle your entire
+							request flow automatically.
 						</p>
 
 						<p className="text-muted-foreground">

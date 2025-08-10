@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { CreditManagement } from "@/app/_components/api-platform/organizations/credit-management";
@@ -63,6 +63,7 @@ import { useCreateProject } from "@/hooks/projects/use-create-project";
 import { useDeleteProject } from "@/hooks/projects/use-delete-project";
 import { useProjects } from "@/hooks/projects/use-projects";
 import { useUpdateProject } from "@/hooks/projects/use-update-project";
+import { setLastOrganization } from "@/hooks/use-smart-redirect";
 import type { OrganizationDetails, ProjectListItem } from "@/types";
 
 const createProjectSchema = z.object({
@@ -104,6 +105,13 @@ export default function OrganizationProjectsPage() {
 	const createProject = useCreateProject();
 	const updateProject = useUpdateProject();
 	const deleteProject = useDeleteProject();
+
+	// Track organization visit for smart redirect
+	useEffect(() => {
+		if (orgId) {
+			setLastOrganization(orgId);
+		}
+	}, [orgId]);
 
 	const createForm = useForm<z.infer<typeof createProjectSchema>>({
 		resolver: zodResolver(createProjectSchema),

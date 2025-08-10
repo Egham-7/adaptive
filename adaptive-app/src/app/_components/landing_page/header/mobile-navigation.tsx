@@ -3,6 +3,7 @@
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { ChevronDown } from "lucide-react";
 import Link, { useLinkStatus } from "next/link";
+import { usePathname } from "next/navigation";
 import { GitHubStarsButton } from "@/components/animate-ui/buttons/github-stars";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +12,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSmartRedirect } from "@/hooks/use-smart-redirect";
 import { ModeToggle } from "../../mode-toggle";
 import { iconMenuItems, menuItems } from "./navigation-items";
 
@@ -40,6 +42,9 @@ export function MobileNavigation({
 	menuState,
 	setMenuState,
 }: MobileNavigationProps) {
+	const pathname = usePathname();
+	const redirectPath = useSmartRedirect();
+
 	return (
 		<div
 			className={`fixed inset-0 z-25 ${menuState ? "block" : "hidden"} bg-background/70 backdrop-blur-md lg:hidden`}
@@ -52,28 +57,39 @@ export function MobileNavigation({
 			/>
 			<div className="relative flex min-h-full flex-col items-center justify-center space-y-8 p-6">
 				<ul className="space-y-4 text-center text-base">
-					{menuItems.map((item) => (
-						<li key={item.name}>
-							{item.external ? (
-								<a
-									href={item.href}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="block text-center text-muted-foreground duration-150 hover:text-accent-foreground"
-								>
-									<span>{item.name}</span>
-								</a>
-							) : (
-								<Link
-									href={item.href}
-									className="block text-center text-muted-foreground duration-150 hover:text-accent-foreground"
-									onClick={() => setMenuState(false)}
-								>
-									<span>{item.name}</span>
-								</Link>
-							)}
-						</li>
-					))}
+					{menuItems.map((item) => {
+						const isActive =
+							item.href === "/"
+								? pathname === item.href
+								: pathname.startsWith(item.href);
+						return (
+							<li key={item.name}>
+								{item.external ? (
+									<a
+										href={item.href}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="block text-center text-muted-foreground duration-150 hover:text-accent-foreground"
+									>
+										<span>{item.name}</span>
+									</a>
+								) : (
+									<Link
+										href={item.href}
+										className={`block text-center duration-150 hover:text-accent-foreground ${
+											isActive
+												? "font-medium text-primary"
+												: "text-muted-foreground"
+										}`}
+										onClick={() => setMenuState(false)}
+										aria-current={isActive ? "page" : undefined}
+									>
+										<span>{item.name}</span>
+									</Link>
+								)}
+							</li>
+						);
+					})}
 				</ul>
 
 				{/* Icon links and GitHub stars for mobile */}
@@ -175,7 +191,7 @@ export function MobileNavigation({
 								Chatbot App
 							</Button>
 						</LoadingLink>
-						<LoadingLink href="/api-platform/organizations">
+						<LoadingLink href={redirectPath || "/api-platform/organizations"}>
 							<Button
 								variant="outline"
 								className="w-full"

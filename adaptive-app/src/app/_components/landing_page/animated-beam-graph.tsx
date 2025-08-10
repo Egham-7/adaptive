@@ -1,10 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MessageSquare, Zap } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { forwardRef, useCallback, useRef, useState } from "react";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
+import { PixelTrail } from "@/components/ui/pixel-trail";
+import { SocialLogo } from "@/components/ui/social-logo";
 import { cn } from "@/lib/utils";
 
 interface CircleProps {
@@ -70,7 +72,7 @@ const AdaptiveCircle = forwardRef<HTMLDivElement, { className?: string }>(
 					className,
 				)}
 			>
-				<Zap className="h-10 w-10 text-white" />
+				<SocialLogo width={48} height={48} className="h-12 w-12" />
 			</div>
 		);
 	},
@@ -113,6 +115,13 @@ export default function AnimatedBeamGraph() {
 			role="img"
 			aria-label="Adaptive AI infrastructure connecting user prompts to various AI providers"
 		>
+			<PixelTrail
+				pixelSize={16}
+				fadeDuration={800}
+				delay={100}
+				className="absolute inset-0"
+				pixelClassName="bg-primary/30"
+			/>
 			<div className="flex w-full items-center justify-between px-4 md:px-0">
 				{/* Prompt Input */}
 				<motion.div

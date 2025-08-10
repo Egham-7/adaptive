@@ -10,6 +10,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useSmartRedirect } from "@/hooks/use-smart-redirect";
 import { ModeToggle } from "../../mode-toggle";
 
 function LoadingLink({
@@ -30,6 +31,8 @@ function LoadingLink({
 }
 
 export function UserActions() {
+	const redirectPath = useSmartRedirect();
+
 	return (
 		<>
 			{/* Separator */}
@@ -117,11 +120,19 @@ export function UserActions() {
 								</LoadingLink>
 							</DropdownMenuItem>
 							<DropdownMenuItem asChild>
-								<LoadingLink href="/api-platform/organizations">
-									<Button variant="ghost" className="w-full justify-start">
-										API Platform
-									</Button>
-								</LoadingLink>
+								{redirectPath ? (
+									<LoadingLink href={redirectPath}>
+										<Button variant="ghost" className="w-full justify-start">
+											API Platform
+										</Button>
+									</LoadingLink>
+								) : (
+									<LoadingLink href="/api-platform/organizations">
+										<Button variant="ghost" className="w-full justify-start">
+											API Platform
+										</Button>
+									</LoadingLink>
+								)}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
