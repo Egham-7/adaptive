@@ -33,9 +33,7 @@ class ModelSelectionService:
         self.lit_logger: LitLoggerProtocol | None = lit_logger
 
         # Build model capabilities from YAML database via model registry
-        self._all_model_capabilities_by_id: dict[
-            tuple[ProviderType, str], ModelCapability
-        ] = {}
+        self._all_model_capabilities_by_id: dict[tuple[str, str], ModelCapability] = {}
         # Cache for eligible providers per model and token count (optimized with token bucketing)
         self._eligible_providers_cache: dict[str, frozenset[ProviderType | str]] = {}
 
@@ -115,8 +113,14 @@ class ModelSelectionService:
             try:
                 capability = model_registry.get_model_capability(model_name)
                 if capability:
+                    # Normalize provider key for consistent lookup
+                    provider_key = (
+                        capability.provider.value
+                        if hasattr(capability.provider, "value")
+                        else str(capability.provider)
+                    )
                     self._all_model_capabilities_by_id[
-                        (capability.provider, capability.model_name)
+                        (provider_key, capability.model_name)
                     ] = capability
                     successful_models += 1
                 else:
@@ -182,9 +186,12 @@ class ModelSelectionService:
         provider_models_builder: dict[ProviderType | str, set[str]] = {}
 
         for (
-            provider,
+            provider_key,
             model_name,
         ), capability in self._all_model_capabilities_by_id.items():
+            # Get the original provider object from capability
+            provider = capability.provider
+
             # Build model -> providers mapping
             if model_name not in model_providers_builder:
                 model_providers_builder[model_name] = set()
@@ -195,10 +202,7 @@ class ModelSelectionService:
                 provider_models_builder[provider] = set()
             provider_models_builder[provider].add(model_name)
 
-            # Pre-compute context limits for O(1) capability checks - normalize provider key
-            provider_key = (
-                provider.value if hasattr(provider, "value") else str(provider)
-            )
+            # Pre-compute context limits for O(1) capability checks - use the string key
             self._model_context_limits[(provider_key, model_name)] = (
                 capability.max_context_tokens or 4096
             )
@@ -916,8 +920,13 @@ class ModelSelectionService:
 
                 # Handle partial models that need registry lookup
                 if model_cap.provider and model_cap.model_name:
-                    # Try registry lookup for partial models
-                    model_key = (model_cap.provider, model_cap.model_name)
+                    # Try registry lookup for partial models - normalize provider key
+                    provider_key = (
+                        model_cap.provider.value
+                        if hasattr(model_cap.provider, "value")
+                        else str(model_cap.provider)
+                    )
+                    model_key = (provider_key, model_cap.model_name)
                     full_capability = self._all_model_capabilities_by_id.get(model_key)
                     if full_capability:
                         enriched_capabilities.append(full_capability)

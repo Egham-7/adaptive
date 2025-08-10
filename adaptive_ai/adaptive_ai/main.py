@@ -48,13 +48,12 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.protocol_manager = ProtocolManager(lit_logger=self)
 
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
-        # Convert cost_preference strings to cost_bias numbers
+        # Convert cost_preference strings to cost_bias numbers (preserving backward compatibility)
         if "protocol_manager_config" in request:
             config = request["protocol_manager_config"]
-            if "cost_preference" in config:
-                cost_preference = config.pop(
-                    "cost_preference"
-                )  # Remove the string version
+            # Only derive cost_bias from cost_preference if cost_bias is not already present
+            if "cost_preference" in config and "cost_bias" not in config:
+                cost_preference = config["cost_preference"]  # Keep the original key
                 # Convert cost_preference to cost_bias
                 cost_bias_map = {
                     "budget": 0.1,  # Strong preference for cheap models
@@ -231,7 +230,7 @@ class ProtocolManagerAPI(ls.LitAPI):
                             else str(minion_candidates[0].providers[0])
                         ),
                         model=minion_candidates[0].model_name,
-                        parameters=self.protocol_manager._get_tuned_parameters(
+                        parameters=self.protocol_manager.get_tuned_parameters(
                             current_classification_result,
                             (
                                 current_classification_result.task_type_1[0]
@@ -265,7 +264,7 @@ class ProtocolManagerAPI(ls.LitAPI):
                             else str(standard_candidates[0].providers[0])
                         ),
                         model=standard_candidates[0].model_name,
-                        parameters=self.protocol_manager._get_tuned_parameters(
+                        parameters=self.protocol_manager.get_tuned_parameters(
                             current_classification_result,
                             (
                                 current_classification_result.task_type_1[0]

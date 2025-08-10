@@ -127,6 +127,22 @@ class ProtocolManager:
             # Fallback to first available protocol
             return available_protocols[0]
 
+    def get_tuned_parameters(
+        self, classification_result: ClassificationResult, task_type: str
+    ) -> OpenAIParameters:
+        """Get OpenAI parameters tuned based on classification features.
+
+        Public interface for parameter tuning functionality.
+
+        Args:
+            classification_result: The classification result containing complexity scores
+            task_type: The task type string for parameter customization
+
+        Returns:
+            OpenAIParameters: Tuned parameters optimized for the given task and complexity
+        """
+        return self._get_tuned_parameters(classification_result, task_type)
+
     def _get_tuned_parameters(
         self, classification_result: ClassificationResult, task_type: str
     ) -> OpenAIParameters:
