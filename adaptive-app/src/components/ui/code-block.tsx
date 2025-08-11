@@ -49,6 +49,11 @@ function CodeBlockCode({
         return
       }
 
+      // Skip highlighting until theme is resolved to prevent flash
+      if (!theme && !resolvedTheme) {
+        return
+      }
+
       // Auto-detect theme based on current theme if not explicitly provided
       const selectedTheme = theme || (resolvedTheme === 'dark' ? 'github-dark' : 'github-light')
       
