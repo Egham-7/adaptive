@@ -25,9 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/trpc/react";
 
 const EXAMPLE_API_KEY = "your_api_key_here_placeholder_12345";
-const API_BASE_URL =
-	process.env.NEXT_PUBLIC_URL ??
-	(typeof window !== "undefined" ? window.location.origin : "");
+const API_BASE_URL = process.env.NEXT_PUBLIC_URL ?? "https://www.llmadaptive.uk";
 
 export default function QuickstartPage() {
 	const { orgId, projectId } = useParams<{

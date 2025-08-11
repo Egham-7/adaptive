@@ -17,9 +17,7 @@ interface QuickstartExamplesProps {
 	description?: string;
 }
 
-const API_BASE_URL =
-	process.env.NEXT_PUBLIC_URL ??
-	(typeof window !== "undefined" ? window.location.origin : "");
+const API_BASE_URL = process.env.NEXT_PUBLIC_URL ?? "https://www.llmadaptive.uk";
 
 export function QuickstartExamples({
 	apiKey,
