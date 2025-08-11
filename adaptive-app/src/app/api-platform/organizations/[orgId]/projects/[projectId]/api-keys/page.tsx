@@ -359,7 +359,7 @@ export default function ApiKeysPage() {
 						{/* API Key Section */}
 						<div className="space-y-3">
 							<div className="space-y-2">
-								<p className="text-muted-foreground text-sm">
+								<p className="font-semibold text-muted-foreground text-sm">
 									Please save this API key somewhere safe and accessible. For
 									security reasons, you won't be able to view it again through
 									your account. If you lose this API key, you'll need to
