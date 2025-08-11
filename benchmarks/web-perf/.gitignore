@@ -134,14 +134,7 @@ cython_debug/
 # PyCharm
 .idea/
 
-# Performance Testing Results
-results/
-*.html
-*.csv
-*.json
-*.png
-*.svg
-*.pdf
+
 
 # Locust specific
 locustfile.py
