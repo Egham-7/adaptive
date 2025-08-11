@@ -1,0 +1,86 @@
+{
+  "generated_at": "2025-08-11T22:00:08.776929",
+  "overall_metrics": {
+    "total_requests": 1500,
+    "successful_requests": 0,
+    "overall_success_rate": 0.0,
+    "overall_response_times": {
+      "mean": 139.11585426330566,
+      "median": 131.73604011535645,
+      "p95": 173.4176158905029,
+      "p99": 291.96647405624384,
+      "min": 108.27493667602539,
+      "max": 509.31692123413086
+    },
+    "endpoints_tested": 1,
+    "endpoint_breakdown": {
+      "select_model": 1500
+    },
+    "total_sessions": 1,
+    "total_duration": 300.449311
+  },
+  "threshold_checks": {
+    "passed": false,
+    "checks": {
+      "success_rate": {
+        "passed": false,
+        "actual": 0.0,
+        "threshold": 95.0
+      },
+      "response_time_p50": {
+        "passed": true,
+        "actual": 131.73604011535645,
+        "threshold": 500
+      },
+      "response_time_p95": {
+        "passed": true,
+        "actual": 173.4176158905029,
+        "threshold": 2000
+      },
+      "response_time_p99": {
+        "passed": true,
+        "actual": 291.96647405624384,
+        "threshold": 5000
+      }
+    }
+  },
+  "session_comparison": [
+    {
+      "session_id": "async_medium_load_1754945708",
+      "start_time": "2025-08-11T21:55:08.240929",
+      "duration": 300.449311,
+      "total_requests": 1500,
+      "success_rate": 0.0,
+      "average_response_time": 139.11585426330566,
+      "percentiles": {
+        "p50": 131.7429542541504,
+        "p95": 173.9802360534668,
+        "p99": 300.72689056396484
+      },
+      "config": {
+        "scenario": "medium_load",
+        "tester": "AsyncEndpointTester"
+      }
+    }
+  ],
+  "endpoint_metrics": {
+    "select_model": {
+      "endpoint_name": "select_model",
+      "total_requests": 1500,
+      "successful_requests": 0,
+      "success_rate": 0.0,
+      "response_times": {
+        "mean": 139.11585426330566,
+        "median": 131.73604011535645,
+        "p95": 173.4176158905029,
+        "p99": 291.96647405624384,
+        "min": 108.27493667602539,
+        "max": 509.31692123413086,
+        "std": 34.0897607256173
+      },
+      "error_rate": 100.0,
+      "average_request_size": 94.54866666666666,
+      "average_response_size": 234
+    }
+  }
+}
