@@ -6,7 +6,14 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	CodeBlock,
+	CodeBlockCode,
+	CodeBlockGroup,
+} from "@/components/ui/code-block";
+import { CopyButton } from "@/components/ui/copy-button";
 import {
 	Dialog,
 	DialogContent,
@@ -23,6 +30,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
 	Table,
 	TableBody,
@@ -31,6 +39,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
 import { useDeleteProjectApiKey } from "@/hooks/api_keys/use-delete-project-api-key";
@@ -41,6 +50,10 @@ const formSchema = z.object({
 	name: z.string().min(2, { message: "Name must be at least 2 characters." }),
 	description: z.string().optional(),
 });
+
+const API_BASE_URL =
+	process.env.NEXT_PUBLIC_URL ??
+	(typeof window !== "undefined" ? window.location.origin : "");
 
 export default function ApiKeysPage() {
 	const params = useParams();
@@ -338,49 +351,286 @@ export default function ApiKeysPage() {
 
 			{/* API Key Display Modal */}
 			<Dialog open={showApiKeyModal} onOpenChange={setShowApiKeyModal}>
-				<DialogContent className="max-w-lg">
+				<DialogContent className="!max-w-7xl sm:!max-w-7xl max-h-[90vh] w-[98vw] overflow-y-auto sm:w-[90vw] lg:w-[85vw] xl:w-[80vw]">
 					<DialogHeader>
-						<DialogTitle>Save your API key</DialogTitle>
+						<DialogTitle>Your API key is ready!</DialogTitle>
 					</DialogHeader>
-					<div className="space-y-4">
-						<div className="space-y-2">
-							<p className="text-muted-foreground text-sm">
-								Please save this API key somewhere safe and accessible. For
-								security reasons, you won't be able to view it again through
-								your account. If you lose this API key, you'll need to generate
-								a new one.
-							</p>
-						</div>
-						<div className="space-y-2">
-							<div className="flex items-center justify-between">
-								<span className="font-medium text-sm">API Key</span>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={handleCopyApiKey}
-									className="h-8 px-3 text-xs"
-								>
-									{copiedApiKey ? (
-										<>
-											<Check className="mr-1 h-3 w-3" />
-											Copied
-										</>
-									) : (
-										<>
-											<Copy className="mr-1 h-3 w-3" />
-											Copy
-										</>
-									)}
-								</Button>
+					<div className="space-y-4 px-1 sm:px-2 lg:px-0">
+						{/* API Key Section */}
+						<div className="space-y-3">
+							<div className="space-y-2">
+								<p className="text-muted-foreground text-sm">
+									Please save this API key somewhere safe and accessible. For
+									security reasons, you won't be able to view it again through
+									your account. If you lose this API key, you'll need to
+									generate a new one.
+								</p>
 							</div>
-							<div className="rounded-md border bg-muted p-3">
-								<code className="break-all font-mono text-sm">{newApiKey}</code>
+							<div className="space-y-2">
+								<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+									<span className="font-medium text-sm">API Key</span>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={handleCopyApiKey}
+										className="h-8 px-3 text-xs"
+									>
+										{copiedApiKey ? (
+											<>
+												<Check className="mr-1 h-3 w-3" />
+												Copied
+											</>
+										) : (
+											<>
+												<Copy className="mr-1 h-3 w-3" />
+												Copy
+											</>
+										)}
+									</Button>
+								</div>
+								<div className="rounded-md border bg-muted p-3">
+									<code className="break-all font-mono text-sm">
+										{newApiKey}
+									</code>
+								</div>
 							</div>
 						</div>
-						<div className="flex justify-end">
+
+						<Separator />
+
+						{/* Quickstart Section */}
+						<div className="space-y-4">
+							<div>
+								<h3 className="flex items-center gap-2 font-semibold text-lg">
+									🚀 Quick Start
+								</h3>
+								<p className="text-muted-foreground text-sm">
+									Test your new API key with these examples
+								</p>
+							</div>
+
+							<Tabs defaultValue="curl" className="w-full">
+								<TabsList className="grid h-auto w-full grid-cols-3">
+									<TabsTrigger value="curl" className="text-xs sm:text-sm">
+										cURL
+									</TabsTrigger>
+									<TabsTrigger
+										value="javascript"
+										className="text-xs sm:text-sm"
+									>
+										JavaScript
+									</TabsTrigger>
+									<TabsTrigger value="python" className="text-xs sm:text-sm">
+										Python
+									</TabsTrigger>
+								</TabsList>
+
+								<TabsContent value="curl" className="mt-4">
+									<CodeBlock>
+										<CodeBlockGroup className="border-b px-3 py-2 sm:px-4 lg:px-6">
+											<span className="font-medium text-xs sm:text-sm">
+												Test with cURL
+											</span>
+											<div className="flex items-center gap-1 sm:gap-2">
+												<Badge variant="secondary" className="text-xs">
+													bash
+												</Badge>
+												<CopyButton
+													content={`curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${newApiKey}" \\
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user", 
+        "content": "Hello! How are you today?"
+      }
+    ],
+    "max_tokens": 150,
+    "temperature": 0.7
+  }'`}
+													copyMessage="cURL command copied to clipboard!"
+												/>
+											</div>
+										</CodeBlockGroup>
+										<CodeBlockCode
+											code={`curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${newApiKey}" \\
+  -d '{
+    "model": "gpt-4o",
+    "messages": [
+      {
+        "role": "user", 
+        "content": "Hello! How are you today?"
+      }
+    ],
+    "max_tokens": 150,
+    "temperature": 0.7
+  }'`}
+											language="bash"
+										/>
+									</CodeBlock>
+								</TabsContent>
+
+								<TabsContent value="javascript" className="mt-4">
+									<div className="space-y-4">
+										<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
+											<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
+												Install the OpenAI SDK:
+											</p>
+											<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
+												npm install openai
+											</code>
+										</div>
+										<CodeBlock>
+											<CodeBlockGroup className="border-b px-3 py-2 sm:px-4 lg:px-6">
+												<span className="font-medium text-xs sm:text-sm">
+													JavaScript/Node.js
+												</span>
+												<div className="flex items-center gap-1 sm:gap-2">
+													<Badge variant="secondary" className="text-xs">
+														javascript
+													</Badge>
+													<CopyButton
+														content={`import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: '${newApiKey}',
+  baseURL: '${API_BASE_URL}/api/v1',
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    messages: [
+      { 
+        role: 'user', 
+        content: 'Hello! How are you today?' 
+      }
+    ],
+    model: 'gpt-4o',
+    max_tokens: 150,
+    temperature: 0.7,
+  });
+
+  console.log(completion.choices[0]);
+}
+
+main();`}
+														copyMessage="JavaScript code copied to clipboard!"
+													/>
+												</div>
+											</CodeBlockGroup>
+											<CodeBlockCode
+												code={`import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: '${newApiKey}',
+  baseURL: '${API_BASE_URL}/api/v1',
+});
+
+async function main() {
+  const completion = await client.chat.completions.create({
+    messages: [
+      { 
+        role: 'user', 
+        content: 'Hello! How are you today?' 
+      }
+    ],
+    model: 'gpt-4o',
+    max_tokens: 150,
+    temperature: 0.7,
+  });
+
+  console.log(completion.choices[0]);
+}
+
+main();`}
+												language="javascript"
+											/>
+										</CodeBlock>
+									</div>
+								</TabsContent>
+
+								<TabsContent value="python" className="mt-4">
+									<div className="space-y-4">
+										<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
+											<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
+												Install the OpenAI SDK:
+											</p>
+											<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
+												pip install openai
+											</code>
+										</div>
+										<CodeBlock>
+											<CodeBlockGroup className="border-b px-3 py-2 sm:px-4 lg:px-6">
+												<span className="font-medium text-xs sm:text-sm">
+													Python
+												</span>
+												<div className="flex items-center gap-1 sm:gap-2">
+													<Badge variant="secondary" className="text-xs">
+														python
+													</Badge>
+													<CopyButton
+														content={`from openai import OpenAI
+
+client = OpenAI(
+    api_key="${newApiKey}",
+    base_url="${API_BASE_URL}/api/v1"
+)
+
+completion = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {
+            "role": "user",
+            "content": "Hello! How are you today?"
+        }
+    ],
+    max_tokens=150,
+    temperature=0.7
+)
+
+print(completion.choices[0].message.content)`}
+														copyMessage="Python code copied to clipboard!"
+													/>
+												</div>
+											</CodeBlockGroup>
+											<CodeBlockCode
+												code={`from openai import OpenAI
+
+client = OpenAI(
+    api_key="${newApiKey}",
+    base_url="${API_BASE_URL}/api/v1"
+)
+
+completion = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {
+            "role": "user",
+            "content": "Hello! How are you today?"
+        }
+    ],
+    max_tokens=150,
+    temperature=0.7
+)
+
+print(completion.choices[0].message.content)`}
+												language="python"
+											/>
+										</CodeBlock>
+									</div>
+								</TabsContent>
+							</Tabs>
+						</div>
+
+						<div className="flex justify-end pt-2">
 							<Button
 								onClick={handleCloseApiKeyModal}
 								className="bg-primary hover:bg-primary/90"
+								size="lg"
 							>
 								Done
 							</Button>
