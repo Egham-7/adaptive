@@ -6,14 +6,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-	CodeBlock,
-	CodeBlockCode,
-	CodeBlockGroup,
-} from "@/components/ui/code-block";
-import { CopyButton } from "@/components/ui/copy-button";
 import {
 	Dialog,
 	DialogContent,
@@ -30,6 +23,7 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { QuickstartExamples } from "@/components/ui/quickstart-examples";
 import { Separator } from "@/components/ui/separator";
 import {
 	Table,
@@ -39,7 +33,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
 import { useDeleteProjectApiKey } from "@/hooks/api_keys/use-delete-project-api-key";
@@ -50,10 +43,6 @@ const formSchema = z.object({
 	name: z.string().min(2, { message: "Name must be at least 2 characters." }),
 	description: z.string().optional(),
 });
-
-const API_BASE_URL =
-	process.env.NEXT_PUBLIC_URL ??
-	(typeof window !== "undefined" ? window.location.origin : "");
 
 export default function ApiKeysPage() {
 	const params = useParams();
@@ -399,232 +388,13 @@ export default function ApiKeysPage() {
 						<Separator />
 
 						{/* Quickstart Section */}
-						<div className="space-y-4">
-							<div>
-								<h3 className="flex items-center gap-2 font-semibold text-lg">
-									🚀 Quick Start
-								</h3>
-								<p className="text-muted-foreground text-sm">
-									Test your new API key with these examples
-								</p>
-							</div>
-
-							<Tabs defaultValue="curl" className="w-full">
-								<TabsList className="grid h-auto w-full grid-cols-3">
-									<TabsTrigger value="curl" className="text-xs sm:text-sm">
-										cURL
-									</TabsTrigger>
-									<TabsTrigger
-										value="javascript"
-										className="text-xs sm:text-sm"
-									>
-										JavaScript
-									</TabsTrigger>
-									<TabsTrigger value="python" className="text-xs sm:text-sm">
-										Python
-									</TabsTrigger>
-								</TabsList>
-
-								<TabsContent value="curl" className="mt-4">
-									<CodeBlock>
-										<CodeBlockGroup className="border-b px-3 py-2 sm:px-4 lg:px-6">
-											<span className="font-medium text-xs sm:text-sm">
-												Test with cURL
-											</span>
-											<div className="flex items-center gap-1 sm:gap-2">
-												<Badge variant="secondary" className="text-xs">
-													bash
-												</Badge>
-												<CopyButton
-													content={`curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${newApiKey}" \\
-  -d '{
-    "model": "gpt-4o",
-    "messages": [
-      {
-        "role": "user", 
-        "content": "Hello! How are you today?"
-      }
-    ],
-    "max_tokens": 150,
-    "temperature": 0.7
-  }'`}
-													copyMessage="cURL command copied to clipboard!"
-												/>
-											</div>
-										</CodeBlockGroup>
-										<CodeBlockCode
-											code={`curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${newApiKey}" \\
-  -d '{
-    "model": "gpt-4o",
-    "messages": [
-      {
-        "role": "user", 
-        "content": "Hello! How are you today?"
-      }
-    ],
-    "max_tokens": 150,
-    "temperature": 0.7
-  }'`}
-											language="bash"
-										/>
-									</CodeBlock>
-								</TabsContent>
-
-								<TabsContent value="javascript" className="mt-4">
-									<div className="space-y-4">
-										<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
-											<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
-												Install the OpenAI SDK:
-											</p>
-											<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
-												npm install openai
-											</code>
-										</div>
-										<CodeBlock>
-											<CodeBlockGroup className="border-b px-3 py-2 sm:px-4 lg:px-6">
-												<span className="font-medium text-xs sm:text-sm">
-													JavaScript/Node.js
-												</span>
-												<div className="flex items-center gap-1 sm:gap-2">
-													<Badge variant="secondary" className="text-xs">
-														javascript
-													</Badge>
-													<CopyButton
-														content={`import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: '${newApiKey}',
-  baseURL: '${API_BASE_URL}/api/v1',
-});
-
-async function main() {
-  const completion = await client.chat.completions.create({
-    messages: [
-      { 
-        role: 'user', 
-        content: 'Hello! How are you today?' 
-      }
-    ],
-    model: 'gpt-4o',
-    max_tokens: 150,
-    temperature: 0.7,
-  });
-
-  console.log(completion.choices[0]);
-}
-
-main();`}
-														copyMessage="JavaScript code copied to clipboard!"
-													/>
-												</div>
-											</CodeBlockGroup>
-											<CodeBlockCode
-												code={`import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: '${newApiKey}',
-  baseURL: '${API_BASE_URL}/api/v1',
-});
-
-async function main() {
-  const completion = await client.chat.completions.create({
-    messages: [
-      { 
-        role: 'user', 
-        content: 'Hello! How are you today?' 
-      }
-    ],
-    model: 'gpt-4o',
-    max_tokens: 150,
-    temperature: 0.7,
-  });
-
-  console.log(completion.choices[0]);
-}
-
-main();`}
-												language="javascript"
-											/>
-										</CodeBlock>
-									</div>
-								</TabsContent>
-
-								<TabsContent value="python" className="mt-4">
-									<div className="space-y-4">
-										<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
-											<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
-												Install the OpenAI SDK:
-											</p>
-											<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
-												pip install openai
-											</code>
-										</div>
-										<CodeBlock>
-											<CodeBlockGroup className="border-b px-3 py-2 sm:px-4 lg:px-6">
-												<span className="font-medium text-xs sm:text-sm">
-													Python
-												</span>
-												<div className="flex items-center gap-1 sm:gap-2">
-													<Badge variant="secondary" className="text-xs">
-														python
-													</Badge>
-													<CopyButton
-														content={`from openai import OpenAI
-
-client = OpenAI(
-    api_key="${newApiKey}",
-    base_url="${API_BASE_URL}/api/v1"
-)
-
-completion = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[
-        {
-            "role": "user",
-            "content": "Hello! How are you today?"
-        }
-    ],
-    max_tokens=150,
-    temperature=0.7
-)
-
-print(completion.choices[0].message.content)`}
-														copyMessage="Python code copied to clipboard!"
-													/>
-												</div>
-											</CodeBlockGroup>
-											<CodeBlockCode
-												code={`from openai import OpenAI
-
-client = OpenAI(
-    api_key="${newApiKey}",
-    base_url="${API_BASE_URL}/api/v1"
-)
-
-completion = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[
-        {
-            "role": "user",
-            "content": "Hello! How are you today?"
-        }
-    ],
-    max_tokens=150,
-    temperature=0.7
-)
-
-print(completion.choices[0].message.content)`}
-												language="python"
-											/>
-										</CodeBlock>
-									</div>
-								</TabsContent>
-							</Tabs>
-						</div>
+						{newApiKey && (
+							<QuickstartExamples
+								apiKey={newApiKey}
+								title="🚀 Quick Start"
+								description="Test your new API key with these examples"
+							/>
+						)}
 
 						<div className="flex justify-end pt-2">
 							<Button
