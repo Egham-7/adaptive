@@ -47,3 +47,10 @@ export function clearLastProject() {
 		localStorage.removeItem(LAST_ORG_KEY);
 	}
 }
+
+export function clearLastOrganization() {
+	if (typeof window !== "undefined") {
+		localStorage.removeItem(LAST_ORG_KEY);
+		localStorage.removeItem(LAST_PROJECT_KEY);
+	}
+}
