@@ -333,70 +333,6 @@ print(completion.choices[0].message.content)`;
 					</CardContent>
 				</Card>
 
-				{/* Step 3: Response Format */}
-				<Card>
-					<CardHeader>
-						<div className="flex items-center gap-3">
-							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-sm">
-								3
-							</div>
-							<div>
-								<CardTitle>Understanding the Response</CardTitle>
-								<CardDescription>
-									Here's what a typical API response looks like
-								</CardDescription>
-							</div>
-						</div>
-					</CardHeader>
-					<CardContent>
-						<CustomCodeBlock
-							code={exampleResponse}
-							language="json"
-							title="Example Response"
-						/>
-					</CardContent>
-				</Card>
-
-				{/* Key Features */}
-				<Card>
-					<CardHeader>
-						<CardTitle>Key Features & Benefits</CardTitle>
-						<CardDescription>
-							What makes the Adaptive API special
-						</CardDescription>
-					</CardHeader>
-					<CardContent>
-						<div className="grid gap-4 md:grid-cols-2">
-							<div className="space-y-2">
-								<h4 className="font-medium">🔄 Intelligent Routing</h4>
-								<p className="text-muted-foreground text-sm">
-									Automatically routes requests to the best model and provider
-									based on your prompt.
-								</p>
-							</div>
-							<div className="space-y-2">
-								<h4 className="font-medium">💰 Cost Optimization</h4>
-								<p className="text-muted-foreground text-sm">
-									Save 30-70% on API costs compared to using providers directly.
-								</p>
-							</div>
-							<div className="space-y-2">
-								<h4 className="font-medium">🛡️ Built-in Failover</h4>
-								<p className="text-muted-foreground text-sm">
-									Automatic failover between providers ensures high
-									availability.
-								</p>
-							</div>
-							<div className="space-y-2">
-								<h4 className="font-medium">📊 Real-time Analytics</h4>
-								<p className="text-muted-foreground text-sm">
-									Monitor usage, costs, and performance in real-time.
-								</p>
-							</div>
-						</div>
-					</CardContent>
-				</Card>
-
 				{/* Next Steps */}
 				<Card>
 					<CardHeader>
@@ -433,81 +369,39 @@ print(completion.choices[0].message.content)`;
 									</p>
 								</div>
 							</Link>
-							<a
-								href="https://docs.adaptive.so"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<div className="rounded-lg border p-4 transition-colors hover:bg-accent">
+							<div className="cursor-not-allowed rounded-lg border p-4 opacity-60">
+								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2">
 										<div className="h-2 w-2 rounded-full bg-purple-500" />
 										<h4 className="font-medium">Full Documentation</h4>
-										<ExternalLink className="h-4 w-4 text-muted-foreground" />
 									</div>
-									<p className="mt-2 text-muted-foreground text-sm">
-										Comprehensive API documentation and guides
-									</p>
+									<Badge variant="secondary" className="text-xs">
+										Coming Soon
+									</Badge>
 								</div>
-							</a>
-							<a
-								href="https://github.com/adaptive/examples"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<div className="rounded-lg border p-4 transition-colors hover:bg-accent">
+								<p className="mt-2 text-muted-foreground text-sm">
+									Comprehensive API documentation and guides
+								</p>
+							</div>
+							<div className="cursor-not-allowed rounded-lg border p-4 opacity-60">
+								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2">
 										<div className="h-2 w-2 rounded-full bg-orange-500" />
 										<h4 className="font-medium">Code Examples</h4>
-										<ExternalLink className="h-4 w-4 text-muted-foreground" />
 									</div>
-									<p className="mt-2 text-muted-foreground text-sm">
-										Example projects and integrations
-									</p>
+									<Badge variant="secondary" className="text-xs">
+										Coming Soon
+									</Badge>
 								</div>
-							</a>
+								<p className="mt-2 text-muted-foreground text-sm">
+									Example projects and integrations
+								</p>
+							</div>
 						</div>
 					</CardContent>
 				</Card>
 
 				<Separator />
-
-				{/* Support Section */}
-				<div className="text-center">
-					<h3 className="mb-2 font-medium text-lg">Need Help?</h3>
-					<p className="mb-4 text-muted-foreground">
-						Our team is here to help you get started
-					</p>
-					<div className="flex flex-wrap justify-center gap-3">
-						<Button variant="outline" asChild>
-							<a
-								href="https://docs.adaptive.so"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<ExternalLink className="mr-2 h-4 w-4" />
-								Documentation
-							</a>
-						</Button>
-						<Button variant="outline" asChild>
-							<a
-								href="mailto:support@adaptive.so"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								Email Support
-							</a>
-						</Button>
-						<Button variant="outline" asChild>
-							<a
-								href="https://discord.gg/adaptive"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								Join Discord
-							</a>
-						</Button>
-					</div>
-				</div>
 			</div>
 		</div>
 	);
