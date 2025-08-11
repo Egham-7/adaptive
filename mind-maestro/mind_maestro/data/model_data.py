@@ -16,7 +16,7 @@ llm_benchmarks = {
                 "math": 97.3,
                 "gsm8k": 89.8
             },
-            "universal_vector": [90.8, 69.3, 97.3, 89.8, math.log(671.0)],
+            "description_vector": [90.8, 69.3, 97.3, 89.8, 671.0],
             "context_window": 128000,
             "notable_features": "Open-source reasoning, 79.8% AIME 2024, 2029 Codeforces Elo"
         },
@@ -32,7 +32,7 @@ llm_benchmarks = {
                 "math": 85.5,
                 "gsm8k": 94.8
             },
-            "universal_vector": [90.8, 92.4, 85.5, 94.8, math.log(175.0)],
+            "description_vector": [90.8, 92.4, 85.5, 94.8, 175.0],
             "context_window": 128000,
             "notable_features": "Advanced reasoning with chain-of-thought, 83% AIME"
         },
@@ -48,7 +48,7 @@ llm_benchmarks = {
                 "math": 76.6,
                 "gsm8k": 92.0
             },
-            "universal_vector": [88.7, 90.2, 76.6, 92.0, math.log(175.0)],
+            "description_vector": [88.7, 90.2, 76.6, 92.0, 175.0],
             "context_window": 128000,
             "notable_features": "Multimodal (text, image, audio), real-time processing"
         },
@@ -64,7 +64,7 @@ llm_benchmarks = {
                 "math": 73.8,
                 "gsm8k": 96.8
             },
-            "universal_vector": [88.6, 89.0, 73.8, 96.8, math.log(405.0)],
+            "description_vector": [88.6, 89.0, 73.8, 96.8, 405.0],
             "context_window": 128000,
             "notable_features": "Largest open-source model, multilingual"
         },
@@ -80,7 +80,7 @@ llm_benchmarks = {
                 "math": 90.2,
                 "gsm8k": 89.8
             },
-            "universal_vector": [88.5, 69.3, 90.2, 89.8, math.log(671.0)],
+            "description_vector": [88.5, 69.3, 90.2, 89.8, 671.0],
             "context_window": 128000,
             "notable_features": "MoE architecture, strong math performance"
         },
@@ -96,7 +96,7 @@ llm_benchmarks = {
                 "math": 71.1,
                 "gsm8k": 96.4
             },
-            "universal_vector": [88.3, 92.0, 71.1, 96.4, math.log(200.0)],
+            "description_vector": [88.3, 92.0, 71.1, 96.4, 200.0],
             "context_window": 200000,
             "notable_features": "Enhanced reasoning, artifacts, tool use"
         },
@@ -114,7 +114,7 @@ llm_benchmarks = {
                 "math": 62.1,
                 "gsm8k": 91.5
             },
-            "universal_vector": [86.1, 59.1, 62.1, 91.5, math.log(72.7)],
+            "description_vector": [86.1, 59.1, 62.1, 91.5, 72.7],
             "context_window": 128000,
             "notable_features": "Multilingual (29+ languages), Apache 2.0"
         },
@@ -130,7 +130,7 @@ llm_benchmarks = {
                 "math": 67.0,
                 "gsm8k": 88.9
             },
-            "universal_vector": [85.9, 84.0, 67.0, 88.9, math.log(175.0)],
+            "description_vector": [85.9, 84.0, 67.0, 88.9, 175.0],
             "context_window": 1000000,
             "notable_features": "1M token context, multimodal"
         },
@@ -146,7 +146,7 @@ llm_benchmarks = {
                 "math": 70.0,
                 "gsm8k": 89.0
             },
-            "universal_vector": [85.2, 89.0, 70.0, 89.0, math.log(25.0)],
+            "description_vector": [85.2, 89.0, 70.0, 89.0, 25.0],
             "context_window": 128000,
             "notable_features": "Cost-efficient reasoning, 86th percentile on Codeforces"
         },
@@ -162,7 +162,7 @@ llm_benchmarks = {
                 "math": 80.4,
                 "gsm8k": 80.6
             },
-            "universal_vector": [84.8, 82.6, 80.4, 80.6, math.log(14.0)],
+            "description_vector": [84.8, 82.6, 80.4, 80.6, 14.0],
             "context_window": 16000,
             "notable_features": "Small but powerful, enhanced reasoning"
         },
@@ -178,7 +178,7 @@ llm_benchmarks = {
                 "math": 57.7,
                 "gsm8k": 92.9
             },
-            "universal_vector": [83.3, 58.5, 57.7, 92.9, math.log(32.5)],
+            "description_vector": [83.3, 58.5, 57.7, 92.9, 32.5],
             "context_window": 128000,
             "notable_features": "Apache 2.0 license, multilingual"
         },
@@ -194,7 +194,7 @@ llm_benchmarks = {
                 "math": 68.0,
                 "gsm8k": 95.1
             },
-            "universal_vector": [82.0, 80.5, 68.0, 95.1, math.log(70.0)],
+            "description_vector": [82.0, 80.5, 68.0, 95.1, 70.0],
             "context_window": 128000,
             "notable_features": "Strong balance of performance and efficiency"
         },
@@ -212,7 +212,7 @@ llm_benchmarks = {
                 "math": 41.7,
                 "gsm8k": 83.7
             },
-            "universal_vector": [77.8, 46.3, 41.7, 83.7, math.log(141.0)],
+            "description_vector": [77.8, 46.3, 41.7, 83.7, 141.0],
             "context_window": 64000,
             "notable_features": "Sparse MoE, cost-efficient"
         },
@@ -228,7 +228,7 @@ llm_benchmarks = {
                 "math": 42.3,
                 "gsm8k": 74.0
             },
-            "universal_vector": [75.2, 51.8, 42.3, 74.0, math.log(27.0)],
+            "description_vector": [75.2, 51.8, 42.3, 74.0, 27.0],
             "context_window": 8192,
             "notable_features": "Knowledge distillation from larger models"
         },
@@ -244,7 +244,7 @@ llm_benchmarks = {
                 "math": 36.6,
                 "gsm8k": 68.6
             },
-            "universal_vector": [71.3, 40.2, 36.6, 68.6, math.log(9.0)],
+            "description_vector": [71.3, 40.2, 36.6, 68.6, 9.0],
             "context_window": 8192,
             "notable_features": "Knowledge distillation, compact"
         },
@@ -260,7 +260,7 @@ llm_benchmarks = {
                 "math": 51.9,
                 "gsm8k": 84.5
             },
-            "universal_vector": [69.4, 72.6, 51.9, 84.5, math.log(8.0)],
+            "description_vector": [69.4, 72.6, 51.9, 84.5, 8.0],
             "context_window": 128000,
             "notable_features": "Efficient deployment, good performance/size ratio"
         },
@@ -276,7 +276,7 @@ llm_benchmarks = {
                 "math": 52.0,
                 "gsm8k": 71.4
             },
-            "universal_vector": [68.8, 57.9, 52.0, 71.4, math.log(3.8)],
+            "description_vector": [68.8, 57.9, 52.0, 71.4, 3.8],
             "context_window": 4096,
             "notable_features": "Mobile deployment capable"
         }
@@ -313,9 +313,9 @@ llm_benchmarks = {
             "math": "Mathematical problem solving (0-100) - using MATH benchmark",
             "gsm8k": "Grade School Math 8K - Elementary math word problems (0-100)"
         },
-        "universal_vector_format": {
-            "description": "5-dimensional vector: [mmlu, humaneval, math, gsm8k, log_param_count]",
-            "rationale": "All 5 metrics are verified data available for every model"
+        "description_vector_format": {
+            "description": "5-dimensional vector: [mmlu, humaneval, math, gsm8k, parameter_count]",
+            "rationale": "All 5 metrics are verified data, parameter count in billions for interpretability"
         },
         "data_sources": [
             "OpenAI official technical reports and evals",
@@ -333,7 +333,7 @@ llm_benchmarks = {
             "Only 2.9% estimation rate achieved through careful model selection",
             "Covers full spectrum from 3.8B to 671B parameters",
             "Represents best available models across all major AI labs",
-            "Universal vectors simplified to 4D for verified metrics only"
+            "Description vectors use raw parameter counts instead of log transformation for interpretability"
         ]
     }
 }
