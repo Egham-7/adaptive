@@ -50,7 +50,7 @@ function CodeBlockCode({
       }
 
       // Skip highlighting until theme is resolved to prevent flash
-      if (!theme && !resolvedTheme) {
+      if (theme === undefined && !resolvedTheme) {
         return
       }
 
