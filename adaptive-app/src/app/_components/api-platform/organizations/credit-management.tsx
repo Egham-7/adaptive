@@ -228,11 +228,6 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 										)}
 									</>
 								)}
-								{balanceStatus?.status && (
-									<span className={getBalanceStatusColor(balanceStatus.status)}>
-										{getBalanceStatusIcon(balanceStatus.status)}
-									</span>
-								)}
 							</div>
 							{balanceStatus?.message && (
 								<p
