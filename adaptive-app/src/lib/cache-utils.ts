@@ -1,163 +1,155 @@
 import { redis } from "@/lib/redis";
 
+type CacheKey = string;
+type CachePattern = string;
+
+/**
+ * Cache wrapper that stores and retrieves data from Redis
+ */
 export async function withCache<T>(
-	key: string,
+	key: CacheKey,
 	fetchFn: () => Promise<T>,
 	ttlSeconds = 300,
 ): Promise<T> {
 	try {
-		// Try to get cached result
 		const cached = await redis.get(key);
 		if (cached) {
 			console.log(`[CACHE HIT] ${key}`);
 			return JSON.parse(cached);
 		}
 	} catch (error) {
-		console.error(`[CACHE ERROR] ${key}:`, error);
+		console.error(`[CACHE ERROR] Failed to get ${key}:`, error);
 	}
 
-	// Execute the function to get fresh data
 	const result = await fetchFn();
 
 	try {
-		// Cache the result
 		await redis.setEx(key, ttlSeconds, JSON.stringify(result));
 		console.log(`[CACHE SET] ${key} (TTL: ${ttlSeconds}s)`);
 	} catch (error) {
-		console.error(`[CACHE ERROR] ${key}:`, error);
+		console.error(`[CACHE ERROR] Failed to set ${key}:`, error);
 	}
 
 	return result;
 }
 
-export async function invalidateUserCache(userId: string, patterns: string[]) {
+/**
+ * Generic cache invalidation helper
+ */
+async function invalidatePatterns(patterns: CachePattern[]): Promise<void> {
 	try {
+		const allKeys: string[] = [];
+
 		for (const pattern of patterns) {
-			const keys = await redis.keys(`${pattern}:${userId}:*`);
-			if (keys.length > 0) {
-				await redis.del(keys);
-				console.log(
-					`[CACHE INVALIDATED] ${keys.length} keys for pattern: ${pattern}`,
-				);
-			}
+			const keys = await redis.keys(pattern);
+			allKeys.push(...keys);
+		}
+
+		if (allKeys.length > 0) {
+			await redis.del(allKeys);
+			console.log(`[CACHE INVALIDATED] ${allKeys.length} keys`);
 		}
 	} catch (error) {
 		console.error("[CACHE INVALIDATION ERROR]:", error);
 	}
 }
 
-export async function invalidateConversationCache(
+/**
+ * Invalidate user-specific cache patterns
+ */
+export async function invalidateUserCache(
+	userId: string,
+	patterns: string[],
+): Promise<void> {
+	const cachePatterns = patterns.flatMap((pattern) => [
+		`${pattern}:${userId}`, // Exact match
+		`${pattern}:${userId}:*`, // Wildcard match
+	]);
+
+	await invalidatePatterns(cachePatterns);
+}
+
+// User-specific cache invalidation functions
+export const invalidateConversationCache = (
 	userId: string,
 	conversationId?: number,
-) {
-	const patterns = ["conversations"];
-	if (conversationId) {
-		patterns.push("conversation");
-	}
-	await invalidateUserCache(userId, patterns);
-}
+) => {
+	const patterns = conversationId
+		? ["conversations", "conversation"]
+		: ["conversations"];
+	return invalidateUserCache(userId, patterns);
+};
 
-export async function invalidateOrganizationCache(
+export const invalidateOrganizationCache = (
 	userId: string,
 	organizationId?: string,
-) {
-	const patterns = ["organizations"];
-	if (organizationId) {
-		patterns.push("organization");
-	}
-	await invalidateUserCache(userId, patterns);
-}
+) => {
+	const patterns = organizationId
+		? ["organizations", "organization"]
+		: ["organizations"];
+	return invalidateUserCache(userId, patterns);
+};
 
-export async function invalidateProjectCache(
+export const invalidateProjectCache = (userId: string, projectId?: string) => {
+	const patterns = projectId ? ["projects", "project"] : ["projects"];
+	return invalidateUserCache(userId, patterns);
+};
+
+export const invalidateSubscriptionCache = (userId: string) => {
+	return invalidateUserCache(userId, ["subscription", "subscription-status"]);
+};
+
+export const invalidateAnalyticsCache = (
 	userId: string,
 	projectId?: string,
-) {
-	const patterns = ["projects"];
-	if (projectId) {
-		patterns.push("project");
-	}
-	await invalidateUserCache(userId, patterns);
-}
+) => {
+	const patterns = projectId
+		? ["user-analytics", "project-analytics"]
+		: ["user-analytics"];
+	return invalidateUserCache(userId, patterns);
+};
 
-export async function invalidateSubscriptionCache(userId: string) {
-	const patterns = ["subscription", "subscription-status"];
-	await invalidateUserCache(userId, patterns);
-}
-
-export async function invalidateAnalyticsCache(
-	userId: string,
-	projectId?: string,
-) {
-	const patterns = ["user-analytics"];
-	if (projectId) {
-		patterns.push("project-analytics");
-	}
-	await invalidateUserCache(userId, patterns);
-}
-
-export async function invalidateProviderCache(
+// Project-specific cache invalidation functions
+export const invalidateProviderCache = (
 	projectId: string,
 	providerName?: string,
-) {
-	try {
-		const patterns = [
-			`providers:${projectId}`,
-			`provider-configs:${projectId}`,
-		];
+) => {
+	const patterns = [
+		`providers:${projectId}*`,
+		`provider-configs:${projectId}*`,
+	];
 
-		if (providerName) {
-			patterns.push(`provider:${providerName}:${projectId}`);
-		}
-
-		for (const pattern of patterns) {
-			const keys = await redis.keys(`${pattern}*`);
-			if (keys.length > 0) {
-				await redis.del(keys);
-				console.log(
-					`[CACHE INVALIDATED] ${keys.length} keys for pattern: ${pattern}`,
-				);
-			}
-		}
-	} catch (error) {
-		console.error("[PROVIDER CACHE INVALIDATION ERROR]:", error);
+	if (providerName) {
+		patterns.push(`provider:${providerName}:${projectId}*`);
 	}
-}
 
-export async function invalidateProviderConfigCache(
+	return invalidatePatterns(patterns);
+};
+
+export const invalidateProviderConfigCache = (
 	projectId: string,
 	providerId?: string,
-) {
-	try {
-		const patterns = [`provider-configs:${projectId}`];
+) => {
+	const patterns = [`provider-configs:${projectId}*`];
 
-		if (providerId) {
-			patterns.push(`provider-config:${projectId}:${providerId}`);
-		}
-
-		for (const pattern of patterns) {
-			const keys = await redis.keys(`${pattern}*`);
-			if (keys.length > 0) {
-				await redis.del(keys);
-				console.log(
-					`[CACHE INVALIDATED] ${keys.length} keys for pattern: ${pattern}`,
-				);
-			}
-		}
-	} catch (error) {
-		console.error("[PROVIDER CONFIG CACHE INVALIDATION ERROR]:", error);
+	if (providerId) {
+		patterns.push(`provider-config:${projectId}:${providerId}*`);
 	}
-}
 
-export async function invalidateClusterCache(
+	return invalidatePatterns(patterns);
+};
+
+export const invalidateClusterCache = async (
 	projectId: string,
 	clusterName?: string,
-) {
-	try {
-		const patterns = [];
+) => {
+	const patterns: string[] = [];
 
-		if (clusterName) {
-			patterns.push(`cluster:${projectId}:${clusterName}`);
-			// Also invalidate model details cache for this specific cluster
+	if (clusterName) {
+		patterns.push(`cluster:${projectId}:${clusterName}*`);
+
+		// Invalidate related model details
+		try {
 			const clusterKeys = await redis.keys(
 				`cluster:${projectId}:${clusterName}`,
 			);
@@ -165,24 +157,17 @@ export async function invalidateClusterCache(
 				const cluster = await redis.get(key);
 				if (cluster) {
 					const clusterData = JSON.parse(cluster);
-					patterns.push(`model-details:${clusterData.id}`);
+					if (clusterData.id) {
+						patterns.push(`model-details:${clusterData.id}*`);
+					}
 				}
 			}
-		} else {
-			patterns.push(`cluster:${projectId}:*`);
-			patterns.push("model-details:*");
+		} catch (error) {
+			console.error("[CACHE ERROR] Failed to get cluster data:", error);
 		}
-
-		for (const pattern of patterns) {
-			const keys = await redis.keys(pattern);
-			if (keys.length > 0) {
-				await redis.del(keys);
-				console.log(
-					`[CACHE INVALIDATED] ${keys.length} keys for pattern: ${pattern}`,
-				);
-			}
-		}
-	} catch (error) {
-		console.error("[CLUSTER CACHE INVALIDATION ERROR]:", error);
+	} else {
+		patterns.push(`cluster:${projectId}:*`, "model-details:*");
 	}
-}
+
+	return invalidatePatterns(patterns);
+};
