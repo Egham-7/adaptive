@@ -136,28 +136,6 @@ completion = client.chat.completions.create(
 
 print(completion.choices[0].message.content)`;
 
-	const exampleResponse = `{
-  "id": "chatcmpl-123",
-  "object": "chat.completion",
-  "created": 1677652288,
-  "model": "gpt-4o",
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Hello! I'm doing well, thank you for asking. I'm here and ready to help you with any questions or tasks you might have. How can I assist you today?"
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 9,
-    "completion_tokens": 31,
-    "total_tokens": 40
-  }
-}`;
-
 	return (
 		<div className="mx-auto max-w-7xl px-2 py-2 sm:px-4">
 			{/* Back Navigation */}
