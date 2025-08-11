@@ -77,10 +77,12 @@ function CodeBlockCode({
     <div
       className={classNames}
       dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+      role="region"
+      aria-label={`Code block in ${language}`}
       {...props}
     />
   ) : (
-    <div className={classNames} {...props}>
+    <div className={classNames} role="region" aria-label={`Code block in ${language}`} {...props}>
       <pre>
         <code>{code}</code>
       </pre>
