@@ -43,7 +43,7 @@ export default function QuickstartPage() {
 	} = api.api_keys.getByProject.useQuery({ projectId });
 
 	const firstApiKey = apiKeys?.[0];
-	const exampleKey = firstApiKey ? firstApiKey.key_preview : EXAMPLE_API_KEY;
+	const exampleKey = EXAMPLE_API_KEY;
 
 	const CustomCodeBlock = ({
 		code,
