@@ -1,0 +1,121 @@
+# Scalable endpoint configuration for performance testing
+
+base_url: "https://llmadaptive.uk"
+
+# Global test settings
+global_settings:
+  timeout: 30
+  max_retries: 3
+  verify_ssl: true
+  verbose: false  # Set to true to see detailed request/response logs
+  headers:
+    User-Agent: "WebPerf-Test-Suite/0.1.0"
+    Content-Type: "application/json"
+
+# Define test scenarios
+scenarios:
+  light_load:
+    users: 10
+    spawn_rate: 2
+    duration: 60
+
+  medium_load:
+    users: 50
+    spawn_rate: 5
+    duration: 300
+
+  heavy_load:
+    users: 200
+    spawn_rate: 10
+    duration: 600
+
+  stress_test:
+    users: 500
+    spawn_rate: 20
+    duration: 900
+
+# Endpoint definitions - easily scalable
+endpoints:
+  select_model:
+    path: "/api/v1/select-model"
+    method: "POST"
+    description: "Model selection endpoint"
+    test_data:
+      - messages:
+          - role: "user"
+            content: "What is the capital of France?"
+        model: "adaptive"
+        max_tokens: 100
+        temperature: 0.7
+      - messages:
+          - role: "user"
+            content: "Explain quantum computing in simple terms"
+        model: "adaptive"
+        max_tokens: 200
+        temperature: 0.5
+      - messages:
+          - role: "user"
+            content: "Write a Python function to calculate fibonacci numbers"
+        model: "adaptive"
+        max_tokens: 300
+        temperature: 0.3
+    weight: 70 # 70% of requests go to this endpoint
+
+  # Example of how to add more endpoints
+  chat_completions:
+    path: "/api/v1/chat/completions"
+    method: "POST"
+    description: "OpenAI-compatible chat completions"
+    test_data:
+      - messages:
+          - role: "user"
+            content: "Hello, how are you?"
+        model: "adaptive"
+        max_tokens: 150
+        temperature: 0.7
+      - messages:
+          - role: "system"
+            content: "You are a helpful assistant."
+          - role: "user"
+            content: "What's the weather like today?"
+        model: "adaptive"
+        max_tokens: 100
+        temperature: 0.5
+      - messages:
+          - role: "user"
+            content: "Can you help me write a short poem about coding?"
+        model: "adaptive"
+        max_tokens: 200
+        temperature: 0.8
+        top_p: 0.9
+    weight: 20
+    enabled: true
+
+  health_check:
+    path: "/health"
+    method: "GET"
+    description: "Health check endpoint"
+    test_data: null # No body needed for GET
+    weight: 10
+    enabled: false
+
+# Performance thresholds
+thresholds:
+  response_time:
+    p50: 500 # 50th percentile should be under 500ms
+    p95: 2000 # 95th percentile should be under 2s
+    p99: 5000 # 99th percentile should be under 5s
+
+  success_rate: 95 # Minimum 95% success rate
+
+  rps:
+    minimum: 10 # Minimum requests per second
+    target: 100 # Target requests per second
+
+# Reporting configuration
+reporting:
+  output_dir: "results"
+  generate_charts: true
+  export_formats: ["html", "csv", "json"]
+  chart_formats: ["png", "svg"]
+
