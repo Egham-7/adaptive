@@ -1,0 +1,64 @@
+
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Performance Test Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                .header { background-color: #f4f4f4; padding: 20px; border-radius: 5px; }
+                .metric-box { display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+                .pass { background-color: #d4edda; border-color: #c3e6cb; }
+                .fail { background-color: #f8d7da; border-color: #f5c6cb; }
+                .endpoint { margin: 20px 0; padding: 15px; background-color: #f9f9f9; border-radius: 5px; }
+                table { border-collapse: collapse; width: 100%; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Performance Test Report</h1>
+                <p>Generated: 2025-08-11 22:46:01</p>
+                <p>Total Sessions: 1</p>
+            </div>
+            
+            <h2>Overall Metrics</h2>
+            <div class="metric-box">
+                <strong>Total Requests:</strong> 6000
+            </div>
+            <div class="metric-box">
+                <strong>Success Rate:</strong> 99.72%
+            </div>
+            <div class="metric-box">
+                <strong>Average Response Time:</strong> 4053.47ms
+            </div>
+            <div class="metric-box">
+                <strong>P95 Response Time:</strong> 8822.09ms
+            </div>
+            
+            <h2>Threshold Checks</h2>
+            <div class="fail">
+                <strong>Overall Status:</strong> FAILED
+            </div>
+            
+            <h2>Endpoint Breakdown</h2>
+        
+                <div class="endpoint">
+                    <h3>select_model</h3>
+                    <p><strong>Total Requests:</strong> 4686</p>
+                    <p><strong>Success Rate:</strong> 100.00%</p>
+                    <p><strong>Average Response Time:</strong> 3749.38ms</p>
+                    <p><strong>P95 Response Time:</strong> 5589.66ms</p>
+                </div>
+                
+                <div class="endpoint">
+                    <h3>chat_completions</h3>
+                    <p><strong>Total Requests:</strong> 1314</p>
+                    <p><strong>Success Rate:</strong> 98.71%</p>
+                    <p><strong>Average Response Time:</strong> 5137.93ms</p>
+                    <p><strong>P95 Response Time:</strong> 10259.07ms</p>
+                </div>
+                
+            </body>
+            </html>
+        

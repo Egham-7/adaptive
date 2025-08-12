@@ -1,0 +1,105 @@
+{
+  "generated_at": "2025-08-11T22:46:01.140545",
+  "overall_metrics": {
+    "total_requests": 6000,
+    "successful_requests": 5983,
+    "overall_success_rate": 99.71666666666667,
+    "overall_response_times": {
+      "mean": 4053.4746355613074,
+      "median": 4203.78303527832,
+      "p95": 8822.087013721466,
+      "p99": 10734.94937181473,
+      "min": 1190.8130645751953,
+      "max": 19776.532888412476
+    },
+    "endpoints_tested": 2,
+    "endpoint_breakdown": {
+      "select_model": 4686,
+      "chat_completions": 1314
+    },
+    "total_sessions": 1,
+    "total_duration": 608.855081
+  },
+  "threshold_checks": {
+    "passed": false,
+    "checks": {
+      "success_rate": {
+        "passed": true,
+        "actual": 99.71666666666667,
+        "threshold": 95.0
+      },
+      "response_time_p50": {
+        "passed": false,
+        "actual": 4203.78303527832,
+        "threshold": 500
+      },
+      "response_time_p95": {
+        "passed": false,
+        "actual": 8822.087013721466,
+        "threshold": 2000
+      },
+      "response_time_p99": {
+        "passed": false,
+        "actual": 10734.94937181473,
+        "threshold": 5000
+      }
+    }
+  },
+  "session_comparison": [
+    {
+      "session_id": "async_heavy_load_1754948152",
+      "start_time": "2025-08-11T22:35:52.174494",
+      "duration": 608.855081,
+      "total_requests": 6000,
+      "success_rate": 99.71666666666667,
+      "average_response_time": 4053.4746355613074,
+      "percentiles": {
+        "p50": 4204.390048980713,
+        "p95": 8824.306011199951,
+        "p99": 10743.000268936157
+      },
+      "config": {
+        "scenario": "heavy_load",
+        "tester": "AsyncEndpointTester"
+      }
+    }
+  ],
+  "endpoint_metrics": {
+    "select_model": {
+      "endpoint_name": "select_model",
+      "total_requests": 4686,
+      "successful_requests": 4686,
+      "success_rate": 100.0,
+      "response_times": {
+        "mean": 3749.3832931526695,
+        "median": 4288.229584693909,
+        "p95": 5589.656174182892,
+        "p99": 6043.568980693817,
+        "min": 1190.8130645751953,
+        "max": 16579.02479171753,
+        "std": 1560.5112401627937
+      },
+      "error_rate": 0.0,
+      "average_request_size": 148.89116517285532,
+      "average_response_size": 276.06060606060606
+    },
+    "chat_completions": {
+      "endpoint_name": "chat_completions",
+      "total_requests": 1314,
+      "successful_requests": 1297,
+      "success_rate": 98.7062404870624,
+      "response_times": {
+        "mean": 5137.928235657865,
+        "median": 2835.655927658081,
+        "p95": 10259.06662940979,
+        "p99": 14293.162064552276,
+        "min": 1406.3658714294434,
+        "max": 19776.532888412476,
+        "std": 3593.280275069482
+      },
+      "error_rate": 1.2937595129375952,
+      "average_request_size": 165.26179604261796,
+      "average_response_size": 1104.609589041096
+    }
+  }
+}

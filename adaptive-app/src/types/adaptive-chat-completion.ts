@@ -75,7 +75,7 @@ export const chatCompletionMessageSchema = z.object({
 export const adaptiveChatCompletionRequestSchema = z.object({
 	// Core OpenAI parameters
 	messages: z.array(chatCompletionMessageSchema),
-	model: z.string(),
+	model: z.string().optional(),
 	frequency_penalty: z.number().min(-2).max(2).optional(),
 	logprobs: z.boolean().optional(),
 	max_completion_tokens: z.number().positive().optional(),
