@@ -1,0 +1,16 @@
+{
+  "name": "claude",
+  "version": "0.1.2",
+  "description": "This is not the official Claude Code package",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bcherny/redirect-claude.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

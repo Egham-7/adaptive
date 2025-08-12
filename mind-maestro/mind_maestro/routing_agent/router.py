@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from .analyzer import PromptAnalyzer
+from .ai_analyzer import AIRoutingAgent
 from .selector import ModelSelector
 from .models import (
     RoutingDecision,
@@ -33,8 +33,8 @@ class ModelRouter:
         self.config = config or RoutingConfig()
         self.version = version
         
-        # Initialize components
-        self.analyzer = PromptAnalyzer(use_embeddings=use_embeddings)
+        # Initialize AI routing agent
+        self.ai_agent = AIRoutingAgent(routing_model=config.routing_model if config else "gpt-4o-mini")
         self.selector = ModelSelector(config=self.config)
         
         # Statistics tracking
@@ -58,11 +58,25 @@ class ModelRouter:
         start_time = time.time()
         
         try:
-            # Step 1: Analyze the prompt
-            prompt_analysis = self.analyzer.analyze_prompt(prompt)
+            # Step 1: Get available models
+            available_models = self.selector.get_available_models()
             
-            # Step 2: Select optimal model
-            model_selection = self.selector.select_optimal_model(prompt_analysis)
+            # Step 2: AI agent analyzes prompt and selects model
+            prompt_analysis = self.ai_agent.analyze_prompt(prompt, available_models)
+            model_selection_data = self.ai_agent.select_best_model(prompt, prompt_analysis, available_models)
+            
+            # Step 3: Convert to ModelSelection format
+            selected_model_data = next(
+                (m for m in available_models if m["name"] == model_selection_data["selected_model"]),
+                available_models[0]
+            )
+            
+            model_selection = self.selector.create_model_selection(
+                selected_model_data,
+                model_selection_data["selection_reasoning"],
+                model_selection_data["confidence_score"],
+                model_selection_data["estimated_performance"]
+            )
             
             # Step 3: Create routing decision
             processing_time = (time.time() - start_time) * 1000  # Convert to ms
@@ -114,8 +128,6 @@ class ModelRouter:
         result = {
             "recommended_model": routing_decision.model_selection.selected_model.name,
             "confidence": routing_decision.model_selection.confidence_score,
-            "task_type": routing_decision.prompt_analysis.task_type.value,
-            "complexity": routing_decision.prompt_analysis.complexity.value,
             "processing_time_ms": routing_decision.processing_time_ms
         }
         
@@ -126,11 +138,11 @@ class ModelRouter:
                     alt.name for alt in routing_decision.model_selection.alternatives
                 ],
                 "expected_performance": routing_decision.model_selection.estimated_performance,
+                "analysis_details": routing_decision.prompt_analysis.analysis_reasoning,
                 "model_details": {
                     "company": routing_decision.model_selection.selected_model.company,
                     "parameters": f"{routing_decision.model_selection.selected_model.parameter_count}B",
-                    "context_window": routing_decision.model_selection.selected_model.context_window,
-                    "efficiency_score": routing_decision.model_selection.selected_model.efficiency_score
+                    "context_window": routing_decision.model_selection.selected_model.context_window
                 }
             })
         
@@ -149,26 +161,25 @@ class ModelRouter:
         selection = routing_decision.model_selection
         
         explanation = f"""
-🎯 **Routing Decision Analysis**
+🎯 **AI Routing Agent Decision**
 
-**Prompt Analysis:**
-• Task Type: {analysis.task_type.value.title()} (confidence: {analysis.confidence_score:.1%})
-• Complexity: {analysis.complexity.value.title()}
-• Domain: {analysis.domain.value.title()}
-• Context Required: {analysis.context_length:,} tokens
-• Reasoning Steps: {analysis.reasoning_steps_required}
+**Analysis:**
+{analysis.analysis_reasoning}
+
+**Context Required:** {analysis.context_length:,} tokens
+**Multimodal Needed:** {analysis.requires_multimodal}
+**Analysis Confidence:** {analysis.confidence_score:.1%}
 
 **Selected Model:** {selection.selected_model.name} ({selection.selected_model.company})
 • Parameters: {selection.selected_model.parameter_count}B
-• Efficiency Score: {selection.selected_model.efficiency_score:.3f}
-• Task Relevance: {selection.selected_model.task_relevance_score:.3f}
+• Context Window: {selection.selected_model.context_window:,} tokens
 • Expected Performance: {selection.estimated_performance:.1%}
 
 **Selection Reasoning:**
 {selection.selection_reasoning}
 
 **Alternative Models:**
-{chr(10).join(f"• {alt.name} (score: {alt.efficiency_score:.3f})" for alt in selection.alternatives[:3])}
+{chr(10).join(f"• {alt.name}" for alt in selection.alternatives[:3])}
 
 **Processing Time:** {routing_decision.processing_time_ms:.1f}ms
         """.strip()
@@ -249,14 +260,13 @@ class ModelRouter:
         Returns:
             Fallback RoutingDecision
         """
-        from .models import TaskType, ComplexityLevel, Domain, ModelPerformance
+        from .models import ModelPerformance
         
         # Create minimal analysis
         fallback_analysis = PromptAnalysis(
-            task_type=TaskType.GENERAL_QA,
-            complexity=ComplexityLevel.MEDIUM,
-            domain=Domain.GENERAL,
+            analysis_reasoning=f"Failed to analyze with AI agent: {error_message}. Using basic fallback analysis.",
             context_length=8192,
+            requires_multimodal=False,
             confidence_score=0.3
         )
         

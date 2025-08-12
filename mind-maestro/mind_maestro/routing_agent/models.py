@@ -1,52 +1,16 @@
-"""Pydantic models for routing agent state management and configuration."""
+"""Simplified models for AI agent routing decisions."""
 
-from enum import Enum
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 
 
-class TaskType(str, Enum):
-    """Task type classification for prompt analysis."""
-    MATH = "math"
-    CODING = "coding"
-    REASONING = "reasoning"
-    GENERAL_QA = "general_qa"
-    CREATIVE = "creative"
-    ANALYSIS = "analysis"
-    TECHNICAL = "technical"
-    CONVERSATIONAL = "conversational"
-
-
-class ComplexityLevel(str, Enum):
-    """Complexity level for task difficulty assessment."""
-    SIMPLE = "simple"
-    MEDIUM = "medium"
-    COMPLEX = "complex"
-    EXPERT = "expert"
-
-
-class Domain(str, Enum):
-    """Domain classification for specialized routing."""
-    ACADEMIC = "academic"
-    TECHNICAL = "technical" 
-    BUSINESS = "business"
-    CREATIVE = "creative"
-    GENERAL = "general"
-    SCIENTIFIC = "scientific"
-
-
 class PromptAnalysis(BaseModel):
-    """Results of prompt analysis for routing decisions."""
+    """AI agent analysis of prompt for routing decisions."""
     
-    task_type: TaskType
-    complexity: ComplexityLevel
-    domain: Domain
+    analysis_reasoning: str = Field(description="AI agent's reasoning about the prompt")
     context_length: int = Field(description="Required context window size")
-    keywords: List[str] = Field(default_factory=list, description="Key terms found in prompt")
-    semantic_embedding: Optional[List[float]] = Field(default=None, description="Semantic embedding vector")
     requires_multimodal: bool = Field(default=False, description="Whether task needs multimodal capabilities")
-    reasoning_steps_required: int = Field(default=1, description="Estimated reasoning complexity")
-    confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in classification")
+    confidence_score: float = Field(ge=0.0, le=1.0, description="Confidence in analysis")
 
 
 class ModelPerformance(BaseModel):
@@ -57,9 +21,10 @@ class ModelPerformance(BaseModel):
     parameter_count: float
     benchmarks: Dict[str, float]
     context_window: int
+    pricing: Optional[Dict[str, float]] = Field(default=None, description="Pricing per 1M tokens")
     efficiency_score: float = Field(description="Calculated efficiency for this task")
     task_relevance_score: float = Field(description="How well suited for the specific task")
-    cost_efficiency: float = Field(description="Performance per parameter ratio")
+    cost_efficiency: float = Field(description="Performance per cost ratio")
 
 
 class ModelSelection(BaseModel):
@@ -84,52 +49,13 @@ class RoutingDecision(BaseModel):
 
 
 class RoutingConfig(BaseModel):
-    """Configuration parameters for the routing system."""
+    """Simple configuration for AI agent routing."""
     
-    # Performance weights for efficiency scoring
-    performance_weight: float = Field(default=0.4, ge=0.0, le=1.0)
-    efficiency_weight: float = Field(default=0.3, ge=0.0, le=1.0) 
-    context_weight: float = Field(default=0.2, ge=0.0, le=1.0)
-    speed_weight: float = Field(default=0.1, ge=0.0, le=1.0)
-    
-    # Task-specific benchmark priorities
-    task_benchmark_weights: Dict[TaskType, Dict[str, float]] = Field(
-        default_factory=lambda: {
-            TaskType.MATH: {"math": 0.5, "gsm8k": 0.3, "mmlu": 0.2},
-            TaskType.CODING: {"humaneval": 0.6, "mmlu": 0.4},
-            TaskType.REASONING: {"math": 0.4, "mmlu": 0.6},
-            TaskType.GENERAL_QA: {"mmlu": 0.8, "gsm8k": 0.2},
-        }
-    )
-    
-    # Minimum performance thresholds per task type
-    min_performance_thresholds: Dict[TaskType, float] = Field(
-        default_factory=lambda: {
-            TaskType.MATH: 70.0,
-            TaskType.CODING: 75.0, 
-            TaskType.REASONING: 80.0,
-            TaskType.GENERAL_QA: 65.0,
-        }
-    )
-    
-    # Model preferences for different scenarios  
-    prefer_smaller_models_for_simple: bool = Field(default=True)
-    max_parameters_for_simple: float = Field(default=20.0)  # Billion parameters
-    fallback_to_efficient: bool = Field(default=True)
-    
-    # Context window requirements
+    # Model selection preferences
+    prefer_efficiency: bool = Field(default=True, description="Prefer efficient models when possible")
     context_buffer_ratio: float = Field(default=1.2, description="Safety margin for context")
     min_context_window: int = Field(default=4096)
-    
-    # Classification parameters
-    complexity_length_thresholds: Dict[ComplexityLevel, int] = Field(
-        default_factory=lambda: {
-            ComplexityLevel.SIMPLE: 100,
-            ComplexityLevel.MEDIUM: 500, 
-            ComplexityLevel.COMPLEX: 2000,
-            ComplexityLevel.EXPERT: float('inf')
-        }
-    )
+    routing_model: str = Field(default="gpt-4o-mini", description="Model to use for routing decisions")
 
 
 class RoutingState(BaseModel):

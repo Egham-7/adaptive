@@ -1,4 +1,3 @@
-import math
 
 # Verified LLM benchmarks dataset - 2024-2025 landscape with minimal estimation
 llm_benchmarks = {
@@ -18,6 +17,11 @@ llm_benchmarks = {
             },
             "description_vector": [90.8, 69.3, 97.3, 89.8, 671.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 2.00,  # $2.00 per 1M input tokens
+                "output_cost_per_1m": 8.00,  # $8.00 per 1M output tokens
+                "cached_input_cost_per_1m": 0.40  # $0.40 per 1M cached tokens
+            },
             "notable_features": "Open-source reasoning, 79.8% AIME 2024, 2029 Codeforces Elo"
         },
         {
@@ -34,6 +38,10 @@ llm_benchmarks = {
             },
             "description_vector": [90.8, 92.4, 85.5, 94.8, 175.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 15.00,  # $15.00 per 1M input tokens
+                "output_cost_per_1m": 60.00  # $60.00 per 1M output tokens
+            },
             "notable_features": "Advanced reasoning with chain-of-thought, 83% AIME"
         },
         {
@@ -50,6 +58,11 @@ llm_benchmarks = {
             },
             "description_vector": [88.7, 90.2, 76.6, 92.0, 175.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 2.50,  # $2.50 per 1M input tokens
+                "output_cost_per_1m": 10.00,  # $10.00 per 1M output tokens
+                "cached_input_cost_per_1m": 1.25  # $1.25 per 1M cached tokens
+            },
             "notable_features": "Multimodal (text, image, audio), real-time processing"
         },
         {
@@ -66,6 +79,10 @@ llm_benchmarks = {
             },
             "description_vector": [88.6, 89.0, 73.8, 96.8, 405.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 5.00,  # $5.00 per 1M input tokens (via cloud providers)
+                "output_cost_per_1m": 15.00  # $15.00 per 1M output tokens
+            },
             "notable_features": "Largest open-source model, multilingual"
         },
         {
@@ -82,6 +99,11 @@ llm_benchmarks = {
             },
             "description_vector": [88.5, 69.3, 90.2, 89.8, 671.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 0.27,  # $0.27 per 1M input tokens
+                "output_cost_per_1m": 1.10,  # $1.10 per 1M output tokens
+                "cached_input_cost_per_1m": 0.014  # $0.014 per 1M cached tokens
+            },
             "notable_features": "MoE architecture, strong math performance"
         },
         {
@@ -98,6 +120,11 @@ llm_benchmarks = {
             },
             "description_vector": [88.3, 92.0, 71.1, 96.4, 200.0],
             "context_window": 200000,
+            "pricing": {
+                "input_cost_per_1m": 3.00,  # $3.00 per 1M input tokens
+                "output_cost_per_1m": 15.00,  # $15.00 per 1M output tokens
+                "cached_input_cost_per_1m": 0.30  # $0.30 per 1M cached tokens
+            },
             "notable_features": "Enhanced reasoning, artifacts, tool use"
         },
         
@@ -116,6 +143,10 @@ llm_benchmarks = {
             },
             "description_vector": [86.1, 59.1, 62.1, 91.5, 72.7],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 0.90,  # $0.90 per 1M input tokens
+                "output_cost_per_1m": 0.90  # $0.90 per 1M output tokens
+            },
             "notable_features": "Multilingual (29+ languages), Apache 2.0"
         },
         {
@@ -132,6 +163,11 @@ llm_benchmarks = {
             },
             "description_vector": [85.9, 84.0, 67.0, 88.9, 175.0],
             "context_window": 1000000,
+            "pricing": {
+                "input_cost_per_1m": 3.50,  # $3.50 per 1M input tokens (up to 128K)
+                "output_cost_per_1m": 10.50,  # $10.50 per 1M output tokens
+                "cached_input_cost_per_1m": 0.875  # $0.875 per 1M cached tokens
+            },
             "notable_features": "1M token context, multimodal"
         },
         {
@@ -148,6 +184,10 @@ llm_benchmarks = {
             },
             "description_vector": [85.2, 89.0, 70.0, 89.0, 25.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 1.10,  # $1.10 per 1M input tokens
+                "output_cost_per_1m": 4.40  # $4.40 per 1M output tokens
+            },
             "notable_features": "Cost-efficient reasoning, 86th percentile on Codeforces"
         },
         {
@@ -164,6 +204,10 @@ llm_benchmarks = {
             },
             "description_vector": [84.8, 82.6, 80.4, 80.6, 14.0],
             "context_window": 16000,
+            "pricing": {
+                "input_cost_per_1m": 0.10,  # $0.10 per 1M input tokens (Azure pricing)
+                "output_cost_per_1m": 0.30  # $0.30 per 1M output tokens
+            },
             "notable_features": "Small but powerful, enhanced reasoning"
         },
         {
@@ -180,6 +224,10 @@ llm_benchmarks = {
             },
             "description_vector": [83.3, 58.5, 57.7, 92.9, 32.5],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 0.60,  # $0.60 per 1M input tokens
+                "output_cost_per_1m": 0.60  # $0.60 per 1M output tokens
+            },
             "notable_features": "Apache 2.0 license, multilingual"
         },
         {
@@ -196,6 +244,10 @@ llm_benchmarks = {
             },
             "description_vector": [82.0, 80.5, 68.0, 95.1, 70.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 0.88,  # $0.88 per 1M input tokens (via providers)
+                "output_cost_per_1m": 0.88  # $0.88 per 1M output tokens
+            },
             "notable_features": "Strong balance of performance and efficiency"
         },
         
@@ -214,6 +266,10 @@ llm_benchmarks = {
             },
             "description_vector": [77.8, 46.3, 41.7, 83.7, 141.0],
             "context_window": 64000,
+            "pricing": {
+                "input_cost_per_1m": 2.00,  # $2.00 per 1M input tokens
+                "output_cost_per_1m": 6.00  # $6.00 per 1M output tokens
+            },
             "notable_features": "Sparse MoE, cost-efficient"
         },
         {
@@ -230,6 +286,10 @@ llm_benchmarks = {
             },
             "description_vector": [75.2, 51.8, 42.3, 74.0, 27.0],
             "context_window": 8192,
+            "pricing": {
+                "input_cost_per_1m": 0.27,  # $0.27 per 1M input tokens
+                "output_cost_per_1m": 0.27  # $0.27 per 1M output tokens
+            },
             "notable_features": "Knowledge distillation from larger models"
         },
         {
@@ -246,6 +306,10 @@ llm_benchmarks = {
             },
             "description_vector": [71.3, 40.2, 36.6, 68.6, 9.0],
             "context_window": 8192,
+            "pricing": {
+                "input_cost_per_1m": 0.08,  # $0.08 per 1M input tokens
+                "output_cost_per_1m": 0.08  # $0.08 per 1M output tokens
+            },
             "notable_features": "Knowledge distillation, compact"
         },
         {
@@ -262,6 +326,10 @@ llm_benchmarks = {
             },
             "description_vector": [69.4, 72.6, 51.9, 84.5, 8.0],
             "context_window": 128000,
+            "pricing": {
+                "input_cost_per_1m": 0.18,  # $0.18 per 1M input tokens (via providers)
+                "output_cost_per_1m": 0.18  # $0.18 per 1M output tokens
+            },
             "notable_features": "Efficient deployment, good performance/size ratio"
         },
         {
@@ -278,6 +346,10 @@ llm_benchmarks = {
             },
             "description_vector": [68.8, 57.9, 52.0, 71.4, 3.8],
             "context_window": 4096,
+            "pricing": {
+                "input_cost_per_1m": 0.10,  # $0.10 per 1M input tokens
+                "output_cost_per_1m": 0.10  # $0.10 per 1M output tokens
+            },
             "notable_features": "Mobile deployment capable"
         }
     ],
