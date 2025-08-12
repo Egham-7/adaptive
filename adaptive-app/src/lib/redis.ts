@@ -40,6 +40,10 @@ export const redis = {
 		const redisClient = await ensureConnected();
 		return redisClient.del(keys);
 	},
+	async exists(key: string) {
+		const redisClient = await ensureConnected();
+		return redisClient.exists(key);
+	},
 };
 
 export default redis;

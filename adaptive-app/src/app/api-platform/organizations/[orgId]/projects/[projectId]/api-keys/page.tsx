@@ -23,6 +23,8 @@ import {
 	FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { QuickstartExamples } from "@/components/ui/quickstart-examples";
+import { Separator } from "@/components/ui/separator";
 import {
 	Table,
 	TableBody,
@@ -338,49 +340,67 @@ export default function ApiKeysPage() {
 
 			{/* API Key Display Modal */}
 			<Dialog open={showApiKeyModal} onOpenChange={setShowApiKeyModal}>
-				<DialogContent className="max-w-lg">
+				<DialogContent className="!max-w-7xl sm:!max-w-7xl max-h-[90vh] w-[98vw] overflow-y-auto sm:w-[90vw] lg:w-[85vw] xl:w-[80vw]">
 					<DialogHeader>
-						<DialogTitle>Save your API key</DialogTitle>
+						<DialogTitle>Your API key is ready!</DialogTitle>
 					</DialogHeader>
-					<div className="space-y-4">
-						<div className="space-y-2">
-							<p className="text-muted-foreground text-sm">
-								Please save this API key somewhere safe and accessible. For
-								security reasons, you won't be able to view it again through
-								your account. If you lose this API key, you'll need to generate
-								a new one.
-							</p>
-						</div>
-						<div className="space-y-2">
-							<div className="flex items-center justify-between">
-								<span className="font-medium text-sm">API Key</span>
-								<Button
-									variant="outline"
-									size="sm"
-									onClick={handleCopyApiKey}
-									className="h-8 px-3 text-xs"
-								>
-									{copiedApiKey ? (
-										<>
-											<Check className="mr-1 h-3 w-3" />
-											Copied
-										</>
-									) : (
-										<>
-											<Copy className="mr-1 h-3 w-3" />
-											Copy
-										</>
-									)}
-								</Button>
+					<div className="space-y-4 px-1 sm:px-2 lg:px-0">
+						{/* API Key Section */}
+						<div className="space-y-3">
+							<div className="space-y-2">
+								<p className="font-semibold text-muted-foreground text-sm">
+									Please save this API key somewhere safe and accessible. For
+									security reasons, you won't be able to view it again through
+									your account. If you lose this API key, you'll need to
+									generate a new one.
+								</p>
 							</div>
-							<div className="rounded-md border bg-muted p-3">
-								<code className="break-all font-mono text-sm">{newApiKey}</code>
+							<div className="space-y-2">
+								<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+									<span className="font-medium text-sm">API Key</span>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={handleCopyApiKey}
+										className="h-8 px-3 text-xs"
+									>
+										{copiedApiKey ? (
+											<>
+												<Check className="mr-1 h-3 w-3" />
+												Copied
+											</>
+										) : (
+											<>
+												<Copy className="mr-1 h-3 w-3" />
+												Copy
+											</>
+										)}
+									</Button>
+								</div>
+								<div className="rounded-md border bg-muted p-3">
+									<code className="break-all font-mono text-sm">
+										{newApiKey}
+									</code>
+								</div>
 							</div>
 						</div>
-						<div className="flex justify-end">
+
+						<Separator />
+
+						{/* Quickstart Section */}
+						{newApiKey && (
+							<QuickstartExamples
+								apiKey={newApiKey}
+								title="🚀 Quick Start"
+								description="Test your new API key with these examples"
+							/>
+						)}
+
+						<div className="flex justify-end pt-2">
 							<Button
 								onClick={handleCloseApiKeyModal}
 								className="bg-primary hover:bg-primary/90"
+								size="lg"
 							>
 								Done
 							</Button>
