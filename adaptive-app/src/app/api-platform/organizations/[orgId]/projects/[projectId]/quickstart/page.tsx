@@ -310,6 +310,147 @@ print(completion.choices[0].message.content)`;
 					</CardContent>
 				</Card>
 
+				{/* Step 3: Additional Endpoints */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-3">
+							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-sm">
+								3
+							</div>
+							<div>
+								<CardTitle>Additional Endpoints</CardTitle>
+								<CardDescription>
+									Explore advanced features of the Adaptive API beyond chat completions
+								</CardDescription>
+							</div>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<Tabs defaultValue="select-model" className="w-full">
+							<TabsList className="grid w-full grid-cols-2">
+								<TabsTrigger value="select-model">Model Selection</TabsTrigger>
+								<TabsTrigger value="providers">Provider Info</TabsTrigger>
+							</TabsList>
+
+							<TabsContent value="select-model" className="mt-4">
+								<div className="space-y-4">
+									<div className="rounded-lg border bg-blue-50 p-4 dark:bg-blue-950/20">
+										<h4 className="font-medium text-blue-900 text-sm dark:text-blue-100">
+											Model Selection API
+										</h4>
+										<p className="mt-1 text-blue-700 text-sm dark:text-blue-300">
+											Let the AI service intelligently select the best model and provider for your request without executing it.
+										</p>
+									</div>
+
+									<CustomCodeBlock
+										code={`curl -X POST "${API_BASE_URL}/api/v1/select-model" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${exampleKey}" \\
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "content": "Write a comprehensive analysis of quantum computing"
+      }
+    ],
+    "temperature": 0.7,
+    "max_tokens": 2000
+  }'`}
+										language="bash"
+										title="Select Best Model - cURL"
+									/>
+
+									<div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-900/20">
+										<h5 className="font-medium text-gray-900 text-sm dark:text-gray-100">
+											Example Response:
+										</h5>
+										<CustomCodeBlock
+											code={`{
+  "request": {
+    "messages": [...],
+    "temperature": 0.7,
+    "max_tokens": 2000
+  },
+  "metadata": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "reasoning": "Complex analytical task requires high-quality reasoning",
+    "cost_per_1m_tokens": 15.0,
+    "complexity": "high",
+    "cache_source": "ml_classifier"
+  }
+}`}
+											language="json"
+											title="Response"
+										/>
+									</div>
+								</div>
+							</TabsContent>
+
+							<TabsContent value="providers" className="mt-4">
+								<div className="space-y-4">
+									<div className="rounded-lg border bg-green-50 p-4 dark:bg-green-950/20">
+										<h4 className="font-medium text-green-900 text-sm dark:text-green-100">
+											Provider Information API
+										</h4>
+										<p className="mt-1 text-green-700 text-sm dark:text-green-300">
+											Get real-time information about available providers, models, and their current status.
+										</p>
+									</div>
+
+									<CustomCodeBlock
+										code={`curl -X GET "${API_BASE_URL}/api/v1/providers" \\
+  -H "Authorization: Bearer ${exampleKey}"`}
+										language="bash"
+										title="List All Providers - cURL"
+									/>
+
+									<CustomCodeBlock
+										code={`curl -X GET "${API_BASE_URL}/api/v1/providers/openai" \\
+  -H "Authorization: Bearer ${exampleKey}"`}
+										language="bash"
+										title="Get Specific Provider - cURL"
+									/>
+
+									<div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-900/20">
+										<h5 className="font-medium text-gray-900 text-sm dark:text-gray-100">
+											Example Provider Response:
+										</h5>
+										<CustomCodeBlock
+											code={`{
+  "id": "openai",
+  "name": "OpenAI",
+  "status": "active",
+  "models": [
+    {
+      "id": "gpt-4o",
+      "name": "GPT-4o",
+      "cost_per_1m_input_tokens": 2.5,
+      "cost_per_1m_output_tokens": 10.0,
+      "max_tokens": 128000,
+      "supports_streaming": true
+    },
+    {
+      "id": "gpt-4o-mini",
+      "name": "GPT-4o Mini", 
+      "cost_per_1m_input_tokens": 0.15,
+      "cost_per_1m_output_tokens": 0.6,
+      "max_tokens": 128000,
+      "supports_streaming": true
+    }
+  ]
+}`}
+											language="json"
+											title="Response"
+										/>
+									</div>
+								</div>
+							</TabsContent>
+						</Tabs>
+					</CardContent>
+				</Card>
+
 				{/* Next Steps */}
 				<Card>
 					<CardHeader>
