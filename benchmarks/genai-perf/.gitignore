@@ -71,13 +71,6 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Benchmark results
-results/
-*.json
-*.csv
-*.png
-*.txt
-plots/
 
 # Temporary files
 *.tmp
@@ -91,7 +84,4 @@ pip-lock.txt
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# GenAI-Perf specific
-*_artifacts/
-*_genai_perf.csv
-profile_export_*.json
+
