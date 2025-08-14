@@ -82,18 +82,16 @@ prompt_cache:
   
 # Protocol manager configuration
 protocol_manager:
-  cache:
+  semantic_cache:
     enabled: true
-    semantic_cache:
-      enabled: true
-      threshold: 0.95
-      redis_url: "${REDIS_URL:-redis://localhost:6379}"
-      openai_api_key: "${OPENAI_API_KEY}"  # For embeddings
+    threshold: 0.95
+    redis_url: "${REDIS_URL:-redis://localhost:6379}"
+    openai_api_key: "${OPENAI_API_KEY}"  # For embeddings
   client:
     base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
-    timeout_ms: 15000
+    timeout_ms: 5000
     circuit_breaker:
       failure_threshold: 3
       success_threshold: 2
-      timeout_ms: 30000
-      reset_after_ms: 120000
+      timeout_ms: 10000
+      reset_after_ms: 30000

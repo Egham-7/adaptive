@@ -70,14 +70,8 @@ type PromptCacheConfig struct {
 
 // ProtocolManagerConfig holds configuration for the protocol manager
 type ProtocolManagerConfig struct {
-	Cache  ProtocolManagerCacheConfig  `yaml:"cache"`
-	Client ProtocolManagerClientConfig `yaml:"client"`
-}
-
-// ProtocolManagerCacheConfig holds cache configuration for protocol manager
-type ProtocolManagerCacheConfig struct {
-	Enabled       bool                `yaml:"enabled"`
-	SemanticCache SemanticCacheConfig `yaml:"semantic_cache"`
+	SemanticCache SemanticCacheConfig         `yaml:"semantic_cache"`
+	Client        ProtocolManagerClientConfig `yaml:"client"`
 }
 
 // ProtocolManagerClientConfig holds client configuration for protocol manager

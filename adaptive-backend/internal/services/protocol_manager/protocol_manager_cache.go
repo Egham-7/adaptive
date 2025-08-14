@@ -34,14 +34,11 @@ type ProtocolManagerCache struct {
 func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) {
 	fiberlog.Info("ProtocolManagerCache: Initializing cache")
 
-	// Get cache configuration
-	cacheConfig := cfg.ProtocolManager.Cache
+	// Get semantic cache configuration
+	semanticCacheConfig := cfg.ProtocolManager.SemanticCache
 
 	fiberlog.Debugf("ProtocolManagerCache: Configuration - enabled=%t, threshold=%.2f",
-		cacheConfig.Enabled, cacheConfig.SemanticCache.Threshold)
-
-	// Get semantic cache configuration
-	semanticCacheConfig := cfg.ProtocolManager.Cache.SemanticCache
+		semanticCacheConfig.Enabled, semanticCacheConfig.Threshold)
 
 	apiKey := semanticCacheConfig.OpenAIAPIKey
 	if apiKey == "" {
@@ -96,7 +93,7 @@ func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) 
 
 	return &ProtocolManagerCache{
 		cache:             cache,
-		semanticThreshold: float32(cacheConfig.SemanticCache.Threshold),
+		semanticThreshold: float32(semanticCacheConfig.Threshold),
 	}, nil
 }
 

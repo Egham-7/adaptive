@@ -25,14 +25,14 @@ func NewProtocolManager(cfg *config.Config) (*ProtocolManager, error) {
 	var cache *ProtocolManagerCache
 	var err error
 
-	// Get cache configuration from config
-	cacheConfig := cfg.ProtocolManager.Cache
+	// Get semantic cache configuration from config
+	semanticCacheConfig := cfg.ProtocolManager.SemanticCache
 
-	fiberlog.Infof("ProtocolManager: Initializing with cache enabled=%t, semantic_cache enabled=%t, threshold=%.2f",
-		cacheConfig.Enabled, cacheConfig.SemanticCache.Enabled, cacheConfig.SemanticCache.Threshold)
+	fiberlog.Infof("ProtocolManager: Initializing with semantic_cache enabled=%t, threshold=%.2f",
+		semanticCacheConfig.Enabled, semanticCacheConfig.Threshold)
 
 	// Create cache only if enabled
-	if cacheConfig.Enabled && cacheConfig.SemanticCache.Enabled {
+	if semanticCacheConfig.Enabled {
 		cache, err = NewProtocolManagerCache(cfg)
 		if err != nil {
 			fiberlog.Errorf("ProtocolManager: Failed to create cache: %v", err)
