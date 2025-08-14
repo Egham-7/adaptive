@@ -1,0 +1,204 @@
+{
+  "request_throughput": {
+    "unit": "requests/sec",
+    "avg": 5.384645317406846
+  },
+  "request_latency": {
+    "unit": "ms",
+    "avg": 7508.434758058441,
+    "p1": 938.68802597,
+    "p5": 3244.78227625,
+    "p10": 4032.0618695,
+    "p25": 5016.84060075,
+    "p50": 6755.696946999999,
+    "p75": 8870.074124499999,
+    "p90": 11603.302776900002,
+    "p95": 15647.474409999995,
+    "p99": 19092.558528179998,
+    "min": 806.315334,
+    "max": 19423.783627,
+    "std": 3731.001174539069
+  },
+  "request_count": {
+    "unit": "count",
+    "avg": 154.0
+  },
+  "time_to_first_token": {
+    "unit": "ms",
+    "avg": 7508.434758058441,
+    "p1": 938.68802597,
+    "p5": 3244.78227625,
+    "p10": 4032.0618695,
+    "p25": 5016.84060075,
+    "p50": 6755.696946999999,
+    "p75": 8870.074124499999,
+    "p90": 11603.302776900002,
+    "p95": 15647.474409999995,
+    "p99": 19092.558528179998,
+    "min": 806.315334,
+    "max": 19423.783627,
+    "std": 3731.001174539069
+  },
+  "output_token_throughput": {
+    "unit": "tokens/sec",
+    "avg": 1727.1774334022466
+  },
+  "output_sequence_length": {
+    "unit": "tokens",
+    "avg": 320.7597402597403,
+    "p1": 51.22,
+    "p5": 125.6,
+    "p10": 169.0,
+    "p25": 208.5,
+    "p50": 271.5,
+    "p75": 400.75,
+    "p90": 514.2,
+    "p95": 564.8,
+    "p99": 1048.0,
+    "min": 11.0,
+    "max": 1049.0,
+    "std": 182.3014862409158
+  },
+  "input_sequence_length": {
+    "unit": "tokens",
+    "avg": 550.0,
+    "p1": 550.0,
+    "p5": 550.0,
+    "p10": 550.0,
+    "p25": 550.0,
+    "p50": 550.0,
+    "p75": 550.0,
+    "p90": 550.0,
+    "p95": 550.0,
+    "p99": 550.0,
+    "min": 550.0,
+    "max": 550.0,
+    "std": 0.0
+  },
+  "input_config": {
+    "model_names": [
+      "auto"
+    ],
+    "subcommand": "profile",
+    "verbose": false,
+    "template_filename": "genai_perf_config.yaml",
+    "analyze": {
+      "sweep_parameters": {
+        "concurrency": {
+          "min": 1,
+          "max": 1024
+        }
+      }
+    },
+    "endpoint": {
+      "model_selection_strategy": "round_robin",
+      "backend": "tensorrtllm",
+      "custom": "v1/chat/completions",
+      "type": "chat",
+      "streaming": false,
+      "server_metrics_urls": [
+        "http://localhost:9400/metrics"
+      ],
+      "url": "https://backend-dev.mangoplant-a7a21605.swedencentral.azurecontainerapps.io",
+      "grpc_method": "",
+      "service_kind": "openai",
+      "output_format": "openai_chat_completions"
+    },
+    "perf_analyzer": {
+      "path": "perf_analyzer",
+      "verbose": false,
+      "stimulus": {
+        "concurrency": 50
+      },
+      "stability_percentage": 999,
+      "measurement": {
+        "mode": "interval",
+        "num": 8000
+      },
+      "warmup_request_count": 0
+    },
+    "input": {
+      "batch_size": 1,
+      "extra": {
+        "max_tokens": 300,
+        "temperature": 0.7
+      },
+      "goodput": "",
+      "header": "",
+      "file": "",
+      "num_dataset_entries": 100,
+      "random_seed": 0,
+      "audio": {
+        "batch_size": 1,
+        "length": {
+          "mean": 0,
+          "stddev": 0
+        },
+        "format": "wav",
+        "depths": [
+          16
+        ],
+        "sample_rates": [
+          16
+        ],
+        "num_channels": 1
+      },
+      "image": {
+        "width": {
+          "mean": 0,
+          "stddev": 0
+        },
+        "height": {
+          "mean": 0,
+          "stddev": 0
+        },
+        "batch_size": 1,
+        "format": "png"
+      },
+      "output_tokens": {
+        "mean": "",
+        "deterministic": false,
+        "stddev": 0
+      },
+      "synthetic_tokens": {
+        "mean": 550,
+        "stddev": 0
+      },
+      "prefix_prompt": {
+        "num": 0,
+        "length": 100
+      },
+      "sessions": {
+        "num": 0,
+        "turns": {
+          "mean": 1,
+          "stddev": 0
+        },
+        "turn_delay": {
+          "mean": 0,
+          "ratio": 1.0,
+          "stddev": 0
+        }
+      },
+      "prompt_source": "synthetic",
+      "synthetic_files": [],
+      "payload_file": ""
+    },
+    "output": {
+      "artifact_directory": "results/simple_long_response_c50_artifacts",
+      "checkpoint_directory": "checkpoint",
+      "profile_export_file": "simple_long_response_c50.json",
+      "generate_plots": false,
+      "enable_checkpointing": false
+    },
+    "tokenizer": {
+      "name": "gpt2",
+      "revision": "main",
+      "trust_remote_code": false,
+      "_enable_debug_logging": true
+    },
+    "process": {
+      "input_path": "aggregated"
+    }
+  }
+}
