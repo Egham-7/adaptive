@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	Activity,
+	ArrowLeft,
 	Calendar,
 	CheckCircle,
 	ChevronRight,
@@ -272,6 +273,16 @@ export default function OrganizationProjectsPage() {
 
 	return (
 		<div className="w-full">
+			{/* Back Navigation */}
+			<div className="mb-6">
+				<Link href="/api-platform/organizations">
+					<Button variant="ghost" size="sm">
+						<ArrowLeft className="mr-2 h-4 w-4" />
+						Back to Organizations
+					</Button>
+				</Link>
+			</div>
+
 			{/* Header */}
 			<div className="mb-8">
 				<h1 className="mb-2 font-bold text-3xl text-foreground">
