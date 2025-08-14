@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MdCreditCard, MdFolder, MdSettings } from "react-icons/md";
+import { MdCreditCard, MdDashboard, MdFolder, MdKey, MdPlayArrow, MdSettings } from "react-icons/md";
 import { ApiSidebarNavFooter } from "@/app/_components/api-platform/sidebar-nav-footer";
 import CommonSidebarHeader from "@/components/sidebar-header";
 import {
@@ -16,9 +16,12 @@ import {
 } from "@/components/ui/sidebar";
 
 export function OrganizationSidebar() {
-	const { orgId } = useParams();
+	const { orgId, projectId } = useParams();
 
-	const links = [
+	// If we're on a project page, show project navigation
+	const isProjectPage = !!projectId;
+
+	const organizationLinks = [
 		{
 			label: "Projects",
 			href: `/api-platform/organizations/${orgId}`,
@@ -35,6 +38,26 @@ export function OrganizationSidebar() {
 			icon: <MdSettings className="h-5 w-5" />,
 		},
 	];
+
+	const projectLinks = [
+		{
+			label: "Dashboard",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}`,
+			icon: <MdDashboard className="h-5 w-5" />,
+		},
+		{
+			label: "Quickstart",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}/quickstart`,
+			icon: <MdPlayArrow className="h-5 w-5" />,
+		},
+		{
+			label: "API Keys",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}/api-keys`,
+			icon: <MdKey className="h-5 w-5" />,
+		},
+	];
+
+	const links = isProjectPage ? projectLinks : organizationLinks;
 
 	return (
 		<Sidebar className="h-screen">
