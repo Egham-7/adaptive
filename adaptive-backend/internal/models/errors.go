@@ -62,7 +62,7 @@ func (e *AppError) GetStatusCode() int {
 	if e.StatusCode > 0 {
 		return e.StatusCode
 	}
-	
+
 	// Default status codes based on error type
 	switch e.Type {
 	case ErrorTypeValidation:
@@ -164,7 +164,7 @@ func SanitizeError(err error) *AppError {
 			// Don't expose internal cause
 		}
 	}
-	
+
 	// For unknown errors, return a generic internal error
 	return NewInternalError("an unexpected error occurred", err)
 }

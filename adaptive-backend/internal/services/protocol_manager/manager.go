@@ -27,7 +27,7 @@ func NewProtocolManager(cfg *config.Config) (*ProtocolManager, error) {
 
 	// Get cache configuration from config
 	cacheConfig := cfg.ProtocolManager.Cache
-	
+
 	fiberlog.Infof("ProtocolManager: Initializing with cache enabled=%t, semantic_cache enabled=%t, threshold=%.2f",
 		cacheConfig.Enabled, cacheConfig.SemanticCache.Enabled, cacheConfig.SemanticCache.Threshold)
 

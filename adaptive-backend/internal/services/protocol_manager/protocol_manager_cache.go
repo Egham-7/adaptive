@@ -42,7 +42,7 @@ func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) 
 
 	// Get semantic cache configuration
 	semanticCacheConfig := cfg.ProtocolManager.Cache.SemanticCache
-	
+
 	apiKey := semanticCacheConfig.OpenAIAPIKey
 	if apiKey == "" {
 		fiberlog.Error("ProtocolManagerCache: OpenAI API key not set in semantic cache configuration")

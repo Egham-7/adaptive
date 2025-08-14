@@ -171,4 +171,3 @@ func (f *ProviderFactory) GetEnabledProviders() []string {
 	}
 	return providers
 }
-

@@ -12,7 +12,7 @@ import (
 )
 
 // ProviderSelector handles provider selection with fallback logic.
-type ProviderSelector struct{
+type ProviderSelector struct {
 	cfg *config.Config
 }
 

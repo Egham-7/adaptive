@@ -225,7 +225,7 @@ func (fs *FallbackService) raceAllProviders(
 
 		case <-raceCtx.Done():
 			// Context timeout or cancellation
-			fiberlog.Warnf("[%s] Race timeout after %v with %d/%d results received", 
+			fiberlog.Warnf("[%s] Race timeout after %v with %d/%d results received",
 				requestID, fs.timeout, resultsReceived, len(options))
 			return nil, fmt.Errorf("race timeout after %v: %v", fs.timeout, allErrors)
 		}

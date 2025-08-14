@@ -102,22 +102,22 @@ func main() {
 			// Sanitize error for external consumption
 			sanitized := models.SanitizeError(err)
 			statusCode := sanitized.GetStatusCode()
-			
+
 			// Log internal error details (but don't expose them)
 			if isProd {
-				fiberlog.Errorf("Request error: path=%s, type=%s, retryable=%v", 
+				fiberlog.Errorf("Request error: path=%s, type=%s, retryable=%v",
 					c.Path(), sanitized.Type, sanitized.Retryable)
 			} else {
 				fiberlog.Errorf("Request error: %v (status: %d, path: %s)", err, statusCode, c.Path())
 			}
-			
+
 			// Return sanitized error response
 			response := fiber.Map{
 				"error": sanitized.Message,
 				"type":  sanitized.Type,
 				"code":  statusCode,
 			}
-			
+
 			// Add retry info for retryable errors
 			if sanitized.Retryable {
 				response["retryable"] = true
@@ -125,12 +125,12 @@ func main() {
 					response["retry_after"] = "60s"
 				}
 			}
-			
+
 			// Add error code if available
 			if sanitized.Code != "" {
 				response["error_code"] = sanitized.Code
 			}
-			
+
 			return c.Status(statusCode).JSON(response)
 		},
 	})

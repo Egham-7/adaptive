@@ -12,12 +12,12 @@ import (
 
 // Config represents the complete application configuration
 type Config struct {
-	Server          ServerConfig                    `yaml:"server"`
+	Server          ServerConfig                     `yaml:"server"`
 	Providers       map[string]models.ProviderConfig `yaml:"providers"`
-	Services        ServicesConfig                  `yaml:"services"`
-	Fallback        FallbackConfig                  `yaml:"fallback"`
-	PromptCache     PromptCacheConfig               `yaml:"prompt_cache"`
-	ProtocolManager ProtocolManagerConfig           `yaml:"protocol_manager"`
+	Services        ServicesConfig                   `yaml:"services"`
+	Fallback        FallbackConfig                   `yaml:"fallback"`
+	PromptCache     PromptCacheConfig                `yaml:"prompt_cache"`
+	ProtocolManager ProtocolManagerConfig            `yaml:"protocol_manager"`
 }
 
 // ServerConfig holds server-specific configuration
@@ -28,7 +28,6 @@ type ServerConfig struct {
 	LogLevel       string `yaml:"log_level"`
 	JWTSecret      string `yaml:"jwt_secret"`
 }
-
 
 // ServicesConfig holds configuration for external services
 type ServicesConfig struct {
@@ -48,7 +47,7 @@ type RedisConfig struct {
 
 // FallbackConfig holds configuration for fallback behavior
 type FallbackConfig struct {
-	Mode       string `yaml:"mode"`        // "race" or "sequential"
+	Mode       string `yaml:"mode"` // "race" or "sequential"
 	TimeoutMs  int    `yaml:"timeout_ms"`
 	MaxRetries int    `yaml:"max_retries"`
 }
@@ -82,8 +81,8 @@ type ProtocolManagerCacheConfig struct {
 
 // ProtocolManagerClientConfig holds client configuration for protocol manager
 type ProtocolManagerClientConfig struct {
-	BaseURL        string                           `yaml:"base_url"`
-	TimeoutMs      int                              `yaml:"timeout_ms"`
+	BaseURL        string                              `yaml:"base_url"`
+	TimeoutMs      int                                 `yaml:"timeout_ms"`
 	CircuitBreaker ProtocolManagerCircuitBreakerConfig `yaml:"circuit_breaker"`
 }
 
@@ -130,27 +129,27 @@ func New() (*Config, error) {
 func substituteEnvVars(content string) string {
 	// Pattern matches ${VAR_NAME} or ${VAR_NAME:-default_value}
 	re := regexp.MustCompile(`\$\{([^}:]+)(?::(-[^}]*))?\}`)
-	
+
 	return re.ReplaceAllStringFunc(content, func(match string) string {
 		// Extract variable name and default value
 		submatches := re.FindStringSubmatch(match)
 		if len(submatches) < 2 {
 			return match
 		}
-		
+
 		varName := submatches[1]
 		defaultValue := ""
-		
+
 		if len(submatches) > 2 && submatches[2] != "" {
 			// Remove the leading '-' from default value
 			defaultValue = strings.TrimPrefix(submatches[2], "-")
 		}
-		
+
 		// Get environment variable value
 		if value := os.Getenv(varName); value != "" {
 			return value
 		}
-		
+
 		return defaultValue
 	})
 }
