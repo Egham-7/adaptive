@@ -8,7 +8,6 @@ import {
 	CheckCircle,
 	ChevronRight,
 	Clock,
-	CreditCard,
 	Edit,
 	Folder,
 	Pause,
@@ -87,11 +86,8 @@ export default function OrganizationProjectsPage() {
 		null,
 	);
 
-	// Set active tab based on URL parameter
-	const tabFromUrl = searchParams.get("tab");
-	const [activeTab, setActiveTab] = useState<"projects" | "credits">(
-		tabFromUrl === "credits" ? "credits" : "projects",
-	);
+	// Check if we're showing credits tab
+	const showCredits = searchParams.get("tab") === "credits";
 
 	const { user } = useUser();
 	const {
@@ -310,42 +306,10 @@ export default function OrganizationProjectsPage() {
 				</div>
 			</div>
 
-			{/* Tab Navigation */}
-			<div className="border-b">
-				<nav className="flex space-x-8">
-					<button
-						type="button"
-						onClick={() => setActiveTab("projects")}
-						className={`border-b-2 px-1 py-2 font-medium text-sm transition-colors ${
-							activeTab === "projects"
-								? "border-primary text-primary"
-								: "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
-						}`}
-					>
-						<div className="flex items-center gap-2">
-							<Folder className="h-4 w-4" />
-							Projects
-						</div>
-					</button>
-					<button
-						type="button"
-						onClick={() => setActiveTab("credits")}
-						className={`border-b-2 px-1 py-2 font-medium text-sm transition-colors ${
-							activeTab === "credits"
-								? "border-primary text-primary"
-								: "border-transparent text-muted-foreground hover:border-gray-300 hover:text-foreground"
-						}`}
-					>
-						<div className="flex items-center gap-2">
-							<CreditCard className="h-4 w-4" />
-							Credits & Billing
-						</div>
-					</button>
-				</nav>
-			</div>
-
-			{/* Tab Content */}
-			{activeTab === "projects" && (
+			{/* Show Credits or Projects based on URL */}
+			{showCredits ? (
+				<CreditManagement organizationId={orgId} />
+			) : (
 				<>
 					{/* Search */}
 					<div className="mb-8">
@@ -589,12 +553,6 @@ export default function OrganizationProjectsPage() {
 				</>
 			)}
 
-			{/* Credits Tab Content */}
-			{activeTab === "credits" && (
-				<div className="py-6">
-					<CreditManagement organizationId={orgId} />
-				</div>
-			)}
 
 			{/* Edit Project Dialog */}
 			<Dialog
