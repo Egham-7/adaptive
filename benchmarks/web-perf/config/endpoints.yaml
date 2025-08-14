@@ -7,7 +7,7 @@ global_settings:
   timeout: 30
   max_retries: 3
   verify_ssl: true
-  verbose: false  # Set to true to see detailed request/response logs
+  verbose: false # Set to true to see detailed request/response logs
   headers:
     User-Agent: "WebPerf-Test-Suite/0.1.0"
     Content-Type: "application/json"
@@ -118,4 +118,3 @@ reporting:
   generate_charts: true
   export_formats: ["html", "csv", "json"]
   chart_formats: ["png", "svg"]
-
