@@ -299,15 +299,15 @@ func (fs *FallbackService) BuildCandidates(resp *models.ProtocolResponse) ([]Can
 func (fs *FallbackService) BuildCandidatesWithCustomConfig(resp *models.ProtocolResponse, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
 	switch resp.Protocol {
 	case models.ProtocolStandardLLM:
-		return fs.buildStandardCandidates(resp.Standard, providerConfigs)
+		return fs.buildStandardCandidates(resp.Standard)
 	case models.ProtocolMinion:
-		return fs.buildMinionCandidates(resp.Minion, providerConfigs)
+		return fs.buildMinionCandidates(resp.Minion)
 	case models.ProtocolMinionsProtocol:
-		stds, err := fs.buildStandardCandidates(resp.Standard, providerConfigs)
+		stds, err := fs.buildStandardCandidates(resp.Standard)
 		if err != nil {
 			return nil, err
 		}
-		mins, err := fs.buildMinionCandidates(resp.Minion, providerConfigs)
+		mins, err := fs.buildMinionCandidates(resp.Minion)
 		if err != nil {
 			return nil, err
 		}
@@ -324,7 +324,7 @@ func (fs *FallbackService) BuildCandidatesWithCustomConfig(resp *models.Protocol
 }
 
 // buildStandardCandidates returns primary + fallback LLMs.
-func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
+func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo) ([]Candidate, error) {
 	if std == nil {
 		return nil, fmt.Errorf("standard info is nil")
 	}
@@ -348,7 +348,7 @@ func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo, 
 }
 
 // buildMinionCandidates returns primary + fallback minions.
-func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
+func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo) ([]Candidate, error) {
 	if min == nil {
 		return nil, fmt.Errorf("minion info is nil")
 	}
