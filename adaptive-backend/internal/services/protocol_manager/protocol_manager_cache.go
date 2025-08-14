@@ -1,9 +1,9 @@
 package protocol_manager
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"fmt"
-	"os"
 
 	"github.com/botirk38/semanticcache"
 	"github.com/botirk38/semanticcache/backends"
@@ -31,31 +31,30 @@ type ProtocolManagerCache struct {
 }
 
 // NewProtocolManagerCache creates a new protocol manager cache instance
-func NewProtocolManagerCache(cacheConfig *models.CacheConfig) (*ProtocolManagerCache, error) {
+func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) {
 	fiberlog.Info("ProtocolManagerCache: Initializing cache")
 
-	// Use default config if nil
-	if cacheConfig == nil {
-		defaultConfig := DefaultCacheConfig()
-		cacheConfig = &defaultConfig
-		fiberlog.Debug("ProtocolManagerCache: Using default configuration")
-	}
+	// Get cache configuration
+	cacheConfig := cfg.ProtocolManager.Cache
 
 	fiberlog.Debugf("ProtocolManagerCache: Configuration - enabled=%t, threshold=%.2f",
-		cacheConfig.Enabled, cacheConfig.SemanticThreshold)
+		cacheConfig.Enabled, cacheConfig.SemanticCache.Threshold)
 
-	apiKey := os.Getenv("OPENAI_API_KEY")
+	// Get semantic cache configuration
+	semanticCacheConfig := cfg.ProtocolManager.Cache.SemanticCache
+	
+	apiKey := semanticCacheConfig.OpenAIAPIKey
 	if apiKey == "" {
-		fiberlog.Error("ProtocolManagerCache: OPENAI_API_KEY environment variable not set")
-		return nil, fmt.Errorf("OPENAI_API_KEY environment variable is not set")
+		fiberlog.Error("ProtocolManagerCache: OpenAI API key not set in semantic cache configuration")
+		return nil, fmt.Errorf("OpenAI API key not set in semantic cache configuration")
 	}
 	fiberlog.Debug("ProtocolManagerCache: OpenAI API key found")
 
 	// Get Redis connection configuration
-	redisURL := os.Getenv("REDIS_URL")
+	redisURL := semanticCacheConfig.RedisURL
 	if redisURL == "" {
-		fiberlog.Error("ProtocolManagerCache: REDIS_URL environment variable not set")
-		return nil, fmt.Errorf("REDIS_URL environment variable is not set")
+		fiberlog.Error("ProtocolManagerCache: Redis URL not set in semantic cache configuration")
+		return nil, fmt.Errorf("redis URL not set in semantic cache configuration")
 	}
 	fiberlog.Debug("ProtocolManagerCache: Redis URL configured")
 
@@ -97,7 +96,7 @@ func NewProtocolManagerCache(cacheConfig *models.CacheConfig) (*ProtocolManagerC
 
 	return &ProtocolManagerCache{
 		cache:             cache,
-		semanticThreshold: cacheConfig.SemanticThreshold,
+		semanticThreshold: float32(cacheConfig.SemanticCache.Threshold),
 	}, nil
 }
 

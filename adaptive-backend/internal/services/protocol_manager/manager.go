@@ -1,6 +1,7 @@
 package protocol_manager
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/utils"
@@ -20,23 +21,19 @@ type ProtocolManager struct {
 }
 
 // NewProtocolManager creates a new ProtocolManager with cache configuration.
-func NewProtocolManager(cacheConfig *models.CacheConfig) (*ProtocolManager, error) {
+func NewProtocolManager(cfg *config.Config) (*ProtocolManager, error) {
 	var cache *ProtocolManagerCache
 	var err error
 
-	// Use default config if nil
-	if cacheConfig == nil {
-		defaultConfig := DefaultCacheConfig()
-		cacheConfig = &defaultConfig
-		fiberlog.Info("ProtocolManager: Using default cache configuration")
-	}
-
-	fiberlog.Infof("ProtocolManager: Initializing with cache enabled=%t, threshold=%.2f",
-		cacheConfig.Enabled, cacheConfig.SemanticThreshold)
+	// Get cache configuration from config
+	cacheConfig := cfg.ProtocolManager.Cache
+	
+	fiberlog.Infof("ProtocolManager: Initializing with cache enabled=%t, semantic_cache enabled=%t, threshold=%.2f",
+		cacheConfig.Enabled, cacheConfig.SemanticCache.Enabled, cacheConfig.SemanticCache.Threshold)
 
 	// Create cache only if enabled
-	if cacheConfig.Enabled {
-		cache, err = NewProtocolManagerCache(cacheConfig)
+	if cacheConfig.Enabled && cacheConfig.SemanticCache.Enabled {
+		cache, err = NewProtocolManagerCache(cfg)
 		if err != nil {
 			fiberlog.Errorf("ProtocolManager: Failed to create cache: %v", err)
 			return nil, fmt.Errorf("failed to create protocol manager cache: %w", err)
@@ -46,7 +43,7 @@ func NewProtocolManager(cacheConfig *models.CacheConfig) (*ProtocolManager, erro
 		fiberlog.Warn("ProtocolManager: Cache is disabled")
 	}
 
-	client := NewProtocolManagerClient()
+	client := NewProtocolManagerClient(cfg)
 	fiberlog.Info("ProtocolManager: Client initialized successfully")
 
 	return &ProtocolManager{

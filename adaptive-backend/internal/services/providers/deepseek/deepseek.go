@@ -1,11 +1,11 @@
 package deepseek
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/openai/openai-go"
@@ -18,10 +18,10 @@ type DeepSeekService struct {
 }
 
 // NewDeepSeekService creates a new DeepSeek service
-func NewDeepSeekService() (*DeepSeekService, error) {
-	apiKey := os.Getenv("DEEPSEEK_API_KEY")
+func NewDeepSeekService(cfg *config.Config) (*DeepSeekService, error) {
+	apiKey := cfg.GetProviderAPIKey("deepseek")
 	if apiKey == "" {
-		return nil, fmt.Errorf("DEEPSEEK_API_KEY environment variable not set")
+		return nil, fmt.Errorf("DeepSeek API key not set in configuration")
 	}
 
 	client := openai.NewClient(
@@ -51,26 +51,30 @@ func NewCustomDeepSeekService(customConfig *models.ProviderConfig) (*DeepSeekSer
 
 	// Use custom base URL or default
 	baseURL := "https://api.deepseek.com"
-	if customConfig.BaseURL != nil {
-		baseURL = *customConfig.BaseURL
+	if customConfig.BaseURL != "" {
+		baseURL = customConfig.BaseURL
 	}
 	opts = append(opts, option.WithBaseURL(baseURL))
 
 	// Configure API key
-	if customConfig.APIKey != nil {
-		opts = append(opts, option.WithAPIKey(*customConfig.APIKey))
+	if customConfig.APIKey != "" {
+		opts = append(opts, option.WithAPIKey(customConfig.APIKey))
 	} else {
-		// Fall back to environment variable
-		apiKey := os.Getenv("DEEPSEEK_API_KEY")
+		// Fall back to configuration
+		cfgInstance, err := config.New()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load configuration: %w", err)
+		}
+		apiKey := cfgInstance.GetProviderAPIKey("deepseek")
 		if apiKey == "" {
-			return nil, fmt.Errorf("DEEPSEEK_API_KEY environment variable not set and no API key in config")
+			return nil, fmt.Errorf("DeepSeek API key not set in configuration and no API key in custom config")
 		}
 		opts = append(opts, option.WithAPIKey(apiKey))
 	}
 
 	// Configure timeout if specified
-	if customConfig.TimeoutMs != nil {
-		timeout := time.Duration(*customConfig.TimeoutMs) * time.Millisecond
+	if customConfig.TimeoutMs != 0 {
+		timeout := time.Duration(customConfig.TimeoutMs) * time.Millisecond
 		opts = append(opts, option.WithHTTPClient(&http.Client{Timeout: timeout}))
 	}
 

@@ -1,6 +1,7 @@
 package completions
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/minions"
@@ -15,21 +16,23 @@ import (
 
 // CompletionService handles completion requests with fallback logic.
 type CompletionService struct {
+	cfg              *config.Config
 	providerSelector *ProviderSelector
 	promptCache      *cache.PromptCache
 }
 
 // NewCompletionService creates a new completion service.
-func NewCompletionService() *CompletionService {
+func NewCompletionService(cfg *config.Config) *CompletionService {
 	// Initialize prompt cache, but don't fail if it can't be created
-	promptCache, err := cache.NewPromptCache()
+	promptCache, err := cache.NewPromptCache(cfg)
 	if err != nil {
 		fiberlog.Warnf("Failed to initialize prompt cache: %v", err)
 		promptCache = nil
 	}
 
 	return &CompletionService{
-		providerSelector: NewProviderSelector(),
+		cfg:              cfg,
+		providerSelector: NewProviderSelector(cfg),
 		promptCache:      promptCache,
 	}
 }
@@ -132,7 +135,7 @@ func (cs *CompletionService) handleCompletionWithFallback(
 		}
 
 		fiberlog.Infof("[%s] Trying %d remaining %s alternatives after completion failure", requestID, len(alternativesCopy), protocolName)
-		fallbackSvc := NewFallbackService()
+		fallbackSvc := NewFallbackService(cs.cfg)
 		result, fallbackErr := fallbackSvc.SelectAlternative(c.Context(), &alternativesCopy, req.ProviderConfigs, requestID)
 		if fallbackErr != nil {
 			return fmt.Errorf("all %s providers failed: %w", protocolName, fallbackErr)
@@ -277,7 +280,7 @@ func (cs *CompletionService) tryMinionSStandardAlternatives(
 	cacheSource string,
 ) error {
 	fiberlog.Infof("[%s] Trying standard alternatives for MinionS restart", requestID)
-	fallbackSvc := NewFallbackService()
+	fallbackSvc := NewFallbackService(cs.cfg)
 	standardResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.ProviderConfigs, requestID)
 	if err != nil {
 		return err
@@ -319,7 +322,7 @@ func (cs *CompletionService) tryMinionSMinionAlternatives(
 	cacheSource string,
 ) error {
 	fiberlog.Infof("[%s] Trying minion alternatives for MinionS restart", requestID)
-	fallbackSvc := NewFallbackService()
+	fallbackSvc := NewFallbackService(cs.cfg)
 	minionResult, err := fallbackSvc.SelectAlternative(c.Context(), alternatives, req.ProviderConfigs, requestID)
 	if err != nil {
 		return err

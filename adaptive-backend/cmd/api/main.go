@@ -2,7 +2,9 @@ package main
 
 import (
 	"adaptive-backend/internal/api"
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/middleware"
+	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/protocol_manager"
 	"context"
@@ -11,8 +13,6 @@ import (
 	"runtime"
 	"strings"
 	"time"
-
-	"github.com/joho/godotenv"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -25,20 +25,20 @@ import (
 )
 
 // SetupRoutes configures all the application routes for the Fiber app.
-func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
+func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHandler) {
 	// Create shared services once
 	reqSvc := completions.NewRequestService()
 	paramSvc := completions.NewParameterService()
-	fallbackSvc := completions.NewFallbackService()
+	fallbackSvc := completions.NewFallbackService(cfg)
 
 	// Create protocol manager (shared between handlers)
-	protocolMgr, err := protocol_manager.NewProtocolManager(nil)
+	protocolMgr, err := protocol_manager.NewProtocolManager(cfg)
 	if err != nil {
 		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
 	}
 
 	// Create response service (depends on protocol manager)
-	respSvc := completions.NewResponseService(protocolMgr)
+	respSvc := completions.NewResponseService(cfg, protocolMgr)
 
 	// Initialize handlers with shared dependencies
 	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)
@@ -48,7 +48,7 @@ func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
 	app.Get("/health", healthHandler.Health)
 
 	// Apply JWT authentication to all v1 routes
-	v1Group := app.Group("/v1", middleware.JWTAuth())
+	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 	v1Group.Post("/select-model", selectModelHandler.SelectModel)
 }
@@ -67,24 +67,23 @@ const (
 
 // main is the entry point for the Adaptive backend server.
 func main() {
-	if err := godotenv.Load(".env.local"); err != nil {
-		fiberlog.Info("No .env.local file found, proceeding with environment variables")
+	// Load configuration
+	cfg, err := config.New()
+	if err != nil {
+		fiberlog.Fatal("Failed to load configuration: " + err.Error())
 	}
 
-	// Set log level based on environment variable
-	setupLogLevel()
-
-	port := os.Getenv(addrKey)
-	if port == "" {
-		fiberlog.Fatal("ADDR environment variable is required but not set")
+	// Validate required configuration
+	if err := cfg.Validate(); err != nil {
+		fiberlog.Fatal(err.Error())
 	}
 
-	allowedOrigins := os.Getenv(allowedHeadersKey)
-	if allowedOrigins == "" {
-		fiberlog.Fatal("ALLOWED_ORIGINS environment variable is required but not set")
-	}
+	// Set log level based on configuration
+	setupLogLevel(cfg)
 
-	isProd := os.Getenv(envKey) == "production"
+	port := cfg.Server.Addr
+	allowedOrigins := cfg.Server.AllowedOrigins
+	isProd := cfg.IsProduction()
 
 	app := fiber.New(fiber.Config{
 		AppName:              defaultAppName,
@@ -100,19 +99,43 @@ func main() {
 		StrictRouting:        false,
 		ServerHeader:         "Adaptive",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			code := fiber.StatusInternalServerError
-			if e, ok := err.(*fiber.Error); ok {
-				code = e.Code
+			// Sanitize error for external consumption
+			sanitized := models.SanitizeError(err)
+			statusCode := sanitized.GetStatusCode()
+			
+			// Log internal error details (but don't expose them)
+			if isProd {
+				fiberlog.Errorf("Request error: path=%s, type=%s, retryable=%v", 
+					c.Path(), sanitized.Type, sanitized.Retryable)
+			} else {
+				fiberlog.Errorf("Request error: %v (status: %d, path: %s)", err, statusCode, c.Path())
 			}
-			fiberlog.Errorf("Request error: %v (status: %d, path: %s)", err, code, c.Path())
-			return c.Status(code).JSON(fiber.Map{
-				"error": err.Error(),
-				"code":  code,
-			})
+			
+			// Return sanitized error response
+			response := fiber.Map{
+				"error": sanitized.Message,
+				"type":  sanitized.Type,
+				"code":  statusCode,
+			}
+			
+			// Add retry info for retryable errors
+			if sanitized.Retryable {
+				response["retryable"] = true
+				if sanitized.Type == models.ErrorTypeRateLimit {
+					response["retry_after"] = "60s"
+				}
+			}
+			
+			// Add error code if available
+			if sanitized.Code != "" {
+				response["error_code"] = sanitized.Code
+			}
+			
+			return c.Status(statusCode).JSON(response)
 		},
 	})
 
-	setupMiddleware(app, allowedOrigins)
+	setupMiddleware(app, cfg, allowedOrigins)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -124,7 +147,7 @@ func main() {
 		return
 	}
 
-	SetupRoutes(app, healthHandler)
+	SetupRoutes(app, cfg, healthHandler)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
@@ -139,7 +162,7 @@ func main() {
 	})
 
 	fmt.Printf("Server starting on %s with allowed origins: %s\n", port, allowedOrigins)
-	fmt.Printf("Environment: %s\n", os.Getenv(envKey))
+	fmt.Printf("Environment: %s\n", cfg.Server.Environment)
 	fmt.Printf("Go version: %s\n", runtime.Version())
 	fmt.Printf("GOMAXPROCS: %d\n", runtime.GOMAXPROCS(0))
 
@@ -158,8 +181,8 @@ func main() {
 }
 
 // setupMiddleware configures all the application middleware for the Fiber app.
-func setupMiddleware(app *fiber.App, allowedOrigins string) {
-	isProd := os.Getenv(envKey) == "production"
+func setupMiddleware(app *fiber.App, cfg *config.Config, allowedOrigins string) {
+	isProd := cfg.IsProduction()
 
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: !isProd,
@@ -181,10 +204,8 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 			return c.IP()
 		},
 		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error":       "Rate limit exceeded",
-				"retry_after": "60 seconds",
-			})
+			err := models.NewRateLimitError("1000 requests per minute")
+			return err
 		},
 	}))
 
@@ -237,12 +258,9 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	}
 }
 
-// setupLogLevel configures the Fiber log level based on environment variable
-func setupLogLevel() {
-	logLevel := strings.ToLower(os.Getenv(logLevelKey))
-	if logLevel == "" {
-		logLevel = "info" // default to info if not set
-	}
+// setupLogLevel configures the Fiber log level based on configuration
+func setupLogLevel(cfg *config.Config) {
+	logLevel := cfg.GetNormalizedLogLevel()
 
 	switch logLevel {
 	case "trace":

@@ -1,12 +1,12 @@
 package huggingface
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/huggingface/chat"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/openai/openai-go"
@@ -20,10 +20,10 @@ type HuggingFaceService struct {
 }
 
 // NewHuggingFaceService creates a new HuggingFace service using OpenAI SDK with HF base URL
-func NewHuggingFaceService() (*HuggingFaceService, error) {
-	apiKey := os.Getenv("HF_TOKEN")
+func NewHuggingFaceService(cfg *config.Config) (*HuggingFaceService, error) {
+	apiKey := cfg.GetProviderAPIKey("huggingface")
 	if apiKey == "" {
-		return nil, fmt.Errorf("HF_TOKEN environment variable not set")
+		return nil, fmt.Errorf("HF_TOKEN not configured")
 	}
 
 	baseURL := "https://router.huggingface.co/v1"
@@ -50,7 +50,7 @@ func (s *HuggingFaceService) GetProviderName() string {
 }
 
 // NewCustomHuggingFaceService creates a new HuggingFace service with custom configuration
-func NewCustomHuggingFaceService(customConfig *models.ProviderConfig) (*HuggingFaceService, error) {
+func NewCustomHuggingFaceService(cfg *config.Config, customConfig *models.ProviderConfig) (*HuggingFaceService, error) {
 	if customConfig == nil {
 		return nil, fmt.Errorf("custom config is required")
 	}
@@ -60,26 +60,26 @@ func NewCustomHuggingFaceService(customConfig *models.ProviderConfig) (*HuggingF
 
 	// Use custom base URL or default
 	baseURL := "https://router.huggingface.co/v1"
-	if customConfig.BaseURL != nil {
-		baseURL = *customConfig.BaseURL
+	if customConfig.BaseURL != "" {
+		baseURL = customConfig.BaseURL
 	}
 	opts = append(opts, option.WithBaseURL(baseURL))
 
 	// Configure API key
-	if customConfig.APIKey != nil {
-		opts = append(opts, option.WithAPIKey(*customConfig.APIKey))
+	if customConfig.APIKey != "" {
+		opts = append(opts, option.WithAPIKey(customConfig.APIKey))
 	} else {
-		// Fall back to environment variable
-		apiKey := os.Getenv("HF_TOKEN")
+		// Fall back to config
+		apiKey := cfg.GetProviderAPIKey("huggingface")
 		if apiKey == "" {
-			return nil, fmt.Errorf("HF_TOKEN environment variable not set and no API key in config")
+			return nil, fmt.Errorf("HF_TOKEN not configured and no API key in config")
 		}
 		opts = append(opts, option.WithAPIKey(apiKey))
 	}
 
 	// Configure timeout if specified
-	if customConfig.TimeoutMs != nil {
-		timeout := time.Duration(*customConfig.TimeoutMs) * time.Millisecond
+	if customConfig.TimeoutMs != 0 {
+		timeout := time.Duration(customConfig.TimeoutMs) * time.Millisecond
 		opts = append(opts, option.WithHTTPClient(&http.Client{Timeout: timeout}))
 	}
 

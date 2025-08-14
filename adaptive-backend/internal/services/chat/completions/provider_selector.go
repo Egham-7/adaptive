@@ -1,6 +1,7 @@
 package completions
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
@@ -11,11 +12,13 @@ import (
 )
 
 // ProviderSelector handles provider selection with fallback logic.
-type ProviderSelector struct{}
+type ProviderSelector struct{
+	cfg *config.Config
+}
 
 // NewProviderSelector creates a new provider selector.
-func NewProviderSelector() *ProviderSelector {
-	return &ProviderSelector{}
+func NewProviderSelector(cfg *config.Config) *ProviderSelector {
+	return &ProviderSelector{cfg: cfg}
 }
 
 // SelectStandardProvider selects a standard provider with fallback logic.
@@ -65,7 +68,7 @@ func (ps *ProviderSelector) selectProviderWithFallback(
 	requestID string,
 ) (provider_interfaces.LLMProvider, string, error) {
 	// Try primary provider first
-	prov, err := providers.NewLLMProvider(primaryProvider, providerConfigs)
+	prov, err := providers.NewLLMProvider(ps.cfg, primaryProvider, providerConfigs)
 	if err == nil {
 		fiberlog.Infof("[%s] Using primary %s provider: %s (%s)", requestID, providerType, primaryProvider, primaryModel)
 		return prov, primaryModel, nil
@@ -78,7 +81,7 @@ func (ps *ProviderSelector) selectProviderWithFallback(
 		return nil, "", fmt.Errorf("primary %s provider failed and no alternatives: %v", providerType, err)
 	}
 
-	fallbackSvc := NewFallbackService()
+	fallbackSvc := NewFallbackService(ps.cfg)
 	alternativesCopy := make([]models.Alternative, len(alternatives))
 	copy(alternativesCopy, alternatives)
 	result, fallbackErr := fallbackSvc.SelectAlternative(ctx, &alternativesCopy, providerConfigs, requestID)

@@ -1,6 +1,7 @@
 package completions
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/protocol_manager"
 
@@ -22,9 +23,9 @@ type ResponseService struct {
 }
 
 // NewResponseService creates a new response service.
-func NewResponseService(protocolMgr *protocol_manager.ProtocolManager) *ResponseService {
+func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager) *ResponseService {
 	return &ResponseService{
-		completionService: NewCompletionService(),
+		completionService: NewCompletionService(cfg),
 		protocolMgr:       protocolMgr,
 	}
 }

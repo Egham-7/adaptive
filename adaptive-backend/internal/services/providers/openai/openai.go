@@ -1,12 +1,12 @@
 package openai
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/openai/chat"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/openai/openai-go"
@@ -20,16 +20,27 @@ type OpenAIService struct {
 }
 
 // NewOpenAIService creates a new OpenAI service using the official SDK
-func NewOpenAIService() (*OpenAIService, error) {
-	apiKey := os.Getenv("OPENAI_API_KEY")
+func NewOpenAIService(cfg *config.Config) (*OpenAIService, error) {
+	apiKey := cfg.GetProviderAPIKey("openai")
 	if apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY environment variable not set")
+		return nil, fmt.Errorf("OpenAI API key not set in configuration")
 	}
 
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
 	)
 
+	chatService := chat.NewOpenAIChat(&client)
+
+	return &OpenAIService{
+		client: &client,
+		chat:   chatService,
+	}, nil
+}
+
+// NewOpenAIServiceWithOptions creates a new OpenAI service with custom options
+func NewOpenAIServiceWithOptions(opts []option.RequestOption) (*OpenAIService, error) {
+	client := openai.NewClient(opts...)
 	chatService := chat.NewOpenAIChat(&client)
 
 	return &OpenAIService{
@@ -60,13 +71,13 @@ func NewCustomOpenAIService(baseURL string, customConfig *models.ProviderConfig)
 	// Configure client options from custom config
 	if customConfig != nil {
 		// Configure API key if specified
-		if customConfig.APIKey != nil {
-			opts = append(opts, option.WithAPIKey(*customConfig.APIKey))
+		if customConfig.APIKey != "" {
+			opts = append(opts, option.WithAPIKey(customConfig.APIKey))
 		}
 
 		// Configure timeout if specified
-		if customConfig.TimeoutMs != nil {
-			timeout := time.Duration(*customConfig.TimeoutMs) * time.Millisecond
+		if customConfig.TimeoutMs != 0 {
+			timeout := time.Duration(customConfig.TimeoutMs) * time.Millisecond
 			opts = append(opts, option.WithHTTPClient(&http.Client{Timeout: timeout}))
 		}
 

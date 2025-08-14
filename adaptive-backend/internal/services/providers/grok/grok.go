@@ -1,11 +1,11 @@
 package grok
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/openai/openai-go"
@@ -18,10 +18,10 @@ type GrokService struct {
 }
 
 // NewGrokService creates a new Grok service
-func NewGrokService() (*GrokService, error) {
-	apiKey := os.Getenv("GROK_API_KEY")
+func NewGrokService(cfg *config.Config) (*GrokService, error) {
+	apiKey := cfg.GetProviderAPIKey("grok")
 	if apiKey == "" {
-		return nil, fmt.Errorf("GROK_API_KEY environment variable not set")
+		return nil, fmt.Errorf("GROK_API_KEY not configured")
 	}
 
 	client := openai.NewClient(
@@ -41,7 +41,7 @@ func (s *GrokService) GetProviderName() string {
 }
 
 // NewCustomGrokService creates a new Grok service with custom configuration
-func NewCustomGrokService(customConfig *models.ProviderConfig) (*GrokService, error) {
+func NewCustomGrokService(cfg *config.Config, customConfig *models.ProviderConfig) (*GrokService, error) {
 	if customConfig == nil {
 		return nil, fmt.Errorf("custom config is required")
 	}
@@ -51,26 +51,26 @@ func NewCustomGrokService(customConfig *models.ProviderConfig) (*GrokService, er
 
 	// Use custom base URL or default
 	baseURL := "https://api.x.ai/v1"
-	if customConfig.BaseURL != nil {
-		baseURL = *customConfig.BaseURL
+	if customConfig.BaseURL != "" {
+		baseURL = customConfig.BaseURL
 	}
 	opts = append(opts, option.WithBaseURL(baseURL))
 
 	// Configure API key
-	if customConfig.APIKey != nil {
-		opts = append(opts, option.WithAPIKey(*customConfig.APIKey))
+	if customConfig.APIKey != "" {
+		opts = append(opts, option.WithAPIKey(customConfig.APIKey))
 	} else {
-		// Fall back to environment variable
-		apiKey := os.Getenv("GROK_API_KEY")
+		// Fall back to config
+		apiKey := cfg.GetProviderAPIKey("grok")
 		if apiKey == "" {
-			return nil, fmt.Errorf("GROK_API_KEY environment variable not set and no API key in config")
+			return nil, fmt.Errorf("GROK_API_KEY not configured and no API key in config")
 		}
 		opts = append(opts, option.WithAPIKey(apiKey))
 	}
 
 	// Configure timeout if specified
-	if customConfig.TimeoutMs != nil {
-		timeout := time.Duration(*customConfig.TimeoutMs) * time.Millisecond
+	if customConfig.TimeoutMs != 0 {
+		timeout := time.Duration(customConfig.TimeoutMs) * time.Millisecond
 		opts = append(opts, option.WithHTTPClient(&http.Client{Timeout: timeout}))
 	}
 

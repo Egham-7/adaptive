@@ -1,0 +1,99 @@
+# Adaptive Backend Configuration
+# Environment variables can be referenced using ${VAR_NAME} syntax
+
+server:
+  addr: "${ADDR:-:8080}"
+  allowed_origins: "${ALLOWED_ORIGINS:-http://localhost:3000}"
+  environment: "${ENV:-development}"
+  log_level: "${LOG_LEVEL:-info}"
+  jwt_secret: "${JWT_SECRET}"
+
+# Provider configurations - both built-in and custom
+providers:
+  # Built-in providers with their API keys
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    enabled: true
+    type: "openai"  # Client type to use
+    
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    enabled: true
+    type: "anthropic"
+    
+  google:
+    api_key: "${GOOGLE_API_KEY}"
+    enabled: true
+    type: "gemini"
+    
+  groq:
+    api_key: "${GROQ_API_KEY}"
+    enabled: true
+    type: "openai"  # Uses OpenAI-compatible client
+    base_url: "https://api.groq.com/openai/v1"
+    
+  deepseek:
+    api_key: "${DEEPSEEK_API_KEY}"
+    enabled: true
+    type: "openai"
+    base_url: "https://api.deepseek.com"
+    
+  grok:
+    api_key: "${GROK_API_KEY}"
+    enabled: true
+    type: "openai"
+    base_url: "https://api.x.ai/v1"
+    
+  huggingface:
+    api_key: "${HF_TOKEN}"
+    enabled: true
+    type: "openai"
+    base_url: "https://api-inference.huggingface.co/v1"
+
+  # Custom providers can be added here
+  # custom_provider_example:
+  #   api_key: "${CUSTOM_API_KEY}"
+  #   enabled: true
+  #   type: "openai"  # or "anthropic" or "gemini"
+  #   base_url: "https://api.custom-provider.com/v1"
+  #   headers:
+  #     Custom-Header: "value"
+  #   timeout_ms: 30000
+
+# Services configuration
+services:
+  adaptive_ai:
+    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+    
+  redis:
+    url: "${REDIS_URL:-redis://localhost:6379}"
+
+# Fallback configuration
+fallback:
+  mode: "race"  # "race" or "sequential"
+  timeout_ms: 30000
+  max_retries: 3
+  
+# Prompt cache configuration  
+prompt_cache:
+  enabled: true
+  default_ttl_seconds: 3600
+  redis_url: "${REDIS_URL:-redis://localhost:6379}"
+  
+# Protocol manager configuration
+protocol_manager:
+  cache:
+    enabled: true
+    semantic_cache:
+      enabled: true
+      threshold: 0.95
+      redis_url: "${REDIS_URL:-redis://localhost:6379}"
+      openai_api_key: "${OPENAI_API_KEY}"  # For embeddings
+  client:
+    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+    timeout_ms: 15000
+    circuit_breaker:
+      failure_threshold: 3
+      success_threshold: 2
+      timeout_ms: 30000
+      reset_after_ms: 120000
