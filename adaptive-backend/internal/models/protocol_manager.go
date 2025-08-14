@@ -11,7 +11,7 @@ type ProviderType string
 const (
 	ProviderOpenAI      ProviderType = "openai"
 	ProviderAnthropic   ProviderType = "anthropic"
-	ProviderGoogle      ProviderType = "google"
+	ProviderGemini      ProviderType = "gemini"
 	ProviderGroq        ProviderType = "groq"
 	ProviderDeepseek    ProviderType = "deepseek"
 	ProviderMistral     ProviderType = "mistral"

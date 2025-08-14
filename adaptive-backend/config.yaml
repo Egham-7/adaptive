@@ -21,8 +21,8 @@ providers:
     enabled: true
     type: "anthropic"
     
-  google:
-    api_key: "${GOOGLE_API_KEY}"
+  gemini:
+    api_key: "${GEMINI_API_KEY}"
     enabled: true
     type: "gemini"
     

@@ -4,6 +4,7 @@ import (
 	"adaptive-backend/internal/models"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -95,11 +96,25 @@ type ProtocolManagerCircuitBreakerConfig struct {
 }
 
 // LoadFromFile loads configuration from a YAML file with environment variable substitution
-func LoadFromFile(filepath string) (*Config, error) {
+func LoadFromFile(configPath string) (*Config, error) {
+	// Validate and clean the file path to prevent directory traversal
+	cleanPath := filepath.Clean(configPath)
+
+	// Ensure the path doesn't contain directory traversal attempts
+	if strings.Contains(cleanPath, "..") {
+		return nil, fmt.Errorf("invalid config path: path traversal not allowed")
+	}
+
+	// Restrict to certain file extensions for security
+	ext := filepath.Ext(cleanPath)
+	if ext != ".yaml" && ext != ".yml" {
+		return nil, fmt.Errorf("invalid config file: only .yaml and .yml files are allowed")
+	}
+
 	// Read the file
-	data, err := os.ReadFile(filepath)
+	data, err := os.ReadFile(cleanPath) // #nosec G304 - path is validated above
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %w", filepath, err)
+		return nil, fmt.Errorf("failed to read config file %s: %w", cleanPath, err)
 	}
 
 	// Substitute environment variables

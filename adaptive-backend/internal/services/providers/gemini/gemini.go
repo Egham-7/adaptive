@@ -19,11 +19,11 @@ type GeminiService struct {
 	chat   *chat.GeminiChat
 }
 
-// NewGeminiService creates a new Gemini service using OpenAI Go SDK with Google base URL
+// NewGeminiService creates a new Gemini service using OpenAI Go SDK with Gemini base URL
 func NewGeminiService(cfg *config.Config) (*GeminiService, error) {
-	apiKey := cfg.GetProviderAPIKey("google")
+	apiKey := cfg.GetProviderAPIKey("gemini")
 	if apiKey == "" {
-		return nil, fmt.Errorf("GOOGLE_API_KEY not configured")
+		return nil, fmt.Errorf("GEMINI_API_KEY not configured")
 	}
 
 	client := openai.NewClient(
@@ -69,9 +69,9 @@ func NewCustomGeminiService(cfg *config.Config, customConfig *models.ProviderCon
 		opts = append(opts, option.WithAPIKey(customConfig.APIKey))
 	} else {
 		// Fall back to config
-		apiKey := cfg.GetProviderAPIKey("google")
+		apiKey := cfg.GetProviderAPIKey("gemini")
 		if apiKey == "" {
-			return nil, fmt.Errorf("GOOGLE_API_KEY not configured and no API key in config")
+			return nil, fmt.Errorf("GEMINI_API_KEY not configured and no API key in config")
 		}
 		opts = append(opts, option.WithAPIKey(apiKey))
 	}
