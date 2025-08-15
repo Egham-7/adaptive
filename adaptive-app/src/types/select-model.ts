@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { adaptiveChatCompletionRequestSchema } from "./adaptive-chat-completion";
+import { adaptiveChatCompletionRequestSchema } from "./chat-completion";
 
 // Select model request uses the same schema as adaptive chat completion request
 export const selectModelRequestSchema = adaptiveChatCompletionRequestSchema;
