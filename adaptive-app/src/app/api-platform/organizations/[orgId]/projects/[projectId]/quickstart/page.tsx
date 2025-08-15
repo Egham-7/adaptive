@@ -400,7 +400,7 @@ print(completion.choices[0].message.content)`;
 									</div>
 
 									<CustomCodeBlock
-										code={`curl -X GET "${API_BASE_URL}/api/v1/providers" \\
+										code={`curl -X GET "${API_BASE_URL}/api/v1/providers?project_id=${projectId}" \\
   -H "Authorization: Bearer ${exampleKey}"`}
 										language="bash"
 										title="List All Providers - cURL"
@@ -501,20 +501,19 @@ print(completion.choices[0].message.content)`;
 									Comprehensive API documentation and guides
 								</p>
 							</div>
-							<div className="cursor-not-allowed rounded-lg border p-4 opacity-60">
-								<div className="flex items-center justify-between">
+							<Link
+								href={`/api-platform/organizations/${orgId}/projects/${projectId}/examples`}
+							>
+								<div className="rounded-lg border p-4 transition-colors hover:bg-accent">
 									<div className="flex items-center gap-2">
 										<div className="h-2 w-2 rounded-full bg-orange-500" />
 										<h4 className="font-medium">Code Examples</h4>
 									</div>
-									<Badge variant="secondary" className="text-xs">
-										Coming Soon
-									</Badge>
+									<p className="mt-2 text-muted-foreground text-sm">
+										Example projects and integrations for all API routes
+									</p>
 								</div>
-								<p className="mt-2 text-muted-foreground text-sm">
-									Example projects and integrations
-								</p>
-							</div>
+							</Link>
 						</div>
 					</CardContent>
 				</Card>
