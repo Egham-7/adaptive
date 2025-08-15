@@ -20,8 +20,8 @@ func NewLLMProvider(cfg *config.Config, providerName string, customConfigs map[s
 		return nil, fmt.Errorf("provider name cannot be empty")
 	}
 
-	// Check if provider is configured
-	_, exists := cfg.GetProviderConfig(providerName)
+	// Check if provider is configured and get the base config
+	providerConfig, exists := cfg.GetProviderConfig(providerName)
 	if !exists {
 		return nil, fmt.Errorf("provider '%s' is not configured", providerName)
 	}
@@ -29,7 +29,12 @@ func NewLLMProvider(cfg *config.Config, providerName string, customConfigs map[s
 	// Use custom config if provided
 	if customConfigs != nil {
 		if customConfig, hasCustom := customConfigs[providerName]; hasCustom {
-			return openai.NewCustomOpenAIService("", customConfig)
+			// Use BaseURL from custom config if provided, otherwise fall back to provider config, or empty for SDK default
+			baseURL := customConfig.BaseURL
+			if baseURL == "" {
+				baseURL = providerConfig.BaseURL
+			}
+			return openai.NewCustomOpenAIService(baseURL, customConfig)
 		}
 	}
 

@@ -87,13 +87,12 @@ func (s *OpenAIService) GetProviderName() string {
 
 // NewCustomOpenAIService creates a custom OpenAI-compatible service with base URL override
 func NewCustomOpenAIService(baseURL string, customConfig *models.ProviderConfig) (*OpenAIService, error) {
-	if baseURL == "" {
-		return nil, fmt.Errorf("base URL is required for custom provider")
-	}
-
 	// Build client options
-	opts := []option.RequestOption{
-		option.WithBaseURL(baseURL),
+	opts := []option.RequestOption{}
+
+	// Only set base URL if provided (empty means use SDK default)
+	if baseURL != "" {
+		opts = append(opts, option.WithBaseURL(baseURL))
 	}
 
 	// Configure client options from custom config

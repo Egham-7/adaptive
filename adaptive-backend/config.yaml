@@ -1,6 +1,6 @@
 ---
 # Adaptive Backend Configuration
-# Environment variables can be referenced using ${VAR_NAME} syntax
+# Environment variables can be referenced using ${VAR} or ${VAR:-default} syntax (defaults apply when a variable is unset or empty)
 
 server:
   addr: "${ADDR:-:8080}"
@@ -49,6 +49,9 @@ fallback:
   mode: "race"  # "race" or "sequential"
   timeout_ms: 30000
   max_retries: 3
+  worker_pool:
+    workers: 10
+    queue_size: 100
 
 # Prompt cache configuration
 prompt_cache:

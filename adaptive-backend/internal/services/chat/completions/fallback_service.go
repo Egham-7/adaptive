@@ -7,6 +7,7 @@ import (
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,7 +26,8 @@ const (
 )
 
 const (
-	fallbackDefaultTimeout = 10 * time.Second
+	fallbackDefaultTimeout    = 10 * time.Second
+	fallbackDefaultMaxRetries = 3
 )
 
 // Candidate represents a model/provider/protocol candidate for completion.
@@ -40,39 +42,39 @@ type FallbackService struct {
 	cfg        *config.Config
 	mode       FallbackMode
 	timeout    time.Duration
+	maxRetries int
 	workerPool pond.Pool
 }
 
-// NewFallbackService creates a new fallback service with race mode by default
-func NewFallbackService(cfg *config.Config) *FallbackService {
-	// Set default worker pool configuration if not specified
-	workers := 10
-	queueSize := 100
-	if cfg.Fallback.WorkerPool.Workers > 0 {
-		workers = cfg.Fallback.WorkerPool.Workers
-	}
-	if cfg.Fallback.WorkerPool.QueueSize > 0 {
-		queueSize = cfg.Fallback.WorkerPool.QueueSize
-	}
-
-	// Create worker pool with queue size option
-	var workerPool pond.Pool
-	if queueSize > 0 {
-		workerPool = pond.NewPool(workers, pond.WithQueueSize(queueSize))
-	} else {
-		workerPool = pond.NewPool(workers)
-	}
-
-	return &FallbackService{
-		cfg:        cfg,
-		mode:       FallbackModeRace,
-		timeout:    fallbackDefaultTimeout,
-		workerPool: workerPool,
+// parseFallbackMode converts a string to FallbackMode (case-insensitive)
+func parseFallbackMode(mode string) FallbackMode {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "sequential":
+		return FallbackModeSequential
+	case "race":
+		return FallbackModeRace
+	default:
+		return FallbackModeRace // Default to race mode
 	}
 }
 
-// NewFallbackServiceWithMode creates a new fallback service with specified mode
-func NewFallbackServiceWithMode(cfg *config.Config, mode FallbackMode) *FallbackService {
+// NewFallbackService creates a new fallback service reading config values
+func NewFallbackService(cfg *config.Config) *FallbackService {
+	// Parse fallback mode from config (case-insensitive with default)
+	mode := parseFallbackMode(cfg.Fallback.Mode)
+
+	// Parse timeout from config (with default if absent or invalid)
+	timeout := fallbackDefaultTimeout
+	if cfg.Fallback.TimeoutMs > 0 {
+		timeout = time.Duration(cfg.Fallback.TimeoutMs) * time.Millisecond
+	}
+
+	// Parse max retries from config (with default if absent or invalid)
+	maxRetries := fallbackDefaultMaxRetries
+	if cfg.Fallback.MaxRetries > 0 {
+		maxRetries = cfg.Fallback.MaxRetries
+	}
+
 	// Set default worker pool configuration if not specified
 	workers := 10
 	queueSize := 100
@@ -94,7 +96,8 @@ func NewFallbackServiceWithMode(cfg *config.Config, mode FallbackMode) *Fallback
 	return &FallbackService{
 		cfg:        cfg,
 		mode:       mode,
-		timeout:    fallbackDefaultTimeout,
+		timeout:    timeout,
+		maxRetries: maxRetries,
 		workerPool: workerPool,
 	}
 }
@@ -107,6 +110,11 @@ func (fs *FallbackService) SetMode(mode FallbackMode) {
 // SetTimeout configures the timeout for racing requests
 func (fs *FallbackService) SetTimeout(timeout time.Duration) {
 	fs.timeout = timeout
+}
+
+// GetMaxRetries returns the configured max retries
+func (fs *FallbackService) GetMaxRetries() int {
+	return fs.maxRetries
 }
 
 // SelectAlternative selects the best alternative provider when primary fails
