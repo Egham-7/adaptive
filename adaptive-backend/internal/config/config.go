@@ -187,15 +187,10 @@ func (c *Config) GetProviderAPIKey(provider string) string {
 	return ""
 }
 
-// GetEnabledProviders returns a map of enabled providers
+// GetEnabledProviders returns a map of all configured providers (since all configured providers are considered enabled)
 func (c *Config) GetEnabledProviders() map[string]models.ProviderConfig {
-	enabled := make(map[string]models.ProviderConfig)
-	for name, config := range c.Providers {
-		if config.Enabled {
-			enabled[name] = config
-		}
-	}
-	return enabled
+	// Since we removed the Enabled field, all configured providers are considered enabled
+	return c.Providers
 }
 
 // GetProviderConfig returns the configuration for a specific provider

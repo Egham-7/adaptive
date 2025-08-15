@@ -22,8 +22,8 @@ export const modelCapabilitySchema = z.object({
 	model_name: z.string(),
 	cost_per_1m_input_tokens: z.number(),
 	cost_per_1m_output_tokens: z.number(),
-	max_context_tokens: z.number(),
-	max_output_tokens: z.number().optional(),
+	max_context_tokens: z.number().int(),
+	max_output_tokens: z.number().int().optional(),
 	supports_function_calling: z.boolean(),
 	languages_supported: z.array(z.string()).optional(),
 	model_size_params: z.string().optional(),
@@ -44,9 +44,9 @@ export const fallbackConfigSchema = z.object({
 // Protocol manager config schema
 export const protocolManagerConfigSchema = z.object({
 	models: z.array(modelCapabilitySchema).optional(),
-	cost_bias: z.number().optional(),
+	cost_bias: z.number().min(0).max(1).optional(),
 	complexity_threshold: z.number().optional(),
-	token_threshold: z.number().optional(),
+	token_threshold: z.number().int().optional(),
 });
 
 // Cache config schema
@@ -58,7 +58,7 @@ export const cacheConfigSchema = z.object({
 // Prompt cache config schema
 export const promptCacheConfigSchema = z.object({
 	enabled: z.boolean().optional(),
-	ttl: z.number().optional(),
+	ttl: z.number().int().optional(),
 });
 
 // Chat completion message schema

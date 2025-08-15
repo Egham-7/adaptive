@@ -21,9 +21,9 @@ func NewLLMProvider(cfg *config.Config, providerName string, customConfigs map[s
 	}
 
 	// Check if provider is configured
-	providerConfig, exists := cfg.GetProviderConfig(providerName)
-	if !exists || !providerConfig.Enabled {
-		return nil, fmt.Errorf("provider '%s' is not configured or disabled", providerName)
+	_, exists := cfg.GetProviderConfig(providerName)
+	if !exists {
+		return nil, fmt.Errorf("provider '%s' is not configured", providerName)
 	}
 
 	// Use custom config if provided

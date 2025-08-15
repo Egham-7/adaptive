@@ -17,12 +17,13 @@ export type Provider =
 	| null;
 
 export const providerConfigSchema = z.object({
+	api_key: z.string().optional(),
 	base_url: z.string().url("Must be a valid URL").optional(),
 	auth_type: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
 	auth_header_name: z.string().max(100).optional(),
 	health_endpoint: z.string().max(200).optional(),
-	rate_limit_rpm: z.number().min(1).max(100000).optional(),
-	timeout_ms: z.number().min(1000).max(120000).optional(),
+	rate_limit_rpm: z.number().int().min(1).max(100000).optional(),
+	timeout_ms: z.number().int().min(1000).max(120000).optional(),
 	retry_config: z.record(z.string(), z.any()).optional(),
 	headers: z.record(z.string(), z.string()).optional(),
 });
@@ -73,19 +74,19 @@ export const chatCompletionRequestSchema = z.object({
 			models: z.array(z.any()).optional(),
 			cost_bias: z.number().min(0).max(1).optional(),
 			complexity_threshold: z.number().optional(),
-			token_threshold: z.number().optional(),
+			token_threshold: z.number().int().optional(),
 		})
 		.optional(),
 	semantic_cache: z
 		.object({
-			enabled: z.boolean().optional(),
+			enabled: z.boolean(),
 			semantic_threshold: z.number().optional(),
 		})
 		.optional(),
 	prompt_cache: z
 		.object({
 			enabled: z.boolean().optional(),
-			ttl: z.number().optional(),
+			ttl: z.number().int().optional(),
 		})
 		.optional(),
 	fallback: z
