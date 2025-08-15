@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"os"
+	"adaptive-backend/internal/config"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,16 +18,15 @@ type JWTClaims struct {
 }
 
 // JWTAuth creates middleware for JWT authentication
-func JWTAuth() fiber.Handler {
+func JWTAuth(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Skip auth in development environment
-		env := os.Getenv("ENV")
-		if env != "production" {
+		if !cfg.IsProduction() {
 			return c.Next()
 		}
 
-		// Get JWT secret from environment
-		jwtSecret := os.Getenv("JWT_SECRET")
+		// Get JWT secret from configuration
+		jwtSecret := cfg.Server.JWTSecret
 		if jwtSecret == "" {
 			fiberlog.Error("JWT_SECRET environment variable is required")
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

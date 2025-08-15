@@ -173,7 +173,7 @@ const completion = await openai.chat.completions.create({
   // Fallback configuration
   fallback: {
     enabled: true, // Enable/disable fallback (default: true)
-    mode: 'parallel' // 'sequential' or 'parallel'
+    mode: 'race' // 'sequential' or 'race'
   },
   
   // Semantic caching for performance
@@ -211,7 +211,7 @@ Controls provider fallback behavior:
 - **`enabled`**: Enable/disable fallback (default: true)
 - **`mode`**: Fallback strategy
   - `"sequential"` = Try providers one by one (lower cost)
-  - `"parallel"` = Try multiple providers simultaneously (faster)
+  - `"race"` = Try multiple providers simultaneously (faster)
 
 #### `semantic_cache`
 Improves performance by caching similar requests:
