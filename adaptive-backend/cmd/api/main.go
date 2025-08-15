@@ -25,7 +25,7 @@ import (
 )
 
 // SetupRoutes configures all the application routes for the Fiber app.
-func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHandler) {
+func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHandler) error {
 	// Create shared services once
 	reqSvc := completions.NewRequestService()
 	paramSvc := completions.NewParameterService()
@@ -34,7 +34,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Create protocol manager (shared between handlers)
 	protocolMgr, err := protocol_manager.NewProtocolManager(cfg)
 	if err != nil {
-		fiberlog.Fatalf("protocol manager initialization failed: %v", err)
+		return fmt.Errorf("protocol manager initialization failed: %w", err)
 	}
 
 	// Create response service (depends on protocol manager)
@@ -51,6 +51,8 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 	v1Group.Post("/select-model", selectModelHandler.SelectModel)
+
+	return nil
 }
 
 const (
@@ -147,7 +149,9 @@ func main() {
 		return
 	}
 
-	SetupRoutes(app, cfg, healthHandler)
+	if err := SetupRoutes(app, cfg, healthHandler); err != nil {
+		fiberlog.Fatalf("Failed to setup routes: %v", err)
+	}
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{

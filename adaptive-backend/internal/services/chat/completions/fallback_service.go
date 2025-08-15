@@ -28,7 +28,6 @@ const (
 	fallbackDefaultTimeout = 10 * time.Second
 )
 
-
 // Candidate represents a model/provider/protocol candidate for completion.
 type Candidate struct {
 	Name     string

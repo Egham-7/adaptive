@@ -48,15 +48,15 @@ type RedisConfig struct {
 
 // FallbackConfig holds configuration for fallback behavior
 type FallbackConfig struct {
-	Mode       string          `yaml:"mode"` // "race" or "sequential"
-	TimeoutMs  int             `yaml:"timeout_ms"`
-	MaxRetries int             `yaml:"max_retries"`
+	Mode       string           `yaml:"mode"` // "race" or "sequential"
+	TimeoutMs  int              `yaml:"timeout_ms"`
+	MaxRetries int              `yaml:"max_retries"`
 	WorkerPool WorkerPoolConfig `yaml:"worker_pool"`
 }
 
 // WorkerPoolConfig holds configuration for the worker pool
 type WorkerPoolConfig struct {
-	Workers   int `yaml:"workers"`   // Number of worker goroutines
+	Workers   int `yaml:"workers"`    // Number of worker goroutines
 	QueueSize int `yaml:"queue_size"` // Maximum number of queued tasks
 }
 

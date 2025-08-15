@@ -37,8 +37,15 @@ func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) 
 	// Get semantic cache configuration
 	semanticCacheConfig := cfg.ProtocolManager.SemanticCache
 
+	// Validate and set default threshold if invalid
+	threshold := semanticCacheConfig.Threshold
+	if threshold <= 0 || threshold > 1 {
+		threshold = 0.9 // Default to sane value
+		fiberlog.Warnf("ProtocolManagerCache: Invalid threshold value %.2f, using default 0.9", semanticCacheConfig.Threshold)
+	}
+
 	fiberlog.Debugf("ProtocolManagerCache: Configuration - enabled=%t, threshold=%.2f",
-		semanticCacheConfig.Enabled, semanticCacheConfig.Threshold)
+		semanticCacheConfig.Enabled, threshold)
 
 	apiKey := semanticCacheConfig.OpenAIAPIKey
 	if apiKey == "" {
@@ -93,7 +100,7 @@ func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) 
 
 	return &ProtocolManagerCache{
 		cache:             cache,
-		semanticThreshold: float32(semanticCacheConfig.Threshold),
+		semanticThreshold: float32(threshold),
 	}, nil
 }
 

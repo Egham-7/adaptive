@@ -1,3 +1,4 @@
+---
 # Adaptive Backend Configuration
 # Environment variables can be referenced using ${VAR_NAME} syntax
 
@@ -15,56 +16,56 @@ providers:
     api_key: "${OPENAI_API_KEY}"
     enabled: true
     type: "openai"  # Client type to use
-    
+
   anthropic:
     api_key: "${ANTHROPIC_API_KEY}"
     enabled: true
     type: "anthropic"
-    
+
   gemini:
     api_key: "${GEMINI_API_KEY}"
     enabled: true
     type: "gemini"
-    
+
   groq:
     api_key: "${GROQ_API_KEY}"
     enabled: true
     type: "openai"  # Uses OpenAI-compatible client
     base_url: "https://api.groq.com/openai/v1"
-    
+
   deepseek:
     api_key: "${DEEPSEEK_API_KEY}"
     enabled: true
     type: "openai"
     base_url: "https://api.deepseek.com"
-    
+
   grok:
     api_key: "${GROK_API_KEY}"
     enabled: true
     type: "openai"
     base_url: "https://api.x.ai/v1"
-    
+
   huggingface:
     api_key: "${HF_TOKEN}"
     enabled: true
     type: "openai"
     base_url: "https://api-inference.huggingface.co/v1"
 
-  # Custom providers can be added here
-  # custom_provider_example:
-  #   api_key: "${CUSTOM_API_KEY}"
-  #   enabled: true
-  #   type: "openai"  # or "anthropic" or "gemini"
-  #   base_url: "https://api.custom-provider.com/v1"
-  #   headers:
-  #     Custom-Header: "value"
-  #   timeout_ms: 30000
+# Custom providers can be added here
+# custom_provider_example:
+#   api_key: "${CUSTOM_API_KEY}"
+#   enabled: true
+#   type: "openai"  # or "anthropic" or "gemini"
+#   base_url: "https://api.custom-provider.com/v1"
+#   headers:
+#     Custom-Header: "value"
+#   timeout_ms: 30000
 
 # Services configuration
 services:
   adaptive_ai:
     base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
-    
+
   redis:
     url: "${REDIS_URL:-redis://localhost:6379}"
 
@@ -73,13 +74,13 @@ fallback:
   mode: "race"  # "race" or "sequential"
   timeout_ms: 30000
   max_retries: 3
-  
-# Prompt cache configuration  
+
+# Prompt cache configuration
 prompt_cache:
   enabled: true
   default_ttl_seconds: 3600
   redis_url: "${REDIS_URL:-redis://localhost:6379}"
-  
+
 # Protocol manager configuration
 protocol_manager:
   semantic_cache:

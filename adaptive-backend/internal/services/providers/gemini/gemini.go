@@ -99,7 +99,7 @@ func NewCustomGeminiService(cfg *config.Config, customConfig *models.ProviderCon
 }
 
 // NewGeminiServiceWithConfig creates a new Gemini service with custom configuration
-func NewGeminiServiceWithConfig(cfg *config.Config, providerConfig models.ProviderConfig) (*GeminiService, error) {
+func NewGeminiServiceWithConfig(providerConfig models.ProviderConfig) (*GeminiService, error) {
 	if providerConfig.APIKey == "" {
 		return nil, fmt.Errorf("gemini API key not set in configuration")
 	}

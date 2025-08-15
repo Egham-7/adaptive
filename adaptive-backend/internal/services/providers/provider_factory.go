@@ -127,7 +127,7 @@ func (f *ProviderFactory) createGeminiProvider(providerName string, config model
 
 	// For Gemini, we can use custom config if provided
 	if config.BaseURL != "" || config.Headers != nil || config.TimeoutMs > 0 {
-		return gemini.NewGeminiServiceWithConfig(f.cfg, config)
+		return gemini.NewGeminiServiceWithConfig(config)
 	}
 
 	return gemini.NewGeminiService(f.cfg)
