@@ -8,7 +8,6 @@ import {
 	MdFolder,
 	MdKey,
 	MdPlayArrow,
-	MdSettings,
 } from "react-icons/md";
 import { ApiSidebarNavFooter } from "@/app/_components/api-platform/sidebar-nav-footer";
 import CommonSidebarHeader from "@/components/sidebar-header";
