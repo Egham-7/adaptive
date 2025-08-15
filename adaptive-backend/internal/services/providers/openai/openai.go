@@ -20,16 +20,40 @@ type OpenAIService struct {
 }
 
 // NewOpenAIService creates a new OpenAI service using the official SDK
-func NewOpenAIService(cfg *config.Config) (*OpenAIService, error) {
-	apiKey := cfg.GetProviderAPIKey("openai")
-	if apiKey == "" {
-		return nil, fmt.Errorf("OpenAI API key not set in configuration")
+func NewOpenAIService(cfg *config.Config, providerName string) (*OpenAIService, error) {
+	providerConfig, exists := cfg.GetProviderConfig(providerName)
+	if !exists {
+		return nil, fmt.Errorf("provider '%s' not found in configuration", providerName)
 	}
 
-	client := openai.NewClient(
-		option.WithAPIKey(apiKey),
-	)
+	if providerConfig.APIKey == "" {
+		return nil, fmt.Errorf("%s API key not set in configuration", providerName)
+	}
 
+	opts := []option.RequestOption{
+		option.WithAPIKey(providerConfig.APIKey),
+	}
+
+	// Set custom base URL if provided
+	if providerConfig.BaseURL != "" {
+		opts = append(opts, option.WithBaseURL(providerConfig.BaseURL))
+	}
+
+	// Set custom headers if provided
+	if providerConfig.Headers != nil {
+		for key, value := range providerConfig.Headers {
+			opts = append(opts, option.WithHeader(key, value))
+		}
+	}
+
+	// Set timeout if provided
+	if providerConfig.TimeoutMs > 0 {
+		timeout := time.Duration(providerConfig.TimeoutMs) * time.Millisecond
+		httpClient := &http.Client{Timeout: timeout}
+		opts = append(opts, option.WithHTTPClient(httpClient))
+	}
+
+	client := openai.NewClient(opts...)
 	chatService := chat.NewOpenAIChat(&client)
 
 	return &OpenAIService{

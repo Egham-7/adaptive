@@ -21,13 +21,19 @@ FROM alpine:latest
 # Install runtime dependencies
 RUN apk --no-cache add ca-certificates
 
+# Create config directory
+RUN mkdir -p /etc/adaptive
+
 WORKDIR /root/
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/adaptive-backend .
 
-# Copy the configuration file
-COPY --from=builder /app/config.yaml .
+# Copy the configuration file to proper location
+COPY --from=builder /app/config.yaml /etc/adaptive/config.yaml
+
+# Set config path environment variable
+ENV CONFIG_PATH=/etc/adaptive/config.yaml
 
 # Expose the application port
 EXPOSE 8080

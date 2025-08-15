@@ -23,9 +23,9 @@ type ResponseService struct {
 }
 
 // NewResponseService creates a new response service.
-func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager) *ResponseService {
+func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager, fallbackService *FallbackService) *ResponseService {
 	return &ResponseService{
-		completionService: NewCompletionService(cfg),
+		completionService: NewCompletionService(cfg, fallbackService),
 		protocolMgr:       protocolMgr,
 	}
 }

@@ -13,12 +13,16 @@ import (
 
 // ProviderSelector handles provider selection with fallback logic.
 type ProviderSelector struct {
-	cfg *config.Config
+	cfg             *config.Config
+	fallbackService *FallbackService
 }
 
 // NewProviderSelector creates a new provider selector.
-func NewProviderSelector(cfg *config.Config) *ProviderSelector {
-	return &ProviderSelector{cfg: cfg}
+func NewProviderSelector(cfg *config.Config, fallbackService *FallbackService) *ProviderSelector {
+	return &ProviderSelector{
+		cfg:             cfg,
+		fallbackService: fallbackService,
+	}
 }
 
 // SelectStandardProvider selects a standard provider with fallback logic.
@@ -81,10 +85,9 @@ func (ps *ProviderSelector) selectProviderWithFallback(
 		return nil, "", fmt.Errorf("primary %s provider failed and no alternatives: %v", providerType, err)
 	}
 
-	fallbackSvc := NewFallbackService(ps.cfg)
 	alternativesCopy := make([]models.Alternative, len(alternatives))
 	copy(alternativesCopy, alternatives)
-	result, fallbackErr := fallbackSvc.SelectAlternative(ctx, &alternativesCopy, providerConfigs, requestID)
+	result, fallbackErr := ps.fallbackService.SelectAlternative(ctx, &alternativesCopy, providerConfigs, requestID)
 	if fallbackErr != nil {
 		return nil, "", fmt.Errorf("all %s providers failed: %v", providerType, fallbackErr)
 	}

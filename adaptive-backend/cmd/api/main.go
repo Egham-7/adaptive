@@ -38,7 +38,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	}
 
 	// Create response service (depends on protocol manager)
-	respSvc := completions.NewResponseService(cfg, protocolMgr)
+	respSvc := completions.NewResponseService(cfg, protocolMgr, fallbackSvc)
 
 	// Initialize handlers with shared dependencies
 	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)

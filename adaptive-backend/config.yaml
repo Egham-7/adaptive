@@ -15,41 +15,17 @@ providers:
   openai:
     api_key: "${OPENAI_API_KEY}"
     enabled: true
-    type: "openai"  # Client type to use
 
   anthropic:
     api_key: "${ANTHROPIC_API_KEY}"
     enabled: true
-    type: "anthropic"
+    base_url: "https://api.anthropic.com/v1"
 
   gemini:
     api_key: "${GEMINI_API_KEY}"
     enabled: true
-    type: "gemini"
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
 
-  groq:
-    api_key: "${GROQ_API_KEY}"
-    enabled: true
-    type: "openai"  # Uses OpenAI-compatible client
-    base_url: "https://api.groq.com/openai/v1"
-
-  deepseek:
-    api_key: "${DEEPSEEK_API_KEY}"
-    enabled: true
-    type: "openai"
-    base_url: "https://api.deepseek.com"
-
-  grok:
-    api_key: "${GROK_API_KEY}"
-    enabled: true
-    type: "openai"
-    base_url: "https://api.x.ai/v1"
-
-  huggingface:
-    api_key: "${HF_TOKEN}"
-    enabled: true
-    type: "openai"
-    base_url: "https://api-inference.huggingface.co/v1"
 
 # Custom providers can be added here
 # custom_provider_example:

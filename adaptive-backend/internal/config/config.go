@@ -127,6 +127,15 @@ func LoadFromFile(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse YAML config: %w", err)
 	}
 
+	// Normalize provider map keys to lowercase for case-insensitive lookups
+	if config.Providers != nil {
+		normalizedProviders := make(map[string]models.ProviderConfig, len(config.Providers))
+		for key, value := range config.Providers {
+			normalizedProviders[strings.ToLower(key)] = value
+		}
+		config.Providers = normalizedProviders
+	}
+
 	return &config, nil
 }
 
