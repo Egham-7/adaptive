@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
+	MdCode,
 	MdCreditCard,
 	MdDashboard,
 	MdFolder,
@@ -39,11 +40,6 @@ export function OrganizationSidebar() {
 			href: `/api-platform/organizations/${orgId}?tab=credits`,
 			icon: <MdCreditCard className="h-5 w-5" />,
 		},
-		{
-			label: "Settings",
-			href: `/api-platform/organizations/${orgId}/settings`,
-			icon: <MdSettings className="h-5 w-5" />,
-		},
 	];
 
 	const projectLinks = [
@@ -56,6 +52,11 @@ export function OrganizationSidebar() {
 			label: "Quickstart",
 			href: `/api-platform/organizations/${orgId}/projects/${projectId}/quickstart`,
 			icon: <MdPlayArrow className="h-5 w-5" />,
+		},
+		{
+			label: "Examples",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}/examples`,
+			icon: <MdCode className="h-5 w-5" />,
 		},
 		{
 			label: "API Keys",
