@@ -275,7 +275,9 @@ export const adaptiveChatCompletionChunkSchema = z.object({
 
 // Infer TypeScript types from Zod schemas
 export type ChatCompletionRequest = z.infer<typeof chatCompletionRequestSchema>;
-export type AdaptiveChatCompletionRequest = z.infer<typeof adaptiveChatCompletionRequestSchema>;
+export type AdaptiveChatCompletionRequest = z.infer<
+	typeof adaptiveChatCompletionRequestSchema
+>;
 export type ModelCapability = z.infer<typeof modelCapabilitySchema>;
 export type FallbackMode = z.infer<typeof fallbackModeSchema>;
 export type FallbackConfig = z.infer<typeof fallbackConfigSchema>;
@@ -285,9 +287,15 @@ export type PromptCacheConfig = z.infer<typeof promptCacheConfigSchema>;
 export type ChatCompletionMessage = z.infer<typeof chatCompletionMessageSchema>;
 export type AdaptiveUsage = z.infer<typeof adaptiveUsageSchema>;
 export type ChatCompletionChoice = z.infer<typeof chatCompletionChoiceSchema>;
-export type AdaptiveChatCompletionResponse = z.infer<typeof adaptiveChatCompletionResponseSchema>;
-export type ChatCompletionChunkChoice = z.infer<typeof chatCompletionChunkChoiceSchema>;
-export type AdaptiveChatCompletionChunk = z.infer<typeof adaptiveChatCompletionChunkSchema>;
+export type AdaptiveChatCompletionResponse = z.infer<
+	typeof adaptiveChatCompletionResponseSchema
+>;
+export type ChatCompletionChunkChoice = z.infer<
+	typeof chatCompletionChunkChoiceSchema
+>;
+export type AdaptiveChatCompletionChunk = z.infer<
+	typeof adaptiveChatCompletionChunkSchema
+>;
 
 // Extend OpenAI types with provider field
 export interface ChatCompletion extends OpenAIChatCompletion {
