@@ -78,7 +78,6 @@ export default function QuickstartPage() {
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${exampleKey}" \\
   -d '{
-    "model": "gpt-4o",
     "messages": [
       {
         "role": "user", 
@@ -104,7 +103,6 @@ async function main() {
         content: 'Hello! How are you today?' 
       }
     ],
-    model: 'gpt-4o',
     max_tokens: 150,
     temperature: 0.7,
   });
@@ -122,7 +120,6 @@ client = OpenAI(
 )
 
 completion = client.chat.completions.create(
-    model="gpt-4o",
     messages=[
         {
             "role": "user",
