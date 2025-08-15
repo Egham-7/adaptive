@@ -1,7 +1,14 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { MdCreditCard, MdDashboard, MdFolder, MdKey, MdPlayArrow, MdSettings } from "react-icons/md";
+import {
+	MdCreditCard,
+	MdDashboard,
+	MdFolder,
+	MdKey,
+	MdPlayArrow,
+	MdSettings,
+} from "react-icons/md";
 import { ApiSidebarNavFooter } from "@/app/_components/api-platform/sidebar-nav-footer";
 import CommonSidebarHeader from "@/components/sidebar-header";
 import {

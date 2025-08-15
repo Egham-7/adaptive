@@ -320,7 +320,8 @@ print(completion.choices[0].message.content)`;
 							<div>
 								<CardTitle>Additional Endpoints</CardTitle>
 								<CardDescription>
-									Explore advanced features of the Adaptive API beyond chat completions
+									Explore advanced features of the Adaptive API beyond chat
+									completions
 								</CardDescription>
 							</div>
 						</div>
@@ -339,7 +340,8 @@ print(completion.choices[0].message.content)`;
 											Model Selection API
 										</h4>
 										<p className="mt-1 text-blue-700 text-sm dark:text-blue-300">
-											Let the AI service intelligently select the best model and provider for your request without executing it.
+											Let the AI service intelligently select the best model and
+											provider for your request without executing it.
 										</p>
 									</div>
 
@@ -395,7 +397,8 @@ print(completion.choices[0].message.content)`;
 											Provider Information API
 										</h4>
 										<p className="mt-1 text-green-700 text-sm dark:text-green-300">
-											Get real-time information about available providers, models, and their current status.
+											Get real-time information about available providers,
+											models, and their current status.
 										</p>
 									</div>
 

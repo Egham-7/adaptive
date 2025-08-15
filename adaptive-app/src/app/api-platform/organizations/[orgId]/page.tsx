@@ -564,7 +564,6 @@ export default function OrganizationProjectsPage() {
 				</>
 			)}
 
-
 			{/* Edit Project Dialog */}
 			<Dialog
 				open={!!editingProject}
