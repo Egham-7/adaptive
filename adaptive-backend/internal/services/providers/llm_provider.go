@@ -15,7 +15,7 @@ func NewLLMProvider(cfg *config.Config, providerName string, customConfigs map[s
 	if cfg == nil {
 		return nil, fmt.Errorf("configuration cannot be nil")
 	}
-	
+
 	if strings.TrimSpace(providerName) == "" {
 		return nil, fmt.Errorf("provider name cannot be empty")
 	}

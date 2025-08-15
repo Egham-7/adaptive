@@ -21,6 +21,10 @@ type OpenAIService struct {
 
 // NewOpenAIService creates a new OpenAI service using the official SDK
 func NewOpenAIService(cfg *config.Config, providerName string) (*OpenAIService, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("config is nil")
+	}
+
 	providerConfig, exists := cfg.GetProviderConfig(providerName)
 	if !exists {
 		return nil, fmt.Errorf("provider '%s' not found in configuration", providerName)

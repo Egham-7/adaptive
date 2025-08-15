@@ -27,11 +27,10 @@ providers:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
-# Custom providers can be added here
+# Custom OpenAI-compatible providers can be added here
 # custom_provider_example:
 #   api_key: "${CUSTOM_API_KEY}"
 #   enabled: true
-#   type: "openai"  # or "anthropic" or "gemini"
 #   base_url: "https://api.custom-provider.com/v1"
 #   headers:
 #     Custom-Header: "value"
