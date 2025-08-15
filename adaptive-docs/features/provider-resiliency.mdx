@@ -8,14 +8,14 @@ Adaptive automatically switches to backup providers when your primary provider f
 
 ## Fallback Configuration
 
-Fallback is **enabled by default** with parallel mode for maximum reliability. You can customize or disable it as needed.
+Fallback is **enabled by default** with race mode for maximum reliability. You can customize or disable it as needed.
 
 ### Default Behavior (Enabled)
 ```javascript
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }]
-  // No fallback configuration = enabled with parallel mode
+  // No fallback configuration = enabled with race mode
 });
 ```
 
@@ -44,7 +44,7 @@ const completion = await openai.chat.completions.create({
 
 ## Fallback Modes
 
-### Parallel (Default)
+### Race (Default)
 Try multiple providers at once for maximum speed and reliability:
 
 ```javascript
@@ -53,7 +53,7 @@ const completion = await openai.chat.completions.create({
   messages: [{ role: "user", content: "Hello" }],
   fallback: {
     enabled: true,
-    mode: "parallel"
+    mode: "race"
   }
 });
 ```

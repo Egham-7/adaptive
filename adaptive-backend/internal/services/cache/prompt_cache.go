@@ -1,13 +1,13 @@
 package cache
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -25,16 +25,19 @@ type PromptCache struct {
 }
 
 // NewPromptCache creates a new prompt cache instance using Redis
-func NewPromptCache() (*PromptCache, error) {
+func NewPromptCache(cfg *config.Config) (*PromptCache, error) {
 	fiberlog.Info("PromptCache: Initializing Redis-based prompt cache")
 
-	// Get Redis connection configuration
-	redisURL := os.Getenv("REDIS_URL")
+	// Get Redis connection configuration with fallback hierarchy
+	redisURL := cfg.PromptCache.RedisURL
 	if redisURL == "" {
-		fiberlog.Error("PromptCache: REDIS_URL environment variable not set")
-		return nil, fmt.Errorf("REDIS_URL environment variable is not set")
+		redisURL = cfg.Services.Redis.URL
 	}
-	fiberlog.Debug("PromptCache: Redis URL configured")
+	if redisURL == "" {
+		fiberlog.Error("PromptCache: Redis URL not set in configuration (checked prompt_cache.redis_url and services.redis.url)")
+		return nil, fmt.Errorf("redis URL not set in configuration")
+	}
+	fiberlog.Debugf("PromptCache: Redis URL configured: %s", redisURL)
 
 	// Parse Redis URL
 	opt, err := redis.ParseURL(redisURL)

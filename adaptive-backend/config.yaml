@@ -1,0 +1,76 @@
+---
+# Adaptive Backend Configuration
+# Environment variables can be referenced using ${VAR} or ${VAR:-default} syntax (defaults apply when a variable is unset or empty)
+
+server:
+  addr: "${ADDR:-:8080}"
+  allowed_origins: "${ALLOWED_ORIGINS:-http://localhost:3000}"
+  environment: "${ENV:-development}"
+  log_level: "${LOG_LEVEL:-info}"
+  jwt_secret: "${JWT_SECRET}"
+
+# Provider configurations - both built-in and custom
+providers:
+  # Built-in providers with their API keys
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    enabled: true
+
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    enabled: true
+    base_url: "https://api.anthropic.com/v1"
+
+  gemini:
+    api_key: "${GEMINI_API_KEY}"
+    enabled: true
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+
+# Custom OpenAI-compatible providers can be added here
+# custom_provider_example:
+#   api_key: "${CUSTOM_API_KEY}"
+#   enabled: true
+#   base_url: "https://api.custom-provider.com/v1"
+#   headers:
+#     Custom-Header: "value"
+#   timeout_ms: 30000
+
+# Services configuration
+services:
+  adaptive_ai:
+    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+
+  redis:
+    url: "${REDIS_URL:-redis://localhost:6379}"
+
+# Fallback configuration
+fallback:
+  mode: "race"  # "race" or "sequential"
+  timeout_ms: 30000
+  max_retries: 3
+  worker_pool:
+    workers: 10
+    queue_size: 100
+
+# Prompt cache configuration
+prompt_cache:
+  enabled: true
+  default_ttl_seconds: 3600
+  redis_url: "${REDIS_URL:-redis://localhost:6379}"
+
+# Protocol manager configuration
+protocol_manager:
+  semantic_cache:
+    enabled: true
+    threshold: 0.95
+    redis_url: "${REDIS_URL:-redis://localhost:6379}"
+    openai_api_key: "${OPENAI_API_KEY}"  # For embeddings
+  client:
+    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+    timeout_ms: 5000
+    circuit_breaker:
+      failure_threshold: 3
+      success_threshold: 2
+      timeout_ms: 10000
+      reset_after_ms: 30000

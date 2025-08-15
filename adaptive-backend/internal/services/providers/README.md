@@ -14,7 +14,7 @@ The providers module abstracts the complexity of integrating with different LLM 
 | Anthropic | `AnthropicService` | ✅ | `ANTHROPIC_API_KEY` |
 | Groq | `GroqService` | ✅ | `GROQ_API_KEY` |
 | DeepSeek | `DeepSeekService` | ✅ | `DEEPSEEK_API_KEY` |
-| Google Gemini | `GeminiService` | ✅ | `GOOGLE_API_KEY` |
+| Gemini | `GeminiService` | ✅ | `GEMINI_API_KEY` |
 
 ## Architecture
 
@@ -103,14 +103,14 @@ Client Request → Provider Router → Provider Factory → Specific Provider �
 - DeepSeek Chat (default)
 - DeepSeek Reasoner
 
-### Google Gemini Service (`gemini_service.go`)
+### Gemini Service (`gemini_service.go`)
 
 **Features:**
 - Gemini Pro and Gemini Pro Vision
 - Multimodal inputs
  (text, images)
 - Large context windows
-- Google AI integration
+- Gemini AI integration
 
 ## Configuration
 
@@ -123,7 +123,7 @@ export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="sk-ant-..."
 export GROQ_API_KEY="gsk_..."
 export DEEPSEEK_API_KEY="sk-..."
-export GOOGLE_API_KEY="..."
+export GEMINI_API_KEY="..."
 ```
 
 ### Usage Example
@@ -431,7 +431,7 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GROQ_API_KEY=gsk_...
 DEEPSEEK_API_KEY=sk-...
-GOOGLE_AI_API_KEY=...
+GEMINI_API_KEY=...
 
 # Provider Settings
 LLM_REQUEST_TIMEOUT=30s

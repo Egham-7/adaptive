@@ -14,7 +14,7 @@ go run cmd/api/main.go
 
 - **OpenAI Compatible** - Drop-in replacement, just change base URL
 - **Smart Routing** - AI service selects optimal models automatically  
-- **Multi-Provider** - OpenAI, Anthropic, Groq, DeepSeek, Google AI
+- **Multi-Provider** - OpenAI, Anthropic, Groq, DeepSeek, Gemini
 - **Advanced Caching** - Dual-layer caching (prompt + semantic)
 - **Circuit Breakers** - Automatic fallback on provider failures
 - **Streaming Support** - SSE streaming for all providers

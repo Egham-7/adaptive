@@ -12,6 +12,7 @@ require (
 	github.com/openai/openai-go v1.12.0
 	github.com/redis/go-redis/v9 v9.12.0
 	github.com/valyala/fasthttp v1.64.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -32,7 +33,6 @@ require (
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
