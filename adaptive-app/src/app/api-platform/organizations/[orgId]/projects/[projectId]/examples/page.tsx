@@ -1,8 +1,5 @@
-"use client";
-
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,11 +12,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-export default function CodeExamplesPage() {
-	const { orgId, projectId } = useParams<{
-		orgId: string;
-		projectId: string;
-	}>();
+export default function CodeExamplesPage({
+	params,
+}: {
+	params: { orgId: string; projectId: string };
+}) {
+	const { orgId, projectId } = params;
 
 	const endpoints = [
 		{
