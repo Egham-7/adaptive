@@ -42,7 +42,9 @@ export default function QuickstartPage() {
 	} = api.api_keys.getByProject.useQuery({ projectId });
 
 	const firstApiKey = apiKeys?.[0];
-	const exampleKey = EXAMPLE_API_KEY;
+	const exampleKey = firstApiKey?.key_preview
+		? `your_api_key_here_preview_${firstApiKey.key_preview}`
+		: EXAMPLE_API_KEY;
 
 	const CustomCodeBlock = ({
 		code,
@@ -107,7 +109,7 @@ async function main() {
     temperature: 0.7,
   });
 
-  console.log(completion.choices[0]);
+  console.log(completion.choices[0].message.content);
 }
 
 main();`;
