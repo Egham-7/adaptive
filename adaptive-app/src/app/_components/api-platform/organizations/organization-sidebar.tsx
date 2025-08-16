@@ -1,8 +1,8 @@
 "use client";
-import type { ReactNode } from "react";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import type { ReactNode } from "react";
 import {
 	MdCode,
 	MdCreditCard,
