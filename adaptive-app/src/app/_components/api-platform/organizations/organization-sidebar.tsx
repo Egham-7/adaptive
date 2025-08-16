@@ -51,28 +51,30 @@ export function OrganizationSidebar() {
 	];
 
 	// Project-level navigation - show when projectId is available
-	const projectLinks: NavLink[] = projectId ? [
-		{
-			label: "Dashboard",
-			href: `/api-platform/organizations/${orgId}/projects/${projectId}`,
-			icon: <MdDashboard className="h-5 w-5" />,
-		},
-		{
-			label: "Quickstart",
-			href: `/api-platform/organizations/${orgId}/projects/${projectId}/quickstart`,
-			icon: <MdPlayArrow className="h-5 w-5" />,
-		},
-		{
-			label: "Examples",
-			href: `/api-platform/organizations/${orgId}/projects/${projectId}/examples`,
-			icon: <MdCode className="h-5 w-5" />,
-		},
-		{
-			label: "API Keys",
-			href: `/api-platform/organizations/${orgId}/projects/${projectId}/api-keys`,
-			icon: <MdKey className="h-5 w-5" />,
-		},
-	] : [];
+	const projectLinks: NavLink[] = projectId
+		? [
+				{
+					label: "Dashboard",
+					href: `/api-platform/organizations/${orgId}/projects/${projectId}`,
+					icon: <MdDashboard className="h-5 w-5" />,
+				},
+				{
+					label: "Quickstart",
+					href: `/api-platform/organizations/${orgId}/projects/${projectId}/quickstart`,
+					icon: <MdPlayArrow className="h-5 w-5" />,
+				},
+				{
+					label: "Examples",
+					href: `/api-platform/organizations/${orgId}/projects/${projectId}/examples`,
+					icon: <MdCode className="h-5 w-5" />,
+				},
+				{
+					label: "API Keys",
+					href: `/api-platform/organizations/${orgId}/projects/${projectId}/api-keys`,
+					icon: <MdKey className="h-5 w-5" />,
+				},
+			]
+		: [];
 
 	return (
 		<Sidebar className="h-screen">
@@ -95,7 +97,7 @@ export function OrganizationSidebar() {
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					))}
-					
+
 					{/* Project-level navigation (when available) */}
 					{projectLinks.length > 0 && (
 						<>
