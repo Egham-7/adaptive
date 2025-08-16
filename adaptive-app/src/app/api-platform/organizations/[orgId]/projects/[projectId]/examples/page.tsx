@@ -12,12 +12,12 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-export default function CodeExamplesPage({
+export default async function CodeExamplesPage({
 	params,
 }: {
-	params: { orgId: string; projectId: string };
+	params: Promise<{ orgId: string; projectId: string }>;
 }) {
-	const { orgId, projectId } = params;
+	const { orgId, projectId } = await params;
 
 	const endpoints = [
 		{
