@@ -38,15 +38,6 @@ export default async function CodeExamplesPage({
 			endpoint: "/v1/select-model",
 			icon: "🎯",
 		},
-		{
-			id: "providers",
-			title: "Provider Management",
-			description:
-				"Discover, configure, and manage AI providers and their models",
-			method: "GET/POST/PUT",
-			endpoint: "/v1/providers/*",
-			icon: "🏢",
-		},
 	];
 
 	return (
