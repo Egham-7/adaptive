@@ -29,7 +29,10 @@ interface NavLink {
 }
 
 export function OrganizationSidebar() {
-	const { orgId, projectId } = useParams<{ orgId: string; projectId?: string }>();
+	const { orgId, projectId } = useParams<{
+		orgId: string;
+		projectId?: string;
+	}>();
 
 	// If we're on a project page, show project navigation
 	const isProjectPage = typeof projectId === "string";
