@@ -90,7 +90,6 @@ export default function OrganizationProjectsPage() {
 	// Check if we're showing credits tab with validation
 	const tab = searchParams.get("tab");
 	const validTabs = ["projects", "credits"] as const;
-	type ValidTab = typeof validTabs[number];
 	const showCredits = tab === "credits";
 
 	// Validate tab parameter with proper typing

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { OrganizationSidebar } from "@/app/_components/api-platform/organizations/organization-sidebar";
 import {
 	SidebarInset,
@@ -8,7 +10,7 @@ import {
 export default function OrganizationLayout({
 	children,
 }: {
-	children: React.ReactNode;
+	children: ReactNode;
 }) {
 	return (
 		<SidebarProvider>
