@@ -36,9 +36,7 @@ export function OrganizationSidebar() {
 		projectId?: string;
 	}>();
 
-	// If we're on a project page, show project navigation
-	const isProjectPage = typeof projectId === "string";
-
+	// Organization-level navigation - always visible
 	const organizationLinks: NavLink[] = [
 		{
 			label: "Projects",
@@ -52,7 +50,8 @@ export function OrganizationSidebar() {
 		},
 	];
 
-	const projectLinks: NavLink[] = [
+	// Project-level navigation - show when projectId is available
+	const projectLinks: NavLink[] = projectId ? [
 		{
 			label: "Dashboard",
 			href: `/api-platform/organizations/${orgId}/projects/${projectId}`,
@@ -73,9 +72,7 @@ export function OrganizationSidebar() {
 			href: `/api-platform/organizations/${orgId}/projects/${projectId}/api-keys`,
 			icon: <MdKey className="h-5 w-5" />,
 		},
-	];
-
-	const links = isProjectPage ? projectLinks : organizationLinks;
+	] : [];
 
 	return (
 		<Sidebar className="h-screen">
@@ -87,7 +84,8 @@ export function OrganizationSidebar() {
 
 			<SidebarContent>
 				<SidebarMenu>
-					{links.map((link) => (
+					{/* Organization-level navigation */}
+					{organizationLinks.map((link) => (
 						<SidebarMenuItem key={link.label}>
 							<SidebarMenuButton asChild>
 								<Link href={link.href}>
@@ -97,6 +95,23 @@ export function OrganizationSidebar() {
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 					))}
+					
+					{/* Project-level navigation (when available) */}
+					{projectLinks.length > 0 && (
+						<>
+							<SidebarSeparator />
+							{projectLinks.map((link) => (
+								<SidebarMenuItem key={link.label}>
+									<SidebarMenuButton asChild>
+										<Link href={link.href}>
+											{link.icon}
+											<span>{link.label}</span>
+										</Link>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							))}
+						</>
+					)}
 				</SidebarMenu>
 			</SidebarContent>
 
