@@ -140,30 +140,50 @@ const response = await fetch('${API_BASE_URL}/api/v1/chat/completions', {
   })
 });
 
-const reader = response.body?.getReader();
-const decoder = new TextDecoder();
+if (!response.ok) {
+  throw new Error(\`Request failed with \${response.status}: \${await response.text()}\`);
+}
+if (!response.body) {
+  throw new Error('ReadableStream not supported in this environment');
+}
 
-while (true) {
-  const { done, value } = await reader?.read() ?? {};
-  if (done) break;
-  
-  const chunk = decoder.decode(value);
-  const lines = chunk.split('\\n');
-  
-  for (const line of lines) {
-    if (line.startsWith('data: ')) {
-      const data = line.slice(6);
-      if (data === '[DONE]') return;
-      
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+let buffer = '';
+let finished = false;
+
+try {
+  while (!finished) {
+    const { done, value } = await reader.read();
+    if (done) {
+      // flush any remaining bytes and exit loop
+      buffer += decoder.decode();
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\\n');
+    buffer = lines.pop() ?? '';
+
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || !line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') {
+        finished = true;
+        break;
+      }
       try {
         const parsed = JSON.parse(data);
-        const content = parsed.choices[0]?.delta?.content;
-        if (content) {
-          console.log(content);
-        }
-      } catch (e) {}
+        const content = parsed.choices?.[0]?.delta?.content;
+        if (content) console.log(content);
+      } catch (err) {
+        console.error('Failed to parse SSE chunk:', err);
+      }
     }
   }
+} finally {
+  reader.releaseLock();
 }`;
 
 	const pythonExample = `import requests
