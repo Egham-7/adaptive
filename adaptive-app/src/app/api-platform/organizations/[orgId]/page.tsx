@@ -87,8 +87,14 @@ export default function OrganizationProjectsPage() {
 		null,
 	);
 
-	// Check if we're showing credits tab
-	const showCredits = searchParams.get("tab") === "credits";
+	// Check if we're showing credits tab with validation
+	const tab = searchParams.get("tab");
+	const validTabs = ["projects", "credits"] as const;
+	type ValidTab = typeof validTabs[number];
+	const showCredits = tab === "credits";
+
+	// Validate tab parameter with proper typing
+	const isValidTab = !tab || (validTabs as readonly string[]).includes(tab);
 
 	const { user } = useUser();
 	const {
@@ -318,7 +324,16 @@ export default function OrganizationProjectsPage() {
 			</div>
 
 			{/* Show Credits or Projects based on URL */}
-			{showCredits ? (
+			{!isValidTab ? (
+				<div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
+					<div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+						<span className="font-medium text-sm">Invalid Tab</span>
+					</div>
+					<p className="mt-2 text-red-600 text-sm dark:text-red-300">
+						The tab "{tab}" is not valid. Available tabs: projects, credits
+					</p>
+				</div>
+			) : showCredits ? (
 				<CreditManagement organizationId={orgId} />
 			) : (
 				<>

@@ -325,9 +325,8 @@ print(completion.choices[0].message.content)`;
 					</CardHeader>
 					<CardContent>
 						<Tabs defaultValue="select-model" className="w-full">
-							<TabsList className="grid w-full grid-cols-2">
+							<TabsList className="grid w-full grid-cols-1">
 								<TabsTrigger value="select-model">Model Selection</TabsTrigger>
-								<TabsTrigger value="providers">Provider Info</TabsTrigger>
 							</TabsList>
 
 							<TabsContent value="select-model" className="mt-4">
@@ -379,67 +378,6 @@ print(completion.choices[0].message.content)`;
     "complexity": "high",
     "cache_source": "ml_classifier"
   }
-}`}
-											language="json"
-											title="Response"
-										/>
-									</div>
-								</div>
-							</TabsContent>
-
-							<TabsContent value="providers" className="mt-4">
-								<div className="space-y-4">
-									<div className="rounded-lg border bg-green-50 p-4 dark:bg-green-950/20">
-										<h4 className="font-medium text-green-900 text-sm dark:text-green-100">
-											Provider Information API
-										</h4>
-										<p className="mt-1 text-green-700 text-sm dark:text-green-300">
-											Get real-time information about available providers,
-											models, and their current status.
-										</p>
-									</div>
-
-									<CustomCodeBlock
-										code={`curl -X GET "${API_BASE_URL}/api/v1/providers?project_id=${projectId}" \\
-  -H "Authorization: Bearer ${exampleKey}"`}
-										language="bash"
-										title="List All Providers - cURL"
-									/>
-
-									<CustomCodeBlock
-										code={`curl -X GET "${API_BASE_URL}/api/v1/providers/openai" \\
-  -H "Authorization: Bearer ${exampleKey}"`}
-										language="bash"
-										title="Get Specific Provider - cURL"
-									/>
-
-									<div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-900/20">
-										<h5 className="font-medium text-gray-900 text-sm dark:text-gray-100">
-											Example Provider Response:
-										</h5>
-										<CustomCodeBlock
-											code={`{
-  "id": "openai",
-  "name": "OpenAI",
-  "status": "active",
-  "models": [
-    {
-      "id": "gpt-4o",
-      "name": "GPT-4o",
-      "cost_per_1m_input_tokens": 2.5,
-      "cost_per_1m_output_tokens": 10.0,
-      "max_tokens": 128000,
-      "supports_streaming": true
-    },
-    {
-      "id": "gpt-4o-mini",
-      "name": "GPT-4o Mini", 
-      "cost_per_1m_input_tokens": 0.15,
-      "cost_per_1m_output_tokens": 0.6,
-      "max_tokens": 128000,
-      "supports_streaming": true
-    }
-  ]
 }`}
 											language="json"
 											title="Response"
