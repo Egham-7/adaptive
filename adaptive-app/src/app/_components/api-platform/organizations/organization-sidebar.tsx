@@ -22,13 +22,19 @@ import {
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
 
+interface NavLink {
+	label: string;
+	href: string;
+	icon: React.ReactNode;
+}
+
 export function OrganizationSidebar() {
-	const { orgId, projectId } = useParams();
+	const { orgId, projectId } = useParams<{ orgId: string; projectId?: string }>();
 
 	// If we're on a project page, show project navigation
-	const isProjectPage = !!projectId;
+	const isProjectPage = typeof projectId === "string";
 
-	const organizationLinks = [
+	const organizationLinks: NavLink[] = [
 		{
 			label: "Projects",
 			href: `/api-platform/organizations/${orgId}`,
@@ -41,7 +47,7 @@ export function OrganizationSidebar() {
 		},
 	];
 
-	const projectLinks = [
+	const projectLinks: NavLink[] = [
 		{
 			label: "Dashboard",
 			href: `/api-platform/organizations/${orgId}/projects/${projectId}`,
