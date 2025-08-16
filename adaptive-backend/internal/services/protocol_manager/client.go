@@ -1,9 +1,9 @@
 package protocol_manager
 
 import (
-	"os"
 	"time"
 
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/circuitbreaker"
@@ -37,11 +37,11 @@ type ProtocolManagerConfig struct {
 	CircuitBreakerConfig circuitbreaker.Config
 }
 
-func NewProtocolManagerClient() *ProtocolManagerClient {
+func NewProtocolManagerClient(cfg *config.Config) *ProtocolManagerClient {
 	config := DefaultProtocolManagerConfig()
 
-	if baseURL := os.Getenv("ADAPTIVE_AI_BASE_URL"); baseURL != "" {
-		config.BaseURL = baseURL
+	if cfg.Services.AdaptiveAI.BaseURL != "" {
+		config.BaseURL = cfg.Services.AdaptiveAI.BaseURL
 	}
 
 	return NewProtocolManagerClientWithConfig(config)
@@ -63,6 +63,9 @@ func (c *ProtocolManagerClient) SelectProtocol(
 	if !c.circuitBreaker.CanExecute() {
 		fiberlog.Warnf("[CIRCUIT_BREAKER] Protocol Manager service unavailable (Open state). Using fallback.")
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
+		// Log circuit breaker error but continue with fallback
+		circuitErr := models.NewCircuitBreakerError("adaptive_ai")
+		fiberlog.Debugf("[CIRCUIT_BREAKER] %v", circuitErr)
 		return c.getFallbackProtocolResponse()
 	}
 
@@ -72,6 +75,9 @@ func (c *ProtocolManagerClient) SelectProtocol(
 	if err != nil {
 		c.circuitBreaker.RecordFailure()
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
+		// Log provider error but continue with fallback
+		providerErr := models.NewProviderError("adaptive_ai", "prediction request failed", err)
+		fiberlog.Warnf("[PROVIDER_ERROR] %v", providerErr)
 		return c.getFallbackProtocolResponse()
 	}
 

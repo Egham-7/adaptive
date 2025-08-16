@@ -16,18 +16,7 @@ const (
 	CacheTierPromptResponse  = "prompt_response"
 )
 
-// ProviderConfig represents configuration for custom providers
-type ProviderConfig struct {
-	BaseURL        *string           `json:"base_url,omitempty"`         // API base URL
-	AuthType       *string           `json:"auth_type,omitempty"`        // "bearer" | "api_key" | "basic" | "custom"
-	AuthHeaderName *string           `json:"auth_header_name,omitempty"` // Custom auth header name
-	APIKey         *string           `json:"api_key,omitempty"`          // Full API key for authentication
-	HealthEndpoint *string           `json:"health_endpoint,omitempty"`  // Health check endpoint
-	RateLimitRPM   *int              `json:"rate_limit_rpm,omitempty"`   // Rate limit requests per minute
-	TimeoutMs      *int              `json:"timeout_ms,omitempty"`       // Request timeout
-	RetryConfig    map[string]any    `json:"retry_config,omitempty"`     // Custom retry configuration
-	Headers        map[string]string `json:"headers,omitempty"`          // Additional headers
-}
+// ProviderConfig is now defined in internal/config package to avoid duplication
 
 // ModelCapability represents a model with its capabilities and constraints
 type ModelCapability struct {

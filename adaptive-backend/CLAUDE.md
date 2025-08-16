@@ -7,7 +7,7 @@ The adaptive-backend is a high-performance Go API server that provides an OpenAI
 ## Key Features
 
 - **OpenAI-Compatible API**: Drop-in replacement for OpenAI's `/v1/chat/completions` endpoint
-- **Multi-Provider Support**: Routes requests to OpenAI, Anthropic, Google AI, Groq, DeepSeek, Grok, HuggingFace
+- **Multi-Provider Support**: Routes requests to OpenAI, Anthropic, Gemini, Groq, DeepSeek, Grok, HuggingFace
 - **Circuit Breaker Pattern**: Automatic failover and health monitoring
 - **High Performance**: Built for 1000+ req/s with <100ms overhead
 - **Rate Limiting**: API key-based rate limiting with sliding window algorithm
@@ -63,7 +63,7 @@ ALLOWED_ORIGINS=http://localhost:3000   # CORS allowed origins
 # Provider API Keys
 OPENAI_API_KEY=sk-...                  # OpenAI API key
 ANTHROPIC_API_KEY=sk-ant-...           # Anthropic API key
-GOOGLE_AI_API_KEY=...                  # Google AI API key
+GEMINI_API_KEY=...                     # Gemini API key
 GROQ_API_KEY=gsk_...                   # Groq API key
 DEEPSEEK_API_KEY=sk-...                # DeepSeek API key
 # ... other provider keys
@@ -155,7 +155,7 @@ The backend supports multiple LLM providers through a unified interface:
 ### Supported Providers
 - **OpenAI**: GPT-4, GPT-3.5, etc.
 - **Anthropic**: Claude 3.5 Sonnet, Claude 3 Haiku, etc.
-- **Google AI**: Gemini Pro, Gemini Flash
+- **Gemini**: Gemini Pro, Gemini Flash
 - **Groq**: Llama models with ultra-fast inference
 - **DeepSeek**: DeepSeek Coder, DeepSeek Chat
 - **Grok**: xAI's Grok models
