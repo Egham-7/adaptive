@@ -245,7 +245,8 @@ for line in response.iter_lines():
                 content = parsed['choices'][0]['delta'].get('content')
                 if content:
                     print(content, end='')
-            except:
+            except json.JSONDecodeError:
+                # Ignore malformed lines and continue streaming
                 pass`;
 
 	const exampleResponse = `{
