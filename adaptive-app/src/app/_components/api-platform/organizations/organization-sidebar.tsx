@@ -1,4 +1,6 @@
 "use client";
+import type { ReactNode } from "react";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -25,7 +27,7 @@ import {
 interface NavLink {
 	label: string;
 	href: string;
-	icon: React.ReactNode;
+	icon: ReactNode;
 }
 
 export function OrganizationSidebar() {

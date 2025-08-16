@@ -26,7 +26,7 @@ export default async function CodeExamplesPage({
 			description:
 				"Send messages and get AI responses with intelligent model selection",
 			method: "POST",
-			endpoint: "/v1/chat/completions",
+			endpoint: "/api/v1/chat/completions",
 			icon: "💬",
 		},
 		{
@@ -35,7 +35,7 @@ export default async function CodeExamplesPage({
 			description:
 				"Get the optimal model and provider for your request without executing",
 			method: "POST",
-			endpoint: "/v1/select-model",
+			endpoint: "/api/v1/select-model",
 			icon: "🎯",
 		},
 	];
