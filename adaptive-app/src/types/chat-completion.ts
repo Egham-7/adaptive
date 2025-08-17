@@ -65,7 +65,7 @@ export const modelCapabilitySchema = z.object({
 });
 
 // Fallback mode schema
-export const fallbackModeSchema = z.enum(["sequential", "parallel"]);
+export const fallbackModeSchema = z.enum(["sequential", "race"]);
 
 // Fallback config schema
 export const fallbackConfigSchema = z.object({
@@ -164,7 +164,7 @@ export const chatCompletionRequestSchema = z.object({
 	fallback: z
 		.object({
 			enabled: z.boolean().optional(),
-			mode: z.enum(["sequential", "parallel"]).optional(),
+			mode: z.enum(["sequential", "race"]).optional(),
 		})
 		.optional(),
 });

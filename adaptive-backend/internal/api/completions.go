@@ -1,6 +1,7 @@
 package api
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
@@ -15,6 +16,7 @@ import (
 // It manages the lifecycle of chat completion requests, including provider selection,
 // fallback handling, and response processing.
 type CompletionHandler struct {
+	cfg         *config.Config
 	reqSvc      *completions.RequestService
 	respSvc     *completions.ResponseService
 	paramSvc    *completions.ParameterService
@@ -24,6 +26,7 @@ type CompletionHandler struct {
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
 func NewCompletionHandler(
+	cfg *config.Config,
 	reqSvc *completions.RequestService,
 	respSvc *completions.ResponseService,
 	paramSvc *completions.ParameterService,
@@ -31,6 +34,7 @@ func NewCompletionHandler(
 	fallbackSvc *completions.FallbackService,
 ) *CompletionHandler {
 	return &CompletionHandler{
+		cfg:         cfg,
 		reqSvc:      reqSvc,
 		respSvc:     respSvc,
 		paramSvc:    paramSvc,
@@ -94,7 +98,7 @@ func (h *CompletionHandler) selectProtocol(
 
 	selReq := models.ModelSelectionRequest{
 		ChatCompletionRequest: *openAIParams,
-		ProtocolManagerConfig: req.ProtocolManagerConfig,
+		ProtocolManagerConfig: req.ProtocolManagerConfig, // Already merged in protocol manager
 	}
 
 	resp, cacheSource, err = h.protocolMgr.SelectProtocolWithCache(
@@ -110,17 +114,12 @@ func (h *CompletionHandler) selectProtocol(
 
 // configureFallbackMode sets the fallback mode based on the request configuration
 func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequest, reqID string) {
-	// Default fallback behavior: enabled with parallel mode
-	enabled := true
-	mode := models.FallbackModeParallel
+	// Merge YAML fallback config with request override
+	mergedFallback := h.cfg.MergeFallbackConfig(req.Fallback)
+	enabled := mergedFallback.Enabled
+	mode := mergedFallback.Mode
 
-	// Override defaults if fallback config is provided
-	if req.Fallback != nil {
-		enabled = req.Fallback.Enabled
-		if req.Fallback.Mode != "" {
-			mode = req.Fallback.Mode
-		}
-	}
+	fiberlog.Debugf("[%s] Using merged fallback config - enabled: %t, mode: %s", reqID, enabled, mode)
 
 	// Check if fallback is disabled
 	if !enabled {

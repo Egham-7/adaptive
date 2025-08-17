@@ -14,7 +14,7 @@ export const createClusterSchema = z.object({
 
 	// Fallback Config fields
 	fallbackEnabled: z.boolean().default(true),
-	fallbackMode: z.enum(["sequential", "parallel"]).default("parallel"),
+	fallbackMode: z.enum(["sequential", "race"]).default("race"),
 
 	// Protocol Manager Config fields
 	enableCircuitBreaker: z.boolean().default(true),
@@ -46,7 +46,7 @@ export const updateClusterSchema = z.object({
 
 	// Fallback Config fields
 	fallbackEnabled: z.boolean().optional(),
-	fallbackMode: z.enum(["sequential", "parallel"]).optional(),
+	fallbackMode: z.enum(["sequential", "race"]).optional(),
 
 	// Protocol Manager Config fields
 	enableCircuitBreaker: z.boolean().optional(),

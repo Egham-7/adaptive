@@ -20,22 +20,25 @@ func NewLLMProvider(cfg *config.Config, providerName string, customConfigs map[s
 		return nil, fmt.Errorf("provider name cannot be empty")
 	}
 
-	// Check if provider is configured and get the base config
-	providerConfig, exists := cfg.GetProviderConfig(providerName)
-	if !exists {
-		return nil, fmt.Errorf("provider '%s' is not configured", providerName)
-	}
+	// Merge YAML config with custom override config if provided
+	var mergedConfig models.ProviderConfig
+	var err error
 
-	// Use custom config if provided
 	if customConfigs != nil {
 		if customConfig, hasCustom := customConfigs[providerName]; hasCustom {
-			// Use BaseURL from custom config if provided, otherwise fall back to provider config, or empty for SDK default
-			baseURL := customConfig.BaseURL
-			if baseURL == "" {
-				baseURL = providerConfig.BaseURL
+			// Merge YAML config with request override
+			mergedConfig, err = cfg.MergeProviderConfig(providerName, customConfig)
+			if err != nil {
+				return nil, fmt.Errorf("failed to merge provider config for '%s': %w", providerName, err)
 			}
-			return openai.NewCustomOpenAIService(baseURL, customConfig)
+			return openai.NewCustomOpenAIService(mergedConfig.BaseURL, &mergedConfig)
 		}
+	}
+
+	// No custom config provided, use YAML config only
+	mergedConfig, exists := cfg.GetProviderConfig(providerName)
+	if !exists {
+		return nil, fmt.Errorf("provider '%s' is not configured", providerName)
 	}
 
 	// Use standard config

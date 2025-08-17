@@ -50,7 +50,7 @@ func NewPromptCache(cfg *config.Config) (*PromptCache, error) {
 	client := redis.NewClient(opt)
 
 	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -93,7 +93,7 @@ func (pc *PromptCache) Get(req *models.ChatCompletionRequest, requestID string) 
 	key := pc.generateCacheKey(req)
 	fiberlog.Debugf("[%s] PromptCache: Looking up key: %s", requestID, key)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	data, err := pc.client.Get(ctx, key).Result()
@@ -138,7 +138,7 @@ func (pc *PromptCache) Set(req *models.ChatCompletionRequest, response *models.C
 		return fmt.Errorf("failed to marshal response: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	if err := pc.client.Set(ctx, key, data, ttl).Err(); err != nil {
@@ -154,7 +154,7 @@ func (pc *PromptCache) Set(req *models.ChatCompletionRequest, response *models.C
 func (pc *PromptCache) Delete(req *models.ChatCompletionRequest) error {
 	key := pc.generateCacheKey(req)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	return pc.client.Del(ctx, key).Err()
@@ -162,7 +162,7 @@ func (pc *PromptCache) Delete(req *models.ChatCompletionRequest) error {
 
 // Flush clears all prompt cache entries
 func (pc *PromptCache) Flush() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	keys, err := pc.client.Keys(ctx, promptCacheKeyPrefix+"*").Result()
@@ -187,7 +187,7 @@ func (pc *PromptCache) Close() error {
 
 // Stats returns cache statistics
 func (pc *PromptCache) Stats() (*models.PromptCacheStats, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
 	info, err := pc.client.Info(ctx, "keyspace").Result()

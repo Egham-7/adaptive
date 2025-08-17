@@ -18,6 +18,7 @@ const (
 type ProtocolManager struct {
 	cache  *ProtocolManagerCache
 	client *ProtocolManagerClient
+	cfg    *config.Config
 }
 
 // NewProtocolManager creates a new ProtocolManager with cache configuration.
@@ -49,6 +50,7 @@ func NewProtocolManager(cfg *config.Config) (*ProtocolManager, error) {
 	return &ProtocolManager{
 		cache:  cache,
 		client: client,
+		cfg:    cfg,
 	}, nil
 }
 
@@ -63,18 +65,9 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 ) (*models.ProtocolResponse, string, error) {
 	fiberlog.Debugf("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	// Ensure protocol manager config exists
-	if req.ProtocolManagerConfig == nil {
-		req.ProtocolManagerConfig = &models.ProtocolManagerConfig{}
-	}
-
-	// Set default cost bias if not provided
-	if req.ProtocolManagerConfig.CostBias <= 0 {
-		req.ProtocolManagerConfig.CostBias = float32(defaultCostBiasFactor)
-		fiberlog.Debugf("[%s] Using default cost bias: %.2f", requestID, req.ProtocolManagerConfig.CostBias)
-	} else {
-		fiberlog.Debugf("[%s] Using provided cost bias: %.2f", requestID, req.ProtocolManagerConfig.CostBias)
-	}
+	// Merge YAML protocol manager config with request override
+	req.ProtocolManagerConfig = pm.cfg.MergeProtocolManagerConfig(req.ProtocolManagerConfig)
+	fiberlog.Debugf("[%s] Using merged protocol manager config - cost bias: %.2f", requestID, req.ProtocolManagerConfig.CostBias)
 
 	// Extract prompt from last message for cache key
 	prompt, err := utils.ExtractLastMessage(req.ChatCompletionRequest.Messages)
