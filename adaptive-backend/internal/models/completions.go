@@ -47,10 +47,9 @@ const (
 // FallbackConfig holds the fallback configuration with enabled toggle
 type FallbackConfig struct {
 	Enabled        bool                  `json:"enabled,omitempty" yaml:"enabled,omitempty"`                 // Whether fallback is enabled (default: true)
-	Mode           FallbackMode          `json:"mode,omitempty" yaml:"mode,omitempty"`                       // Fallback mode (sequential/parallel)
+	Mode           FallbackMode          `json:"mode,omitempty" yaml:"mode,omitempty"`                       // Fallback mode (sequential/race)
 	TimeoutMs      int                   `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`           // Timeout in milliseconds
 	MaxRetries     int                   `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`         // Maximum number of retries
-	WorkerPool     *WorkerPoolConfig     `json:"worker_pool,omitempty" yaml:"worker_pool,omitempty"`         // Worker pool configuration
 	CircuitBreaker *CircuitBreakerConfig `json:"circuit_breaker,omitempty" yaml:"circuit_breaker,omitempty"` // Circuit breaker configuration
 }
 
@@ -64,12 +63,6 @@ func ParseFallbackMode(mode string) FallbackMode {
 	default:
 		return FallbackModeRace // Default to race
 	}
-}
-
-// WorkerPoolConfig holds configuration for the worker pool
-type WorkerPoolConfig struct {
-	Workers   int `json:"workers,omitempty" yaml:"workers,omitempty"`       // Number of worker goroutines
-	QueueSize int `json:"queue_size,omitempty" yaml:"queue_size,omitempty"` // Maximum number of queued tasks
 }
 
 // CircuitBreakerConfig holds circuit breaker configuration

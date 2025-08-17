@@ -49,9 +49,6 @@ fallback:
   mode: "race"  # "race" or "sequential"
   timeout_ms: 30000  # Keep longer for streaming LLM responses
   max_retries: 3
-  worker_pool:
-    workers: 10
-    queue_size: 100
   circuit_breaker:
     failure_threshold: 5
     success_threshold: 3

@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alitto/pond/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
@@ -32,7 +31,6 @@ type FallbackService struct {
 	mode       models.FallbackMode
 	timeout    time.Duration
 	maxRetries int
-	workerPool pond.Pool
 }
 
 // NewFallbackService creates a new fallback service reading config values
@@ -52,30 +50,11 @@ func NewFallbackService(cfg *config.Config) *FallbackService {
 		maxRetries = cfg.Fallback.MaxRetries
 	}
 
-	// Set default worker pool configuration if not specified
-	workers := 10
-	queueSize := 100
-	if cfg.Fallback.WorkerPool.Workers > 0 {
-		workers = cfg.Fallback.WorkerPool.Workers
-	}
-	if cfg.Fallback.WorkerPool.QueueSize > 0 {
-		queueSize = cfg.Fallback.WorkerPool.QueueSize
-	}
-
-	// Create worker pool with queue size option
-	var workerPool pond.Pool
-	if queueSize > 0 {
-		workerPool = pond.NewPool(workers, pond.WithQueueSize(queueSize))
-	} else {
-		workerPool = pond.NewPool(workers)
-	}
-
 	return &FallbackService{
 		cfg:        cfg,
 		mode:       mode,
 		timeout:    timeout,
 		maxRetries: maxRetries,
-		workerPool: workerPool,
 	}
 }
 
@@ -189,33 +168,30 @@ func (fs *FallbackService) raceAllProviders(
 	// Use fresh channel per request (never pool channels - unsafe!)
 	resultCh := make(chan *models.RaceResult, len(options))
 
-	// Submit tasks to worker pool instead of creating unlimited goroutines
+	// Start goroutines for parallel provider requests
 	var wg sync.WaitGroup
 	for _, option := range options {
 		wg.Add(1)
-		task := fs.workerPool.SubmitErr(func() error {
+		go func(opt models.Alternative) {
 			defer func() {
 				wg.Done()
 				// Ensure we don't leak if panic occurs
 				if r := recover(); r != nil {
-					fiberlog.Errorf("[%s] Panic in provider %s (%s): %v", requestID, option.Provider, option.Model, r)
+					fiberlog.Errorf("[%s] Panic in provider %s (%s): %v", requestID, opt.Provider, opt.Model, r)
 				}
 			}()
 
 			// Pass the race context to provider connection
-			result := fs.tryProviderConnectionWithContext(raceCtx, option, providerConfigs, requestID)
+			result := fs.tryProviderConnectionWithContext(raceCtx, opt, providerConfigs, requestID)
 
 			// Non-blocking send to avoid goroutine leak if context is cancelled
 			select {
 			case resultCh <- result:
-				fiberlog.Debugf("[%s] Result sent for provider %s (%s)", requestID, option.Provider, option.Model)
+				fiberlog.Debugf("[%s] Result sent for provider %s (%s)", requestID, opt.Provider, opt.Model)
 			case <-raceCtx.Done():
-				fiberlog.Debugf("[%s] Context cancelled for provider %s (%s), result discarded", requestID, option.Provider, option.Model)
+				fiberlog.Debugf("[%s] Context cancelled for provider %s (%s), result discarded", requestID, opt.Provider, opt.Model)
 			}
-			return nil
-		})
-		// Ignore the task result since we're handling results via the channel
-		_ = task
+		}(option)
 	}
 
 	// Close result channel when all tasks are done
