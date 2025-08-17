@@ -166,7 +166,7 @@ export async function POST(
 					name: body.name,
 					description: body.description,
 					fallbackEnabled: body.fallbackEnabled ?? true,
-					fallbackMode: body.fallbackMode ?? "parallel",
+					fallbackMode: body.fallbackMode ?? "race",
 					enableCircuitBreaker: body.enableCircuitBreaker ?? true,
 					maxRetries: body.maxRetries ?? 3,
 					timeoutMs: body.timeoutMs ?? 30000,

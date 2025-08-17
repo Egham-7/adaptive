@@ -21,12 +21,12 @@ type ProtocolManagerClient struct {
 func DefaultProtocolManagerConfig() ProtocolManagerConfig {
 	return ProtocolManagerConfig{
 		BaseURL:        "http://localhost:8000",
-		RequestTimeout: 15 * time.Second,
+		RequestTimeout: 5 * time.Second,
 		CircuitBreakerConfig: circuitbreaker.Config{
 			FailureThreshold: 3,
 			SuccessThreshold: 2,
-			Timeout:          30 * time.Second,
-			ResetAfter:       2 * time.Minute,
+			Timeout:          10 * time.Second,
+			ResetAfter:       30 * time.Second,
 		},
 	}
 }

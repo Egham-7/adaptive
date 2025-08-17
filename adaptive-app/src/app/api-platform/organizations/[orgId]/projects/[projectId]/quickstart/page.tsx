@@ -42,7 +42,9 @@ export default function QuickstartPage() {
 	} = api.api_keys.getByProject.useQuery({ projectId });
 
 	const firstApiKey = apiKeys?.[0];
-	const exampleKey = EXAMPLE_API_KEY;
+	const exampleKey = firstApiKey?.key_preview
+		? `your_api_key_here_preview_${firstApiKey.key_preview}`
+		: EXAMPLE_API_KEY;
 
 	const CustomCodeBlock = ({
 		code,
@@ -78,7 +80,6 @@ export default function QuickstartPage() {
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${exampleKey}" \\
   -d '{
-    "model": "gpt-4o",
     "messages": [
       {
         "role": "user", 
@@ -104,12 +105,11 @@ async function main() {
         content: 'Hello! How are you today?' 
       }
     ],
-    model: 'gpt-4o',
     max_tokens: 150,
     temperature: 0.7,
   });
 
-  console.log(completion.choices[0]);
+  console.log(completion.choices[0].message.content);
 }
 
 main();`;
@@ -122,7 +122,6 @@ client = OpenAI(
 )
 
 completion = client.chat.completions.create(
-    model="gpt-4o",
     messages=[
         {
             "role": "user",
@@ -310,6 +309,88 @@ print(completion.choices[0].message.content)`;
 					</CardContent>
 				</Card>
 
+				{/* Step 3: Additional Endpoints */}
+				<Card>
+					<CardHeader>
+						<div className="flex items-center gap-3">
+							<div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground text-sm">
+								3
+							</div>
+							<div>
+								<CardTitle>Additional Endpoints</CardTitle>
+								<CardDescription>
+									Explore advanced features of the Adaptive API beyond chat
+									completions
+								</CardDescription>
+							</div>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<Tabs defaultValue="select-model" className="w-full">
+							<TabsList className="grid w-full grid-cols-1">
+								<TabsTrigger value="select-model">Model Selection</TabsTrigger>
+							</TabsList>
+
+							<TabsContent value="select-model" className="mt-4">
+								<div className="space-y-4">
+									<div className="rounded-lg border bg-blue-50 p-4 dark:bg-blue-950/20">
+										<h4 className="font-medium text-blue-900 text-sm dark:text-blue-100">
+											Model Selection API
+										</h4>
+										<p className="mt-1 text-blue-700 text-sm dark:text-blue-300">
+											Let the AI service intelligently select the best model and
+											provider for your request without executing it.
+										</p>
+									</div>
+
+									<CustomCodeBlock
+										code={`curl -X POST "${API_BASE_URL}/api/v1/select-model" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${exampleKey}" \\
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "content": "Write a comprehensive analysis of quantum computing"
+      }
+    ],
+    "temperature": 0.7,
+    "max_tokens": 2000
+  }'`}
+										language="bash"
+										title="Select Best Model - cURL"
+									/>
+
+									<div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-900/20">
+										<h5 className="font-medium text-gray-900 text-sm dark:text-gray-100">
+											Example Response:
+										</h5>
+										<CustomCodeBlock
+											code={`{
+  "request": {
+    "messages": [...],
+    "temperature": 0.7,
+    "max_tokens": 2000
+  },
+  "metadata": {
+    "provider": "openai",
+    "model": "gpt-4o",
+    "reasoning": "Complex analytical task requires high-quality reasoning",
+    "cost_per_1m_tokens": 15.0,
+    "complexity": "high",
+    "cache_source": "ml_classifier"
+  }
+}`}
+											language="json"
+											title="Response"
+										/>
+									</div>
+								</div>
+							</TabsContent>
+						</Tabs>
+					</CardContent>
+				</Card>
+
 				{/* Next Steps */}
 				<Card>
 					<CardHeader>
@@ -360,20 +441,19 @@ print(completion.choices[0].message.content)`;
 									Comprehensive API documentation and guides
 								</p>
 							</div>
-							<div className="cursor-not-allowed rounded-lg border p-4 opacity-60">
-								<div className="flex items-center justify-between">
+							<Link
+								href={`/api-platform/organizations/${orgId}/projects/${projectId}/examples`}
+							>
+								<div className="rounded-lg border p-4 transition-colors hover:bg-accent">
 									<div className="flex items-center gap-2">
 										<div className="h-2 w-2 rounded-full bg-orange-500" />
 										<h4 className="font-medium">Code Examples</h4>
 									</div>
-									<Badge variant="secondary" className="text-xs">
-										Coming Soon
-									</Badge>
+									<p className="mt-2 text-muted-foreground text-sm">
+										Example projects and integrations for all API routes
+									</p>
 								</div>
-								<p className="mt-2 text-muted-foreground text-sm">
-									Example projects and integrations
-								</p>
-							</div>
+							</Link>
 						</div>
 					</CardContent>
 				</Card>

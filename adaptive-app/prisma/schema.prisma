@@ -40,7 +40,7 @@ enum CreditTransactionType {
 
 enum FallbackMode {
   sequential
-  parallel
+  race
 }
 
 enum ProviderVisibility {
@@ -422,7 +422,7 @@ model LLMCluster {
   
   // Fallback Config fields
   fallbackEnabled      Boolean      @default(true)
-  fallbackMode         FallbackMode @default(parallel)
+  fallbackMode         FallbackMode @default(race)
   
   // Protocol Manager Config fields
   enableCircuitBreaker Boolean      @default(true)

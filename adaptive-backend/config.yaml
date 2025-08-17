@@ -47,11 +47,13 @@ services:
 # Fallback configuration
 fallback:
   mode: "race"  # "race" or "sequential"
-  timeout_ms: 30000
+  timeout_ms: 30000  # Keep longer for streaming LLM responses
   max_retries: 3
-  worker_pool:
-    workers: 10
-    queue_size: 100
+  circuit_breaker:
+    failure_threshold: 5
+    success_threshold: 3
+    timeout_ms: 15000
+    reset_after_ms: 60000
 
 # Prompt cache configuration
 prompt_cache:
@@ -68,9 +70,9 @@ protocol_manager:
     openai_api_key: "${OPENAI_API_KEY}"  # For embeddings
   client:
     base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
-    timeout_ms: 5000
+    timeout_ms: 3000
     circuit_breaker:
       failure_threshold: 3
       success_threshold: 2
-      timeout_ms: 10000
+      timeout_ms: 5000
       reset_after_ms: 30000

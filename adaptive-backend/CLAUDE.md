@@ -73,6 +73,44 @@ REDIS_URL=redis://localhost:6379       # Redis URL for caching
 CACHE_TTL=3600                         # Cache TTL in seconds
 ```
 
+## Configuration via YAML
+
+**YAML configuration is the preferred method** for configuring the backend service. Create a `config.yaml` file in the project root:
+
+```yaml
+---
+# Adaptive Backend Configuration
+# Environment variables can be referenced using ${VAR} or ${VAR:-default} syntax
+
+server:
+  addr: "${ADDR:-:8080}"
+  allowed_origins: "${ALLOWED_ORIGINS:-http://localhost:3000}"
+  environment: "${ENV:-development}"
+  log_level: "${LOG_LEVEL:-info}"
+
+# Provider configurations
+providers:
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    base_url: "https://api.openai.com/v1"  # Optional custom base URL
+  
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    base_url: "https://api.anthropic.com/v1"
+  
+  gemini:
+    api_key: "${GEMINI_API_KEY}"
+    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+services:
+  adaptive_ai:
+    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+  redis:
+    url: "${REDIS_URL:-redis://localhost:6379}"
+```
+
+**Environment Variable Support**: Environment variables can still be used by referencing them from YAML using `${VAR_NAME}` or `${VAR_NAME:-default_value}` syntax. This allows for flexible configuration while maintaining the structured YAML format.
+
 ## Development Commands
 
 ### Local Development

@@ -7,22 +7,10 @@ import (
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/alitto/pond/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-)
-
-// FallbackMode defines the strategy for handling provider failures
-type FallbackMode int
-
-const (
-	// FallbackModeRace tries primary first, then races all alternatives in parallel
-	FallbackModeRace FallbackMode = iota
-	// FallbackModeSequential tries providers one by one in order
-	FallbackModeSequential
 )
 
 const (
@@ -40,28 +28,15 @@ type Candidate struct {
 // FallbackService handles provider selection with configurable fallback strategies
 type FallbackService struct {
 	cfg        *config.Config
-	mode       FallbackMode
+	mode       models.FallbackMode
 	timeout    time.Duration
 	maxRetries int
-	workerPool pond.Pool
-}
-
-// parseFallbackMode converts a string to FallbackMode (case-insensitive)
-func parseFallbackMode(mode string) FallbackMode {
-	switch strings.ToLower(strings.TrimSpace(mode)) {
-	case "sequential":
-		return FallbackModeSequential
-	case "race":
-		return FallbackModeRace
-	default:
-		return FallbackModeRace // Default to race mode
-	}
 }
 
 // NewFallbackService creates a new fallback service reading config values
 func NewFallbackService(cfg *config.Config) *FallbackService {
-	// Parse fallback mode from config (case-insensitive with default)
-	mode := parseFallbackMode(cfg.Fallback.Mode)
+	// Use the FallbackMode from config directly
+	mode := cfg.Fallback.Mode
 
 	// Parse timeout from config (with default if absent or invalid)
 	timeout := fallbackDefaultTimeout
@@ -75,35 +50,16 @@ func NewFallbackService(cfg *config.Config) *FallbackService {
 		maxRetries = cfg.Fallback.MaxRetries
 	}
 
-	// Set default worker pool configuration if not specified
-	workers := 10
-	queueSize := 100
-	if cfg.Fallback.WorkerPool.Workers > 0 {
-		workers = cfg.Fallback.WorkerPool.Workers
-	}
-	if cfg.Fallback.WorkerPool.QueueSize > 0 {
-		queueSize = cfg.Fallback.WorkerPool.QueueSize
-	}
-
-	// Create worker pool with queue size option
-	var workerPool pond.Pool
-	if queueSize > 0 {
-		workerPool = pond.NewPool(workers, pond.WithQueueSize(queueSize))
-	} else {
-		workerPool = pond.NewPool(workers)
-	}
-
 	return &FallbackService{
 		cfg:        cfg,
 		mode:       mode,
 		timeout:    timeout,
 		maxRetries: maxRetries,
-		workerPool: workerPool,
 	}
 }
 
 // SetMode changes the fallback mode
-func (fs *FallbackService) SetMode(mode FallbackMode) {
+func (fs *FallbackService) SetMode(mode models.FallbackMode) {
 	fs.mode = mode
 }
 
@@ -130,12 +86,12 @@ func (fs *FallbackService) SelectAlternative(
 	}
 
 	switch fs.mode {
-	case FallbackModeRace:
+	case models.FallbackModeRace:
 		return fs.raceAlternatives(ctx, alternatives, providerConfigs, requestID)
-	case FallbackModeSequential:
+	case models.FallbackModeSequential:
 		return fs.selectSequentialAlternative(ctx, alternatives, providerConfigs, requestID)
 	default:
-		return nil, fmt.Errorf("unsupported fallback mode: %d", fs.mode)
+		return nil, fmt.Errorf("unsupported fallback mode: %s", fs.mode)
 	}
 }
 
@@ -212,33 +168,30 @@ func (fs *FallbackService) raceAllProviders(
 	// Use fresh channel per request (never pool channels - unsafe!)
 	resultCh := make(chan *models.RaceResult, len(options))
 
-	// Submit tasks to worker pool instead of creating unlimited goroutines
+	// Start goroutines for parallel provider requests
 	var wg sync.WaitGroup
 	for _, option := range options {
 		wg.Add(1)
-		task := fs.workerPool.SubmitErr(func() error {
+		go func(opt models.Alternative) {
 			defer func() {
 				wg.Done()
 				// Ensure we don't leak if panic occurs
 				if r := recover(); r != nil {
-					fiberlog.Errorf("[%s] Panic in provider %s (%s): %v", requestID, option.Provider, option.Model, r)
+					fiberlog.Errorf("[%s] Panic in provider %s (%s): %v", requestID, opt.Provider, opt.Model, r)
 				}
 			}()
 
 			// Pass the race context to provider connection
-			result := fs.tryProviderConnectionWithContext(raceCtx, option, providerConfigs, requestID)
+			result := fs.tryProviderConnectionWithContext(raceCtx, opt, providerConfigs, requestID)
 
 			// Non-blocking send to avoid goroutine leak if context is cancelled
 			select {
 			case resultCh <- result:
-				fiberlog.Debugf("[%s] Result sent for provider %s (%s)", requestID, option.Provider, option.Model)
+				fiberlog.Debugf("[%s] Result sent for provider %s (%s)", requestID, opt.Provider, opt.Model)
 			case <-raceCtx.Done():
-				fiberlog.Debugf("[%s] Context cancelled for provider %s (%s), result discarded", requestID, option.Provider, option.Model)
+				fiberlog.Debugf("[%s] Context cancelled for provider %s (%s), result discarded", requestID, opt.Provider, opt.Model)
 			}
-			return nil
-		})
-		// Ignore the task result since we're handling results via the channel
-		_ = task
+		}(option)
 	}
 
 	// Close result channel when all tasks are done
@@ -350,15 +303,15 @@ func (fs *FallbackService) BuildCandidates(resp *models.ProtocolResponse) ([]Can
 func (fs *FallbackService) BuildCandidatesWithCustomConfig(resp *models.ProtocolResponse, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
 	switch resp.Protocol {
 	case models.ProtocolStandardLLM:
-		return fs.buildStandardCandidates(resp.Standard)
+		return fs.buildStandardCandidates(resp.Standard, providerConfigs)
 	case models.ProtocolMinion:
-		return fs.buildMinionCandidates(resp.Minion)
+		return fs.buildMinionCandidates(resp.Minion, providerConfigs)
 	case models.ProtocolMinionsProtocol:
-		stds, err := fs.buildStandardCandidates(resp.Standard)
+		stds, err := fs.buildStandardCandidates(resp.Standard, providerConfigs)
 		if err != nil {
 			return nil, err
 		}
-		mins, err := fs.buildMinionCandidates(resp.Minion)
+		mins, err := fs.buildMinionCandidates(resp.Minion, providerConfigs)
 		if err != nil {
 			return nil, err
 		}
@@ -375,21 +328,21 @@ func (fs *FallbackService) BuildCandidatesWithCustomConfig(resp *models.Protocol
 }
 
 // buildStandardCandidates returns primary + fallback LLMs.
-func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo) ([]Candidate, error) {
+func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
 	if std == nil {
 		return nil, fmt.Errorf("standard info is nil")
 	}
 
 	var out []Candidate
 
-	svc, err := providers.NewLLMProvider(fs.cfg, std.Provider, nil)
+	svc, err := providers.NewLLMProvider(fs.cfg, std.Provider, providerConfigs)
 	if err != nil {
 		return nil, fmt.Errorf("standard provider %s: %w", std.Provider, err)
 	}
 	out = append(out, Candidate{std.Provider, svc, models.ProtocolStandardLLM})
 
 	for _, alt := range std.Alternatives {
-		svc, err := providers.NewLLMProvider(fs.cfg, alt.Provider, nil)
+		svc, err := providers.NewLLMProvider(fs.cfg, alt.Provider, providerConfigs)
 		if err != nil {
 			return nil, fmt.Errorf("standard alternative provider %s: %w", alt.Provider, err)
 		}
@@ -399,21 +352,21 @@ func (fs *FallbackService) buildStandardCandidates(std *models.StandardLLMInfo) 
 }
 
 // buildMinionCandidates returns primary + fallback minions.
-func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo) ([]Candidate, error) {
+func (fs *FallbackService) buildMinionCandidates(min *models.MinionInfo, providerConfigs map[string]*models.ProviderConfig) ([]Candidate, error) {
 	if min == nil {
 		return nil, fmt.Errorf("minion info is nil")
 	}
 
 	var out []Candidate
 
-	svc, err := providers.NewLLMProvider(fs.cfg, min.Provider, nil)
+	svc, err := providers.NewLLMProvider(fs.cfg, min.Provider, providerConfigs)
 	if err != nil {
 		return nil, fmt.Errorf("%s model %s: %w", min.Provider, min.Model, err)
 	}
 	out = append(out, Candidate{min.Provider, svc, models.ProtocolMinion})
 
 	for _, alt := range min.Alternatives {
-		svc, err := providers.NewLLMProvider(fs.cfg, alt.Provider, nil)
+		svc, err := providers.NewLLMProvider(fs.cfg, alt.Provider, providerConfigs)
 		if err != nil {
 			return nil, fmt.Errorf("%s alternative model %s: %w", alt.Provider, alt.Model, err)
 		}
