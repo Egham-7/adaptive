@@ -2,6 +2,7 @@ package models
 
 import (
 	"adaptive-backend/internal/services/providers/provider_interfaces"
+	"strings"
 	"time"
 
 	"github.com/openai/openai-go"
@@ -40,22 +41,45 @@ type FallbackMode string
 
 const (
 	FallbackModeSequential FallbackMode = "sequential"
-	FallbackModeParallel   FallbackMode = "parallel"
+	FallbackModeRace       FallbackMode = "race"
 )
 
 // FallbackConfig holds the fallback configuration with enabled toggle
 type FallbackConfig struct {
-	Enabled bool         `json:"enabled,omitempty"` // Whether fallback is enabled (default: true)
-	Mode    FallbackMode `json:"mode,omitempty"`    // Fallback mode (sequential/parallel)
+	Enabled        bool                   `json:"enabled,omitempty" yaml:"enabled,omitempty"`         // Whether fallback is enabled (default: true)
+	Mode           FallbackMode           `json:"mode,omitempty" yaml:"mode,omitempty"`            // Fallback mode (sequential/parallel)
+	TimeoutMs      int                    `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`        // Timeout in milliseconds
+	MaxRetries     int                    `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`      // Maximum number of retries
+	WorkerPool     *WorkerPoolConfig      `json:"worker_pool,omitempty" yaml:"worker_pool,omitempty"`     // Worker pool configuration
+	CircuitBreaker *CircuitBreakerConfig  `json:"circuit_breaker,omitempty" yaml:"circuit_breaker,omitempty"` // Circuit breaker configuration
 }
 
-// ProtocolManagerConfig holds configuration for the protocol manager
-type ProtocolManagerConfig struct {
-	Models              []ModelCapability `json:"models,omitempty"`
-	CostBias            float32           `json:"cost_bias,omitempty"`
-	ComplexityThreshold *float32          `json:"complexity_threshold,omitempty"`
-	TokenThreshold      *int              `json:"token_threshold,omitempty"`
+// ParseFallbackMode converts a string to FallbackMode enum
+func ParseFallbackMode(mode string) FallbackMode {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "sequential":
+		return FallbackModeSequential
+	case "race":
+		return FallbackModeRace
+	default:
+		return FallbackModeRace // Default to race
+	}
 }
+
+// WorkerPoolConfig holds configuration for the worker pool
+type WorkerPoolConfig struct {
+	Workers   int `json:"workers,omitempty" yaml:"workers,omitempty"`       // Number of worker goroutines
+	QueueSize int `json:"queue_size,omitempty" yaml:"queue_size,omitempty"` // Maximum number of queued tasks
+}
+
+// CircuitBreakerConfig holds circuit breaker configuration
+type CircuitBreakerConfig struct {
+	FailureThreshold int `json:"failure_threshold,omitempty" yaml:"failure_threshold,omitempty"` // Number of failures before opening circuit
+	SuccessThreshold int `json:"success_threshold,omitempty" yaml:"success_threshold,omitempty"` // Number of successes to close circuit
+	TimeoutMs        int `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`        // Timeout for circuit breaker in milliseconds
+	ResetAfterMs     int `json:"reset_after_ms,omitempty" yaml:"reset_after_ms,omitempty"`    // Time to wait before trying to close circuit
+}
+
 
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {

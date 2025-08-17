@@ -7,7 +7,6 @@ import (
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -15,15 +14,6 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// FallbackMode defines the strategy for handling provider failures
-type FallbackMode int
-
-const (
-	// FallbackModeRace tries primary first, then races all alternatives in parallel
-	FallbackModeRace FallbackMode = iota
-	// FallbackModeSequential tries providers one by one in order
-	FallbackModeSequential
-)
 
 const (
 	fallbackDefaultTimeout    = 10 * time.Second
@@ -40,28 +30,17 @@ type Candidate struct {
 // FallbackService handles provider selection with configurable fallback strategies
 type FallbackService struct {
 	cfg        *config.Config
-	mode       FallbackMode
+	mode       models.FallbackMode
 	timeout    time.Duration
 	maxRetries int
 	workerPool pond.Pool
 }
 
-// parseFallbackMode converts a string to FallbackMode (case-insensitive)
-func parseFallbackMode(mode string) FallbackMode {
-	switch strings.ToLower(strings.TrimSpace(mode)) {
-	case "sequential":
-		return FallbackModeSequential
-	case "race":
-		return FallbackModeRace
-	default:
-		return FallbackModeRace // Default to race mode
-	}
-}
 
 // NewFallbackService creates a new fallback service reading config values
 func NewFallbackService(cfg *config.Config) *FallbackService {
-	// Parse fallback mode from config (case-insensitive with default)
-	mode := parseFallbackMode(cfg.Fallback.Mode)
+	// Use the FallbackMode from config directly
+	mode := cfg.Fallback.Mode
 
 	// Parse timeout from config (with default if absent or invalid)
 	timeout := fallbackDefaultTimeout
@@ -103,7 +82,7 @@ func NewFallbackService(cfg *config.Config) *FallbackService {
 }
 
 // SetMode changes the fallback mode
-func (fs *FallbackService) SetMode(mode FallbackMode) {
+func (fs *FallbackService) SetMode(mode models.FallbackMode) {
 	fs.mode = mode
 }
 
@@ -130,12 +109,12 @@ func (fs *FallbackService) SelectAlternative(
 	}
 
 	switch fs.mode {
-	case FallbackModeRace:
+	case models.FallbackModeRace:
 		return fs.raceAlternatives(ctx, alternatives, providerConfigs, requestID)
-	case FallbackModeSequential:
+	case models.FallbackModeSequential:
 		return fs.selectSequentialAlternative(ctx, alternatives, providerConfigs, requestID)
 	default:
-		return nil, fmt.Errorf("unsupported fallback mode: %d", fs.mode)
+		return nil, fmt.Errorf("unsupported fallback mode: %s", fs.mode)
 	}
 }
 

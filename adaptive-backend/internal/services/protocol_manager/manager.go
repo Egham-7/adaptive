@@ -10,9 +10,6 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-const (
-	defaultCostBiasFactor = 0.5
-)
 
 // ProtocolManager coordinates protocol selection and caching for model selection.
 type ProtocolManager struct {

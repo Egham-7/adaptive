@@ -17,88 +17,15 @@ const (
 
 // Config represents the complete application configuration
 type Config struct {
-	Server          ServerConfig                     `yaml:"server"`
+	Server          models.ServerConfig              `yaml:"server"`
 	Providers       map[string]models.ProviderConfig `yaml:"providers"`
-	Services        ServicesConfig                   `yaml:"services"`
-	Fallback        FallbackConfig                   `yaml:"fallback"`
-	PromptCache     PromptCacheConfig                `yaml:"prompt_cache"`
-	ProtocolManager ProtocolManagerConfig            `yaml:"protocol_manager"`
+	Services        models.ServicesConfig            `yaml:"services"`
+	Fallback        models.FallbackConfig            `yaml:"fallback"`
+	PromptCache     models.PromptCacheConfig         `yaml:"prompt_cache"`
+	ProtocolManager models.ProtocolManagerConfig     `yaml:"protocol_manager"`
 }
 
-// ServerConfig holds server-specific configuration
-type ServerConfig struct {
-	Addr           string `yaml:"addr"`
-	AllowedOrigins string `yaml:"allowed_origins"`
-	Environment    string `yaml:"environment"`
-	LogLevel       string `yaml:"log_level"`
-	JWTSecret      string `yaml:"jwt_secret"`
-}
 
-// ServicesConfig holds configuration for external services
-type ServicesConfig struct {
-	AdaptiveAI AdaptiveAIConfig `yaml:"adaptive_ai"`
-	Redis      RedisConfig      `yaml:"redis"`
-}
-
-// AdaptiveAIConfig holds configuration for the Adaptive AI service
-type AdaptiveAIConfig struct {
-	BaseURL string `yaml:"base_url"`
-}
-
-// RedisConfig holds configuration for Redis
-type RedisConfig struct {
-	URL string `yaml:"url"`
-}
-
-// FallbackConfig holds configuration for fallback behavior
-type FallbackConfig struct {
-	Mode       string           `yaml:"mode"` // "race" or "sequential"
-	TimeoutMs  int              `yaml:"timeout_ms"`
-	MaxRetries int              `yaml:"max_retries"`
-	WorkerPool WorkerPoolConfig `yaml:"worker_pool"`
-}
-
-// WorkerPoolConfig holds configuration for the worker pool
-type WorkerPoolConfig struct {
-	Workers   int `yaml:"workers"`    // Number of worker goroutines
-	QueueSize int `yaml:"queue_size"` // Maximum number of queued tasks
-}
-
-// SemanticCacheConfig holds configuration for semantic caching
-type SemanticCacheConfig struct {
-	Enabled      bool    `yaml:"enabled"`
-	Threshold    float64 `yaml:"threshold"`
-	RedisURL     string  `yaml:"redis_url"`
-	OpenAIAPIKey string  `yaml:"openai_api_key"`
-}
-
-// PromptCacheConfig holds configuration for prompt caching
-type PromptCacheConfig struct {
-	Enabled           bool   `yaml:"enabled"`
-	DefaultTTLSeconds int    `yaml:"default_ttl_seconds"`
-	RedisURL          string `yaml:"redis_url"`
-}
-
-// ProtocolManagerConfig holds configuration for the protocol manager
-type ProtocolManagerConfig struct {
-	SemanticCache SemanticCacheConfig         `yaml:"semantic_cache"`
-	Client        ProtocolManagerClientConfig `yaml:"client"`
-}
-
-// ProtocolManagerClientConfig holds client configuration for protocol manager
-type ProtocolManagerClientConfig struct {
-	BaseURL        string                              `yaml:"base_url"`
-	TimeoutMs      int                                 `yaml:"timeout_ms"`
-	CircuitBreaker ProtocolManagerCircuitBreakerConfig `yaml:"circuit_breaker"`
-}
-
-// ProtocolManagerCircuitBreakerConfig holds circuit breaker configuration
-type ProtocolManagerCircuitBreakerConfig struct {
-	FailureThreshold int `yaml:"failure_threshold"`
-	SuccessThreshold int `yaml:"success_threshold"`
-	TimeoutMs        int `yaml:"timeout_ms"`
-	ResetAfterMs     int `yaml:"reset_after_ms"`
-}
 
 // LoadFromFile loads configuration from a YAML file with environment variable substitution
 func LoadFromFile(configPath string) (*Config, error) {
@@ -270,7 +197,7 @@ func (c *Config) MergeProviderConfig(providerName string, override *models.Provi
 	if override.TimeoutMs > 0 {
 		merged.TimeoutMs = override.TimeoutMs
 	}
-	if override.RetryConfig != nil && len(override.RetryConfig) > 0 {
+	if len(override.RetryConfig) > 0 {
 		// Merge retry config maps
 		if merged.RetryConfig == nil {
 			merged.RetryConfig = make(map[string]interface{})
@@ -279,7 +206,7 @@ func (c *Config) MergeProviderConfig(providerName string, override *models.Provi
 			merged.RetryConfig[key] = value
 		}
 	}
-	if override.Headers != nil && len(override.Headers) > 0 {
+	if len(override.Headers) > 0 {
 		// Merge headers maps
 		if merged.Headers == nil {
 			merged.Headers = make(map[string]string)
@@ -331,7 +258,7 @@ func (c *Config) MergeProtocolManagerConfig(override *models.ProtocolManagerConf
 	}
 
 	// Apply request overrides
-	if override.Models != nil && len(override.Models) > 0 {
+	if len(override.Models) > 0 {
 		merged.Models = override.Models
 	}
 	if override.CostBias > 0 {
@@ -352,8 +279,8 @@ func (c *Config) MergeProtocolManagerConfig(override *models.ProtocolManagerConf
 func (c *Config) MergeFallbackConfig(override *models.FallbackConfig) *models.FallbackConfig {
 	// Start with YAML defaults
 	merged := &models.FallbackConfig{
-		Enabled: true,                          // Default enabled
-		Mode:    models.FallbackModeParallel,   // Default parallel mode
+		Enabled: false,                     // Default disabled
+		Mode:    models.FallbackModeRace,   // Default race mode
 	}
 
 	// If no override provided, return defaults

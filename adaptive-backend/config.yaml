@@ -52,6 +52,11 @@ fallback:
   worker_pool:
     workers: 10
     queue_size: 100
+  circuit_breaker:
+    failure_threshold: 5
+    success_threshold: 3
+    timeout_ms: 15000
+    reset_after_ms: 60000
 
 # Prompt cache configuration
 prompt_cache:

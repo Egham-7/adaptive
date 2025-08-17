@@ -123,7 +123,7 @@ func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequ
 
 	// Check if fallback is disabled
 	if !enabled {
-		h.fallbackSvc.SetMode(completions.FallbackModeSequential)
+		h.fallbackSvc.SetMode(models.FallbackModeSequential)
 		fiberlog.Debugf("[%s] Fallback is explicitly disabled, using single provider only", reqID)
 		return
 	}
@@ -131,14 +131,14 @@ func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequ
 	// Fallback is enabled, configure the mode
 	switch mode {
 	case models.FallbackModeSequential:
-		h.fallbackSvc.SetMode(completions.FallbackModeSequential)
+		h.fallbackSvc.SetMode(models.FallbackModeSequential)
 		fiberlog.Infof("[%s] Fallback enabled with mode: sequential", reqID)
-	case models.FallbackModeParallel:
-		h.fallbackSvc.SetMode(completions.FallbackModeRace)
-		fiberlog.Infof("[%s] Fallback enabled with mode: parallel", reqID)
+	case models.FallbackModeRace:
+		h.fallbackSvc.SetMode(models.FallbackModeRace)
+		fiberlog.Infof("[%s] Fallback enabled with mode: race", reqID)
 	default:
 		// Unknown mode, default to parallel with warning
-		h.fallbackSvc.SetMode(completions.FallbackModeRace)
+		h.fallbackSvc.SetMode(models.FallbackModeRace)
 		fiberlog.Warnf("[%s] Fallback enabled with unknown mode '%s', using default: parallel", reqID, mode)
 	}
 }

@@ -8,11 +8,6 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
-// PromptCacheConfig holds configuration for the prompt response cache
-type PromptCacheConfig struct {
-	Enabled bool `json:"enabled"`
-	TTL     int  `json:"ttl"` // TTL in seconds
-}
 
 // PromptCacheKey represents the structure used to generate cache keys
 type PromptCacheKey struct {
