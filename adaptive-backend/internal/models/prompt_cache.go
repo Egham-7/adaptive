@@ -8,7 +8,6 @@ import (
 	"github.com/openai/openai-go/shared"
 )
 
-
 // PromptCacheKey represents the structure used to generate cache keys
 type PromptCacheKey struct {
 	Messages    []openai.ChatCompletionMessageParamUnion        `json:"messages"`

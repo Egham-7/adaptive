@@ -46,12 +46,12 @@ const (
 
 // FallbackConfig holds the fallback configuration with enabled toggle
 type FallbackConfig struct {
-	Enabled        bool                   `json:"enabled,omitempty" yaml:"enabled,omitempty"`         // Whether fallback is enabled (default: true)
-	Mode           FallbackMode           `json:"mode,omitempty" yaml:"mode,omitempty"`            // Fallback mode (sequential/parallel)
-	TimeoutMs      int                    `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`        // Timeout in milliseconds
-	MaxRetries     int                    `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`      // Maximum number of retries
-	WorkerPool     *WorkerPoolConfig      `json:"worker_pool,omitempty" yaml:"worker_pool,omitempty"`     // Worker pool configuration
-	CircuitBreaker *CircuitBreakerConfig  `json:"circuit_breaker,omitempty" yaml:"circuit_breaker,omitempty"` // Circuit breaker configuration
+	Enabled        bool                  `json:"enabled,omitempty" yaml:"enabled,omitempty"`                 // Whether fallback is enabled (default: true)
+	Mode           FallbackMode          `json:"mode,omitempty" yaml:"mode,omitempty"`                       // Fallback mode (sequential/parallel)
+	TimeoutMs      int                   `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`           // Timeout in milliseconds
+	MaxRetries     int                   `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`         // Maximum number of retries
+	WorkerPool     *WorkerPoolConfig     `json:"worker_pool,omitempty" yaml:"worker_pool,omitempty"`         // Worker pool configuration
+	CircuitBreaker *CircuitBreakerConfig `json:"circuit_breaker,omitempty" yaml:"circuit_breaker,omitempty"` // Circuit breaker configuration
 }
 
 // ParseFallbackMode converts a string to FallbackMode enum
@@ -76,10 +76,9 @@ type WorkerPoolConfig struct {
 type CircuitBreakerConfig struct {
 	FailureThreshold int `json:"failure_threshold,omitempty" yaml:"failure_threshold,omitempty"` // Number of failures before opening circuit
 	SuccessThreshold int `json:"success_threshold,omitempty" yaml:"success_threshold,omitempty"` // Number of successes to close circuit
-	TimeoutMs        int `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`        // Timeout for circuit breaker in milliseconds
-	ResetAfterMs     int `json:"reset_after_ms,omitempty" yaml:"reset_after_ms,omitempty"`    // Time to wait before trying to close circuit
+	TimeoutMs        int `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`               // Timeout for circuit breaker in milliseconds
+	ResetAfterMs     int `json:"reset_after_ms,omitempty" yaml:"reset_after_ms,omitempty"`       // Time to wait before trying to close circuit
 }
-
 
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {

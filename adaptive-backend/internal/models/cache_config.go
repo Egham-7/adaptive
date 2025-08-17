@@ -16,7 +16,7 @@ type PromptCacheConfig struct {
 	RedisURL          string `json:"redis_url,omitempty" yaml:"redis_url"`
 }
 
-// ProtocolManagerConfig holds configuration for the protocol manager  
+// ProtocolManagerConfig holds configuration for the protocol manager
 type ProtocolManagerConfig struct {
 	// YAML config fields
 	SemanticCache SemanticCacheConfig         `json:"semantic_cache,omitempty" yaml:"semantic_cache"`
@@ -30,7 +30,7 @@ type ProtocolManagerConfig struct {
 
 // ProtocolManagerClientConfig holds client configuration for protocol manager
 type ProtocolManagerClientConfig struct {
-	BaseURL        string                `json:"base_url,omitempty" yaml:"base_url"`
-	TimeoutMs      int                   `json:"timeout_ms,omitempty" yaml:"timeout_ms"`
-	CircuitBreaker CircuitBreakerConfig  `json:"circuit_breaker,omitempty" yaml:"circuit_breaker"`
+	BaseURL        string               `json:"base_url,omitempty" yaml:"base_url"`
+	TimeoutMs      int                  `json:"timeout_ms,omitempty" yaml:"timeout_ms"`
+	CircuitBreaker CircuitBreakerConfig `json:"circuit_breaker,omitempty" yaml:"circuit_breaker"`
 }

@@ -10,7 +10,6 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-
 // ProtocolManager coordinates protocol selection and caching for model selection.
 type ProtocolManager struct {
 	cache  *ProtocolManagerCache

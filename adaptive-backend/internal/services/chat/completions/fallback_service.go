@@ -14,7 +14,6 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-
 const (
 	fallbackDefaultTimeout    = 10 * time.Second
 	fallbackDefaultMaxRetries = 3
@@ -35,7 +34,6 @@ type FallbackService struct {
 	maxRetries int
 	workerPool pond.Pool
 }
-
 
 // NewFallbackService creates a new fallback service reading config values
 func NewFallbackService(cfg *config.Config) *FallbackService {

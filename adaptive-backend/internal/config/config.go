@@ -25,8 +25,6 @@ type Config struct {
 	ProtocolManager models.ProtocolManagerConfig     `yaml:"protocol_manager"`
 }
 
-
-
 // LoadFromFile loads configuration from a YAML file with environment variable substitution
 func LoadFromFile(configPath string) (*Config, error) {
 	// Validate and clean the file path to prevent directory traversal
@@ -279,8 +277,8 @@ func (c *Config) MergeProtocolManagerConfig(override *models.ProtocolManagerConf
 func (c *Config) MergeFallbackConfig(override *models.FallbackConfig) *models.FallbackConfig {
 	// Start with YAML defaults
 	merged := &models.FallbackConfig{
-		Enabled: false,                     // Default disabled
-		Mode:    models.FallbackModeRace,   // Default race mode
+		Enabled: false,                   // Default disabled
+		Mode:    models.FallbackModeRace, // Default race mode
 	}
 
 	// If no override provided, return defaults
