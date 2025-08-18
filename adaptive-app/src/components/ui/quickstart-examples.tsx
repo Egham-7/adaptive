@@ -55,7 +55,7 @@ export function QuickstartExamples({
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiKey}" \\
   -d '{
-    "model": "gpt-4o",
+    "model": "",
     "messages": [
       {
         "role": "user", 
@@ -74,7 +74,7 @@ export function QuickstartExamples({
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiKey}" \\
   -d '{
-    "model": "gpt-4o",
+    "model": "",
     "messages": [
       {
         "role": "user", 
@@ -122,7 +122,7 @@ async function main() {
         content: 'Hello! How are you today?' 
       }
     ],
-    model: 'gpt-4o',
+    model: '',
     max_tokens: 150,
     temperature: 0.7,
   });
@@ -151,7 +151,7 @@ async function main() {
         content: 'Hello! How are you today?' 
       }
     ],
-    model: 'gpt-4o',
+    model: '',
     max_tokens: 150,
     temperature: 0.7,
   });
@@ -192,7 +192,7 @@ client = OpenAI(
 )
 
 completion = client.chat.completions.create(
-    model="gpt-4o",
+    model="",
     messages=[
         {
             "role": "user",
@@ -217,7 +217,7 @@ client = OpenAI(
 )
 
 completion = client.chat.completions.create(
-    model="gpt-4o",
+    model="",
     messages=[
         {
             "role": "user",
