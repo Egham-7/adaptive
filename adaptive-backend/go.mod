@@ -10,8 +10,8 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/openai/openai-go v1.12.0
-	github.com/redis/go-redis/v9 v9.12.0
-	github.com/valyala/fasthttp v1.64.0
+	github.com/valyala/fasthttp v1.65.0
+	github.com/redis/go-redis/v9 v9.12.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -39,5 +39,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 )
