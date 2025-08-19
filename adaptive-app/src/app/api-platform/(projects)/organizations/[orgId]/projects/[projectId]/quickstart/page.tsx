@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, ArrowLeft, Check, ExternalLink } from "lucide-react";
+import { AlertCircle, Check, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -136,18 +136,6 @@ print(completion.choices[0].message.content)`;
 
 	return (
 		<div className="mx-auto max-w-7xl px-2 py-2 sm:px-4">
-			{/* Back Navigation */}
-			<div className="mb-6">
-				<Button variant="ghost" size="sm" asChild>
-					<Link
-						href={`/api-platform/organizations/${orgId}/projects/${projectId}`}
-					>
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back to Dashboard
-					</Link>
-				</Button>
-			</div>
-
 			{/* Header Section */}
 			<div className="mb-8">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
