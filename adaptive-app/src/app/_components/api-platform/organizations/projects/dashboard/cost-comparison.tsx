@@ -105,8 +105,6 @@ export function CostComparison({
 					selectedModel.slice(1).replace(/-/g, " "),
 			}
 		: null;
-	const totalSpend = data.totalSpend;
-
 	// Calculate actual direct model cost using real token usage data
 	const directModelCost = calculateDirectModelCost(
 		data.dailyTrends,
@@ -166,12 +164,6 @@ export function CostComparison({
 		);
 	}
 
-	const totalSavings = directModelCost - totalSpend;
-	const savingsPercentage =
-		directModelCost > 0
-			? ((totalSavings / directModelCost) * 100).toFixed(1)
-			: "0.0";
-
 	// Recalculate chart data with selected model pricing
 	const chartData = data.dailyTrends.map((dataPoint) => {
 		const selectedModelPricing = modelPricing?.[selectedModel];
@@ -221,8 +213,8 @@ export function CostComparison({
 					</div>
 				</div>
 
-				{viewMode === "chart" && (
-					<>
+				<div className="mb-6">
+					{viewMode === "chart" && (
 						<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 							<div>
 								<p className="text-muted-foreground text-sm">
@@ -234,59 +226,15 @@ export function CostComparison({
 								onModelChange={onModelChange}
 							/>
 						</div>
-						<div className="space-y-2">
-							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground text-sm">
-									Your Adaptive Cost
-								</span>
-								<span className="font-semibold text-lg">
-									$
-									{typeof totalSpend === "number"
-										? totalSpend < 0.01 && totalSpend > 0
-											? totalSpend.toFixed(6)
-											: totalSpend.toFixed(2)
-										: totalSpend}
-								</span>
-							</div>
-							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground text-sm">
-									Direct {selectedModelInfo?.name || "Model"} Cost
-								</span>
-								<span className="font-semibold text-lg">
-									$
-									{typeof directModelCost === "number"
-										? directModelCost < 0.01 && directModelCost > 0
-											? directModelCost.toFixed(6)
-											: directModelCost.toFixed(2)
-										: directModelCost}
-								</span>
-							</div>
-						</div>
-						<div className="mt-3 rounded-lg bg-green-50 p-3 dark:bg-green-900/10">
-							<div className="flex items-center justify-between">
-								<span className="font-medium text-green-700 text-sm dark:text-green-400">
-									You saved with Adaptive
-								</span>
-								<span className="font-bold text-green-700 dark:text-green-400">
-									$
-									{typeof totalSavings === "number"
-										? totalSavings < 0.01 && totalSavings > 0
-											? totalSavings.toFixed(6)
-											: totalSavings.toFixed(2)
-										: totalSavings}{" "}
-									({savingsPercentage}%)
-								</span>
-							</div>
-						</div>
-					</>
-				)}
+					)}
 
-				{viewMode === "table" && (
-					<p className="text-muted-foreground text-sm">
-						Compare your Adaptive costs against what you would pay using each
-						provider exclusively
-					</p>
-				)}
+					{viewMode === "table" && (
+						<p className="text-muted-foreground text-sm">
+							Compare your Adaptive costs against what you would pay using each
+							provider exclusively
+						</p>
+					)}
+				</div>
 			</CardHeader>
 			<CardContent>
 				{viewMode === "chart" ? (
