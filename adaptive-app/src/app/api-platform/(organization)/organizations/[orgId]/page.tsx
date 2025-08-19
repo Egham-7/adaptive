@@ -23,7 +23,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { CreditManagement } from "@/app/_components/api-platform/organizations/credit-management";
-import { OrganizationBreadcrumb } from "@/components/organization-breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -278,11 +277,6 @@ export default function OrganizationProjectsPage() {
 
 	return (
 		<div className="w-full">
-			{/* Breadcrumb Navigation */}
-			<div className="mb-6">
-				<OrganizationBreadcrumb />
-			</div>
-
 			{/* Header */}
 			<div className="mb-8">
 				<h1 className="mb-2 font-bold text-3xl text-foreground">
