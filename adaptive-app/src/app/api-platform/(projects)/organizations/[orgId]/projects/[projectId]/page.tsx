@@ -115,19 +115,13 @@ export default function DashboardPage() {
 					<div className="space-y-8 lg:col-span-4">
 						{/* Provider Comparison Section */}
 						<section className="space-y-6">
-							<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-								<div>
-									<h2 className="font-semibold text-2xl text-foreground">
-										Cost Comparison
-									</h2>
-									<p className="text-muted-foreground">
-										Compare costs and performance across all models and
-										providers
-									</p>
-								</div>
-								<div className="text-muted-foreground text-sm">
-									Based on current usage patterns
-								</div>
+							<div>
+								<h2 className="font-semibold text-2xl text-foreground">
+									Cost Comparison
+								</h2>
+								<p className="text-muted-foreground">
+									Compare costs and performance across all models and providers
+								</p>
 							</div>
 							<div className="rounded-lg border bg-card p-6 shadow-sm">
 								<CostComparison
