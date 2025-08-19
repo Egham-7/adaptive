@@ -96,42 +96,32 @@ export default function DashboardPage() {
 			<div className="space-y-8">
 				{/* Key Metrics Section */}
 				<section className="space-y-6" id="dashboard-metrics">
-					<div>
-						<h2 className="font-semibold text-2xl text-foreground">
-							Key Performance Metrics
-						</h2>
-						<p className="text-muted-foreground">
-							Real-time insights into your API usage and costs
-						</p>
-					</div>
+					<h2 className="font-semibold text-2xl text-foreground">
+						Key Performance Metrics
+					</h2>
+					<p className="text-muted-foreground">
+						Real-time insights into your API usage and costs
+					</p>
 					<MetricsOverview data={data ?? null} loading={loading} />
 				</section>
 
-				{/* Analytics Grid Layout */}
-				<div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-					{/* Main Analytics Area */}
-					<div className="space-y-8 lg:col-span-4">
-						{/* Provider Comparison Section */}
-						<section className="space-y-6" id="dashboard-cost-comparison">
-							<div>
-								<h2 className="font-semibold text-2xl text-foreground">
-									Cost Comparison
-								</h2>
-								<p className="text-muted-foreground">
-									Compare costs and performance across all models and providers
-								</p>
-							</div>
-							<div className="rounded-lg border bg-card p-6 shadow-sm">
-								<CostComparison
-									data={data ?? null}
-									loading={loading}
-									selectedModels={selectedModels}
-									onModelsChange={setSelectedModels}
-								/>
-							</div>
-						</section>
+				{/* Provider Comparison Section */}
+				<section className="space-y-6" id="dashboard-cost-comparison">
+					<h2 className="font-semibold text-2xl text-foreground">
+						Cost Comparison
+					</h2>
+					<p className="text-muted-foreground">
+						Compare costs and performance across all models and providers
+					</p>
+					<div className="rounded-lg border bg-card p-6 shadow-sm">
+						<CostComparison
+							data={data ?? null}
+							loading={loading}
+							selectedModels={selectedModels}
+							onModelsChange={setSelectedModels}
+						/>
 					</div>
-				</div>
+				</section>
 			</div>
 		</div>
 	);

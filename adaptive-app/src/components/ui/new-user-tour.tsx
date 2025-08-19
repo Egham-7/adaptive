@@ -21,7 +21,6 @@ const apiPlatformTourSteps: TourStep[] = [
         </p>
       </div>
     ),
-    position: "auto", // Let the system choose the best position
   },
   {
     selectorId: "dashboard-header",
@@ -34,7 +33,6 @@ const apiPlatformTourSteps: TourStep[] = [
         </p>
       </div>
     ),
-    position: "auto",
   },
   {
     selectorId: "dashboard-metrics",
@@ -47,7 +45,6 @@ const apiPlatformTourSteps: TourStep[] = [
         </p>
       </div>
     ),
-    position: "auto",
   },
   {
     selectorId: "dashboard-cost-comparison",
@@ -65,18 +62,14 @@ const apiPlatformTourSteps: TourStep[] = [
 ];
 
 export function NewUserTour() {
-  const { isTourCompleted, isLoading } = useTourCompletion();
+  const { isTourCompleted, setIsTourCompleted, isLoading } =
+    useTourCompletion();
   const [showTour, setShowTour] = useState(false);
 
-  // Show tour dialog for new users after a short delay
-  useEffect(() => {
-    if (!isLoading && !isTourCompleted) {
-      const timer = setTimeout(() => {
-        setShowTour(true);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, isTourCompleted]);
+  const handleTourComplete = async () => {
+    await setIsTourCompleted(true);
+    setShowTour(false);
+  };
 
   // Don't render anything if tour is completed or still loading
   if (isLoading || isTourCompleted) {
@@ -84,7 +77,10 @@ export function NewUserTour() {
   }
 
   return (
-    <TourProvider onComplete={() => setShowTour(false)}>
+    <TourProvider
+      onComplete={handleTourComplete}
+      isTourCompleted={isTourCompleted}
+    >
       <TourContent
         steps={apiPlatformTourSteps}
         showTour={showTour}
@@ -111,4 +107,3 @@ function TourContent({
 
   return <TourAlertDialog isOpen={showTour} setIsOpen={setShowTour} />;
 }
-
