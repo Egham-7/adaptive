@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { MdCreditCard, MdFolder } from "react-icons/md";
+import { MdCode, MdDashboard, MdKey, MdPlayArrow } from "react-icons/md";
 import { ApiSidebarNavFooter } from "@/app/_components/api-platform/sidebar-nav-footer";
 import CommonSidebarHeader from "@/components/sidebar-header";
 import {
@@ -22,26 +22,35 @@ interface NavLink {
 	icon: ReactNode;
 }
 
-export function OrganizationSidebar() {
-	const { orgId } = useParams<{
+export function ProjectSidebar() {
+	const { orgId, projectId } = useParams<{
 		orgId: string;
+		projectId: string;
 	}>();
 
-	// Organization-level navigation - always visible
-	const organizationLinks: NavLink[] = [
+	// Project-level navigation
+	const projectLinks: NavLink[] = [
 		{
-			label: "Projects",
-			href: `/api-platform/organizations/${orgId}`,
-			icon: <MdFolder className="h-5 w-5" />,
+			label: "Dashboard",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}`,
+			icon: <MdDashboard className="h-5 w-5" />,
 		},
 		{
-			label: "Credits & Billing",
-			href: `/api-platform/organizations/${orgId}/credits`,
-			icon: <MdCreditCard className="h-5 w-5" />,
+			label: "Quickstart",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}/quickstart`,
+			icon: <MdPlayArrow className="h-5 w-5" />,
+		},
+		{
+			label: "Examples",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}/examples`,
+			icon: <MdCode className="h-5 w-5" />,
+		},
+		{
+			label: "API Keys",
+			href: `/api-platform/organizations/${orgId}/projects/${projectId}/api-keys`,
+			icon: <MdKey className="h-5 w-5" />,
 		},
 	];
-
-	// No project-level navigation in organization sidebar
 
 	return (
 		<Sidebar collapsible="icon" className="h-screen">
@@ -52,8 +61,8 @@ export function OrganizationSidebar() {
 
 			<SidebarContent>
 				<SidebarMenu>
-					{/* Organization-level navigation only */}
-					{organizationLinks.map((link) => (
+					{/* Project-level navigation */}
+					{projectLinks.map((link) => (
 						<SidebarMenuItem key={link.label}>
 							<SidebarMenuButton asChild>
 								<Link href={link.href}>
