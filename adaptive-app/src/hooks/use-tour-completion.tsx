@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/trpc/react";
 
 export function useTourCompletion() {
@@ -13,9 +13,14 @@ export function useTourCompletion() {
 		},
 	);
 
-	const [isTourCompleted, setIsTourCompletedState] = useState<boolean>(
-		preferences?.tourCompleted ?? false,
-	);
+	const [isTourCompleted, setIsTourCompletedState] = useState<boolean>(false);
+
+	// Update local state when preferences are loaded
+	useEffect(() => {
+		if (preferences?.tourCompleted !== undefined) {
+			setIsTourCompletedState(preferences.tourCompleted);
+		}
+	}, [preferences?.tourCompleted]);
 
 	const updateMetadataMutation = api.user.updateMetadata.useMutation();
 

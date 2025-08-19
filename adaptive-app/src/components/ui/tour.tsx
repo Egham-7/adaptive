@@ -1,14 +1,12 @@
-"use client"
-
-import { AnimatePresence, motion } from "motion/react"
-import type React from "react"
+import { AnimatePresence, motion } from "motion/react";
+import type React from "react";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useState,
-} from "react"
+} from "react";
 
 import {
   AlertDialog,
@@ -16,11 +14,11 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-import { Torus } from "lucide-react"
+import { Torus } from "lucide-react";
 
 // Constants
 export const TOUR_STEP_IDS = {
@@ -28,80 +26,103 @@ export const TOUR_STEP_IDS = {
   WRITING_AREA: "writing-area",
   ASK_AI: "ask-ai",
   FAVORITES: "favorites",
-} as const
+  SIDEBAR_DOCS: "sidebar-docs",
+  SIDEBAR_SUPPORT: "sidebar-support",
+  SIDEBAR_LEGAL: "sidebar-legal",
+} as const;
 
 export interface TourStep {
-  content: React.ReactNode
-  selectorId: string
-  width?: number
-  height?: number
-  onClickWithinArea?: () => void
-  position?: "top" | "bottom" | "left" | "right"
+  content: React.ReactNode;
+  selectorId: string;
+  width?: number;
+  height?: number;
+  onClickWithinArea?: () => void;
+  position?: "top" | "bottom" | "left" | "right";
 }
 
 interface TourContextType {
-  currentStep: number
-  totalSteps: number
-  nextStep: () => void
-  previousStep: () => void
-  endTour: () => void
-  isActive: boolean
-  startTour: () => void
-  setSteps: (steps: TourStep[]) => void
-  steps: TourStep[]
-  isTourCompleted: boolean
-  setIsTourCompleted: (completed: boolean) => void
+  currentStep: number;
+  totalSteps: number;
+  nextStep: () => void;
+  previousStep: () => void;
+  endTour: () => void;
+  isActive: boolean;
+  startTour: () => void;
+  setSteps: (steps: TourStep[]) => void;
+  steps: TourStep[];
+  isTourCompleted: boolean;
+  setIsTourCompleted: (completed: boolean) => void;
 }
 
 interface TourProviderProps {
-  children: React.ReactNode
-  onComplete?: () => void
-  className?: string
-  isTourCompleted?: boolean
+  children: React.ReactNode;
+  onComplete?: () => void;
+  className?: string;
+  isTourCompleted?: boolean;
 }
 
-const TourContext = createContext<TourContextType | null>(null)
+const TourContext = createContext<TourContextType | null>(null);
 
 const PADDING = 16;
 const CONTENT_WIDTH = 300;
 const CONTENT_HEIGHT = 174;
 
 function getElementPosition(id: string) {
-  const element = document.getElementById(id)
-  if (!element) return null
-  const rect = element.getBoundingClientRect()
+  const element = document.getElementById(id);
+  if (!element) return null;
+  const rect = element.getBoundingClientRect();
   return {
     top: rect.top,
     left: rect.left,
     width: rect.width,
     height: rect.height,
-  }
+  };
 }
 
 function calculateContentPosition(
   elementPos: { top: number; left: number; width: number; height: number },
   position: "top" | "bottom" | "left" | "right" = "bottom",
 ) {
-  let left = elementPos.left
-  let top = elementPos.top
+  let left = elementPos.left;
+  let top = elementPos.top;
 
   switch (position) {
     case "top":
-      top = elementPos.top - CONTENT_HEIGHT - PADDING
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2
-      break
+      top = elementPos.top - CONTENT_HEIGHT - PADDING;
+      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
+      break;
     case "bottom":
-      top = elementPos.top + elementPos.height + PADDING
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2
-      break
+      top = elementPos.top + elementPos.height + PADDING;
+      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
+      break;
     case "left":
-      left = elementPos.left - CONTENT_WIDTH - PADDING
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2
-      break
+      left = elementPos.left - CONTENT_WIDTH - PADDING;
+      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
+      break;
     case "right":
-      left = elementPos.left + elementPos.width + PADDING
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2
-      break
+      left = elementPos.left + elementPos.width + PADDING;
+      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
+      break;
+  }
+
+  // Ensure the dialog stays within viewport bounds
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const scrollX = window.scrollX;
+  const scrollY = window.scrollY;
+
+  // Adjust horizontal position
+  if (left < scrollX + PADDING) {
+    left = scrollX + PADDING;
+  } else if (left + CONTENT_WIDTH > scrollX + viewportWidth - PADDING) {
+    left = scrollX + viewportWidth - CONTENT_WIDTH - PADDING;
+  }
+
+  // Adjust vertical position
+  if (top < scrollY + PADDING) {
+    top = scrollY + PADDING;
+  } else if (top + CONTENT_HEIGHT > scrollY + viewportHeight - PADDING) {
+    top = scrollY + viewportHeight - CONTENT_HEIGHT - PADDING;
   }
 
   return {
@@ -109,7 +130,7 @@ function calculateContentPosition(
     left,
     width: CONTENT_WIDTH,
     height: CONTENT_HEIGHT,
-  }
+  };
 }
 
 export function TourProvider({
@@ -118,82 +139,74 @@ export function TourProvider({
   className,
   isTourCompleted = false,
 }: TourProviderProps) {
-  const [steps, setSteps] = useState<TourStep[]>([])
-  const [currentStep, setCurrentStep] = useState(-1)
+  const [steps, setSteps] = useState<TourStep[]>([]);
+  const [currentStep, setCurrentStep] = useState(-1);
   const [elementPosition, setElementPosition] = useState<{
-    top: number
-    left: number
-    width: number
-    height: number
-  } | null>(null)
-  const [isCompleted, setIsCompleted] = useState(isTourCompleted)
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [isCompleted, setIsCompleted] = useState(isTourCompleted);
 
   const updateElementPosition = useCallback(() => {
     if (currentStep >= 0 && currentStep < steps.length) {
-      const step = steps[currentStep]
-      const position = getElementPosition(step?.selectorId ?? "")
+      const step = steps[currentStep];
+      if (!step) return;
+      
+      const position = getElementPosition(step.selectorId ?? "");
       if (position) {
-        setElementPosition(position)
-        
-        // Smooth scroll to element
-        const element = document.getElementById(step.selectorId)
-        if (element) {
-          element.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-            inline: "nearest",
-          })
-        }
+        setElementPosition(position);
       }
     }
-  }, [currentStep, steps])
+  }, [currentStep, steps]);
 
   useEffect(() => {
-    updateElementPosition()
-    window.addEventListener("resize", updateElementPosition)
-    window.addEventListener("scroll", updateElementPosition)
+    updateElementPosition();
+    window.addEventListener("resize", updateElementPosition);
+    window.addEventListener("scroll", updateElementPosition);
 
     return () => {
-      window.removeEventListener("resize", updateElementPosition)
-      window.removeEventListener("scroll", updateElementPosition)
-    }
-  }, [updateElementPosition])
+      window.removeEventListener("resize", updateElementPosition);
+      window.removeEventListener("scroll", updateElementPosition);
+    };
+  }, [updateElementPosition]);
 
   const setIsTourCompleted = useCallback((completed: boolean) => {
-    setIsCompleted(completed)
-  }, [])
+    setIsCompleted(completed);
+  }, []);
 
   const nextStep = useCallback(async () => {
-    const isLastStep = currentStep >= steps.length - 1
-    
+    const isLastStep = currentStep >= steps.length - 1;
+
     setCurrentStep((prev) => {
       if (prev >= steps.length - 1) {
-        return -1
+        return -1;
       }
-      return prev + 1
-    })
+      return prev + 1;
+    });
 
     // Handle completion after state update
     if (isLastStep) {
-      setIsTourCompleted(true)
-      onComplete?.()
+      setIsTourCompleted(true);
+      onComplete?.();
     }
-  }, [currentStep, steps.length, onComplete, setIsTourCompleted])
+  }, [currentStep, steps.length, onComplete, setIsTourCompleted]);
 
   const previousStep = useCallback(() => {
-    setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev))
-  }, [])
+    setCurrentStep((prev) => (prev > 0 ? prev - 1 : prev));
+  }, []);
 
   const endTour = useCallback(() => {
-    setCurrentStep(-1)
-  }, [])
+    setCurrentStep(-1);
+  }, []);
 
   const startTour = useCallback(() => {
     if (isTourCompleted) {
-      return
+      return;
     }
-    setCurrentStep(0)
-  }, [isTourCompleted])
+    setCurrentStep(0);
+  }, [isTourCompleted]);
 
   const handleClick = useCallback(
     (e: MouseEvent) => {
@@ -202,8 +215,8 @@ export function TourProvider({
         elementPosition &&
         steps[currentStep]?.onClickWithinArea
       ) {
-        const clickX = e.clientX + window.scrollX
-        const clickY = e.clientY + window.scrollY
+        const clickX = e.clientX + window.scrollX;
+        const clickY = e.clientY + window.scrollY;
 
         const isWithinBounds =
           clickX >= elementPosition.left &&
@@ -213,22 +226,22 @@ export function TourProvider({
           clickY >= elementPosition.top &&
           clickY <=
             elementPosition.top +
-              (steps[currentStep]?.height || elementPosition.height)
+              (steps[currentStep]?.height || elementPosition.height);
 
         if (isWithinBounds) {
-          steps[currentStep].onClickWithinArea?.()
+          steps[currentStep].onClickWithinArea?.();
         }
       }
     },
     [currentStep, elementPosition, steps],
-  )
+  );
 
   useEffect(() => {
-    window.addEventListener("click", handleClick)
+    window.addEventListener("click", handleClick);
     return () => {
-      window.removeEventListener("click", handleClick)
-    }
-  }, [handleClick])
+      window.removeEventListener("click", handleClick);
+    };
+  }, [handleClick]);
 
   return (
     <TourContext.Provider
@@ -353,33 +366,33 @@ export function TourProvider({
         )}
       </AnimatePresence>
     </TourContext.Provider>
-  )
+  );
 }
 
 export function useTour() {
-  const context = useContext(TourContext)
+  const context = useContext(TourContext);
   if (!context) {
-    throw new Error("useTour must be used within a TourProvider")
+    throw new Error("useTour must be used within a TourProvider");
   }
-  return context
+  return context;
 }
 
 export function TourAlertDialog({
   isOpen,
   setIsOpen,
 }: {
-  isOpen: boolean
-  setIsOpen: (isOpen: boolean) => void
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }) {
-  const { startTour, steps, isTourCompleted, currentStep } = useTour()
+  const { startTour, steps, isTourCompleted, currentStep } = useTour();
 
   if (isTourCompleted || steps.length === 0 || currentStep > -1) {
-    return null
+    return null;
   }
 
   const handleSkip = async () => {
-    setIsOpen(false)
-  }
+    setIsOpen(false);
+  };
 
   return (
     <AlertDialog open={isOpen}>
@@ -430,5 +443,6 @@ export function TourAlertDialog({
         </div>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }
+
