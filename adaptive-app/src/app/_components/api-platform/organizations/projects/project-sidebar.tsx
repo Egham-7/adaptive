@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import type { ReactNode } from "react";
-import { MdCode, MdDashboard, MdKey, MdPlayArrow } from "react-icons/md";
+import { MdDashboard, MdKey, MdPlayArrow } from "react-icons/md";
 import { ApiSidebarNavFooter } from "@/app/_components/api-platform/sidebar-nav-footer";
 import CommonSidebarHeader from "@/components/sidebar-header";
 import {
@@ -39,11 +39,6 @@ export function ProjectSidebar() {
 			label: "Quickstart",
 			href: `/api-platform/organizations/${orgId}/projects/${projectId}/quickstart`,
 			icon: <MdPlayArrow className="h-5 w-5" />,
-		},
-		{
-			label: "Examples",
-			href: `/api-platform/organizations/${orgId}/projects/${projectId}/examples`,
-			icon: <MdCode className="h-5 w-5" />,
 		},
 		{
 			label: "API Keys",
