@@ -8,7 +8,7 @@ export default function CommonSidebarHeader({ href }: { href: string }) {
 
 	return (
 		<SidebarHeader className="flex items-center px-4 py-2">
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-2" id="team-switcher">
 				<Link href={href}>
 					{state === "collapsed" ? (
 						<SocialLogo width={32} height={32} className="h-8 w-8" />
