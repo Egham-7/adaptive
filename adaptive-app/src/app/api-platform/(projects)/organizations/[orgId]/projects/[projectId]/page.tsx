@@ -84,7 +84,7 @@ export default function DashboardPage() {
 	return (
 		<div className="w-full px-6 py-2">
 			{/* Header Section */}
-			<div className="mb-8">
+			<div className="mb-8" id="dashboard-header">
 				<DashboardHeader
 					dateRange={dateRange}
 					onDateRangeChange={setDateRange}
@@ -95,7 +95,7 @@ export default function DashboardPage() {
 			{/* Main Dashboard Grid */}
 			<div className="space-y-8">
 				{/* Key Metrics Section */}
-				<section className="space-y-6">
+				<section className="space-y-6" id="dashboard-metrics">
 					<div>
 						<h2 className="font-semibold text-2xl text-foreground">
 							Key Performance Metrics
@@ -112,7 +112,7 @@ export default function DashboardPage() {
 					{/* Main Analytics Area */}
 					<div className="space-y-8 lg:col-span-4">
 						{/* Provider Comparison Section */}
-						<section className="space-y-6">
+						<section className="space-y-6" id="dashboard-cost-comparison">
 							<div>
 								<h2 className="font-semibold text-2xl text-foreground">
 									Cost Comparison

@@ -60,7 +60,10 @@ export function ProjectSidebar() {
 					{projectLinks.map((link) => (
 						<SidebarMenuItem key={link.label}>
 							<SidebarMenuButton asChild>
-								<Link href={link.href}>
+								<Link
+									href={link.href}
+									id={`${link.label.toLowerCase().replace(" ", "-")}-nav`}
+								>
 									{link.icon}
 									<span>{link.label}</span>
 								</Link>
