@@ -24,7 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/trpc/react";
 
-const EXAMPLE_API_KEY = "your_api_key_here_placeholder_12345";
+const EXAMPLE_API_KEY = "your_api_key_here";
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_URL ?? "https://www.llmadaptive.uk";
 
@@ -43,7 +43,7 @@ export default function QuickstartPage() {
 
 	const firstApiKey = apiKeys?.[0];
 	const exampleKey = firstApiKey?.key_preview
-		? `your_api_key_here_preview_${firstApiKey.key_preview}`
+		? "your_api_key_here"
 		: EXAMPLE_API_KEY;
 
 	const CustomCodeBlock = ({
@@ -209,7 +209,7 @@ print(completion.choices[0].message.content)`;
 								<div className="flex items-center gap-2 text-green-700 dark:text-green-400">
 									<Check className="h-4 w-4" />
 									<span className="font-medium text-sm">
-										API Key Found: {firstApiKey.key_preview}...
+										API Key Found: {firstApiKey.key_preview}
 									</span>
 								</div>
 								<p className="mt-2 text-green-600 text-sm dark:text-green-300">
