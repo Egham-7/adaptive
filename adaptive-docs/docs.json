@@ -73,7 +73,7 @@
         "dropdown": "Support",
         "icon": "life-ring",
         "description": "Help and troubleshooting resources",
-        "pages": ["troubleshooting"]
+        "pages": ["troubleshooting", "terms-of-service", "privacy-policy"]
       }
     ]
   },
