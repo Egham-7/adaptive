@@ -16,7 +16,9 @@ export default function DashboardPage() {
 	const orgId = params.orgId as string;
 	const projectId = params.projectId as string;
 	const { dateRange, setDateRange } = useDateRange();
-	const [selectedModel, setSelectedModel] = useState<string>("gpt-4o");
+	const [selectedModels, setSelectedModels] = useState<string[]>([
+		"openai:gpt-4o",
+	]);
 
 	const filters: DashboardFilters = useMemo(
 		() => ({
@@ -102,11 +104,7 @@ export default function DashboardPage() {
 							Real-time insights into your API usage and costs
 						</p>
 					</div>
-					<MetricsOverview
-						data={data ?? null}
-						loading={loading}
-						selectedModel={selectedModel}
-					/>
+					<MetricsOverview data={data ?? null} loading={loading} />
 				</section>
 
 				{/* Analytics Grid Layout */}
@@ -127,8 +125,8 @@ export default function DashboardPage() {
 								<CostComparison
 									data={data ?? null}
 									loading={loading}
-									selectedModel={selectedModel}
-									onModelChange={setSelectedModel}
+									selectedModels={selectedModels}
+									onModelsChange={setSelectedModels}
 								/>
 							</div>
 						</section>

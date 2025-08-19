@@ -14,8 +14,8 @@ import { ProviderComparisonTable } from "./provider-comparison-table";
 interface CostComparisonProps {
 	data: ProjectAnalytics | null;
 	loading: boolean;
-	selectedModel: string;
-	onModelChange: (model: string) => void;
+	selectedModels: string[];
+	onModelsChange: (models: string[]) => void;
 }
 
 type ViewMode = "chart" | "table";
@@ -45,8 +45,8 @@ const calculateDirectModelCost = (
 export function CostComparison({
 	data,
 	loading,
-	selectedModel,
-	onModelChange,
+	selectedModels,
+	onModelsChange,
 }: CostComparisonProps) {
 	const [viewMode, setViewMode] = useState<ViewMode>("chart");
 
@@ -91,21 +91,17 @@ export function CostComparison({
 		);
 	}
 
-	// Get selected model info from pricing data
-	const selectedModelInfo = modelPricing?.[selectedModel]
-		? {
-				id: selectedModel,
-				name:
-					selectedModel.charAt(0).toUpperCase() +
-					selectedModel.slice(1).replace(/-/g, " "),
-			}
-		: null;
+	// Use first selected model for comparison (multi-model comparison could be added later)
+	const primarySelectedModel = selectedModels[0];
+
 	// Calculate actual direct model cost using real token usage data
-	const directModelCost = calculateDirectModelCost(
-		data.dailyTrends,
-		selectedModel,
-		modelPricing,
-	);
+	const directModelCost = primarySelectedModel
+		? calculateDirectModelCost(
+				data.dailyTrends,
+				primarySelectedModel,
+				modelPricing,
+			)
+		: null;
 
 	// Don't show comparison if we don't have pricing for the selected model
 	if (directModelCost === null) {
@@ -144,8 +140,8 @@ export function CostComparison({
 						</p>
 					</div>
 					<ModelSelector
-						selectedModel={selectedModel}
-						onModelChange={onModelChange}
+						selectedModels={selectedModels}
+						onModelsChange={onModelsChange}
 					/>
 				</div>
 				<div className="mt-4 flex h-64 items-center justify-center text-muted-foreground">
@@ -155,21 +151,27 @@ export function CostComparison({
 		);
 	}
 
-	// Recalculate chart data with selected model pricing
+	// Recalculate chart data with all selected models
 	const chartData = data.dailyTrends.map((dataPoint) => {
-		const selectedModelPricing = modelPricing?.[selectedModel];
-
-		// Fallback to 0 cost if no pricing available
-		const directCost = selectedModelPricing
-			? (dataPoint.inputTokens / 1_000_000) * selectedModelPricing.inputCost +
-				(dataPoint.outputTokens / 1_000_000) * selectedModelPricing.outputCost
-			: 0;
-
-		return {
+		const result = {
 			...dataPoint,
 			adaptive: dataPoint.spend,
-			singleProvider: directCost,
 		};
+
+		// Add cost calculations for each selected model
+		selectedModels.forEach((modelId) => {
+			const modelPricingData = modelPricing?.[modelId];
+			if (modelPricingData) {
+				const directCost =
+					(dataPoint.inputTokens / 1_000_000) * modelPricingData.inputCost +
+					(dataPoint.outputTokens / 1_000_000) * modelPricingData.outputCost;
+				(result as Record<string, unknown>)[modelId] = directCost;
+			} else {
+				(result as Record<string, unknown>)[modelId] = 0;
+			}
+		});
+
+		return result;
 	});
 
 	return (
@@ -207,8 +209,8 @@ export function CostComparison({
 							</p>
 						</div>
 						<ModelSelector
-							selectedModel={selectedModel}
-							onModelChange={onModelChange}
+							selectedModels={selectedModels}
+							onModelsChange={onModelsChange}
 						/>
 					</div>
 				)}
@@ -223,13 +225,9 @@ export function CostComparison({
 
 			<div className="mt-6">
 				{viewMode === "chart" ? (
-					<UsageChart data={chartData} providerName={selectedModelInfo?.name} />
+					<UsageChart data={chartData} selectedModels={selectedModels} />
 				) : (
-					<ProviderComparisonTable
-						data={data}
-						loading={loading}
-						selectedModel={selectedModel}
-					/>
+					<ProviderComparisonTable data={data} loading={loading} />
 				)}
 			</div>
 		</div>

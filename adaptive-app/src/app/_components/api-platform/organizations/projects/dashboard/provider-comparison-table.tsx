@@ -36,13 +36,11 @@ const PROVIDER_ICONS = {
 interface ProviderComparisonTableProps {
 	data: ProjectAnalytics | null;
 	loading: boolean;
-	selectedModel?: string;
 }
 
 export function ProviderComparisonTable({
 	data,
 	loading,
-	selectedModel,
 }: ProviderComparisonTableProps) {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [providerFilter, setProviderFilter] = useState<string>("all");
@@ -165,12 +163,7 @@ export function ProviderComparisonTable({
 			<div>
 				<div className="flex items-center justify-between">
 					<div className="font-semibold text-xl">Model Cost Comparison</div>
-					<Badge variant="secondary">
-						{selectedModel
-							? selectedModel.charAt(0).toUpperCase() +
-								selectedModel.slice(1).replace(/-/g, " ")
-							: "All Models"}
-					</Badge>
+					<Badge variant="secondary">All Models</Badge>
 				</div>
 				<p className="mt-2 text-muted-foreground text-sm">
 					Compare your Adaptive costs against specific models by provider
