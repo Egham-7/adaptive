@@ -187,9 +187,6 @@ export function CostComparison({
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
 						<CardTitle>Cost Comparison</CardTitle>
-						<Badge variant="secondary">
-							{viewMode === "chart" ? "Model Chart" : "Provider Table"}
-						</Badge>
 					</div>
 					<div className="flex items-center gap-2">
 						<Button
