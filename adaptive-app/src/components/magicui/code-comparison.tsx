@@ -58,11 +58,8 @@ export function CodeComparison({
 					lang: language,
 					theme: selectedTheme,
 					transformers: [
-						// @ts-ignore - Version conflict between shiki dependencies
 						transformerNotationHighlight({ matchAlgorithm: "v3" }),
-						// @ts-ignore - Version conflict between shiki dependencies
 						transformerNotationDiff({ matchAlgorithm: "v3" }),
-						// @ts-ignore - Version conflict between shiki dependencies
 						transformerNotationFocus({ matchAlgorithm: "v3" }),
 					],
 				});
@@ -70,11 +67,8 @@ export function CodeComparison({
 					lang: language,
 					theme: selectedTheme,
 					transformers: [
-						// @ts-ignore - Version conflict between shiki dependencies
 						transformerNotationHighlight({ matchAlgorithm: "v3" }),
-						// @ts-ignore - Version conflict between shiki dependencies
 						transformerNotationDiff({ matchAlgorithm: "v3" }),
-						// @ts-ignore - Version conflict between shiki dependencies
 						transformerNotationFocus({ matchAlgorithm: "v3" }),
 					],
 				});

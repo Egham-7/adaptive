@@ -5,56 +5,22 @@ import {
 	FaChartLine,
 	FaCoins,
 	FaCreditCard,
-	FaDollarSign,
 	FaExclamationTriangle,
 	FaServer,
 } from "react-icons/fa";
 import { api } from "@/trpc/react";
 import type { ProjectAnalytics } from "@/types/api-platform/dashboard";
-import { formatCurrencyWithDynamicPrecision } from "@/utils/formatting";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
-
-// Calculate direct cost for a specific model using actual token usage
-function calculateDirectModelCost(
-	usageData: { inputTokens: number; outputTokens: number }[],
-	modelId: string,
-	pricingData:
-		| Record<string, { inputCost: number; outputCost: number }>
-		| undefined,
-): number {
-	if (!pricingData || !pricingData[modelId]) {
-		console.warn(`No pricing data found for model: ${modelId}`);
-		return 0;
-	}
-
-	const modelPricing = pricingData[modelId];
-
-	return usageData.reduce((totalCost, usage) => {
-		const inputCost = (usage.inputTokens / 1_000_000) * modelPricing.inputCost;
-		const outputCost =
-			(usage.outputTokens / 1_000_000) * modelPricing.outputCost;
-		return totalCost + inputCost + outputCost;
-	}, 0);
-}
 
 interface MetricsOverviewProps {
 	data: ProjectAnalytics | null;
 	loading: boolean;
-	selectedModel?: string;
 }
 
-export function MetricsOverview({
-	data,
-	loading,
-	selectedModel = "gpt-4o",
-}: MetricsOverviewProps) {
+export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 	const params = useParams();
 	const orgId = params.orgId as string;
-
-	// Fetch dynamic pricing data
-	const { data: modelPricing, isLoading: pricingLoading } =
-		api.modelPricing.getAllModelPricing.useQuery();
 
 	// Fetch credit balance and transaction history for credit chart
 	const { data: creditBalance } = api.credits.getBalance.useQuery(
@@ -71,10 +37,10 @@ export function MetricsOverview({
 			{ enabled: !!orgId },
 		);
 
-	if (loading || pricingLoading) {
+	if (loading) {
 		return (
 			<div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-				{Array.from({ length: 6 }).map((_, i) => (
+				{Array.from({ length: 5 }).map((_, i) => (
 					<MetricCardSkeleton key={`skeleton-${i}`} />
 				))}
 			</div>
@@ -82,27 +48,6 @@ export function MetricsOverview({
 	}
 
 	if (!data) return null;
-
-	// Calculate dynamic costs for the selected model
-	const usageDataWithDynamicCosts = data.dailyTrends.map((d) => {
-		const adaptiveCost = d.spend;
-		const modelCost = calculateDirectModelCost(
-			[{ inputTokens: d.inputTokens || 0, outputTokens: d.outputTokens || 0 }],
-			selectedModel,
-			modelPricing,
-		);
-		return {
-			...d,
-			adaptiveCost,
-			modelCost,
-			savings: Math.max(0, modelCost - adaptiveCost),
-		};
-	});
-
-	const savingsData = usageDataWithDynamicCosts.map((d) => ({
-		date: d.date.toISOString().slice(0, 10),
-		value: d.savings,
-	}));
 
 	const spendData = data.dailyTrends.map((d) => ({
 		date: d.date.toISOString().slice(0, 10),
@@ -127,16 +72,6 @@ export function MetricsOverview({
 			data: creditBalanceData,
 			color: "hsl(var(--primary))",
 			totalValue: creditBalance?.formattedBalance || "$0.00",
-		},
-		{
-			title: "Cost Savings Trend",
-			chartType: "area" as const,
-			icon: <FaDollarSign className="h-5 w-5 text-success" />,
-			data: savingsData,
-			color: "hsl(var(--chart-1))",
-			totalValue: formatCurrencyWithDynamicPrecision(
-				usageDataWithDynamicCosts.reduce((sum, d) => sum + d.savings, 0),
-			),
 		},
 		{
 			title: "Spending Over Time",

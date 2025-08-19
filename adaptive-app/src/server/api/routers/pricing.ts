@@ -60,13 +60,37 @@ export const modelPricingRouter = createTRPCRouter({
 		> = {};
 
 		for (const model of models) {
-			pricingData[model.name] = {
+			// Use provider:model format to handle cases where same model is offered by multiple providers
+			const key = `${model.provider.name}:${model.name}`;
+			pricingData[key] = {
 				inputCost: model.inputTokenCost.toNumber(),
 				outputCost: model.outputTokenCost.toNumber(),
 			};
 		}
 
 		return pricingData;
+	}),
+
+	getAllModelsWithMetadata: publicProcedure.query(async ({ ctx }) => {
+		return await ctx.db.providerModel.findMany({
+			where: {
+				// Only chat models
+			},
+			select: {
+				id: true,
+				name: true,
+				displayName: true,
+				inputTokenCost: true,
+				outputTokenCost: true,
+				provider: {
+					select: {
+						name: true,
+						displayName: true,
+					},
+				},
+			},
+			orderBy: { displayName: "asc" },
+		});
 	}),
 
 	calculateCostComparison: publicProcedure
