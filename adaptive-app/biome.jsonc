@@ -9,10 +9,10 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
-			"!**/prisma/**",
-			"!**/node_modules/**",
-			"!**/.next/**",
-			"!**/src/components/ui/**"
+			"!**/prisma",
+			"!**/node_modules",
+			"!**/.next",
+			"!**/src/components/ui"
 		]
 	},
 	"formatter": { "enabled": true },

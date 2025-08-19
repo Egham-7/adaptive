@@ -69,6 +69,28 @@ export const modelPricingRouter = createTRPCRouter({
 		return pricingData;
 	}),
 
+	getAllModelsWithMetadata: publicProcedure.query(async ({ ctx }) => {
+		return await ctx.db.providerModel.findMany({
+			where: {
+				// Only chat models
+			},
+			select: {
+				id: true,
+				name: true,
+				displayName: true,
+				inputTokenCost: true,
+				outputTokenCost: true,
+				provider: {
+					select: {
+						name: true,
+						displayName: true,
+					},
+				},
+			},
+			orderBy: { displayName: "asc" },
+		});
+	}),
+
 	calculateCostComparison: publicProcedure
 		.input(
 			z.object({
