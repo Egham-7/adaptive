@@ -10,7 +10,7 @@ import {
 	FaServer,
 } from "react-icons/fa";
 import { api } from "@/trpc/react";
-import type { DashboardData } from "@/types/api-platform/dashboard";
+import type { ProjectAnalytics } from "@/types/api-platform/dashboard";
 import { formatCurrencyWithDynamicPrecision } from "@/utils/formatting";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
@@ -39,7 +39,7 @@ function calculateDirectModelCost(
 }
 
 interface MetricsOverviewProps {
-	data: DashboardData | null;
+	data: ProjectAnalytics | null;
 	loading: boolean;
 	selectedModel?: string;
 }
@@ -84,8 +84,8 @@ export function MetricsOverview({
 	if (!data) return null;
 
 	// Calculate dynamic costs for the selected model
-	const usageDataWithDynamicCosts = data.usageData.map((d) => {
-		const adaptiveCost = d.adaptive;
+	const usageDataWithDynamicCosts = data.dailyTrends.map((d) => {
+		const adaptiveCost = d.spend;
 		const modelCost = calculateDirectModelCost(
 			[{ inputTokens: d.inputTokens || 0, outputTokens: d.outputTokens || 0 }],
 			selectedModel,
@@ -100,13 +100,13 @@ export function MetricsOverview({
 	});
 
 	const savingsData = usageDataWithDynamicCosts.map((d) => ({
-		date: d.date,
+		date: d.date.toISOString().slice(0, 10),
 		value: d.savings,
 	}));
 
-	const spendData = data.usageData.map((d) => ({
-		date: d.date,
-		value: d.adaptive, // This is the actual customer spending (same as adaptive line in usage chart)
+	const spendData = data.dailyTrends.map((d) => ({
+		date: d.date.toISOString().slice(0, 10),
+		value: d.spend, // This is the actual customer spending
 	}));
 
 	// Create credit balance history data from transactions
@@ -157,7 +157,10 @@ export function MetricsOverview({
 			title: "Token Usage",
 			chartType: "bar" as const,
 			icon: <FaCoins className="h-5 w-5 text-chart-3" />,
-			data: data.tokenData.map((d) => ({ date: d.date, value: d.tokens })),
+			data: data.dailyTrends.map((d) => ({
+				date: d.date.toISOString().slice(0, 10),
+				value: d.tokens,
+			})),
 			color: "hsl(var(--chart-3))",
 			totalValue: data.totalTokens.toLocaleString(),
 		},
@@ -165,7 +168,10 @@ export function MetricsOverview({
 			title: "Request Volume",
 			chartType: "area" as const,
 			icon: <FaServer className="h-5 w-5 text-chart-4" />,
-			data: data.requestData.map((d) => ({ date: d.date, value: d.requests })),
+			data: data.dailyTrends.map((d) => ({
+				date: d.date.toISOString().slice(0, 10),
+				value: d.requests,
+			})),
 			color: "hsl(var(--chart-4))",
 			totalValue: data.totalRequests.toLocaleString(),
 		},
@@ -173,9 +179,9 @@ export function MetricsOverview({
 			title: "Error Rate",
 			chartType: "area" as const,
 			icon: <FaExclamationTriangle className="h-5 w-5 text-destructive" />,
-			data: data.errorRateData.map((d) => ({
-				date: d.date,
-				value: d.errorRate,
+			data: data.dailyTrends.map((d) => ({
+				date: d.date.toISOString().slice(0, 10),
+				value: d.requests > 0 ? (d.errorCount / d.requests) * 100 : 0,
 			})),
 			color: "hsl(var(--destructive))",
 			totalValue: `${data.errorRate.toFixed(2)}%`,

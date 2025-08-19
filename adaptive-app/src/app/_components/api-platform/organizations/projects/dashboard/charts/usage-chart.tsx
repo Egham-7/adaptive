@@ -9,10 +9,10 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { UsageDataPoint } from "@/types/api-platform/dashboard";
+import type { DailyTrendDataPoint } from "@/types/api-platform/dashboard";
 
 interface UsageChartProps {
-	data: UsageDataPoint[];
+	data: DailyTrendDataPoint[];
 	providerName?: string;
 }
 

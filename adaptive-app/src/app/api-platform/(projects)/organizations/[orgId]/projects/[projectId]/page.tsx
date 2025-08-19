@@ -2,10 +2,9 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { CostComparison } from "@/app/_components/api-platform/organizations/projects/dashboard/cost-comparison";
 import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
 import { MetricsOverview } from "@/app/_components/api-platform/organizations/projects/dashboard/metrics-overview";
-import { ProviderComparisonTable } from "@/app/_components/api-platform/organizations/projects/dashboard/provider-comparison-table";
-import { UsageSection } from "@/app/_components/api-platform/organizations/projects/dashboard/usage-section";
 import { Button } from "@/components/ui/button";
 import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
@@ -31,7 +30,6 @@ export default function DashboardPage() {
 
 	// Track project visit for smart redirect
 	useEffect(() => {
-		console.log("📍 Project page - Tracking visit:", { orgId, projectId });
 		if (orgId && projectId) {
 			setLastProject(orgId, projectId);
 		}
@@ -46,12 +44,12 @@ export default function DashboardPage() {
 			metrics: {
 				totalSpend: data.totalSpend,
 				totalSavings: data.totalSavings,
-				savingsPercentage: data.savingsPercentage,
+				savingsPercentage: data.totalSavingsPercentage,
 				totalTokens: data.totalTokens,
 				totalRequests: data.totalRequests,
 			},
-			usageData: data.usageData,
-			taskBreakdown: data.taskBreakdown,
+			dailyTrends: data.dailyTrends,
+			requestTypeBreakdown: data.requestTypeBreakdown,
 		};
 
 		const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -96,22 +94,16 @@ export default function DashboardPage() {
 			<div className="space-y-8">
 				{/* Key Metrics Section */}
 				<section className="space-y-6">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-						<div>
-							<h2 className="font-semibold text-2xl text-foreground">
-								Key Performance Metrics
-							</h2>
-							<p className="text-muted-foreground">
-								Real-time insights into your API usage and costs
-							</p>
-						</div>
-						<div className="flex items-center gap-2 text-muted-foreground text-sm">
-							<div className="h-2 w-2 rounded-full bg-green-500" />
-							<span>Live data</span>
-						</div>
+					<div>
+						<h2 className="font-semibold text-2xl text-foreground">
+							Key Performance Metrics
+						</h2>
+						<p className="text-muted-foreground">
+							Real-time insights into your API usage and costs
+						</p>
 					</div>
 					<MetricsOverview
-						data={data}
+						data={data ?? null}
 						loading={loading}
 						selectedModel={selectedModel}
 					/>
@@ -123,32 +115,21 @@ export default function DashboardPage() {
 					<div className="space-y-8 lg:col-span-4">
 						{/* Provider Comparison Section */}
 						<section className="space-y-6">
-							<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-								<div>
-									<h2 className="font-semibold text-2xl text-foreground">
-										Cost Comparison
-									</h2>
-									<p className="text-muted-foreground">
-										Compare costs and performance across all models and
-										providers
-									</p>
-								</div>
-								<div className="text-muted-foreground text-sm">
-									Based on current usage patterns
-								</div>
+							<div>
+								<h2 className="font-semibold text-2xl text-foreground">
+									Cost Comparison
+								</h2>
+								<p className="text-muted-foreground">
+									Compare costs and performance across all models and providers
+								</p>
 							</div>
 							<div className="rounded-lg border bg-card p-6 shadow-sm">
-								<UsageSection
-									data={data}
+								<CostComparison
+									data={data ?? null}
 									loading={loading}
-									selectedProvider="all"
-									providers={data?.providers || []}
 									selectedModel={selectedModel}
 									onModelChange={setSelectedModel}
 								/>
-							</div>
-							<div className="rounded-lg border bg-card p-6 shadow-sm">
-								<ProviderComparisonTable data={data} loading={loading} />
 							</div>
 						</section>
 					</div>
