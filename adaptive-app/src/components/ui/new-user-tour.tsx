@@ -47,7 +47,7 @@ const apiPlatformTourSteps: TourStep[] = [
         </p>
       </div>
     ),
-    position: "auto",
+    position: "top",
   },
   {
     selectorId: "dashboard-cost-comparison",
