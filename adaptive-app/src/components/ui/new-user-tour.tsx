@@ -59,6 +59,45 @@ const apiPlatformTourSteps: TourStep[] = [
     ),
     position: "top",
   },
+  {
+    selectorId: "sidebar-docs",
+    content: (
+      <div>
+        <h3 className="font-semibold mb-2">Documentation</h3>
+        <p className="text-sm text-muted-foreground">
+          Access comprehensive guides, API references, and integration examples
+          to help you get the most out of Adaptive.
+        </p>
+      </div>
+    ),
+    position: "left",
+  },
+  {
+    selectorId: "sidebar-support",
+    content: (
+      <div>
+        <h3 className="font-semibold mb-2">Get Support</h3>
+        <p className="text-sm text-muted-foreground">
+          Need help? Contact our support team for assistance with setup,
+          troubleshooting, or questions about your account.
+        </p>
+      </div>
+    ),
+    position: "left",
+  },
+  {
+    selectorId: "sidebar-legal",
+    content: (
+      <div>
+        <h3 className="font-semibold mb-2">Legal Information</h3>
+        <p className="text-sm text-muted-foreground">
+          Review our terms of service, privacy policy, and other legal documents
+          to understand how we protect your data.
+        </p>
+      </div>
+    ),
+    position: "left",
+  },
 ];
 
 export function NewUserTour() {
@@ -71,8 +110,25 @@ export function NewUserTour() {
     setShowTour(false);
   };
 
-  // Don't render anything if tour is completed or still loading
-  if (isLoading || isTourCompleted) {
+  // Show tour when loading is done and tour is not completed
+  useEffect(() => {
+    if (!isLoading && !isTourCompleted) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        setShowTour(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isTourCompleted]);
+
+  // Don't render anything if still loading
+  if (isLoading) {
+    return null;
+  }
+
+  // Don't render if tour is completed
+  if (isTourCompleted) {
     return null;
   }
 

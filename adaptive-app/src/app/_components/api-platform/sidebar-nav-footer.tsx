@@ -1,6 +1,7 @@
 // src/app/_components/api-platform/sidebar-nav-footer.tsx
 
 import { useUser } from "@clerk/nextjs";
+import { DocsButton } from "@/components/ui/docs-button";
 import { LegalButton } from "@/components/ui/legal-button";
 import {
 	SidebarFooter,
@@ -23,7 +24,7 @@ export function ApiSidebarNavFooter() {
 	return (
 		<SidebarFooter>
 			<SidebarSeparator />
-			<SidebarMenu className="flex-row items-center justify-between p-2">
+			<SidebarMenu className="space-y-2 p-2">
 				<SidebarMenuItem>
 					<SidebarMenuButton asChild>
 						<ApiNavUser
@@ -35,15 +36,26 @@ export function ApiSidebarNavFooter() {
 						/>
 					</SidebarMenuButton>
 				</SidebarMenuItem>
-				<div className="flex items-center gap-1">
+				<div className="flex flex-wrap items-center justify-center gap-1">
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<SupportButton variant="ghost" size="icon" showText={false} />
+							<div id="sidebar-docs">
+								<DocsButton variant="ghost" size="icon" showText={false} />
+							</div>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<LegalButton variant="ghost" size="icon" showText={false} />
+							<div id="sidebar-support">
+								<SupportButton variant="ghost" size="icon" showText={false} />
+							</div>
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<div id="sidebar-legal">
+								<LegalButton variant="ghost" size="icon" showText={false} />
+							</div>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
