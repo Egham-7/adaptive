@@ -1,6 +1,7 @@
 // src/components/chat/chat-sidebar/SidebarNavFooter.tsx
 
 import { useUser } from "@clerk/nextjs";
+import { LegalButton } from "@/components/ui/legal-button";
 import {
 	SidebarFooter,
 	SidebarMenu,
@@ -38,6 +39,11 @@ export function SidebarNavFooter() {
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
 							<SupportButton variant="ghost" size="icon" showText={false} />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<LegalButton variant="ghost" size="icon" showText={false} />
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
