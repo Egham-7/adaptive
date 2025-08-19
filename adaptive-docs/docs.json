@@ -131,6 +131,19 @@
             "href": "https://llmadaptive.uk/blog"
           }
         ]
+      },
+      {
+        "header": "Legal",
+        "items": [
+          {
+            "label": "Terms of Service",
+            "href": "/terms-of-service"
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "/privacy-policy"
+          }
+        ]
       }
     ]
   },
