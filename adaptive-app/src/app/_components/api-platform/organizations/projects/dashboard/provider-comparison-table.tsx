@@ -12,16 +12,28 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import type { DashboardData } from "@/types/api-platform/dashboard";
+import type { ProjectAnalytics } from "@/types/api-platform/dashboard";
+
+const PROVIDER_ICONS = {
+	openai: "/logos/openai.webp",
+	anthropic: "/logos/anthropic.jpeg",
+	gemini: "/logos/google.svg",
+	groq: "/logos/groq.png",
+	grok: "/logos/grok.svg",
+	deepseek: "/logos/deepseek.svg",
+	huggingface: "/logos/huggingface.png",
+} as const;
 
 interface ProviderComparisonTableProps {
-	data: DashboardData | null;
+	data: ProjectAnalytics | null;
 	loading: boolean;
+	selectedModel?: string;
 }
 
 export function ProviderComparisonTable({
 	data,
 	loading,
+	selectedModel,
 }: ProviderComparisonTableProps) {
 	if (loading) {
 		return (
@@ -45,24 +57,54 @@ export function ProviderComparisonTable({
 		);
 	}
 
-	if (!data || !data.providers || data.providers.length === 0) {
+	if (
+		!data ||
+		!data.modelProviderBreakdown ||
+		data.modelProviderBreakdown.length === 0
+	) {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>Provider Cost Comparison</CardTitle>
+					<div className="flex items-center justify-between">
+						<CardTitle>Model Cost Comparison</CardTitle>
+						<Badge variant="secondary">
+							{selectedModel
+								? selectedModel.charAt(0).toUpperCase() +
+									selectedModel.slice(1).replace(/-/g, " ")
+								: "All Models"}
+						</Badge>
+					</div>
+					<p className="text-muted-foreground text-sm">
+						Compare your Adaptive costs against specific models by provider
+					</p>
 				</CardHeader>
 				<CardContent>
 					<div className="flex h-64 items-center justify-center text-muted-foreground">
-						No provider data available
+						No model comparison data available
 					</div>
 				</CardContent>
 			</Card>
 		);
 	}
 
-	const sortedProviders = [...data.providers].sort(
-		(a, b) => b.comparisonCosts.single - a.comparisonCosts.single,
-	);
+	// Use the model-provider breakdown directly from tRPC
+	const tableData = data.modelProviderBreakdown.map((item) => ({
+		id: `${item.model}-${item.provider}`,
+		modelName:
+			item.model.charAt(0).toUpperCase() +
+			item.model.slice(1).replace(/-/g, " "),
+		providerName:
+			item.provider.charAt(0).toUpperCase() + item.provider.slice(1),
+		icon:
+			PROVIDER_ICONS[item.provider as keyof typeof PROVIDER_ICONS] ||
+			"/logos/default.svg",
+		adaptiveCost: data.totalSpend,
+		modelCost: item.estimatedCost,
+		savings: item.savings,
+		savingsPercentage: item.savingsPercentage,
+	}));
+
+	const sortedData = [...tableData].sort((a, b) => b.modelCost - a.modelCost);
 
 	const formatCurrency = (amount: number) => {
 		return new Intl.NumberFormat("en-US", {
@@ -72,9 +114,9 @@ export function ProviderComparisonTable({
 		}).format(amount);
 	};
 
-	const calculateSavings = (adaptive: number, single: number) => {
-		const savings = single - adaptive;
-		const percentage = single > 0 ? (savings / single) * 100 : 0;
+	const _calculateSavings = (adaptive: number, modelCost: number) => {
+		const savings = modelCost - adaptive;
+		const percentage = modelCost > 0 ? (savings / modelCost) * 100 : 0;
 		return { amount: savings, percentage };
 	};
 
@@ -95,42 +137,42 @@ export function ProviderComparisonTable({
 					<Table>
 						<TableHeader>
 							<TableRow>
+								<TableHead>Model</TableHead>
 								<TableHead>Provider</TableHead>
 								<TableHead className="text-right">Your Cost</TableHead>
-								<TableHead className="text-right">
-									Single Provider Cost
-								</TableHead>
+								<TableHead className="text-right">Model Cost</TableHead>
 								<TableHead className="text-right">Savings</TableHead>
 								<TableHead className="text-right">% Saved</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{sortedProviders.map((provider) => {
-								const savings = calculateSavings(
-									data.totalSpend,
-									provider.comparisonCosts.single,
-								);
-								const isPositiveSavings = savings.amount > 0;
+							{sortedData.map((item) => {
+								const isPositiveSavings = item.savings > 0;
 
 								return (
-									<TableRow key={provider.id}>
+									<TableRow key={item.id}>
+										<TableCell>
+											<span className="font-medium">{item.modelName}</span>
+										</TableCell>
 										<TableCell>
 											<div className="flex items-center gap-3">
 												<Image
-													width={24}
-													height={24}
-													src={provider.icon}
-													alt={provider.name}
+													width={20}
+													height={20}
+													src={item.icon}
+													alt={item.providerName}
 													className="rounded"
 												/>
-												<span className="font-medium">{provider.name}</span>
+												<span className="text-muted-foreground text-sm">
+													{item.providerName}
+												</span>
 											</div>
 										</TableCell>
 										<TableCell className="text-right font-mono">
-											{formatCurrency(data.totalSpend)}
+											{formatCurrency(item.adaptiveCost)}
 										</TableCell>
 										<TableCell className="text-right font-mono">
-											{formatCurrency(provider.comparisonCosts.single)}
+											{formatCurrency(item.modelCost)}
 										</TableCell>
 										<TableCell className="text-right font-mono">
 											<div className="flex items-center justify-end gap-1">
@@ -146,7 +188,7 @@ export function ProviderComparisonTable({
 															: "text-red-600"
 													}
 												>
-													{formatCurrency(Math.abs(savings.amount))}
+													{formatCurrency(Math.abs(item.savings))}
 												</span>
 											</div>
 										</TableCell>
@@ -160,7 +202,7 @@ export function ProviderComparisonTable({
 												}
 											>
 												{isPositiveSavings ? "+" : ""}
-												{savings.percentage.toFixed(1)}%
+												{item.savingsPercentage.toFixed(1)}%
 											</Badge>
 										</TableCell>
 									</TableRow>
@@ -172,15 +214,23 @@ export function ProviderComparisonTable({
 
 				<div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
 					<div className="rounded-lg border p-4">
-						<div className="text-muted-foreground text-sm">Total Saved</div>
+						<div className="text-muted-foreground text-sm">Average Savings</div>
 						<div className="font-bold text-2xl text-green-600">
-							{formatCurrency(data.totalSavings)}
+							{formatCurrency(
+								sortedData.reduce(
+									(total, item) => total + Math.max(0, item.savings),
+									0,
+								) / sortedData.length,
+							)}
 						</div>
 					</div>
 					<div className="rounded-lg border p-4">
-						<div className="text-muted-foreground text-sm">Average Savings</div>
+						<div className="text-muted-foreground text-sm">Best Savings %</div>
 						<div className="font-bold text-2xl text-green-600">
-							{data.savingsPercentage.toFixed(1)}%
+							{Math.max(
+								...sortedData.map((item) => item.savingsPercentage),
+							).toFixed(1)}
+							%
 						</div>
 					</div>
 					<div className="rounded-lg border p-4">

@@ -621,7 +621,7 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					// Filter out null providers and provide default for unknown providers
-					const providerUsage = providerUsageSchema.array().parse(
+					const _providerUsage = providerUsageSchema.array().parse(
 						(
 							rawProviderUsage as Array<{
 								provider: string | null;
@@ -742,9 +742,11 @@ export const usageRouter = createTRPCRouter({
 						},
 					});
 
-					const allProviderNames = providers.map((provider) => provider.name);
+					const _allProviderNames = providers.map((provider) => provider.name);
 
-					const calculateSingleProviderCostForAllUsage = (
+					// Calculate cost for a specific model from a specific provider
+					const calculateModelCostFromProvider = (
+						targetModelName: string,
 						targetProvider: string,
 					) => {
 						return detailedUsage.reduce((sum, usage) => {
@@ -753,21 +755,8 @@ export const usageRouter = createTRPCRouter({
 							const targetProviderModels = providerModelMap.get(targetProvider);
 							if (!targetProviderModels) return sum;
 
-							const modelPricing =
-								targetProviderModels.get(usage.model) ??
-								Array.from(targetProviderModels.values()).reduce(
-									(maxPricing, pricing) => ({
-										inputTokenCost: Math.max(
-											maxPricing.inputTokenCost,
-											pricing.inputTokenCost,
-										),
-										outputTokenCost: Math.max(
-											maxPricing.outputTokenCost,
-											pricing.outputTokenCost,
-										),
-									}),
-									{ inputTokenCost: 0, outputTokenCost: 0 },
-								);
+							const modelPricing = targetProviderModels.get(targetModelName);
+							if (!modelPricing) return sum;
 
 							return (
 								sum +
@@ -777,52 +766,60 @@ export const usageRouter = createTRPCRouter({
 						}, 0);
 					};
 
-					const providerBreakdownWithComparison = allProviderNames.map(
-						(providerName) => {
-							const usage = providerUsage.find(
-								(u) => u.provider === providerName,
-							);
-							const spend = usage ? ensureNumber(usage._sum.cost) : 0;
+					// Get all unique model-provider combinations
+					const modelProviderCombinations: Array<{
+						model: string;
+						provider: string;
+						pricing: { inputTokenCost: number; outputTokenCost: number };
+					}> = [];
 
-							const estimatedSingleProviderCost =
-								calculateSingleProviderCostForAllUsage(providerName);
+					for (const [providerName, models] of providerModelMap.entries()) {
+						for (const [modelName, pricing] of models.entries()) {
+							modelProviderCombinations.push({
+								model: modelName,
+								provider: providerName,
+								pricing,
+							});
+						}
+					}
 
-							const savings = Math.max(
-								0,
-								estimatedSingleProviderCost - totalSpend,
+					const modelProviderBreakdown = modelProviderCombinations.map(
+						({ model, provider, pricing }) => {
+							const estimatedCost = calculateModelCostFromProvider(
+								model,
+								provider,
 							);
+							const savings = Math.max(0, estimatedCost - totalSpend);
 							const savingsPercentage =
-								estimatedSingleProviderCost > 0
-									? (savings / estimatedSingleProviderCost) * 100
-									: 0;
+								estimatedCost > 0 ? (savings / estimatedCost) * 100 : 0;
 
 							return {
-								provider: providerName,
-								spend,
-								tokens: usage ? ensureNumber(usage._sum.totalTokens) : 0,
-								requests: usage ? ensureNumber(usage._sum.requestCount) : 0,
-								calls: usage ? ensureNumber(usage._count.id) : 0,
-								estimatedSingleProviderCost,
+								model,
+								provider,
+								estimatedCost,
 								savings,
 								savingsPercentage,
+								pricing: {
+									inputCost: pricing.inputTokenCost,
+									outputCost: pricing.outputTokenCost,
+								},
 							};
 						},
 					);
 
-					// Calculate total comparison cost across all providers
-					const totalEstimatedSingleProviderCost =
-						providerBreakdownWithComparison.reduce(
-							(sum, provider) => sum + provider.estimatedSingleProviderCost,
-							0,
-						);
+					// Calculate total comparison cost (use average of all combinations)
+					const totalEstimatedCost =
+						modelProviderBreakdown.length > 0
+							? modelProviderBreakdown.reduce(
+									(sum, combo) => sum + combo.estimatedCost,
+									0,
+								) / modelProviderBreakdown.length
+							: 0;
 
-					const totalSavings = Math.max(
-						0,
-						totalEstimatedSingleProviderCost - totalSpend,
-					);
+					const totalSavings = Math.max(0, totalEstimatedCost - totalSpend);
 					const totalSavingsPercentage =
-						totalEstimatedSingleProviderCost > 0
-							? (totalSavings / totalEstimatedSingleProviderCost) * 100
+						totalEstimatedCost > 0
+							? (totalSavings / totalEstimatedCost) * 100
 							: 0;
 
 					// Calculate error rate data - find all entries where metadata.error exists
@@ -861,12 +858,12 @@ export const usageRouter = createTRPCRouter({
 						totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
 						totalRequests: ensureNumber(totalMetrics._sum.requestCount),
 						totalApiCalls: totalCalls,
-						totalEstimatedSingleProviderCost,
+						totalEstimatedCost,
 						totalSavings,
 						totalSavingsPercentage,
 						errorRate,
 						errorCount,
-						providerBreakdown: providerBreakdownWithComparison,
+						modelProviderBreakdown,
 						requestTypeBreakdown: requestTypeUsage.map((usage) => ({
 							type: usage.requestType,
 							spend: ensureNumber(usage._sum.cost),
