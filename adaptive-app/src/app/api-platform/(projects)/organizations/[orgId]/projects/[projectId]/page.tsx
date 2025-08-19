@@ -1,7 +1,5 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
@@ -85,16 +83,6 @@ export default function DashboardPage() {
 
 	return (
 		<div className="w-full px-6 py-2">
-			{/* Back Navigation */}
-			<div className="mb-6">
-				<Link href={`/api-platform/organizations/${orgId}`}>
-					<Button variant="ghost" size="sm">
-						<ArrowLeft className="mr-2 h-4 w-4" />
-						Back to Projects
-					</Button>
-				</Link>
-			</div>
-
 			{/* Header Section */}
 			<div className="mb-8">
 				<DashboardHeader
