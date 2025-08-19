@@ -137,11 +137,11 @@
         "items": [
           {
             "label": "Terms of Service",
-            "href": "/terms-of-service"
+            "href": "https://docs.llmadaptive.uk/terms-of-service"
           },
           {
             "label": "Privacy Policy",
-            "href": "/privacy-policy"
+            "href": "https://docs.llmadaptive.uk/privacy-policy"
           }
         ]
       }
