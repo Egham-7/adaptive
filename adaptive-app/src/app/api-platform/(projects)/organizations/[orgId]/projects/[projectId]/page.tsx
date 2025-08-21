@@ -16,7 +16,9 @@ export default function DashboardPage() {
 	const orgId = params.orgId as string;
 	const projectId = params.projectId as string;
 	const { dateRange, setDateRange } = useDateRange();
-	const [selectedModel, setSelectedModel] = useState<string>("gpt-4o");
+	const [selectedModels, setSelectedModels] = useState<string[]>([
+		"openai:gpt-4o",
+	]);
 
 	const filters: DashboardFilters = useMemo(
 		() => ({
@@ -82,7 +84,7 @@ export default function DashboardPage() {
 	return (
 		<div className="w-full px-6 py-2">
 			{/* Header Section */}
-			<div className="mb-8">
+			<div className="mb-8" id="dashboard-header">
 				<DashboardHeader
 					dateRange={dateRange}
 					onDateRangeChange={setDateRange}
@@ -93,47 +95,33 @@ export default function DashboardPage() {
 			{/* Main Dashboard Grid */}
 			<div className="space-y-8">
 				{/* Key Metrics Section */}
-				<section className="space-y-6">
-					<div>
-						<h2 className="font-semibold text-2xl text-foreground">
-							Key Performance Metrics
-						</h2>
-						<p className="text-muted-foreground">
-							Real-time insights into your API usage and costs
-						</p>
-					</div>
-					<MetricsOverview
-						data={data ?? null}
-						loading={loading}
-						selectedModel={selectedModel}
-					/>
+				<section className="space-y-6" id="dashboard-metrics">
+					<h2 className="font-semibold text-2xl text-foreground">
+						Key Performance Metrics
+					</h2>
+					<p className="text-muted-foreground">
+						Real-time insights into your API usage and costs
+					</p>
+					<MetricsOverview data={data ?? null} loading={loading} />
 				</section>
 
-				{/* Analytics Grid Layout */}
-				<div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-					{/* Main Analytics Area */}
-					<div className="space-y-8 lg:col-span-4">
-						{/* Provider Comparison Section */}
-						<section className="space-y-6">
-							<div>
-								<h2 className="font-semibold text-2xl text-foreground">
-									Cost Comparison
-								</h2>
-								<p className="text-muted-foreground">
-									Compare costs and performance across all models and providers
-								</p>
-							</div>
-							<div className="rounded-lg border bg-card p-6 shadow-sm">
-								<CostComparison
-									data={data ?? null}
-									loading={loading}
-									selectedModel={selectedModel}
-									onModelChange={setSelectedModel}
-								/>
-							</div>
-						</section>
+				{/* Provider Comparison Section */}
+				<section className="space-y-6" id="dashboard-cost-comparison">
+					<h2 className="font-semibold text-2xl text-foreground">
+						Cost Comparison
+					</h2>
+					<p className="text-muted-foreground">
+						Compare costs and performance across all models and providers
+					</p>
+					<div className="rounded-lg border bg-card p-6 shadow-sm">
+						<CostComparison
+							data={data ?? null}
+							loading={loading}
+							selectedModels={selectedModels}
+							onModelsChange={setSelectedModels}
+						/>
 					</div>
-				</div>
+				</section>
 			</div>
 		</div>
 	);

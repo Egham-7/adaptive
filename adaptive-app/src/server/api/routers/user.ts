@@ -27,6 +27,7 @@ const userMetadataSchema = z.object({
 	preferredName: z.string().optional(),
 	jobRole: z.string().optional(),
 	personalPreferences: z.string().optional(),
+	tourCompleted: z.boolean().optional(),
 });
 
 const defaultProviders = [
@@ -99,6 +100,7 @@ export const userRouter = createTRPCRouter({
 				preferredName: publicMetadata?.preferredName,
 				jobRole: publicMetadata?.jobRole,
 				personalPreferences: publicMetadata?.personalPreferences,
+				tourCompleted: publicMetadata?.tourCompleted || false,
 			};
 		} catch (error) {
 			console.error("Error fetching user preferences:", error);

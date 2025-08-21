@@ -559,21 +559,6 @@ export const usageRouter = createTRPCRouter({
 
 					const totalMetrics = aggregateSchema.parse(aggregateResult);
 
-					// Zod schemas for groupBy results
-					const providerUsageSchema = z.object({
-						provider: z.string(),
-						_sum: z.object({
-							totalTokens: z.number().nullable(),
-							cost: z
-								.any()
-								.nullable()
-								.transform((val) => (val ? Number(val) : 0)),
-							requestCount: z.number().nullable(),
-						}),
-						_count: z.object({
-							id: z.number(),
-						}),
-					});
 					const requestTypeUsageSchema = z.object({
 						requestType: z.string(),
 						_sum: z.object({
@@ -607,36 +592,6 @@ export const usageRouter = createTRPCRouter({
 					});
 
 					// Get usage by provider
-					const rawProviderUsage = await ctx.db.apiUsage.groupBy({
-						by: ["provider"],
-						where: whereClause,
-						_sum: {
-							totalTokens: true,
-							cost: true,
-							requestCount: true,
-						},
-						_count: {
-							id: true,
-						},
-					});
-
-					// Filter out null providers and provide default for unknown providers
-					const _providerUsage = providerUsageSchema.array().parse(
-						(
-							rawProviderUsage as Array<{
-								provider: string | null;
-								_sum: {
-									totalTokens: number | null;
-									cost: { toNumber(): number } | null;
-									requestCount: number | null;
-								};
-								_count: { id: number };
-							}>
-						).map((usage) => ({
-							...usage,
-							provider: usage.provider || "unknown",
-						})),
-					);
 
 					// Get usage by request type
 					const requestTypeUsage = requestTypeUsageSchema.array().parse(
@@ -741,8 +696,6 @@ export const usageRouter = createTRPCRouter({
 							cost: true,
 						},
 					});
-
-					const _allProviderNames = providers.map((provider) => provider.name);
 
 					// Calculate cost for a specific model from a specific provider
 					const calculateModelCostFromProvider = (

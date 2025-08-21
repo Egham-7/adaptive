@@ -145,11 +145,14 @@ export default function ApiKeysPage() {
 	return (
 		<div className="space-y-6">
 			{/* Header */}
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between" id="api-keys-header">
 				<h1 className="font-bold text-2xl text-foreground">API keys</h1>
 				<Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
 					<DialogTrigger asChild>
-						<Button className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+						<Button
+							className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+							id="create-api-key-button"
+						>
 							<Plus className="h-4 w-4" />
 							Create new secret key
 						</Button>
@@ -225,7 +228,10 @@ export default function ApiKeysPage() {
 			</div>
 
 			{/* Description */}
-			<div className="space-y-3 text-muted-foreground text-sm">
+			<div
+				className="space-y-3 text-muted-foreground text-sm"
+				id="api-keys-description"
+			>
 				<p>
 					As an owner of this project, you can view and manage all API keys in
 					this project.
@@ -248,7 +254,10 @@ export default function ApiKeysPage() {
 			</div>
 
 			{/* Table */}
-			<div className="overflow-hidden rounded-lg border border-border bg-card">
+			<div
+				className="overflow-hidden rounded-lg border border-border bg-card"
+				id="api-keys-table"
+			>
 				<div className="overflow-x-auto">
 					<Table>
 						<TableHeader>

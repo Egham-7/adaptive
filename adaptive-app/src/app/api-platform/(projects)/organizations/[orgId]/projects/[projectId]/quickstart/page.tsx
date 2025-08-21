@@ -137,7 +137,7 @@ print(completion.choices[0].message.content)`;
 	return (
 		<div className="mx-auto max-w-7xl px-2 py-2 sm:px-4">
 			{/* Header Section */}
-			<div className="mb-8">
+			<div className="mb-8" id="quickstart-header">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<h1 className="font-semibold text-3xl text-foreground">
@@ -154,7 +154,7 @@ print(completion.choices[0].message.content)`;
 			</div>
 
 			{/* Main Content */}
-			<div className="space-y-8">
+			<div className="space-y-8" id="quickstart-content">
 				{/* Step 1: Get API Key */}
 				<Card>
 					<CardHeader>
