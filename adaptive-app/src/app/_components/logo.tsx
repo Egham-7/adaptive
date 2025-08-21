@@ -22,7 +22,7 @@ export function Logo() {
 				src={
 					resolvedTheme === "dark"
 						? "/logos/adaptive-dark.svg"
-						: "/logos/adaptive-light.png"
+						: "/logos/adaptive-light.svg"
 				}
 				alt="Adaptive Logo"
 				width={120}
