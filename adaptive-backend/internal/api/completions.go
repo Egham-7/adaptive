@@ -7,6 +7,7 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/protocol_manager"
 	"fmt"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -91,6 +92,14 @@ func (h *CompletionHandler) selectProtocol(
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
+	// Check if model is explicitly provided (non-empty) - if so, use manual override
+	if req.Model != "" {
+		fiberlog.Infof("[%s] Model explicitly provided (%s), using manual override instead of protocol manager", requestID, req.Model)
+		return h.createManualProtocolResponse(req, requestID)
+	}
+
+	fiberlog.Debugf("[%s] No explicit model provided, proceeding with protocol manager selection", requestID)
+
 	openAIParams := req.ToOpenAIParams()
 	if openAIParams == nil {
 		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
@@ -141,4 +150,65 @@ func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequ
 		h.fallbackSvc.SetMode(models.FallbackModeRace)
 		fiberlog.Warnf("[%s] Fallback enabled with unknown mode '%s', using default: parallel", reqID, mode)
 	}
+}
+
+// createManualProtocolResponse creates a manual protocol response when a model is explicitly provided
+func (h *CompletionHandler) createManualProtocolResponse(
+	req *models.ChatCompletionRequest,
+	requestID string,
+) (*models.ProtocolResponse, string, error) {
+	modelSpec := string(req.Model)
+
+	// Parse provider:model format
+	provider, modelName, err := h.parseProviderModel(modelSpec)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to parse model specification '%s': %v", requestID, modelSpec, err)
+		return nil, "", fmt.Errorf("invalid model format '%s', expected 'provider:model': %w", modelSpec, err)
+	}
+
+	fiberlog.Infof("[%s] Parsed model specification '%s' -> provider: %s, model: %s", requestID, modelSpec, provider, modelName)
+
+	// Convert to OpenAI parameters
+	openAIParams := req.ToOpenAIParams()
+	if openAIParams == nil {
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
+	}
+
+	// Create standard LLM info
+	standardInfo := &models.StandardLLMInfo{
+		Provider:     provider,
+		Model:        modelName,
+		Parameters:   *openAIParams,
+		Alternatives: []models.Alternative{}, // No alternatives for manual override
+	}
+
+	// Create protocol response
+	response := &models.ProtocolResponse{
+		Protocol: models.ProtocolStandardLLM,
+		Standard: standardInfo,
+		Minion:   nil, // Manual override always uses standard protocol
+	}
+
+	return response, "manual_override", nil
+}
+
+// parseProviderModel parses a "provider:model" format string
+func (h *CompletionHandler) parseProviderModel(modelSpec string) (provider, model string, err error) {
+	parts := strings.SplitN(modelSpec, ":", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("model specification must be in 'provider:model' format")
+	}
+
+	provider = strings.TrimSpace(parts[0])
+	model = strings.TrimSpace(parts[1])
+
+	if provider == "" {
+		return "", "", fmt.Errorf("provider cannot be empty")
+	}
+
+	if model == "" {
+		return "", "", fmt.Errorf("model cannot be empty")
+	}
+
+	return provider, model, nil
 }
