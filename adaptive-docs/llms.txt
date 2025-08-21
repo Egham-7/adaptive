@@ -6219,7 +6219,7 @@ To make an image a clickable link, wrap the image in an anchor tag and add the `
 ```html
 <a href="https://mintlify.com" target="_blank">
   <img 
-    src="/images/logo.png" 
+    src="/images/logo.svg" 
     alt="Mintlify logo"
     noZoom 
     height="100"
@@ -9388,11 +9388,11 @@ This section contains the full reference for the `docs.json` file.
 
   <Expandable title="Logo">
     <ResponseField name="light" type="string" required>
-      Path pointing to your logo file for light mode. Include the file extension. Example: `/logo.png`
+      Path pointing to your logo file for light mode. Include the file extension. Example: `/logo.svg`
     </ResponseField>
 
     <ResponseField name="dark" type="string" required>
-      Path pointing to your logo file for dark mode. Include the file extension. Example: `/logo-dark.png`
+      Path pointing to your logo file for dark mode. Include the file extension. Example: `/logo-dark.svg`
     </ResponseField>
 
     <ResponseField name="href" type="string (uri)">
