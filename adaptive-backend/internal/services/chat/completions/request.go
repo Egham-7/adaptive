@@ -1,10 +1,10 @@
 package completions
 
 import (
-	"encoding/json"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/request"
 	"adaptive-backend/internal/utils"
+	"encoding/json"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

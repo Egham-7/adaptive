@@ -6,8 +6,8 @@ import (
 	"adaptive-backend/internal/services/protocol_manager"
 	"fmt"
 
-	"github.com/openai/openai-go"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/openai/openai-go"
 )
 
 // Service handles model selection logic

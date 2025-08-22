@@ -13,4 +13,3 @@ type AnthropicMessageRequest struct {
 	Fallback              *FallbackConfig            `json:"fallback,omitempty"`         // Fallback configuration with enabled toggle
 	ProviderConfigs       map[string]*ProviderConfig `json:"provider_configs,omitempty"` // Custom provider configurations by provider name
 }
-
