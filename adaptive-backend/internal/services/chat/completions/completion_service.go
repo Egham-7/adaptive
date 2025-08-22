@@ -6,6 +6,7 @@ import (
 	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/stream_readers/stream"
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -45,7 +46,7 @@ func NewCompletionService(cfg *config.Config) *CompletionService {
 }
 
 // createClient creates an OpenAI client for the given provider
-func (cs *CompletionService) createClient(providerName string, customConfigs map[string]*models.ProviderConfig) (*openai.Client, error) {
+func (cs *CompletionService) createClient(providerName string, customConfigs map[string]*models.ProviderConfig, isStream bool) (*openai.Client, error) {
 	// Merge YAML config with custom override config if provided
 	if customConfigs != nil {
 		if customConfig, hasCustom := customConfigs[providerName]; hasCustom {
@@ -53,7 +54,7 @@ func (cs *CompletionService) createClient(providerName string, customConfigs map
 			if err != nil {
 				return nil, fmt.Errorf("failed to merge provider config for '%s': %w", providerName, err)
 			}
-			return cs.buildClient(providerConfig, providerName)
+			return cs.buildClient(providerConfig, providerName, isStream)
 		}
 	}
 
@@ -63,10 +64,10 @@ func (cs *CompletionService) createClient(providerName string, customConfigs map
 		return nil, fmt.Errorf("provider '%s' is not configured", providerName)
 	}
 
-	return cs.buildClient(providerConfig, providerName)
+	return cs.buildClient(providerConfig, providerName, isStream)
 }
 
-func (cs *CompletionService) buildClient(providerConfig models.ProviderConfig, providerName string) (*openai.Client, error) {
+func (cs *CompletionService) buildClient(providerConfig models.ProviderConfig, providerName string, isStream bool) (*openai.Client, error) {
 	if providerName == "" {
 		return nil, models.NewValidationError("provider name cannot be empty", nil)
 	}
@@ -88,7 +89,9 @@ func (cs *CompletionService) buildClient(providerConfig models.ProviderConfig, p
 		}
 	}
 
-	if providerConfig.TimeoutMs > 0 {
+	// Only apply HTTP client timeout for non-streaming requests
+	// Streaming requests need to stay open for SSE connections
+	if providerConfig.TimeoutMs > 0 && !isStream {
 		timeout := time.Duration(providerConfig.TimeoutMs) * time.Millisecond
 		httpClient := &http.Client{Timeout: timeout}
 		opts = append(opts, option.WithHTTPClient(httpClient))
@@ -110,7 +113,19 @@ func (cs *CompletionService) HandleStandardCompletion(
 	if c == nil || req == nil || standardInfo == nil || requestID == "" {
 		return models.NewValidationError("invalid input parameters", nil)
 	}
-	// Get fallback configuration
+
+	// For streaming requests, do not attempt fallback as it can corrupt SSE streams
+	if isStream {
+		client, err := cs.createClient(standardInfo.Provider, req.ProviderConfigs, isStream)
+		if err != nil {
+			return fmt.Errorf("client creation failed for streaming request: %w", err)
+		}
+
+		req.Model = shared.ChatModel(standardInfo.Model)
+		return cs.executeCompletion(c, client, standardInfo.Provider, req, requestID, isStream, cacheSource)
+	}
+
+	// For non-streaming requests, use fallback logic
 	fallbackConfig := cs.fallbackService.GetFallbackConfig(req.Fallback)
 
 	// Create provider list with primary and alternatives
@@ -132,7 +147,7 @@ func (cs *CompletionService) createExecuteFunc(
 	cacheSource string,
 ) models.ExecutionFunc {
 	return func(c *fiber.Ctx, provider models.Alternative, reqID string) error {
-		client, err := cs.createClient(provider.Provider, req.ProviderConfigs)
+		client, err := cs.createClient(provider.Provider, req.ProviderConfigs, isStream)
 		if err != nil {
 			return fmt.Errorf("client creation failed: %w", err)
 		}
@@ -156,7 +171,19 @@ func (cs *CompletionService) HandleMinionCompletion(
 	if c == nil || req == nil || minionInfo == nil || requestID == "" {
 		return models.NewValidationError("invalid input parameters", nil)
 	}
-	// Get fallback configuration
+
+	// For streaming requests, do not attempt fallback as it can corrupt SSE streams
+	if isStream {
+		client, err := cs.createClient(minionInfo.Provider, req.ProviderConfigs, isStream)
+		if err != nil {
+			return fmt.Errorf("client creation failed for streaming request: %w", err)
+		}
+
+		req.Model = shared.ChatModel(minionInfo.Model)
+		return cs.executeCompletion(c, client, minionInfo.Provider, req, requestID, isStream, cacheSource)
+	}
+
+	// For non-streaming requests, use fallback logic
 	fallbackConfig := cs.fallbackService.GetFallbackConfig(req.Fallback)
 
 	// Create provider list with primary and alternatives
@@ -199,7 +226,18 @@ func (cs *CompletionService) executeCompletion(
 	}
 
 	fiberlog.Infof("[%s] generating completion from %s", requestID, providerName)
-	resp, err := client.Chat.Completions.New(c.Context(), *req.ToOpenAIParams())
+
+	// For non-streaming requests, apply context timeout based on provider config
+	ctx := context.Background()
+	if !isStream {
+		if providerConfig, exists := cs.cfg.GetProviderConfig(providerName); exists && providerConfig.TimeoutMs > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, time.Duration(providerConfig.TimeoutMs)*time.Millisecond)
+			defer cancel()
+		}
+	}
+
+	resp, err := client.Chat.Completions.New(ctx, *req.ToOpenAIParams())
 	if err != nil {
 		return models.NewProviderError(providerName, "completion request failed", err)
 	}
