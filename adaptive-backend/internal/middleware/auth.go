@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"adaptive-backend/internal/config"
+	"slices"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -54,7 +55,7 @@ func JWTAuth(cfg *config.Config) fiber.Handler {
 		}
 
 		// Parse and validate JWT token
-		token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (any, error) {
 			// Validate signing method
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fiber.NewError(fiber.StatusUnauthorized, "Invalid signing method")
@@ -89,13 +90,7 @@ func JWTAuth(cfg *config.Config) fiber.Handler {
 			}
 
 			// Validate audience - check if "adaptive-backend" is in the audience list
-			validAudience := false
-			for _, aud := range claims.Audience {
-				if aud == "adaptive-backend" {
-					validAudience = true
-					break
-				}
-			}
+			validAudience := slices.Contains(claims.Audience, "adaptive-backend")
 			if !validAudience {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 					"error": "Invalid JWT audience",

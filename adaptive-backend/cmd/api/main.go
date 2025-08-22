@@ -7,6 +7,7 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/select_model"
 	"context"
 	"fmt"
 	"os"
@@ -40,12 +41,17 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Create response service (depends on protocol manager)
 	respSvc := completions.NewResponseService(cfg, protocolMgr, fallbackSvc)
 
+	// Create services for select model handler
+	selectModelReqSvc := select_model.NewRequestService()
+	selectModelSvc := select_model.NewService(protocolMgr)
+	selectModelRespSvc := select_model.NewResponseService()
+
 	// Initialize handlers with shared dependencies
 	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)
-	selectModelHandler := api.NewSelectModelHandler(reqSvc, protocolMgr)
+	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc)
 
 	// Health endpoint (no auth required)
-	app.Get("/health", healthHandler.Health)
+	app.Get(healthEndpoint, healthHandler.Health)
 
 	// Apply JWT authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
@@ -56,15 +62,12 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 }
 
 const (
-	defaultAppName    = "Adaptive v1.0"
-	defaultVersion    = "1.0.0"
-	healthEndpoint    = "/health"
-	chatEndpoint      = "/v1/chat/completions"
-	allowedMethods    = "GET, POST, PUT, DELETE, OPTIONS"
-	allowedHeadersKey = "ALLOWED_ORIGINS"
-	addrKey           = "ADDR"
-	envKey            = "ENV"
-	logLevelKey       = "LOG_LEVEL"
+	defaultAppName      = "Adaptive v1.0"
+	defaultVersion      = "1.0.0"
+	healthEndpoint      = "/health"
+	chatEndpoint        = "/v1/chat/completions"
+	selectModelEndpoint = "/v1/select-model"
+	allowedMethods      = "GET, POST, PUT, DELETE, OPTIONS"
 )
 
 // main is the entry point for the Adaptive backend server.
@@ -160,7 +163,8 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"chat": chatEndpoint,
+				"chat":         chatEndpoint,
+				"select-model": selectModelEndpoint,
 			},
 		})
 	})

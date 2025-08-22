@@ -2,8 +2,8 @@ package models
 
 // ServicesConfig holds configuration for external services
 type ServicesConfig struct {
-	AdaptiveAI AdaptiveAIConfig `json:"adaptive_ai,omitempty" yaml:"adaptive_ai"`
-	Redis      RedisConfig      `json:"redis,omitempty" yaml:"redis"`
+	AdaptiveAI AdaptiveAIConfig `json:"adaptive_ai" yaml:"adaptive_ai"`
+	Redis      RedisConfig      `json:"redis" yaml:"redis"`
 }
 
 // AdaptiveAIConfig holds configuration for the Adaptive AI service
