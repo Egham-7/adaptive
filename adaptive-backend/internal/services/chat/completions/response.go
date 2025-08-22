@@ -13,7 +13,6 @@ import (
 const (
 	protocolStandard   = "standard"
 	protocolMinion     = "minion"
-	protocolMinions    = "minions_protocol"
 	errUnknownProtocol = "unknown protocol"
 )
 
@@ -26,20 +25,17 @@ type ResponseService struct {
 }
 
 // NewResponseService creates a new response service for completions
-func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager, fallbackService *FallbackService) *ResponseService {
+func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager) *ResponseService {
 	if cfg == nil {
 		panic("NewResponseService: cfg is nil")
 	}
 	if protocolMgr == nil {
 		panic("NewResponseService: protocolMgr is nil")
 	}
-	if fallbackService == nil {
-		panic("NewResponseService: fallbackService is nil")
-	}
 
 	return &ResponseService{
 		BaseService:       response.NewBaseService(),
-		completionService: NewCompletionService(cfg, fallbackService),
+		completionService: NewCompletionService(cfg),
 		protocolMgr:       protocolMgr,
 	}
 }
@@ -89,14 +85,6 @@ func (rs *ResponseService) HandleProtocol(
 
 	case models.ProtocolMinion:
 		if err := rs.completionService.HandleMinionCompletion(c, req, resp.Minion, requestID, isStream, cacheSource); err != nil {
-			return rs.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
-		}
-		// Store successful response in semantic cache
-		rs.storeSuccessfulSemanticCache(req, resp, requestID)
-		return nil
-
-	case models.ProtocolMinionsProtocol:
-		if err := rs.completionService.HandleMinionsProtocolCompletion(c, req, resp, requestID, isStream, cacheSource); err != nil {
 			return rs.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
 		// Store successful response in semantic cache
