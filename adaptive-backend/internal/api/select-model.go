@@ -35,13 +35,18 @@ func NewSelectModelHandler(
 // without actually executing the completion.
 func (h *SelectModelHandler) SelectModel(c *fiber.Ctx) error {
 	reqID := h.requestSvc.GetRequestID(c)
-	userID := h.requestSvc.GetUserID(c)
 	fiberlog.Infof("[%s] starting model selection request", reqID)
 
 	// Parse request using specialized request service
 	selectReq, err := h.requestSvc.ParseSelectModelRequest(c)
 	if err != nil {
 		return h.responseSvc.BadRequest(c, fmt.Sprintf("Invalid request body: %s", err.Error()))
+	}
+
+	// Extract user ID from request body (use "anonymous" if not provided)
+	userID := "anonymous"
+	if selectReq.User != nil && *selectReq.User != "" {
+		userID = *selectReq.User
 	}
 
 	// Validate request using specialized request service

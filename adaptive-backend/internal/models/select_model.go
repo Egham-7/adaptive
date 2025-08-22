@@ -6,6 +6,8 @@ type SelectModelRequest struct {
 	Models []ModelCapability `json:"models"`
 	// The prompt text to analyze for optimal model selection
 	Prompt string `json:"prompt"`
+	// Optional user identifier for tracking and personalization
+	User *string `json:"user,omitempty"`
 	// Protocol manager configuration for routing decisions
 	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
 }

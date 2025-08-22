@@ -62,15 +62,16 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 }
 
 const (
-	defaultAppName    = "Adaptive v1.0"
-	defaultVersion    = "1.0.0"
-	healthEndpoint    = "/health"
-	chatEndpoint      = "/v1/chat/completions"
-	allowedMethods    = "GET, POST, PUT, DELETE, OPTIONS"
-	allowedHeadersKey = "ALLOWED_ORIGINS"
-	addrKey           = "ADDR"
-	envKey            = "ENV"
-	logLevelKey       = "LOG_LEVEL"
+	defaultAppName      = "Adaptive v1.0"
+	defaultVersion      = "1.0.0"
+	healthEndpoint      = "/health"
+	chatEndpoint        = "/v1/chat/completions"
+	selectModelEndpoint = "/v1/select-model"
+	allowedMethods      = "GET, POST, PUT, DELETE, OPTIONS"
+	allowedHeadersKey   = "ALLOWED_ORIGINS"
+	addrKey             = "ADDR"
+	envKey              = "ENV"
+	logLevelKey         = "LOG_LEVEL"
 )
 
 // main is the entry point for the Adaptive backend server.
@@ -166,7 +167,8 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"chat": chatEndpoint,
+				"chat":         chatEndpoint,
+				"select-model": selectModelEndpoint,
 			},
 		})
 	})

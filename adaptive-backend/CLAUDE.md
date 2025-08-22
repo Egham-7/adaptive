@@ -172,6 +172,43 @@ X-Stainless-API-Key: your-api-key
 }
 ```
 
+### Select Model
+Provider-agnostic model selection API that analyzes prompts and selects the optimal model based on cost, performance, and availability.
+
+```http
+POST /v1/select-model
+Content-Type: application/json
+X-Stainless-API-Key: your-api-key
+
+{
+  "models": [
+    {"provider": "openai", "model": "gpt-4"},
+    {"provider": "anthropic", "model": "claude-3-5-sonnet-20241022"}
+  ],
+  "prompt": "Write a Python function to calculate fibonacci numbers"
+}
+```
+
+**Response:**
+```json
+{
+  "provider": "anthropic",
+  "model": "claude-3-5-sonnet-20241022",
+  "alternatives": [
+    {
+      "provider": "openai",
+      "model": "gpt-4",
+      "reason": "fallback_option"
+    }
+  ],
+  "metadata": {
+    "cache_source": "ml_inference",
+    "cost_per_1m": 3.0,
+    "complexity": 0.7
+  }
+}
+```
+
 ### Health Check
 ```http
 GET /health

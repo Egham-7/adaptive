@@ -10,6 +10,8 @@ export const selectModelRequestSchema = z.object({
 	models: z.array(modelCapabilitySchema),
 	// The prompt text to analyze for optimal model selection
 	prompt: z.string().min(1, "Prompt cannot be empty"),
+	// Optional user identifier for tracking and personalization
+	user: z.string().optional(),
 	// Protocol manager configuration for routing decisions
 	protocol_manager_config: protocolManagerConfigSchema.optional(),
 });
