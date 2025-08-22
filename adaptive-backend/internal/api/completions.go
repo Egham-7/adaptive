@@ -107,4 +107,3 @@ func (h *CompletionHandler) selectProtocol(
 
 	return resp, cacheSource, nil
 }
-
