@@ -117,9 +117,19 @@ func (rs *ResponseService) HandleError(
 	requestID string,
 ) error {
 	fiberlog.Errorf("[%s] Error %d: %s", requestID, statusCode, message)
-	return c.Status(statusCode).JSON(fiber.Map{
-		"error": message,
-	})
+	// Map to standardized error codes used by BaseService
+	var code, subcode string
+	switch statusCode {
+	case fiber.StatusBadRequest:
+		code, subcode = "invalid_request_error", "bad_request"
+	case fiber.StatusUnauthorized:
+		code, subcode = "authentication_error", "unauthorized"
+	case fiber.StatusTooManyRequests:
+		code, subcode = "rate_limit_error", "rate_limit_exceeded"
+	default:
+		code, subcode = "internal_error", "completion_failed"
+	}
+	return rs.Error(c, statusCode, message, code, subcode)
 }
 
 // HandleBadRequest handles 400 errors

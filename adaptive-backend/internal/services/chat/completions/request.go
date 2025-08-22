@@ -4,11 +4,27 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/request"
 	"adaptive-backend/internal/utils"
-	"encoding/json"
+	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
+
+// redactSensitiveInfo creates a concise summary of the request without sensitive data
+func redactSensitiveInfo(req *models.ChatCompletionRequest) string {
+	messageCount := len(req.Messages)
+	modelName := string(req.Model)
+	if modelName == "" {
+		modelName = "unspecified"
+	}
+
+	var streamStr string
+	if req.Stream {
+		streamStr = ", streaming=true"
+	}
+
+	return fmt.Sprintf("model=%s, messages=%d%s", modelName, messageCount, streamStr)
+}
 
 // RequestService handles request parsing and validation for chat completions
 // It embeds the base request service and specializes it for completions
@@ -26,17 +42,14 @@ func NewRequestService() *RequestService {
 // ParseChatCompletionRequest parses and validates the chat completion request body
 func (rs *RequestService) ParseChatCompletionRequest(c *fiber.Ctx) (*models.ChatCompletionRequest, error) {
 	requestID := rs.GetRequestID(c)
-	body := c.Body()
-	fiberlog.Infof("[%s] Raw request body: %s", requestID, string(body))
 
 	var req models.ChatCompletionRequest
 	if err := c.BodyParser(&req); err != nil {
 		fiberlog.Errorf("[%s] Failed to parse request body: %v", requestID, err)
-		return nil, err
+		return nil, fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
 	}
 
-	reqJSON, _ := json.Marshal(req)
-	fiberlog.Infof("[%s] Parsed request: %s", requestID, string(reqJSON))
+	fiberlog.Debugf("[%s] Parsed request: %s", requestID, redactSensitiveInfo(&req))
 	return &req, nil
 }
 

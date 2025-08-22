@@ -21,6 +21,11 @@ func StreamCachedResponse(c *fiber.Ctx, cachedResp *models.ChatCompletion, reque
 	// Get FastHTTP context
 	fasthttpCtx := c.Context()
 
+	// Set SSE headers for client compatibility
+	fasthttpCtx.Response.Header.Set("Content-Type", "text/event-stream")
+	fasthttpCtx.Response.Header.Set("Cache-Control", "no-cache")
+	fasthttpCtx.Response.Header.Set("Connection", "keep-alive")
+
 	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		startTime := time.Now()
 

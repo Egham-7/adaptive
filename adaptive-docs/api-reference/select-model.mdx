@@ -82,6 +82,10 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
   The prompt text to analyze for optimal model selection
 </ParamField>
 
+<ParamField body="user" type="string">
+  Optional user identifier for caching optimization (enables user-specific cache hits)
+</ParamField>
+
 <ParamField body="protocol_manager_config" type="object">
   Optional routing configuration and preferences
   
@@ -158,7 +162,7 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
 
 ```bash
 # Mix and match specification styles
-curl https://llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -167,9 +171,19 @@ curl https://llmadaptive.uk/api/v1/select-model \
       {"provider": "google"}
     ],
     "prompt": "Hello, how are you?"
-  }'
+  }')
 
-# Adaptive knows cost, context limits, capabilities automatically
+http_code=$(echo "$response" | tail -n1)
+response_body=$(echo "$response" | head -n -1)
+
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo "Success: $response_body"
+else
+  echo "Error $http_code: $response_body" >&2
+  exit 1
+fi
+
+# Success response:
 {
   "provider": "openai", 
   "model": "gpt-4o-mini",
@@ -184,7 +198,7 @@ curl https://llmadaptive.uk/api/v1/select-model \
 
 ```bash
 # Even simpler - just say what providers you have access to
-curl https://llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -192,9 +206,19 @@ curl https://llmadaptive.uk/api/v1/select-model \
       {"provider": "anthropic"}
     ],
     "prompt": "Write a complex analysis of market trends"
-  }'
+  }')
 
-# Adaptive picks the best model from each provider
+http_code=$(echo "$response" | tail -n1)
+response_body=$(echo "$response" | head -n -1)
+
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo "Success: $response_body"
+else
+  echo "Error $http_code: $response_body" >&2
+  exit 1
+fi
+
+# Success response:
 {
   "provider": "anthropic",
   "model": "claude-3-5-sonnet-20241022",
@@ -211,7 +235,7 @@ curl https://llmadaptive.uk/api/v1/select-model \
 
 ```bash
 # Only specify details for custom/unknown models
-curl https://llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -227,7 +251,17 @@ curl https://llmadaptive.uk/api/v1/select-model \
       }
     ],
     "prompt": "Hello, how are you?"
-  }'
+  }')
+
+http_code=$(echo "$response" | tail -n1)
+response_body=$(echo "$response" | head -n -1)
+
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo "Success: $response_body"
+else
+  echo "Error $http_code: $response_body" >&2
+  exit 1
+fi
 
 # Known models use Adaptive's specs, custom models use yours
 ```
@@ -236,7 +270,7 @@ curl https://llmadaptive.uk/api/v1/select-model \
 
 ```javascript
 // Will cost_bias actually pick cheaper models?
-const result = await fetch('/api/v1/select-model', {
+const response = await fetch('/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': apiKey },
   body: JSON.stringify({
@@ -265,7 +299,13 @@ const result = await fetch('/api/v1/select-model', {
   })
 });
 
-console.log(await result.json());
+if (!response.ok) {
+  const errorBody = await response.text();
+  throw new Error(`HTTP ${response.status}: ${errorBody}`);
+}
+
+const result = await response.json();
+console.log(result);
 // Check if it picked the cheaper model despite complexity
 ```
 
@@ -370,48 +410,53 @@ if (result.provider === "openai") {
 
 ### 2. On-Premise Model Routing
 ```javascript
-// Configure Adaptive to know about your local models
-const selection = await selectModel({
-  model: '',
-  messages: userRequest,
-  protocol_manager: {
+// Tell Adaptive about your local models (plus a cloud fallback)
+const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
     models: [
       { provider: "local", model_name: "llama-3-8b" },
       { provider: "local", model_name: "llama-3-70b" },
       { provider: "openai", model_name: "gpt-4" } // Cloud fallback
-    ]
-  }
+    ],
+    prompt: userMessage
+  })
 });
+const selection = await res.json();
 
-// The response tells you which to use
-const optimizedRequest = selection.request;
-
-// Send to the appropriate infrastructure  
-if (optimizedRequest.model === "llama-3-8b") {
-  await yourLocalServer.infer(optimizedRequest);
-} else if (optimizedRequest.model === "gpt-4") {
-  await yourOpenAI.chat.completions.create(optimizedRequest);
+// Route to the right infrastructure using provider/model
+if (selection.provider === "local" && selection.model === "llama-3-8b") {
+  await yourLocalServer.infer({ model: selection.model, messages: [{ role: "user", content: userMessage }] });
+} else if (selection.provider === "openai") {
+  await yourOpenAI.chat.completions.create({ model: selection.model, messages: [{ role: "user", content: userMessage }] });
 }
 ```
 
 ### 3. Enterprise Contract Optimization
 ```javascript
 // Maximize usage of your enterprise contracts
-const selection = await selectModel({
-  messages: request,
-  protocol_manager: {
+const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
     models: [
       { provider: "anthropic" }, // Your enterprise contract
       { provider: "openai" },    // Your enterprise contract  
       { provider: "google" }     // Pay-per-use fallback
     ],
-    cost_bias: 0.8 // Prefer your contracted providers
-  }
+    prompt: userMessage,
+    protocol_manager_config: { cost_bias: 0.8 }
+  })
 });
+const selection = await res.json();
 
 // Always use your own accounts
-const completion = await yourProviderClients[selection.metadata.provider]
-  .create(selection.request);
+const client = yourProviderClients[selection.provider];
+const completion = await client.create({
+  model: selection.model,
+  messages: [{ role: "user", content: userMessage }]
+});
 ```
 
 ### 4. Data Privacy & Compliance
@@ -439,16 +484,15 @@ if (selection.metadata.complexity === "high") {
 
 ```json
 {
-  "request": {
-    "model": "claude-3-5-sonnet-20241022",  // ← Exact model chosen
-    "messages": [...],                       // ← Your original messages
-    "temperature": 0.7                       // ← Optimized parameters
-  },
+  "provider": "anthropic",
+  "model": "claude-3-5-sonnet-20241022",
+  "alternatives": [
+    { "provider": "openai", "model": "gpt-4o" }
+  ],
   "metadata": {
-    "provider": "anthropic",                 // ← Which service
-    "model": "claude-3-5-sonnet-20241022",  // ← Specific model
-    "cost_per_1m_tokens": 3.0,             // ← Cost info
-    "complexity": "high"                     // ← Why this was chosen
+    "cost_per_1m_tokens": 3.0,
+    "complexity": "high",
+    "cache_source": "semantic_cache"
   }
 }
 ```
@@ -471,22 +515,30 @@ const withConstraints = await selectModel({
   protocol_manager: { cost_bias: 0.1 }
 });
 
-console.log(`Baseline: ${baseline.metadata.model}`);
-console.log(`Cost-optimized: ${withConstraints.metadata.model}`);
+console.log(`Baseline: ${baseline.model}`);
+console.log(`Cost-optimized: ${withConstraints.model}`);
 ```
 
 ### Validate Your Setup
 ```javascript
 // Make sure your routing rules work
-const shouldUseCheap = await selectModel({
-  model: "",
-  messages: [{ role: "user", content: "Hi" }]
-});
+const shouldUseCheap = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    models: [{ provider: "openai", model_name: "gpt-4o-mini" }, { provider: "openai", model_name: "gpt-4o" }],
+    prompt: "Hi"
+  })
+}).then(r => r.json());
 
-const shouldUseExpensive = await selectModel({
-  model: "",
-  messages: [{ role: "user", content: "Analyze this complex dataset..." }]
-});
+const shouldUseExpensive = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    models: [{ provider: "openai", model_name: "gpt-4o-mini" }, { provider: "openai", model_name: "gpt-4o" }],
+    prompt: "Analyze this complex dataset..."
+  })
+}).then(r => r.json());
 
 // Verify different complexity tasks get different models
 ```
