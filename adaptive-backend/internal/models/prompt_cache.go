@@ -12,19 +12,19 @@ import (
 type PromptCacheKey struct {
 	Messages    []openai.ChatCompletionMessageParamUnion        `json:"messages"`
 	Model       shared.ChatModel                                `json:"model"`
-	Temperature param.Opt[float64]                              `json:"temperature,omitempty"`
-	MaxTokens   param.Opt[int64]                                `json:"max_tokens,omitempty"`
-	TopP        param.Opt[float64]                              `json:"top_p,omitempty"`
+	Temperature param.Opt[float64]                              `json:"temperature"`
+	MaxTokens   param.Opt[int64]                                `json:"max_tokens"`
+	TopP        param.Opt[float64]                              `json:"top_p"`
 	Tools       []openai.ChatCompletionToolParam                `json:"tools,omitempty"`
-	ToolChoice  openai.ChatCompletionToolChoiceOptionUnionParam `json:"tool_choice,omitempty"`
+	ToolChoice  openai.ChatCompletionToolChoiceOptionUnionParam `json:"tool_choice"`
 }
 
 // PromptCacheStats represents cache statistics
 type PromptCacheStats struct {
-	PromptCacheKeys int                    `json:"prompt_cache_keys"`
-	RedisInfo       string                 `json:"redis_info"`
-	Timestamp       time.Time              `json:"timestamp"`
-	TTLStats        map[string]interface{} `json:"ttl_stats,omitempty"`
+	PromptCacheKeys int            `json:"prompt_cache_keys"`
+	RedisInfo       string         `json:"redis_info"`
+	Timestamp       time.Time      `json:"timestamp"`
+	TTLStats        map[string]any `json:"ttl_stats,omitempty"`
 }
 
 // PromptCacheEntry represents a cached entry with metadata

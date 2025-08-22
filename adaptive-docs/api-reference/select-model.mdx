@@ -1,11 +1,11 @@
 ---
 title: 'Select Model'
 api: 'POST https://llmadaptive.uk/api/v1/select-model'
-description: 'Get intelligent model selection for your own inference'
+description: 'Get intelligent model selection for any provider or infrastructure'
 icon: "brain"
 ---
 
-Get Adaptive's intelligent model selection without using our inference. Perfect when you want to use your own provider accounts, on-premise models, or custom inference infrastructure.
+Get Adaptive's intelligent model selection without using our inference. **Provider-agnostic design** - works with any models, any providers, any infrastructure.
 
 ## Why Use This?
 
@@ -18,92 +18,295 @@ Get Adaptive's intelligent model selection without using our inference. Perfect 
 
 ## Request
 
-Send the **exact same request** you'd send to `/chat/completions` - same parameters, same format. The only difference is this endpoint shows you the selection instead of running inference.
+**Provider-agnostic format** - send your available models and prompt, get intelligent selection back.
 
-<ParamField body="model" type="string" required>
-  Model identifier. Use `""` for intelligent routing.
+<ParamField body="models" type="array" required>
+  Array of available models. **For known models (GPT-4, Claude, Gemini, etc.), just specify `provider` and `model_name` - Adaptive knows the rest. Only provide full specs for custom/unknown models.**
+  
+  <Expandable title="Model Specification Options">
+    **Provider + Model (for known models):**
+    ```json
+    {"provider": "openai", "model_name": "gpt-4o-mini"}
+    ```
+    
+    **Provider-only (let Adaptive choose best model):**
+    ```json
+    {"provider": "anthropic"}
+    ```
+    
+    **Model-only (if provider is obvious):**
+    ```json
+    {"model_name": "gpt-4o-mini"}
+    ```
+    
+    **Full specification (for custom models):**
+    <ParamField body="provider" type="string" required>
+      Provider name (e.g., "openai", "anthropic", "local", "custom")
+    </ParamField>
+    
+    <ParamField body="model_name" type="string">
+      Model identifier (required unless provider-only)
+    </ParamField>
+    
+    <ParamField body="cost_per_1m_input_tokens" type="number">
+      Cost per 1M input tokens (auto-filled for known models)
+    </ParamField>
+    
+    <ParamField body="cost_per_1m_output_tokens" type="number">
+      Cost per 1M output tokens (auto-filled for known models)
+    </ParamField>
+    
+    <ParamField body="max_context_tokens" type="number">
+      Maximum context window size (auto-filled for known models)
+    </ParamField>
+    
+    <ParamField body="supports_function_calling" type="boolean">
+      Whether the model supports function/tool calling (auto-filled for known models)
+    </ParamField>
+    
+    <ParamField body="max_output_tokens" type="number">
+      Maximum output tokens (optional)
+    </ParamField>
+    
+    <ParamField body="complexity" type="string">
+      Model complexity tier: "low", "medium", "high" (optional)
+    </ParamField>
+    
+    <ParamField body="task_type" type="string">
+      Optimized task type (optional)
+    </ParamField>
+  </Expandable>
 </ParamField>
 
-<ParamField body="messages" type="array" required>
-  Your conversation messages - same format as chat completions.
+<ParamField body="prompt" type="string" required>
+  The prompt text to analyze for optimal model selection
 </ParamField>
 
-<ParamField body="protocol_manager" type="object">
-  Your routing configuration - test different settings here.
+<ParamField body="user" type="string">
+  Optional user identifier for caching optimization (enables user-specific cache hits)
 </ParamField>
 
-**All other chat completion parameters are supported** - temperature, max_tokens, tools, etc. They all affect model selection.
+<ParamField body="protocol_manager_config" type="object">
+  Optional routing configuration and preferences
+  
+  <Expandable title="Protocol Manager Configuration">
+    <ParamField body="cost_bias" type="number">
+      Cost optimization preference (0.0 = cheapest, 1.0 = best performance)
+    </ParamField>
+    
+    <ParamField body="complexity_threshold" type="number">
+      Complexity threshold for model selection
+    </ParamField>
+    
+    <ParamField body="token_threshold" type="number">
+      Token count threshold for routing decisions  
+    </ParamField>
+  </Expandable>
+</ParamField>
 
 ## Response
 
-<ResponseField name="request" type="object">
-  **The optimized request ready to send to your provider**
+<ResponseField name="provider" type="string">
+  **Selected provider name**
   
-  This is what you actually use - the complete request object with:
-  - Selected model name
-  - Optimized parameters  
-  - Your original messages and settings
-  - Ready to send directly to OpenAI, Anthropic, etc.
+  The provider that was chosen for this prompt (e.g., "openai", "anthropic", "local")
 </ResponseField>
 
-<ResponseField name="metadata" type="object">
-  **Optional info about the selection** (for logging/debugging)
+<ResponseField name="model" type="string">
+  **Selected model identifier**
   
-  <Expandable title="Selection Details">
+  The specific model that was chosen (e.g., "gpt-4", "claude-3-5-sonnet", "llama-3-8b")
+</ResponseField>
+
+<ResponseField name="alternatives" type="array">
+  **Alternative provider/model combinations** (optional)
+  
+  Fallback options if the primary selection is unavailable
+  
+  <Expandable title="Alternative Object">
     <ResponseField name="provider" type="string">
-      Which provider was selected
+      Alternative provider name
     </ResponseField>
     
     <ResponseField name="model" type="string">
-      Which specific model was selected
+      Alternative model identifier
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="metadata" type="object">
+  **Additional selection information** (for logging/debugging)
+  
+  <Expandable title="Selection Metadata">
+    <ResponseField name="reasoning" type="string">
+      Why this model was selected (optional)
     </ResponseField>
     
     <ResponseField name="cost_per_1m_tokens" type="number">
-      Cost info (optional, for your reference)
+      Cost per 1M input tokens for the selected model (optional)
+    </ResponseField>
+    
+    <ResponseField name="complexity" type="string">
+      Complexity classification of the prompt (optional)
+    </ResponseField>
+    
+    <ResponseField name="cache_source" type="string">
+      Cache hit information if applicable (optional)
     </ResponseField>
   </Expandable>
 </ResponseField>
 
 ## Quick Examples
 
-### "What model will this use?"
+### "Known models - just specify what you have"
 
 ```bash
-curl https://llmadaptive.uk/api/v1/select-model \
+# Mix and match specification styles
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
-    "model": "",
-    "messages": [{"role": "user", "content": "Hello"}]
-  }'
+    "models": [
+      {"provider": "openai", "model_name": "gpt-4o-mini"},
+      {"model_name": "claude-3-5-sonnet"},
+      {"provider": "google"}
+    ],
+    "prompt": "Hello, how are you?"
+  }')
 
-# Response: Shows gpt-4o-mini was selected
+http_code=$(echo "$response" | tail -n1)
+response_body=$(echo "$response" | head -n -1)
+
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo "Success: $response_body"
+else
+  echo "Error $http_code: $response_body" >&2
+  exit 1
+fi
+
+# Success response:
 {
+  "provider": "openai", 
+  "model": "gpt-4o-mini",
   "metadata": {
-    "provider": "openai",
-    "model": "gpt-4o-mini",
-    "cost_per_1m_tokens": 0.15
+    "cost_per_1m_tokens": 0.15,
+    "complexity": "low"
   }
 }
 ```
 
-### "Test my cost_bias setting"
+### "Just specify providers - let Adaptive choose"
+
+```bash
+# Even simpler - just say what providers you have access to
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
+  -H "X-Stainless-API-Key: $API_KEY" \
+  -d '{
+    "models": [
+      {"provider": "openai"},
+      {"provider": "anthropic"}
+    ],
+    "prompt": "Write a complex analysis of market trends"
+  }')
+
+http_code=$(echo "$response" | tail -n1)
+response_body=$(echo "$response" | head -n -1)
+
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo "Success: $response_body"
+else
+  echo "Error $http_code: $response_body" >&2
+  exit 1
+fi
+
+# Success response:
+{
+  "provider": "anthropic",
+  "model": "claude-3-5-sonnet-20241022",
+  "alternatives": [
+    {"provider": "openai", "model": "gpt-4o"}
+  ],
+  "metadata": {
+    "complexity": "high"
+  }
+}
+```
+
+### "Custom models - specify full details"
+
+```bash
+# Only specify details for custom/unknown models
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
+  -H "X-Stainless-API-Key: $API_KEY" \
+  -d '{
+    "models": [
+      {"provider": "openai", "model_name": "gpt-4o-mini"},
+      {
+        "provider": "local",
+        "model_name": "my-custom-llama-fine-tune",
+        "cost_per_1m_input_tokens": 0.0,
+        "cost_per_1m_output_tokens": 0.0,
+        "max_context_tokens": 4096,
+        "supports_function_calling": false,
+        "complexity": "medium"
+      }
+    ],
+    "prompt": "Hello, how are you?"
+  }')
+
+http_code=$(echo "$response" | tail -n1)
+response_body=$(echo "$response" | head -n -1)
+
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo "Success: $response_body"
+else
+  echo "Error $http_code: $response_body" >&2
+  exit 1
+fi
+
+# Known models use Adaptive's specs, custom models use yours
+```
+
+### "Test cost optimization"
 
 ```javascript
-// Will this actually use cheaper models?
-const result = await fetch('/api/v1/select-model', {
+// Will cost_bias actually pick cheaper models?
+const response = await fetch('/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': apiKey },
   body: JSON.stringify({
-    model: '',
-    messages: [{ role: 'user', content: 'Complex analysis task' }],
-    protocol_manager: {
-      cost_bias: 0.1  // Max cost savings
+    models: [
+      {
+        provider: "openai",
+        model_name: "gpt-4o-mini",
+        cost_per_1m_input_tokens: 0.15,
+        cost_per_1m_output_tokens: 0.6,
+        max_context_tokens: 128000,
+        supports_function_calling: true
+      },
+      {
+        provider: "openai",
+        model_name: "gpt-4o", 
+        cost_per_1m_input_tokens: 2.5,
+        cost_per_1m_output_tokens: 10.0,
+        max_context_tokens: 128000,
+        supports_function_calling: true
+      }
+    ],
+    prompt: "Analyze this complex dataset and provide insights...",
+    protocol_manager_config: {
+      cost_bias: 0.1  // Maximize cost savings
     }
   })
 });
 
-console.log(await result.json());
-// See if it actually picked a cheaper model
+if (!response.ok) {
+  const errorBody = await response.text();
+  throw new Error(`HTTP ${response.status}: ${errorBody}`);
+}
+
+const result = await response.json();
+console.log(result);
+// Check if it picked the cheaper model despite complexity
 ```
 
 ### "Compare different configurations"
@@ -111,93 +314,149 @@ console.log(await result.json());
 ```python
 import requests
 
+# Define available models
+models = [
+    {
+        "provider": "openai",
+        "model_name": "gpt-4o-mini",
+        "cost_per_1m_input_tokens": 0.15,
+        "cost_per_1m_output_tokens": 0.6,
+        "max_context_tokens": 128000,
+        "supports_function_calling": True,
+        "complexity": "low"
+    },
+    {
+        "provider": "openai", 
+        "model_name": "gpt-4o",
+        "cost_per_1m_input_tokens": 2.5,
+        "cost_per_1m_output_tokens": 10.0,
+        "max_context_tokens": 128000,
+        "supports_function_calling": True,
+        "complexity": "high"
+    }
+]
+
 base_request = {
-    "model": "",
-    "messages": [{"role": "user", "content": "Write Python code"}]
+    "models": models,
+    "prompt": "Write Python code to analyze customer data"
 }
 
 # Test cost-focused vs performance-focused
 configs = [
-    {"cost_bias": 0.1, "name": "cheap"},
-    {"cost_bias": 0.9, "name": "premium"}
+    {"cost_bias": 0.1, "name": "cost-optimized"},
+    {"cost_bias": 0.9, "name": "performance-focused"}
 ]
 
 for config in configs:
     response = requests.post('/api/v1/select-model', json={
         **base_request,
-        "protocol_manager": {"cost_bias": config["cost_bias"]}
+        "protocol_manager_config": {"cost_bias": config["cost_bias"]}
     })
     
     result = response.json()
-    print(f"{config['name']}: {result['metadata']['model']}")
+    print(f"{config['name']}: {result['provider']}/{result['model']}")
 ```
 
 ## Real-World Integration Patterns
 
 ### 1. Use Your Own Provider Accounts
 ```javascript
-// Get intelligent selection, use your own OpenAI/Anthropic accounts
+// Define your available models with your own pricing
+const availableModels = [
+  {
+    provider: "openai",
+    model_name: "gpt-4o-mini", 
+    cost_per_1m_input_tokens: 0.15,
+    cost_per_1m_output_tokens: 0.6,
+    max_context_tokens: 128000,
+    supports_function_calling: true
+  },
+  {
+    provider: "anthropic",
+    model_name: "claude-3-5-sonnet-20241022",
+    cost_per_1m_input_tokens: 3.0,
+    cost_per_1m_output_tokens: 15.0,
+    max_context_tokens: 200000,
+    supports_function_calling: true
+  }
+];
+
+// Get intelligent selection
 const selection = await fetch('/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey },
-  body: JSON.stringify(originalRequest)
+  body: JSON.stringify({
+    models: availableModels,
+    prompt: userMessage
+  })
 });
 
 const result = await selection.json();
 
-// Just send the optimized request to your provider
-const yourOpenAI = new OpenAI({ 
-  apiKey: process.env.YOUR_OPENAI_KEY 
-});
-
-const completion = await yourOpenAI.chat.completions.create(result.request);
-// That's it! The request already has the right model and parameters
+// Route to your own provider accounts
+if (result.provider === "openai") {
+  const completion = await yourOpenAI.chat.completions.create({
+    model: result.model,
+    messages: [{ role: "user", content: userMessage }]
+  });
+} else if (result.provider === "anthropic") {
+  const completion = await yourAnthropic.messages.create({
+    model: result.model,
+    messages: [{ role: "user", content: userMessage }],
+    max_tokens: 4096
+  });
+}
 ```
 
 ### 2. On-Premise Model Routing
 ```javascript
-// Configure Adaptive to know about your local models
-const selection = await selectModel({
-  model: '',
-  messages: userRequest,
-  protocol_manager: {
+// Tell Adaptive about your local models (plus a cloud fallback)
+const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
     models: [
       { provider: "local", model_name: "llama-3-8b" },
       { provider: "local", model_name: "llama-3-70b" },
       { provider: "openai", model_name: "gpt-4" } // Cloud fallback
-    ]
-  }
+    ],
+    prompt: userMessage
+  })
 });
+const selection = await res.json();
 
-// The response tells you which to use
-const optimizedRequest = selection.request;
-
-// Send to the appropriate infrastructure  
-if (optimizedRequest.model === "llama-3-8b") {
-  await yourLocalServer.infer(optimizedRequest);
-} else if (optimizedRequest.model === "gpt-4") {
-  await yourOpenAI.chat.completions.create(optimizedRequest);
+// Route to the right infrastructure using provider/model
+if (selection.provider === "local" && selection.model === "llama-3-8b") {
+  await yourLocalServer.infer({ model: selection.model, messages: [{ role: "user", content: userMessage }] });
+} else if (selection.provider === "openai") {
+  await yourOpenAI.chat.completions.create({ model: selection.model, messages: [{ role: "user", content: userMessage }] });
 }
 ```
 
 ### 3. Enterprise Contract Optimization
 ```javascript
 // Maximize usage of your enterprise contracts
-const selection = await selectModel({
-  messages: request,
-  protocol_manager: {
+const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
     models: [
       { provider: "anthropic" }, // Your enterprise contract
       { provider: "openai" },    // Your enterprise contract  
       { provider: "google" }     // Pay-per-use fallback
     ],
-    cost_bias: 0.8 // Prefer your contracted providers
-  }
+    prompt: userMessage,
+    protocol_manager_config: { cost_bias: 0.8 }
+  })
 });
+const selection = await res.json();
 
 // Always use your own accounts
-const completion = await yourProviderClients[selection.metadata.provider]
-  .create(selection.request);
+const client = yourProviderClients[selection.provider];
+const completion = await client.create({
+  model: selection.model,
+  messages: [{ role: "user", content: userMessage }]
+});
 ```
 
 ### 4. Data Privacy & Compliance
@@ -225,16 +484,15 @@ if (selection.metadata.complexity === "high") {
 
 ```json
 {
-  "request": {
-    "model": "claude-3-5-sonnet-20241022",  // ← Exact model chosen
-    "messages": [...],                       // ← Your original messages
-    "temperature": 0.7                       // ← Optimized parameters
-  },
+  "provider": "anthropic",
+  "model": "claude-3-5-sonnet-20241022",
+  "alternatives": [
+    { "provider": "openai", "model": "gpt-4o" }
+  ],
   "metadata": {
-    "provider": "anthropic",                 // ← Which service
-    "model": "claude-3-5-sonnet-20241022",  // ← Specific model
-    "cost_per_1m_tokens": 3.0,             // ← Cost info
-    "complexity": "high"                     // ← Why this was chosen
+    "cost_per_1m_tokens": 3.0,
+    "complexity": "high",
+    "cache_source": "semantic_cache"
   }
 }
 ```
@@ -257,22 +515,30 @@ const withConstraints = await selectModel({
   protocol_manager: { cost_bias: 0.1 }
 });
 
-console.log(`Baseline: ${baseline.metadata.model}`);
-console.log(`Cost-optimized: ${withConstraints.metadata.model}`);
+console.log(`Baseline: ${baseline.model}`);
+console.log(`Cost-optimized: ${withConstraints.model}`);
 ```
 
 ### Validate Your Setup
 ```javascript
 // Make sure your routing rules work
-const shouldUseCheap = await selectModel({
-  model: "",
-  messages: [{ role: "user", content: "Hi" }]
-});
+const shouldUseCheap = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    models: [{ provider: "openai", model_name: "gpt-4o-mini" }, { provider: "openai", model_name: "gpt-4o" }],
+    prompt: "Hi"
+  })
+}).then(r => r.json());
 
-const shouldUseExpensive = await selectModel({
-  model: "",
-  messages: [{ role: "user", content: "Analyze this complex dataset..." }]
-});
+const shouldUseExpensive = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    models: [{ provider: "openai", model_name: "gpt-4o-mini" }, { provider: "openai", model_name: "gpt-4o" }],
+    prompt: "Analyze this complex dataset..."
+  })
+}).then(r => r.json());
 
 // Verify different complexity tasks get different models
 ```

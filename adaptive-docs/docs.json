@@ -78,8 +78,8 @@
     ]
   },
   "logo": {
-    "light": "/logo/logo.png",
-    "dark": "/logo/logo-dark.png",
+    "light": "/logo/logo.svg",
+    "dark": "/logo/logo-dark.svg",
     "href": "https://llmadaptive.uk"
   },
   "navbar": {

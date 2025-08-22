@@ -158,20 +158,6 @@ func (cs *CompletionService) HandleMinionCompletion(
 	return fmt.Errorf("all minion providers failed")
 }
 
-// HandleMinionsProtocolCompletion handles MinionS protocol - simplified to use standard completion.
-func (cs *CompletionService) HandleMinionsProtocolCompletion(
-	c *fiber.Ctx,
-	req *models.ChatCompletionRequest,
-	resp *models.ProtocolResponse,
-	requestID string,
-	isStream bool,
-	cacheSource string,
-) error {
-	// For now, just use the standard completion from the response
-	fiberlog.Infof("[%s] Using standard completion for MinionS protocol", requestID)
-	return cs.HandleStandardCompletion(c, req, resp.Standard, requestID, isStream, cacheSource)
-}
-
 // executeCompletion handles the actual completion execution
 func (cs *CompletionService) executeCompletion(
 	c *fiber.Ctx,

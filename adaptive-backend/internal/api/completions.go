@@ -45,7 +45,6 @@ func NewCompletionHandler(
 // and response handling with circuit breaking for reliability.
 func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	reqID := h.reqSvc.GetRequestID(c)
-	userID := h.reqSvc.GetAPIKey(c)
 	fiberlog.Infof("[%s] starting chat completion request", reqID)
 
 	req, err := h.reqSvc.ParseChatCompletionRequest(c)
@@ -53,6 +52,12 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return h.respSvc.HandleBadRequest(c, err.Error(), reqID)
 	}
 	isStream := req.Stream
+
+	// Get userID from request
+	userID := "anonymous"
+	if req.User.Value != "" {
+		userID = req.User.Value
+	}
 
 	// Fallback is now handled directly in completion service
 
