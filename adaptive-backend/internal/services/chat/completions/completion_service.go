@@ -102,25 +102,33 @@ func (cs *CompletionService) HandleStandardCompletion(
 	if err == nil {
 		fiberlog.Infof("[%s] Using primary standard provider: %s (%s)", requestID, standardInfo.Provider, standardInfo.Model)
 		req.Model = shared.ChatModel(standardInfo.Model)
-		return cs.executeCompletion(c, client, standardInfo.Provider, req, requestID, isStream, cacheSource)
+		if execErr := cs.executeCompletion(c, client, standardInfo.Provider, req, requestID, isStream, cacheSource); execErr == nil {
+			return nil
+		} else {
+			fiberlog.Warnf("[%s] Primary standard provider %s (%s) execution failed: %v", requestID, standardInfo.Provider, standardInfo.Model, execErr)
+		}
+	} else {
+		fiberlog.Warnf("[%s] Primary standard provider %s creation failed: %v", requestID, standardInfo.Provider, err)
 	}
-
-	fiberlog.Warnf("[%s] Primary standard provider %s failed: %v", requestID, standardInfo.Provider, err)
 
 	// Try alternatives
 	for _, alt := range standardInfo.Alternatives {
 		client, err := cs.createClient(alt.Provider, req.ProviderConfigs)
 		if err != nil {
-			fiberlog.Warnf("[%s] Alternative standard provider %s failed: %v", requestID, alt.Provider, err)
+			fiberlog.Warnf("[%s] Alternative standard provider %s creation failed: %v", requestID, alt.Provider, err)
 			continue
 		}
 
 		fiberlog.Infof("[%s] Using alternative standard provider: %s (%s)", requestID, alt.Provider, alt.Model)
 		req.Model = shared.ChatModel(alt.Model)
-		return cs.executeCompletion(c, client, alt.Provider, req, requestID, isStream, cacheSource)
+		if execErr := cs.executeCompletion(c, client, alt.Provider, req, requestID, isStream, cacheSource); execErr == nil {
+			return nil
+		} else {
+			fiberlog.Warnf("[%s] Alternative standard provider %s (%s) execution failed: %v", requestID, alt.Provider, alt.Model, execErr)
+		}
 	}
 
-	return fmt.Errorf("all standard providers failed")
+	return fmt.Errorf("all standard providers failed (creation or execution)")
 }
 
 // HandleMinionCompletion handles minion protocol completions with fallback.
@@ -137,25 +145,33 @@ func (cs *CompletionService) HandleMinionCompletion(
 	if err == nil {
 		fiberlog.Infof("[%s] Using primary minion provider: %s (%s)", requestID, minionInfo.Provider, minionInfo.Model)
 		req.Model = shared.ChatModel(minionInfo.Model)
-		return cs.executeCompletion(c, client, minionInfo.Provider, req, requestID, isStream, cacheSource)
+		if execErr := cs.executeCompletion(c, client, minionInfo.Provider, req, requestID, isStream, cacheSource); execErr == nil {
+			return nil
+		} else {
+			fiberlog.Warnf("[%s] Primary minion provider %s (%s) execution failed: %v", requestID, minionInfo.Provider, minionInfo.Model, execErr)
+		}
+	} else {
+		fiberlog.Warnf("[%s] Primary minion provider %s creation failed: %v", requestID, minionInfo.Provider, err)
 	}
-
-	fiberlog.Warnf("[%s] Primary minion provider %s failed: %v", requestID, minionInfo.Provider, err)
 
 	// Try alternatives
 	for _, alt := range minionInfo.Alternatives {
 		client, err := cs.createClient(alt.Provider, req.ProviderConfigs)
 		if err != nil {
-			fiberlog.Warnf("[%s] Alternative minion provider %s failed: %v", requestID, alt.Provider, err)
+			fiberlog.Warnf("[%s] Alternative minion provider %s creation failed: %v", requestID, alt.Provider, err)
 			continue
 		}
 
 		fiberlog.Infof("[%s] Using alternative minion provider: %s (%s)", requestID, alt.Provider, alt.Model)
 		req.Model = shared.ChatModel(alt.Model)
-		return cs.executeCompletion(c, client, alt.Provider, req, requestID, isStream, cacheSource)
+		if execErr := cs.executeCompletion(c, client, alt.Provider, req, requestID, isStream, cacheSource); execErr == nil {
+			return nil
+		} else {
+			fiberlog.Warnf("[%s] Alternative minion provider %s (%s) execution failed: %v", requestID, alt.Provider, alt.Model, execErr)
+		}
 	}
 
-	return fmt.Errorf("all minion providers failed")
+	return fmt.Errorf("all minion providers failed (creation or execution)")
 }
 
 // executeCompletion handles the actual completion execution
