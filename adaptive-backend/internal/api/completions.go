@@ -21,7 +21,6 @@ type CompletionHandler struct {
 	respSvc     *completions.ResponseService
 	paramSvc    *completions.ParameterService
 	protocolMgr *protocol_manager.ProtocolManager
-	fallbackSvc *completions.FallbackService
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
@@ -31,7 +30,6 @@ func NewCompletionHandler(
 	respSvc *completions.ResponseService,
 	paramSvc *completions.ParameterService,
 	protocolMgr *protocol_manager.ProtocolManager,
-	fallbackSvc *completions.FallbackService,
 ) *CompletionHandler {
 	return &CompletionHandler{
 		cfg:         cfg,
@@ -39,7 +37,6 @@ func NewCompletionHandler(
 		respSvc:     respSvc,
 		paramSvc:    paramSvc,
 		protocolMgr: protocolMgr,
-		fallbackSvc: fallbackSvc,
 	}
 }
 
@@ -57,8 +54,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 	isStream := req.Stream
 
-	// Configure fallback mode based on request
-	h.configureFallbackMode(req, reqID)
+	// Fallback is now handled directly in completion service
 
 	resp, cacheSource, err := h.selectProtocol(
 		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
@@ -112,33 +108,3 @@ func (h *CompletionHandler) selectProtocol(
 	return resp, cacheSource, nil
 }
 
-// configureFallbackMode sets the fallback mode based on the request configuration
-func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequest, reqID string) {
-	// Merge YAML fallback config with request override
-	mergedFallback := h.cfg.MergeFallbackConfig(req.Fallback)
-	enabled := mergedFallback.Enabled
-	mode := mergedFallback.Mode
-
-	fiberlog.Debugf("[%s] Using merged fallback config - enabled: %t, mode: %s", reqID, enabled, mode)
-
-	// Check if fallback is disabled
-	if !enabled {
-		h.fallbackSvc.SetMode(models.FallbackModeSequential)
-		fiberlog.Debugf("[%s] Fallback is explicitly disabled, using single provider only", reqID)
-		return
-	}
-
-	// Fallback is enabled, configure the mode
-	switch mode {
-	case models.FallbackModeSequential:
-		h.fallbackSvc.SetMode(models.FallbackModeSequential)
-		fiberlog.Infof("[%s] Fallback enabled with mode: sequential", reqID)
-	case models.FallbackModeRace:
-		h.fallbackSvc.SetMode(models.FallbackModeRace)
-		fiberlog.Infof("[%s] Fallback enabled with mode: race", reqID)
-	default:
-		// Unknown mode, default to parallel with warning
-		h.fallbackSvc.SetMode(models.FallbackModeRace)
-		fiberlog.Warnf("[%s] Fallback enabled with unknown mode '%s', using default: parallel", reqID, mode)
-	}
-}

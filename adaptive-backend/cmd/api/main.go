@@ -29,7 +29,6 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Create shared services once
 	reqSvc := completions.NewRequestService()
 	paramSvc := completions.NewParameterService()
-	fallbackSvc := completions.NewFallbackService(cfg)
 
 	// Create protocol manager (shared between handlers)
 	protocolMgr, err := protocol_manager.NewProtocolManager(cfg)
@@ -38,10 +37,10 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	}
 
 	// Create response service (depends on protocol manager)
-	respSvc := completions.NewResponseService(cfg, protocolMgr, fallbackSvc)
+	respSvc := completions.NewResponseService(cfg, protocolMgr)
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr)
 	selectModelHandler := api.NewSelectModelHandler(reqSvc, protocolMgr)
 
 	// Health endpoint (no auth required)

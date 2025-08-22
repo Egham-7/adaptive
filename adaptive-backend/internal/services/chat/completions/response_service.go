@@ -23,19 +23,16 @@ type ResponseService struct {
 }
 
 // NewResponseService creates a new response service.
-func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager, fallbackService *FallbackService) *ResponseService {
+func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager) *ResponseService {
 	if cfg == nil {
 		panic("NewResponseService: cfg is nil")
 	}
 	if protocolMgr == nil {
 		panic("NewResponseService: protocolMgr is nil")
 	}
-	if fallbackService == nil {
-		panic("NewResponseService: fallbackService is nil")
-	}
 
 	return &ResponseService{
-		completionService: NewCompletionService(cfg, fallbackService),
+		completionService: NewCompletionService(cfg),
 		protocolMgr:       protocolMgr,
 	}
 }
