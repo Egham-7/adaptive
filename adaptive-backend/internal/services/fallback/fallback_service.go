@@ -155,10 +155,26 @@ func (fs *FallbackService) executeRace(
 		}(provider)
 	}
 
-	// Close channel when all goroutines are done
+	// Context-aware cleanup with done channel coordination
+	done := make(chan struct{})
+	var closeOnce sync.Once
+
+	// Goroutine 1: Wait for all provider goroutines to finish
 	go func() {
 		wg.Wait()
-		close(resultCh)
+		close(done)
+	}()
+
+	// Goroutine 2: Coordinate cleanup respecting context cancellation
+	go func() {
+		select {
+		case <-done:
+			// All provider goroutines completed normally
+			closeOnce.Do(func() { close(resultCh) })
+		case <-ctx.Done():
+			// Context cancelled, cleanup and return early
+			closeOnce.Do(func() { close(resultCh) })
+		}
 	}()
 
 	// Wait for results with proper context handling
