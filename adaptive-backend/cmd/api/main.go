@@ -51,7 +51,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc)
 
 	// Health endpoint (no auth required)
-	app.Get("/health", healthHandler.Health)
+	app.Get(healthEndpoint, healthHandler.Health)
 
 	// Apply JWT authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
@@ -68,10 +68,6 @@ const (
 	chatEndpoint        = "/v1/chat/completions"
 	selectModelEndpoint = "/v1/select-model"
 	allowedMethods      = "GET, POST, PUT, DELETE, OPTIONS"
-	allowedHeadersKey   = "ALLOWED_ORIGINS"
-	addrKey             = "ADDR"
-	envKey              = "ENV"
-	logLevelKey         = "LOG_LEVEL"
 )
 
 // main is the entry point for the Adaptive backend server.
