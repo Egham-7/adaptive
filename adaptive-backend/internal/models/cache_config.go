@@ -19,8 +19,8 @@ type PromptCacheConfig struct {
 // ProtocolManagerConfig holds configuration for the protocol manager
 type ProtocolManagerConfig struct {
 	// YAML config fields
-	SemanticCache SemanticCacheConfig         `json:"semantic_cache,omitempty" yaml:"semantic_cache"`
-	Client        ProtocolManagerClientConfig `json:"client,omitempty" yaml:"client"`
+	SemanticCache SemanticCacheConfig         `json:"semantic_cache" yaml:"semantic_cache"`
+	Client        ProtocolManagerClientConfig `json:"client" yaml:"client"`
 	// Request-level config fields
 	Models              []ModelCapability `json:"models,omitempty"`
 	CostBias            float32           `json:"cost_bias,omitempty"`
@@ -32,5 +32,5 @@ type ProtocolManagerConfig struct {
 type ProtocolManagerClientConfig struct {
 	BaseURL        string               `json:"base_url,omitempty" yaml:"base_url"`
 	TimeoutMs      int                  `json:"timeout_ms,omitempty" yaml:"timeout_ms"`
-	CircuitBreaker CircuitBreakerConfig `json:"circuit_breaker,omitempty" yaml:"circuit_breaker"`
+	CircuitBreaker CircuitBreakerConfig `json:"circuit_breaker" yaml:"circuit_breaker"`
 }

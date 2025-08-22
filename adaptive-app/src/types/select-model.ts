@@ -1,13 +1,29 @@
 import { z } from "zod";
-import { adaptiveChatCompletionRequestSchema } from "./chat-completion";
+import {
+	modelCapabilitySchema,
+	protocolManagerConfigSchema,
+} from "./chat-completion";
 
-// Select model request uses the same schema as adaptive chat completion request
-export const selectModelRequestSchema = adaptiveChatCompletionRequestSchema;
+// Provider-agnostic select model request schema
+export const selectModelRequestSchema = z.object({
+	// Available models with their capabilities and constraints
+	models: z.array(modelCapabilitySchema),
+	// The prompt text to analyze for optimal model selection
+	prompt: z.string().min(1, "Prompt cannot be empty"),
+	// Optional user identifier for tracking and personalization
+	user: z.string().optional(),
+	// Protocol manager configuration for routing decisions
+	protocol_manager_config: protocolManagerConfigSchema.optional(),
+});
+
+// Zod schema for alternative provider/model combinations
+export const alternativeSchema = z.object({
+	provider: z.string(),
+	model: z.string(),
+});
 
 // Zod schema for selection metadata
 export const selectionMetadataSchema = z.object({
-	provider: z.string(),
-	model: z.string(),
 	reasoning: z.string().optional(),
 	cost_per_1m_tokens: z.number().optional(),
 	complexity: z.string().optional(),
@@ -16,11 +32,18 @@ export const selectionMetadataSchema = z.object({
 
 // Zod schema for select model response
 export const selectModelResponseSchema = z.object({
-	request: selectModelRequestSchema,
+	// Selected provider
+	provider: z.string(),
+	// Selected model
+	model: z.string(),
+	// Alternative provider/model combinations
+	alternatives: z.array(alternativeSchema).optional(),
+	// Additional metadata about the selection
 	metadata: selectionMetadataSchema,
 });
 
 // TypeScript types derived from Zod schemas
 export type SelectModelRequest = z.infer<typeof selectModelRequestSchema>;
+export type Alternative = z.infer<typeof alternativeSchema>;
 export type SelectionMetadata = z.infer<typeof selectionMetadataSchema>;
 export type SelectModelResponse = z.infer<typeof selectModelResponseSchema>;

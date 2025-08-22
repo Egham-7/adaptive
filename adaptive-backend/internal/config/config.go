@@ -3,6 +3,7 @@ package config
 import (
 	"adaptive-backend/internal/models"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -156,6 +157,26 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// cloneStringAnyMap creates a deep copy of a map[string]any
+func cloneStringAnyMap(src map[string]any) map[string]any {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]any, len(src))
+	maps.Copy(dst, src)
+	return dst
+}
+
+// cloneStringStringMap creates a deep copy of a map[string]string
+func cloneStringStringMap(src map[string]string) map[string]string {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]string, len(src))
+	maps.Copy(dst, src)
+	return dst
+}
+
 // MergeProviderConfig merges YAML provider config with request override config.
 // The request override takes precedence over YAML config for non-empty values.
 func (c *Config) MergeProviderConfig(providerName string, override *models.ProviderConfig) (models.ProviderConfig, error) {
@@ -170,8 +191,18 @@ func (c *Config) MergeProviderConfig(providerName string, override *models.Provi
 		return baseConfig, nil
 	}
 
-	// Create merged config starting with base
-	merged := baseConfig
+	// Create merged config with proper deep copy of struct value and map fields
+	merged := models.ProviderConfig{
+		APIKey:         baseConfig.APIKey,
+		BaseURL:        baseConfig.BaseURL,
+		AuthType:       baseConfig.AuthType,
+		AuthHeaderName: baseConfig.AuthHeaderName,
+		HealthEndpoint: baseConfig.HealthEndpoint,
+		RateLimitRpm:   baseConfig.RateLimitRpm,
+		TimeoutMs:      baseConfig.TimeoutMs,
+		RetryConfig:    cloneStringAnyMap(baseConfig.RetryConfig),
+		Headers:        cloneStringStringMap(baseConfig.Headers),
+	}
 
 	// Override non-empty values from request
 	if override.APIKey != "" {
@@ -196,22 +227,18 @@ func (c *Config) MergeProviderConfig(providerName string, override *models.Provi
 		merged.TimeoutMs = override.TimeoutMs
 	}
 	if len(override.RetryConfig) > 0 {
-		// Merge retry config maps
+		// Merge retry config into cloned map
 		if merged.RetryConfig == nil {
-			merged.RetryConfig = make(map[string]interface{})
+			merged.RetryConfig = make(map[string]any)
 		}
-		for key, value := range override.RetryConfig {
-			merged.RetryConfig[key] = value
-		}
+		maps.Copy(merged.RetryConfig, override.RetryConfig)
 	}
 	if len(override.Headers) > 0 {
-		// Merge headers maps
+		// Merge headers into cloned map
 		if merged.Headers == nil {
 			merged.Headers = make(map[string]string)
 		}
-		for key, value := range override.Headers {
-			merged.Headers[key] = value
-		}
+		maps.Copy(merged.Headers, override.Headers)
 	}
 
 	return merged, nil
