@@ -7,6 +7,7 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/select_model"
 	"context"
 	"fmt"
 	"os"
@@ -40,9 +41,14 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Create response service (depends on protocol manager)
 	respSvc := completions.NewResponseService(cfg, protocolMgr, fallbackSvc)
 
+	// Create services for select model handler
+	selectModelReqSvc := select_model.NewRequestService()
+	selectModelSvc := select_model.NewService(protocolMgr)
+	selectModelRespSvc := select_model.NewResponseService()
+
 	// Initialize handlers with shared dependencies
 	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)
-	selectModelHandler := api.NewSelectModelHandler(reqSvc, protocolMgr)
+	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc)
 
 	// Health endpoint (no auth required)
 	app.Get("/health", healthHandler.Health)

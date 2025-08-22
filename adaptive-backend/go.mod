@@ -6,12 +6,13 @@ toolchain go1.24.3
 
 require (
 	github.com/alitto/pond/v2 v2.5.0
+	github.com/anthropics/anthropic-sdk-go v1.9.1
 	github.com/botirk38/semanticcache v0.2.0
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/openai/openai-go v1.12.0
-	github.com/valyala/fasthttp v1.65.0
 	github.com/redis/go-redis/v9 v9.12.1
+	github.com/valyala/fasthttp v1.65.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

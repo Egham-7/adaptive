@@ -3,6 +3,7 @@ package config
 import (
 	"adaptive-backend/internal/models"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -198,20 +199,16 @@ func (c *Config) MergeProviderConfig(providerName string, override *models.Provi
 	if len(override.RetryConfig) > 0 {
 		// Merge retry config maps
 		if merged.RetryConfig == nil {
-			merged.RetryConfig = make(map[string]interface{})
+			merged.RetryConfig = make(map[string]any)
 		}
-		for key, value := range override.RetryConfig {
-			merged.RetryConfig[key] = value
-		}
+		maps.Copy(merged.RetryConfig, override.RetryConfig)
 	}
 	if len(override.Headers) > 0 {
 		// Merge headers maps
 		if merged.Headers == nil {
 			merged.Headers = make(map[string]string)
 		}
-		for key, value := range override.Headers {
-			merged.Headers[key] = value
-		}
+		maps.Copy(merged.Headers, override.Headers)
 	}
 
 	return merged, nil

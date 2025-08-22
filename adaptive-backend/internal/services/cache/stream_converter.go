@@ -126,10 +126,7 @@ func convertToStreamingChunks(completion *models.ChatCompletion, requestID strin
 	// Create chunks for content, sending a few words at a time
 	wordsPerChunk := 3 // Adjust as needed for streaming feel
 	for i := 0; i < len(words); i += wordsPerChunk {
-		end := i + wordsPerChunk
-		if end > len(words) {
-			end = len(words)
-		}
+		end := min(i+wordsPerChunk, len(words))
 
 		// Join words for this chunk
 		chunkContent := strings.Join(words[i:end], " ")
@@ -191,8 +188,8 @@ func sendStreamErrorEvent(w *bufio.Writer, requestID, message string, err error)
 	fiberlog.Errorf("[%s] %s: %v", requestID, message, err)
 
 	// Create error response in OpenAI format
-	errorResponse := map[string]interface{}{
-		"error": map[string]interface{}{
+	errorResponse := map[string]any{
+		"error": map[string]any{
 			"message":    err.Error(),
 			"type":       "cached_stream_error",
 			"request_id": requestID,
