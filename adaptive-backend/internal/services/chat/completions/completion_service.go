@@ -4,6 +4,7 @@ import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
+	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/stream_readers/stream"
 	"fmt"
 	"net/http"
@@ -18,12 +19,17 @@ import (
 
 // CompletionService handles completion requests with fallback logic.
 type CompletionService struct {
-	cfg         *config.Config
-	promptCache *cache.PromptCache
+	cfg             *config.Config
+	promptCache     *cache.PromptCache
+	fallbackService *fallback.FallbackService
 }
 
 // NewCompletionService creates a new completion service.
 func NewCompletionService(cfg *config.Config) *CompletionService {
+	if cfg == nil {
+		panic("NewCompletionService: cfg cannot be nil")
+	}
+
 	// Initialize prompt cache, but don't fail if it can't be created
 	promptCache, err := cache.NewPromptCache(cfg)
 	if err != nil {
@@ -32,8 +38,9 @@ func NewCompletionService(cfg *config.Config) *CompletionService {
 	}
 
 	return &CompletionService{
-		cfg:         cfg,
-		promptCache: promptCache,
+		cfg:             cfg,
+		promptCache:     promptCache,
+		fallbackService: fallback.NewFallbackService(cfg),
 	}
 }
 
@@ -60,8 +67,11 @@ func (cs *CompletionService) createClient(providerName string, customConfigs map
 }
 
 func (cs *CompletionService) buildClient(providerConfig models.ProviderConfig, providerName string) (*openai.Client, error) {
+	if providerName == "" {
+		return nil, models.NewValidationError("provider name cannot be empty", nil)
+	}
 	if providerConfig.APIKey == "" {
-		return nil, fmt.Errorf("%s API key not set in configuration", providerName)
+		return nil, models.NewProviderError(providerName, "API key not configured", nil)
 	}
 
 	opts := []option.RequestOption{
@@ -97,38 +107,41 @@ func (cs *CompletionService) HandleStandardCompletion(
 	isStream bool,
 	cacheSource string,
 ) error {
-	// Try primary provider first
-	client, err := cs.createClient(standardInfo.Provider, req.ProviderConfigs)
-	if err == nil {
-		fiberlog.Infof("[%s] Using primary standard provider: %s (%s)", requestID, standardInfo.Provider, standardInfo.Model)
-		req.Model = shared.ChatModel(standardInfo.Model)
-		if execErr := cs.executeCompletion(c, client, standardInfo.Provider, req, requestID, isStream, cacheSource); execErr == nil {
-			return nil
-		} else {
-			fiberlog.Warnf("[%s] Primary standard provider %s (%s) execution failed: %v", requestID, standardInfo.Provider, standardInfo.Model, execErr)
-		}
-	} else {
-		fiberlog.Warnf("[%s] Primary standard provider %s creation failed: %v", requestID, standardInfo.Provider, err)
+	if c == nil || req == nil || standardInfo == nil || requestID == "" {
+		return models.NewValidationError("invalid input parameters", nil)
 	}
+	// Get fallback configuration
+	fallbackConfig := cs.fallbackService.GetFallbackConfig(req.Fallback)
 
-	// Try alternatives
-	for _, alt := range standardInfo.Alternatives {
-		client, err := cs.createClient(alt.Provider, req.ProviderConfigs)
+	// Create provider list with primary and alternatives
+	providers := []models.Alternative{{
+		Provider: standardInfo.Provider,
+		Model:    standardInfo.Model,
+	}}
+
+	providers = append(providers, standardInfo.Alternatives...)
+
+	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, requestID, isStream, cacheSource), requestID, "standard", isStream)
+}
+
+// createExecuteFunc creates an execution function for the fallback service
+func (cs *CompletionService) createExecuteFunc(
+	req *models.ChatCompletionRequest,
+	requestID string,
+	isStream bool,
+	cacheSource string,
+) models.ExecutionFunc {
+	return func(c *fiber.Ctx, provider models.Alternative, reqID string) error {
+		client, err := cs.createClient(provider.Provider, req.ProviderConfigs)
 		if err != nil {
-			fiberlog.Warnf("[%s] Alternative standard provider %s creation failed: %v", requestID, alt.Provider, err)
-			continue
+			return fmt.Errorf("client creation failed: %w", err)
 		}
 
-		fiberlog.Infof("[%s] Using alternative standard provider: %s (%s)", requestID, alt.Provider, alt.Model)
-		req.Model = shared.ChatModel(alt.Model)
-		if execErr := cs.executeCompletion(c, client, alt.Provider, req, requestID, isStream, cacheSource); execErr == nil {
-			return nil
-		} else {
-			fiberlog.Warnf("[%s] Alternative standard provider %s (%s) execution failed: %v", requestID, alt.Provider, alt.Model, execErr)
-		}
+		// Create a copy to avoid race conditions when mutating req.Model
+		reqCopy := *req
+		reqCopy.Model = shared.ChatModel(provider.Model)
+		return cs.executeCompletion(c, client, provider.Provider, &reqCopy, reqID, isStream, cacheSource)
 	}
-
-	return fmt.Errorf("all standard providers failed (creation or execution)")
 }
 
 // HandleMinionCompletion handles minion protocol completions with fallback.
@@ -140,38 +153,21 @@ func (cs *CompletionService) HandleMinionCompletion(
 	isStream bool,
 	cacheSource string,
 ) error {
-	// Try primary provider first
-	client, err := cs.createClient(minionInfo.Provider, req.ProviderConfigs)
-	if err == nil {
-		fiberlog.Infof("[%s] Using primary minion provider: %s (%s)", requestID, minionInfo.Provider, minionInfo.Model)
-		req.Model = shared.ChatModel(minionInfo.Model)
-		if execErr := cs.executeCompletion(c, client, minionInfo.Provider, req, requestID, isStream, cacheSource); execErr == nil {
-			return nil
-		} else {
-			fiberlog.Warnf("[%s] Primary minion provider %s (%s) execution failed: %v", requestID, minionInfo.Provider, minionInfo.Model, execErr)
-		}
-	} else {
-		fiberlog.Warnf("[%s] Primary minion provider %s creation failed: %v", requestID, minionInfo.Provider, err)
+	if c == nil || req == nil || minionInfo == nil || requestID == "" {
+		return models.NewValidationError("invalid input parameters", nil)
 	}
+	// Get fallback configuration
+	fallbackConfig := cs.fallbackService.GetFallbackConfig(req.Fallback)
 
-	// Try alternatives
-	for _, alt := range minionInfo.Alternatives {
-		client, err := cs.createClient(alt.Provider, req.ProviderConfigs)
-		if err != nil {
-			fiberlog.Warnf("[%s] Alternative minion provider %s creation failed: %v", requestID, alt.Provider, err)
-			continue
-		}
+	// Create provider list with primary and alternatives
+	providers := []models.Alternative{{
+		Provider: minionInfo.Provider,
+		Model:    minionInfo.Model,
+	}}
 
-		fiberlog.Infof("[%s] Using alternative minion provider: %s (%s)", requestID, alt.Provider, alt.Model)
-		req.Model = shared.ChatModel(alt.Model)
-		if execErr := cs.executeCompletion(c, client, alt.Provider, req, requestID, isStream, cacheSource); execErr == nil {
-			return nil
-		} else {
-			fiberlog.Warnf("[%s] Alternative minion provider %s (%s) execution failed: %v", requestID, alt.Provider, alt.Model, execErr)
-		}
-	}
+	providers = append(providers, minionInfo.Alternatives...)
 
-	return fmt.Errorf("all minion providers failed (creation or execution)")
+	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, requestID, isStream, cacheSource), requestID, "minion", isStream)
 }
 
 // executeCompletion handles the actual completion execution
@@ -205,7 +201,7 @@ func (cs *CompletionService) executeCompletion(
 	fiberlog.Infof("[%s] generating completion from %s", requestID, providerName)
 	resp, err := client.Chat.Completions.New(c.Context(), *req.ToOpenAIParams())
 	if err != nil {
-		return fmt.Errorf("completion failed: %w", err)
+		return models.NewProviderError(providerName, "completion request failed", err)
 	}
 
 	adaptiveResp := models.ConvertToAdaptive(resp, providerName)
