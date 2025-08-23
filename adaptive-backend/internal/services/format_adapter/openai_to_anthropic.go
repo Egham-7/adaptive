@@ -72,9 +72,9 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *models.ChatCompletionRe
 		}
 		// Convert to ToolUnionParam slice
 		var toolUnions []anthropic.ToolUnionParam
-		for _, tool := range anthropicTools {
+		for i := range anthropicTools {
 			toolUnions = append(toolUnions, anthropic.ToolUnionParam{
-				OfTool: &tool,
+				OfTool: &anthropicTools[i],
 			})
 		}
 		anthropicReq.Tools = toolUnions
