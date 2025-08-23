@@ -7,12 +7,18 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go/shared"
+)
+
+// Sentinel errors for proper HTTP status code mapping
+var (
+	ErrInvalidModelSpec = errors.New("invalid model specification")
 )
 
 // CompletionHandler handles chat completions end-to-end.
@@ -69,6 +75,10 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
 	)
 	if err != nil {
+		// Check for invalid model specification error to return 400 instead of 500
+		if errors.Is(err, ErrInvalidModelSpec) {
+			return h.respSvc.HandleBadRequest(c, err.Error(), reqID)
+		}
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
@@ -142,7 +152,7 @@ func (h *CompletionHandler) createManualProtocolResponse(
 	provider, modelName, err := h.parseProviderModel(modelSpec)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to parse model specification '%s': %v", requestID, modelSpec, err)
-		return nil, "", fmt.Errorf("invalid model format '%s', expected 'provider:model': %w", modelSpec, err)
+		return nil, "", fmt.Errorf("%w: invalid model format '%s', expected 'provider:model'", ErrInvalidModelSpec, modelSpec)
 	}
 
 	fiberlog.Infof("[%s] Parsed model specification '%s' -> provider: %s, model: %s", requestID, modelSpec, provider, modelName)

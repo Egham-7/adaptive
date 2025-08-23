@@ -358,9 +358,32 @@ func (c *OpenAIToAnthropicConverter) convertTools(tools []openai.ChatCompletionT
 			Description: anthropicparam.Opt[string]{Value: tool.Function.Description.Value},
 		}
 
-		// Convert function parameters to Anthropic input schema
+		// Convert function parameters (OpenAI JSON Schema) to Anthropic input_schema
 		if tool.Function.Parameters != nil {
-			anthropicTool.InputSchema = anthropic.ToolInputSchemaParam{Properties: tool.Function.Parameters}
+			// FunctionParameters is already map[string]any, so cast directly
+			m := map[string]any(tool.Function.Parameters)
+			// Extract properties (fallback to the whole map if no explicit "properties")
+			var props map[string]any
+			if p, ok := m["properties"].(map[string]any); ok {
+				props = p
+			} else {
+				props = m
+			}
+			// Extract required
+			var reqFields []string
+			if r, ok := m["required"].([]any); ok {
+				reqFields = make([]string, 0, len(r))
+				for _, v := range r {
+					if s, ok := v.(string); ok {
+						reqFields = append(reqFields, s)
+					}
+				}
+			}
+			anthropicTool.InputSchema = anthropic.ToolInputSchemaParam{
+				Type:       "object",
+				Properties: props,
+				Required:   reqFields,
+			}
 		}
 
 		anthropicTools = append(anthropicTools, anthropicTool)
