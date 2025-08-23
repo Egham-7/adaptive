@@ -18,18 +18,28 @@ interface ProjectBreadcrumbProps {
 }
 
 export function ProjectBreadcrumb({ className }: ProjectBreadcrumbProps) {
-	const { orgId, projectId } = useParams<{
+	const params = useParams<{
 		orgId: string;
 		projectId: string;
 	}>();
+	
+	// Safely extract params with proper typing
+	const orgId = params?.orgId as string | undefined;
+	const projectId = params?.projectId as string | undefined;
 
-	// Fetch organization data
+	// Only fetch when we have valid IDs
 	const { data: organization, isLoading: orgLoading } =
-		api.organizations.getById.useQuery({ id: orgId }, { enabled: !!orgId });
+		api.organizations.getById.useQuery(
+			{ id: orgId! },
+			{ enabled: !!orgId && typeof orgId === 'string' && orgId.length > 0 }
+		);
 
 	// Fetch project data
 	const { data: project, isLoading: projectLoading } =
-		api.projects.getById.useQuery({ id: projectId }, { enabled: !!projectId });
+		api.projects.getById.useQuery(
+			{ id: projectId! },
+			{ enabled: !!projectId && typeof projectId === 'string' && projectId.length > 0 }
+		);
 
 	if (orgLoading || projectLoading) {
 		return (
