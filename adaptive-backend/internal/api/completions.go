@@ -5,6 +5,7 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
 	"fmt"
 	"strings"
@@ -106,9 +107,10 @@ func (h *CompletionHandler) selectProtocol(
 
 	fiberlog.Debugf("[%s] No explicit model provided, proceeding with protocol manager selection", requestID)
 
-	openAIParams := req.ToOpenAIParams()
-	if openAIParams == nil {
-		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
+	// Convert to OpenAI parameters using singleton adapter
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 	}
 
 	selReq := models.ModelSelectionRequest{
@@ -174,10 +176,10 @@ func (h *CompletionHandler) createManualProtocolResponse(
 
 	fiberlog.Infof("[%s] Parsed model specification '%s' -> provider: %s, model: %s", requestID, modelSpec, provider, modelName)
 
-	// Convert to OpenAI parameters
-	openAIParams := req.ToOpenAIParams()
-	if openAIParams == nil {
-		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
+	// Convert to OpenAI parameters using singleton adapter
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 	}
 
 	// Create standard LLM info

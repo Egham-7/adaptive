@@ -3,6 +3,7 @@ package completions
 import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
 	"adaptive-backend/internal/services/response"
 
@@ -170,9 +171,9 @@ func (rs *ResponseService) storeSuccessfulSemanticCache(
 	}
 
 	// Create ModelSelectionRequest for cache storage
-	openAIParams := req.ToOpenAIParams()
-	if openAIParams == nil {
-		fiberlog.Errorf("[%s] Failed to convert request to OpenAI parameters for semantic cache", requestID)
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to convert request to OpenAI parameters for semantic cache: %v", requestID, err)
 		return
 	}
 

@@ -4,6 +4,7 @@ import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/minions"
 	"adaptive-backend/internal/services/providers/provider_interfaces"
 	"adaptive-backend/internal/services/stream_readers/stream"
@@ -181,9 +182,15 @@ func (cs *CompletionService) handleProtocolGeneric(
 	if isStream {
 		fiberlog.Infof("[%s] streaming %s response", requestID, protocolName)
 
+		// Convert request using singleton adapter
+		openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+		if err != nil {
+			return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
+		}
+
 		streamResp, err := prov.Chat().
 			Completions().
-			StreamCompletion(c.Context(), req.ToOpenAIParams())
+			StreamCompletion(c.Context(), openAIParams)
 		if err != nil {
 			fiberlog.Errorf("[%s] %s stream failed: %v", requestID, protocolName, err)
 			return fmt.Errorf("stream completion failed: %w", err)
@@ -193,15 +200,27 @@ func (cs *CompletionService) handleProtocolGeneric(
 	}
 
 	fiberlog.Infof("[%s] generating %s completion", requestID, protocolName)
+
+	// Convert request using singleton adapter
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
+	}
+
 	regResp, err := prov.Chat().
 		Completions().
-		CreateCompletion(c.Context(), req.ToOpenAIParams())
+		CreateCompletion(c.Context(), openAIParams)
 	if err != nil {
 		fiberlog.Errorf("[%s] %s create failed: %v", requestID, protocolName, err)
 		return fmt.Errorf("create completion failed: %w", err)
 	}
 
-	adaptiveResp := models.ConvertToAdaptive(regResp, provider)
+	// Convert response using singleton adapter
+	adaptiveResp, err := format_adapter.OpenAIToAdaptive.ConvertResponse(regResp, provider)
+	if err != nil {
+		return fmt.Errorf("failed to convert response to adaptive format: %w", err)
+	}
+
 	// Set cache tier based on source
 	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
 

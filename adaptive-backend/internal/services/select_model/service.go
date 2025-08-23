@@ -3,6 +3,7 @@ package select_model
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
 	"fmt"
 
@@ -116,9 +117,10 @@ func (s *Service) selectProtocol(
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	openAIParams := req.ToOpenAIParams()
-	if openAIParams == nil {
-		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
+	// Convert to OpenAI parameters using singleton adapter
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 	}
 
 	selReq := models.ModelSelectionRequest{

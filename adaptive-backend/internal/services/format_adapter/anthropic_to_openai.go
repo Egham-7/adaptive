@@ -355,10 +355,14 @@ func (c *AnthropicToOpenAIConverter) convertStopReason(stopReason anthropic.Stop
 
 // convertUsage converts Anthropic usage to OpenAI usage
 func (c *AnthropicToOpenAIConverter) convertUsage(usage anthropic.Usage) models.AdaptiveUsage {
+	// Use the singleton converter to convert to adaptive first, then to OpenAI format
+	adaptiveUsage := AnthropicToAdaptive.convertUsage(usage)
+
 	return models.AdaptiveUsage{
-		PromptTokens:     usage.InputTokens,
-		CompletionTokens: usage.OutputTokens,
-		TotalTokens:      usage.InputTokens + usage.OutputTokens,
+		PromptTokens:     adaptiveUsage.InputTokens,
+		CompletionTokens: adaptiveUsage.OutputTokens,
+		TotalTokens:      adaptiveUsage.InputTokens + adaptiveUsage.OutputTokens,
+		CacheTier:        adaptiveUsage.CacheTier,
 	}
 }
 

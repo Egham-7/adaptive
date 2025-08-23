@@ -203,41 +203,6 @@ type ChatCompletionRequest struct {
 	ProviderConfigs       map[string]*ProviderConfig `json:"provider_configs,omitempty"` // Custom provider configurations by provider name
 }
 
-// ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
-func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
-	return &openai.ChatCompletionNewParams{
-		Messages:            r.Messages,
-		Model:               r.Model,
-		FrequencyPenalty:    r.FrequencyPenalty,
-		Logprobs:            r.Logprobs,
-		MaxCompletionTokens: r.MaxCompletionTokens,
-		MaxTokens:           r.MaxTokens,
-		N:                   r.N,
-		PresencePenalty:     r.PresencePenalty,
-		Seed:                r.Seed,
-		Store:               r.Store,
-		Temperature:         r.Temperature,
-		TopLogprobs:         r.TopLogprobs,
-		TopP:                r.TopP,
-		ParallelToolCalls:   r.ParallelToolCalls,
-		User:                r.User,
-		Audio:               r.Audio,
-		LogitBias:           r.LogitBias,
-		Metadata:            r.Metadata,
-		Modalities:          r.Modalities,
-		ReasoningEffort:     r.ReasoningEffort,
-		ServiceTier:         r.ServiceTier,
-		Stop:                r.Stop,
-		StreamOptions:       r.StreamOptions,
-		FunctionCall:        r.FunctionCall,
-		Prediction:          r.Prediction,
-		ResponseFormat:      r.ResponseFormat,
-		ToolChoice:          r.ToolChoice,
-		Tools:               r.Tools,
-		WebSearchOptions:    r.WebSearchOptions,
-	}
-}
-
 // AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information
 type AdaptiveUsage struct {
 	PromptTokens     int64 `json:"prompt_tokens"`
@@ -253,15 +218,6 @@ func (u *AdaptiveUsage) ToOpenAI() openai.CompletionUsage {
 		PromptTokens:     u.PromptTokens,
 		CompletionTokens: u.CompletionTokens,
 		TotalTokens:      u.TotalTokens,
-	}
-}
-
-// FromOpenAI creates AdaptiveUsage from OpenAI's CompletionUsage
-func FromOpenAI(usage openai.CompletionUsage) *AdaptiveUsage {
-	return &AdaptiveUsage{
-		PromptTokens:     usage.PromptTokens,
-		CompletionTokens: usage.CompletionTokens,
-		TotalTokens:      usage.TotalTokens,
 	}
 }
 
@@ -303,40 +259,4 @@ type ChatCompletionChunk struct {
 	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
 	Usage             *AdaptiveUsage                        `json:"usage,omitempty"`
 	Provider          string                                `json:"provider,omitempty"`
-}
-
-// ConvertToAdaptive converts OpenAI ChatCompletion to our ChatCompletion
-func ConvertToAdaptive(completion *openai.ChatCompletion, provider string) *ChatCompletion {
-	return &ChatCompletion{
-		ID:                completion.ID,
-		Choices:           completion.Choices,
-		Created:           completion.Created,
-		Model:             completion.Model,
-		Object:            string(completion.Object),
-		ServiceTier:       completion.ServiceTier,
-		SystemFingerprint: completion.SystemFingerprint,
-		Usage:             *FromOpenAI(completion.Usage),
-		Provider:          provider,
-	}
-}
-
-// ConvertChunkToAdaptive converts OpenAI ChatCompletionChunk to our ChatCompletionChunk
-func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) *ChatCompletionChunk {
-	adaptive := &ChatCompletionChunk{
-		ID:                chunk.ID,
-		Choices:           chunk.Choices,
-		Created:           chunk.Created,
-		Model:             chunk.Model,
-		Object:            string(chunk.Object),
-		ServiceTier:       chunk.ServiceTier,
-		SystemFingerprint: chunk.SystemFingerprint,
-		Provider:          provider,
-	}
-
-	// Only set usage if it exists in the chunk
-	if chunk.Usage.PromptTokens != 0 || chunk.Usage.CompletionTokens != 0 || chunk.Usage.TotalTokens != 0 {
-		adaptive.Usage = FromOpenAI(chunk.Usage)
-	}
-
-	return adaptive
 }
