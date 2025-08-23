@@ -230,10 +230,10 @@ func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.Chat
 		// Based on Context7 docs, tool calls are ChatCompletionMessageToolCallParam
 		if toolCall.Function.Arguments != "" {
 			// Parse function arguments
-			var args interface{}
+			var args map[string]any
 			if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-				// If JSON parsing fails, use the raw string
-				args = toolCall.Function.Arguments
+				// If JSON parsing fails, use the raw string in a simple map
+				args = map[string]any{"arguments": toolCall.Function.Arguments}
 			}
 
 			contentParts = append(contentParts, anthropic.ContentBlockParamUnion{
@@ -470,18 +470,17 @@ func (c *OpenAIToAnthropicConverter) convertResponseContent(content string, tool
 }
 
 // ConvertResponse converts OpenAI ChatCompletion to Anthropic Message format
-func (c *OpenAIToAnthropicConverter) ConvertResponse(resp interface{}, provider string) (interface{}, error) {
-	chatCompletion, ok := resp.(*models.ChatCompletion)
-	if !ok {
-		return nil, fmt.Errorf("expected *models.ChatCompletion, got %T", resp)
+func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *models.ChatCompletion, provider string) (*anthropic.Message, error) {
+	if resp == nil {
+		return nil, fmt.Errorf("chat completion cannot be nil")
 	}
 
-	if len(chatCompletion.Choices) == 0 {
+	if len(resp.Choices) == 0 {
 		return nil, fmt.Errorf("no choices in OpenAI response")
 	}
 
 	// Use the first choice (OpenAI can return multiple, Anthropic returns one)
-	choice := chatCompletion.Choices[0]
+	choice := resp.Choices[0]
 
 	// Use helper function to convert response content
 	contentBlocks, err := c.convertResponseContent(choice.Message.Content, choice.Message.ToolCalls)
@@ -493,14 +492,14 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp interface{}, provider 
 	stopReason := c.convertFinishReason(choice.FinishReason)
 
 	// Use helper to convert model name
-	modelName := c.convertModelName(chatCompletion.Model)
+	modelName := c.convertModelName(resp.Model)
 
 	// Use helper to convert usage
-	usage := c.convertUsage(chatCompletion.Usage)
+	usage := c.convertUsage(resp.Usage)
 
 	// Create Anthropic Message
 	message := &anthropic.Message{
-		ID:           chatCompletion.ID,
+		ID:           resp.ID,
 		Content:      contentBlocks,
 		Model:        modelName,
 		Role:         "assistant",
@@ -514,17 +513,16 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp interface{}, provider 
 }
 
 // ConvertStreamingChunk converts OpenAI streaming chunk to Anthropic streaming event format
-func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk interface{}, provider string) (interface{}, error) {
-	chatChunk, ok := chunk.(*models.ChatCompletionChunk)
-	if !ok {
-		return nil, fmt.Errorf("expected *models.ChatCompletionChunk, got %T", chunk)
+func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *models.ChatCompletionChunk, provider string) (any, error) {
+	if chunk == nil {
+		return nil, fmt.Errorf("chat completion chunk cannot be nil")
 	}
 
-	if len(chatChunk.Choices) == 0 {
+	if len(chunk.Choices) == 0 {
 		return nil, fmt.Errorf("no choices in OpenAI streaming chunk")
 	}
 
-	choice := chatChunk.Choices[0]
+	choice := chunk.Choices[0]
 
 	// Handle different types of streaming events based on OpenAI chunk content
 
@@ -534,9 +532,9 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk interface{}, pr
 		return &anthropic.MessageStartEvent{
 			Type: "message_start",
 			Message: anthropic.Message{
-				ID:      chatChunk.ID,
+				ID:      chunk.ID,
 				Content: []anthropic.ContentBlockUnion{},
-				Model:   c.convertModelName(chatChunk.Model),
+				Model:   c.convertModelName(chunk.Model),
 				Role:    "assistant",
 				Type:    "message",
 			},
