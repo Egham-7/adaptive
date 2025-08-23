@@ -162,9 +162,9 @@ func convertToStreamingChunks(completion *models.ChatCompletion, requestID strin
 	// Create final chunk with finish reason
 	finalChunk := models.ChatCompletionChunk{
 		ID:      completion.ID,
-		Object:  "chat.completion.chunk",
 		Created: completion.Created,
 		Model:   completion.Model,
+		Object:  "chat.completion.chunk",
 		Choices: []openai.ChatCompletionChunkChoice{
 			{
 				Index: choice.Index,

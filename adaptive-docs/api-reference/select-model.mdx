@@ -313,6 +313,12 @@ console.log(result);
 
 ```python
 import requests
+import os
+
+# Configuration
+BASE_URL = "https://api.yourdomain.com"  # Replace with your actual domain
+API_TOKEN = os.getenv("ADAPTIVE_API_TOKEN", "your-api-token-here")  # Set via environment variable
+TIMEOUT = 30  # Request timeout in seconds
 
 # Define available models
 models = [
@@ -341,6 +347,12 @@ base_request = {
     "prompt": "Write Python code to analyze customer data"
 }
 
+# Headers for authentication
+headers = {
+    "Authorization": f"Bearer {API_TOKEN}",
+    "Content-Type": "application/json"
+}
+
 # Test cost-focused vs performance-focused
 configs = [
     {"cost_bias": 0.1, "name": "cost-optimized"},
@@ -348,13 +360,32 @@ configs = [
 ]
 
 for config in configs:
-    response = requests.post('/api/v1/select-model', json={
-        **base_request,
-        "protocol_manager_config": {"cost_bias": config["cost_bias"]}
-    })
-    
-    result = response.json()
-    print(f"{config['name']}: {result['provider']}/{result['model']}")
+    try:
+        response = requests.post(
+            f"{BASE_URL}/api/v1/select-model",
+            json={
+                **base_request,
+                "protocol_manager_config": {"cost_bias": config["cost_bias"]}
+            },
+            headers=headers,
+            timeout=TIMEOUT
+        )
+        
+        # Check if request was successful
+        if response.ok:
+            result = response.json()
+            print(f"{config['name']}: {result['provider']}/{result['model']}")
+        else:
+            print(f"Error for {config['name']}: HTTP {response.status_code} - {response.text}")
+            
+    except requests.exceptions.Timeout:
+        print(f"Timeout error for {config['name']}: Request took longer than {TIMEOUT} seconds")
+    except requests.exceptions.ConnectionError:
+        print(f"Connection error for {config['name']}: Unable to connect to {BASE_URL}")
+    except requests.exceptions.RequestException as e:
+        print(f"Request error for {config['name']}: {e}")
+    except Exception as e:
+        print(f"Unexpected error for {config['name']}: {e}")
 ```
 
 ## Real-World Integration Patterns
