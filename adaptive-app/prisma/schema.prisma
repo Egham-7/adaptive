@@ -205,7 +205,7 @@ model ProjectMember {
 
 model ApiUsage {
   id                String   @id @default(cuid())
-  apiKeyId          String
+  apiKeyId          String?  // Make optional to preserve data when API key is deleted
   projectId         String?
   clusterId         String?  // LLM cluster used for this request
   provider          String?  // Provider name (e.g., 'openai', 'anthropic', 'custom-provider')
@@ -220,7 +220,7 @@ model ApiUsage {
   timestamp         DateTime @default(now())
   metadata          Json?    // Additional request metadata
   
-  apiKey            ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  apiKey            ApiKey?  @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
   project           Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   cluster           LLMCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
   creditTransactions CreditTransaction[]
