@@ -5,6 +5,7 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/utils"
 	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -117,20 +118,21 @@ func (s *Service) selectProtocol(
 ) {
 	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
 
-	// Convert to OpenAI parameters using singleton adapter
+	// Convert to OpenAI parameters to extract the prompt
 	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
-
 	}
-	selReq := models.ModelSelectionRequest{
-		ChatCompletionRequest: *openAIParams,
-		ProtocolManagerConfig: req.ProtocolManagerConfig,
+
+	// Extract prompt from messages
+	prompt, err := utils.ExtractLastMessage(openAIParams.Messages)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to extract prompt: %w", err)
 	}
 
 	// Use empty circuit breakers map since we're not actually executing
 	resp, cacheSource, err = s.protocolMgr.SelectProtocolWithCache(
-		selReq, userID, requestID, make(map[string]*circuitbreaker.CircuitBreaker), req.SemanticCache,
+		prompt, userID, requestID, req.ProtocolManagerConfig, make(map[string]*circuitbreaker.CircuitBreaker), req.SemanticCache,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)

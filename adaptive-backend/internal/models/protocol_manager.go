@@ -45,13 +45,14 @@ const (
 	ProtocolMinionsProtocol ProtocolType = "minions_protocol"
 )
 
-// ModelSelectionRequest represents an incoming selection request that matches the Python service structure.
-type ModelSelectionRequest struct {
-	// The OpenAI chat completion request
-	ChatCompletionRequest openai.ChatCompletionNewParams `json:"chat_completion_request"`
+// ProtocolSelectionRequest represents a simplified request for protocol selection
+// containing only the prompt and configuration parameters needed for model selection
+type ProtocolSelectionRequest struct {
+	// The user prompt to analyze
+	Prompt string `json:"prompt"`
 
 	// Our custom parameters for model selection
-	UserID                *string                `json:"user_id,omitempty"`
+	UserID                string                 `json:"user_id,omitempty"`
 	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager,omitempty"`
 }
 

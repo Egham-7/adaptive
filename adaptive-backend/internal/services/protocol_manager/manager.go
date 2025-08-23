@@ -4,7 +4,6 @@ import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
-	"adaptive-backend/internal/utils"
 	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -54,23 +53,17 @@ func NewProtocolManager(cfg *config.Config) (*ProtocolManager, error) {
 // It returns the protocol response, the source (cache or service), and any error encountered.
 // If cacheConfigOverride is provided, it will temporarily override the cache behavior for this request.
 func (pm *ProtocolManager) SelectProtocolWithCache(
-	req models.ModelSelectionRequest,
+	prompt string,
 	userID, requestID string,
+	protocolConfig *models.ProtocolManagerConfig,
 	cbs map[string]*circuitbreaker.CircuitBreaker,
 	cacheConfigOverride *models.CacheConfig,
 ) (*models.ProtocolResponse, string, error) {
 	fiberlog.Debugf("[%s] Starting protocol selection for user: %s", requestID, userID)
 
 	// Merge YAML protocol manager config with request override
-	req.ProtocolManagerConfig = pm.cfg.MergeProtocolManagerConfig(req.ProtocolManagerConfig)
-	fiberlog.Debugf("[%s] Using merged protocol manager config - cost bias: %.2f", requestID, req.ProtocolManagerConfig.CostBias)
-
-	// Extract prompt from last message for cache key
-	prompt, err := utils.ExtractLastMessage(req.ChatCompletionRequest.Messages)
-	if err != nil {
-		fiberlog.Errorf("[%s] Failed to extract last message: %v", requestID, err)
-		return nil, "", fmt.Errorf("failed to extract last message: %w", err)
-	}
+	mergedConfig := pm.cfg.MergeProtocolManagerConfig(protocolConfig)
+	fiberlog.Debugf("[%s] Using merged protocol manager config - cost bias: %.2f", requestID, mergedConfig.CostBias)
 
 	fiberlog.Debugf("[%s] Extracted prompt for caching (length: %d chars)", requestID, len(prompt))
 
@@ -99,6 +92,11 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 
 	// 2) Call Python service for protocol selection
 	fiberlog.Debugf("[%s] Calling protocol selection service", requestID)
+	req := models.ProtocolSelectionRequest{
+		Prompt:                prompt,
+		UserID:                userID,
+		ProtocolManagerConfig: mergedConfig,
+	}
 	resp := pm.client.SelectProtocol(req)
 
 	fiberlog.Infof("[%s] Protocol selected: %s (provider: %s, model: %s)",
@@ -113,7 +111,7 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 
 // StoreSuccessfulProtocol stores a protocol response in the semantic cache after successful completion
 func (pm *ProtocolManager) StoreSuccessfulProtocol(
-	req models.ModelSelectionRequest,
+	prompt string,
 	resp models.ProtocolResponse,
 	requestID string,
 	cacheConfigOverride *models.CacheConfig,
@@ -127,13 +125,6 @@ func (pm *ProtocolManager) StoreSuccessfulProtocol(
 	if !useCache || pm.cache == nil {
 		fiberlog.Debugf("[%s] Semantic cache disabled - skipping storage", requestID)
 		return nil
-	}
-
-	// Extract prompt from last message for cache key
-	prompt, err := utils.ExtractLastMessage(req.ChatCompletionRequest.Messages)
-	if err != nil {
-		fiberlog.Errorf("[%s] Failed to extract last message for semantic cache: %v", requestID, err)
-		return fmt.Errorf("failed to extract last message: %w", err)
 	}
 
 	fiberlog.Debugf("[%s] Storing successful protocol response in semantic cache", requestID)

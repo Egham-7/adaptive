@@ -56,7 +56,7 @@ func NewProtocolManagerClientWithConfig(config ProtocolManagerConfig) *ProtocolM
 }
 
 func (c *ProtocolManagerClient) SelectProtocol(
-	req models.ModelSelectionRequest,
+	req models.ProtocolSelectionRequest,
 ) models.ProtocolResponse {
 	start := time.Now()
 
