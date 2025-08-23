@@ -1,76 +1,12 @@
 package models
 
 import (
-	"strings"
-	"time"
-
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/param"
 	"github.com/openai/openai-go/shared"
 )
 
-// Cache tier constants
-const (
-	CacheTierSemanticExact   = "semantic_exact"
-	CacheTierSemanticSimilar = "semantic_similar"
-	CacheTierPromptResponse  = "prompt_response"
-)
-
 // ProviderConfig is now defined in internal/config package to avoid duplication
-
-// ModelCapability represents a model with its capabilities and constraints
-type ModelCapability struct {
-	Description             *string  `json:"description,omitempty"`
-	Provider                string   `json:"provider"`
-	ModelName               string   `json:"model_name"`
-	CostPer1MInputTokens    float64  `json:"cost_per_1m_input_tokens"`
-	CostPer1MOutputTokens   float64  `json:"cost_per_1m_output_tokens"`
-	MaxContextTokens        int      `json:"max_context_tokens"`
-	MaxOutputTokens         *int     `json:"max_output_tokens,omitempty"`
-	SupportsFunctionCalling bool     `json:"supports_function_calling"`
-	LanguagesSupported      []string `json:"languages_supported,omitempty"`
-	ModelSizeParams         *string  `json:"model_size_params,omitempty"`
-	LatencyTier             *string  `json:"latency_tier,omitempty"`
-	TaskType                *string  `json:"task_type,omitempty"`
-	Complexity              *string  `json:"complexity,omitempty"`
-}
-
-// FallbackMode defines the strategy for handling provider failures
-type FallbackMode string
-
-const (
-	FallbackModeSequential FallbackMode = "sequential"
-	FallbackModeRace       FallbackMode = "race"
-)
-
-// FallbackConfig holds the fallback configuration with enabled toggle
-type FallbackConfig struct {
-	Enabled        bool                  `json:"enabled,omitempty" yaml:"enabled,omitempty"`                 // Whether fallback is enabled (default: true)
-	Mode           FallbackMode          `json:"mode,omitempty" yaml:"mode,omitempty"`                       // Fallback mode (sequential/race)
-	TimeoutMs      int                   `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`           // Timeout in milliseconds
-	MaxRetries     int                   `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`         // Maximum number of retries
-	CircuitBreaker *CircuitBreakerConfig `json:"circuit_breaker,omitempty" yaml:"circuit_breaker,omitempty"` // Circuit breaker configuration
-}
-
-// ParseFallbackMode converts a string to FallbackMode enum
-func ParseFallbackMode(mode string) FallbackMode {
-	switch strings.ToLower(strings.TrimSpace(mode)) {
-	case "sequential":
-		return FallbackModeSequential
-	case "race":
-		return FallbackModeRace
-	default:
-		return FallbackModeRace // Default to race
-	}
-}
-
-// CircuitBreakerConfig holds circuit breaker configuration
-type CircuitBreakerConfig struct {
-	FailureThreshold int `json:"failure_threshold,omitempty" yaml:"failure_threshold,omitempty"` // Number of failures before opening circuit
-	SuccessThreshold int `json:"success_threshold,omitempty" yaml:"success_threshold,omitempty"` // Number of successes to close circuit
-	TimeoutMs        int `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`               // Timeout for circuit breaker in milliseconds
-	ResetAfterMs     int `json:"reset_after_ms,omitempty" yaml:"reset_after_ms,omitempty"`       // Time to wait before trying to close circuit
-}
 
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {
@@ -267,41 +203,6 @@ type ChatCompletionRequest struct {
 	ProviderConfigs       map[string]*ProviderConfig `json:"provider_configs,omitempty"` // Custom provider configurations by provider name
 }
 
-// ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
-func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
-	return &openai.ChatCompletionNewParams{
-		Messages:            r.Messages,
-		Model:               r.Model,
-		FrequencyPenalty:    r.FrequencyPenalty,
-		Logprobs:            r.Logprobs,
-		MaxCompletionTokens: r.MaxCompletionTokens,
-		MaxTokens:           r.MaxTokens,
-		N:                   r.N,
-		PresencePenalty:     r.PresencePenalty,
-		Seed:                r.Seed,
-		Store:               r.Store,
-		Temperature:         r.Temperature,
-		TopLogprobs:         r.TopLogprobs,
-		TopP:                r.TopP,
-		ParallelToolCalls:   r.ParallelToolCalls,
-		User:                r.User,
-		Audio:               r.Audio,
-		LogitBias:           r.LogitBias,
-		Metadata:            r.Metadata,
-		Modalities:          r.Modalities,
-		ReasoningEffort:     r.ReasoningEffort,
-		ServiceTier:         r.ServiceTier,
-		Stop:                r.Stop,
-		StreamOptions:       r.StreamOptions,
-		FunctionCall:        r.FunctionCall,
-		Prediction:          r.Prediction,
-		ResponseFormat:      r.ResponseFormat,
-		ToolChoice:          r.ToolChoice,
-		Tools:               r.Tools,
-		WebSearchOptions:    r.WebSearchOptions,
-	}
-}
-
 // AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information
 type AdaptiveUsage struct {
 	PromptTokens     int64 `json:"prompt_tokens"`
@@ -317,15 +218,6 @@ func (u *AdaptiveUsage) ToOpenAI() openai.CompletionUsage {
 		PromptTokens:     u.PromptTokens,
 		CompletionTokens: u.CompletionTokens,
 		TotalTokens:      u.TotalTokens,
-	}
-}
-
-// FromOpenAI creates AdaptiveUsage from OpenAI's CompletionUsage
-func FromOpenAI(usage openai.CompletionUsage) *AdaptiveUsage {
-	return &AdaptiveUsage{
-		PromptTokens:     usage.PromptTokens,
-		CompletionTokens: usage.CompletionTokens,
-		TotalTokens:      usage.TotalTokens,
 	}
 }
 
@@ -367,50 +259,4 @@ type ChatCompletionChunk struct {
 	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
 	Usage             *AdaptiveUsage                        `json:"usage,omitempty"`
 	Provider          string                                `json:"provider,omitempty"`
-}
-
-// ConvertToAdaptive converts OpenAI ChatCompletion to our ChatCompletion
-func ConvertToAdaptive(completion *openai.ChatCompletion, provider string) *ChatCompletion {
-	return &ChatCompletion{
-		ID:                completion.ID,
-		Choices:           completion.Choices,
-		Created:           completion.Created,
-		Model:             completion.Model,
-		Object:            string(completion.Object),
-		ServiceTier:       completion.ServiceTier,
-		SystemFingerprint: completion.SystemFingerprint,
-		Usage:             *FromOpenAI(completion.Usage),
-		Provider:          provider,
-	}
-}
-
-// ConvertChunkToAdaptive converts OpenAI ChatCompletionChunk to our ChatCompletionChunk
-func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) *ChatCompletionChunk {
-	adaptive := &ChatCompletionChunk{
-		ID:                chunk.ID,
-		Choices:           chunk.Choices,
-		Created:           chunk.Created,
-		Model:             chunk.Model,
-		Object:            string(chunk.Object),
-		ServiceTier:       chunk.ServiceTier,
-		SystemFingerprint: chunk.SystemFingerprint,
-		Provider:          provider,
-	}
-
-	// Only set usage if it exists in the chunk
-	if chunk.Usage.PromptTokens != 0 || chunk.Usage.CompletionTokens != 0 || chunk.Usage.TotalTokens != 0 {
-		adaptive.Usage = FromOpenAI(chunk.Usage)
-	}
-
-	return adaptive
-}
-
-// RaceResult represents a parallel provider race outcome.
-type RaceResult struct {
-	Provider     *openai.Client
-	ProviderName string
-	ModelName    string
-	TaskType     string
-	Duration     time.Duration
-	Error        error
 }

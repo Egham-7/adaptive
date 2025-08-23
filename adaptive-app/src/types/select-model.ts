@@ -5,16 +5,20 @@ import {
 } from "./chat-completion";
 
 // Provider-agnostic select model request schema
-export const selectModelRequestSchema = z.object({
-	// Available models with their capabilities and constraints
-	models: z.array(modelCapabilitySchema),
-	// The prompt text to analyze for optimal model selection
-	prompt: z.string().min(1, "Prompt cannot be empty"),
-	// Optional user identifier for tracking and personalization
-	user: z.string().optional(),
-	// Protocol manager configuration for routing decisions
-	protocol_manager_config: protocolManagerConfigSchema.optional(),
-});
+export const selectModelRequestSchema = z
+	.object({
+		// Available models with their capabilities and constraints
+		models: z
+			.array(modelCapabilitySchema)
+			.min(1, "At least one model is required"),
+		// The prompt text to analyze for optimal model selection
+		prompt: z.string().min(1, "Prompt cannot be empty"),
+		// Optional user identifier for tracking and personalization
+		user: z.string().optional(),
+		// Protocol manager configuration for routing decisions
+		protocol_manager_config: protocolManagerConfigSchema.optional(),
+	})
+	.strict();
 
 // Zod schema for alternative provider/model combinations
 export const alternativeSchema = z.object({

@@ -5,6 +5,7 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/fallback"
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/stream_readers/stream"
 	"context"
 	"fmt"
@@ -221,7 +222,14 @@ func (cs *CompletionService) executeCompletion(
 
 	if isStream {
 		fiberlog.Infof("[%s] streaming response from %s", requestID, providerName)
-		streamResp := client.Chat.Completions.NewStreaming(c.Context(), *req.ToOpenAIParams())
+
+		// Convert request using format adapter
+		openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+		if err != nil {
+			return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
+		}
+
+		streamResp := client.Chat.Completions.NewStreaming(c.Context(), *openAIParams)
 		return stream.HandleStream(c, streamResp, requestID, providerName, cacheSource)
 	}
 
@@ -237,12 +245,22 @@ func (cs *CompletionService) executeCompletion(
 		}
 	}
 
-	resp, err := client.Chat.Completions.New(ctx, *req.ToOpenAIParams())
+	// Convert request using format adapter
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
+	}
+
+	resp, err := client.Chat.Completions.New(ctx, *openAIParams)
 	if err != nil {
 		return models.NewProviderError(providerName, "completion request failed", err)
 	}
 
-	adaptiveResp := models.ConvertToAdaptive(resp, providerName)
+	// Convert response using format adapter
+	adaptiveResp, err := format_adapter.OpenAIToAdaptive.ConvertResponse(resp, providerName)
+	if err != nil {
+		return fmt.Errorf("failed to convert response to adaptive format: %w", err)
+	}
 	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
 
 	// Store in prompt cache
