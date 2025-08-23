@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/openai/openai-go/shared"
 )
 
 // CompletionHandler handles chat completions end-to-end.
@@ -103,6 +104,11 @@ func (h *CompletionHandler) selectProtocol(
 
 	fiberlog.Debugf("[%s] No explicit model provided, proceeding with protocol manager selection", requestID)
 
+	// Check if the singleton adapter is available
+	if format_adapter.AdaptiveToOpenAI == nil {
+		return nil, "", fmt.Errorf("format_adapter.AdaptiveToOpenAI is not initialized")
+	}
+
 	// Convert to OpenAI parameters using singleton adapter
 	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
 	if err != nil {
@@ -141,11 +147,19 @@ func (h *CompletionHandler) createManualProtocolResponse(
 
 	fiberlog.Infof("[%s] Parsed model specification '%s' -> provider: %s, model: %s", requestID, modelSpec, provider, modelName)
 
+	// Check if the singleton adapter is available
+	if format_adapter.AdaptiveToOpenAI == nil {
+		return nil, "", fmt.Errorf("adaptive to OpenAI format adapter is not initialized")
+	}
+
 	// Convert to OpenAI parameters using singleton adapter
 	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 	}
+
+	// Ensure the OpenAI parameter's Model is set to the provider-stripped model name
+	openAIParams.Model = shared.ChatModel(modelName)
 
 	// Create standard LLM info
 	standardInfo := &models.StandardLLMInfo{

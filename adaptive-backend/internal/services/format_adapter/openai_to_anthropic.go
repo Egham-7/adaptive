@@ -31,9 +31,15 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *models.ChatCompletionRe
 		return nil, fmt.Errorf("failed to convert messages: %w", err)
 	}
 
+	// Validate that model is provided in the request
+	if req.Model == "" {
+		return nil, fmt.Errorf("model is required for Anthropic conversion")
+	}
+
 	// Create base Anthropic request
 	anthropicReq := &models.AnthropicMessageRequest{
 		MessageNewParams: anthropic.MessageNewParams{
+			Model:    anthropic.Model(req.Model),
 			Messages: anthropicMessages,
 		},
 		// Copy our custom fields
