@@ -1,6 +1,7 @@
 package select_model
 
 import (
+	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/protocol_manager"
@@ -12,12 +13,14 @@ import (
 // Service handles model selection logic
 type Service struct {
 	protocolMgr *protocol_manager.ProtocolManager
+	cfg         *config.Config
 }
 
 // NewService creates a new select model service
-func NewService(protocolMgr *protocol_manager.ProtocolManager) *Service {
+func NewService(protocolMgr *protocol_manager.ProtocolManager, cfg *config.Config) *Service {
 	return &Service{
 		protocolMgr: protocolMgr,
+		cfg:         cfg,
 	}
 }
 
@@ -29,15 +32,24 @@ func (s *Service) SelectModel(
 ) (*models.SelectModelResponse, error) {
 	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
 
-	// Ensure models are available in the protocol manager config
-	protocolConfig := req.ProtocolManagerConfig
-	if protocolConfig != nil {
-		protocolConfig.Models = req.Models
+	// Build protocol manager config from select model request fields
+	requestConfig := &models.ProtocolManagerConfig{
+		Models: req.Models,
 	}
+
+	// Set cost bias if provided
+	if req.CostBias != nil {
+		requestConfig.CostBias = *req.CostBias
+	}
+
+	// Merge with YAML config to get defaults for other fields
+	mergedConfig := s.cfg.MergeProtocolManagerConfig(requestConfig)
+
+	fiberlog.Debugf("[%s] Built protocol config from select model request - cost bias: %.2f", requestID, mergedConfig.CostBias)
 
 	// Perform protocol selection directly with prompt
 	resp, cacheSource, err := s.protocolMgr.SelectProtocolWithCache(
-		req.Prompt, userID, requestID, protocolConfig, circuitBreakers, nil,
+		req.Prompt, userID, requestID, mergedConfig, circuitBreakers, req.SemanticCache,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
@@ -80,8 +92,8 @@ func (s *Service) SelectModel(
 	}
 
 	// Add cost and complexity information if available from protocol manager config
-	if protocolConfig != nil {
-		for _, modelCap := range protocolConfig.Models {
+	if mergedConfig != nil {
+		for _, modelCap := range mergedConfig.Models {
 			if modelCap.ModelName == model && modelCap.Provider == provider {
 				metadata.CostPer1M = modelCap.CostPer1MInputTokens
 				if modelCap.Complexity != nil {

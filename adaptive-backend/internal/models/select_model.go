@@ -8,8 +8,10 @@ type SelectModelRequest struct {
 	Prompt string `json:"prompt"`
 	// Optional user identifier for tracking and personalization
 	User *string `json:"user,omitempty"`
-	// Protocol manager configuration for routing decisions
-	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager_config,omitempty"`
+	// Cost bias for model selection (0.0 = cheapest, 1.0 = best performance)
+	CostBias *float32 `json:"cost_bias,omitempty"`
+	// Semantic cache configuration
+	SemanticCache *CacheConfig `json:"semantic_cache,omitempty"`
 }
 
 // SelectModelResponse represents the response for model selection

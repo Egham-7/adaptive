@@ -50,7 +50,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 
 	// Create select model services
 	selectModelReqSvc := select_model.NewRequestService()
-	selectModelSvc := select_model.NewService(protocolMgr)
+	selectModelSvc := select_model.NewService(protocolMgr, cfg)
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
