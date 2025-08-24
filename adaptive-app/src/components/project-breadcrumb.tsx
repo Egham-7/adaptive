@@ -22,7 +22,7 @@ export function ProjectBreadcrumb({ className }: ProjectBreadcrumbProps) {
 		orgId: string;
 		projectId: string;
 	}>();
-	
+
 	// Safely extract params with proper typing
 	const orgId = params?.orgId as string | undefined;
 	const projectId = params?.projectId as string | undefined;
@@ -31,14 +31,17 @@ export function ProjectBreadcrumb({ className }: ProjectBreadcrumbProps) {
 	const { data: organization, isLoading: orgLoading } =
 		api.organizations.getById.useQuery(
 			{ id: orgId! },
-			{ enabled: !!orgId && typeof orgId === 'string' && orgId.length > 0 }
+			{ enabled: !!orgId && typeof orgId === "string" && orgId.length > 0 },
 		);
 
 	// Fetch project data
 	const { data: project, isLoading: projectLoading } =
 		api.projects.getById.useQuery(
 			{ id: projectId! },
-			{ enabled: !!projectId && typeof projectId === 'string' && projectId.length > 0 }
+			{
+				enabled:
+					!!projectId && typeof projectId === "string" && projectId.length > 0,
+			},
 		);
 
 	if (orgLoading || projectLoading) {

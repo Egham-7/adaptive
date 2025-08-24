@@ -6,7 +6,10 @@ export const useOrganization = (organizationId: string) => {
 		{
 			staleTime: 5 * 60 * 1000, // 5 minutes
 			refetchOnWindowFocus: false,
-			enabled: !!organizationId && typeof organizationId === 'string' && organizationId.length > 0,
+			enabled:
+				!!organizationId &&
+				typeof organizationId === "string" &&
+				organizationId.length > 0,
 		},
 	);
 };

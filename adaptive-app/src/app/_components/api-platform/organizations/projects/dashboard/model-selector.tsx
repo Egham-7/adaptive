@@ -42,7 +42,7 @@ export function ModelSelector({
 	return (
 		<div className="flex flex-col gap-2">
 			<span className="font-medium text-muted-foreground text-sm">
-				Compare with models:
+				Compare your Adaptive costs against specific models
 			</span>
 			<MultipleSelector
 				value={selectedOptions}

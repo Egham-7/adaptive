@@ -513,7 +513,9 @@ export const usageRouter = createTRPCRouter({
 
 					// Use proper UTC dates to avoid timezone issues
 					const now = new Date();
-					const startDate = input.startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+					const startDate =
+						input.startDate ||
+						new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 					const endDate = input.endDate || now;
 
 					const whereClause = {
@@ -524,7 +526,6 @@ export const usageRouter = createTRPCRouter({
 						},
 						...(input.provider && { provider: input.provider }),
 					};
-
 
 					// Zod schema for aggregate result
 					const aggregateSchema = z.object({
@@ -597,15 +598,17 @@ export const usageRouter = createTRPCRouter({
 					// Get daily usage trends - use raw SQL to properly group by date
 					let dailyUsageRaw;
 					if (input.provider) {
-						dailyUsageRaw = await ctx.db.$queryRaw<Array<{
-							date: Date;
-							total_tokens: bigint | null;
-							input_tokens: bigint | null;
-							output_tokens: bigint | null;
-							cost: any;
-							credit_cost: any;
-							request_count: bigint | null;
-						}>>`
+						dailyUsageRaw = await ctx.db.$queryRaw<
+							Array<{
+								date: Date;
+								total_tokens: bigint | null;
+								input_tokens: bigint | null;
+								output_tokens: bigint | null;
+								cost: any;
+								credit_cost: any;
+								request_count: bigint | null;
+							}>
+						>`
 							SELECT 
 								DATE(timestamp) as date,
 								SUM("totalTokens") as total_tokens,
@@ -624,15 +627,17 @@ export const usageRouter = createTRPCRouter({
 							ORDER BY DATE(timestamp)
 						`;
 					} else {
-						dailyUsageRaw = await ctx.db.$queryRaw<Array<{
-							date: Date;
-							total_tokens: bigint | null;
-							input_tokens: bigint | null;
-							output_tokens: bigint | null;
-							cost: any;
-							credit_cost: any;
-							request_count: bigint | null;
-						}>>`
+						dailyUsageRaw = await ctx.db.$queryRaw<
+							Array<{
+								date: Date;
+								total_tokens: bigint | null;
+								input_tokens: bigint | null;
+								output_tokens: bigint | null;
+								cost: any;
+								credit_cost: any;
+								request_count: bigint | null;
+							}>
+						>`
 							SELECT 
 								DATE(timestamp) as date,
 								SUM("totalTokens") as total_tokens,
@@ -656,10 +661,14 @@ export const usageRouter = createTRPCRouter({
 						_sum: {
 							totalTokens: row.total_tokens ? Number(row.total_tokens) : null,
 							inputTokens: row.input_tokens ? Number(row.input_tokens) : null,
-							outputTokens: row.output_tokens ? Number(row.output_tokens) : null,
+							outputTokens: row.output_tokens
+								? Number(row.output_tokens)
+								: null,
 							cost: row.cost ? Number(row.cost) : 0,
 							creditCost: row.credit_cost ? Number(row.credit_cost) : 0,
-							requestCount: row.request_count ? Number(row.request_count) : null,
+							requestCount: row.request_count
+								? Number(row.request_count)
+								: null,
 						},
 					}));
 
@@ -917,7 +926,9 @@ export const usageRouter = createTRPCRouter({
 				try {
 					// Use proper UTC dates to avoid timezone issues
 					const now = new Date();
-					const startDate = input.startDate || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+					const startDate =
+						input.startDate ||
+						new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 					const endDate = input.endDate || now;
 
 					const whereClause = {
