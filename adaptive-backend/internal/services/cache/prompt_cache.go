@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"context"
 	"crypto/sha256"
@@ -24,44 +23,12 @@ type PromptCache struct {
 	client *redis.Client
 }
 
-// NewPromptCache creates a new prompt cache instance using Redis
-func NewPromptCache(cfg *config.Config) (*PromptCache, error) {
-	fiberlog.Info("PromptCache: Initializing Redis-based prompt cache")
-
-	// Get Redis connection configuration with fallback hierarchy
-	redisURL := cfg.PromptCache.RedisURL
-	if redisURL == "" {
-		redisURL = cfg.Services.Redis.URL
-	}
-	if redisURL == "" {
-		fiberlog.Error("PromptCache: Redis URL not set in configuration (checked prompt_cache.redis_url and services.redis.url)")
-		return nil, fmt.Errorf("redis URL not set in configuration")
-	}
-	fiberlog.Debugf("PromptCache: Redis URL configured: %s", redisURL)
-
-	// Parse Redis URL
-	opt, err := redis.ParseURL(redisURL)
-	if err != nil {
-		fiberlog.Errorf("PromptCache: Failed to parse Redis URL: %v", err)
-		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
-	}
-
-	// Create Redis client
-	client := redis.NewClient(opt)
-
-	// Test connection
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	if err := client.Ping(ctx).Err(); err != nil {
-		fiberlog.Errorf("PromptCache: Failed to connect to Redis: %v", err)
-		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
-	}
-
-	fiberlog.Info("PromptCache: Redis connection established successfully")
+// NewPromptCache creates a new prompt cache instance using a shared Redis client
+func NewPromptCache(redisClient *redis.Client) (*PromptCache, error) {
+	fiberlog.Info("PromptCache: Initializing with shared Redis client")
 
 	return &PromptCache{
-		client: client,
+		client: redisClient,
 	}, nil
 }
 

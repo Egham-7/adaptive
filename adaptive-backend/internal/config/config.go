@@ -270,6 +270,27 @@ func (c *Config) MergeProviderConfigs(overrides map[string]*models.ProviderConfi
 	return merged, nil
 }
 
+// MergePromptCacheConfig merges YAML prompt cache config with request override.
+// The request override takes precedence over YAML config.
+func (c *Config) MergePromptCacheConfig(override *models.PromptCacheConfig) *models.PromptCacheConfig {
+	// Start with YAML config
+	merged := &models.PromptCacheConfig{
+		Enabled:           c.PromptCache.Enabled,
+		DefaultTTLSeconds: c.PromptCache.DefaultTTLSeconds,
+		RedisURL:          c.PromptCache.RedisURL,
+	}
+
+	// Apply request override if provided
+	if override != nil {
+		merged.Enabled = override.Enabled // Always use override value for boolean
+		if override.TTL > 0 {
+			merged.TTL = override.TTL
+		}
+	}
+
+	return merged
+}
+
 // MergeProtocolManagerConfig merges YAML protocol manager config with request override.
 // The request override takes precedence over YAML config for non-empty/non-nil values.
 func (c *Config) MergeProtocolManagerConfig(override *models.ProtocolManagerConfig) *models.ProtocolManagerConfig {
@@ -321,6 +342,29 @@ func (c *Config) MergeFallbackConfig(override *models.FallbackConfig) *models.Fa
 	}
 
 	return merged
+}
+
+// ResolveConfig creates a resolved config by merging YAML config with all request overrides.
+// Returns a new Config struct with all merged values as single source of truth.
+func (c *Config) ResolveConfig(req *models.ChatCompletionRequest) (*Config, error) {
+	// Create a copy of the original config
+	resolved := &Config{
+		Server:   c.Server,
+		Services: c.Services,
+	}
+
+	// Merge all configs with request overrides
+	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
+	resolved.ProtocolManager = *c.MergeProtocolManagerConfig(req.ProtocolManagerConfig)
+	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
+
+	providers, err := c.MergeProviderConfigs(req.ProviderConfigs)
+	if err != nil {
+		return nil, err
+	}
+	resolved.Providers = providers
+
+	return resolved, nil
 }
 
 // ValidationError represents configuration validation errors

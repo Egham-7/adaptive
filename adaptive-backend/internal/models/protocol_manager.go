@@ -40,9 +40,8 @@ const (
 type ProtocolType string
 
 const (
-	ProtocolStandardLLM     ProtocolType = "standard_llm"
-	ProtocolMinion          ProtocolType = "minion"
-	ProtocolMinionsProtocol ProtocolType = "minions_protocol"
+	ProtocolStandardLLM ProtocolType = "standard_llm"
+	ProtocolMinion      ProtocolType = "minion"
 )
 
 // ProtocolSelectionRequest represents a simplified request for protocol selection

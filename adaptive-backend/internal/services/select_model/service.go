@@ -73,17 +73,6 @@ func (s *Service) SelectModel(
 			model = resp.Minion.Model
 			alternatives = resp.Minion.Alternatives
 		}
-	case models.ProtocolMinionsProtocol:
-		// For minions protocol, prioritize standard
-		if resp.Standard != nil {
-			provider = resp.Standard.Provider
-			model = resp.Standard.Model
-			alternatives = resp.Standard.Alternatives
-		} else if resp.Minion != nil {
-			provider = resp.Minion.Provider
-			model = resp.Minion.Model
-			alternatives = resp.Minion.Alternatives
-		}
 	}
 
 	// Build metadata about the selection

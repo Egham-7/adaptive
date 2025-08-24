@@ -5,7 +5,6 @@ go 1.24.2
 toolchain go1.24.3
 
 require (
-	github.com/alitto/pond/v2 v2.5.0
 	github.com/anthropics/anthropic-sdk-go v1.9.1
 	github.com/botirk38/semanticcache v0.2.0
 	github.com/gofiber/fiber/v2 v2.52.9
