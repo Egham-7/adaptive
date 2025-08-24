@@ -10,6 +10,7 @@ import (
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go/packages/param"
+	"github.com/redis/go-redis/v9"
 )
 
 type ProtocolManagerClient struct {
@@ -37,21 +38,21 @@ type ProtocolManagerConfig struct {
 	CircuitBreakerConfig circuitbreaker.Config
 }
 
-func NewProtocolManagerClient(cfg *config.Config) *ProtocolManagerClient {
+func NewProtocolManagerClient(cfg *config.Config, redisClient *redis.Client) *ProtocolManagerClient {
 	config := DefaultProtocolManagerConfig()
 
 	if cfg.Services.AdaptiveAI.BaseURL != "" {
 		config.BaseURL = cfg.Services.AdaptiveAI.BaseURL
 	}
 
-	return NewProtocolManagerClientWithConfig(config)
+	return NewProtocolManagerClientWithConfig(config, redisClient)
 }
 
-func NewProtocolManagerClientWithConfig(config ProtocolManagerConfig) *ProtocolManagerClient {
+func NewProtocolManagerClientWithConfig(config ProtocolManagerConfig, redisClient *redis.Client) *ProtocolManagerClient {
 	return &ProtocolManagerClient{
 		client:         services.NewClient(config.BaseURL),
 		timeout:        config.RequestTimeout,
-		circuitBreaker: circuitbreaker.NewWithConfig(config.CircuitBreakerConfig),
+		circuitBreaker: circuitbreaker.NewWithConfig(redisClient, config.CircuitBreakerConfig),
 	}
 }
 
@@ -109,8 +110,4 @@ func (c *ProtocolManagerClient) getFallbackProtocolResponse() models.ProtocolRes
 			},
 		},
 	}
-}
-
-func (c *ProtocolManagerClient) GetCircuitBreakerMetrics() circuitbreaker.LocalMetrics {
-	return c.circuitBreaker.GetMetrics()
 }

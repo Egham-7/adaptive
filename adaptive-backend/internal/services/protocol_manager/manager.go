@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/redis/go-redis/v9"
 )
 
 // ProtocolManager coordinates protocol selection and caching for model selection.
@@ -17,7 +18,7 @@ type ProtocolManager struct {
 }
 
 // NewProtocolManager creates a new ProtocolManager with cache configuration.
-func NewProtocolManager(cfg *config.Config) (*ProtocolManager, error) {
+func NewProtocolManager(cfg *config.Config, redisClient *redis.Client) (*ProtocolManager, error) {
 	var cache *ProtocolManagerCache
 	var err error
 
@@ -39,7 +40,7 @@ func NewProtocolManager(cfg *config.Config) (*ProtocolManager, error) {
 		fiberlog.Warn("ProtocolManager: Cache is disabled")
 	}
 
-	client := NewProtocolManagerClient(cfg)
+	client := NewProtocolManagerClient(cfg, redisClient)
 	fiberlog.Info("ProtocolManager: Client initialized successfully")
 
 	return &ProtocolManager{
@@ -162,11 +163,6 @@ func getModelFromResponse(resp models.ProtocolResponse) string {
 		return resp.Minion.Model
 	}
 	return "unknown"
-}
-
-// GetClientMetrics returns circuit breaker metrics for the Python service client.
-func (pm *ProtocolManager) GetClientMetrics() circuitbreaker.LocalMetrics {
-	return pm.client.GetCircuitBreakerMetrics()
 }
 
 // ValidateContext ensures dependencies are set.

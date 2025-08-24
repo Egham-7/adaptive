@@ -3,7 +3,6 @@ package completions
 import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/stream_readers/stream"
@@ -22,7 +21,6 @@ import (
 // CompletionService handles completion requests with fallback logic.
 type CompletionService struct {
 	cfg             *config.Config
-	promptCache     *cache.PromptCache
 	fallbackService *fallback.FallbackService
 }
 
@@ -32,16 +30,8 @@ func NewCompletionService(cfg *config.Config) *CompletionService {
 		panic("NewCompletionService: cfg cannot be nil")
 	}
 
-	// Initialize prompt cache, but don't fail if it can't be created
-	promptCache, err := cache.NewPromptCache(cfg)
-	if err != nil {
-		fiberlog.Warnf("Failed to initialize prompt cache: %v", err)
-		promptCache = nil
-	}
-
 	return &CompletionService{
 		cfg:             cfg,
-		promptCache:     promptCache,
 		fallbackService: fallback.NewFallbackService(cfg),
 	}
 }
@@ -208,18 +198,6 @@ func (cs *CompletionService) executeCompletion(
 	isStream bool,
 	cacheSource string,
 ) error {
-	// Check prompt cache first
-	if cs.promptCache != nil {
-		if cachedResp, found := cs.promptCache.Get(req, requestID); found {
-			fiberlog.Infof("[%s] Prompt cache hit", requestID)
-			models.SetCacheTier(&cachedResp.Usage, "prompt_response")
-			if isStream {
-				return cache.StreamCachedResponse(c, cachedResp, requestID)
-			}
-			return c.JSON(cachedResp)
-		}
-	}
-
 	if isStream {
 		fiberlog.Infof("[%s] streaming response from %s", requestID, providerName)
 
@@ -262,13 +240,6 @@ func (cs *CompletionService) executeCompletion(
 		return fmt.Errorf("failed to convert response to adaptive format: %w", err)
 	}
 	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
-
-	// Store in prompt cache
-	if cs.promptCache != nil {
-		if err := cs.promptCache.Set(req, adaptiveResp, requestID); err != nil {
-			fiberlog.Warnf("[%s] Failed to store response in prompt cache: %v", requestID, err)
-		}
-	}
 
 	return c.JSON(adaptiveResp)
 }

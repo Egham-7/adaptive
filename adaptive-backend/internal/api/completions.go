@@ -3,6 +3,7 @@ package api
 import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/format_adapter"
@@ -26,12 +27,12 @@ var (
 // It manages the lifecycle of chat completion requests, including provider selection,
 // fallback handling, and response processing.
 type CompletionHandler struct {
-	cfg             *config.Config
-	reqSvc          *completions.RequestService
-	respSvc         *completions.ResponseService
-	paramSvc        *completions.ParameterService
-	protocolMgr     *protocol_manager.ProtocolManager
-	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
+	cfg         *config.Config
+	reqSvc      *completions.RequestService
+	respSvc     *completions.ResponseService
+	paramSvc    *completions.ParameterService
+	protocolMgr *protocol_manager.ProtocolManager
+	promptCache *cache.PromptCache
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
@@ -41,15 +42,15 @@ func NewCompletionHandler(
 	respSvc *completions.ResponseService,
 	paramSvc *completions.ParameterService,
 	protocolMgr *protocol_manager.ProtocolManager,
-	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+	promptCache *cache.PromptCache,
 ) *CompletionHandler {
 	return &CompletionHandler{
-		cfg:             cfg,
-		reqSvc:          reqSvc,
-		respSvc:         respSvc,
-		paramSvc:        paramSvc,
-		protocolMgr:     protocolMgr,
-		circuitBreakers: circuitBreakers,
+		cfg:         cfg,
+		reqSvc:      reqSvc,
+		respSvc:     respSvc,
+		paramSvc:    paramSvc,
+		protocolMgr: protocolMgr,
+		promptCache: promptCache,
 	}
 }
 
@@ -73,10 +74,24 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 	isStream := req.Stream
 
-	// Fallback is now handled directly in completion service
+	// Resolve config by merging YAML config with request overrides (single source of truth)
+	resolvedConfig, err := h.cfg.ResolveConfig(req)
+	if err != nil {
+		return h.respSvc.HandleInternalError(c, fmt.Sprintf("failed to resolve config: %v", err), reqID)
+	}
+
+	// Check prompt cache first
+	if cachedResponse, found := h.checkPromptCache(req, &resolvedConfig.PromptCache, reqID); found {
+		fiberlog.Infof("[%s] prompt cache hit - returning cached response", reqID)
+		if isStream {
+			// Convert cached response to streaming format
+			return cache.StreamCachedResponse(c, cachedResponse, reqID)
+		}
+		return c.JSON(cachedResponse)
+	}
 
 	resp, cacheSource, err := h.selectProtocol(
-		req, userID, reqID, h.circuitBreakers,
+		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker), resolvedConfig,
 	)
 	if err != nil {
 		// Check for invalid model specification error to return 400 instead of 500
@@ -98,11 +113,27 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	return h.respSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream, cacheSource)
 }
 
+// checkPromptCache checks if prompt cache is enabled and returns cached response if found
+func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, promptCacheConfig *models.PromptCacheConfig, requestID string) (*models.ChatCompletion, bool) {
+	if !promptCacheConfig.Enabled {
+		fiberlog.Debugf("[%s] prompt cache disabled", requestID)
+		return nil, false
+	}
+
+	if h.promptCache == nil {
+		fiberlog.Debugf("[%s] prompt cache service not available", requestID)
+		return nil, false
+	}
+
+	return h.promptCache.Get(req, requestID)
+}
+
 // selectProtocol runs protocol selection and returns the chosen protocol response and cache source.
 func (h *CompletionHandler) selectProtocol(
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+	resolvedConfig *config.Config,
 ) (
 	resp *models.ProtocolResponse,
 	cacheSource string,

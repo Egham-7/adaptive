@@ -32,8 +32,6 @@ func (s *ParameterService) GetParams(resp *models.ProtocolResponse) (*models.Ope
 		return &resp.Standard.Parameters, nil
 	case models.ProtocolMinion:
 		return &resp.Minion.Parameters, nil
-	case models.ProtocolMinionsProtocol:
-		return &resp.Standard.Parameters, nil
 	default:
 		return nil, fmt.Errorf("unsupported protocol: %s", resp.Protocol)
 
