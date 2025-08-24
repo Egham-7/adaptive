@@ -271,18 +271,19 @@ func (c *Config) MergeProviderConfigs(overrides map[string]*models.ProviderConfi
 }
 
 // MergePromptCacheConfig merges YAML prompt cache config with request override.
-// The request override takes precedence over YAML config.
+// Only TTL can be overridden in requests for security reasons.
 func (c *Config) MergePromptCacheConfig(override *models.PromptCacheConfig) *models.PromptCacheConfig {
-	// Start with YAML config
+	// Start with YAML config (these fields are not overridable)
 	merged := &models.PromptCacheConfig{
 		Enabled:           c.PromptCache.Enabled,
 		DefaultTTLSeconds: c.PromptCache.DefaultTTLSeconds,
 		RedisURL:          c.PromptCache.RedisURL,
+		SemanticThreshold: c.PromptCache.SemanticThreshold,
+		OpenAIAPIKey:      c.PromptCache.OpenAIAPIKey,
 	}
 
-	// Apply request override if provided
+	// Apply request override if provided (only TTL is allowed)
 	if override != nil {
-		merged.Enabled = override.Enabled // Always use override value for boolean
 		if override.TTL > 0 {
 			merged.TTL = override.TTL
 		}
@@ -323,22 +324,30 @@ func (c *Config) MergeProtocolManagerConfig(override *models.ProtocolManagerConf
 
 // MergeFallbackConfig merges YAML fallback config with request override.
 // The request override takes precedence over YAML config.
+// Fallback is disabled by default (empty mode), enabled when mode is set.
 func (c *Config) MergeFallbackConfig(override *models.FallbackConfig) *models.FallbackConfig {
-	// Start with YAML defaults
+	// Start with defaults (disabled by default)
 	merged := &models.FallbackConfig{
-		Enabled: false,                   // Default disabled
-		Mode:    models.FallbackModeRace, // Default race mode
+		Mode: "", // Empty mode = disabled by default
 	}
 
-	// If no override provided, return defaults
+	// If no override provided, return defaults (disabled)
 	if override == nil {
 		return merged
 	}
 
 	// Apply request overrides
-	merged.Enabled = override.Enabled // Always use override value for boolean
 	if override.Mode != "" {
-		merged.Mode = override.Mode
+		merged.Mode = override.Mode // Set mode to enable fallback
+	}
+	if override.TimeoutMs > 0 {
+		merged.TimeoutMs = override.TimeoutMs
+	}
+	if override.MaxRetries > 0 {
+		merged.MaxRetries = override.MaxRetries
+	}
+	if override.CircuitBreaker != nil {
+		merged.CircuitBreaker = override.CircuitBreaker
 	}
 
 	return merged

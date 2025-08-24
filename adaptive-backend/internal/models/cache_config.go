@@ -10,10 +10,14 @@ type SemanticCacheConfig struct {
 
 // PromptCacheConfig holds configuration for prompt caching
 type PromptCacheConfig struct {
-	Enabled           bool   `json:"enabled,omitempty" yaml:"enabled"`
-	DefaultTTLSeconds int    `json:"default_ttl_seconds,omitempty" yaml:"default_ttl_seconds"`
-	TTL               int    `json:"ttl,omitempty" yaml:"ttl,omitempty"` // TTL in seconds for request-level config
-	RedisURL          string `json:"redis_url,omitempty" yaml:"redis_url"`
+	// YAML config fields (not overridable in requests)
+	Enabled           bool    `json:"enabled,omitempty" yaml:"enabled"`
+	DefaultTTLSeconds int     `json:"default_ttl_seconds,omitempty" yaml:"default_ttl_seconds"`
+	RedisURL          string  `json:"redis_url,omitempty" yaml:"redis_url"`
+	SemanticThreshold float64 `json:"semantic_threshold,omitempty" yaml:"semantic_threshold"`
+	OpenAIAPIKey      string  `json:"openai_api_key,omitempty" yaml:"openai_api_key"`
+	// Request-level config fields
+	TTL int `json:"ttl,omitempty" yaml:"ttl,omitempty"` // TTL in seconds for request-level config
 }
 
 // ProtocolManagerConfig holds configuration for the protocol manager

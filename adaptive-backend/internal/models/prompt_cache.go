@@ -19,14 +19,6 @@ type PromptCacheKey struct {
 	ToolChoice  openai.ChatCompletionToolChoiceOptionUnionParam `json:"tool_choice"`
 }
 
-// PromptCacheStats represents cache statistics
-type PromptCacheStats struct {
-	PromptCacheKeys int            `json:"prompt_cache_keys"`
-	RedisInfo       string         `json:"redis_info"`
-	Timestamp       time.Time      `json:"timestamp"`
-	TTLStats        map[string]any `json:"ttl_stats,omitempty"`
-}
-
 // PromptCacheEntry represents a cached entry with metadata
 type PromptCacheEntry struct {
 	Response  *ChatCompletion `json:"response"`
