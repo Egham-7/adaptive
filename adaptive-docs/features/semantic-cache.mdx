@@ -49,15 +49,17 @@ Cache hits for similar requests:
 {
   "model": "",
   "messages": [{"role": "user", "content": "How do I reset my password?"}]
-  // semantic_cache enabled by default
+  // semantic cache enabled by default
 }
 
 // Customize threshold for stricter matching
 {
   "model": "", 
   "messages": [{"role": "user", "content": "Technical implementation question"}],
-  "semantic_cache": {
-    "semantic_threshold": 0.9  // Higher = stricter matching
+  "model_router": {
+    "semantic_cache": {
+      "threshold": 0.9  // Higher = stricter matching
+    }
   }
 }
 
@@ -65,8 +67,10 @@ Cache hits for similar requests:
 {
   "model": "",
   "messages": [{"role": "user", "content": "What's the current stock price?"}],
-  "semantic_cache": {
-    "enabled": false
+  "model_router": {
+    "semantic_cache": {
+      "enabled": false
+    }
   }
 }
 ```
@@ -74,7 +78,7 @@ Cache hits for similar requests:
 ## Configuration Options
 
 - `enabled`: Boolean to enable/disable semantic caching (default: `true`)
-- `semantic_threshold`: Float between 0.0-1.0 for similarity matching (default: 0.85)
+- `threshold`: Float between 0.0-1.0 for similarity matching (default: 0.85)
 
 ## Similarity Thresholds
 
@@ -102,7 +106,7 @@ Responses include `cache_tier` to show the cache type used:
 
 ## Technical Implementation
 
-- **Storage**: Uses protocol manager's AI service for embedding generation and matching
+- **Storage**: Uses model router's AI service for embedding generation and matching
 - **Success validation**: Responses are only cached after successful API completion
 - **Deferred caching**: Cache storage happens post-response to ensure reliability
 - **Error resilience**: Cache failures don't interrupt request flow

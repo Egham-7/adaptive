@@ -51,8 +51,8 @@ type ProtocolSelectionRequest struct {
 	Prompt string `json:"prompt"`
 
 	// Our custom parameters for model selection
-	UserID                string                 `json:"user_id,omitempty"`
-	ProtocolManagerConfig *ProtocolManagerConfig `json:"protocol_manager,omitempty"`
+	UserID            string             `json:"user_id,omitempty"`
+	ModelRouterConfig *ModelRouterConfig `json:"model_router,omitempty"`
 }
 
 // OpenAIParameters aliases the ChatCompletion params type from OpenAI Go SDK.

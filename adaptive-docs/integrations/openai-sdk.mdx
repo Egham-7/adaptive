@@ -160,7 +160,7 @@ const completion = await openai.chat.completions.create({
   presence_penalty: 0,
   
   // Adaptive intelligent routing
-  protocol_manager: {
+  model_router: {
     models: [
       { provider: "openai" }, // All OpenAI models
       { provider: "anthropic", model_name: "claude-3-sonnet-20240229" } // Specific model
@@ -177,7 +177,7 @@ const completion = await openai.chat.completions.create({
   },
   
   // Semantic caching for performance
-  semantic_cache: {
+  prompt_response_cache: {
     enabled: true,
     semantic_threshold: 0.85 // Similarity threshold for cache hits
   },
@@ -192,7 +192,7 @@ const completion = await openai.chat.completions.create({
 
 ### Parameter Details
 
-#### `protocol_manager`
+#### `model_router`
 Controls intelligent model selection:
 
 - **`models`**: Array of allowed providers/models
@@ -213,7 +213,7 @@ Controls provider fallback behavior:
   - `"sequential"` = Try providers one by one (lower cost)
   - `"race"` = Try multiple providers simultaneously (faster)
 
-#### `semantic_cache`
+#### `prompt_response_cache`
 Improves performance by caching similar requests:
 
 - **`enabled`**: Enable semantic caching
@@ -357,7 +357,7 @@ const completion = await openai.chat.completions.create({
   ],
   
   // Intelligent routing with custom provider
-  protocol_manager: {
+  model_router: {
     models: [
       { provider: "openai" }, // Standard provider
       { 
@@ -401,7 +401,7 @@ const completion = await openai.chat.completions.create({
   messages: [
     { role: 'user', content: 'Hello from my custom endpoint!' }
   ],
-  protocol_manager: {
+  model_router: {
     models: [
       { provider: "openai" }, // Will use custom config below
       { provider: "anthropic" }

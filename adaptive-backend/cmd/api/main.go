@@ -8,7 +8,7 @@ import (
 	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
-	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/select_model"
 	"context"
 	"fmt"
@@ -35,7 +35,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	paramSvc := completions.NewParameterService()
 
 	// Create protocol manager (shared between handlers)
-	protocolMgr, err := protocol_manager.NewProtocolManager(cfg, redisClient)
+	modelRouter, err := model_router.NewModelRouter(cfg, redisClient)
 	if err != nil {
 		return fmt.Errorf("protocol manager initialization failed: %w", err)
 	}
@@ -47,7 +47,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	}
 
 	// Create response service (depends on protocol manager)
-	respSvc := completions.NewResponseService(cfg, protocolMgr)
+	respSvc := completions.NewResponseService(cfg, modelRouter)
 
 	// Create shared circuit breakers for all providers
 	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
@@ -58,11 +58,11 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 
 	// Create select model services
 	selectModelReqSvc := select_model.NewRequestService()
-	selectModelSvc := select_model.NewService(protocolMgr, cfg)
+	selectModelSvc := select_model.NewService(modelRouter, cfg)
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr, promptCache)
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, modelRouter, promptCache)
 	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 
 	// Health endpoint (no auth required)

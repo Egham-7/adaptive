@@ -753,7 +753,7 @@ const client = new AdaptiveClient(process.env.ADAPTIVE_API_KEY);
 try {
   const response = await client.createCompletion({
     messages: [{ role: "user", content: "Hello!" }],
-    protocol_manager: {
+    model_router: {
       cost_bias: 0.3,
       models: [{ provider: "openai" }, { provider: "anthropic" }]
     }
@@ -769,7 +769,7 @@ try {
 
 <AccordionGroup>
   <Accordion title="Why am I not getting responses from certain providers?">
-    Check your `protocol_manager.models` configuration. Ensure the providers you want are included and your `cost_bias` setting allows for the provider selection you expect.
+    Check your `model_router.models` configuration. Ensure the providers you want are included and your `cost_bias` setting allows for the provider selection you expect.
   </Accordion>
 
   <Accordion title="How do I know which provider was selected?">
@@ -781,9 +781,9 @@ try {
   </Accordion>
 
   <Accordion title="Can I force a specific model?">
-    Use the `protocol_manager.models` array with specific model names:
+    Use the `model_router.models` array with specific model names:
     ```javascript
-    protocol_manager: {
+    model_router: {
       models: [
         { provider: "openai", model_name: "gpt-4" }
       ]
@@ -798,7 +798,7 @@ try {
   <Accordion title="How do I disable semantic caching?">
     Set semantic cache to disabled in your request:
     ```javascript
-    semantic_cache: {
+    prompt_response_cache: {
       enabled: false
     }
     ```

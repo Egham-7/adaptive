@@ -196,11 +196,11 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ProtocolManagerConfig *ProtocolManagerConfig     `json:"protocol_manager,omitempty"`
-	SemanticCache         *CacheConfig               `json:"semantic_cache,omitempty"`   // Optional semantic cache configuration
-	PromptCache           *PromptCacheConfig         `json:"prompt_cache,omitempty"`     // Optional prompt response cache configuration
-	Fallback              *FallbackConfig            `json:"fallback,omitempty"`         // Fallback configuration with enabled toggle
-	ProviderConfigs       map[string]*ProviderConfig `json:"provider_configs,omitempty"` // Custom provider configurations by provider name
+	ModelRouterConfig   *ModelRouterConfig         `json:"model_router,omitempty"`
+	PromptResponseCache *CacheConfig               `json:"prompt_response_cache,omitempty"` // Optional prompt response cache configuration
+	PromptCache         *PromptCacheConfig         `json:"prompt_cache,omitempty"`          // Optional prompt response cache configuration
+	Fallback            *FallbackConfig            `json:"fallback,omitempty"`              // Fallback configuration with enabled toggle
+	ProviderConfigs     map[string]*ProviderConfig `json:"provider_configs,omitempty"`      // Custom provider configurations by provider name
 }
 
 // AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information

@@ -6,11 +6,13 @@ The adaptive-docs service provides comprehensive public-facing documentation for
 
 ## Key Features
 
-- **Interactive API Documentation**: OpenAPI-powered API reference with live testing
-- **Integration Guides**: Step-by-step guides for popular frameworks and SDKs
-- **Feature Documentation**: Detailed explanations of intelligent routing, caching, and optimization
-- **Code Examples**: Multi-language code samples (cURL, Python, JavaScript)
-- **Troubleshooting Guides**: Common issues and solutions
+- **Outcome-Driven Content**: Developer experience optimized with immediate value propositions and cost savings examples
+- **Progressive Disclosure**: Essential information first, advanced features in expandable sections  
+- **Interactive API Documentation**: OpenAPI-powered API reference with live testing and copy-paste examples
+- **5-Minute Success Path**: Time-boxed quickstart guide with step-by-step cost savings demonstrations
+- **Integration Guides**: Framework-specific guides (OpenAI SDK, Vercel AI SDK, LangChain) with working examples
+- **Visual Cost Comparisons**: Before/after pricing examples showing 60-80% savings throughout documentation
+- **Actionable Troubleshooting**: Instant-fix guides with working code examples for common errors
 - **Responsive Design**: Mobile-friendly documentation with search functionality
 
 ## Technology Stack

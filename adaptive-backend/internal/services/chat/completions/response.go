@@ -4,7 +4,7 @@ import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/response"
 	"adaptive-backend/internal/utils"
 
@@ -23,21 +23,21 @@ const (
 type ResponseService struct {
 	*response.BaseService
 	completionService *CompletionService
-	protocolMgr       *protocol_manager.ProtocolManager
+	modelRouter       *model_router.ModelRouter
 }
 
-func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager) *ResponseService {
+func NewResponseService(cfg *config.Config, modelRouter *model_router.ModelRouter) *ResponseService {
 	if cfg == nil {
 		panic("NewResponseService: cfg is nil")
 	}
-	if protocolMgr == nil {
-		panic("NewResponseService: protocolMgr is nil")
+	if modelRouter == nil {
+		panic("NewResponseService: modelRouter is nil")
 	}
 
 	return &ResponseService{
 		BaseService:       response.NewBaseService(),
 		completionService: NewCompletionService(cfg),
-		protocolMgr:       protocolMgr,
+		modelRouter:       modelRouter,
 	}
 }
 
@@ -153,7 +153,7 @@ func (rs *ResponseService) storeSuccessfulSemanticCache(
 	resp *models.ProtocolResponse,
 	requestID string,
 ) {
-	if rs.protocolMgr == nil {
+	if rs.modelRouter == nil {
 		fiberlog.Debugf("[%s] Protocol manager not available for semantic cache storage", requestID)
 		return
 	}
@@ -173,7 +173,7 @@ func (rs *ResponseService) storeSuccessfulSemanticCache(
 	}
 
 	// Store in semantic cache
-	if err := rs.protocolMgr.StoreSuccessfulProtocol(prompt, *resp, requestID, req.SemanticCache); err != nil {
+	if err := rs.modelRouter.StoreSuccessfulProtocol(prompt, *resp, requestID, req.PromptResponseCache); err != nil {
 		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
 	}
 }

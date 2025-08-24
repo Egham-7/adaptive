@@ -4,7 +4,7 @@ import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
-	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/model_router"
 	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -12,14 +12,14 @@ import (
 
 // Service handles model selection logic
 type Service struct {
-	protocolMgr *protocol_manager.ProtocolManager
+	modelRouter *model_router.ModelRouter
 	cfg         *config.Config
 }
 
 // NewService creates a new select model service
-func NewService(protocolMgr *protocol_manager.ProtocolManager, cfg *config.Config) *Service {
+func NewService(modelRouter *model_router.ModelRouter, cfg *config.Config) *Service {
 	return &Service{
-		protocolMgr: protocolMgr,
+		modelRouter: modelRouter,
 		cfg:         cfg,
 	}
 }
@@ -32,8 +32,8 @@ func (s *Service) SelectModel(
 ) (*models.SelectModelResponse, error) {
 	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
 
-	// Build protocol manager config from select model request fields
-	requestConfig := &models.ProtocolManagerConfig{
+	// Build model router config from select model request fields
+	requestConfig := &models.ModelRouterConfig{
 		Models: req.Models,
 	}
 
@@ -42,14 +42,22 @@ func (s *Service) SelectModel(
 		requestConfig.CostBias = *req.CostBias
 	}
 
+	// Set semantic cache config if provided
+	if req.ModelRouterCache != nil {
+		requestConfig.SemanticCache = models.SemanticCacheConfig{
+			Enabled:   req.ModelRouterCache.Enabled,
+			Threshold: float64(req.ModelRouterCache.SemanticThreshold),
+		}
+	}
+
 	// Merge with YAML config to get defaults for other fields
-	mergedConfig := s.cfg.MergeProtocolManagerConfig(requestConfig)
+	mergedConfig := s.cfg.MergeModelRouterConfig(requestConfig)
 
 	fiberlog.Debugf("[%s] Built protocol config from select model request - cost bias: %.2f", requestID, mergedConfig.CostBias)
 
 	// Perform protocol selection directly with prompt
-	resp, cacheSource, err := s.protocolMgr.SelectProtocolWithCache(
-		req.Prompt, userID, requestID, mergedConfig, circuitBreakers, req.SemanticCache,
+	resp, cacheSource, err := s.modelRouter.SelectProtocolWithCache(
+		req.Prompt, userID, requestID, mergedConfig, circuitBreakers,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)

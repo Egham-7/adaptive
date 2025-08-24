@@ -7,7 +7,7 @@ import (
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/utils"
 	"errors"
 	"fmt"
@@ -31,7 +31,7 @@ type CompletionHandler struct {
 	reqSvc      *completions.RequestService
 	respSvc     *completions.ResponseService
 	paramSvc    *completions.ParameterService
-	protocolMgr *protocol_manager.ProtocolManager
+	modelRouter *model_router.ModelRouter
 	promptCache *cache.PromptCache
 }
 
@@ -41,7 +41,7 @@ func NewCompletionHandler(
 	reqSvc *completions.RequestService,
 	respSvc *completions.ResponseService,
 	paramSvc *completions.ParameterService,
-	protocolMgr *protocol_manager.ProtocolManager,
+	modelRouter *model_router.ModelRouter,
 	promptCache *cache.PromptCache,
 ) *CompletionHandler {
 	return &CompletionHandler{
@@ -49,7 +49,7 @@ func NewCompletionHandler(
 		reqSvc:      reqSvc,
 		respSvc:     respSvc,
 		paramSvc:    paramSvc,
-		protocolMgr: protocolMgr,
+		modelRouter: modelRouter,
 		promptCache: promptCache,
 	}
 }
@@ -166,8 +166,8 @@ func (h *CompletionHandler) selectProtocol(
 		return nil, "", fmt.Errorf("failed to extract prompt: %w", err)
 	}
 
-	resp, cacheSource, err = h.protocolMgr.SelectProtocolWithCache(
-		prompt, userID, requestID, req.ProtocolManagerConfig, circuitBreakers, req.SemanticCache,
+	resp, cacheSource, err = h.modelRouter.SelectProtocolWithCache(
+		prompt, userID, requestID, &resolvedConfig.ModelRouter, circuitBreakers,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
