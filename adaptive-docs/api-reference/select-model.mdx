@@ -92,7 +92,7 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
   Default: Uses server configuration. Override to prioritize cost savings or performance for this specific selection.
 </ParamField>
 
-<ParamField body="semantic_cache" type="object">
+<ParamField body="model_router_cache" type="object">
   Semantic cache configuration for this request
   
   <Expandable title="Semantic Cache Configuration">
@@ -523,7 +523,7 @@ if (selection.metadata.complexity === "high") {
   "metadata": {
     "cost_per_1m_tokens": 3.0,
     "complexity": "high",
-    "cache_source": "semantic_cache"
+    "cache_source": "model_router_cache"
   }
 }
 ```

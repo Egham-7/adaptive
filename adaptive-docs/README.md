@@ -1,15 +1,25 @@
 # Adaptive Documentation
 
-Comprehensive documentation for the Adaptive intelligent LLM infrastructure. Built with Mintlify.
+Developer-optimized documentation for the Adaptive intelligent LLM infrastructure. Built with Mintlify and designed for maximum developer experience (DX).
 
-## Overview
+## 🚀 What Makes This Documentation Special
 
-Documentation covers:
-- **Quick Start** - Get up and running in minutes
-- **API Reference** - Complete OpenAI-compatible API documentation  
-- **Features** - Intelligent routing, caching, and provider resiliency
-- **Integrations** - OpenAI SDK, Vercel AI SDK, LangChain
-- **Troubleshooting** - Common issues and solutions
+- **Outcome-Driven**: Every page starts with immediate value proposition and cost savings examples
+- **5-Minute Success Path**: Time-boxed quickstart with step-by-step savings demonstrations  
+- **Progressive Disclosure**: Essential info first, advanced features in expandable sections
+- **Visual Cost Comparisons**: Before/after pricing showing 60-80% savings throughout
+- **Copy-Paste Ready**: Working code examples that run immediately
+- **Actionable Troubleshooting**: Instant-fix guides with working solutions
+
+## 📚 Documentation Sections
+
+- **Homepage** - Outcome-driven landing with immediate value demonstration
+- **5-Minute Quickstart** - Time-boxed success path from setup to savings
+- **API Reference** - Progressive disclosure with essential parameters first
+- **Smart Routing** - Intelligent model selection and cost optimization
+- **Integrations** - Framework guides (OpenAI SDK, Vercel AI SDK, LangChain)
+- **Interactive Examples** - Live code with cost comparisons and provider routing
+- **Instant Troubleshooting** - Accordion-based fixes for common issues
 
 ## Development
 
