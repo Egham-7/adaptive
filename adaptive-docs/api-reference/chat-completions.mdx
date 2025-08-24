@@ -305,15 +305,19 @@ Use any OpenAI-compatible authorization header:
 </ParamField>
 
 <ParamField body="fallback" type="object">
-  Configuration for provider fallback behavior.
+  Configuration for provider fallback behavior. Fallback is disabled by default (empty/omitted), enabled when mode is specified.
   
   <Expandable title="Fallback Config">
-    <ParamField body="enabled" type="boolean">
-      Whether fallback is enabled. Default: `true`
+    <ParamField body="mode" type="string">
+      Fallback strategy: `"sequential"` or `"race"`. Empty/omitted = disabled, specified = enabled.
     </ParamField>
     
-    <ParamField body="mode" type="string">
-      Fallback strategy: `"sequential"` or `"race"`. Default: `"race"`
+    <ParamField body="timeout_ms" type="integer">
+      Timeout in milliseconds for fallback operations
+    </ParamField>
+    
+    <ParamField body="max_retries" type="integer">
+      Maximum number of retry attempts
     </ParamField>
   </Expandable>
 </ParamField>
@@ -501,8 +505,7 @@ const completion = await openai.chat.completions.create({
     token_threshold: 1000
   },
   fallback: {
-    enabled: true,
-    mode: 'sequential'
+    mode: 'sequential'  // Enabled by specifying mode
   }
 });
 ```
@@ -768,8 +771,7 @@ const completion = await openai.chat.completions.create({
     semantic_threshold: 0.85
   },
   fallback: {
-    enabled: true,
-    mode: 'sequential'
+    mode: 'sequential'  // Enabled by specifying mode
   }
 });
 ```

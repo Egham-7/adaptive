@@ -81,8 +81,8 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 
 	// Check prompt cache first
-	if cachedResponse, found := h.checkPromptCache(req, &resolvedConfig.PromptCache, reqID); found {
-		fiberlog.Infof("[%s] prompt cache hit - returning cached response", reqID)
+	if cachedResponse, cacheSource, found := h.checkPromptCache(req, &resolvedConfig.PromptCache, reqID); found {
+		fiberlog.Infof("[%s] prompt cache hit (%s) - returning cached response", reqID, cacheSource)
 		if isStream {
 			// Convert cached response to streaming format
 			return cache.StreamCachedResponse(c, cachedResponse, reqID)
@@ -114,15 +114,15 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 }
 
 // checkPromptCache checks if prompt cache is enabled and returns cached response if found
-func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, promptCacheConfig *models.PromptCacheConfig, requestID string) (*models.ChatCompletion, bool) {
+func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, promptCacheConfig *models.PromptCacheConfig, requestID string) (*models.ChatCompletion, string, bool) {
 	if !promptCacheConfig.Enabled {
 		fiberlog.Debugf("[%s] prompt cache disabled", requestID)
-		return nil, false
+		return nil, "", false
 	}
 
 	if h.promptCache == nil {
 		fiberlog.Debugf("[%s] prompt cache service not available", requestID)
-		return nil, false
+		return nil, "", false
 	}
 
 	return h.promptCache.Get(req, requestID)

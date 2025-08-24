@@ -8,43 +8,42 @@ Adaptive automatically switches to backup providers when your primary provider f
 
 ## Fallback Configuration
 
-Fallback is **enabled by default** with race mode for maximum reliability. You can customize or disable it as needed.
+Fallback is **disabled by default** for cost control. Enable it by specifying a `mode` when you need maximum reliability and can handle higher costs.
 
-### Default Behavior (Enabled)
+### Default Behavior (Disabled)
 ```javascript
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }]
-  // No fallback configuration = enabled with race mode
+  // No fallback configuration or empty mode = disabled
 });
 ```
 
-### Customize Fallback
+### Enable Fallback
 ```javascript
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
   fallback: {
-    enabled: true,
-    mode: "sequential"
+    mode: "race"  // Enable by specifying mode
   }
 });
 ```
 
-### Disable Fallback
+### Explicitly Disable Fallback
 ```javascript
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
   fallback: {
-    enabled: false
+    mode: ""  // Explicitly disabled with empty mode (same as omitting)
   }
 });
 ```
 
 ## Fallback Modes
 
-### Race (Default)
+### Race Mode
 Try multiple providers at once for maximum speed and reliability:
 
 ```javascript
@@ -52,7 +51,6 @@ const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
   fallback: {
-    enabled: true,
     mode: "race"
   }
 });
@@ -61,7 +59,7 @@ const completion = await openai.chat.completions.create({
 **Pros:** Ultra-low latency, max reliability  
 **Cons:** Higher cost (multiple calls)
 
-### Sequential
+### Sequential Mode
 Try providers one by one:
 
 ```javascript
@@ -69,7 +67,6 @@ const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
   fallback: {
-    enabled: true,
     mode: "sequential"
   }
 });
@@ -92,7 +89,6 @@ try {
     model: "",
     messages: [{ role: "user", content: "Hello" }],
     fallback: {
-      enabled: true,
       mode: "sequential"
     }
   });

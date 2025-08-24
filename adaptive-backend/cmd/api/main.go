@@ -41,7 +41,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	}
 
 	// Create prompt cache (shared service using Redis client)
-	promptCache, err := cache.NewPromptCache(redisClient)
+	promptCache, err := cache.NewPromptCache(redisClient, cfg.PromptCache)
 	if err != nil {
 		return fmt.Errorf("prompt cache initialization failed: %w", err)
 	}

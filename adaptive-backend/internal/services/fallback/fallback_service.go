@@ -44,8 +44,8 @@ func (fs *FallbackService) Execute(
 		return models.NewValidationError("no providers available", nil)
 	}
 
-	if len(providers) == 1 || !fallbackConfig.Enabled {
-		// Only one provider or fallback disabled, execute directly
+	if len(providers) == 1 || fallbackConfig.Mode == "" {
+		// Only one provider or fallback disabled (empty mode), execute directly
 		fiberlog.Infof("[%s] Using single %s provider: %s (%s)", requestID, protocolType, providers[0].Provider, providers[0].Model)
 		return executeFunc(c, providers[0], requestID)
 	}
