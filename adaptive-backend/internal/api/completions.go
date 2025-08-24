@@ -7,6 +7,7 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/utils"
 	"errors"
 	"fmt"
 	"strings"
@@ -25,11 +26,12 @@ var (
 // It manages the lifecycle of chat completion requests, including provider selection,
 // fallback handling, and response processing.
 type CompletionHandler struct {
-	cfg         *config.Config
-	reqSvc      *completions.RequestService
-	respSvc     *completions.ResponseService
-	paramSvc    *completions.ParameterService
-	protocolMgr *protocol_manager.ProtocolManager
+	cfg             *config.Config
+	reqSvc          *completions.RequestService
+	respSvc         *completions.ResponseService
+	paramSvc        *completions.ParameterService
+	protocolMgr     *protocol_manager.ProtocolManager
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
@@ -39,13 +41,15 @@ func NewCompletionHandler(
 	respSvc *completions.ResponseService,
 	paramSvc *completions.ParameterService,
 	protocolMgr *protocol_manager.ProtocolManager,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) *CompletionHandler {
 	return &CompletionHandler{
-		cfg:         cfg,
-		reqSvc:      reqSvc,
-		respSvc:     respSvc,
-		paramSvc:    paramSvc,
-		protocolMgr: protocolMgr,
+		cfg:             cfg,
+		reqSvc:          reqSvc,
+		respSvc:         respSvc,
+		paramSvc:        paramSvc,
+		protocolMgr:     protocolMgr,
+		circuitBreakers: circuitBreakers,
 	}
 }
 
@@ -72,7 +76,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	// Fallback is now handled directly in completion service
 
 	resp, cacheSource, err := h.selectProtocol(
-		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
+		req, userID, reqID, h.circuitBreakers,
 	)
 	if err != nil {
 		// Check for invalid model specification error to return 400 instead of 500
@@ -125,13 +129,14 @@ func (h *CompletionHandler) selectProtocol(
 		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 	}
 
-	selReq := models.ModelSelectionRequest{
-		ChatCompletionRequest: *openAIParams,
-		ProtocolManagerConfig: req.ProtocolManagerConfig, // Already merged in protocol manager
+	// Extract prompt from messages
+	prompt, err := utils.ExtractLastMessage(openAIParams.Messages)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to extract prompt: %w", err)
 	}
 
 	resp, cacheSource, err = h.protocolMgr.SelectProtocolWithCache(
-		selReq, userID, requestID, circuitBreakers, req.SemanticCache,
+		prompt, userID, requestID, req.ProtocolManagerConfig, circuitBreakers, req.SemanticCache,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)

@@ -6,6 +6,7 @@ import (
 	"adaptive-backend/internal/middleware"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/chat/completions"
+	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/protocol_manager"
 	"adaptive-backend/internal/services/select_model"
 	"context"
@@ -40,14 +41,21 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Create response service (depends on protocol manager)
 	respSvc := completions.NewResponseService(cfg, protocolMgr)
 
+	// Create shared circuit breakers for all providers
+	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
+	// Initialize circuit breakers for each provider
+	for providerName := range cfg.Providers {
+		circuitBreakers[providerName] = circuitbreaker.New()
+	}
+
 	// Create select model services
 	selectModelReqSvc := select_model.NewRequestService()
-	selectModelSvc := select_model.NewService(protocolMgr)
+	selectModelSvc := select_model.NewService(protocolMgr, cfg)
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr)
-	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc)
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr, circuitBreakers)
+	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 
 	// Health endpoint (no auth required)
 	app.Get(healthEndpoint, healthHandler.Health)

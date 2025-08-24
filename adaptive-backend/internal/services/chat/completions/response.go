@@ -6,6 +6,7 @@ import (
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
 	"adaptive-backend/internal/services/response"
+	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -157,21 +158,22 @@ func (rs *ResponseService) storeSuccessfulSemanticCache(
 		return
 	}
 
-	// Create ModelSelectionRequest for cache storage
+	// Extract prompt for cache storage
 	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to convert request to OpenAI parameters for semantic cache: %v", requestID, err)
-
 		return
 	}
 
-	selReq := models.ModelSelectionRequest{
-		ChatCompletionRequest: *openAIParams,
-		ProtocolManagerConfig: req.ProtocolManagerConfig,
+	// Extract prompt from messages
+	prompt, err := utils.ExtractLastMessage(openAIParams.Messages)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to extract prompt for semantic cache: %v", requestID, err)
+		return
 	}
 
 	// Store in semantic cache
-	if err := rs.protocolMgr.StoreSuccessfulProtocol(selReq, *resp, requestID, req.SemanticCache); err != nil {
+	if err := rs.protocolMgr.StoreSuccessfulProtocol(prompt, *resp, requestID, req.SemanticCache); err != nil {
 		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
 	}
 }
