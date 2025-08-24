@@ -1,4 +1,4 @@
-package protocol_manager
+package model_router
 
 import (
 	"time"
@@ -13,14 +13,14 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type ProtocolManagerClient struct {
+type ModelRouterClient struct {
 	client         *services.Client
 	timeout        time.Duration
 	circuitBreaker *circuitbreaker.CircuitBreaker
 }
 
-func DefaultProtocolManagerConfig() ProtocolManagerConfig {
-	return ProtocolManagerConfig{
+func DefaultModelRouterClientConfig() ModelRouterClientConfig {
+	return ModelRouterClientConfig{
 		BaseURL:        "http://localhost:8000",
 		RequestTimeout: 5 * time.Second,
 		CircuitBreakerConfig: circuitbreaker.Config{
@@ -32,31 +32,31 @@ func DefaultProtocolManagerConfig() ProtocolManagerConfig {
 	}
 }
 
-type ProtocolManagerConfig struct {
+type ModelRouterClientConfig struct {
 	BaseURL              string
 	RequestTimeout       time.Duration
 	CircuitBreakerConfig circuitbreaker.Config
 }
 
-func NewProtocolManagerClient(cfg *config.Config, redisClient *redis.Client) *ProtocolManagerClient {
-	config := DefaultProtocolManagerConfig()
+func NewModelRouterClient(cfg *config.Config, redisClient *redis.Client) *ModelRouterClient {
+	config := DefaultModelRouterClientConfig()
 
 	if cfg.Services.AdaptiveAI.BaseURL != "" {
 		config.BaseURL = cfg.Services.AdaptiveAI.BaseURL
 	}
 
-	return NewProtocolManagerClientWithConfig(config, redisClient)
+	return NewModelRouterClientWithConfig(config, redisClient)
 }
 
-func NewProtocolManagerClientWithConfig(config ProtocolManagerConfig, redisClient *redis.Client) *ProtocolManagerClient {
-	return &ProtocolManagerClient{
+func NewModelRouterClientWithConfig(config ModelRouterClientConfig, redisClient *redis.Client) *ModelRouterClient {
+	return &ModelRouterClient{
 		client:         services.NewClient(config.BaseURL),
 		timeout:        config.RequestTimeout,
 		circuitBreaker: circuitbreaker.NewWithConfig(redisClient, config.CircuitBreakerConfig),
 	}
 }
 
-func (c *ProtocolManagerClient) SelectProtocol(
+func (c *ModelRouterClient) SelectProtocol(
 	req models.ProtocolSelectionRequest,
 ) models.ProtocolResponse {
 	start := time.Now()
@@ -87,7 +87,7 @@ func (c *ProtocolManagerClient) SelectProtocol(
 	return out
 }
 
-func (c *ProtocolManagerClient) getFallbackProtocolResponse() models.ProtocolResponse {
+func (c *ModelRouterClient) getFallbackProtocolResponse() models.ProtocolResponse {
 	// Simple fallback: always route to standard LLM with basic parameters
 	return models.ProtocolResponse{
 		Protocol: models.ProtocolStandardLLM,

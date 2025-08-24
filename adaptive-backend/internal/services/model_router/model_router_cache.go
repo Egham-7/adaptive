@@ -1,4 +1,4 @@
-package protocol_manager
+package model_router
 
 import (
 	"adaptive-backend/internal/config"
@@ -24,43 +24,43 @@ func DefaultCacheConfig() models.CacheConfig {
 	}
 }
 
-// ProtocolManagerCache wraps the semanticcache library for protocol manager specific operations
-type ProtocolManagerCache struct {
+// ModelRouterCache wraps the semanticcache library for protocol manager specific operations
+type ModelRouterCache struct {
 	cache             *semanticcache.SemanticCache[string, models.ProtocolResponse]
 	semanticThreshold float32
 }
 
-// NewProtocolManagerCache creates a new protocol manager cache instance
-func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) {
-	fiberlog.Info("ProtocolManagerCache: Initializing cache")
+// NewModelRouterCache creates a new protocol manager cache instance
+func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
+	fiberlog.Info("ModelRouterCache: Initializing cache")
 
 	// Get semantic cache configuration
-	semanticCacheConfig := cfg.ProtocolManager.SemanticCache
+	semanticCacheConfig := cfg.ModelRouter.SemanticCache
 
 	// Validate and set default threshold if invalid
 	threshold := semanticCacheConfig.Threshold
 	if threshold <= 0 || threshold > 1 {
 		threshold = 0.9 // Default to sane value
-		fiberlog.Warnf("ProtocolManagerCache: Invalid threshold value %.2f, using default 0.9", semanticCacheConfig.Threshold)
+		fiberlog.Warnf("ModelRouterCache: Invalid threshold value %.2f, using default 0.9", semanticCacheConfig.Threshold)
 	}
 
-	fiberlog.Debugf("ProtocolManagerCache: Configuration - enabled=%t, threshold=%.2f",
+	fiberlog.Debugf("ModelRouterCache: Configuration - enabled=%t, threshold=%.2f",
 		semanticCacheConfig.Enabled, threshold)
 
 	apiKey := semanticCacheConfig.OpenAIAPIKey
 	if apiKey == "" {
-		fiberlog.Error("ProtocolManagerCache: OpenAI API key not set in semantic cache configuration")
+		fiberlog.Error("ModelRouterCache: OpenAI API key not set in semantic cache configuration")
 		return nil, fmt.Errorf("OpenAI API key not set in semantic cache configuration")
 	}
-	fiberlog.Debug("ProtocolManagerCache: OpenAI API key found")
+	fiberlog.Debug("ModelRouterCache: OpenAI API key found")
 
 	// Get Redis connection configuration
 	redisURL := semanticCacheConfig.RedisURL
 	if redisURL == "" {
-		fiberlog.Error("ProtocolManagerCache: Redis URL not set in semantic cache configuration")
+		fiberlog.Error("ModelRouterCache: Redis URL not set in semantic cache configuration")
 		return nil, fmt.Errorf("redis URL not set in semantic cache configuration")
 	}
-	fiberlog.Debug("ProtocolManagerCache: Redis URL configured")
+	fiberlog.Debug("ModelRouterCache: Redis URL configured")
 
 	// Create Redis backend configuration
 	config := types.BackendConfig{
@@ -68,94 +68,94 @@ func NewProtocolManagerCache(cfg *config.Config) (*ProtocolManagerCache, error) 
 	}
 
 	// Create backend factory and Redis backend
-	fiberlog.Debug("ProtocolManagerCache: Creating Redis backend")
+	fiberlog.Debug("ModelRouterCache: Creating Redis backend")
 	factory := &backends.BackendFactory[string, models.ProtocolResponse]{}
 	backend, err := factory.NewBackend(types.BackendRedis, config)
 	if err != nil {
-		fiberlog.Errorf("ProtocolManagerCache: Failed to create Redis backend: %v", err)
+		fiberlog.Errorf("ModelRouterCache: Failed to create Redis backend: %v", err)
 		return nil, fmt.Errorf("failed to create Redis backend: %w", err)
 	}
-	fiberlog.Info("ProtocolManagerCache: Redis backend created successfully")
+	fiberlog.Info("ModelRouterCache: Redis backend created successfully")
 
 	// Create OpenAI provider
-	fiberlog.Debug("ProtocolManagerCache: Creating OpenAI provider")
+	fiberlog.Debug("ModelRouterCache: Creating OpenAI provider")
 	provider, err := openai.NewOpenAIProvider(openai.OpenAIConfig{
 		APIKey: apiKey,
 		Model:  "text-embedding-3-small",
 	})
 	if err != nil {
-		fiberlog.Errorf("ProtocolManagerCache: Failed to create OpenAI provider: %v", err)
+		fiberlog.Errorf("ModelRouterCache: Failed to create OpenAI provider: %v", err)
 		return nil, fmt.Errorf("failed to create OpenAI provider: %w", err)
 	}
-	fiberlog.Info("ProtocolManagerCache: OpenAI provider created successfully")
+	fiberlog.Info("ModelRouterCache: OpenAI provider created successfully")
 
 	// Create semantic cache
-	fiberlog.Debug("ProtocolManagerCache: Creating semantic cache")
+	fiberlog.Debug("ModelRouterCache: Creating semantic cache")
 	cache, err := semanticcache.NewSemanticCache(backend, provider, nil)
 	if err != nil {
-		fiberlog.Errorf("ProtocolManagerCache: Failed to create semantic cache: %v", err)
+		fiberlog.Errorf("ModelRouterCache: Failed to create semantic cache: %v", err)
 		return nil, fmt.Errorf("failed to create semantic cache: %w", err)
 	}
-	fiberlog.Info("ProtocolManagerCache: Semantic cache created successfully")
+	fiberlog.Info("ModelRouterCache: Semantic cache created successfully")
 
-	return &ProtocolManagerCache{
+	return &ModelRouterCache{
 		cache:             cache,
 		semanticThreshold: float32(threshold),
 	}, nil
 }
 
 // Lookup searches for a cached protocol response using exact match first, then semantic similarity
-func (pmc *ProtocolManagerCache) Lookup(prompt, requestID string) (*models.ProtocolResponse, string, bool) {
-	fiberlog.Debugf("[%s] ProtocolManagerCache: Starting cache lookup", requestID)
+func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ProtocolResponse, string, bool) {
+	fiberlog.Debugf("[%s] ModelRouterCache: Starting cache lookup", requestID)
 
 	// 1) First try exact key matching
-	fiberlog.Debugf("[%s] ProtocolManagerCache: Trying exact key match", requestID)
+	fiberlog.Debugf("[%s] ModelRouterCache: Trying exact key match", requestID)
 	if hit, found := pmc.cache.Get(prompt); found {
-		fiberlog.Infof("[%s] ProtocolManagerCache: Exact cache hit", requestID)
+		fiberlog.Infof("[%s] ModelRouterCache: Exact cache hit", requestID)
 		return &hit, "semantic_exact", true
 	}
-	fiberlog.Debugf("[%s] ProtocolManagerCache: No exact match found", requestID)
+	fiberlog.Debugf("[%s] ModelRouterCache: No exact match found", requestID)
 
 	// 2) If no exact match, try semantic similarity search
-	fiberlog.Debugf("[%s] ProtocolManagerCache: Trying semantic similarity search (threshold: %.2f)", requestID, pmc.semanticThreshold)
+	fiberlog.Debugf("[%s] ModelRouterCache: Trying semantic similarity search (threshold: %.2f)", requestID, pmc.semanticThreshold)
 	if hit, found, err := pmc.cache.Lookup(prompt, pmc.semanticThreshold); err == nil && found {
-		fiberlog.Infof("[%s] ProtocolManagerCache: Semantic cache hit", requestID)
+		fiberlog.Infof("[%s] ModelRouterCache: Semantic cache hit", requestID)
 		return &hit, "semantic_similar", true
 	} else if err != nil {
-		fiberlog.Errorf("[%s] ProtocolManagerCache: Error during semantic lookup: %v", requestID, err)
+		fiberlog.Errorf("[%s] ModelRouterCache: Error during semantic lookup: %v", requestID, err)
 	} else {
-		fiberlog.Debugf("[%s] ProtocolManagerCache: No semantic match found", requestID)
+		fiberlog.Debugf("[%s] ModelRouterCache: No semantic match found", requestID)
 	}
 
-	fiberlog.Debugf("[%s] ProtocolManagerCache: Cache miss", requestID)
+	fiberlog.Debugf("[%s] ModelRouterCache: Cache miss", requestID)
 	return nil, "", false
 }
 
 // Store saves a protocol response to the cache
-func (pmc *ProtocolManagerCache) Store(prompt string, resp models.ProtocolResponse) error {
-	fiberlog.Debugf("ProtocolManagerCache: Storing protocol response (protocol: %s)", resp.Protocol)
+func (pmc *ModelRouterCache) Store(prompt string, resp models.ProtocolResponse) error {
+	fiberlog.Debugf("ModelRouterCache: Storing protocol response (protocol: %s)", resp.Protocol)
 	err := pmc.cache.Set(prompt, prompt, resp)
 	if err != nil {
-		fiberlog.Errorf("ProtocolManagerCache: Failed to store in cache: %v", err)
+		fiberlog.Errorf("ModelRouterCache: Failed to store in cache: %v", err)
 	} else {
-		fiberlog.Debugf("ProtocolManagerCache: Successfully stored protocol response")
+		fiberlog.Debugf("ModelRouterCache: Successfully stored protocol response")
 	}
 	return err
 }
 
 // Close properly closes the cache and releases resources
-func (pmc *ProtocolManagerCache) Close() {
+func (pmc *ModelRouterCache) Close() {
 	if pmc.cache != nil {
 		pmc.cache.Close()
 	}
 }
 
 // Len returns the number of items in the cache
-func (pmc *ProtocolManagerCache) Len() int {
+func (pmc *ModelRouterCache) Len() int {
 	return pmc.cache.Len()
 }
 
 // Flush clears all entries from the cache
-func (pmc *ProtocolManagerCache) Flush() error {
+func (pmc *ModelRouterCache) Flush() error {
 	return pmc.cache.Flush()
 }

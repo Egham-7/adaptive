@@ -43,11 +43,11 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *models.ChatCompletionRe
 			Messages: anthropicMessages,
 		},
 		// Copy our custom fields
-		ProtocolManagerConfig: req.ProtocolManagerConfig,
-		SemanticCache:         req.SemanticCache,
-		PromptCache:           req.PromptCache,
-		Fallback:              req.Fallback,
-		ProviderConfigs:       req.ProviderConfigs,
+		ModelRouterConfig:   req.ModelRouterConfig,
+		PromptResponseCache: req.PromptResponseCache,
+		PromptCache:         req.PromptCache,
+		Fallback:            req.Fallback,
+		ProviderConfigs:     req.ProviderConfigs,
 	}
 
 	// Set system message if present (Anthropic uses separate system field)

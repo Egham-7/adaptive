@@ -10,8 +10,8 @@ type SelectModelRequest struct {
 	User *string `json:"user,omitempty"`
 	// Cost bias for model selection (0.0 = cheapest, 1.0 = best performance)
 	CostBias *float32 `json:"cost_bias,omitempty"`
-	// Semantic cache configuration
-	SemanticCache *CacheConfig `json:"semantic_cache,omitempty"`
+	// Model router cache configuration
+	ModelRouterCache *CacheConfig `json:"model_router_cache,omitempty"`
 }
 
 // SelectModelResponse represents the response for model selection

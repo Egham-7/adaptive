@@ -18,12 +18,12 @@ const (
 
 // Config represents the complete application configuration
 type Config struct {
-	Server          models.ServerConfig              `yaml:"server"`
-	Providers       map[string]models.ProviderConfig `yaml:"providers"`
-	Services        models.ServicesConfig            `yaml:"services"`
-	Fallback        models.FallbackConfig            `yaml:"fallback"`
-	PromptCache     models.PromptCacheConfig         `yaml:"prompt_cache"`
-	ProtocolManager models.ProtocolManagerConfig     `yaml:"protocol_manager"`
+	Server      models.ServerConfig              `yaml:"server"`
+	Providers   map[string]models.ProviderConfig `yaml:"providers"`
+	Services    models.ServicesConfig            `yaml:"services"`
+	Fallback    models.FallbackConfig            `yaml:"fallback"`
+	PromptCache models.PromptCacheConfig         `yaml:"prompt_cache"`
+	ModelRouter models.ModelRouterConfig         `yaml:"protocol_manager"`
 }
 
 // LoadFromFile loads configuration from a YAML file with environment variable substitution
@@ -292,15 +292,17 @@ func (c *Config) MergePromptCacheConfig(override *models.PromptCacheConfig) *mod
 	return merged
 }
 
-// MergeProtocolManagerConfig merges YAML protocol manager config with request override.
+// MergeModelRouterConfig merges YAML model router config with request override.
 // The request override takes precedence over YAML config for non-empty/non-nil values.
-func (c *Config) MergeProtocolManagerConfig(override *models.ProtocolManagerConfig) *models.ProtocolManagerConfig {
+func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *models.ModelRouterConfig {
 	// Start with YAML defaults
-	merged := &models.ProtocolManagerConfig{
-		CostBias: float32(defaultCostBiasFactor), // Default value
+	merged := &models.ModelRouterConfig{
+		CostBias:      float32(defaultCostBiasFactor), // Default value
+		SemanticCache: c.ModelRouter.SemanticCache,    // Copy YAML semantic cache config
+		Client:        c.ModelRouter.Client,           // Copy YAML client config
 	}
 
-	// If no override provided, return defaults
+	// If no override provided, return defaults with YAML config
 	if override == nil {
 		return merged
 	}
@@ -317,6 +319,12 @@ func (c *Config) MergeProtocolManagerConfig(override *models.ProtocolManagerConf
 	}
 	if override.TokenThreshold != nil {
 		merged.TokenThreshold = override.TokenThreshold
+	}
+
+	// Merge semantic cache config - request override takes precedence
+	if override.SemanticCache.Enabled != c.ModelRouter.SemanticCache.Enabled ||
+		override.SemanticCache.Threshold != c.ModelRouter.SemanticCache.Threshold {
+		merged.SemanticCache = override.SemanticCache
 	}
 
 	return merged
@@ -364,7 +372,7 @@ func (c *Config) ResolveConfig(req *models.ChatCompletionRequest) (*Config, erro
 
 	// Merge all configs with request overrides
 	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
-	resolved.ProtocolManager = *c.MergeProtocolManagerConfig(req.ProtocolManagerConfig)
+	resolved.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
 	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
 
 	providers, err := c.MergeProviderConfigs(req.ProviderConfigs)

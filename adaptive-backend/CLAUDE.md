@@ -7,11 +7,14 @@ The adaptive-backend is a high-performance Go API server that provides an OpenAI
 ## Key Features
 
 - **OpenAI-Compatible API**: Drop-in replacement for OpenAI's `/v1/chat/completions` endpoint
+- **Intelligent Model Routing**: AI-powered model selection based on prompt complexity and cost optimization
 - **Multi-Provider Support**: Routes requests to OpenAI, Anthropic, Gemini, Groq, DeepSeek, Grok, HuggingFace
-- **Circuit Breaker Pattern**: Automatic failover and health monitoring
+- **Circuit Breaker Pattern**: Automatic failover and provider health monitoring
+- **Cost Optimization**: 60-80% cost reduction through intelligent routing and caching
 - **High Performance**: Built for 1000+ req/s with <100ms overhead
 - **Rate Limiting**: API key-based rate limiting with sliding window algorithm
-- **Semantic Caching**: Response caching for improved performance and cost reduction
+- **Dual Caching System**: Prompt-response cache and semantic caching for performance and cost reduction
+- **Redis Integration**: Circuit breaker state and prompt caching with Redis backend
 
 ## Technology Stack
 
@@ -36,13 +39,14 @@ adaptive-backend/
 │   ├── models/              # Data models and protocols
 │   │   ├── completions.go   # OpenAI-compatible request/response models
 │   │   ├── prompt_cache.go  # Caching models
-│   │   └── protocol_manager.go # Protocol management models
+│   │   └── cache_config.go  # Model router cache configuration models
 │   ├── services/            # Business logic and providers
 │   │   ├── auth/            # Authentication services
 │   │   ├── cache/           # Caching services
 │   │   ├── chat/            # Chat completion services
 │   │   ├── circuitbreaker/  # Circuit breaker implementation
-│   │   ├── protocol_manager/ # Protocol management
+│   │   ├── model_router/    # Model router and intelligent routing
+│   │   ├── select_model/    # Model selection services
 │   │   └── providers/       # LLM provider implementations
 │   └── utils/               # Shared utilities
 ├── go.mod                   # Go module dependencies
@@ -141,18 +145,45 @@ go test ./internal/services/providers/...
 ```
 
 ### Code Quality
+
+**IMPORTANT**: Always run these commands before committing:
+
 ```bash
-# Format code
-go fmt ./...
+# Format code (REQUIRED before every commit)
+gofmt -w .
 
-# Run static analysis
-go vet ./...
+# Run linter (REQUIRED - fix all issues before committing)
+golangci-lint run
 
-# Clean up dependencies
+# Modernize Go code (REQUIRED - keep code up to date)
 go mod tidy
+gofumpt -w .
+go run golang.org/x/tools/cmd/goimports@latest -w .
+
+# Static analysis
+go vet ./...
 
 # Check for security vulnerabilities
 go list -json -deps ./... | nancy sleuth
+```
+
+**Pre-commit Checklist**:
+1. ✅ `gofmt -w .` - Format all Go files
+2. ✅ `golangci-lint run` - All linter issues resolved
+3. ✅ `go mod tidy` - Dependencies cleaned
+4. ✅ `go test ./...` - All tests pass
+5. ✅ `go vet ./...` - Static analysis passes
+
+**Install Required Tools**:
+```bash
+# Install golangci-lint
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Install gofumpt (enhanced gofmt)
+go install mvdan.cc/gofumpt@latest
+
+# Install goimports
+go install golang.org/x/tools/cmd/goimports@latest
 ```
 
 ## API Endpoints

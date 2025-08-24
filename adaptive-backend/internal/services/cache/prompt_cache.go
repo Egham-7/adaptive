@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultSemanticThreshold = 0.9
+	defaultSemanticThreshold = 0.99
 )
 
 // PromptCache provides semantic caching for prompt responses
