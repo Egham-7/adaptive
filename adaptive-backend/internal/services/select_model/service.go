@@ -3,13 +3,10 @@ package select_model
 import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
-	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/protocol_manager"
-	"adaptive-backend/internal/utils"
 	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
 )
 
 // Service handles model selection logic
@@ -28,22 +25,20 @@ func NewService(protocolMgr *protocol_manager.ProtocolManager) *Service {
 func (s *Service) SelectModel(
 	req *models.SelectModelRequest,
 	userID, requestID string,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) (*models.SelectModelResponse, error) {
 	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
 
-	// Create a minimal ChatCompletionRequest for protocol selection
-	chatReq := &models.ChatCompletionRequest{
-		Messages:              []openai.ChatCompletionMessageParamUnion{openai.UserMessage(req.Prompt)},
-		ProtocolManagerConfig: req.ProtocolManagerConfig,
-	}
-
 	// Ensure models are available in the protocol manager config
-	if chatReq.ProtocolManagerConfig != nil {
-		chatReq.ProtocolManagerConfig.Models = req.Models
+	protocolConfig := req.ProtocolManagerConfig
+	if protocolConfig != nil {
+		protocolConfig.Models = req.Models
 	}
 
-	// Perform protocol selection
-	resp, cacheSource, err := s.selectProtocol(chatReq, userID, requestID)
+	// Perform protocol selection directly with prompt
+	resp, cacheSource, err := s.protocolMgr.SelectProtocolWithCache(
+		req.Prompt, userID, requestID, protocolConfig, circuitBreakers, nil,
+	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
 		return nil, fmt.Errorf("protocol selection failed: %w", err)
@@ -85,8 +80,8 @@ func (s *Service) SelectModel(
 	}
 
 	// Add cost and complexity information if available from protocol manager config
-	if chatReq.ProtocolManagerConfig != nil {
-		for _, modelCap := range chatReq.ProtocolManagerConfig.Models {
+	if protocolConfig != nil {
+		for _, modelCap := range protocolConfig.Models {
 			if modelCap.ModelName == model && modelCap.Provider == provider {
 				metadata.CostPer1M = modelCap.CostPer1MInputTokens
 				if modelCap.Complexity != nil {
@@ -105,39 +100,4 @@ func (s *Service) SelectModel(
 		Alternatives: alternatives,
 		Metadata:     metadata,
 	}, nil
-}
-
-// selectProtocol runs protocol selection and returns the chosen protocol response and cache source
-func (s *Service) selectProtocol(
-	req *models.ChatCompletionRequest,
-	userID, requestID string,
-) (
-	resp *models.ProtocolResponse,
-	cacheSource string,
-	err error,
-) {
-	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
-
-	// Convert to OpenAI parameters to extract the prompt
-	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
-	}
-
-	// Extract prompt from messages
-	prompt, err := utils.ExtractLastMessage(openAIParams.Messages)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to extract prompt: %w", err)
-	}
-
-	// Use empty circuit breakers map since we're not actually executing
-	resp, cacheSource, err = s.protocolMgr.SelectProtocolWithCache(
-		prompt, userID, requestID, req.ProtocolManagerConfig, make(map[string]*circuitbreaker.CircuitBreaker), req.SemanticCache,
-	)
-	if err != nil {
-		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
-		return nil, "", fmt.Errorf("protocol selection failed: %w", err)
-	}
-
-	return resp, cacheSource, nil
 }

@@ -92,6 +92,12 @@ func (pm *ProtocolManager) SelectProtocolWithCache(
 
 	// 2) Call Python service for protocol selection
 	fiberlog.Debugf("[%s] Calling protocol selection service", requestID)
+
+	// Filter out providers with open circuit breakers if circuit breakers are available
+	if cbs != nil && mergedConfig != nil {
+		pm.filterUnavailableProviders(mergedConfig, cbs, requestID)
+	}
+
 	req := models.ProtocolSelectionRequest{
 		Prompt:                prompt,
 		UserID:                userID,
@@ -180,6 +186,34 @@ func (pm *ProtocolManager) ValidateContext() error {
 
 	fiberlog.Debug("ProtocolManager: Context validation successful")
 	return nil
+}
+
+// filterUnavailableProviders removes providers with open circuit breakers from the model list
+func (pm *ProtocolManager) filterUnavailableProviders(
+	config *models.ProtocolManagerConfig,
+	cbs map[string]*circuitbreaker.CircuitBreaker,
+	requestID string,
+) {
+	if config == nil || config.Models == nil {
+		return
+	}
+
+	originalCount := len(config.Models)
+	availableModels := make([]models.ModelCapability, 0, len(config.Models))
+
+	for _, model := range config.Models {
+		providerName := model.Provider
+		if cb, exists := cbs[providerName]; exists && !cb.CanExecute() {
+			fiberlog.Warnf("[%s] Filtering out provider %s due to open circuit breaker", requestID, providerName)
+			continue
+		}
+		availableModels = append(availableModels, model)
+	}
+
+	config.Models = availableModels
+	if len(availableModels) < originalCount {
+		fiberlog.Infof("[%s] Filtered providers: %d -> %d available models", requestID, originalCount, len(availableModels))
+	}
 }
 
 // Close properly closes the protocol manager cache during shutdown

@@ -26,11 +26,12 @@ var (
 // It manages the lifecycle of chat completion requests, including provider selection,
 // fallback handling, and response processing.
 type CompletionHandler struct {
-	cfg         *config.Config
-	reqSvc      *completions.RequestService
-	respSvc     *completions.ResponseService
-	paramSvc    *completions.ParameterService
-	protocolMgr *protocol_manager.ProtocolManager
+	cfg             *config.Config
+	reqSvc          *completions.RequestService
+	respSvc         *completions.ResponseService
+	paramSvc        *completions.ParameterService
+	protocolMgr     *protocol_manager.ProtocolManager
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
@@ -40,13 +41,15 @@ func NewCompletionHandler(
 	respSvc *completions.ResponseService,
 	paramSvc *completions.ParameterService,
 	protocolMgr *protocol_manager.ProtocolManager,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) *CompletionHandler {
 	return &CompletionHandler{
-		cfg:         cfg,
-		reqSvc:      reqSvc,
-		respSvc:     respSvc,
-		paramSvc:    paramSvc,
-		protocolMgr: protocolMgr,
+		cfg:             cfg,
+		reqSvc:          reqSvc,
+		respSvc:         respSvc,
+		paramSvc:        paramSvc,
+		protocolMgr:     protocolMgr,
+		circuitBreakers: circuitBreakers,
 	}
 }
 
@@ -73,7 +76,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	// Fallback is now handled directly in completion service
 
 	resp, cacheSource, err := h.selectProtocol(
-		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
+		req, userID, reqID, h.circuitBreakers,
 	)
 	if err != nil {
 		// Check for invalid model specification error to return 400 instead of 500
