@@ -46,7 +46,7 @@ function decryptKey(encryptedKey: string, secret: string): string {
 
 const createAPIKeySchema = z.object({
 	name: z.string().min(1),
-	status: z.enum(["active", "revoked", "inactive"]),
+	status: z.enum(["active", "revoked", "inactive", "deleted"]),
 	expires_at: z.string().optional(),
 	projectId: z.string().optional(),
 });
@@ -54,13 +54,13 @@ const createAPIKeySchema = z.object({
 const updateAPIKeySchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1),
-	status: z.enum(["active", "revoked", "inactive"]),
+	status: z.enum(["active", "revoked", "inactive", "deleted"]),
 });
 
 const apiKeySchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	status: z.enum(["active", "revoked", "inactive"]),
+	status: z.enum(["active", "revoked", "inactive", "deleted"]),
 	created_at: z.string(),
 	updated_at: z.string(),
 	expires_at: z.string().nullable(),
@@ -81,7 +81,10 @@ export const apiKeysRouter = createTRPCRouter({
 			throw new TRPCError({ code: "UNAUTHORIZED" });
 		}
 		const keys = await ctx.db.apiKey.findMany({
-			where: { userId },
+			where: { 
+				userId,
+				status: { not: "deleted" } // Exclude soft-deleted keys
+			},
 			orderBy: { createdAt: "desc" },
 		});
 		return keys.map((k) => ({
@@ -106,7 +109,7 @@ export const apiKeysRouter = createTRPCRouter({
 			const k = await ctx.db.apiKey.findUnique({
 				where: { id: input.id },
 			});
-			if (!k || k.userId !== userId) {
+			if (!k || k.userId !== userId || k.status === "deleted") {
 				throw new TRPCError({ code: "NOT_FOUND" });
 			}
 			return {
@@ -216,7 +219,7 @@ export const apiKeysRouter = createTRPCRouter({
 			const existing = await ctx.db.apiKey.findUnique({
 				where: { id: input.id },
 			});
-			if (!existing || existing.userId !== userId) {
+			if (!existing || existing.userId !== userId || existing.status === "deleted") {
 				throw new TRPCError({ code: "NOT_FOUND" });
 			}
 			const k = await ctx.db.apiKey.update({
@@ -246,10 +249,21 @@ export const apiKeysRouter = createTRPCRouter({
 			const existing = await ctx.db.apiKey.findUnique({
 				where: { id: input.id },
 			});
-			if (!existing || existing.userId !== userId) {
+			if (!existing || existing.userId !== userId || existing.status === "deleted") {
 				throw new TRPCError({ code: "NOT_FOUND" });
 			}
-			await ctx.db.apiKey.delete({ where: { id: input.id } });
+			
+			// Soft delete: set status to 'deleted' and clear sensitive data
+			await ctx.db.apiKey.update({
+				where: { id: input.id },
+				data: {
+					status: "deleted",
+					keyHash: "", // Clear sensitive key hash
+					keyPrefix: "", // Clear key prefix 
+					name: "[DELETED]", // Clear original name
+				},
+			});
+			
 			return { success: true };
 		}),
 
@@ -317,7 +331,10 @@ export const apiKeysRouter = createTRPCRouter({
 			}
 
 			const keys = await ctx.db.apiKey.findMany({
-				where: { projectId: input.projectId },
+				where: { 
+					projectId: input.projectId,
+					status: { not: "deleted" } // Exclude soft-deleted keys
+				},
 				orderBy: { createdAt: "desc" },
 			});
 
@@ -339,7 +356,7 @@ export const apiKeysRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				projectId: z.string(),
-				status: z.enum(["active", "revoked", "inactive"]).default("active"),
+				status: z.enum(["active", "revoked", "inactive", "deleted"]).default("active"),
 				expires_at: z.string().optional(),
 			}),
 		)

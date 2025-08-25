@@ -2,6 +2,7 @@ enum ApiKeyStatus {
   active
   inactive
   revoked
+  deleted
 }
 
 enum OrganizationMemberRole {
