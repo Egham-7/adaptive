@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	Activity,
+	ArrowLeft,
 	Calendar,
 	CheckCircle,
 	ChevronRight,
@@ -260,9 +261,11 @@ export default function OrganizationProjectsPage() {
 								{orgError?.message ||
 									"The organization you're looking for doesn't exist or you don't have access to it."}
 							</p>
-							<Link href="/api-platform/organizations">
-								<Button>Back to Organizations</Button>
-							</Link>
+							<Button asChild variant="ghost" size="sm">
+								<Link href="/api-platform/organizations">
+									Back to Organizations
+								</Link>
+							</Button>
 						</div>
 					</div>
 				</div>
@@ -277,6 +280,16 @@ export default function OrganizationProjectsPage() {
 
 	return (
 		<div className="w-full">
+			{/* Back Button */}
+			<div className="mb-6">
+				<Button asChild variant="ghost" size="sm" className="gap-2">
+					<Link href="/api-platform/organizations">
+						<ArrowLeft className="h-4 w-4" />
+						Back to Organizations
+					</Link>
+				</Button>
+			</div>
+
 			{/* Header */}
 			<div className="mb-8">
 				<h1 className="mb-2 font-bold text-3xl text-foreground">

@@ -41,13 +41,20 @@ export function ModelSelector({
 
 	return (
 		<div className="flex flex-col gap-2">
-			<span className="font-medium text-muted-foreground text-sm">
-				Compare with models:
+			<span
+				id="model-selector-description"
+				className="font-medium text-muted-foreground text-sm"
+			>
+				Compare your Adaptive costs against specific models
 			</span>
 			<MultipleSelector
 				value={selectedOptions}
 				onChange={handleChange}
 				options={modelOptions}
+				inputProps={{
+					"aria-label": "Select models to compare",
+					"aria-describedby": "model-selector-description",
+				}}
 				placeholder="Select models to compare..."
 				className="w-full"
 				maxSelected={5}

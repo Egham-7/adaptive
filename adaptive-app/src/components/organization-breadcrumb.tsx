@@ -23,7 +23,10 @@ export function OrganizationBreadcrumb({
 
 	// Fetch organization data
 	const { data: organization, isLoading: orgLoading } =
-		api.organizations.getById.useQuery({ id: orgId }, { enabled: !!orgId });
+		api.organizations.getById.useQuery(
+			{ id: orgId },
+			{ enabled: !!orgId && typeof orgId === "string" && orgId.length > 0 },
+		);
 
 	if (orgLoading) {
 		return (

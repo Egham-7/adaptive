@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CostComparison } from "@/app/_components/api-platform/organizations/projects/dashboard/cost-comparison";
@@ -83,6 +85,16 @@ export default function DashboardPage() {
 
 	return (
 		<div className="w-full px-6 py-2">
+			{/* Back Button */}
+			<div className="mb-6">
+				<Button asChild variant="ghost" size="sm" className="gap-2">
+					<Link href={`/api-platform/organizations/${orgId}`}>
+						<ArrowLeft className="h-4 w-4" />
+						Back to Projects
+					</Link>
+				</Button>
+			</div>
+
 			{/* Header Section */}
 			<div className="mb-8" id="dashboard-header">
 				<DashboardHeader

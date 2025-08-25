@@ -203,11 +203,6 @@ export function CostComparison({
 			<div className="mt-6">
 				{viewMode === "chart" && (
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-						<div>
-							<p className="text-muted-foreground text-sm">
-								Compare your Adaptive costs against specific models
-							</p>
-						</div>
 						<ModelSelector
 							selectedModels={selectedModels}
 							onModelsChange={onModelsChange}
