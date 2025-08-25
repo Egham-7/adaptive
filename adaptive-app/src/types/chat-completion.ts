@@ -31,10 +31,10 @@ export const CACHE_TIER_SEMANTIC_EXACT = CACHE_TIER_VALUES[0];
 export const CACHE_TIER_SEMANTIC_SIMILAR = CACHE_TIER_VALUES[1];
 export const CACHE_TIER_PROMPT_RESPONSE = CACHE_TIER_VALUES[2];
 
-// Provider config schema
+// Provider config schema - single source of truth
 export const providerConfigSchema = z.object({
 	api_key: z.string().optional(),
-	base_url: z.string().url("Must be a valid URL").optional(),
+	base_url: z.string().optional(),
 	auth_type: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
 	auth_header_name: z.string().max(100).optional(),
 	health_endpoint: z.string().max(200).optional(),

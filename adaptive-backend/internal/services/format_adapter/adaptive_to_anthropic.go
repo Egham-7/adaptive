@@ -17,8 +17,24 @@ func (c *AdaptiveToAnthropicConverter) ConvertRequest(req *models.AnthropicMessa
 		return nil, fmt.Errorf("anthropic message request cannot be nil")
 	}
 
-	// Return the embedded MessageNewParams (our request already extends the standard one)
-	return &req.MessageNewParams, nil
+	// Convert our custom request to standard MessageNewParams
+	params := &anthropic.MessageNewParams{
+		MaxTokens:     req.MaxTokens,
+		Messages:      req.Messages,
+		Model:         req.Model,
+		Temperature:   req.Temperature,
+		TopK:          req.TopK,
+		TopP:          req.TopP,
+		Metadata:      req.Metadata,
+		ServiceTier:   req.ServiceTier,
+		StopSequences: req.StopSequences,
+		System:        req.System,
+		Thinking:      req.Thinking,
+		ToolChoice:    req.ToolChoice,
+		Tools:         req.Tools,
+	}
+
+	return params, nil
 }
 
 // ConvertResponse converts our AdaptiveAnthropicMessage to standard Anthropic Message format

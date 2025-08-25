@@ -17,9 +17,21 @@ func (c *AnthropicToAdaptiveConverter) ConvertRequest(req *anthropic.MessageNewP
 		return nil, fmt.Errorf("anthropic message new params cannot be nil")
 	}
 
-	// Create our enhanced request with the standard params embedded
+	// Create our enhanced request with the standard params copied
 	return &models.AnthropicMessageRequest{
-		MessageNewParams: *req,
+		MaxTokens:     req.MaxTokens,
+		Messages:      req.Messages,
+		Model:         req.Model,
+		Temperature:   req.Temperature,
+		TopK:          req.TopK,
+		TopP:          req.TopP,
+		Metadata:      req.Metadata,
+		ServiceTier:   req.ServiceTier,
+		StopSequences: req.StopSequences,
+		System:        req.System,
+		Thinking:      req.Thinking,
+		ToolChoice:    req.ToolChoice,
+		Tools:         req.Tools,
 		// Custom fields are left as nil/defaults - caller can set them as needed
 		ModelRouterConfig:   nil,
 		PromptResponseCache: nil,

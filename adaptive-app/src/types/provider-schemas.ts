@@ -40,7 +40,7 @@ export const createProviderSchema = z.object({
 		.default("project"),
 
 	// Provider template configuration (no secrets)
-	baseUrl: z.string().url("Must be a valid URL").optional(),
+	baseUrl: z.string().optional(),
 	authType: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
 	authHeaderName: z.string().max(100).optional(),
 	healthEndpoint: z.string().max(200).optional(),
@@ -65,7 +65,7 @@ export const updateProviderSchema = z.object({
 		.optional(),
 
 	// Provider template configuration updates (no secrets)
-	baseUrl: z.string().url("Must be a valid URL").optional(),
+	baseUrl: z.string().optional(),
 	authType: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
 	authHeaderName: z.string().max(100).optional(),
 	healthEndpoint: z.string().max(200).optional(),

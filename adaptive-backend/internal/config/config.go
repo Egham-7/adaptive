@@ -10,6 +10,7 @@ import (
 
 	"adaptive-backend/internal/models"
 
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -20,7 +21,7 @@ const (
 // Config represents the complete application configuration
 type Config struct {
 	Server      models.ServerConfig      `yaml:"server"`
-	Endpoints   models.EndpointsConfig   `yaml:"providers"`
+	Endpoints   models.EndpointsConfig   `yaml:"endpoints"`
 	Services    models.ServicesConfig    `yaml:"services"`
 	Fallback    models.FallbackConfig    `yaml:"fallback"`
 	PromptCache models.PromptCacheConfig `yaml:"prompt_cache"`
@@ -67,11 +68,39 @@ func LoadFromFile(configPath string) (*Config, error) {
 		config.Endpoints.ChatCompletions.Providers = normalizedProviders
 	}
 
+	// Normalize provider map keys to lowercase for Messages endpoint too
+	if config.Endpoints.Messages.Providers != nil {
+		normalizedProviders := make(map[string]models.ProviderConfig, len(config.Endpoints.Messages.Providers))
+		for key, value := range config.Endpoints.Messages.Providers {
+			normalizedProviders[strings.ToLower(key)] = value
+		}
+		config.Endpoints.Messages.Providers = normalizedProviders
+	}
+
 	return &config, nil
+}
+
+// loadEnvFiles loads environment variables from .env files in order of precedence
+// Loads .env.local first (highest priority), then .env.development, then .env
+func loadEnvFiles() {
+	// Define env files in order of precedence (first has highest priority)
+	envFiles := []string{".env.local", ".env.development", ".env"}
+
+	for _, envFile := range envFiles {
+		if _, err := os.Stat(envFile); err == nil {
+			// File exists, try to load it
+			if err := godotenv.Load(envFile); err == nil {
+				fmt.Printf("Loaded environment variables from %s\n", envFile)
+			}
+		}
+	}
 }
 
 // New creates a new Config instance by loading from the config file
 func New() (*Config, error) {
+	// Load environment variables from .env files
+	loadEnvFiles()
+
 	// Get config path from environment variable or use default
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {

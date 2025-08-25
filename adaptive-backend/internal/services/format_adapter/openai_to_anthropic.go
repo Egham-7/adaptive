@@ -39,10 +39,8 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *models.ChatCompletionRe
 
 	// Create base Anthropic request
 	anthropicReq := &models.AnthropicMessageRequest{
-		MessageNewParams: anthropic.MessageNewParams{
-			Model:    anthropic.Model(req.Model),
-			Messages: anthropicMessages,
-		},
+		Model:    anthropic.Model(req.Model),
+		Messages: anthropicMessages,
 		// Copy our custom fields
 		ModelRouterConfig:   req.ModelRouterConfig,
 		PromptResponseCache: req.PromptResponseCache,

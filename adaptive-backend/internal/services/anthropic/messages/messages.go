@@ -50,17 +50,37 @@ func (ms *MessagesService) SendMessage(
 		defer cancel()
 	}
 
-	fiberlog.Infof("[%s] making non-streaming anthropic request", requestID)
+	fiberlog.Infof("[%s] Making non-streaming Anthropic API request - model: %s, max_tokens: %d",
+		requestID, req.Model, req.MaxTokens)
 
-	// Convert to Anthropic params
-	params := req.ToAnthropicParams()
+	// Convert to Anthropic params directly
+	params := anthropic.MessageNewParams{
+		MaxTokens:     req.MaxTokens,
+		Messages:      req.Messages,
+		Model:         req.Model,
+		Temperature:   req.Temperature,
+		TopK:          req.TopK,
+		TopP:          req.TopP,
+		Metadata:      req.Metadata,
+		ServiceTier:   req.ServiceTier,
+		StopSequences: req.StopSequences,
+		System:        req.System,
+		Thinking:      req.Thinking,
+		ToolChoice:    req.ToolChoice,
+		Tools:         req.Tools,
+	}
 
-	message, err := client.Messages.New(ctx, *params)
+	startTime := time.Now()
+	message, err := client.Messages.New(ctx, params)
+	duration := time.Since(startTime)
+
 	if err != nil {
-		fiberlog.Errorf("[%s] anthropic request failed: %v", requestID, err)
+		fiberlog.Errorf("[%s] Anthropic API request failed after %v: %v", requestID, duration, err)
 		return nil, fmt.Errorf("anthropic API error: %w", err)
 	}
 
+	fiberlog.Infof("[%s] Anthropic API request completed successfully in %v - usage: input:%d, output:%d",
+		requestID, duration, message.Usage.InputTokens, message.Usage.OutputTokens)
 	return message, nil
 }
 
@@ -78,11 +98,28 @@ func (ms *MessagesService) SendStreamingMessage(
 		defer cancel()
 	}
 
-	fiberlog.Infof("[%s] making streaming anthropic request", requestID)
+	fiberlog.Infof("[%s] Making streaming Anthropic API request - model: %s, max_tokens: %d",
+		requestID, req.Model, req.MaxTokens)
 
-	// Convert to Anthropic params
-	params := req.ToAnthropicParams()
+	// Convert to Anthropic params directly
+	params := anthropic.MessageNewParams{
+		MaxTokens:     req.MaxTokens,
+		Messages:      req.Messages,
+		Model:         req.Model,
+		Temperature:   req.Temperature,
+		TopK:          req.TopK,
+		TopP:          req.TopP,
+		Metadata:      req.Metadata,
+		ServiceTier:   req.ServiceTier,
+		StopSequences: req.StopSequences,
+		System:        req.System,
+		Thinking:      req.Thinking,
+		ToolChoice:    req.ToolChoice,
+		Tools:         req.Tools,
+	}
 
-	streamResp := client.Messages.NewStreaming(ctx, *params)
+	streamResp := client.Messages.NewStreaming(ctx, params)
+
+	fiberlog.Debugf("[%s] Streaming request initiated successfully", requestID)
 	return streamResp, nil
 }

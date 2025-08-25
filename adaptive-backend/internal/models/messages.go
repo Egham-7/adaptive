@@ -1,10 +1,27 @@
 package models
 
-import "github.com/anthropics/anthropic-sdk-go"
+import (
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/packages/param"
+)
 
-// AnthropicMessageRequest extends anthropic.MessageNewParams with our custom fields
+// AnthropicMessageRequest uses individual fields from anthropic.MessageNewParams with our custom fields
 type AnthropicMessageRequest struct {
-	anthropic.MessageNewParams
+	// Core Anthropic Messages API fields (from anthropic.MessageNewParams)
+	MaxTokens     int64                                 `json:"max_tokens"`
+	Messages      []anthropic.MessageParam              `json:"messages"`
+	Model         anthropic.Model                       `json:"model"`
+	Temperature   param.Opt[float64]                    `json:"temperature,omitempty"`
+	TopK          param.Opt[int64]                      `json:"top_k,omitempty"`
+	TopP          param.Opt[float64]                    `json:"top_p,omitempty"`
+	Metadata      anthropic.MetadataParam               `json:"metadata,omitempty"`
+	ServiceTier   anthropic.MessageNewParamsServiceTier `json:"service_tier,omitempty"`
+	StopSequences []string                              `json:"stop_sequences,omitempty"`
+	System        []anthropic.TextBlockParam            `json:"system,omitempty"`
+	Stream        *bool                                 `json:"stream,omitempty"`
+	Thinking      anthropic.ThinkingConfigParamUnion    `json:"thinking,omitempty"`
+	ToolChoice    anthropic.ToolChoiceUnionParam        `json:"tool_choice,omitempty"`
+	Tools         []anthropic.ToolUnionParam            `json:"tools,omitempty"`
 
 	// Custom fields for our internal processing
 	ModelRouterConfig   *ModelRouterConfig         `json:"model_router,omitempty"`
@@ -12,11 +29,6 @@ type AnthropicMessageRequest struct {
 	PromptCache         *PromptCacheConfig         `json:"prompt_cache,omitempty"`          // Optional prompt response cache configuration
 	Fallback            *FallbackConfig            `json:"fallback,omitempty"`              // Fallback configuration with enabled toggle
 	ProviderConfigs     map[string]*ProviderConfig `json:"provider_configs,omitempty"`      // Custom provider configurations by provider name
-}
-
-// ToAnthropicParams converts AnthropicMessageRequest to Anthropic's MessageNewParams
-func (r *AnthropicMessageRequest) ToAnthropicParams() *anthropic.MessageNewParams {
-	return &r.MessageNewParams
 }
 
 // AdaptiveAnthropicUsage extends Anthropic's Usage with cache tier information

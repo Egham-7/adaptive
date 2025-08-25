@@ -27,10 +27,11 @@ func (rs *ResponseService) HandleNonStreamingResponse(
 	message *anthropic.Message,
 	requestID string,
 ) error {
+	fiberlog.Debugf("[%s] Converting Anthropic response to Adaptive format", requestID)
 	// Convert response using format adapter
 	adaptiveResponse, err := format_adapter.AnthropicToAdaptive.ConvertResponse(message, "anthropic")
 	if err != nil {
-		fiberlog.Errorf("[%s] failed to convert anthropic response: %v", requestID, err)
+		fiberlog.Errorf("[%s] Failed to convert Anthropic response: %v", requestID, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": fiber.Map{
 				"type":    "internal_server_error",
@@ -39,6 +40,7 @@ func (rs *ResponseService) HandleNonStreamingResponse(
 		})
 	}
 
+	fiberlog.Infof("[%s] Response converted successfully, sending to client", requestID)
 	return c.JSON(adaptiveResponse)
 }
 

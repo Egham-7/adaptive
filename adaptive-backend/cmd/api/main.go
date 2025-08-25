@@ -68,6 +68,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Initialize handlers with shared dependencies
 	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, completionSvc, paramSvc, modelRouter, promptCache)
 	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
+	messagesHandler := api.NewMessagesHandler(cfg, modelRouter)
 
 	// Health endpoint (no auth required)
 	app.Get(healthEndpoint, healthHandler.Health)
@@ -75,6 +76,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Apply JWT authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
+	v1Group.Post("/messages", messagesHandler.Messages)
 	v1Group.Post("/select-model", selectModelHandler.SelectModel)
 
 	return nil
@@ -85,6 +87,7 @@ const (
 	defaultVersion      = "1.0.0"
 	healthEndpoint      = "/health"
 	chatEndpoint        = "/v1/chat/completions"
+	messagesEndpoint    = "/v1/messages"
 	selectModelEndpoint = "/v1/select-model"
 	allowedMethods      = "GET, POST, PUT, DELETE, OPTIONS"
 )
@@ -195,6 +198,7 @@ func main() {
 			"status":     "running",
 			"endpoints": map[string]string{
 				"chat":         chatEndpoint,
+				"messages":     messagesEndpoint,
 				"select-model": selectModelEndpoint,
 			},
 		})

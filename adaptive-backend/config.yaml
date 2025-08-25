@@ -9,36 +9,57 @@ server:
   log_level: "${LOG_LEVEL:-info}"
   jwt_secret: "${JWT_SECRET}"
 
-# Provider configurations - both built-in and custom
-providers:
-  # Built-in providers with their API keys
-  openai:
-    api_key: "${OPENAI_API_KEY}"
-    enabled: true
+# Endpoint-specific provider configurations
+endpoints:
+  chat_completions:
+    providers:
+      openai:
+        api_key: "${OPENAI_API_KEY}"
+        enabled: true
+        native_format: "openai"
+      
+      anthropic:
+        api_key: "${ANTHROPIC_API_KEY}"
+        enabled: true
+        base_url: "https://api.anthropic.com/v1"
+        native_format: "openai"
+      
+      gemini:
+        api_key: "${GEMINI_API_KEY}"
+        enabled: true
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+        native_format: "openai"
+      
+      deepseek:
+        api_key: "${DEEPSEEK_API_KEY}"
+        enabled: true
+        base_url: "https://api.deepseek.com"
+        native_format: "openai"
 
-  anthropic:
-    api_key: "${ANTHROPIC_API_KEY}"
-    enabled: true
-    base_url: "https://api.anthropic.com/v1"
-
-  gemini:
-    api_key: "${GEMINI_API_KEY}"
-    enabled: true
-    base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
-
-  deepseek:
-    api_key: "${DEEPSEEK_API_KEY}"
-    enabled: true
-    base_url: "https://api.deepseek.com"
-
-# Custom OpenAI-compatible providers can be added here
-# custom_provider_example:
-#   api_key: "${CUSTOM_API_KEY}"
-#   enabled: true
-#   base_url: "https://api.custom-provider.com/v1"
-#   headers:
-#     Custom-Header: "value"
-#   timeout_ms: 30000
+  messages:
+    providers:
+      anthropic:
+        api_key: "${ANTHROPIC_API_KEY}"
+        enabled: true
+        base_url: "https://api.anthropic.com/v1"
+        native_format: "anthropic"
+      
+      openai:
+        api_key: "${OPENAI_API_KEY}"
+        enabled: true
+        native_format: "openai"
+      
+      gemini:
+        api_key: "${GEMINI_API_KEY}"
+        enabled: true
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+        native_format: "openai"
+      
+      deepseek:
+        api_key: "${DEEPSEEK_API_KEY}"
+        enabled: true
+        base_url: "https://api.deepseek.com"
+        native_format: "openai"
 
 # Services configuration
 services:
