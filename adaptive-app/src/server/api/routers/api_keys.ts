@@ -81,9 +81,9 @@ export const apiKeysRouter = createTRPCRouter({
 			throw new TRPCError({ code: "UNAUTHORIZED" });
 		}
 		const keys = await ctx.db.apiKey.findMany({
-			where: { 
+			where: {
 				userId,
-				status: { not: "deleted" } // Exclude soft-deleted keys
+				status: { not: "deleted" }, // Exclude soft-deleted keys
 			},
 			orderBy: { createdAt: "desc" },
 		});
@@ -219,7 +219,11 @@ export const apiKeysRouter = createTRPCRouter({
 			const existing = await ctx.db.apiKey.findUnique({
 				where: { id: input.id },
 			});
-			if (!existing || existing.userId !== userId || existing.status === "deleted") {
+			if (
+				!existing ||
+				existing.userId !== userId ||
+				existing.status === "deleted"
+			) {
 				throw new TRPCError({ code: "NOT_FOUND" });
 			}
 			const k = await ctx.db.apiKey.update({
@@ -249,21 +253,25 @@ export const apiKeysRouter = createTRPCRouter({
 			const existing = await ctx.db.apiKey.findUnique({
 				where: { id: input.id },
 			});
-			if (!existing || existing.userId !== userId || existing.status === "deleted") {
+			if (
+				!existing ||
+				existing.userId !== userId ||
+				existing.status === "deleted"
+			) {
 				throw new TRPCError({ code: "NOT_FOUND" });
 			}
-			
+
 			// Soft delete: set status to 'deleted' and clear sensitive data
 			await ctx.db.apiKey.update({
 				where: { id: input.id },
 				data: {
 					status: "deleted",
 					keyHash: "", // Clear sensitive key hash
-					keyPrefix: "", // Clear key prefix 
+					keyPrefix: "", // Clear key prefix
 					name: "[DELETED]", // Clear original name
 				},
 			});
-			
+
 			return { success: true };
 		}),
 
@@ -331,9 +339,9 @@ export const apiKeysRouter = createTRPCRouter({
 			}
 
 			const keys = await ctx.db.apiKey.findMany({
-				where: { 
+				where: {
 					projectId: input.projectId,
-					status: { not: "deleted" } // Exclude soft-deleted keys
+					status: { not: "deleted" }, // Exclude soft-deleted keys
 				},
 				orderBy: { createdAt: "desc" },
 			});
@@ -356,7 +364,9 @@ export const apiKeysRouter = createTRPCRouter({
 			z.object({
 				name: z.string().min(1),
 				projectId: z.string(),
-				status: z.enum(["active", "revoked", "inactive", "deleted"]).default("active"),
+				status: z
+					.enum(["active", "revoked", "inactive", "deleted"])
+					.default("active"),
 				expires_at: z.string().optional(),
 			}),
 		)
