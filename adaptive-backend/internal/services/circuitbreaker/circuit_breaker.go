@@ -268,7 +268,6 @@ func (cb *CircuitBreaker) transitionToState(newState State) bool {
 		_, err := pipe.Exec(ctx)
 		return err
 	}, cb.keyPrefix+stateKey)
-
 	if err != nil {
 		fiberlog.Errorf("CircuitBreaker: Failed to transition to state %v: %v", newState, err)
 		return false

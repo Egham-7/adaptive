@@ -1,8 +1,9 @@
 package format_adapter
 
 import (
-	"adaptive-backend/internal/models"
 	"fmt"
+
+	"adaptive-backend/internal/models"
 
 	"github.com/openai/openai-go"
 )

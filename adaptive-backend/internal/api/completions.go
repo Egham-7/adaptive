@@ -1,6 +1,10 @@
 package api
 
 import (
+	"errors"
+	"fmt"
+	"strings"
+
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
@@ -9,9 +13,6 @@ import (
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/utils"
-	"errors"
-	"fmt"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

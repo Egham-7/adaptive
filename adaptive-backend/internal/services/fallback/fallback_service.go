@@ -1,12 +1,13 @@
 package fallback
 
 import (
-	"adaptive-backend/internal/config"
-	"adaptive-backend/internal/models"
 	"context"
 	"fmt"
 	"sync"
 	"time"
+
+	"adaptive-backend/internal/config"
+	"adaptive-backend/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

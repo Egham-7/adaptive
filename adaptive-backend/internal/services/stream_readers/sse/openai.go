@@ -1,15 +1,16 @@
 package sse
 
 import (
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/services/stream_readers"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"sync"
 	"time"
+
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/format_adapter"
+	"adaptive-backend/internal/services/stream_readers"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
@@ -220,7 +221,12 @@ func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 			r.Buffer = make([]byte, maxBufferSize)
 		}
 		r.Buffer = r.Buffer[:maxBufferSize]
-		copy(r.Buffer, bb.B[:maxBufferSize])
+		// Calculate correct truncation point to leave room for SSE suffix
+		suffix := []byte(sseLineSuffix)
+		truncateAt := maxBufferSize - len(suffix)
+		copy(r.Buffer, bb.B[:truncateAt])
+		// Ensure we end with proper SSE format
+		copy(r.Buffer[truncateAt:], suffix)
 	} else {
 		if cap(r.Buffer) < bb.Len() {
 			r.Buffer = make([]byte, bb.Len())
@@ -295,9 +301,12 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 			r.Buffer = make([]byte, maxBufferSize)
 		}
 		r.Buffer = r.Buffer[:maxBufferSize]
-		copy(r.Buffer, bb.B[:maxBufferSize])
+		// Calculate correct truncation point to leave room for SSE suffix
+		suffix := []byte("\n\n")
+		truncateAt := maxBufferSize - len(suffix)
+		copy(r.Buffer, bb.B[:truncateAt])
 		// Ensure we end with proper SSE format
-		copy(r.Buffer[maxBufferSize-4:], []byte("\n\n"))
+		copy(r.Buffer[truncateAt:], suffix)
 	} else {
 		if cap(r.Buffer) < bb.Len() {
 			r.Buffer = make([]byte, bb.Len())

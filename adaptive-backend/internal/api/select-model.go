@@ -1,9 +1,10 @@
 package api
 
 import (
+	"fmt"
+
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/select_model"
-	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

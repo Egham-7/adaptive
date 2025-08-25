@@ -1,10 +1,11 @@
 package format_adapter
 
 import (
-	"adaptive-backend/internal/models"
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"adaptive-backend/internal/models"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropicparam "github.com/anthropics/anthropic-sdk-go/packages/param"

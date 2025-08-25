@@ -1,12 +1,14 @@
 package api
 
 import (
-	"adaptive-backend/internal/services"
 	"context"
 	"time"
 
+	"adaptive-backend/internal/services"
+
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/redis/go-redis/v9"
 )
 
 // HealthHandler handles health check requests
@@ -15,8 +17,8 @@ type HealthHandler struct {
 }
 
 // NewHealthHandler creates a new health handler
-func NewHealthHandler() *HealthHandler {
-	healthService := services.NewHealthService()
+func NewHealthHandler(redisClient *redis.Client) *HealthHandler {
+	healthService := services.NewHealthService(redisClient)
 	return &HealthHandler{
 		healthService: healthService,
 	}
