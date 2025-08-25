@@ -30,14 +30,14 @@ export function ProjectBreadcrumb({ className }: ProjectBreadcrumbProps) {
 	// Only fetch when we have valid IDs
 	const { data: organization, isLoading: orgLoading } =
 		api.organizations.getById.useQuery(
-			{ id: orgId! },
+			{ id: orgId || "" },
 			{ enabled: !!orgId && typeof orgId === "string" && orgId.length > 0 },
 		);
 
 	// Fetch project data
 	const { data: project, isLoading: projectLoading } =
 		api.projects.getById.useQuery(
-			{ id: projectId! },
+			{ id: projectId || "" },
 			{
 				enabled:
 					!!projectId && typeof projectId === "string" && projectId.length > 0,
