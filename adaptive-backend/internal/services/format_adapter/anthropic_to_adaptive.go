@@ -59,32 +59,49 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 		Provider: provider,
 	}
 
-	// Handle different event types
-	switch chunk.Type {
-	case "message_start":
-		startEvent := chunk.AsMessageStart()
-		convertedMessage, err := c.ConvertResponse(&startEvent.Message, provider)
+	// Use typed accessors for all event kinds instead of direct field access
+	switch eventVariant := chunk.AsAny().(type) {
+	case anthropic.MessageStartEvent:
+		convertedMessage, err := c.ConvertResponse(&eventVariant.Message, provider)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert message in chunk: %w", err)
 		}
 		adaptive.Message = convertedMessage
-	case "message_delta":
-		deltaEvent := chunk.AsMessageDelta()
-		adaptive.Delta = &chunk.Delta
-		if deltaEvent.Usage.OutputTokens != 0 || deltaEvent.Usage.InputTokens != 0 {
+	
+	case anthropic.MessageDeltaEvent:
+		// For MessageDeltaEvent, we need to create a MessageStreamEventUnionDelta from the MessageDeltaEventDelta
+		// Since the union type has flattened fields, we can construct it by copying the relevant fields
+		adaptive.Delta = &anthropic.MessageStreamEventUnionDelta{
+			StopReason:   eventVariant.Delta.StopReason,
+			StopSequence: eventVariant.Delta.StopSequence,
+		}
+		if eventVariant.Usage.OutputTokens != 0 || eventVariant.Usage.InputTokens != 0 {
 			adaptive.Usage = &models.AdaptiveAnthropicUsage{
-				InputTokens:  deltaEvent.Usage.InputTokens,
-				OutputTokens: deltaEvent.Usage.OutputTokens,
+				InputTokens:  eventVariant.Usage.InputTokens,
+				OutputTokens: eventVariant.Usage.OutputTokens,
 			}
 		}
-	case "content_block_start":
-		adaptive.ContentBlock = &chunk.ContentBlock
-		adaptive.Index = &chunk.Index
-	case "content_block_delta":
-		adaptive.Delta = &chunk.Delta
-		adaptive.Index = &chunk.Index
-	case "content_block_stop":
-		adaptive.Index = &chunk.Index
+	
+	case anthropic.ContentBlockStartEvent:
+		adaptive.ContentBlock = &eventVariant.ContentBlock
+		adaptive.Index = &eventVariant.Index
+	
+	case anthropic.ContentBlockDeltaEvent:
+		// For ContentBlockDeltaEvent, we need to create a MessageStreamEventUnionDelta from the RawContentBlockDeltaUnion
+		// The RawContentBlockDeltaUnion contains the actual delta data we need
+		adaptive.Delta = &anthropic.MessageStreamEventUnionDelta{
+			// We'll copy the fields from the RawContentBlockDeltaUnion
+			// The union fields will be populated based on the delta type
+			Text: eventVariant.Delta.Text,
+		}
+		adaptive.Index = &eventVariant.Index
+	
+	case anthropic.ContentBlockStopEvent:
+		adaptive.Index = &eventVariant.Index
+	
+	default:
+		// Handle unknown event types gracefully
+		return nil, fmt.Errorf("unknown stream event type: %T", eventVariant)
 	}
 
 	return adaptive, nil
