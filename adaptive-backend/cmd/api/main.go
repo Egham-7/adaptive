@@ -174,7 +174,7 @@ func main() {
 	fiberlog.Info("Redis client initialized successfully")
 
 	// Wait for services to become healthy before starting server
-	healthHandler := api.NewHealthHandler()
+	healthHandler := api.NewHealthHandler(redisClient)
 	if err := healthHandler.WaitForServices(ctx, 10*time.Minute); err != nil {
 		fiberlog.Errorf("Failed to wait for services: %v", err)
 		return

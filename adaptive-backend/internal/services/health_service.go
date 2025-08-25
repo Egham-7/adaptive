@@ -7,12 +7,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
 // HealthService manages health checks for dependent services
 type HealthService struct {
 	protocolManagerClient *Client
+	redisClient           *redis.Client
 	checkInterval         time.Duration
 	timeout               time.Duration
 	servicesReady         bool
@@ -35,7 +37,7 @@ type OverallHealth struct {
 }
 
 // NewHealthService creates a new health service with extended timeouts for model loading
-func NewHealthService() *HealthService {
+func NewHealthService(redisClient *redis.Client) *HealthService {
 	// Get protocol manager base URL
 	protocolManagerURL := os.Getenv("ADAPTIVE_AI_BASE_URL")
 	if protocolManagerURL == "" {
@@ -44,6 +46,7 @@ func NewHealthService() *HealthService {
 
 	return &HealthService{
 		protocolManagerClient: NewClient(protocolManagerURL),
+		redisClient:           redisClient,
 		checkInterval:         10 * time.Second, // Longer interval for model loading
 		timeout:               30 * time.Second, // Longer timeout for model loading
 		servicesReady:         false,
@@ -63,7 +66,13 @@ func (hs *HealthService) CheckHealth(ctx context.Context) *OverallHealth {
 			Message: "Services are still starting up (loading models and classifiers)",
 			Services: []HealthStatus{
 				{
-					Service:   "protocol_manager",
+					Service:   "adaptive_ai",
+					Healthy:   false,
+					Error:     "Starting up",
+					CheckedAt: time.Now(),
+				},
+				{
+					Service:   "redis",
 					Healthy:   false,
 					Error:     "Starting up",
 					CheckedAt: time.Now(),
@@ -74,13 +83,20 @@ func (hs *HealthService) CheckHealth(ctx context.Context) *OverallHealth {
 
 	// Perform actual health checks
 	var wg sync.WaitGroup
-	results := make(chan HealthStatus, 1)
+	results := make(chan HealthStatus, 2)
 
-	// Check protocol manager health
+	// Check adaptive AI health
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		results <- hs.checkProtocolManagerHealth(ctx)
+		results <- hs.checkAdaptiveAIHealth(ctx)
+	}()
+
+	// Check Redis health
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		results <- hs.checkRedisHealth(ctx)
 	}()
 
 	// Wait for all checks to complete
@@ -112,10 +128,10 @@ func (hs *HealthService) CheckHealth(ctx context.Context) *OverallHealth {
 	}
 }
 
-// checkProtocolManagerHealth checks the protocol manager /health endpoint
-func (hs *HealthService) checkProtocolManagerHealth(ctx context.Context) HealthStatus {
+// checkAdaptiveAIHealth checks the adaptive AI service /health endpoint
+func (hs *HealthService) checkAdaptiveAIHealth(ctx context.Context) HealthStatus {
 	status := HealthStatus{
-		Service:   "protocol_manager",
+		Service:   "adaptive_ai",
 		CheckedAt: time.Now(),
 	}
 
@@ -130,10 +146,35 @@ func (hs *HealthService) checkProtocolManagerHealth(ctx context.Context) HealthS
 	if err != nil {
 		status.Healthy = false
 		status.Error = err.Error()
-		fiberlog.Debugf("Protocol manager health check failed: %v", err)
+		fiberlog.Debugf("Adaptive AI health check failed: %v", err)
 	} else {
 		status.Healthy = true
-		fiberlog.Debugf("Protocol manager health check passed")
+		fiberlog.Debugf("Adaptive AI health check passed")
+	}
+
+	return status
+}
+
+// checkRedisHealth checks Redis connectivity by performing a PING
+func (hs *HealthService) checkRedisHealth(ctx context.Context) HealthStatus {
+	status := HealthStatus{
+		Service:   "redis",
+		CheckedAt: time.Now(),
+	}
+
+	// Create a timeout context for the Redis ping
+	pingCtx, cancel := context.WithTimeout(ctx, hs.timeout)
+	defer cancel()
+
+	err := hs.redisClient.Ping(pingCtx).Err()
+
+	if err != nil {
+		status.Healthy = false
+		status.Error = err.Error()
+		fiberlog.Debugf("Redis health check failed: %v", err)
+	} else {
+		status.Healthy = true
+		fiberlog.Debugf("Redis health check passed")
 	}
 
 	return status
@@ -166,12 +207,18 @@ func (hs *HealthService) WaitForServices(ctx context.Context, maxWaitTime time.D
 
 			// Do the actual health check
 			var wg sync.WaitGroup
-			results := make(chan HealthStatus, 1)
+			results := make(chan HealthStatus, 2)
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				results <- hs.checkProtocolManagerHealth(checkCtx)
+				results <- hs.checkAdaptiveAIHealth(checkCtx)
+			}()
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				results <- hs.checkRedisHealth(checkCtx)
 			}()
 
 			go func() {
