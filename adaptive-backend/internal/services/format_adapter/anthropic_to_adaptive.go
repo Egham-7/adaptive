@@ -67,7 +67,7 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 			return nil, fmt.Errorf("failed to convert message in chunk: %w", err)
 		}
 		adaptive.Message = convertedMessage
-	
+
 	case anthropic.MessageDeltaEvent:
 		// For MessageDeltaEvent, we need to create a MessageStreamEventUnionDelta from the MessageDeltaEventDelta
 		// Since the union type has flattened fields, we can construct it by copying the relevant fields
@@ -81,11 +81,11 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 				OutputTokens: eventVariant.Usage.OutputTokens,
 			}
 		}
-	
+
 	case anthropic.ContentBlockStartEvent:
 		adaptive.ContentBlock = &eventVariant.ContentBlock
 		adaptive.Index = &eventVariant.Index
-	
+
 	case anthropic.ContentBlockDeltaEvent:
 		// For ContentBlockDeltaEvent, we need to create a MessageStreamEventUnionDelta from the RawContentBlockDeltaUnion
 		// The RawContentBlockDeltaUnion contains the actual delta data we need
@@ -95,10 +95,10 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 			Text: eventVariant.Delta.Text,
 		}
 		adaptive.Index = &eventVariant.Index
-	
+
 	case anthropic.ContentBlockStopEvent:
 		adaptive.Index = &eventVariant.Index
-	
+
 	default:
 		// Handle unknown event types gracefully
 		return nil, fmt.Errorf("unknown stream event type: %T", eventVariant)

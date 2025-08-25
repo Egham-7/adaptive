@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/redis/go-redis/v9"
 )
 
 // HealthService manages health checks for dependent services

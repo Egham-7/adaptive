@@ -35,7 +35,7 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 	for {
 		line, readErr := r.reader.ReadString('\n')
 		isEOF := readErr == io.EOF
-		
+
 		if readErr != nil && !isEOF {
 			return nil, fmt.Errorf("failed to read from Anthropic SSE stream: %w", readErr)
 		}
