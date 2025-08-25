@@ -1,6 +1,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"runtime"
+	"strings"
+	"time"
+
 	"adaptive-backend/internal/api"
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/middleware"
@@ -10,12 +17,6 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/select_model"
-	"context"
-	"fmt"
-	"os"
-	"runtime"
-	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -173,7 +174,7 @@ func main() {
 	fiberlog.Info("Redis client initialized successfully")
 
 	// Wait for services to become healthy before starting server
-	healthHandler := api.NewHealthHandler()
+	healthHandler := api.NewHealthHandler(redisClient)
 	if err := healthHandler.WaitForServices(ctx, 10*time.Minute); err != nil {
 		fiberlog.Errorf("Failed to wait for services: %v", err)
 		return

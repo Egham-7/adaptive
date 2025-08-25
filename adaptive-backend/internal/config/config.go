@@ -1,13 +1,14 @@
 package config
 
 import (
-	"adaptive-backend/internal/models"
 	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"adaptive-backend/internal/models"
 
 	"gopkg.in/yaml.v3"
 )

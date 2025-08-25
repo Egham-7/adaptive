@@ -1,7 +1,6 @@
 package stream
 
 import (
-	"adaptive-backend/internal/services/stream_readers/sse"
 	"bufio"
 	"bytes"
 	"context"
@@ -9,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	"adaptive-backend/internal/services/stream_readers/sse"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

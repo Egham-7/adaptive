@@ -1,11 +1,12 @@
 package select_model
 
 import (
+	"fmt"
+
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/model_router"
-	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )

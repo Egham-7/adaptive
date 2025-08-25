@@ -1,12 +1,13 @@
 package cache
 
 import (
-	"adaptive-backend/internal/models"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	"adaptive-backend/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
