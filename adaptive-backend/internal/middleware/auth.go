@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"adaptive-backend/internal/config"
 	"slices"
 	"strings"
+
+	"adaptive-backend/internal/config"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -62,7 +63,6 @@ func JWTAuth(cfg *config.Config) fiber.Handler {
 			}
 			return []byte(jwtSecret), nil
 		})
-
 		if err != nil {
 			fiberlog.Errorf("JWT parsing error: %v", err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

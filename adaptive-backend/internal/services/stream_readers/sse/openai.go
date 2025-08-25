@@ -1,15 +1,16 @@
 package sse
 
 import (
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/services/stream_readers"
 	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"sync"
 	"time"
+
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/format_adapter"
+	"adaptive-backend/internal/services/stream_readers"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"

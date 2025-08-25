@@ -50,4 +50,3 @@ func ExtractPromptFromAnthropicMessages(messages []anthropic.MessageParam) (stri
 
 	return "", fmt.Errorf("no user message with text content found for routing")
 }
-

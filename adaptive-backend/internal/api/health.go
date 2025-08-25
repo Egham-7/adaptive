@@ -1,9 +1,10 @@
 package api
 
 import (
-	"adaptive-backend/internal/services"
 	"context"
 	"time"
+
+	"adaptive-backend/internal/services"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

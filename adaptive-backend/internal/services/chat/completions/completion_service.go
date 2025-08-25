@@ -1,15 +1,16 @@
 package completions
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"time"
+
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/stream_readers/stream"
-	"context"
-	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

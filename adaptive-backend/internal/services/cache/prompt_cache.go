@@ -1,9 +1,10 @@
 package cache
 
 import (
+	"fmt"
+
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/utils"
-	"fmt"
 
 	"github.com/botirk38/semanticcache"
 	"github.com/botirk38/semanticcache/backends"

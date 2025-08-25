@@ -1,10 +1,11 @@
 package completions
 
 import (
+	"fmt"
+
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/request"
 	"adaptive-backend/internal/utils"
-	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

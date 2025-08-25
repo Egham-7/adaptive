@@ -1,9 +1,10 @@
 package model_router
 
 import (
+	"fmt"
+
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
-	"fmt"
 
 	"github.com/botirk38/semanticcache"
 	"github.com/botirk38/semanticcache/backends"

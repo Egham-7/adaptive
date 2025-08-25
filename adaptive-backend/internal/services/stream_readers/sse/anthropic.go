@@ -1,13 +1,14 @@
 package sse
 
 import (
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/format_adapter"
 	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
+
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/format_adapter"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -48,8 +49,7 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 		}
 
 		// Handle SSE format
-		if strings.HasPrefix(line, "data: ") {
-			data := strings.TrimPrefix(line, "data: ")
+		if data, found := strings.CutPrefix(line, "data: "); found {
 
 			// Handle [DONE] marker
 			if data == "[DONE]" {
@@ -77,9 +77,8 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 		}
 
 		// Handle event lines (optional)
-		if strings.HasPrefix(line, "event: ") {
+		if eventType, found := strings.CutPrefix(line, "event: "); found {
 			// Log event type for debugging
-			eventType := strings.TrimPrefix(line, "event: ")
 			fiberlog.Debugf("[%s] Anthropic SSE event: %s", r.reqID, eventType)
 			continue
 		}
@@ -112,4 +111,3 @@ func (r *AnthropicSSEReader) Close() error {
 	// Anthropic SSE reader doesn't need explicit cleanup
 	return nil
 }
-

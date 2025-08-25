@@ -1,8 +1,9 @@
 package completions
 
 import (
-	"adaptive-backend/internal/models"
 	"fmt"
+
+	"adaptive-backend/internal/models"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go/packages/param"

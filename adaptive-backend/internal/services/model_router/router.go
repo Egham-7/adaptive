@@ -1,10 +1,11 @@
 package model_router
 
 import (
+	"fmt"
+
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
-	"fmt"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
