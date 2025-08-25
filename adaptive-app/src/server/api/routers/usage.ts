@@ -909,18 +909,35 @@ export const usageRouter = createTRPCRouter({
 				try {
 					// Use proper UTC dates to avoid timezone issues
 					const now = new Date();
+					const endDate = input.endDate ?? now;
 					const startDate =
-						input.startDate ||
-						new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-					const endDate = input.endDate || now;
+						input.startDate ??
+						new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+					const startUtc = new Date(
+						Date.UTC(
+							startDate.getUTCFullYear(),
+							startDate.getUTCMonth(),
+							startDate.getUTCDate(),
+						),
+					);
+					const endUtcExclusive = new Date(
+						Date.UTC(
+							endDate.getUTCFullYear(),
+							endDate.getUTCMonth(),
+							endDate.getUTCDate() + 1,
+						),
+					);
 
 					const whereClause = {
-						apiKey: { userId },
-						timestamp: {
-							gte: startDate,
-							lte: endDate,
-						},
+						timestamp: { gte: startUtc, lt: endUtcExclusive },
 						...(input.provider && { provider: input.provider }),
+						OR: [
+							{ apiKey: { userId } },
+							{
+								apiKeyId: null,
+								metadata: { path: ["userId"], equals: userId },
+							},
+						],
 					};
 
 					// Zod schema for aggregate result
