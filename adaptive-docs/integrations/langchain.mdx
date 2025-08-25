@@ -71,7 +71,7 @@ llm = ChatOpenAI(
     model="",
     model_kwargs={
         # Intelligent routing configuration
-        "protocol_manager": {
+        "model_router": {
             "models": [
                 {"provider": "openai"},  # All OpenAI models
                 {"provider": "anthropic", "model_name": "claude-3-sonnet"}  # Specific model
@@ -88,7 +88,7 @@ llm = ChatOpenAI(
         },
         
         # Semantic caching
-        "semantic_cache": {
+        "prompt_response_cache": {
             "enabled": True,
             "semantic_threshold": 0.85  # Similarity threshold for cache hits
         },
@@ -110,7 +110,7 @@ const llm = new ChatOpenAI({
   model: "",
   modelKwargs: {
     // Intelligent routing configuration
-    protocol_manager: {
+    model_router: {
       models: [
         { provider: "openai" },  // All OpenAI models
         { provider: "anthropic", model_name: "claude-3-sonnet" }  // Specific model
@@ -127,7 +127,7 @@ const llm = new ChatOpenAI({
     },
     
     // Semantic caching
-    semantic_cache: {
+    prompt_response_cache: {
       enabled: true,
       semantic_threshold: 0.85  // Similarity threshold for cache hits
     },
@@ -145,7 +145,7 @@ const llm = new ChatOpenAI({
 
 ### Parameter Details
 
-#### `protocol_manager`
+#### `model_router`
 Controls intelligent model selection:
 
 - **`models`**: Array of allowed providers/models
@@ -166,7 +166,7 @@ Controls provider fallback behavior:
   - `"sequential"` = Try providers one by one (lower cost)
   - `"race"` = Try multiple providers simultaneously (faster)
 
-#### `semantic_cache`
+#### `prompt_response_cache`
 Improves performance by caching similar requests:
 
 - **`enabled`**: Enable semantic caching
@@ -195,7 +195,7 @@ llm = ChatOpenAI(
     model="",
     model_kwargs={
         # Include custom provider in model list
-        "protocol_manager": {
+        "model_router": {
             "models": [
                 {"provider": "openai"},  # Standard provider
                 {
@@ -236,7 +236,7 @@ const llm = new ChatOpenAI({
   model: "",
   modelKwargs: {
     // Include custom provider in model list
-    protocol_manager: {
+    model_router: {
       models: [
         { provider: "openai" },  // Standard provider
         {
@@ -300,6 +300,6 @@ Simply switch:
 | Tip                            | Description                           |
 | ------------------------------ | ------------------------------------- |
 | **Leave `model=""`**           | Enables intelligent routing           |
-| **Use `protocol_manager`** | Controls routing behavior and providers |
+| **Use `model_router`** | Controls routing behavior and providers |
 | **Handle errors**              | Wrap calls in try/catch or retries    |
 

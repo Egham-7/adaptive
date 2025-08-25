@@ -80,11 +80,11 @@ When you exceed the rate limit, you'll receive a `429` status code with this res
 Beyond OpenAI compatibility, Adaptive adds powerful extensions:
 
 ### Intelligent Routing
-Configure model selection with protocol manager:
+Configure model selection with model router:
 
 ```json
 {
-  "protocol_manager": {
+  "model_router": {
     "models": [
       { "provider": "openai" },
       { "provider": "anthropic" }

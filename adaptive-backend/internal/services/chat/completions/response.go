@@ -3,8 +3,10 @@ package completions
 import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/format_adapter"
+	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/response"
+	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -13,7 +15,6 @@ import (
 const (
 	protocolStandard   = "standard"
 	protocolMinion     = "minion"
-	protocolMinions    = "minions_protocol"
 	errUnknownProtocol = "unknown protocol"
 )
 
@@ -22,25 +23,21 @@ const (
 type ResponseService struct {
 	*response.BaseService
 	completionService *CompletionService
-	protocolMgr       *protocol_manager.ProtocolManager
+	modelRouter       *model_router.ModelRouter
 }
 
-// NewResponseService creates a new response service for completions
-func NewResponseService(cfg *config.Config, protocolMgr *protocol_manager.ProtocolManager, fallbackService *FallbackService) *ResponseService {
+func NewResponseService(cfg *config.Config, modelRouter *model_router.ModelRouter) *ResponseService {
 	if cfg == nil {
 		panic("NewResponseService: cfg is nil")
 	}
-	if protocolMgr == nil {
-		panic("NewResponseService: protocolMgr is nil")
-	}
-	if fallbackService == nil {
-		panic("NewResponseService: fallbackService is nil")
+	if modelRouter == nil {
+		panic("NewResponseService: modelRouter is nil")
 	}
 
 	return &ResponseService{
 		BaseService:       response.NewBaseService(),
-		completionService: NewCompletionService(cfg, fallbackService),
-		protocolMgr:       protocolMgr,
+		completionService: NewCompletionService(cfg),
+		modelRouter:       modelRouter,
 	}
 }
 
@@ -89,14 +86,6 @@ func (rs *ResponseService) HandleProtocol(
 
 	case models.ProtocolMinion:
 		if err := rs.completionService.HandleMinionCompletion(c, req, resp.Minion, requestID, isStream, cacheSource); err != nil {
-			return rs.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
-		}
-		// Store successful response in semantic cache
-		rs.storeSuccessfulSemanticCache(req, resp, requestID)
-		return nil
-
-	case models.ProtocolMinionsProtocol:
-		if err := rs.completionService.HandleMinionsProtocolCompletion(c, req, resp, requestID, isStream, cacheSource); err != nil {
 			return rs.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
 		}
 		// Store successful response in semantic cache
@@ -164,25 +153,27 @@ func (rs *ResponseService) storeSuccessfulSemanticCache(
 	resp *models.ProtocolResponse,
 	requestID string,
 ) {
-	if rs.protocolMgr == nil {
+	if rs.modelRouter == nil {
 		fiberlog.Debugf("[%s] Protocol manager not available for semantic cache storage", requestID)
 		return
 	}
 
-	// Create ModelSelectionRequest for cache storage
-	openAIParams := req.ToOpenAIParams()
-	if openAIParams == nil {
-		fiberlog.Errorf("[%s] Failed to convert request to OpenAI parameters for semantic cache", requestID)
+	// Extract prompt for cache storage
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to convert request to OpenAI parameters for semantic cache: %v", requestID, err)
 		return
 	}
 
-	selReq := models.ModelSelectionRequest{
-		ChatCompletionRequest: *openAIParams,
-		ProtocolManagerConfig: req.ProtocolManagerConfig,
+	// Extract prompt from messages
+	prompt, err := utils.ExtractLastMessage(openAIParams.Messages)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to extract prompt for semantic cache: %v", requestID, err)
+		return
 	}
 
 	// Store in semantic cache
-	if err := rs.protocolMgr.StoreSuccessfulProtocol(selReq, *resp, requestID, req.SemanticCache); err != nil {
+	if err := rs.modelRouter.StoreSuccessfulProtocol(prompt, *resp, requestID, req.PromptResponseCache); err != nil {
 		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
 	}
 }

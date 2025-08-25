@@ -4,13 +4,13 @@ description: "Ultra-fast caching for identical requests with streaming support"
 icon: "database"
 ---
 
-The fastest cache level - stores complete responses for identical prompts to deliver instant results. **Disabled by default** - enable per request for maximum speed. Supports both streaming and non-streaming requests.
+The fastest cache level - stores complete responses for identical prompts to deliver instant results. **Disabled by default** - enable per request for maximum speed. Supports both streaming and non-streaming requests. Now powered by **semantic cache technology** for intelligent matching.
 
 ## How It Works
 
-- **Exact matching**: Caches responses for identical prompt + parameter combinations
-- **SHA256-based keys**: Deterministic cache key generation for consistency
-- **Redis backend**: Uses existing Redis infrastructure for reliability
+- **Semantic matching**: Uses AI embeddings to understand prompt meaning, not just exact text
+- **Exact and similar matches**: Finds both identical prompts and semantically similar ones
+- **Redis backend**: Uses existing Redis infrastructure with semantic indexing
 - **Streaming conversion**: Cached responses are converted to Server-Sent Events for streaming compatibility
 - **Success-only caching**: Only successful responses are cached, preventing error propagation
 
@@ -32,11 +32,11 @@ The prompt cache is checked **before** the semantic cache for optimal performanc
 
 ## Cache Keys
 
-Responses are cached based on SHA256 hash of:
-- Complete message history
-- Model selection
-- All parameters (temperature, max_tokens, top_p, etc.)
-- Tools and tool choice configuration
+Responses are cached using semantic embeddings based on:
+- **Prompt content**: AI understands the meaning of user messages
+- **Exact parameter matching**: Same temperature, max_tokens, top_p, etc. required
+- **Model compatibility**: Works across compatible models when semantically similar
+- **Tool configuration**: Tools and tool choice must match exactly
 
 ## Examples
 
@@ -70,20 +70,40 @@ const stream = await openai.chat.completions.create({
 // Cached responses are streamed word-by-word for consistent UX
 ```
 
+### Cache Hit Scenarios
+```javascript
+// Original request
+const response1 = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "What is 2+2?" }],
+  temperature: 0.7,
+  prompt_cache: { enabled: true }
+});
+
+// Semantic cache hit for similar meaning
+const response2 = await openai.chat.completions.create({
+  model: "", 
+  messages: [{ role: "user", content: "Tell me 2 plus 2" }],
+  temperature: 0.7,  // Same parameters required
+  prompt_cache: { enabled: true }
+});
+// Returns cached result with cache_tier: "semantic_similar"
+```
+
 ### Cache Miss Scenarios
 ```javascript
 // Different temperature = cache miss
-const response1 = await openai.chat.completions.create({
+const response3 = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "What is 2+2?" }],
   temperature: 0.8,  // Different parameter
   prompt_cache: { enabled: true }
 });
 
-// Different message = cache miss  
-const response2 = await openai.chat.completions.create({
+// Very different message = cache miss  
+const response4 = await openai.chat.completions.create({
   model: "", 
-  messages: [{ role: "user", content: "What is 3+3?" }],
+  messages: [{ role: "user", content: "What's the weather like?" }],
   temperature: 0.7,
   prompt_cache: { enabled: true }
 });
@@ -107,9 +127,11 @@ The prompt cache accepts a `prompt_cache` object in requests:
 - `enabled`: **Required** boolean to enable caching for this request
 - `ttl`: Optional cache duration in seconds (default: 3600, i.e., 1 hour)
 
+**Note**: Semantic similarity threshold is managed automatically by the system for optimal performance. The prompt cache uses the same semantic matching technology as the model router's cache.
+
 ## Cache Tier Tracking
 
-Prompt cache hits include `"prompt_response"` in the usage object:
+Prompt cache hits include semantic cache tier information in the usage object:
 
 ```json
 {
@@ -117,36 +139,42 @@ Prompt cache hits include `"prompt_response"` in the usage object:
     "prompt_tokens": 10,
     "completion_tokens": 20,
     "total_tokens": 30,
-    "cache_tier": "prompt_response"
+    "cache_tier": "semantic_exact"
   }
 }
 ```
 
-Field is omitted when no cache is used.
+Possible `cache_tier` values for prompt cache:
+- `"semantic_exact"` - Exact prompt match found
+- `"semantic_similar"` - Similar prompt match found
+- Field is omitted when no cache is used
 
 ## Technical Implementation
 
-- **Storage**: Redis with configurable TTL per entry
-- **Key generation**: SHA256 hash of request parameters for consistency
+- **Storage**: Redis with semantic embedding indexing
+- **Semantic matching**: OpenAI embeddings for understanding prompt meaning
+- **Similarity thresholds**: Automatically optimized for best performance
 - **Error handling**: Cache failures don't block requests - fallback to fresh API calls
 - **Memory efficiency**: Only successful responses are stored
 - **Streaming simulation**: Cached responses are chunked and streamed with realistic timing
 
 ## Performance Characteristics
 
-- **Hit latency**: ~1-5ms including Redis roundtrip
-- **Storage**: Redis with persistence and replication
-- **Hit rate**: 15-25% for typical applications, higher for repeated workflows
-- **Capacity**: Limited by Redis memory configuration
+- **Hit latency**: ~50-100ms including semantic similarity computation
+- **Miss overhead**: ~10-20ms for embedding generation and comparison  
+- **Storage**: Redis with semantic indexing and persistence
+- **Hit rate**: 25-40% for typical applications, higher with semantic matching
+- **Capacity**: Limited by Redis memory and embedding storage
 - **Streaming delay**: 10ms between chunks for natural feel
 
 ## Best Practices
 
 - **Use with deterministic requests**: Set `temperature: 0` for consistent results
 - **Configure appropriate TTL**: Shorter for time-sensitive content, longer for static responses
-- **Monitor cache effectiveness**: Track hit rates in application metrics
-- **Batch similar requests**: Group identical requests to maximize cache hits
+- **Monitor cache effectiveness**: Track hit rates and cache_tier values in application metrics
+- **Leverage semantic matching**: Similar prompts will now hit cache automatically
 - **Consider memory usage**: Monitor Redis memory consumption with high TTL values
+- **Enable for repeated workflows**: Especially effective for FAQ systems and similar queries
 
 ## Error Handling
 

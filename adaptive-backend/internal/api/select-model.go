@@ -1,6 +1,7 @@
 package api
 
 import (
+	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/select_model"
 	"fmt"
 
@@ -12,9 +13,10 @@ import (
 // It determines which model/provider would be selected for a given provider-agnostic request
 // without actually executing the completion.
 type SelectModelHandler struct {
-	requestSvc     *select_model.RequestService
-	selectModelSvc *select_model.Service
-	responseSvc    *select_model.ResponseService
+	requestSvc      *select_model.RequestService
+	selectModelSvc  *select_model.Service
+	responseSvc     *select_model.ResponseService
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 }
 
 // NewSelectModelHandler initializes the select model handler with injected dependencies.
@@ -22,11 +24,13 @@ func NewSelectModelHandler(
 	requestSvc *select_model.RequestService,
 	selectModelSvc *select_model.Service,
 	responseSvc *select_model.ResponseService,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) *SelectModelHandler {
 	return &SelectModelHandler{
-		requestSvc:     requestSvc,
-		selectModelSvc: selectModelSvc,
-		responseSvc:    responseSvc,
+		requestSvc:      requestSvc,
+		selectModelSvc:  selectModelSvc,
+		responseSvc:     responseSvc,
+		circuitBreakers: circuitBreakers,
 	}
 }
 
@@ -55,7 +59,7 @@ func (h *SelectModelHandler) SelectModel(c *fiber.Ctx) error {
 	}
 
 	// Perform model selection using the service
-	resp, err := h.selectModelSvc.SelectModel(selectReq, userID, reqID)
+	resp, err := h.selectModelSvc.SelectModel(selectReq, userID, reqID, h.circuitBreakers)
 	if err != nil {
 		return h.responseSvc.InternalError(c, fmt.Sprintf("Model selection failed: %s", err.Error()))
 	}

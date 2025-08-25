@@ -3,14 +3,24 @@ package api
 import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/chat/completions"
 	"adaptive-backend/internal/services/circuitbreaker"
-	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/format_adapter"
+	"adaptive-backend/internal/services/model_router"
+	"adaptive-backend/internal/utils"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/openai/openai-go/shared"
+)
+
+// Sentinel errors for proper HTTP status code mapping
+var (
+	ErrInvalidModelSpec = errors.New("invalid model specification")
 )
 
 // CompletionHandler handles chat completions end-to-end.
@@ -21,8 +31,8 @@ type CompletionHandler struct {
 	reqSvc      *completions.RequestService
 	respSvc     *completions.ResponseService
 	paramSvc    *completions.ParameterService
-	protocolMgr *protocol_manager.ProtocolManager
-	fallbackSvc *completions.FallbackService
+	modelRouter *model_router.ModelRouter
+	promptCache *cache.PromptCache
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
@@ -31,16 +41,16 @@ func NewCompletionHandler(
 	reqSvc *completions.RequestService,
 	respSvc *completions.ResponseService,
 	paramSvc *completions.ParameterService,
-	protocolMgr *protocol_manager.ProtocolManager,
-	fallbackSvc *completions.FallbackService,
+	modelRouter *model_router.ModelRouter,
+	promptCache *cache.PromptCache,
 ) *CompletionHandler {
 	return &CompletionHandler{
 		cfg:         cfg,
 		reqSvc:      reqSvc,
 		respSvc:     respSvc,
 		paramSvc:    paramSvc,
-		protocolMgr: protocolMgr,
-		fallbackSvc: fallbackSvc,
+		modelRouter: modelRouter,
+		promptCache: promptCache,
 	}
 }
 
@@ -49,6 +59,7 @@ func NewCompletionHandler(
 // and response handling with circuit breaking for reliability.
 func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	reqID := h.reqSvc.GetRequestID(c)
+	fiberlog.Infof("[%s] starting chat completion request", reqID)
 
 	// Parse request first to get user ID from the request body
 	req, err := h.reqSvc.ParseChatCompletionRequest(c)
@@ -56,21 +67,37 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return h.respSvc.HandleBadRequest(c, err.Error(), reqID)
 	}
 
-	// Extract user ID from request body (use "internal" if not provided)
-	userID := "internal"
+	// Get userID from request
+	userID := "anonymous"
 	if req.User.Value != "" {
 		userID = req.User.Value
 	}
-	fiberlog.Infof("[%s] starting chat completion request", reqID)
 	isStream := req.Stream
 
-	// Configure fallback mode based on request
-	h.configureFallbackMode(req, reqID)
+	// Resolve config by merging YAML config with request overrides (single source of truth)
+	resolvedConfig, err := h.cfg.ResolveConfig(req)
+	if err != nil {
+		return h.respSvc.HandleInternalError(c, fmt.Sprintf("failed to resolve config: %v", err), reqID)
+	}
+
+	// Check prompt cache first
+	if cachedResponse, cacheSource, found := h.checkPromptCache(req, &resolvedConfig.PromptCache, reqID); found {
+		fiberlog.Infof("[%s] prompt cache hit (%s) - returning cached response", reqID, cacheSource)
+		if isStream {
+			// Convert cached response to streaming format
+			return cache.StreamCachedResponse(c, cachedResponse, reqID)
+		}
+		return c.JSON(cachedResponse)
+	}
 
 	resp, cacheSource, err := h.selectProtocol(
-		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker),
+		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker), resolvedConfig,
 	)
 	if err != nil {
+		// Check for invalid model specification error to return 400 instead of 500
+		if errors.Is(err, ErrInvalidModelSpec) {
+			return h.respSvc.HandleBadRequest(c, err.Error(), reqID)
+		}
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
@@ -86,11 +113,27 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	return h.respSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream, cacheSource)
 }
 
+// checkPromptCache checks if prompt cache is enabled and returns cached response if found
+func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, promptCacheConfig *models.PromptCacheConfig, requestID string) (*models.ChatCompletion, string, bool) {
+	if !promptCacheConfig.Enabled {
+		fiberlog.Debugf("[%s] prompt cache disabled", requestID)
+		return nil, "", false
+	}
+
+	if h.promptCache == nil {
+		fiberlog.Debugf("[%s] prompt cache service not available", requestID)
+		return nil, "", false
+	}
+
+	return h.promptCache.Get(req, requestID)
+}
+
 // selectProtocol runs protocol selection and returns the chosen protocol response and cache source.
 func (h *CompletionHandler) selectProtocol(
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+	resolvedConfig *config.Config,
 ) (
 	resp *models.ProtocolResponse,
 	cacheSource string,
@@ -106,18 +149,25 @@ func (h *CompletionHandler) selectProtocol(
 
 	fiberlog.Debugf("[%s] No explicit model provided, proceeding with protocol manager selection", requestID)
 
-	openAIParams := req.ToOpenAIParams()
-	if openAIParams == nil {
-		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
+	// Check if the singleton adapter is available
+	if format_adapter.AdaptiveToOpenAI == nil {
+		return nil, "", fmt.Errorf("format_adapter.AdaptiveToOpenAI is not initialized")
 	}
 
-	selReq := models.ModelSelectionRequest{
-		ChatCompletionRequest: *openAIParams,
-		ProtocolManagerConfig: req.ProtocolManagerConfig, // Already merged in protocol manager
+	// Convert to OpenAI parameters using singleton adapter
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 	}
 
-	resp, cacheSource, err = h.protocolMgr.SelectProtocolWithCache(
-		selReq, userID, requestID, circuitBreakers, req.SemanticCache,
+	// Extract prompt from messages
+	prompt, err := utils.ExtractLastMessage(openAIParams.Messages)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to extract prompt: %w", err)
+	}
+
+	resp, cacheSource, err = h.modelRouter.SelectProtocolWithCache(
+		prompt, userID, requestID, &resolvedConfig.ModelRouter, circuitBreakers,
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
@@ -125,37 +175,6 @@ func (h *CompletionHandler) selectProtocol(
 	}
 
 	return resp, cacheSource, nil
-}
-
-// configureFallbackMode sets the fallback mode based on the request configuration
-func (h *CompletionHandler) configureFallbackMode(req *models.ChatCompletionRequest, reqID string) {
-	// Merge YAML fallback config with request override
-	mergedFallback := h.cfg.MergeFallbackConfig(req.Fallback)
-	enabled := mergedFallback.Enabled
-	mode := mergedFallback.Mode
-
-	fiberlog.Debugf("[%s] Using merged fallback config - enabled: %t, mode: %s", reqID, enabled, mode)
-
-	// Check if fallback is disabled
-	if !enabled {
-		h.fallbackSvc.SetMode(models.FallbackModeSequential)
-		fiberlog.Debugf("[%s] Fallback is explicitly disabled, using single provider only", reqID)
-		return
-	}
-
-	// Fallback is enabled, configure the mode
-	switch mode {
-	case models.FallbackModeSequential:
-		h.fallbackSvc.SetMode(models.FallbackModeSequential)
-		fiberlog.Infof("[%s] Fallback enabled with mode: sequential", reqID)
-	case models.FallbackModeRace:
-		h.fallbackSvc.SetMode(models.FallbackModeRace)
-		fiberlog.Infof("[%s] Fallback enabled with mode: race", reqID)
-	default:
-		// Unknown mode, default to parallel with warning
-		h.fallbackSvc.SetMode(models.FallbackModeRace)
-		fiberlog.Warnf("[%s] Fallback enabled with unknown mode '%s', using default: parallel", reqID, mode)
-	}
 }
 
 // createManualProtocolResponse creates a manual protocol response when a model is explicitly provided
@@ -169,16 +188,24 @@ func (h *CompletionHandler) createManualProtocolResponse(
 	provider, modelName, err := h.parseProviderModel(modelSpec)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to parse model specification '%s': %v", requestID, modelSpec, err)
-		return nil, "", fmt.Errorf("invalid model format '%s', expected 'provider:model': %w", modelSpec, err)
+		return nil, "", fmt.Errorf("%w: invalid model format '%s', expected 'provider:model'", ErrInvalidModelSpec, modelSpec)
 	}
 
 	fiberlog.Infof("[%s] Parsed model specification '%s' -> provider: %s, model: %s", requestID, modelSpec, provider, modelName)
 
-	// Convert to OpenAI parameters
-	openAIParams := req.ToOpenAIParams()
-	if openAIParams == nil {
-		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters")
+	// Check if the singleton adapter is available
+	if format_adapter.AdaptiveToOpenAI == nil {
+		return nil, "", fmt.Errorf("adaptive to OpenAI format adapter is not initialized")
 	}
+
+	// Convert to OpenAI parameters using singleton adapter
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
+	}
+
+	// Ensure the OpenAI parameter's Model is set to the provider-stripped model name
+	openAIParams.Model = shared.ChatModel(modelName)
 
 	// Create standard LLM info
 	standardInfo := &models.StandardLLMInfo{

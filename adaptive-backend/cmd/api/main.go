@@ -5,8 +5,10 @@ import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/middleware"
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/chat/completions"
-	"adaptive-backend/internal/services/protocol_manager"
+	"adaptive-backend/internal/services/circuitbreaker"
+	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/select_model"
 	"context"
 	"fmt"
@@ -23,32 +25,45 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/redis/go-redis/v9"
 )
 
 // SetupRoutes configures all the application routes for the Fiber app.
-func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHandler) error {
+func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHandler, redisClient *redis.Client) error {
 	// Create shared services once
 	reqSvc := completions.NewRequestService()
 	paramSvc := completions.NewParameterService()
-	fallbackSvc := completions.NewFallbackService(cfg)
 
 	// Create protocol manager (shared between handlers)
-	protocolMgr, err := protocol_manager.NewProtocolManager(cfg)
+	modelRouter, err := model_router.NewModelRouter(cfg, redisClient)
 	if err != nil {
 		return fmt.Errorf("protocol manager initialization failed: %w", err)
 	}
 
-	// Create response service (depends on protocol manager)
-	respSvc := completions.NewResponseService(cfg, protocolMgr, fallbackSvc)
+	// Create prompt cache (shared service using Redis client)
+	promptCache, err := cache.NewPromptCache(redisClient, cfg.PromptCache)
+	if err != nil {
+		return fmt.Errorf("prompt cache initialization failed: %w", err)
+	}
 
-	// Create services for select model handler
+	// Create response service (depends on protocol manager)
+	respSvc := completions.NewResponseService(cfg, modelRouter)
+
+	// Create shared circuit breakers for all providers
+	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
+	// Initialize circuit breakers for each provider
+	for providerName := range cfg.Providers {
+		circuitBreakers[providerName] = circuitbreaker.New(redisClient)
+	}
+
+	// Create select model services
 	selectModelReqSvc := select_model.NewRequestService()
-	selectModelSvc := select_model.NewService(protocolMgr)
+	selectModelSvc := select_model.NewService(modelRouter, cfg)
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, protocolMgr, fallbackSvc)
-	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc)
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, modelRouter, promptCache)
+	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 
 	// Health endpoint (no auth required)
 	app.Get(healthEndpoint, healthHandler.Health)
@@ -145,6 +160,18 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Create shared Redis client for distributed services
+	redisClient, err := createRedisClient(cfg)
+	if err != nil {
+		fiberlog.Fatalf("Failed to create Redis client: %v", err)
+	}
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			fiberlog.Errorf("Failed to close Redis client: %v", err)
+		}
+	}()
+	fiberlog.Info("Redis client initialized successfully")
+
 	// Wait for services to become healthy before starting server
 	healthHandler := api.NewHealthHandler()
 	if err := healthHandler.WaitForServices(ctx, 10*time.Minute); err != nil {
@@ -152,7 +179,7 @@ func main() {
 		return
 	}
 
-	if err := SetupRoutes(app, cfg, healthHandler); err != nil {
+	if err := SetupRoutes(app, cfg, healthHandler, redisClient); err != nil {
 		fiberlog.Fatalf("Failed to setup routes: %v", err)
 	}
 
@@ -291,4 +318,32 @@ func setupLogLevel(cfg *config.Config) {
 	}
 
 	fiberlog.Infof("Log level set to: %s", logLevel)
+}
+
+// createRedisClient creates a shared Redis client for distributed services
+func createRedisClient(cfg *config.Config) (*redis.Client, error) {
+	// Get Redis connection configuration
+	redisURL := cfg.Services.Redis.URL
+	if redisURL == "" {
+		return nil, fmt.Errorf("redis URL not set in configuration (services.redis.url)")
+	}
+
+	// Parse Redis URL
+	opt, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
+	}
+
+	// Create Redis client
+	client := redis.NewClient(opt)
+
+	// Test connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	return client, nil
 }

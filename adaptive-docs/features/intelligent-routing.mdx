@@ -32,7 +32,7 @@ const completion = await openai.chat.completions.create({
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
-  protocol_manager: {
+  model_router: {
     cost_bias: 0.2 // 0 = cheapest, 1 = best performance
   }
 });
@@ -42,7 +42,7 @@ const completion = await openai.chat.completions.create({
 completion = client.chat.completions.create(
     model="",
     messages=[{"role": "user", "content": "Hello"}],
-    protocol_manager={
+    model_router={
         "cost_bias": 0.2  # 0 = cheapest, 1 = best performance
     }
 )
@@ -55,7 +55,7 @@ curl https://llmadaptive.uk/api/v1/chat/completions \
   -d '{
     "model": "",
     "messages": [{"role": "user", "content": "Hello"}],
-    "protocol_manager": {
+    "model_router": {
       "cost_bias": 0.2
     }
   }'
@@ -71,7 +71,7 @@ curl https://llmadaptive.uk/api/v1/chat/completions \
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Hello" }],
-  protocol_manager: {
+  model_router: {
     models: [
       { provider: "openai" },
       { provider: "anthropic", model_name: "claude-3-sonnet" }
@@ -84,7 +84,7 @@ const completion = await openai.chat.completions.create({
 completion = client.chat.completions.create(
     model="",
     messages=[{"role": "user", "content": "Hello"}],
-    protocol_manager={
+    model_router={
         "models": [
             {"provider": "openai"},
             {"provider": "anthropic", "model_name": "claude-3-sonnet"}
@@ -100,7 +100,7 @@ curl https://llmadaptive.uk/api/v1/chat/completions \
   -d '{
     "model": "",
     "messages": [{"role": "user", "content": "Hello"}],
-    "protocol_manager": {
+    "model_router": {
       "models": [
         {"provider": "openai"},
         {"provider": "anthropic", "model_name": "claude-3-sonnet"}
@@ -177,7 +177,7 @@ const selection = await fetch('https://llmadaptive.uk/api/v1/select-model', {
   body: JSON.stringify({
     model: '',
     messages: [{ role: 'user', content: 'Complex analysis task' }],
-    protocol_manager: { cost_bias: 0.8 }
+    model_router: { cost_bias: 0.8 }
   })
 });
 
@@ -195,7 +195,7 @@ response = requests.post(
     json={
         'model': '',
         'messages': [{'role': 'user', 'content': 'Complex analysis task'}],
-        'protocol_manager': {'cost_bias': 0.8}
+        'model_router': {'cost_bias': 0.8}
     }
 )
 
@@ -210,7 +210,7 @@ curl https://llmadaptive.uk/api/v1/select-model \
   -d '{
     "model": "",
     "messages": [{"role": "user", "content": "Complex analysis task"}],
-    "protocol_manager": {"cost_bias": 0.8}
+    "model_router": {"cost_bias": 0.8}
   }'
 ```
 

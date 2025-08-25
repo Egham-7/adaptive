@@ -1,37 +1,96 @@
 ---
-title: "Welcome to Adaptive"
-description: "The intelligent LLM gateway that saves you money while maintaining performance"
+title: "Cut Your AI Costs by 80% Without Changing Code"
+description: "Drop-in OpenAI replacement that automatically routes to the cheapest suitable model"
 icon: "house"
 ---
 
-## What is Adaptive?
+<div style="text-align: center; margin: 2rem 0;">
+  <div style="font-size: 3rem; font-weight: bold; color: #d4af37; margin-bottom: 1rem;">
+    Save 80% on AI Costs
+  </div>
+  <div style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">
+    Zero code changes • Same API • Instant savings • 6+ AI providers
+  </div>
+</div>
 
-Adaptive is an **intelligent LLM gateway** that automatically routes your requests to the best AI model for each task. Simply swap your OpenAI base URL and start saving up to **80% on AI costs** without changing a single line of code.
+## Replace This Line, Save $1000s Monthly
+
+Change one line of code and immediately cut your AI costs by 60-90% while maintaining the same quality responses.
+
+<CodeGroup>
+
+```javascript Before: Expensive
+const openai = new OpenAI({
+  baseURL: "https://api.openai.com/v1",        // ❌ Expensive
+  apiKey: "sk-your-openai-key"
+});
+// Result: $1000/month for typical usage
+```
+
+```javascript After: Smart & Cheap
+const openai = new OpenAI({
+  baseURL: "https://llmadaptive.uk/api/v1",   // ✅ Intelligent routing
+  apiKey: "your-adaptive-key" 
+});
+// Result: $200-400/month for same usage = $600-800/month SAVED
+```
+
+</CodeGroup>
 
 <Note>
-  **Perfect for developers who:** Want to reduce AI costs, need reliable
-  fallbacks, or want access to multiple AI providers without managing separate
-  APIs.
+  **Instant Results**: Your existing code works immediately. Simple questions → cheap models (Gemini Flash). Complex tasks → premium models (Claude, GPT-4). Perfect balance of cost and quality.
 </Note>
 
-## Why Choose Adaptive?
+## See Your Savings in Real-Time
+
+<CardGroup cols={3}>
+  <Card title="💬 Simple Chat" icon="message">
+    **"Hello, how are you?"**
+    
+    OpenAI: $3.00/1M tokens  
+    Adaptive: $0.10/1M tokens  
+    **Savings: 97%** 
+  </Card>
+  <Card title="🧮 Complex Analysis" icon="calculator">
+    **"Analyze this dataset..."**
+    
+    OpenAI: $15.00/1M tokens  
+    Adaptive: $2.19/1M tokens  
+    **Savings: 85%**
+  </Card>
+  <Card title="💻 Code Generation" icon="code">
+    **"Write a React component..."**
+    
+    OpenAI: $10.00/1M tokens  
+    Adaptive: $0.34/1M tokens  
+    **Savings: 97%**
+  </Card>
+</CardGroup>
+
+## How Much Will You Save?
+
+<Note>
+**Quick Calculator**: If you currently spend $1,000/month on AI:
+- **Simple tasks** (60% of requests): Save $570/month
+- **Medium complexity** (30% of requests): Save $210/month  
+- **Complex tasks** (10% of requests): Save $20/month
+- **Total monthly savings: $800** (80% reduction)
+</Note>
+
+## Why Developers Choose Adaptive
 
 <CardGroup cols={2}>
-  <Card title="Drop-in Replacement" href="/quickstart">
-    **5-minute setup:** Just change your base URL. Works with OpenAI SDK, Vercel
-    AI SDK, LangChain, and any HTTP client.
+  <Card title="⚡ 30-Second Setup" href="/quickstart" icon="clock">
+    Change one URL. That's it. Works with OpenAI SDK, Vercel AI SDK, LangChain, and any HTTP client.
   </Card>
-  <Card title="Smart Model Selection" href="/features/intelligent-routing">
-    **AI-powered routing:** Automatically chooses the best model for each
-    request based on content, cost, and performance.
+  <Card title="🧠 AI-Powered Routing" href="/features/intelligent-routing" icon="brain">
+    Automatically selects optimal models based on prompt complexity, cost, and performance.
   </Card>
-  <Card title="Massive Cost Savings" href="/features/intelligent-routing">
-    **Up to 80% cheaper:** Route simple tasks to efficient models, complex tasks
-    to premium models.
+  <Card title="💰 Massive Savings" href="/features/intelligent-routing" icon="dollar-sign">
+    60-97% cost reduction. Simple tasks → cheap models, complex tasks → premium models.
   </Card>
-  <Card title="Multi-Provider Access" href="/features/provider-resiliency">
-    **6+ AI providers:** OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok
-    through one unified API.
+  <Card title="🔄 6+ AI Providers" href="/features/provider-resiliency" icon="network-wired">
+    Access OpenAI, Claude, Gemini, Groq, DeepSeek, and Grok through one unified API.
   </Card>
 </CardGroup>
 
