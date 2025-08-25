@@ -4,6 +4,7 @@ import { invalidateAnalyticsCache } from "@/lib/cache-utils";
 import {
 	calculateCreditCost,
 	deductCredits,
+	getOrganizationBalance,
 	hasSufficientCredits,
 } from "@/lib/credit-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
@@ -280,6 +281,3 @@ export const usageRecordingRouter = createTRPCRouter({
 			}
 		}),
 });
-
-// Import needed for recordApiUsage function
-import { getOrganizationBalance } from "@/lib/credit-utils";
