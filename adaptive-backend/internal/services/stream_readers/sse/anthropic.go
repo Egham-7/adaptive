@@ -33,18 +33,20 @@ func NewAnthropicSSEReader(reader io.Reader, reqID, provider string) *AnthropicS
 // ReadChunk reads the next chunk from the Anthropic SSE stream
 func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) {
 	for {
-		line, err := r.reader.ReadString('\n')
-		if err != nil {
-			if err == io.EOF {
-				return nil, err
-			}
-			return nil, fmt.Errorf("failed to read from Anthropic SSE stream: %w", err)
+		line, readErr := r.reader.ReadString('\n')
+		isEOF := readErr == io.EOF
+		
+		if readErr != nil && !isEOF {
+			return nil, fmt.Errorf("failed to read from Anthropic SSE stream: %w", readErr)
 		}
 
 		line = strings.TrimSpace(line)
 
 		// Skip empty lines
 		if line == "" {
+			if isEOF {
+				return nil, io.EOF
+			}
 			continue
 		}
 
@@ -63,6 +65,9 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 			var anthropicChunk anthropic.MessageStreamEventUnion
 			if err := json.Unmarshal([]byte(data), &anthropicChunk); err != nil {
 				fiberlog.Errorf("[%s] Failed to parse Anthropic streaming chunk: %v", r.reqID, err)
+				if isEOF {
+					return nil, io.EOF
+				}
 				continue
 			}
 
@@ -70,6 +75,9 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 			adaptiveChunk, err := r.convertToAdaptiveAnthropicChunk(&anthropicChunk)
 			if err != nil {
 				fiberlog.Errorf("[%s] Failed to convert Anthropic chunk: %v", r.reqID, err)
+				if isEOF {
+					return nil, io.EOF
+				}
 				continue
 			}
 
@@ -80,12 +88,23 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 		if eventType, found := strings.CutPrefix(line, "event: "); found {
 			// Log event type for debugging
 			fiberlog.Debugf("[%s] Anthropic SSE event: %s", r.reqID, eventType)
+			if isEOF {
+				return nil, io.EOF
+			}
 			continue
 		}
 
 		// Skip other SSE metadata lines (id:, retry:, etc.)
 		if strings.Contains(line, ":") {
+			if isEOF {
+				return nil, io.EOF
+			}
 			continue
+		}
+
+		// If we processed a partial line and reached this point, return EOF
+		if isEOF {
+			return nil, io.EOF
 		}
 	}
 }
