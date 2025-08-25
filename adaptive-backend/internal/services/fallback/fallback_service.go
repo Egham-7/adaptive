@@ -20,7 +20,6 @@ type FallbackService struct {
 
 // NewFallbackService creates a new fallback service
 func NewFallbackService() *FallbackService {
-
 	return &FallbackService{}
 }
 

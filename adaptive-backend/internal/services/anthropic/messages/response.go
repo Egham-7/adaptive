@@ -58,7 +58,11 @@ func (rs *ResponseService) HandleStreamingResponse(
 
 	// Use the stream handler for Anthropic streaming
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		defer stream.Close()
+		defer func() {
+			if err := stream.Close(); err != nil {
+				fiberlog.Errorf("[%s] failed to close anthropic stream: %v", requestID, err)
+			}
+		}()
 
 		for stream.Next() {
 			// Check for context cancellation
@@ -105,7 +109,9 @@ func (rs *ResponseService) HandleStreamingResponse(
 		if _, err := fmt.Fprintf(w, "data: [DONE]\n\n"); err != nil {
 			fiberlog.Errorf("[%s] failed to write done message: %v", requestID, err)
 		}
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			fiberlog.Errorf("[%s] failed to flush buffer: %v", requestID, err)
+		}
 	})
 
 	return nil

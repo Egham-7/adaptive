@@ -21,14 +21,12 @@ import (
 
 // CompletionService handles completion requests with fallback logic.
 type CompletionService struct {
-	cfg             *config.Config
 	fallbackService *fallback.FallbackService
 	responseService *ResponseService
 }
 
 // NewCompletionService creates a new completion service.
 func NewCompletionService(responseService *ResponseService) *CompletionService {
-
 	if responseService == nil {
 		panic("NewCompletionService: responseService cannot be nil")
 	}

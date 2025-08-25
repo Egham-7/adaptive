@@ -63,8 +63,8 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 	// If a model is specified and contains a provider prefix, extract it
 	if req.Model != "" {
 		modelStr := string(req.Model)
-		if provider, model, err := utils.ParseProviderModelWithDefault(modelStr, "anthropic"); err == nil {
-			provider = provider // Use parsed provider
+		if parsedProvider, model, err := utils.ParseProviderModelWithDefault(modelStr, "anthropic"); err == nil {
+			provider = parsedProvider // Use parsed provider
 			// Update the model in the request to remove provider prefix
 			req.Model = anthropic.Model(model)
 		} else {
