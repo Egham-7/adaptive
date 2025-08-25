@@ -513,16 +513,22 @@ export const usageRouter = createTRPCRouter({
 
 					// Use proper UTC dates to avoid timezone issues
 					const now = new Date();
+					const endDate = input.endDate ?? now;
 					const startDate =
-						input.startDate ||
-						new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-					const endDate = input.endDate || now;
+						input.startDate ?? new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+					// Normalize to UTC day boundaries: [startUtc, endUtcExclusive)
+					const startUtc = new Date(Date.UTC(
+						startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()
+					));
+					const endUtcExclusive = new Date(Date.UTC(
+						endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate() + 1
+					));
 
 					const whereClause = {
 						projectId: input.projectId,
 						timestamp: {
-							gte: startDate,
-							lte: endDate,
+							gte: startUtc,
+							lt: endUtcExclusive,
 						},
 						...(input.provider && { provider: input.provider }),
 					};
@@ -628,8 +634,8 @@ export const usageRouter = createTRPCRouter({
 							FROM "ApiUsage"
 							WHERE 
 								"projectId" = ${input.projectId}
-								AND timestamp >= ${startDate}
-								AND timestamp <= ${endDate}
+								AND timestamp >= ${startUtc}
+								AND timestamp < ${endUtcExclusive}
 								AND provider = ${input.provider}
 							GROUP BY DATE(timestamp)
 							ORDER BY DATE(timestamp)
@@ -657,8 +663,8 @@ export const usageRouter = createTRPCRouter({
 							FROM "ApiUsage"
 							WHERE 
 								"projectId" = ${input.projectId}
-								AND timestamp >= ${startDate}
-								AND timestamp <= ${endDate}
+								AND timestamp >= ${startUtc}
+								AND timestamp < ${endUtcExclusive}
 							GROUP BY DATE(timestamp)
 							ORDER BY DATE(timestamp)
 						`;
