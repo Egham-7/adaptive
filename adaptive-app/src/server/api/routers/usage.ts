@@ -511,15 +511,33 @@ export const usageRouter = createTRPCRouter({
 						});
 					}
 
+					// Use proper UTC dates to avoid timezone issues
+					const now = new Date();
+					const endDate = input.endDate ?? now;
 					const startDate =
-						input.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-					const endDate = input.endDate || new Date();
+						input.startDate ??
+						new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+					// Normalize to UTC day boundaries: [startUtc, endUtcExclusive)
+					const startUtc = new Date(
+						Date.UTC(
+							startDate.getUTCFullYear(),
+							startDate.getUTCMonth(),
+							startDate.getUTCDate(),
+						),
+					);
+					const endUtcExclusive = new Date(
+						Date.UTC(
+							endDate.getUTCFullYear(),
+							endDate.getUTCMonth(),
+							endDate.getUTCDate() + 1,
+						),
+					);
 
 					const whereClause = {
 						projectId: input.projectId,
 						timestamp: {
-							gte: startDate,
-							lte: endDate,
+							gte: startUtc,
+							lt: endUtcExclusive,
 						},
 						...(input.provider && { provider: input.provider }),
 					};
@@ -573,23 +591,6 @@ export const usageRouter = createTRPCRouter({
 							id: z.number(),
 						}),
 					});
-					const dailyUsageSchema = z.object({
-						timestamp: z.date(),
-						_sum: z.object({
-							totalTokens: z.number().nullable(),
-							inputTokens: z.number().nullable(), // ← Add input tokens validation
-							outputTokens: z.number().nullable(), // ← Add output tokens validation
-							cost: z
-								.any()
-								.nullable()
-								.transform((val) => (val ? Number(val) : 0)),
-							creditCost: z
-								.any()
-								.nullable()
-								.transform((val) => (val ? Number(val) : 0)),
-							requestCount: z.number().nullable(),
-						}),
-					});
 
 					// Get usage by provider
 
@@ -609,24 +610,50 @@ export const usageRouter = createTRPCRouter({
 						}),
 					);
 
-					// Get daily usage trends
-					const dailyUsage = dailyUsageSchema.array().parse(
-						await ctx.db.apiUsage.groupBy({
-							by: ["timestamp"],
-							where: whereClause,
-							_sum: {
-								totalTokens: true,
-								inputTokens: true, // ← Add input tokens
-								outputTokens: true, // ← Add output tokens
-								cost: true, // ← Keep for admin dashboard
-								creditCost: true, // ← Add for customer dashboard
-								requestCount: true,
-							},
-							orderBy: {
-								timestamp: "asc",
-							},
-						}),
-					);
+					// Get daily usage trends - group by UTC day; make provider filter optional
+					type DailyUsageRow = {
+						date: Date;
+						total_tokens: bigint | null;
+						input_tokens: bigint | null;
+						output_tokens: bigint | null;
+						cost: string | null; // Decimal from Prisma is returned as string from raw queries
+						credit_cost: string | null;
+						request_count: bigint | null;
+					};
+					const dailyUsageRaw = await ctx.db.$queryRaw<DailyUsageRow[]>`
+						SELECT
+							DATE_TRUNC('day', "timestamp" AT TIME ZONE 'UTC')::date AS date,
+							SUM("totalTokens")                               AS total_tokens,
+							SUM("inputTokens")                               AS input_tokens,
+							SUM("outputTokens")                              AS output_tokens,
+							SUM(cost)                                        AS cost,
+							SUM("creditCost")                                AS credit_cost,
+							SUM("requestCount")                              AS request_count
+						FROM "ApiUsage"
+						WHERE
+							"projectId" = ${input.projectId}
+							AND "timestamp" >= ${startUtc}
+							AND "timestamp" <  ${endUtcExclusive}
+							AND (${input.provider ?? null} IS NULL OR provider = ${input.provider ?? null})
+						GROUP BY 1
+						ORDER BY 1
+					`;
+
+					const dailyUsage = dailyUsageRaw.map((row) => ({
+						timestamp: row.date,
+						_sum: {
+							totalTokens: row.total_tokens ? Number(row.total_tokens) : null,
+							inputTokens: row.input_tokens ? Number(row.input_tokens) : null,
+							outputTokens: row.output_tokens
+								? Number(row.output_tokens)
+								: null,
+							cost: row.cost ? Number(row.cost) : 0,
+							creditCost: row.credit_cost ? Number(row.credit_cost) : 0,
+							requestCount: row.request_count
+								? Number(row.request_count)
+								: null,
+						},
+					}));
 
 					// Calculate comparison costs using database provider pricing
 					const totalSpend = ensureNumber(totalMetrics._sum.creditCost); // Use creditCost for customer spending
@@ -880,17 +907,37 @@ export const usageRouter = createTRPCRouter({
 
 			return withCache(cacheKey, async () => {
 				try {
+					// Use proper UTC dates to avoid timezone issues
+					const now = new Date();
+					const endDate = input.endDate ?? now;
 					const startDate =
-						input.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
-					const endDate = input.endDate || new Date();
+						input.startDate ??
+						new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+					const startUtc = new Date(
+						Date.UTC(
+							startDate.getUTCFullYear(),
+							startDate.getUTCMonth(),
+							startDate.getUTCDate(),
+						),
+					);
+					const endUtcExclusive = new Date(
+						Date.UTC(
+							endDate.getUTCFullYear(),
+							endDate.getUTCMonth(),
+							endDate.getUTCDate() + 1,
+						),
+					);
 
 					const whereClause = {
-						apiKey: { userId },
-						timestamp: {
-							gte: startDate,
-							lte: endDate,
-						},
+						timestamp: { gte: startUtc, lt: endUtcExclusive },
 						...(input.provider && { provider: input.provider }),
+						OR: [
+							{ apiKey: { userId } },
+							{
+								apiKeyId: null,
+								metadata: { path: ["userId"], equals: userId },
+							},
+						],
 					};
 
 					// Zod schema for aggregate result
