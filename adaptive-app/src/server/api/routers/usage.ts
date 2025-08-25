@@ -515,14 +515,23 @@ export const usageRouter = createTRPCRouter({
 					const now = new Date();
 					const endDate = input.endDate ?? now;
 					const startDate =
-						input.startDate ?? new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+						input.startDate ??
+						new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 					// Normalize to UTC day boundaries: [startUtc, endUtcExclusive)
-					const startUtc = new Date(Date.UTC(
-						startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()
-					));
-					const endUtcExclusive = new Date(Date.UTC(
-						endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate() + 1
-					));
+					const startUtc = new Date(
+						Date.UTC(
+							startDate.getUTCFullYear(),
+							startDate.getUTCMonth(),
+							startDate.getUTCDate(),
+						),
+					);
+					const endUtcExclusive = new Date(
+						Date.UTC(
+							endDate.getUTCFullYear(),
+							endDate.getUTCMonth(),
+							endDate.getUTCDate() + 1,
+						),
+					);
 
 					const whereClause = {
 						projectId: input.projectId,
@@ -601,8 +610,8 @@ export const usageRouter = createTRPCRouter({
 						}),
 					);
 
-					// Get daily usage trends - use raw SQL to properly group by date
-					let dailyUsageRaw: Array<{
+					// Get daily usage trends - group by UTC day; make provider filter optional
+					type DailyUsageRow = {
 						date: Date;
 						total_tokens: bigint | null;
 						input_tokens: bigint | null;
@@ -610,65 +619,25 @@ export const usageRouter = createTRPCRouter({
 						cost: string | null; // Decimal from Prisma is returned as string from raw queries
 						credit_cost: string | null;
 						request_count: bigint | null;
-					}>;
-					if (input.provider) {
-						dailyUsageRaw = await ctx.db.$queryRaw<
-							Array<{
-								date: Date;
-								total_tokens: bigint | null;
-								input_tokens: bigint | null;
-								output_tokens: bigint | null;
-								cost: string | null; // Decimal from Prisma is returned as string from raw queries
-								credit_cost: string | null;
-								request_count: bigint | null;
-							}>
-						>`
-							SELECT 
-								DATE(timestamp) as date,
-								SUM("totalTokens") as total_tokens,
-								SUM("inputTokens") as input_tokens,
-								SUM("outputTokens") as output_tokens,
-								SUM(cost) as cost,
-								SUM("creditCost") as credit_cost,
-								SUM("requestCount") as request_count
-							FROM "ApiUsage"
-							WHERE 
-								"projectId" = ${input.projectId}
-								AND timestamp >= ${startUtc}
-								AND timestamp < ${endUtcExclusive}
-								AND provider = ${input.provider}
-							GROUP BY DATE(timestamp)
-							ORDER BY DATE(timestamp)
-						`;
-					} else {
-						dailyUsageRaw = await ctx.db.$queryRaw<
-							Array<{
-								date: Date;
-								total_tokens: bigint | null;
-								input_tokens: bigint | null;
-								output_tokens: bigint | null;
-								cost: string | null; // Decimal from Prisma is returned as string from raw queries
-								credit_cost: string | null;
-								request_count: bigint | null;
-							}>
-						>`
-							SELECT 
-								DATE(timestamp) as date,
-								SUM("totalTokens") as total_tokens,
-								SUM("inputTokens") as input_tokens,
-								SUM("outputTokens") as output_tokens,
-								SUM(cost) as cost,
-								SUM("creditCost") as credit_cost,
-								SUM("requestCount") as request_count
-							FROM "ApiUsage"
-							WHERE 
-								"projectId" = ${input.projectId}
-								AND timestamp >= ${startUtc}
-								AND timestamp < ${endUtcExclusive}
-							GROUP BY DATE(timestamp)
-							ORDER BY DATE(timestamp)
-						`;
-					}
+					};
+					const dailyUsageRaw = await ctx.db.$queryRaw<DailyUsageRow[]>`
+						SELECT
+							DATE_TRUNC('day', "timestamp" AT TIME ZONE 'UTC')::date AS date,
+							SUM("totalTokens")                               AS total_tokens,
+							SUM("inputTokens")                               AS input_tokens,
+							SUM("outputTokens")                              AS output_tokens,
+							SUM(cost)                                        AS cost,
+							SUM("creditCost")                                AS credit_cost,
+							SUM("requestCount")                              AS request_count
+						FROM "ApiUsage"
+						WHERE
+							"projectId" = ${input.projectId}
+							AND "timestamp" >= ${startUtc}
+							AND "timestamp" <  ${endUtcExclusive}
+							AND (${input.provider ?? null} IS NULL OR provider = ${input.provider ?? null})
+						GROUP BY 1
+						ORDER BY 1
+					`;
 
 					const dailyUsage = dailyUsageRaw.map((row) => ({
 						timestamp: row.date,
