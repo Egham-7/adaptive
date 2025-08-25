@@ -261,9 +261,11 @@ export default function OrganizationProjectsPage() {
 								{orgError?.message ||
 									"The organization you're looking for doesn't exist or you don't have access to it."}
 							</p>
-							<Link href="/api-platform/organizations">
-								<Button>Back to Organizations</Button>
-							</Link>
+							<Button asChild variant="ghost" size="sm">
+								<Link href="/api-platform/organizations">
+									Back to Organizations
+								</Link>
+							</Button>
 						</div>
 					</div>
 				</div>
