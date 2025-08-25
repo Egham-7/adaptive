@@ -596,7 +596,15 @@ export const usageRouter = createTRPCRouter({
 					);
 
 					// Get daily usage trends - use raw SQL to properly group by date
-					let dailyUsageRaw;
+					let dailyUsageRaw: Array<{
+						date: Date;
+						total_tokens: bigint | null;
+						input_tokens: bigint | null;
+						output_tokens: bigint | null;
+						cost: string | null; // Decimal from Prisma is returned as string from raw queries
+						credit_cost: string | null;
+						request_count: bigint | null;
+					}>;
 					if (input.provider) {
 						dailyUsageRaw = await ctx.db.$queryRaw<
 							Array<{
@@ -604,8 +612,8 @@ export const usageRouter = createTRPCRouter({
 								total_tokens: bigint | null;
 								input_tokens: bigint | null;
 								output_tokens: bigint | null;
-								cost: any;
-								credit_cost: any;
+								cost: string | null; // Decimal from Prisma is returned as string from raw queries
+								credit_cost: string | null;
 								request_count: bigint | null;
 							}>
 						>`
@@ -633,8 +641,8 @@ export const usageRouter = createTRPCRouter({
 								total_tokens: bigint | null;
 								input_tokens: bigint | null;
 								output_tokens: bigint | null;
-								cost: any;
-								credit_cost: any;
+								cost: string | null; // Decimal from Prisma is returned as string from raw queries
+								credit_cost: string | null;
 								request_count: bigint | null;
 							}>
 						>`
