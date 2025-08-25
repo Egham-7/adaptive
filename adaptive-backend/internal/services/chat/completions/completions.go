@@ -23,35 +23,26 @@ import (
 type CompletionService struct {
 	cfg             *config.Config
 	fallbackService *fallback.FallbackService
+	responseService *ResponseService
 }
 
 // NewCompletionService creates a new completion service.
-func NewCompletionService(cfg *config.Config) *CompletionService {
-	if cfg == nil {
-		panic("NewCompletionService: cfg cannot be nil")
+func NewCompletionService(responseService *ResponseService) *CompletionService {
+
+	if responseService == nil {
+		panic("NewCompletionService: responseService cannot be nil")
 	}
 
 	return &CompletionService{
-		cfg:             cfg,
-		fallbackService: fallback.NewFallbackService(cfg),
+		fallbackService: fallback.NewFallbackService(),
+		responseService: responseService,
 	}
 }
 
-// createClient creates an OpenAI client for the given provider
-func (cs *CompletionService) createClient(providerName string, customConfigs map[string]*models.ProviderConfig, isStream bool) (*openai.Client, error) {
-	// Merge YAML config with custom override config if provided
-	if customConfigs != nil {
-		if customConfig, hasCustom := customConfigs[providerName]; hasCustom {
-			providerConfig, err := cs.cfg.MergeProviderConfig(providerName, customConfig)
-			if err != nil {
-				return nil, fmt.Errorf("failed to merge provider config for '%s': %w", providerName, err)
-			}
-			return cs.buildClient(providerConfig, providerName, isStream)
-		}
-	}
-
-	// Use YAML config only
-	providerConfig, exists := cs.cfg.GetProviderConfig(providerName)
+// createClient creates an OpenAI client for the given provider using resolved config
+func (cs *CompletionService) createClient(providerName string, resolvedConfig *config.Config, isStream bool) (*openai.Client, error) {
+	// Use resolved config directly - no more merging needed
+	providerConfig, exists := resolvedConfig.GetProviderConfig(providerName, "chat_completions")
 	if !exists {
 		return nil, fmt.Errorf("provider '%s' is not configured", providerName)
 	}
@@ -101,6 +92,7 @@ func (cs *CompletionService) HandleStandardCompletion(
 	requestID string,
 	isStream bool,
 	cacheSource string,
+	resolvedConfig *config.Config,
 ) error {
 	if c == nil || req == nil || standardInfo == nil || requestID == "" {
 		return models.NewValidationError("invalid input parameters", nil)
@@ -108,13 +100,13 @@ func (cs *CompletionService) HandleStandardCompletion(
 
 	// For streaming requests, do not attempt fallback as it can corrupt SSE streams
 	if isStream {
-		client, err := cs.createClient(standardInfo.Provider, req.ProviderConfigs, isStream)
+		client, err := cs.createClient(standardInfo.Provider, resolvedConfig, isStream)
 		if err != nil {
 			return fmt.Errorf("client creation failed for streaming request: %w", err)
 		}
 
 		req.Model = shared.ChatModel(standardInfo.Model)
-		return cs.executeCompletion(c, client, standardInfo.Provider, req, requestID, isStream, cacheSource)
+		return cs.executeCompletion(c, client, standardInfo.Provider, req, requestID, isStream, cacheSource, resolvedConfig)
 	}
 
 	// For non-streaming requests, use fallback logic
@@ -128,18 +120,18 @@ func (cs *CompletionService) HandleStandardCompletion(
 
 	providers = append(providers, standardInfo.Alternatives...)
 
-	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, requestID, isStream, cacheSource), requestID, "standard", isStream)
+	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig), requestID, "standard", isStream)
 }
 
 // createExecuteFunc creates an execution function for the fallback service
 func (cs *CompletionService) createExecuteFunc(
 	req *models.ChatCompletionRequest,
-	requestID string,
 	isStream bool,
 	cacheSource string,
+	resolvedConfig *config.Config,
 ) models.ExecutionFunc {
 	return func(c *fiber.Ctx, provider models.Alternative, reqID string) error {
-		client, err := cs.createClient(provider.Provider, req.ProviderConfigs, isStream)
+		client, err := cs.createClient(provider.Provider, resolvedConfig, isStream)
 		if err != nil {
 			return fmt.Errorf("client creation failed: %w", err)
 		}
@@ -147,7 +139,7 @@ func (cs *CompletionService) createExecuteFunc(
 		// Create a copy to avoid race conditions when mutating req.Model
 		reqCopy := *req
 		reqCopy.Model = shared.ChatModel(provider.Model)
-		return cs.executeCompletion(c, client, provider.Provider, &reqCopy, reqID, isStream, cacheSource)
+		return cs.executeCompletion(c, client, provider.Provider, &reqCopy, reqID, isStream, cacheSource, resolvedConfig)
 	}
 }
 
@@ -159,6 +151,7 @@ func (cs *CompletionService) HandleMinionCompletion(
 	requestID string,
 	isStream bool,
 	cacheSource string,
+	resolvedConfig *config.Config,
 ) error {
 	if c == nil || req == nil || minionInfo == nil || requestID == "" {
 		return models.NewValidationError("invalid input parameters", nil)
@@ -166,13 +159,13 @@ func (cs *CompletionService) HandleMinionCompletion(
 
 	// For streaming requests, do not attempt fallback as it can corrupt SSE streams
 	if isStream {
-		client, err := cs.createClient(minionInfo.Provider, req.ProviderConfigs, isStream)
+		client, err := cs.createClient(minionInfo.Provider, resolvedConfig, isStream)
 		if err != nil {
 			return fmt.Errorf("client creation failed for streaming request: %w", err)
 		}
 
 		req.Model = shared.ChatModel(minionInfo.Model)
-		return cs.executeCompletion(c, client, minionInfo.Provider, req, requestID, isStream, cacheSource)
+		return cs.executeCompletion(c, client, minionInfo.Provider, req, requestID, isStream, cacheSource, resolvedConfig)
 	}
 
 	// For non-streaming requests, use fallback logic
@@ -186,7 +179,7 @@ func (cs *CompletionService) HandleMinionCompletion(
 
 	providers = append(providers, minionInfo.Alternatives...)
 
-	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, requestID, isStream, cacheSource), requestID, "minion", isStream)
+	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig), requestID, "minion", isStream)
 }
 
 // executeCompletion handles the actual completion execution
@@ -198,6 +191,7 @@ func (cs *CompletionService) executeCompletion(
 	requestID string,
 	isStream bool,
 	cacheSource string,
+	resolvedConfig *config.Config,
 ) error {
 	if isStream {
 		fiberlog.Infof("[%s] streaming response from %s", requestID, providerName)
@@ -209,7 +203,7 @@ func (cs *CompletionService) executeCompletion(
 		}
 
 		streamResp := client.Chat.Completions.NewStreaming(c.Context(), *openAIParams)
-		return stream.HandleStream(c, streamResp, requestID, providerName, cacheSource)
+		return stream.HandleOpenAIStream(c, streamResp, requestID, providerName, cacheSource)
 	}
 
 	fiberlog.Infof("[%s] generating completion from %s", requestID, providerName)
@@ -217,7 +211,7 @@ func (cs *CompletionService) executeCompletion(
 	// For non-streaming requests, apply context timeout based on provider config
 	ctx := context.Background()
 	if !isStream {
-		if providerConfig, exists := cs.cfg.GetProviderConfig(providerName); exists && providerConfig.TimeoutMs > 0 {
+		if providerConfig, exists := resolvedConfig.GetProviderConfig(providerName, "chat_completions"); exists && providerConfig.TimeoutMs > 0 {
 			var cancel context.CancelFunc
 			ctx, cancel = context.WithTimeout(ctx, time.Duration(providerConfig.TimeoutMs)*time.Millisecond)
 			defer cancel()
@@ -243,4 +237,46 @@ func (cs *CompletionService) executeCompletion(
 	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
 
 	return c.JSON(adaptiveResp)
+}
+
+// HandleProtocol routes to the correct completion flow based on protocol
+func (cs *CompletionService) HandleProtocol(
+	c *fiber.Ctx,
+	protocol models.ProtocolType,
+	req *models.ChatCompletionRequest,
+	resp *models.ProtocolResponse,
+	requestID string,
+	isStream bool,
+	cacheSource string,
+	resolvedConfig *config.Config,
+) error {
+	if isStream {
+		cs.responseService.SetStreamHeaders(c)
+	}
+
+	const (
+		errUnknownProtocol = "unknown protocol"
+	)
+
+	switch protocol {
+	case models.ProtocolStandardLLM:
+		if err := cs.HandleStandardCompletion(c, req, resp.Standard, requestID, isStream, cacheSource, resolvedConfig); err != nil {
+			return cs.responseService.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
+		}
+		// Store successful response in semantic cache
+		cs.responseService.StoreSuccessfulSemanticCache(req, resp, requestID)
+		return nil
+
+	case models.ProtocolMinion:
+		if err := cs.HandleMinionCompletion(c, req, resp.Minion, requestID, isStream, cacheSource, resolvedConfig); err != nil {
+			return cs.responseService.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
+		}
+		// Store successful response in semantic cache
+		cs.responseService.StoreSuccessfulSemanticCache(req, resp, requestID)
+		return nil
+
+	default:
+		return cs.responseService.HandleError(c, fiber.StatusInternalServerError,
+			errUnknownProtocol+" "+string(protocol), requestID)
+	}
 }

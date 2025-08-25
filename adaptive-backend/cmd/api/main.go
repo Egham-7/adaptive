@@ -47,23 +47,26 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 		return fmt.Errorf("prompt cache initialization failed: %w", err)
 	}
 
-	// Create response service (depends on protocol manager)
-	respSvc := completions.NewResponseService(cfg, modelRouter)
+	// Create response service (depends on model router)
+	respSvc := completions.NewResponseService(modelRouter)
+
+	// Create completion service (depends on response service)
+	completionSvc := completions.NewCompletionService(respSvc)
 
 	// Create shared circuit breakers for all providers
 	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
 	// Initialize circuit breakers for each provider
-	for providerName := range cfg.Providers {
+	for providerName := range cfg.GetProviders("chat_completions") {
 		circuitBreakers[providerName] = circuitbreaker.New(redisClient)
 	}
 
 	// Create select model services
 	selectModelReqSvc := select_model.NewRequestService()
-	selectModelSvc := select_model.NewService(modelRouter, cfg)
+	selectModelSvc := select_model.NewService(modelRouter)
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, modelRouter, promptCache)
+	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, completionSvc, paramSvc, modelRouter, promptCache)
 	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 
 	// Health endpoint (no auth required)

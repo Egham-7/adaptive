@@ -18,10 +18,9 @@ type Service struct {
 }
 
 // NewService creates a new select model service
-func NewService(modelRouter *model_router.ModelRouter, cfg *config.Config) *Service {
+func NewService(modelRouter *model_router.ModelRouter) *Service {
 	return &Service{
 		modelRouter: modelRouter,
-		cfg:         cfg,
 	}
 }
 
