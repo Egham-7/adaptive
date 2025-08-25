@@ -283,20 +283,21 @@ export const analyticsRouter = createTRPCRouter({
 						},
 					});
 
-					// Calculate cost for a specific model from a specific provider
+					// Calculate what it would have cost if all usage went through a specific provider/model
+					// This compares Adaptive's cost to direct provider costs
 					const calculateModelCostFromProvider = (
 						targetModelName: string,
 						targetProvider: string,
 					) => {
+						const targetProviderModels = providerModelMap.get(targetProvider);
+						if (!targetProviderModels) return 0;
+
+						const modelPricing = targetProviderModels.get(targetModelName);
+						if (!modelPricing) return 0;
+
+						// Apply target provider's pricing to ALL actual usage tokens
 						return detailedUsage.reduce((sum, usage) => {
-							if (!usage.model) return sum;
-
-							const targetProviderModels = providerModelMap.get(targetProvider);
-							if (!targetProviderModels) return sum;
-
-							const modelPricing = targetProviderModels.get(targetModelName);
-							if (!modelPricing) return sum;
-
+							// Apply target pricing to all token usage regardless of source model
 							return (
 								sum +
 								((usage.inputTokens * modelPricing.inputTokenCost) / 1000000 +
