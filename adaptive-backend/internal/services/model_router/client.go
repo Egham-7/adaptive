@@ -61,6 +61,14 @@ func (c *ModelRouterClient) SelectProtocol(
 ) models.ProtocolResponse {
 	start := time.Now()
 
+	// Log the select model request details
+	fiberlog.Infof("[SELECT_MODEL] Making request to adaptive_ai service - prompt_length: %d, user_id: %s",
+		len(req.Prompt), req.UserID)
+	if req.ModelRouterConfig != nil {
+		fiberlog.Debugf("[SELECT_MODEL] Request config - cost_bias: %.2f, available_models: %d",
+			req.ModelRouterConfig.CostBias, len(req.ModelRouterConfig.Models))
+	}
+
 	if !c.circuitBreaker.CanExecute() {
 		fiberlog.Warnf("[CIRCUIT_BREAKER] Protocol Manager service unavailable (Open state). Using fallback.")
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
@@ -72,6 +80,7 @@ func (c *ModelRouterClient) SelectProtocol(
 
 	var out models.ProtocolResponse
 	opts := &services.RequestOptions{Timeout: c.timeout}
+	fiberlog.Debugf("[SELECT_MODEL] Sending POST request to /predict endpoint")
 	err := c.client.Post("/predict", req, &out, opts)
 	if err != nil {
 		c.circuitBreaker.RecordFailure()
@@ -79,11 +88,15 @@ func (c *ModelRouterClient) SelectProtocol(
 		// Log provider error but continue with fallback
 		providerErr := models.NewProviderError("adaptive_ai", "prediction request failed", err)
 		fiberlog.Warnf("[PROVIDER_ERROR] %v", providerErr)
+		fiberlog.Warnf("[SELECT_MODEL] Request failed, using fallback protocol")
 		return c.getFallbackProtocolResponse()
 	}
 
+	duration := time.Since(start)
 	c.circuitBreaker.RecordSuccess()
-	c.circuitBreaker.RecordRequestDuration(time.Since(start), true)
+	c.circuitBreaker.RecordRequestDuration(duration, true)
+	fiberlog.Infof("[SELECT_MODEL] Request successful in %v - protocol: %s",
+		duration, out.Protocol)
 	return out
 }
 

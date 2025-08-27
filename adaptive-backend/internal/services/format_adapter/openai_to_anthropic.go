@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"adaptive-backend/internal/models"
-
 	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/packages/param"
 	anthropicparam "github.com/anthropics/anthropic-sdk-go/packages/param"
 	"github.com/openai/openai-go"
 )
@@ -20,33 +19,22 @@ func NewOpenAIToAnthropicConverter() *OpenAIToAnthropicConverter {
 	return &OpenAIToAnthropicConverter{}
 }
 
-// ConvertRequest converts OpenAI ChatCompletionRequest to Anthropic MessageNewParams
-func (c *OpenAIToAnthropicConverter) ConvertRequest(req *models.ChatCompletionRequest) (*models.AnthropicMessageRequest, error) {
+// ConvertRequest converts OpenAI ChatCompletionNewParams to Anthropic MessageNewParams
+func (c *OpenAIToAnthropicConverter) ConvertRequest(req *openai.ChatCompletionNewParams) (*anthropic.MessageNewParams, error) {
 	if req == nil {
 		return nil, fmt.Errorf("request cannot be nil")
 	}
 
 	// Convert messages from OpenAI to Anthropic format
-	anthropicMessages, systemMessage, err := c.convertMessages(req.Messages)
+	anthropicMessages, systemMessage, err := c.convertMessagesFromOpenAI(req.Messages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert messages: %w", err)
 	}
 
-	// Validate that model is provided in the request
-	if req.Model == "" {
-		return nil, fmt.Errorf("model is required for Anthropic conversion")
-	}
-
 	// Create base Anthropic request
-	anthropicReq := &models.AnthropicMessageRequest{
+	anthropicReq := &anthropic.MessageNewParams{
 		Model:    anthropic.Model(req.Model),
 		Messages: anthropicMessages,
-		// Copy our custom fields
-		ModelRouterConfig:   req.ModelRouterConfig,
-		PromptResponseCache: req.PromptResponseCache,
-		PromptCache:         req.PromptCache,
-		Fallback:            req.Fallback,
-		ProviderConfigs:     req.ProviderConfigs,
 	}
 
 	// Set system message if present (Anthropic uses separate system field)
@@ -93,8 +81,8 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *models.ChatCompletionRe
 	return anthropicReq, nil
 }
 
-// convertMessages converts OpenAI messages to Anthropic format
-func (c *OpenAIToAnthropicConverter) convertMessages(messages []openai.ChatCompletionMessageParamUnion) ([]anthropic.MessageParam, string, error) {
+// convertMessagesFromOpenAI converts OpenAI messages to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertMessagesFromOpenAI(messages []openai.ChatCompletionMessageParamUnion) ([]anthropic.MessageParam, string, error) {
 	var anthropicMessages []anthropic.MessageParam
 	var systemMessage string
 
@@ -318,7 +306,7 @@ func (c *OpenAIToAnthropicConverter) convertImageContent(img openai.ChatCompleti
 }
 
 // convertParameters converts OpenAI parameters to Anthropic equivalents
-func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *models.ChatCompletionRequest, anthropicReq *models.AnthropicMessageRequest) error {
+func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *openai.ChatCompletionNewParams, anthropicReq *anthropic.MessageNewParams) error {
 	// Temperature (both use 0-1 range)
 	if openaiReq.Temperature.Valid() {
 		anthropicReq.Temperature = anthropicparam.Opt[float64]{Value: openaiReq.Temperature.Value}
@@ -438,20 +426,8 @@ func (c *OpenAIToAnthropicConverter) convertFinishReason(finishReason string) an
 	}
 }
 
-// convertModelName converts OpenAI model to Anthropic model
-func (c *OpenAIToAnthropicConverter) convertModelName(model string) anthropic.Model {
-	switch model {
-	case "gpt-4", "gpt-4-turbo", "gpt-4o":
-		return anthropic.ModelClaude3_5SonnetLatest
-	case "gpt-3.5-turbo":
-		return anthropic.ModelClaude3_5HaikuLatest
-	default:
-		return anthropic.ModelClaude3_5SonnetLatest
-	}
-}
-
 // convertUsage converts OpenAI usage to Anthropic usage
-func (c *OpenAIToAnthropicConverter) convertUsage(usage models.AdaptiveUsage) anthropic.Usage {
+func (c *OpenAIToAnthropicConverter) convertUsage(usage openai.CompletionUsage) anthropic.Usage {
 	return anthropic.Usage{
 		InputTokens:              usage.PromptTokens,
 		OutputTokens:             usage.CompletionTokens,
@@ -498,7 +474,7 @@ func (c *OpenAIToAnthropicConverter) convertResponseContent(content string, tool
 }
 
 // ConvertResponse converts OpenAI ChatCompletion to Anthropic Message format
-func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *models.ChatCompletion, provider string) (*anthropic.Message, error) {
+func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *openai.ChatCompletion, provider string) (*anthropic.Message, error) {
 	if resp == nil {
 		return nil, fmt.Errorf("chat completion cannot be nil")
 	}
@@ -520,7 +496,7 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *models.ChatCompletion
 	stopReason := c.convertFinishReason(choice.FinishReason)
 
 	// Use helper to convert model name
-	modelName := c.convertModelName(resp.Model)
+	modelName := param.Opt[string]{Value: resp.Model}
 
 	// Use helper to convert usage
 	usage := c.convertUsage(resp.Usage)
@@ -529,7 +505,7 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *models.ChatCompletion
 	message := &anthropic.Message{
 		ID:           resp.ID,
 		Content:      contentBlocks,
-		Model:        modelName,
+		Model:        anthropic.Model(modelName.Value),
 		Role:         "assistant",
 		StopReason:   stopReason,
 		StopSequence: "",
@@ -541,7 +517,7 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *models.ChatCompletion
 }
 
 // ConvertStreamingChunk converts OpenAI streaming chunk to Anthropic streaming event format
-func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *models.ChatCompletionChunk, provider string) (any, error) {
+func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCompletionChunk, provider string) (any, error) {
 	if chunk == nil {
 		return nil, fmt.Errorf("chat completion chunk cannot be nil")
 	}
@@ -562,7 +538,7 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *models.ChatCom
 			Message: anthropic.Message{
 				ID:      chunk.ID,
 				Content: []anthropic.ContentBlockUnion{},
-				Model:   c.convertModelName(chunk.Model),
+				Model:   anthropic.Model(chunk.Model),
 				Role:    "assistant",
 				Type:    "message",
 			},

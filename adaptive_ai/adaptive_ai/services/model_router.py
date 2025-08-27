@@ -16,7 +16,7 @@ class LitLoggerProtocol(Protocol):
     def log(self, key: str, value: Any) -> None: ...
 
 
-class ProtocolManager:
+class ModelRouter:
     MAX_TOKEN_COUNT = 10000  # Maximum reasonable token count for normalization
 
     # Pre-computed threshold constants for faster comparisons
@@ -64,11 +64,7 @@ class ProtocolManager:
     ) -> bool:
         """Determine if standard protocol should be used based on complexity score and token length."""
         # If user explicitly provided models, always use standard protocol
-        if (
-            request
-            and request.protocol_manager_config
-            and request.protocol_manager_config.models
-        ):
+        if request and request.model_router and request.model_router.models:
             return True
 
         # Use NVIDIA's professionally trained complexity score and prompt length
@@ -78,13 +74,11 @@ class ProtocolManager:
         complexity_threshold = self.DEFAULT_COMPLEXITY_THRESHOLD
         token_threshold = self.STANDARD_PROTOCOL_TOKEN_THRESHOLD
 
-        if request and request.protocol_manager_config:
-            if request.protocol_manager_config.complexity_threshold is not None:
-                complexity_threshold = (
-                    request.protocol_manager_config.complexity_threshold
-                )
-            if request.protocol_manager_config.token_threshold is not None:
-                token_threshold = request.protocol_manager_config.token_threshold
+        if request and request.model_router:
+            if request.model_router.complexity_threshold is not None:
+                complexity_threshold = request.model_router.complexity_threshold
+            if request.model_router.token_threshold is not None:
+                token_threshold = request.model_router.token_threshold
 
         # Create cache key based on actual decision factors
         cache_key = (complexity_score, complexity_threshold, token_count)

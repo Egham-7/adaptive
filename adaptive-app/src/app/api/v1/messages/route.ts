@@ -83,10 +83,15 @@ export async function POST(req: NextRequest) {
         ...(body.provider_configs && {
           provider_configs: body.provider_configs,
         }),
-        ...(body.protocol_manager && {
-          protocol_manager: body.protocol_manager,
+        ...(body.model_router && {
+          model_router: body.model_router,
         }),
-        ...(body.semantic_cache && { semantic_cache: body.semantic_cache }),
+        ...(body.semantic_cache && { 
+          prompt_response_cache: { 
+            enabled: body.semantic_cache.enabled,
+            semantic_threshold: body.semantic_cache.semantic_threshold 
+          } 
+        }),
         ...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
         ...(body.fallback && { fallback: body.fallback }),
       } as Anthropic.MessageStreamParams);
@@ -94,27 +99,39 @@ export async function POST(req: NextRequest) {
       // Create a ReadableStream that forwards the Anthropic stream
       const readableStream = new ReadableStream({
         async start(controller) {
+          let finalMessage: Anthropic.Message | null = null;
+          
           try {
             for await (const chunk of stream) {
               const data = `data: ${JSON.stringify(chunk)}\n\n`;
               controller.enqueue(new TextEncoder().encode(data));
             }
 
-            // Record usage after stream completes
-            const finalMessage = await stream.finalMessage();
-            if (finalMessage.usage) {
+            // Try to get final message for usage recording
+            try {
+              finalMessage = await stream.finalMessage();
+            } catch (finalError) {
+              console.warn("Could not get final message for usage recording:", finalError);
+            }
+
+            // Send final data event to close the stream
+            controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+            controller.close();
+
+            // Record usage if available
+            if (finalMessage?.usage) {
               setImmediate(async () => {
                 try {
                   await api.usage.recordApiUsage({
                     apiKey,
                     provider: "anthropic", // Default since we're using Anthropic format
-                    model: finalMessage.model,
+                    model: finalMessage!.model,
                     usage: {
-                      promptTokens: finalMessage.usage.input_tokens,
-                      completionTokens: finalMessage.usage.output_tokens,
+                      promptTokens: finalMessage!.usage!.input_tokens,
+                      completionTokens: finalMessage!.usage!.output_tokens,
                       totalTokens:
-                        finalMessage.usage.input_tokens +
-                        finalMessage.usage.output_tokens,
+                        finalMessage!.usage!.input_tokens +
+                        finalMessage!.usage!.output_tokens,
                     },
                     duration: Date.now() - startTime,
                     timestamp: new Date(),
@@ -124,11 +141,12 @@ export async function POST(req: NextRequest) {
                 }
               });
             }
-
-            controller.close();
           } catch (error) {
             console.error("Stream error:", error);
-            controller.error(error);
+            // Send error event before closing
+            const errorData = `data: ${JSON.stringify({ type: "error", error: { message: "Stream failed" } })}\n\n`;
+            controller.enqueue(new TextEncoder().encode(errorData));
+            controller.close();
           }
         },
       });
@@ -160,8 +178,8 @@ export async function POST(req: NextRequest) {
       ...(body.provider_configs && {
         provider_configs: body.provider_configs,
       }),
-      ...(body.protocol_manager && {
-        protocol_manager: body.protocol_manager,
+      ...(body.model_router && {
+        model_router: body.model_router,
       }),
       ...(body.semantic_cache && { semantic_cache: body.semantic_cache }),
       ...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
@@ -191,21 +209,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return Response.json(message);
-  } catch (error) {
-    console.error("Anthropic Messages API error:", error);
-    return new Response(
-      JSON.stringify({
-        type: "error",
-        error: {
-          type: "api_error",
-          message: "Internal server error",
-        },
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
-  }
+		return Response.json(message);
+	} catch (error) {
+		console.error("Anthropic Messages API error:", error);
+		return new Response(
+			JSON.stringify({
+				type: "error",
+				error: {
+					type: "api_error",
+					message: "Internal server error",
+				},
+			}),
+			{
+				status: 500,
+				headers: { "Content-Type": "application/json" },
+			},
+		);
+	}
 }

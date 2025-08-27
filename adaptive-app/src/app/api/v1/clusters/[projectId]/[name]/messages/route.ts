@@ -105,8 +105,8 @@ export async function POST(
 				...(body.provider_configs && {
 					provider_configs: body.provider_configs,
 				}),
-				...(body.protocol_manager && {
-					protocol_manager: body.protocol_manager,
+				...(body.model_router && {
+					model_router: body.model_router,
 				}),
 				...(body.semantic_cache && { semantic_cache: body.semantic_cache }),
 				...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
@@ -181,8 +181,8 @@ export async function POST(
 			...(body.provider_configs && {
 				provider_configs: body.provider_configs,
 			}),
-			...(body.protocol_manager && {
-				protocol_manager: body.protocol_manager,
+			...(body.model_router && {
+				model_router: body.model_router,
 			}),
 			...(body.semantic_cache && { semantic_cache: body.semantic_cache }),
 			...(body.prompt_cache && { prompt_cache: body.prompt_cache }),

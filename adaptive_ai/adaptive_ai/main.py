@@ -26,7 +26,7 @@ from adaptive_ai.services.model_selector import (
     ModelSelectionService,
 )
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
-from adaptive_ai.services.protocol_manager import ProtocolManager
+from adaptive_ai.services.model_router import ModelRouter
 from adaptive_ai.utils.openai_utils import extract_last_message_content
 
 
@@ -36,7 +36,7 @@ class ConsoleLogger(ls.Logger):
         print(f"[LitServe] Received {key} with value {value}", flush=True)
 
 
-class ProtocolManagerAPI(ls.LitAPI):
+class ModelRouterAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         self.settings = get_settings()
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
@@ -45,12 +45,12 @@ class ProtocolManagerAPI(ls.LitAPI):
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
         self.model_selection_service = ModelSelectionService(lit_logger=self)
-        self.protocol_manager = ProtocolManager(lit_logger=self)
+        self.model_router = ModelRouter(lit_logger=self)
 
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
         # Convert cost_preference strings to cost_bias numbers (preserving backward compatibility)
-        if "protocol_manager_config" in request:
-            config = request["protocol_manager_config"]
+        if "model_router" in request:
+            config = request["model_router"]
             # Only derive cost_bias from cost_preference if cost_bias is not already present
             if "cost_preference" in config and "cost_bias" not in config:
                 cost_preference = config["cost_preference"]  # Keep the original key
@@ -73,11 +73,11 @@ class ProtocolManagerAPI(ls.LitAPI):
         # Process model validation and conversion for each request
         processed_requests = []
         for req in requests:
-            # Enrich partial models if they exist in protocol_manager_config
-            if req.protocol_manager_config and req.protocol_manager_config.models:
-                req.protocol_manager_config.models = (
+            # Enrich partial models if they exist in model_router
+            if req.model_router and req.model_router.models:
+                req.model_router.models = (
                     self.model_selection_service.enrich_partial_models(
-                        req.protocol_manager_config.models
+                        req.model_router.models
                     )
                 )
             processed_requests.append(req)
@@ -209,7 +209,7 @@ class ProtocolManagerAPI(ls.LitAPI):
             if minion_candidates:
                 available_protocols.append("minion")
 
-            selected_protocol = self.protocol_manager.select_best_protocol(
+            selected_protocol = self.model_router.select_best_protocol(
                 classification_result=current_classification_result,
                 token_count=prompt_token_count,
                 available_protocols=available_protocols,
@@ -230,7 +230,7 @@ class ProtocolManagerAPI(ls.LitAPI):
                             else str(minion_candidates[0].providers[0])
                         ),
                         model=minion_candidates[0].model_name,
-                        parameters=self.protocol_manager.get_tuned_parameters(
+                        parameters=self.model_router.get_tuned_parameters(
                             current_classification_result,
                             (
                                 current_classification_result.task_type_1[0]
@@ -264,7 +264,7 @@ class ProtocolManagerAPI(ls.LitAPI):
                             else str(standard_candidates[0].providers[0])
                         ),
                         model=standard_candidates[0].model_name,
-                        parameters=self.protocol_manager.get_tuned_parameters(
+                        parameters=self.model_router.get_tuned_parameters(
                             current_classification_result,
                             (
                                 current_classification_result.task_type_1[0]
@@ -307,7 +307,7 @@ class ProtocolManagerAPI(ls.LitAPI):
 
 def create_app() -> ls.LitServer:
     settings = get_settings()
-    api = ProtocolManagerAPI(
+    api = ModelRouterAPI(
         max_batch_size=settings.litserve.max_batch_size,
         batch_timeout=settings.litserve.batch_timeout,
     )

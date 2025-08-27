@@ -257,7 +257,7 @@ export async function POST(
 		const enhancedRequest = {
 			...body,
 			user: name,
-			protocol_manager: {
+			model_router: {
 				models: modelDetails,
 				cost_bias: cluster.costBias,
 				complexity_threshold: cluster.complexityThreshold,

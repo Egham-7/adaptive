@@ -6,12 +6,17 @@ import (
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/anthropic/messages"
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/model_router"
+	"adaptive-backend/internal/services/stream_adapters"
+	"adaptive-backend/internal/services/stream_readers/stream"
 	"adaptive-backend/internal/utils"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
 )
 
 // MessagesHandler handles Anthropic Messages API requests using dedicated Anthropic services
@@ -120,25 +125,26 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 	}
 	fiberlog.Debugf("[%s] Provider configuration found for: %s", requestID, provider)
 
-	// For now, only support native Anthropic provider
-	if provider != "anthropic" {
-		fiberlog.Warnf("[%s] Unsupported provider requested: %s", requestID, provider)
-		return h.responseSvc.HandleBadRequest(c,
-			"Only 'anthropic' provider is currently supported for messages endpoint", requestID)
+	// Check provider's native format to determine if conversion is needed
+	// If native_format is undefined, assume it's anthropic
+	if providerConfig.NativeFormat == "anthropic" || providerConfig.NativeFormat == "" || provider == "anthropic" {
+		// Native Anthropic format - use directly
+		fiberlog.Debugf("[%s] Provider %s uses native Anthropic format", requestID, provider)
+		client := h.messagesSvc.CreateClient(providerConfig)
+
+		fiberlog.Infof("[%s] Processing native Anthropic request - model: %s, streaming: %t",
+			requestID, req.Model, isStreaming)
+
+		if isStreaming {
+			return h.handleStreamingRequest(c, client, req, requestID)
+		}
+		return h.handleNonStreamingRequest(c, client, req, requestID)
 	}
 
-	// Create Anthropic client
-	fiberlog.Debugf("[%s] Creating Anthropic client", requestID)
-	client := h.messagesSvc.CreateClient(providerConfig)
-
-	fiberlog.Infof("[%s] Processing request - provider: %s, model: %s, streaming: %t",
-		requestID, provider, req.Model, isStreaming)
-
-	if isStreaming {
-		return h.handleStreamingRequest(c, client, req, requestID)
-	}
-
-	return h.handleNonStreamingRequest(c, client, req, requestID)
+	// Provider uses different native format (likely OpenAI) - convert via format adapters
+	fiberlog.Debugf("[%s] Provider %s native format: %s, converting to Anthropic format",
+		requestID, provider, providerConfig.NativeFormat)
+	return h.handleNonAnthropicProvider(c, req, provider, providerConfig, isStreaming, requestID)
 }
 
 // handleNonStreamingRequest processes non-streaming requests
@@ -175,4 +181,122 @@ func (h *MessagesHandler) handleStreamingRequest(
 
 	fiberlog.Infof("[%s] Streaming message initiated successfully", requestID)
 	return h.responseSvc.HandleStreamingResponse(c, stream, requestID)
+}
+
+// handleNonAnthropicProvider handles providers that use different native formats (e.g., OpenAI)
+// by converting the Anthropic Messages request to the provider's format and back
+func (h *MessagesHandler) handleNonAnthropicProvider(
+	c *fiber.Ctx,
+	req *models.AnthropicMessageRequest,
+	provider string,
+	providerConfig models.ProviderConfig,
+	isStreaming bool,
+	requestID string,
+) error {
+	// Convert Anthropic Messages request to OpenAI Chat Completions format
+	openaiReq, err := format_adapter.AnthropicToOpenAI.ConvertRequest(req)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to convert Anthropic request to OpenAI format: %v", requestID, err)
+		return h.responseSvc.HandleError(c, fmt.Errorf("failed to convert request format: %w", err), requestID)
+	}
+
+	// Create OpenAI client for the provider
+	client, err := h.createOpenAIClient(provider, providerConfig, isStreaming)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to create OpenAI client for provider %s: %v", requestID, provider, err)
+		return h.responseSvc.HandleError(c, fmt.Errorf("failed to create client: %w", err), requestID)
+	}
+
+	fiberlog.Infof("[%s] Processing converted request - provider: %s, model: %s, streaming: %t",
+		requestID, provider, openaiReq.Model, isStreaming)
+
+	if isStreaming {
+		return h.handleConvertedStreamingRequest(c, client, openaiReq, provider, requestID)
+	}
+
+	return h.handleConvertedNonStreamingRequest(c, client, openaiReq, provider, requestID)
+}
+
+// createOpenAIClient creates an OpenAI client for non-Anthropic providers
+func (h *MessagesHandler) createOpenAIClient(provider string, providerConfig models.ProviderConfig, isStream bool) (*openai.Client, error) {
+	if providerConfig.APIKey == "" {
+		return nil, fmt.Errorf("API key not configured for provider '%s'", provider)
+	}
+
+	opts := []option.RequestOption{
+		option.WithAPIKey(providerConfig.APIKey),
+	}
+
+	if providerConfig.BaseURL != "" {
+		opts = append(opts, option.WithBaseURL(providerConfig.BaseURL))
+	}
+
+	if providerConfig.Headers != nil {
+		for key, value := range providerConfig.Headers {
+			opts = append(opts, option.WithHeader(key, value))
+		}
+	}
+
+	client := openai.NewClient(opts...)
+	return &client, nil
+}
+
+// handleConvertedNonStreamingRequest handles non-streaming requests for converted providers
+func (h *MessagesHandler) handleConvertedNonStreamingRequest(
+	c *fiber.Ctx,
+	client *openai.Client,
+	openaiReq *models.ChatCompletionRequest,
+	provider string,
+	requestID string,
+) error {
+	fiberlog.Debugf("[%s] Sending non-streaming request to %s", requestID, provider)
+
+	// Convert to OpenAI parameters
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(openaiReq)
+	if err != nil {
+		return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
+	}
+
+	// Make the OpenAI API call
+	resp, err := client.Chat.Completions.New(c.Context(), *openAIParams)
+	if err != nil {
+		fiberlog.Errorf("[%s] Non-streaming request to %s failed: %v", requestID, provider, err)
+		return h.responseSvc.HandleError(c, fmt.Errorf("%s API error: %w", provider, err), requestID)
+	}
+
+	// Convert OpenAI response back to Anthropic format
+	anthropicResp, err := format_adapter.OpenAIToAnthropic.ConvertResponse(resp, provider)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to convert %s response to Anthropic format: %v", requestID, provider, err)
+		return h.responseSvc.HandleError(c, fmt.Errorf("failed to convert response: %w", err), requestID)
+	}
+
+	fiberlog.Infof("[%s] Non-streaming request to %s completed successfully", requestID, provider)
+	return c.JSON(anthropicResp)
+}
+
+// handleConvertedStreamingRequest handles streaming requests for converted providers
+func (h *MessagesHandler) handleConvertedStreamingRequest(
+	c *fiber.Ctx,
+	client *openai.Client,
+	openaiReq *models.ChatCompletionRequest,
+	provider string,
+	requestID string,
+) error {
+	fiberlog.Debugf("[%s] Starting streaming request to %s", requestID, provider)
+
+	// Convert to OpenAI parameters with streaming enabled
+	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(openaiReq)
+	if err != nil {
+		return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
+	}
+
+	// Create streaming request
+	streamResp := client.Chat.Completions.NewStreaming(c.Context(), *openAIParams)
+
+	// Create a converted stream reader that converts OpenAI SSE to Anthropic SSE format
+	convertedAdapter := stream_adapters.NewOpenAIToAnthropicStreamAdapter(streamResp, provider, requestID)
+
+	// Use the existing Anthropic stream handler which will use the AnthropicSSEReader
+	return stream.HandleAnthropicStream(c, convertedAdapter, requestID, provider)
 }

@@ -73,8 +73,8 @@ export const fallbackConfigSchema = z.object({
 	mode: fallbackModeSchema.optional(),
 });
 
-// Protocol manager config schema
-export const protocolManagerConfigSchema = z.object({
+// Model router config schema
+export const modelRouterConfigSchema = z.object({
 	models: z.array(modelCapabilitySchema).optional(),
 	cost_bias: z.number().min(0).max(1).optional(),
 	complexity_threshold: z.number().optional(),
@@ -141,7 +141,7 @@ export const chatCompletionRequestSchema = z.object({
 	provider_configs: z.record(z.string(), providerConfigSchema).optional(),
 
 	// Adaptive system extensions
-	protocol_manager: z
+	model_router: z
 		.object({
 			models: z.array(z.any()).optional(),
 			cost_bias: z.number().min(0).max(1).optional(),
@@ -206,7 +206,7 @@ export const adaptiveChatCompletionRequestSchema = z.object({
 
 	// Adaptive-specific parameters
 	stream: z.boolean().optional(),
-	protocol_manager: protocolManagerConfigSchema.optional(),
+	model_router: modelRouterConfigSchema.optional(),
 	semantic_cache: cacheConfigSchema.optional(),
 	prompt_cache: promptCacheConfigSchema.optional(),
 	fallback: fallbackConfigSchema.optional(),
@@ -281,7 +281,7 @@ export type AdaptiveChatCompletionRequest = z.infer<
 export type ModelCapability = z.infer<typeof modelCapabilitySchema>;
 export type FallbackMode = z.infer<typeof fallbackModeSchema>;
 export type FallbackConfig = z.infer<typeof fallbackConfigSchema>;
-export type ProtocolManagerConfig = z.infer<typeof protocolManagerConfigSchema>;
+export type ModelRouterConfig = z.infer<typeof modelRouterConfigSchema>;
 export type CacheConfig = z.infer<typeof cacheConfigSchema>;
 export type PromptCacheConfig = z.infer<typeof promptCacheConfigSchema>;
 export type ChatCompletionMessage = z.infer<typeof chatCompletionMessageSchema>;

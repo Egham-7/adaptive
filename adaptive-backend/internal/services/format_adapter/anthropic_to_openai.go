@@ -10,6 +10,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/packages/param"
+	"github.com/openai/openai-go/shared"
 )
 
 // AnthropicToOpenAIConverter handles conversion from Anthropic format to OpenAI format
@@ -241,6 +242,9 @@ func (c *AnthropicToOpenAIConverter) convertImageContent(img anthropic.ImageBloc
 
 // convertParameters converts Anthropic parameters to OpenAI equivalents
 func (c *AnthropicToOpenAIConverter) convertParameters(anthropicReq *models.AnthropicMessageRequest, openaiReq *models.ChatCompletionRequest) error {
+	// Model (required for OpenAI API)
+	openaiReq.Model = shared.ChatModel(anthropicReq.Model)
+
 	// Temperature (both use 0-1 range)
 	if anthropicReq.Temperature.Valid() {
 		openaiReq.Temperature = param.Opt[float64]{Value: anthropicReq.Temperature.Value}

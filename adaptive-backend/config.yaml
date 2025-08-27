@@ -17,19 +17,19 @@ endpoints:
         api_key: "${OPENAI_API_KEY}"
         enabled: true
         native_format: "openai"
-      
+
       anthropic:
         api_key: "${ANTHROPIC_API_KEY}"
         enabled: true
         base_url: "https://api.anthropic.com/v1"
         native_format: "openai"
-      
+
       gemini:
         api_key: "${GEMINI_API_KEY}"
         enabled: true
         base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
         native_format: "openai"
-      
+
       deepseek:
         api_key: "${DEEPSEEK_API_KEY}"
         enabled: true
@@ -42,19 +42,18 @@ endpoints:
         api_key: "${ANTHROPIC_API_KEY}"
         enabled: true
         base_url: "https://api.anthropic.com/v1"
-        native_format: "anthropic"
-      
+
       openai:
         api_key: "${OPENAI_API_KEY}"
         enabled: true
         native_format: "openai"
-      
+
       gemini:
         api_key: "${GEMINI_API_KEY}"
         enabled: true
         base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
         native_format: "openai"
-      
+
       deepseek:
         api_key: "${DEEPSEEK_API_KEY}"
         enabled: true
