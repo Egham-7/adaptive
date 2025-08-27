@@ -143,7 +143,7 @@ func (rs *RequestService) redactSensitiveInfo(req *models.AnthropicMessageReques
 		return "nil request"
 	}
 
-	summary := fmt.Sprintf("model=%s, max_tokens=%d, temp=%.2f, messages=%d", 
+	summary := fmt.Sprintf("model=%s, max_tokens=%d, temp=%.2f, messages=%d",
 		req.Model, req.MaxTokens, req.Temperature.Value, len(req.Messages))
 
 	// Add message content length summary without actual content

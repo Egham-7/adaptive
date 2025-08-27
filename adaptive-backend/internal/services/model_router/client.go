@@ -64,7 +64,7 @@ func (c *ModelRouterClient) SelectProtocol(
 	// Log the select model request details (non-PII at info level)
 	fiberlog.Infof("[PROTOCOL_SELECTION] Making request to adaptive_ai service - prompt_length: %d",
 		len(req.Prompt))
-	
+
 	// Debug-level log with PII and detailed config
 	fiberlog.Debugf("[PROTOCOL_SELECTION] Request details - user_id: %s", req.UserID)
 	if req.ModelRouterConfig != nil {

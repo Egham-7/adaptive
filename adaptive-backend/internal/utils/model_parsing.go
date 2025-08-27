@@ -17,7 +17,7 @@ import (
 func ParseProviderModel(modelSpec string) (provider, model string, err error) {
 	// Trim whitespace from input
 	trimmed := strings.TrimSpace(modelSpec)
-	
+
 	// Check for empty or whitespace-only specs
 	if trimmed == "" {
 		return "", "", fmt.Errorf("model specification cannot be empty or whitespace-only")
@@ -55,7 +55,7 @@ func ParseProviderModel(modelSpec string) (provider, model string, err error) {
 func ParseProviderModelWithDefault(modelSpec, defaultProvider string) (provider, model string, err error) {
 	// Trim whitespace from input
 	trimmed := strings.TrimSpace(modelSpec)
-	
+
 	// Check for empty or whitespace-only specs
 	if trimmed == "" {
 		return "", "", fmt.Errorf("model specification cannot be empty or whitespace-only")
