@@ -27,6 +27,36 @@ const _EXAMPLE_API_KEY = "your_api_key_here_placeholder_12345";
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_URL ?? "https://www.llmadaptive.uk";
 
+const CustomCodeBlock = ({
+	code,
+	language,
+	title,
+}: {
+	code: string;
+	language: string;
+	title?: string;
+}) => {
+	return (
+		<CodeBlock>
+			{title && (
+				<CodeBlockGroup className="border-b px-4 py-2">
+					<span className="font-medium text-sm">{title}</span>
+					<div className="flex items-center gap-2">
+						<Badge variant="secondary" className="text-xs">
+							{language}
+						</Badge>
+						<CopyButton
+							content={code}
+							copyMessage={`${title || "Code"} copied to clipboard!`}
+						/>
+					</div>
+				</CodeBlockGroup>
+			)}
+			<CodeBlockCode code={code} language={language} />
+		</CodeBlock>
+	);
+};
+
 export default function SelectModelPage() {
 	const { orgId, projectId } = useParams<{
 		orgId: string;
@@ -40,36 +70,6 @@ export default function SelectModelPage() {
 	const exampleKey = firstApiKey?.key_preview
 		? `your_api_key_here_preview_${firstApiKey.key_preview}`
 		: "your_api_key_here_preview_sk-abcd";
-
-	const CustomCodeBlock = ({
-		code,
-		language,
-		title,
-	}: {
-		code: string;
-		language: string;
-		title?: string;
-	}) => {
-		return (
-			<CodeBlock>
-				{title && (
-					<CodeBlockGroup className="border-b px-4 py-2">
-						<span className="font-medium text-sm">{title}</span>
-						<div className="flex items-center gap-2">
-							<Badge variant="secondary" className="text-xs">
-								{language}
-							</Badge>
-							<CopyButton
-								content={code}
-								copyMessage={`${title || "Code"} copied to clipboard!`}
-							/>
-						</div>
-					</CodeBlockGroup>
-				)}
-				<CodeBlockCode code={code} language={language} />
-			</CodeBlock>
-		);
-	};
 
 	const curlExample = `curl -X POST "${API_BASE_URL}/api/v1/select-model" \\
   -H "Content-Type: application/json" \\

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/packages/param"
 	anthropicparam "github.com/anthropics/anthropic-sdk-go/packages/param"
 	"github.com/openai/openai-go"
 )
@@ -496,7 +495,7 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *openai.ChatCompletion
 	stopReason := c.convertFinishReason(choice.FinishReason)
 
 	// Use helper to convert model name
-	modelName := param.Opt[string]{Value: resp.Model}
+	modelName := anthropicparam.Opt[string]{Value: resp.Model}
 
 	// Use helper to convert usage
 	usage := c.convertUsage(resp.Usage)

@@ -1,7 +1,7 @@
 "use client";
 
 import { CreditCard, DollarSign, TrendingUp, Zap } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,7 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 	const [customAmount, setCustomAmount] = useState<string>("");
 	const [showCustomDialog, setShowCustomDialog] = useState(false);
 	const [isProcessing, setIsProcessing] = useState(false);
+	const amountInputId = useId();
 
 	// Temporarily disable credit purchasing
 	const isPurchasingDisabled = true;
@@ -342,9 +343,9 @@ export function CreditManagement({ organizationId }: CreditManagementProps) {
 								</DialogHeader>
 								<div className="space-y-4">
 									<div>
-										<Label htmlFor="amount">Amount (USD)</Label>
+										<Label htmlFor={amountInputId}>Amount (USD)</Label>
 										<Input
-											id="amount"
+											id={amountInputId}
 											type="number"
 											min="1"
 											max="10000"

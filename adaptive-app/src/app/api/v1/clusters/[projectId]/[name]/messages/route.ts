@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { api } from "@/trpc/server";
-import type { AnthropicMessagesRequest } from "@/types/anthropic-messages";
 import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
 
 // POST /api/v1/clusters/{projectId}/{name}/messages - Anthropic-compatible messages with cluster routing
@@ -11,10 +10,10 @@ export async function POST(
 ) {
 	try {
 		const { projectId, name } = await params;
-		
+
 		const rawBody = await request.json();
 		const validationResult = anthropicMessagesRequestSchema.safeParse(rawBody);
-		
+
 		if (!validationResult.success) {
 			return new Response(
 				JSON.stringify({
@@ -31,7 +30,7 @@ export async function POST(
 				},
 			);
 		}
-		
+
 		const body = validationResult.data;
 
 		// Extract API key from headers
@@ -99,9 +98,9 @@ export async function POST(
 		}
 
 		// Get cluster by name with secure lookup (using API key's project for authorization)
-		const cluster = await api.llmClusters.getByName({ 
-			projectId: verificationResult.projectId, 
-			name 
+		const cluster = await api.llmClusters.getByName({
+			projectId: verificationResult.projectId,
+			name,
 		});
 
 		if (!cluster) {
@@ -135,7 +134,9 @@ export async function POST(
 				max_tokens: body.max_tokens,
 				messages: body.messages,
 				...(body.system && { system: body.system }),
-				...(body.temperature !== undefined && { temperature: body.temperature }),
+				...(body.temperature !== undefined && {
+					temperature: body.temperature,
+				}),
 				...(body.top_p !== undefined && { top_p: body.top_p }),
 				...(body.top_k !== undefined && { top_k: body.top_k }),
 				...(body.stop_sequences && { stop_sequences: body.stop_sequences }),

@@ -13,8 +13,8 @@ import pytest  # type: ignore
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import ProviderType
 from adaptive_ai.services.cost_optimizer import CostOptimizer
+from adaptive_ai.services.model_router import ModelRouter
 from adaptive_ai.services.model_selector import ModelSelectionService
-from adaptive_ai.services.protocol_manager import ProtocolManager
 
 
 class TestCostOptimizerCaching:
@@ -222,12 +222,12 @@ class TestCostOptimizerCaching:
         assert stats_after["tier_cache"]["size"] == 0
 
 
-class TestProtocolManagerCaching:
-    """Test protocol manager caching behavior."""
+class TestModelRouterCaching:
+    """Test model router caching behavior."""
 
     def test_cache_initialization(self):
         """Test protocol cache is properly initialized."""
-        manager = ProtocolManager()
+        manager = ModelRouter()
 
         stats = manager.cache_stats
         assert "protocol_decision_cache" in stats
@@ -236,7 +236,7 @@ class TestProtocolManagerCaching:
 
     def test_protocol_decision_caching(self):
         """Test protocol decisions are cached correctly."""
-        manager = ProtocolManager()
+        manager = ModelRouter()
 
         # Mock classification result
         classification_result = Mock()
@@ -263,7 +263,7 @@ class TestProtocolManagerCaching:
 
     def test_cache_key_consistency(self):
         """Test cache keys are consistent across calls."""
-        manager = ProtocolManager()
+        manager = ModelRouter()
 
         # Create identical classification results
         result1 = Mock()
@@ -284,7 +284,7 @@ class TestProtocolManagerCaching:
 
     def test_cache_eviction_policy(self):
         """Test LRU eviction works correctly."""
-        manager = ProtocolManager()
+        manager = ModelRouter()
 
         # Fill cache beyond capacity
         for i in range(600):  # More than max size of 500
@@ -401,7 +401,7 @@ class TestCachingPerformance:
     def test_concurrent_cache_access_performance(self):
         """Test cache performance under concurrent access."""
         optimizer = CostOptimizer()
-        manager = ProtocolManager()
+        manager = ModelRouter()
 
         model_cap = ModelCapability(
             provider=ProviderType.OPENAI,

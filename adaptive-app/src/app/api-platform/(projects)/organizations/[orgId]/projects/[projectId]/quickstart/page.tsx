@@ -28,6 +28,36 @@ const EXAMPLE_API_KEY = "your_api_key_here";
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_URL ?? "https://www.llmadaptive.uk";
 
+const CustomCodeBlock = ({
+	code,
+	language,
+	title,
+}: {
+	code: string;
+	language: string;
+	title?: string;
+}) => {
+	return (
+		<CodeBlock>
+			{title && (
+				<CodeBlockGroup className="border-b px-4 py-2">
+					<span className="font-medium text-sm">{title}</span>
+					<div className="flex items-center gap-2">
+						<Badge variant="secondary" className="text-xs">
+							{language}
+						</Badge>
+						<CopyButton
+							content={code}
+							copyMessage={`${title || "Code"} copied to clipboard!`}
+						/>
+					</div>
+				</CodeBlockGroup>
+			)}
+			<CodeBlockCode code={code} language={language} />
+		</CodeBlock>
+	);
+};
+
 export default function QuickstartPage() {
 	const { orgId, projectId } = useParams<{
 		orgId: string;
@@ -45,36 +75,6 @@ export default function QuickstartPage() {
 	const exampleKey = firstApiKey?.key_preview
 		? "your_api_key_here"
 		: EXAMPLE_API_KEY;
-
-	const CustomCodeBlock = ({
-		code,
-		language,
-		title,
-	}: {
-		code: string;
-		language: string;
-		title?: string;
-	}) => {
-		return (
-			<CodeBlock>
-				{title && (
-					<CodeBlockGroup className="border-b px-4 py-2">
-						<span className="font-medium text-sm">{title}</span>
-						<div className="flex items-center gap-2">
-							<Badge variant="secondary" className="text-xs">
-								{language}
-							</Badge>
-							<CopyButton
-								content={code}
-								copyMessage={`${title || "Code"} copied to clipboard!`}
-							/>
-						</div>
-					</CodeBlockGroup>
-				)}
-				<CodeBlockCode code={code} language={language} />
-			</CodeBlock>
-		);
-	};
 
 	const curlExample = `curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
   -H "Content-Type: application/json" \\
@@ -238,7 +238,8 @@ print(completion.choices[0].message.content)`;
 							<div>
 								<CardTitle>Make Your First Request</CardTitle>
 								<CardDescription>
-									The Adaptive API supports both OpenAI Chat Completions and Anthropic Messages formats
+									The Adaptive API supports both OpenAI Chat Completions and
+									Anthropic Messages formats
 								</CardDescription>
 							</div>
 						</div>
@@ -246,7 +247,9 @@ print(completion.choices[0].message.content)`;
 					<CardContent>
 						<Tabs defaultValue="chat-completions" className="w-full">
 							<TabsList className="grid w-full grid-cols-2">
-								<TabsTrigger value="chat-completions">Chat Completions</TabsTrigger>
+								<TabsTrigger value="chat-completions">
+									Chat Completions
+								</TabsTrigger>
 								<TabsTrigger value="messages">Anthropic Messages</TabsTrigger>
 							</TabsList>
 

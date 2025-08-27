@@ -1,6 +1,6 @@
 "use client";
 import { motion, useInView, useSpring, useTransform } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/card";
 import {
@@ -58,6 +58,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export default function ComparisonChart() {
+	const chartTitleId = useId();
 	const chartRef = useRef<HTMLDivElement>(null);
 	const isInView = useInView(chartRef, {
 		once: true,
@@ -124,14 +125,14 @@ export default function ComparisonChart() {
 		>
 			<Card
 				className="w-full overflow-hidden p-6 shadow-xl"
-				aria-labelledby="chart-title"
+				aria-labelledby={chartTitleId}
 			>
 				<motion.h4
 					initial={{ opacity: 0, x: -20 }}
 					animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
 					transition={{ delay: 0.2, duration: 0.6 }}
 					className="mb-4 font-semibold text-foreground text-xl"
-					id="chart-title"
+					id={chartTitleId}
 				>
 					Cost per Million Tokens Comparison
 				</motion.h4>

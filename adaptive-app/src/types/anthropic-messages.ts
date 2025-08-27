@@ -2,12 +2,16 @@ import type {
 	Usage as AnthropicSDKUsage,
 	ContentBlock,
 	Message,
+	MessageCreateParams,
 	MessageParam,
 	MessageStreamEvent,
-	MessageCreateParams,
 } from "@anthropic-ai/sdk/resources/messages";
 import { z } from "zod";
-import type { Provider } from "./chat-completion";
+import type {
+	ModelCapability,
+	Provider,
+	ProviderConfig,
+} from "./chat-completion";
 import { providerConfigSchema } from "./chat-completion";
 
 // Use Anthropic SDK types as base
@@ -61,36 +65,38 @@ const baseAnthropicMessageSchema = z.object({
 });
 
 // Extended schema that adds our Adaptive-specific extensions
-export const anthropicMessagesRequestSchema = baseAnthropicMessageSchema.extend({
-	// Adaptive extensions
-	provider_configs: z.record(z.string(), providerConfigSchema).optional(),
-	model_router: z
-		.object({
-			models: z.array(z.any()).optional(),
-			cost_bias: z.number().min(0).max(1).optional(),
-			complexity_threshold: z.number().optional(),
-			token_threshold: z.number().int().optional(),
-		})
-		.optional(),
-	semantic_cache: z
-		.object({
-			enabled: z.boolean(),
-			semantic_threshold: z.number().optional(),
-		})
-		.optional(),
-	prompt_cache: z
-		.object({
-			enabled: z.boolean().optional(),
-			ttl: z.number().int().optional(),
-		})
-		.optional(),
-	fallback: z
-		.object({
-			enabled: z.boolean().optional(),
-			mode: z.enum(["sequential", "race"]).optional(),
-		})
-		.optional(),
-});
+export const anthropicMessagesRequestSchema = baseAnthropicMessageSchema.extend(
+	{
+		// Adaptive extensions
+		provider_configs: z.record(z.string(), providerConfigSchema).optional(),
+		model_router: z
+			.object({
+				models: z.array(z.any()).optional(),
+				cost_bias: z.number().min(0).max(1).optional(),
+				complexity_threshold: z.number().optional(),
+				token_threshold: z.number().int().optional(),
+			})
+			.optional(),
+		semantic_cache: z
+			.object({
+				enabled: z.boolean(),
+				semantic_threshold: z.number().optional(),
+			})
+			.optional(),
+		prompt_cache: z
+			.object({
+				enabled: z.boolean().optional(),
+				ttl: z.number().int().optional(),
+			})
+			.optional(),
+		fallback: z
+			.object({
+				enabled: z.boolean().optional(),
+				mode: z.enum(["sequential", "race"]).optional(),
+			})
+			.optional(),
+	},
+);
 
 // Enhanced response type that extends Anthropic's Message with provider info
 export interface AnthropicResponse extends Message {
@@ -98,17 +104,21 @@ export interface AnthropicResponse extends Message {
 }
 
 // Base request type that matches Anthropic SDK exactly
-export type BaseAnthropicMessageRequest = z.infer<typeof baseAnthropicMessageSchema>;
+export type BaseAnthropicMessageRequest = z.infer<
+	typeof baseAnthropicMessageSchema
+>;
 
 // Extended request type with our Adaptive extensions
-export type AnthropicMessagesRequest = z.infer<typeof anthropicMessagesRequestSchema>;
+export type AnthropicMessagesRequest = z.infer<
+	typeof anthropicMessagesRequestSchema
+>;
 
 // Ensure type compatibility with Anthropic SDK
 export type AdaptiveMessageCreateParams = AnthropicMessageCreateParams & {
 	// Adaptive extensions
-	provider_configs?: Record<string, any>;
+	provider_configs?: Record<string, ProviderConfig>;
 	model_router?: {
-		models?: any[];
+		models?: ModelCapability[];
 		cost_bias?: number;
 		complexity_threshold?: number;
 		token_threshold?: number;

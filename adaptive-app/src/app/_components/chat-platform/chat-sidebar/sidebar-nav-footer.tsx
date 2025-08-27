@@ -1,6 +1,7 @@
 // src/components/chat/chat-sidebar/SidebarNavFooter.tsx
 
 import { useUser } from "@clerk/nextjs";
+import { useId } from "react";
 import { DocsButton } from "@/components/ui/docs-button";
 import { LegalButton } from "@/components/ui/legal-button";
 import {
@@ -16,6 +17,9 @@ import { NavUser } from "./nav-user";
 
 export function SidebarNavFooter() {
 	const { user } = useUser(); // Fetch user data from Clerk's useUser hook
+	const docsId = useId();
+	const supportId = useId();
+	const legalId = useId();
 
 	if (!user) {
 		return null;
@@ -39,21 +43,21 @@ export function SidebarNavFooter() {
 				<div className="flex flex-wrap items-center justify-center gap-1">
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<div id="sidebar-docs">
+							<div id={docsId}>
 								<DocsButton variant="ghost" size="icon" showText={false} />
 							</div>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<div id="sidebar-support">
+							<div id={supportId}>
 								<SupportButton variant="ghost" size="icon" showText={false} />
 							</div>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<div id="sidebar-legal">
+							<div id={legalId}>
 								<LegalButton variant="ghost" size="icon" showText={false} />
 							</div>
 						</SidebarMenuButton>
