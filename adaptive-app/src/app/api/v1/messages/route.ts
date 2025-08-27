@@ -2,11 +2,32 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { api } from "@/trpc/server";
 import type { AnthropicMessagesRequest } from "@/types/anthropic-messages";
+import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
 import { env } from "@/env";
 
 export async function POST(req: NextRequest) {
   try {
-    const body: AnthropicMessagesRequest = await req.json();
+    const rawBody = await req.json();
+    const validationResult = anthropicMessagesRequestSchema.safeParse(rawBody);
+    
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({
+          type: "error",
+          error: {
+            type: "validation_error",
+            message: "Invalid request body",
+            details: validationResult.error.issues,
+          },
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+    
+    const body = validationResult.data;
 
     // Extract API key from headers
     const authHeader = req.headers.get("authorization");

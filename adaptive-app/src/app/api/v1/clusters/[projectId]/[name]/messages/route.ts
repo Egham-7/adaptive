@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { api } from "@/trpc/server";
 import type { AnthropicMessagesRequest } from "@/types/anthropic-messages";
+import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
 
 // POST /api/v1/clusters/{projectId}/{name}/messages - Anthropic-compatible messages with cluster routing
 export async function POST(
@@ -10,7 +11,28 @@ export async function POST(
 ) {
 	try {
 		const { projectId, name } = await params;
-		const body: AnthropicMessagesRequest = await request.json();
+		
+		const rawBody = await request.json();
+		const validationResult = anthropicMessagesRequestSchema.safeParse(rawBody);
+		
+		if (!validationResult.success) {
+			return new Response(
+				JSON.stringify({
+					type: "error",
+					error: {
+						type: "validation_error",
+						message: "Invalid request body",
+						details: validationResult.error.issues,
+					},
+				}),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+		
+		const body = validationResult.data;
 
 		// Extract API key from headers
 		const authHeader = request.headers.get("authorization");
@@ -59,9 +81,28 @@ export async function POST(
 			);
 		}
 
-		// Get cluster information - need to find by name within the project
-		const clusters = await api.llmClusters.getByProject({ projectId });
-		const cluster = clusters.find((c) => c.name === name);
+		// Check that API key's project matches the requested projectId
+		if (verificationResult.projectId !== projectId) {
+			return new Response(
+				JSON.stringify({
+					type: "error",
+					error: {
+						type: "forbidden_error",
+						message: "API key does not have access to the specified project",
+					},
+				}),
+				{
+					status: 403,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		// Get cluster by name with secure lookup (using API key's project for authorization)
+		const cluster = await api.llmClusters.getByName({ 
+			projectId: verificationResult.projectId, 
+			name 
+		});
 
 		if (!cluster) {
 			return new Response(

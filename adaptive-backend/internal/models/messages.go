@@ -11,16 +11,16 @@ type AnthropicMessageRequest struct {
 	MaxTokens     int64                                 `json:"max_tokens"`
 	Messages      []anthropic.MessageParam              `json:"messages"`
 	Model         anthropic.Model                       `json:"model"`
-	Temperature   param.Opt[float64]                    `json:"temperature,omitempty"`
-	TopK          param.Opt[int64]                      `json:"top_k,omitempty"`
-	TopP          param.Opt[float64]                    `json:"top_p,omitempty"`
-	Metadata      anthropic.MetadataParam               `json:"metadata,omitempty"`
+	Temperature   param.Opt[float64]                    `json:"temperature"`
+	TopK          param.Opt[int64]                      `json:"top_k"`
+	TopP          param.Opt[float64]                    `json:"top_p"`
+	Metadata      anthropic.MetadataParam               `json:"metadata"`
 	ServiceTier   anthropic.MessageNewParamsServiceTier `json:"service_tier,omitempty"`
 	StopSequences []string                              `json:"stop_sequences,omitempty"`
 	System        []anthropic.TextBlockParam            `json:"system,omitempty"`
 	Stream        *bool                                 `json:"stream,omitempty"`
-	Thinking      anthropic.ThinkingConfigParamUnion    `json:"thinking,omitempty"`
-	ToolChoice    anthropic.ToolChoiceUnionParam        `json:"tool_choice,omitempty"`
+	Thinking      anthropic.ThinkingConfigParamUnion    `json:"thinking"`
+	ToolChoice    anthropic.ToolChoiceUnionParam        `json:"tool_choice"`
 	Tools         []anthropic.ToolUnionParam            `json:"tools,omitempty"`
 
 	// Custom fields for our internal processing

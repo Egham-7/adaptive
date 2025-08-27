@@ -9,7 +9,8 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/param"
+	openaiParam "github.com/openai/openai-go/packages/param"
+
 	"github.com/openai/openai-go/shared"
 )
 
@@ -79,7 +80,7 @@ func (c *AnthropicToOpenAIConverter) convertMessages(messages []anthropic.Messag
 				OfSystem: &openai.ChatCompletionSystemMessageParam{
 					Role: "system",
 					Content: openai.ChatCompletionSystemMessageParamContentUnion{
-						OfString: param.Opt[string]{Value: systemContent},
+						OfString: openaiParam.Opt[string]{Value: systemContent},
 					},
 				},
 			})
@@ -115,7 +116,7 @@ func (c *AnthropicToOpenAIConverter) convertMessages(messages []anthropic.Messag
 
 			if content != "" {
 				assistantMsg.Content = openai.ChatCompletionAssistantMessageParamContentUnion{
-					OfString: param.Opt[string]{Value: content},
+					OfString: openaiParam.Opt[string]{Value: content},
 				}
 			}
 
@@ -136,14 +137,14 @@ func (c *AnthropicToOpenAIConverter) convertMessages(messages []anthropic.Messag
 func (c *AnthropicToOpenAIConverter) convertUserContent(content []anthropic.ContentBlockParamUnion) (openai.ChatCompletionUserMessageParamContentUnion, error) {
 	if len(content) == 0 {
 		return openai.ChatCompletionUserMessageParamContentUnion{
-			OfString: param.Opt[string]{Value: ""},
+			OfString: openaiParam.Opt[string]{Value: ""},
 		}, nil
 	}
 
 	// If only one text block, return as string
 	if len(content) == 1 && content[0].OfText != nil {
 		return openai.ChatCompletionUserMessageParamContentUnion{
-			OfString: param.Opt[string]{Value: content[0].OfText.Text},
+			OfString: openaiParam.Opt[string]{Value: content[0].OfText.Text},
 		}, nil
 	}
 
@@ -247,17 +248,17 @@ func (c *AnthropicToOpenAIConverter) convertParameters(anthropicReq *models.Anth
 
 	// Temperature (both use 0-1 range)
 	if anthropicReq.Temperature.Valid() {
-		openaiReq.Temperature = param.Opt[float64]{Value: anthropicReq.Temperature.Value}
+		openaiReq.Temperature = openaiParam.Opt[float64]{Value: anthropicReq.Temperature.Value}
 	}
 
 	// Max tokens
 	if anthropicReq.MaxTokens > 0 {
-		openaiReq.MaxTokens = param.Opt[int64]{Value: int64(anthropicReq.MaxTokens)}
+		openaiReq.MaxTokens = openaiParam.Opt[int64]{Value: int64(anthropicReq.MaxTokens)}
 	}
 
 	// Top-p (both use 0-1 range)
 	if anthropicReq.TopP.Valid() {
-		openaiReq.TopP = param.Opt[float64]{Value: anthropicReq.TopP.Value}
+		openaiReq.TopP = openaiParam.Opt[float64]{Value: anthropicReq.TopP.Value}
 	}
 
 	// Note: Some Anthropic parameters don't have OpenAI equivalents
@@ -280,7 +281,7 @@ func (c *AnthropicToOpenAIConverter) convertTools(tools []anthropic.ToolUnionPar
 			}
 
 			if tool.OfTool.Description.Valid() {
-				openaiTool.Function.Description = param.Opt[string]{Value: tool.OfTool.Description.Value}
+				openaiTool.Function.Description = openaiParam.Opt[string]{Value: tool.OfTool.Description.Value}
 			}
 
 			// Convert input schema to function parameters
@@ -302,7 +303,7 @@ func (c *AnthropicToOpenAIConverter) convertTools(tools []anthropic.ToolUnionPar
 func (c *AnthropicToOpenAIConverter) convertStopSequences(stopSequences []string) openai.ChatCompletionNewParamsStopUnion {
 	if len(stopSequences) == 1 {
 		return openai.ChatCompletionNewParamsStopUnion{
-			OfString: param.Opt[string]{Value: stopSequences[0]},
+			OfString: openaiParam.Opt[string]{Value: stopSequences[0]},
 		}
 	}
 	return openai.ChatCompletionNewParamsStopUnion{
@@ -359,15 +360,11 @@ func (c *AnthropicToOpenAIConverter) convertStopReason(stopReason anthropic.Stop
 }
 
 // convertUsage converts Anthropic usage to OpenAI usage
-func (c *AnthropicToOpenAIConverter) convertUsage(usage anthropic.Usage) models.AdaptiveUsage {
-	// Use the singleton converter to convert to adaptive first, then to OpenAI format
-	adaptiveUsage := AnthropicToAdaptive.convertUsage(usage)
-
-	return models.AdaptiveUsage{
-		PromptTokens:     adaptiveUsage.InputTokens,
-		CompletionTokens: adaptiveUsage.OutputTokens,
-		TotalTokens:      adaptiveUsage.InputTokens + adaptiveUsage.OutputTokens,
-		CacheTier:        adaptiveUsage.CacheTier,
+func (c *AnthropicToOpenAIConverter) convertUsage(usage anthropic.Usage) openai.CompletionUsage {
+	return openai.CompletionUsage{
+		PromptTokens:     usage.InputTokens,
+		CompletionTokens: usage.OutputTokens,
+		TotalTokens:      usage.InputTokens + usage.OutputTokens,
 	}
 }
 
@@ -405,7 +402,7 @@ func (c *AnthropicToOpenAIConverter) convertResponseContent(content []anthropic.
 }
 
 // ConvertResponse converts Anthropic Message to OpenAI ChatCompletion format
-func (c *AnthropicToOpenAIConverter) ConvertResponse(resp *anthropic.Message, provider string) (*models.ChatCompletion, error) {
+func (c *AnthropicToOpenAIConverter) ConvertResponse(resp *anthropic.Message, provider string) (*openai.ChatCompletion, error) {
 	if resp == nil {
 		return nil, fmt.Errorf("anthropic message cannot be nil")
 	}
@@ -423,7 +420,7 @@ func (c *AnthropicToOpenAIConverter) ConvertResponse(resp *anthropic.Message, pr
 	usage := c.convertUsage(resp.Usage)
 
 	// Create OpenAI ChatCompletion
-	chatCompletion := &models.ChatCompletion{
+	chatCompletion := &openai.ChatCompletion{
 		ID:      resp.ID,
 		Object:  "chat.completion",
 		Created: 0, // Would need timestamp conversion
@@ -446,11 +443,11 @@ func (c *AnthropicToOpenAIConverter) ConvertResponse(resp *anthropic.Message, pr
 }
 
 // ConvertStreamingChunk converts Anthropic streaming event to OpenAI streaming chunk format
-func (c *AnthropicToOpenAIConverter) ConvertStreamingChunk(chunk any, provider string) (*models.ChatCompletionChunk, error) {
+func (c *AnthropicToOpenAIConverter) ConvertStreamingChunk(chunk any, provider string) (*openai.ChatCompletionChunk, error) {
 	switch event := chunk.(type) {
 	case *anthropic.MessageStartEvent:
 		// Convert to OpenAI chat completion chunk
-		return &models.ChatCompletionChunk{
+		return &openai.ChatCompletionChunk{
 			ID:      event.Message.ID,
 			Object:  "chat.completion.chunk",
 			Created: 0,
@@ -469,7 +466,7 @@ func (c *AnthropicToOpenAIConverter) ConvertStreamingChunk(chunk any, provider s
 	case *anthropic.ContentBlockStartEvent:
 		if event.ContentBlock.Type == "tool_use" {
 			// Start of tool call
-			return &models.ChatCompletionChunk{
+			return &openai.ChatCompletionChunk{
 				ID:      "", // Would need to track from message start
 				Object:  "chat.completion.chunk",
 				Created: 0,
@@ -501,7 +498,7 @@ func (c *AnthropicToOpenAIConverter) ConvertStreamingChunk(chunk any, provider s
 		switch event.Delta.Type {
 		case "text_delta":
 			// Text content delta
-			return &models.ChatCompletionChunk{
+			return &openai.ChatCompletionChunk{
 				ID:      "", // Would need to track from message start
 				Object:  "chat.completion.chunk",
 				Created: 0,
@@ -518,7 +515,7 @@ func (c *AnthropicToOpenAIConverter) ConvertStreamingChunk(chunk any, provider s
 			}, nil
 		case "input_json_delta":
 			// Tool function arguments delta
-			return &models.ChatCompletionChunk{
+			return &openai.ChatCompletionChunk{
 				ID:      "", // Would need to track from message start
 				Object:  "chat.completion.chunk",
 				Created: 0,
@@ -544,7 +541,7 @@ func (c *AnthropicToOpenAIConverter) ConvertStreamingChunk(chunk any, provider s
 
 	case *anthropic.MessageStopEvent:
 		// End of streaming
-		return &models.ChatCompletionChunk{
+		return &openai.ChatCompletionChunk{
 			ID:      "", // Would need to track from message start
 			Object:  "chat.completion.chunk",
 			Created: 0,

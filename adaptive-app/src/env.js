@@ -10,7 +10,7 @@ export const env = createEnv({
 		DATABASE_URL: z.string().url(),
 		REDIS_URL: z.string().url(),
 		RESEND_API_KEY: z.string().min(1),
-		ADAPTIVE_API_BASE_URL: z.string().url().default("http://localhost:8080"),
+		ADAPTIVE_API_BASE_URL: z.string().url().default("http://localhost:8080/v1"),
 		JWT_SECRET: z.string().min(32),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])

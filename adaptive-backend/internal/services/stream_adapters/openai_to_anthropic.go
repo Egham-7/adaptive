@@ -47,40 +47,42 @@ func (a *OpenAIToAnthropicStreamAdapter) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	// Get the next chunk from OpenAI stream
-	if !a.openaiStream.Next() {
-		a.done = true
-		// Check for errors
-		if err := a.openaiStream.Err(); err != nil {
-			return 0, err
+	// Loop to process chunks until we have valid data or reach end
+	for {
+		// Get the next chunk from OpenAI stream
+		if !a.openaiStream.Next() {
+			a.done = true
+			// Check for errors
+			if err := a.openaiStream.Err(); err != nil {
+				return 0, err
+			}
+			// Write final SSE terminator
+			a.buffer.WriteString("data: [DONE]\n\n")
+			return a.readFromBuffer(p)
 		}
-		// Write final SSE terminator
-		a.buffer.WriteString("data: [DONE]\n\n")
+
+		openaiChunk := a.openaiStream.Current()
+
+		// Convert OpenAI chunk to Anthropic format
+		anthropicEvent, err := format_adapter.OpenAIToAnthropic.ConvertStreamingChunk(&openaiChunk, a.provider)
+		if err != nil {
+			fiberlog.Errorf("[%s] Failed to convert OpenAI chunk to Anthropic format: %v", a.requestID, err)
+			// Continue to next iteration to skip this bad chunk
+			continue
+		}
+
+		// Marshal the Anthropic event to JSON
+		anthropicJSON, err := json.Marshal(anthropicEvent)
+		if err != nil {
+			fiberlog.Errorf("[%s] Failed to marshal Anthropic event: %v", a.requestID, err)
+			// Continue to next iteration to skip this bad chunk
+			continue
+		}
+
+		// Format as SSE data and return
+		a.buffer.WriteString(fmt.Sprintf("data: %s\n\n", string(anthropicJSON)))
 		return a.readFromBuffer(p)
 	}
-
-	openaiChunk := a.openaiStream.Current()
-
-	// Convert OpenAI chunk to Anthropic format
-	anthropicEvent, err := format_adapter.OpenAIToAnthropic.ConvertStreamingChunk(&openaiChunk, a.provider)
-	if err != nil {
-		fiberlog.Errorf("[%s] Failed to convert OpenAI chunk to Anthropic format: %v", a.requestID, err)
-		// Continue to next chunk
-		return a.Read(p)
-	}
-
-	// Marshal the Anthropic event to JSON
-	anthropicJSON, err := json.Marshal(anthropicEvent)
-	if err != nil {
-		fiberlog.Errorf("[%s] Failed to marshal Anthropic event: %v", a.requestID, err)
-		// Continue to next chunk
-		return a.Read(p)
-	}
-
-	// Format as SSE data
-	a.buffer.WriteString(fmt.Sprintf("data: %s\n\n", string(anthropicJSON)))
-
-	return a.readFromBuffer(p)
 }
 
 // readFromBuffer reads data from the internal buffer

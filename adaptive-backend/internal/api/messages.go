@@ -112,7 +112,14 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 		if protocolResp.Standard != nil {
 			provider = protocolResp.Standard.Provider
 			req.Model = anthropic.Model(protocolResp.Standard.Model)
-			fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s", requestID, provider, protocolResp.Standard.Model)
+			fiberlog.Infof("[%s] Model router selected (standard) - provider: %s, model: %s", requestID, provider, protocolResp.Standard.Model)
+		} else if protocolResp.Minion != nil {
+			provider = protocolResp.Minion.Provider
+			req.Model = anthropic.Model(protocolResp.Minion.Model)
+			fiberlog.Infof("[%s] Model router selected (minion) - provider: %s, model: %s", requestID, provider, protocolResp.Minion.Model)
+		} else {
+			fiberlog.Errorf("[%s] Model router returned invalid response - no standard or minion protocol found", requestID)
+			return h.responseSvc.HandleError(c, fmt.Errorf("invalid protocol response from model router"), requestID)
 		}
 	}
 
@@ -120,7 +127,6 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 	providers := resolvedConfig.GetProviders("messages")
 	providerConfig, exists := providers[provider]
 	if !exists {
-		fiberlog.Warnf("[%s] Provider '%s' not configured for messages endpoint", requestID, provider)
 		return h.responseSvc.HandleProviderNotConfigured(c, provider, requestID)
 	}
 	fiberlog.Debugf("[%s] Provider configuration found for: %s", requestID, provider)
@@ -292,7 +298,7 @@ func (h *MessagesHandler) handleConvertedStreamingRequest(
 	}
 
 	// Create streaming request
-	streamResp := client.Chat.Completions.NewStreaming(c.Context(), *openAIParams)
+	streamResp := client.Chat.Completions.NewStreaming(c.UserContext(), *openAIParams)
 
 	// Create a converted stream reader that converts OpenAI SSE to Anthropic SSE format
 	convertedAdapter := stream_adapters.NewOpenAIToAnthropicStreamAdapter(streamResp, provider, requestID)

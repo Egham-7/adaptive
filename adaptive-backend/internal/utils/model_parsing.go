@@ -15,21 +15,21 @@ import (
 //   - ":gpt-4" -> error (empty provider)
 //   - "openai:gpt-4:extra" -> error (too many parts)
 func ParseProviderModel(modelSpec string) (provider, model string, err error) {
-	if modelSpec == "" {
-		return "", "", fmt.Errorf("model specification cannot be empty")
+	// Trim whitespace from input
+	trimmed := strings.TrimSpace(modelSpec)
+	
+	// Check for empty or whitespace-only specs
+	if trimmed == "" {
+		return "", "", fmt.Errorf("model specification cannot be empty or whitespace-only")
 	}
 
-	// Must contain exactly one colon
-	if !strings.Contains(modelSpec, ":") {
-		return "", "", fmt.Errorf("model specification must be in 'provider:model' format, got '%s'", modelSpec)
-	}
-
-	// Split on colon - must have exactly 2 parts
-	parts := strings.Split(modelSpec, ":")
+	// Split on colon and ensure exactly 2 parts
+	parts := strings.Split(trimmed, ":")
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf("model specification must be in 'provider:model' format with exactly one colon, got '%s'", modelSpec)
 	}
 
+	// Trim whitespace from each part
 	provider = strings.TrimSpace(parts[0])
 	model = strings.TrimSpace(parts[1])
 
@@ -53,16 +53,21 @@ func ParseProviderModel(modelSpec string) (provider, model string, err error) {
 //   - "anthropic:" -> error (empty model)
 //   - ":gpt-4" -> error (empty provider)
 func ParseProviderModelWithDefault(modelSpec, defaultProvider string) (provider, model string, err error) {
-	if modelSpec == "" {
-		return "", "", fmt.Errorf("model specification cannot be empty")
+	// Trim whitespace from input
+	trimmed := strings.TrimSpace(modelSpec)
+	
+	// Check for empty or whitespace-only specs
+	if trimmed == "" {
+		return "", "", fmt.Errorf("model specification cannot be empty or whitespace-only")
 	}
 
 	// If no colon, use default provider
-	if !strings.Contains(modelSpec, ":") {
+	if !strings.Contains(trimmed, ":") {
 		if defaultProvider == "" {
 			return "", "", fmt.Errorf("no provider specified in model '%s' and no default provider provided", modelSpec)
 		}
-		return defaultProvider, strings.TrimSpace(modelSpec), nil
+		// Model name should be non-empty after trimming (already checked above)
+		return defaultProvider, trimmed, nil
 	}
 
 	// Use strict parsing for provider:model format

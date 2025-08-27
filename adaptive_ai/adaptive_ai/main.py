@@ -22,12 +22,11 @@ from adaptive_ai.models.llm_orchestration_models import (
 
 # Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
 from adaptive_ai.services.domain_classifier import get_domain_classifier
+from adaptive_ai.services.model_router import ModelRouter
 from adaptive_ai.services.model_selector import (
     ModelSelectionService,
 )
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
-from adaptive_ai.services.model_router import ModelRouter
-from adaptive_ai.utils.openai_utils import extract_last_message_content
 
 
 # LitServe Console Logger
@@ -85,10 +84,7 @@ class ModelRouterAPI(ls.LitAPI):
         outputs: list[OrchestratorResponse] = []
 
         # Get the most recent message content for classification
-        prompts: list[str] = [
-            extract_last_message_content(req.chat_completion_request)
-            for req in processed_requests
-        ]
+        prompts: list[str] = [req.prompt for req in processed_requests]
 
         # Run both task and domain classification in parallel
         t0 = time.perf_counter()

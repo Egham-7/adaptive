@@ -36,12 +36,18 @@ endpoints:
         base_url: "https://api.deepseek.com"
         native_format: "openai"
 
+      huggingface:
+        api_key: "${HUGGINGFACE_API_KEY}"
+        enabled: true
+        base_url: "https://router.huggingface.co/v1"
+        native_format: "openai"
+
   messages:
     providers:
       anthropic:
         api_key: "${ANTHROPIC_API_KEY}"
         enabled: true
-        base_url: "https://api.anthropic.com/v1"
+        base_url: "https://api.anthropic.com"
 
       openai:
         api_key: "${OPENAI_API_KEY}"
@@ -58,6 +64,12 @@ endpoints:
         api_key: "${DEEPSEEK_API_KEY}"
         enabled: true
         base_url: "https://api.deepseek.com"
+        native_format: "openai"
+
+      huggingface:
+        api_key: "${HUGGINGFACE_API_KEY}"
+        enabled: true
+        base_url: "https://router.huggingface.co/v1"
         native_format: "openai"
 
 # Services configuration

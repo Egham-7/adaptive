@@ -61,11 +61,14 @@ func (c *ModelRouterClient) SelectProtocol(
 ) models.ProtocolResponse {
 	start := time.Now()
 
-	// Log the select model request details
-	fiberlog.Infof("[SELECT_MODEL] Making request to adaptive_ai service - prompt_length: %d, user_id: %s",
-		len(req.Prompt), req.UserID)
+	// Log the select model request details (non-PII at info level)
+	fiberlog.Infof("[PROTOCOL_SELECTION] Making request to adaptive_ai service - prompt_length: %d",
+		len(req.Prompt))
+	
+	// Debug-level log with PII and detailed config
+	fiberlog.Debugf("[PROTOCOL_SELECTION] Request details - user_id: %s", req.UserID)
 	if req.ModelRouterConfig != nil {
-		fiberlog.Debugf("[SELECT_MODEL] Request config - cost_bias: %.2f, available_models: %d",
+		fiberlog.Debugf("[PROTOCOL_SELECTION] Request config - cost_bias: %.2f, available_models: %d",
 			req.ModelRouterConfig.CostBias, len(req.ModelRouterConfig.Models))
 	}
 

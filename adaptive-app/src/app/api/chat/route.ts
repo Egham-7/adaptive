@@ -34,7 +34,7 @@ async function createAuthenticatedAdaptive(userId?: string) {
 	const jwtToken = await createBackendJWT("chat-platform", userId);
 
 	return createAdaptive({
-		baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+		baseURL: process.env.ADAPTIVE_API_BASE_URL,
 		apiKey: jwtToken,
 	});
 }
