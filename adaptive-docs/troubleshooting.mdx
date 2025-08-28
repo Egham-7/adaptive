@@ -595,43 +595,49 @@ icon: "wrench"
 
 When reporting issues, please include:
 
-1. **Environment details:**
-   ```bash
-   # System info
-   node --version
-   npm --version
-   
-   # Package versions
-   npm list openai
-   npm list @langchain/openai
-   ```
-
-2. **Request details:**
-   ```javascript
-   // Sanitized request (remove API key)
-   {
-     "model": "",
-     "messages": [...],
-     "provider_constraint": [...],
-     "cost_bias": 0.5
-   }
-   ```
-
-3. **Error information:**
-   ```javascript
-   console.log("Error status:", error.status);
-   console.log("Error message:", error.message);
-   console.log("Error stack:", error.stack);
-   ```
-
-4. **Network diagnostics:**
-   ```bash
-   # Test connectivity
-   curl -I https://llmadaptive.uk/api/v1/
-   
-   # DNS resolution
-   nslookup llmadaptive.uk
-   ```
+<Steps>
+  <Step title="Environment Details">
+    ```bash
+    # System info
+    node --version
+    npm --version
+    
+    # Package versions
+    npm list openai
+    npm list @langchain/openai
+    ```
+  </Step>
+  
+  <Step title="Request Details">
+    ```javascript
+    // Sanitized request (remove API key)
+    {
+      "model": "",
+      "messages": [...],
+      "provider_constraint": [...],
+      "cost_bias": 0.5
+    }
+    ```
+  </Step>
+  
+  <Step title="Error Information">
+    ```javascript
+    console.log("Error status:", error.status);
+    console.log("Error message:", error.message);
+    console.log("Error stack:", error.stack);
+    ```
+  </Step>
+  
+  <Step title="Network Diagnostics">
+    ```bash
+    # Test connectivity
+    curl -I https://llmadaptive.uk/api/v1/
+    
+    # DNS resolution
+    nslookup llmadaptive.uk
+    ```
+  </Step>
+</Steps>
 
 ### Support Channels
 
@@ -652,36 +658,43 @@ When reporting issues, please include:
 
 ### Best Practices for Debugging
 
-1. **Start with simple requests:**
-   ```javascript
-   // Test basic functionality first
-   const simple = await openai.chat.completions.create({
-     model: "",
-     messages: [{ role: "user", content: "Hello" }]
-   });
-   ```
-
-2. **Enable verbose logging:**
-   ```javascript
-   // Add detailed logging
-   console.log("Request:", JSON.stringify(requestData, null, 2));
-   console.log("Response:", JSON.stringify(response, null, 2));
-   ```
-
-3. **Test with curl:**
-   ```bash
-   # Verify API access outside your application
-   curl -X POST https://llmadaptive.uk/api/v1/chat/completions \
-     -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
-   ```
-
-4. **Isolate the problem:**
-   - Test different messages
-   - Try different parameters
-   - Test in different environments
-   - Compare with working examples
+<Steps>
+  <Step title="Start with Simple Requests">
+    Test basic functionality first
+    ```javascript
+    const simple = await openai.chat.completions.create({
+      model: "",
+      messages: [{ role: "user", content: "Hello" }]
+    });
+    ```
+  </Step>
+  
+  <Step title="Enable Verbose Logging">
+    Add detailed logging to understand what's happening
+    ```javascript
+    console.log("Request:", JSON.stringify(requestData, null, 2));
+    console.log("Response:", JSON.stringify(response, null, 2));
+    ```
+  </Step>
+  
+  <Step title="Test with curl">
+    Verify API access outside your application
+    ```bash
+    curl -X POST https://llmadaptive.uk/api/v1/chat/completions \
+      -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
+    ```
+  </Step>
+  
+  <Step title="Isolate the Problem">
+    Systematically narrow down the issue:
+    - Test different messages
+    - Try different parameters  
+    - Test in different environments
+    - Compare with working examples
+  </Step>
+</Steps>
 
 ## Complete Error Handling Example
 
