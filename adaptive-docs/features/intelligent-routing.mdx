@@ -117,38 +117,6 @@ curl https://llmadaptive.uk/api/v1/chat/completions \
 - Under 1ms model selection
 - 99.9% uptime
 
-## Routing Protocols
-
-Adaptive uses two intelligent protocols to optimize model selection:
-
-### Standard Protocol
-For complex, general-purpose tasks requiring powerful models:
-
-- **Triggers**: Complex prompts (>0.4 complexity), long prompts (>60K tokens), or user-specified models
-- **Task Types**: Code generation, text generation, brainstorming, analysis
-- **Models**: Multi-tier approach from budget (deepseek-chat, gpt-4o-mini) to premium (claude-3.5-sonnet, gpt-4o)
-- **Providers**: OpenAI, Anthropic, DeepSeek, Groq, Grok
-
-### Minion Protocol  
-For domain-specific, simpler tasks using specialized models:
-
-- **Triggers**: Simple prompts in specific domains (business, health, science, finance)
-- **Focus**: Cost optimization with domain-specialized models
-- **Models**: Primarily open-source HuggingFace models (Llama-3.1-8B, Mistral-7B, DeepSeek-R1)
-- **Benefits**: 80%+ cost savings for routine tasks
-
-### Selection Logic
-
-```
-1. Analyze prompt → complexity + domain + tokens
-2. IF complex OR long OR custom models:
-   → Standard Protocol
-3. ELSE IF domain-specific:
-   → Minion Protocol
-4. ELSE:
-   → Standard Protocol (fallback)
-```
-
 ## Response Format
 
 ```json
@@ -175,14 +143,18 @@ const selection = await fetch('https://llmadaptive.uk/api/v1/select-model', {
     'X-Stainless-API-Key': 'your-key' 
   },
   body: JSON.stringify({
-    model: '',
-    messages: [{ role: 'user', content: 'Complex analysis task' }],
-    model_router: { cost_bias: 0.8 }
+    models: [
+      { provider: 'openai' },
+      { provider: 'anthropic' },
+      { provider: 'deepseek' }
+    ],
+    prompt: 'Complex analysis task',
+    cost_bias: 0.8
   })
 });
 
 const result = await selection.json();
-console.log(`Would select: ${result.metadata.provider}/${result.metadata.model}`);
+console.log(`Would select: ${result.provider}/${result.model}`);
 ```
 
 ```python Python
@@ -193,14 +165,18 @@ response = requests.post(
     'https://llmadaptive.uk/api/v1/select-model',
     headers={'X-Stainless-API-Key': 'your-key'},
     json={
-        'model': '',
-        'messages': [{'role': 'user', 'content': 'Complex analysis task'}],
-        'model_router': {'cost_bias': 0.8}
+        'models': [
+            {'provider': 'openai'},
+            {'provider': 'anthropic'},
+            {'provider': 'deepseek'}
+        ],
+        'prompt': 'Complex analysis task',
+        'cost_bias': 0.8
     }
 )
 
 result = response.json()
-print(f"Would select: {result['metadata']['provider']}/{result['metadata']['model']}")
+print(f"Would select: {result['provider']}/{result['model']}")
 ```
 
 ```bash cURL
@@ -208,15 +184,20 @@ curl https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: your-key" \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "",
-    "messages": [{"role": "user", "content": "Complex analysis task"}],
-    "model_router": {"cost_bias": 0.8}
+    "models": [
+      {"provider": "openai"},
+      {"provider": "anthropic"},
+      {"provider": "deepseek"}
+    ],
+    "prompt": "Complex analysis task",
+    "cost_bias": 0.8
   }'
 ```
 
 </CodeGroup>
 
 Perfect for:
+- **Testing routing decisions** before implementing
 - **Using your own provider accounts** with intelligent selection
 - **On-premise inference** with cloud-quality routing decisions
 - **Enterprise contracts** optimization

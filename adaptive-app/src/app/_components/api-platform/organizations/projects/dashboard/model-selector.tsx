@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import MultipleSelector, {
 	type Option,
 } from "@/components/ui/multiple-selector";
@@ -14,6 +15,7 @@ export function ModelSelector({
 	selectedModels,
 	onModelsChange,
 }: ModelSelectorProps) {
+	const descriptionId = useId();
 	// Fetch all available models from API
 	const { data: availableModels, isLoading } =
 		api.modelPricing.getAllModelsWithMetadata.useQuery();
@@ -42,7 +44,7 @@ export function ModelSelector({
 	return (
 		<div className="flex flex-col gap-2">
 			<span
-				id="model-selector-description"
+				id={descriptionId}
 				className="font-medium text-muted-foreground text-sm"
 			>
 				Compare your Adaptive costs against specific models

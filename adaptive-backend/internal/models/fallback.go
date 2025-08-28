@@ -23,19 +23,19 @@ const (
 
 // CircuitBreakerConfig holds circuit breaker configuration
 type CircuitBreakerConfig struct {
-	FailureThreshold int `json:"failure_threshold,omitempty" yaml:"failure_threshold,omitempty"` // Number of failures before opening circuit
-	SuccessThreshold int `json:"success_threshold,omitempty" yaml:"success_threshold,omitempty"` // Number of successes to close circuit
-	TimeoutMs        int `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`               // Timeout for circuit breaker in milliseconds
-	ResetAfterMs     int `json:"reset_after_ms,omitempty" yaml:"reset_after_ms,omitempty"`       // Time to wait before trying to close circuit
+	FailureThreshold int `json:"failure_threshold,omitzero" yaml:"failure_threshold,omitempty"` // Number of failures before opening circuit
+	SuccessThreshold int `json:"success_threshold,omitzero" yaml:"success_threshold,omitempty"` // Number of successes to close circuit
+	TimeoutMs        int `json:"timeout_ms,omitzero" yaml:"timeout_ms,omitempty"`               // Timeout for circuit breaker in milliseconds
+	ResetAfterMs     int `json:"reset_after_ms,omitzero" yaml:"reset_after_ms,omitempty"`       // Time to wait before trying to close circuit
 }
 
 // FallbackConfig holds the fallback configuration
 // Fallback is enabled when Mode is non-empty, disabled when Mode is empty
 type FallbackConfig struct {
-	Mode           FallbackMode          `json:"mode,omitempty" yaml:"mode,omitempty"`                       // Fallback mode (sequential/race). Empty = disabled, non-empty = enabled
-	TimeoutMs      int                   `json:"timeout_ms,omitempty" yaml:"timeout_ms,omitempty"`           // Timeout in milliseconds
-	MaxRetries     int                   `json:"max_retries,omitempty" yaml:"max_retries,omitempty"`         // Maximum number of retries
-	CircuitBreaker *CircuitBreakerConfig `json:"circuit_breaker,omitempty" yaml:"circuit_breaker,omitempty"` // Circuit breaker configuration
+	Mode           FallbackMode          `json:"mode,omitzero" yaml:"mode,omitempty"`                       // Fallback mode (sequential/race). Empty = disabled, non-empty = enabled
+	TimeoutMs      int                   `json:"timeout_ms,omitzero" yaml:"timeout_ms,omitempty"`           // Timeout in milliseconds
+	MaxRetries     int                   `json:"max_retries,omitzero" yaml:"max_retries,omitempty"`         // Maximum number of retries
+	CircuitBreaker *CircuitBreakerConfig `json:"circuit_breaker,omitzero" yaml:"circuit_breaker,omitempty"` // Circuit breaker configuration
 }
 
 // ExecutionFunc is the function signature for executing a completion with a specific provider

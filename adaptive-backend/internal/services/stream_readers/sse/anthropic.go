@@ -30,6 +30,12 @@ func NewAnthropicSSEReader(reader io.Reader, reqID, provider string) *AnthropicS
 	}
 }
 
+// Read implements io.Reader interface for compatibility with stream processing
+func (r *AnthropicSSEReader) Read(p []byte) (n int, err error) {
+	// Read data from the underlying reader
+	return r.reader.Read(p)
+}
+
 // ReadChunk reads the next chunk from the Anthropic SSE stream
 func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) {
 	for {

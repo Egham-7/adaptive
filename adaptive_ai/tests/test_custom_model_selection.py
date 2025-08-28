@@ -8,8 +8,8 @@ from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import (
     ModelCapability,
     ModelEntry,
+    ModelRouterConfig,
     ModelSelectionRequest,
-    ProtocolManagerConfig,
 )
 from adaptive_ai.models.llm_enums import ProviderType
 from adaptive_ai.services.model_selector import ModelSelectionService
@@ -77,10 +77,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -111,10 +111,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -151,10 +151,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act - with large token count that exceeds context
@@ -184,10 +184,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -217,10 +217,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -258,10 +258,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act - with token count that exceeds first model's limit
@@ -301,10 +301,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act - with huge token count that exceeds registry model limit
@@ -344,13 +344,13 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(
+        protocol_config = ModelRouterConfig(
             models=user_models,
             cost_bias=0.9,  # Strong cost preference
         )
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -390,10 +390,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -416,8 +416,8 @@ class TestCustomModelSelection:
         """Test that when no user models provided, uses system selection."""
         # Arrange - no protocol config (no user models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=None,
+            prompt="Hello, world!",
+            model_router=None,
         )
 
         # Act
@@ -442,10 +442,10 @@ class TestCustomModelSelection:
     ):
         """Test handling of empty user models list falls back to system selection."""
         # Arrange - empty models list
-        protocol_config = ProtocolManagerConfig(models=[])
+        protocol_config = ModelRouterConfig(models=[])
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -479,10 +479,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -521,10 +521,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -564,10 +564,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -612,13 +612,13 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(
+        protocol_config = ModelRouterConfig(
             models=user_models,
             cost_bias=0.9,  # Strong cost preference
         )
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -650,10 +650,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act & Assert - should handle gracefully
@@ -685,10 +685,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -727,10 +727,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -765,10 +765,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -807,10 +807,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -866,10 +866,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -918,10 +918,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act
@@ -958,10 +958,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Test with very small token count
@@ -1000,10 +1000,10 @@ class TestCustomModelSelection:
             ),
         ]
 
-        protocol_config = ProtocolManagerConfig(models=user_models)
+        protocol_config = ModelRouterConfig(models=user_models)
         request = ModelSelectionRequest(
-            chat_completion_request=basic_chat_request,
-            protocol_manager_config=protocol_config,
+            prompt="Hello, world!",
+            model_router=protocol_config,
         )
 
         # Act - make multiple requests to simulate concurrency

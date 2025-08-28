@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
 	modelCapabilitySchema,
-	protocolManagerConfigSchema,
+	modelRouterConfigSchema,
 } from "./chat-completion";
 
 // Provider-agnostic select model request schema
@@ -15,8 +15,8 @@ export const selectModelRequestSchema = z
 		prompt: z.string().min(1, "Prompt cannot be empty"),
 		// Optional user identifier for tracking and personalization
 		user: z.string().optional(),
-		// Protocol manager configuration for routing decisions
-		protocol_manager_config: protocolManagerConfigSchema.optional(),
+		// Model router configuration for routing decisions
+		model_router_config: modelRouterConfigSchema.optional(),
 	})
 	.strict();
 

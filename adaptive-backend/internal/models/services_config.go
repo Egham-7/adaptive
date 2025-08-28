@@ -8,10 +8,10 @@ type ServicesConfig struct {
 
 // AdaptiveAIConfig holds configuration for the Adaptive AI service
 type AdaptiveAIConfig struct {
-	BaseURL string `json:"base_url,omitempty" yaml:"base_url"`
+	BaseURL string `json:"base_url,omitzero" yaml:"base_url"`
 }
 
 // RedisConfig holds configuration for Redis
 type RedisConfig struct {
-	URL string `json:"url,omitempty" yaml:"url"`
+	URL string `json:"url,omitzero" yaml:"url"`
 }

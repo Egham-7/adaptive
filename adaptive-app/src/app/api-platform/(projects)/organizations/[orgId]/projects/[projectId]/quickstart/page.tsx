@@ -28,6 +28,36 @@ const EXAMPLE_API_KEY = "your_api_key_here";
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_URL ?? "https://www.llmadaptive.uk";
 
+const CustomCodeBlock = ({
+	code,
+	language,
+	title,
+}: {
+	code: string;
+	language: string;
+	title?: string;
+}) => {
+	return (
+		<CodeBlock>
+			{title && (
+				<CodeBlockGroup className="border-b px-4 py-2">
+					<span className="font-medium text-sm">{title}</span>
+					<div className="flex items-center gap-2">
+						<Badge variant="secondary" className="text-xs">
+							{language}
+						</Badge>
+						<CopyButton
+							content={code}
+							copyMessage={`${title || "Code"} copied to clipboard!`}
+						/>
+					</div>
+				</CodeBlockGroup>
+			)}
+			<CodeBlockCode code={code} language={language} />
+		</CodeBlock>
+	);
+};
+
 export default function QuickstartPage() {
 	const { orgId, projectId } = useParams<{
 		orgId: string;
@@ -45,36 +75,6 @@ export default function QuickstartPage() {
 	const exampleKey = firstApiKey?.key_preview
 		? "your_api_key_here"
 		: EXAMPLE_API_KEY;
-
-	const CustomCodeBlock = ({
-		code,
-		language,
-		title,
-	}: {
-		code: string;
-		language: string;
-		title?: string;
-	}) => {
-		return (
-			<CodeBlock>
-				{title && (
-					<CodeBlockGroup className="border-b px-4 py-2">
-						<span className="font-medium text-sm">{title}</span>
-						<div className="flex items-center gap-2">
-							<Badge variant="secondary" className="text-xs">
-								{language}
-							</Badge>
-							<CopyButton
-								content={code}
-								copyMessage={`${title || "Code"} copied to clipboard!`}
-							/>
-						</div>
-					</CodeBlockGroup>
-				)}
-				<CodeBlockCode code={code} language={language} />
-			</CodeBlock>
-		);
-	};
 
 	const curlExample = `curl -X POST "${API_BASE_URL}/api/v1/chat/completions" \\
   -H "Content-Type: application/json" \\
@@ -149,6 +149,7 @@ print(completion.choices[0].message.content)`;
 					</div>
 					<div className="flex items-center gap-2">
 						<Badge variant="secondary">OpenAI Compatible</Badge>
+						<Badge variant="secondary">Anthropic Compatible</Badge>
 					</div>
 				</div>
 			</div>
@@ -237,61 +238,179 @@ print(completion.choices[0].message.content)`;
 							<div>
 								<CardTitle>Make Your First Request</CardTitle>
 								<CardDescription>
-									The Adaptive API is fully compatible with OpenAI's API
+									The Adaptive API supports both OpenAI Chat Completions and
+									Anthropic Messages formats
 								</CardDescription>
 							</div>
 						</div>
 					</CardHeader>
 					<CardContent>
-						<Tabs defaultValue="curl" className="w-full">
-							<TabsList className="grid w-full grid-cols-3">
-								<TabsTrigger value="curl">cURL</TabsTrigger>
-								<TabsTrigger value="javascript">JavaScript</TabsTrigger>
-								<TabsTrigger value="python">Python</TabsTrigger>
+						<Tabs defaultValue="chat-completions" className="w-full">
+							<TabsList className="grid w-full grid-cols-2">
+								<TabsTrigger value="chat-completions">
+									Chat Completions
+								</TabsTrigger>
+								<TabsTrigger value="messages">Anthropic Messages</TabsTrigger>
 							</TabsList>
 
-							<TabsContent value="curl" className="mt-4">
-								<CustomCodeBlock
-									code={curlExample}
-									language="bash"
-									title="cURL Request"
-								/>
+							<TabsContent value="chat-completions" className="mt-4">
+								<Tabs defaultValue="curl" className="w-full">
+									<TabsList className="grid w-full grid-cols-3">
+										<TabsTrigger value="curl">cURL</TabsTrigger>
+										<TabsTrigger value="javascript">JavaScript</TabsTrigger>
+										<TabsTrigger value="python">Python</TabsTrigger>
+									</TabsList>
+
+									<TabsContent value="curl" className="mt-4">
+										<CustomCodeBlock
+											code={curlExample}
+											language="bash"
+											title="cURL Request"
+										/>
+									</TabsContent>
+
+									<TabsContent value="javascript" className="mt-4">
+										<div className="space-y-4">
+											<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
+												<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
+													Install the OpenAI SDK:
+												</p>
+												<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
+													npm install openai
+												</code>
+											</div>
+											<CustomCodeBlock
+												code={jsExample}
+												language="javascript"
+												title="JavaScript/Node.js"
+											/>
+										</div>
+									</TabsContent>
+
+									<TabsContent value="python" className="mt-4">
+										<div className="space-y-4">
+											<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
+												<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
+													Install the OpenAI SDK:
+												</p>
+												<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
+													pip install openai
+												</code>
+											</div>
+											<CustomCodeBlock
+												code={pythonExample}
+												language="python"
+												title="Python"
+											/>
+										</div>
+									</TabsContent>
+								</Tabs>
 							</TabsContent>
 
-							<TabsContent value="javascript" className="mt-4">
-								<div className="space-y-4">
-									<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
-										<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
-											Install the OpenAI SDK:
-										</p>
-										<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
-											npm install openai
-										</code>
-									</div>
-									<CustomCodeBlock
-										code={jsExample}
-										language="javascript"
-										title="JavaScript/Node.js"
-									/>
-								</div>
-							</TabsContent>
+							<TabsContent value="messages" className="mt-4">
+								<Tabs defaultValue="curl" className="w-full">
+									<TabsList className="grid w-full grid-cols-3">
+										<TabsTrigger value="curl">cURL</TabsTrigger>
+										<TabsTrigger value="javascript">JavaScript</TabsTrigger>
+										<TabsTrigger value="python">Python</TabsTrigger>
+									</TabsList>
 
-							<TabsContent value="python" className="mt-4">
-								<div className="space-y-4">
-									<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
-										<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
-											Install the OpenAI SDK:
-										</p>
-										<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
-											pip install openai
-										</code>
-									</div>
-									<CustomCodeBlock
-										code={pythonExample}
-										language="python"
-										title="Python"
-									/>
-								</div>
+									<TabsContent value="curl" className="mt-4">
+										<CustomCodeBlock
+											code={`curl -X POST "${API_BASE_URL}/api/v1/messages" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${exampleKey}" \\
+  -d '{
+    "model": "",
+    "max_tokens": 150,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Hello! How are you today?"
+      }
+    ]
+  }'`}
+											language="bash"
+											title="Anthropic Messages API - cURL"
+										/>
+									</TabsContent>
+
+									<TabsContent value="javascript" className="mt-4">
+										<div className="space-y-4">
+											<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
+												<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
+													Install the Anthropic SDK:
+												</p>
+												<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
+													npm install @anthropic-ai/sdk
+												</code>
+											</div>
+											<CustomCodeBlock
+												code={`import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  apiKey: '${exampleKey}',
+  baseURL: '${API_BASE_URL}/api/v1',
+});
+
+async function main() {
+  const message = await client.messages.create({
+    model: '',
+    max_tokens: 150,
+    messages: [
+      {
+        role: 'user',
+        content: 'Hello! How are you today?'
+      }
+    ]
+  });
+
+  console.log(message.content?.[0]?.text);
+}
+
+main();`}
+												language="javascript"
+												title="JavaScript/Node.js"
+											/>
+										</div>
+									</TabsContent>
+
+									<TabsContent value="python" className="mt-4">
+										<div className="space-y-4">
+											<div className="rounded-lg border bg-blue-50 p-3 dark:bg-blue-950/20">
+												<p className="font-medium text-blue-900 text-sm dark:text-blue-100">
+													Install the Anthropic SDK:
+												</p>
+												<code className="mt-1 block text-blue-700 text-sm dark:text-blue-300">
+													pip install anthropic
+												</code>
+											</div>
+											<CustomCodeBlock
+												code={`import anthropic
+
+client = anthropic.Anthropic(
+    api_key="${exampleKey}",
+    base_url="${API_BASE_URL}/api/v1"
+)
+
+message = client.messages.create(
+    model="",
+    max_tokens=150,
+    messages=[
+        {
+            "role": "user",
+            "content": "Hello! How are you today?"
+        }
+    ]
+)
+
+print(message.content[0].text)`}
+												language="python"
+												title="Python"
+											/>
+										</div>
+									</TabsContent>
+								</Tabs>
 							</TabsContent>
 						</Tabs>
 					</CardContent>

@@ -10,6 +10,7 @@ import (
 
 	"adaptive-backend/internal/models"
 
+	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -19,12 +20,12 @@ const (
 
 // Config represents the complete application configuration
 type Config struct {
-	Server      models.ServerConfig              `yaml:"server"`
-	Providers   map[string]models.ProviderConfig `yaml:"providers"`
-	Services    models.ServicesConfig            `yaml:"services"`
-	Fallback    models.FallbackConfig            `yaml:"fallback"`
-	PromptCache models.PromptCacheConfig         `yaml:"prompt_cache"`
-	ModelRouter models.ModelRouterConfig         `yaml:"protocol_manager"`
+	Server      models.ServerConfig      `yaml:"server"`
+	Endpoints   models.EndpointsConfig   `yaml:"endpoints"`
+	Services    models.ServicesConfig    `yaml:"services"`
+	Fallback    models.FallbackConfig    `yaml:"fallback"`
+	PromptCache models.PromptCacheConfig `yaml:"prompt_cache"`
+	ModelRouter models.ModelRouterConfig `yaml:"protocol_manager"`
 }
 
 // LoadFromFile loads configuration from a YAML file with environment variable substitution
@@ -59,19 +60,47 @@ func LoadFromFile(configPath string) (*Config, error) {
 	}
 
 	// Normalize provider map keys to lowercase for case-insensitive lookups
-	if config.Providers != nil {
-		normalizedProviders := make(map[string]models.ProviderConfig, len(config.Providers))
-		for key, value := range config.Providers {
+	if config.Endpoints.ChatCompletions.Providers != nil {
+		normalizedProviders := make(map[string]models.ProviderConfig, len(config.Endpoints.ChatCompletions.Providers))
+		for key, value := range config.Endpoints.ChatCompletions.Providers {
 			normalizedProviders[strings.ToLower(key)] = value
 		}
-		config.Providers = normalizedProviders
+		config.Endpoints.ChatCompletions.Providers = normalizedProviders
+	}
+
+	// Normalize provider map keys to lowercase for Messages endpoint too
+	if config.Endpoints.Messages.Providers != nil {
+		normalizedProviders := make(map[string]models.ProviderConfig, len(config.Endpoints.Messages.Providers))
+		for key, value := range config.Endpoints.Messages.Providers {
+			normalizedProviders[strings.ToLower(key)] = value
+		}
+		config.Endpoints.Messages.Providers = normalizedProviders
 	}
 
 	return &config, nil
 }
 
+// loadEnvFiles loads environment variables from .env files in order of precedence
+// Loads .env.local first (highest priority), then .env.development, then .env
+func loadEnvFiles() {
+	// Define env files in order of precedence (first has highest priority)
+	envFiles := []string{".env.local", ".env.development", ".env"}
+
+	for _, envFile := range envFiles {
+		if _, err := os.Stat(envFile); err == nil {
+			// File exists, try to load it
+			if err := godotenv.Load(envFile); err == nil {
+				fmt.Printf("Loaded environment variables from %s\n", envFile)
+			}
+		}
+	}
+}
+
 // New creates a new Config instance by loading from the config file
 func New() (*Config, error) {
+	// Load environment variables from .env files
+	loadEnvFiles()
+
 	// Get config path from environment variable or use default
 	configPath := os.Getenv("CONFIG_PATH")
 	if configPath == "" {
@@ -110,23 +139,50 @@ func substituteEnvVars(content string) string {
 	})
 }
 
-// GetProviderAPIKey returns the API key for a specific provider
-func (c *Config) GetProviderAPIKey(provider string) string {
-	if providerConfig, exists := c.Providers[strings.ToLower(provider)]; exists {
+// GetProviderAPIKey returns the API key for a specific provider from the specified endpoint
+func (c *Config) GetProviderAPIKey(provider string, endpoint string) string {
+	var providers map[string]models.ProviderConfig
+	switch endpoint {
+	case "chat_completions":
+		providers = c.Endpoints.ChatCompletions.Providers
+	case "messages":
+		providers = c.Endpoints.Messages.Providers
+	default:
+		return ""
+	}
+
+	if providerConfig, exists := providers[strings.ToLower(provider)]; exists {
 		return providerConfig.APIKey
 	}
 	return ""
 }
 
-// GetEnabledProviders returns a map of all configured providers (since all configured providers are considered enabled)
-func (c *Config) GetEnabledProviders() map[string]models.ProviderConfig {
-	// Since we removed the Enabled field, all configured providers are considered enabled
-	return c.Providers
+// GetProviders returns a map of all configured providers from the specified endpoint.
+// If a provider is present in the config, it is considered enabled.
+func (c *Config) GetProviders(endpoint string) map[string]models.ProviderConfig {
+	switch endpoint {
+	case "chat_completions":
+		return c.Endpoints.ChatCompletions.Providers
+	case "messages":
+		return c.Endpoints.Messages.Providers
+	default:
+		return nil
+	}
 }
 
-// GetProviderConfig returns the configuration for a specific provider
-func (c *Config) GetProviderConfig(provider string) (models.ProviderConfig, bool) {
-	config, exists := c.Providers[strings.ToLower(provider)]
+// GetProviderConfig returns the configuration for a specific provider from the specified endpoint
+func (c *Config) GetProviderConfig(provider string, endpoint string) (models.ProviderConfig, bool) {
+	var providers map[string]models.ProviderConfig
+	switch endpoint {
+	case "chat_completions":
+		providers = c.Endpoints.ChatCompletions.Providers
+	case "messages":
+		providers = c.Endpoints.Messages.Providers
+	default:
+		return models.ProviderConfig{}, false
+	}
+
+	config, exists := providers[strings.ToLower(provider)]
 	return config, exists
 }
 
@@ -180,11 +236,11 @@ func cloneStringStringMap(src map[string]string) map[string]string {
 
 // MergeProviderConfig merges YAML provider config with request override config.
 // The request override takes precedence over YAML config for non-empty values.
-func (c *Config) MergeProviderConfig(providerName string, override *models.ProviderConfig) (models.ProviderConfig, error) {
+func (c *Config) MergeProviderConfig(providerName string, override *models.ProviderConfig, endpoint string) (models.ProviderConfig, error) {
 	// Get base config from YAML
-	baseConfig, exists := c.GetProviderConfig(providerName)
+	baseConfig, exists := c.GetProviderConfig(providerName, endpoint)
 	if !exists {
-		return models.ProviderConfig{}, fmt.Errorf("provider '%s' not found in YAML configuration", providerName)
+		return models.ProviderConfig{}, fmt.Errorf("provider '%s' not found in YAML configuration for endpoint '%s'", providerName, endpoint)
 	}
 
 	// If no override provided, return base config
@@ -248,14 +304,20 @@ func (c *Config) MergeProviderConfig(providerName string, override *models.Provi
 
 // MergeProviderConfigs merges YAML provider configs with a map of request override configs.
 // Returns a map with all providers from YAML, with overrides applied where provided.
-func (c *Config) MergeProviderConfigs(overrides map[string]*models.ProviderConfig) (map[string]models.ProviderConfig, error) {
+func (c *Config) MergeProviderConfigs(overrides map[string]*models.ProviderConfig, endpoint string) (map[string]models.ProviderConfig, error) {
 	merged := make(map[string]models.ProviderConfig)
 
-	// Start with all YAML providers
-	for providerName, yamlConfig := range c.Providers {
+	// Get the base providers for the specified endpoint
+	baseProviders := c.GetProviders(endpoint)
+	if baseProviders == nil {
+		return nil, fmt.Errorf("unsupported endpoint: %s", endpoint)
+	}
+
+	// Start with all YAML providers for the specified endpoint
+	for providerName, yamlConfig := range baseProviders {
 		if overrides != nil {
 			if override, hasOverride := overrides[providerName]; hasOverride {
-				mergedConfig, err := c.MergeProviderConfig(providerName, override)
+				mergedConfig, err := c.MergeProviderConfig(providerName, override, endpoint)
 				if err != nil {
 					return nil, fmt.Errorf("failed to merge config for provider '%s': %w", providerName, err)
 				}
@@ -376,11 +438,34 @@ func (c *Config) ResolveConfig(req *models.ChatCompletionRequest) (*Config, erro
 	resolved.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
 	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
 
-	providers, err := c.MergeProviderConfigs(req.ProviderConfigs)
+	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "chat_completions")
 	if err != nil {
 		return nil, err
 	}
-	resolved.Providers = providers
+	resolved.Endpoints.ChatCompletions.Providers = providers
+
+	return resolved, nil
+}
+
+// ResolveConfigFromAnthropicRequest creates a resolved config by merging YAML config with Anthropic request overrides.
+// Returns a new Config struct with all merged values as single source of truth.
+func (c *Config) ResolveConfigFromAnthropicRequest(req *models.AnthropicMessageRequest) (*Config, error) {
+	// Create a copy of the original config
+	resolved := &Config{
+		Server:   c.Server,
+		Services: c.Services,
+	}
+
+	// Merge all configs with request overrides
+	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
+	resolved.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
+	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
+
+	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "messages")
+	if err != nil {
+		return nil, err
+	}
+	resolved.Endpoints.Messages.Providers = providers
 
 	return resolved, nil
 }

@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
 
-		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
+		const baseURL = process.env.ADAPTIVE_API_BASE_URL;
 
 		// Create JWT token for backend authentication
 		const jwtToken = await createBackendJWT(apiKey);
@@ -162,8 +162,8 @@ export async function POST(req: NextRequest) {
 			stream.on("finalChatCompletion", (completion) => {
 				const adaptiveCompletion = completion as ChatCompletion;
 				if (adaptiveCompletion.usage) {
-					// Use setImmediate for zero-blocking tRPC call
-					setImmediate(async () => {
+					// Use queueMicrotask for zero-blocking tRPC call
+					queueMicrotask(async () => {
 						try {
 							await api.usage.recordApiUsage({
 								apiKey,
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
 
 			// Handle stream errors
 			stream.on("error", (error) => {
-				setImmediate(async () => {
+				queueMicrotask(async () => {
 					try {
 						await api.usage.recordApiUsage({
 							apiKey,
@@ -232,7 +232,7 @@ export async function POST(req: NextRequest) {
 
 			// Record usage in background
 			if (completion.usage) {
-				setImmediate(async () => {
+				queueMicrotask(async () => {
 					try {
 						await api.usage.recordApiUsage({
 							apiKey,
@@ -255,7 +255,7 @@ export async function POST(req: NextRequest) {
 			return Response.json(completion);
 		} catch (error) {
 			// Record error for non-streaming requests
-			setImmediate(async () => {
+			queueMicrotask(async () => {
 				try {
 					await api.usage.recordApiUsage({
 						apiKey,

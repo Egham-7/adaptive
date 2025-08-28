@@ -196,11 +196,11 @@ type ChatCompletionRequest struct {
 
 	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
 
-	ModelRouterConfig   *ModelRouterConfig         `json:"model_router,omitempty"`
-	PromptResponseCache *CacheConfig               `json:"prompt_response_cache,omitempty"` // Optional prompt response cache configuration
-	PromptCache         *PromptCacheConfig         `json:"prompt_cache,omitempty"`          // Optional prompt response cache configuration
-	Fallback            *FallbackConfig            `json:"fallback,omitempty"`              // Fallback configuration with enabled toggle
-	ProviderConfigs     map[string]*ProviderConfig `json:"provider_configs,omitempty"`      // Custom provider configurations by provider name
+	ModelRouterConfig   *ModelRouterConfig         `json:"model_router,omitzero"`
+	PromptResponseCache *CacheConfig               `json:"prompt_response_cache,omitzero"` // Optional prompt response cache configuration
+	PromptCache         *PromptCacheConfig         `json:"prompt_cache,omitzero"`          // Optional prompt response cache configuration
+	Fallback            *FallbackConfig            `json:"fallback,omitzero"`              // Fallback configuration with enabled toggle
+	ProviderConfigs     map[string]*ProviderConfig `json:"provider_configs,omitzero"`      // Custom provider configurations by provider name
 }
 
 // AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information
@@ -209,7 +209,7 @@ type AdaptiveUsage struct {
 	CompletionTokens int64 `json:"completion_tokens"`
 	TotalTokens      int64 `json:"total_tokens"`
 	// Cache tier information for adaptive system
-	CacheTier string `json:"cache_tier,omitempty"` // e.g., "semantic_exact", "semantic_similar", "prompt_response"
+	CacheTier string `json:"cache_tier,omitzero"` // e.g., "semantic_exact", "semantic_similar", "prompt_response"
 }
 
 // ToOpenAI converts AdaptiveUsage to OpenAI's CompletionUsage for compatibility
@@ -242,10 +242,10 @@ type ChatCompletion struct {
 	Created           int64                            `json:"created"`
 	Model             string                           `json:"model"`
 	Object            string                           `json:"object"`
-	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitempty"`
-	SystemFingerprint string                           `json:"system_fingerprint,omitempty"`
+	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitzero"`
+	SystemFingerprint string                           `json:"system_fingerprint,omitzero"`
 	Usage             AdaptiveUsage                    `json:"usage"`
-	Provider          string                           `json:"provider,omitempty"`
+	Provider          string                           `json:"provider,omitzero"`
 }
 
 // ChatCompletionChunk extends OpenAI's ChatCompletionChunk with enhanced usage
@@ -255,8 +255,8 @@ type ChatCompletionChunk struct {
 	Created           int64                                 `json:"created"`
 	Model             string                                `json:"model"`
 	Object            string                                `json:"object"`
-	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitempty"`
-	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
-	Usage             *AdaptiveUsage                        `json:"usage,omitempty"`
-	Provider          string                                `json:"provider,omitempty"`
+	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitzero"`
+	SystemFingerprint string                                `json:"system_fingerprint,omitzero"`
+	Usage             *AdaptiveUsage                        `json:"usage,omitzero"`
+	Provider          string                                `json:"provider,omitzero"`
 }

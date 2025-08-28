@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
@@ -28,30 +27,31 @@ var (
 // It manages the lifecycle of chat completion requests, including provider selection,
 // fallback handling, and response processing.
 type CompletionHandler struct {
-	cfg         *config.Config
-	reqSvc      *completions.RequestService
-	respSvc     *completions.ResponseService
-	paramSvc    *completions.ParameterService
-	modelRouter *model_router.ModelRouter
-	promptCache *cache.PromptCache
+	cfg           *config.Config
+	reqSvc        *completions.RequestService
+	respSvc       *completions.ResponseService
+	completionSvc *completions.CompletionService
+	paramSvc      *completions.ParameterService
+	modelRouter   *model_router.ModelRouter
+	promptCache   *cache.PromptCache
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
 func NewCompletionHandler(
-	cfg *config.Config,
 	reqSvc *completions.RequestService,
 	respSvc *completions.ResponseService,
+	completionSvc *completions.CompletionService,
 	paramSvc *completions.ParameterService,
 	modelRouter *model_router.ModelRouter,
 	promptCache *cache.PromptCache,
 ) *CompletionHandler {
 	return &CompletionHandler{
-		cfg:         cfg,
-		reqSvc:      reqSvc,
-		respSvc:     respSvc,
-		paramSvc:    paramSvc,
-		modelRouter: modelRouter,
-		promptCache: promptCache,
+		reqSvc:        reqSvc,
+		respSvc:       respSvc,
+		completionSvc: completionSvc,
+		paramSvc:      paramSvc,
+		modelRouter:   modelRouter,
+		promptCache:   promptCache,
 	}
 }
 
@@ -111,7 +111,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	return h.respSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream, cacheSource)
+	return h.completionSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream, cacheSource, resolvedConfig)
 }
 
 // checkPromptCache checks if prompt cache is enabled and returns cached response if found
@@ -186,10 +186,10 @@ func (h *CompletionHandler) createManualProtocolResponse(
 	modelSpec := string(req.Model)
 
 	// Parse provider:model format
-	provider, modelName, err := h.parseProviderModel(modelSpec)
+	provider, modelName, err := utils.ParseProviderModel(modelSpec)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to parse model specification '%s': %v", requestID, modelSpec, err)
-		return nil, "", fmt.Errorf("%w: invalid model format '%s', expected 'provider:model'", ErrInvalidModelSpec, modelSpec)
+		return nil, "", fmt.Errorf("%w: %s", ErrInvalidModelSpec, err.Error())
 	}
 
 	fiberlog.Infof("[%s] Parsed model specification '%s' -> provider: %s, model: %s", requestID, modelSpec, provider, modelName)
@@ -224,25 +224,4 @@ func (h *CompletionHandler) createManualProtocolResponse(
 	}
 
 	return response, "manual_override", nil
-}
-
-// parseProviderModel parses a "provider:model" format string
-func (h *CompletionHandler) parseProviderModel(modelSpec string) (provider, model string, err error) {
-	parts := strings.SplitN(modelSpec, ":", 2)
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("model specification must be in 'provider:model' format")
-	}
-
-	provider = strings.TrimSpace(parts[0])
-	model = strings.TrimSpace(parts[1])
-
-	if provider == "" {
-		return "", "", fmt.Errorf("provider cannot be empty")
-	}
-
-	if model == "" {
-		return "", "", fmt.Errorf("model cannot be empty")
-	}
-
-	return provider, model, nil
 }

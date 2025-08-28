@@ -1,96 +1,31 @@
 ---
-title: "Cut Your AI Costs by 80% Without Changing Code"
-description: "Drop-in OpenAI replacement that automatically routes to the cheapest suitable model"
+title: "Adaptive AI Platform"
+description: "The most intelligent inference platform. Save 60-80% on AI costs with zero code changes."
 icon: "house"
 ---
 
-<div style={{textAlign: 'center', margin: '2rem 0'}}>
-  <div style={{fontSize: '3rem', fontWeight: 'bold', color: '#d4af37', marginBottom: '1rem'}}>
-    Save 80% on AI Costs
-  </div>
-  <div style={{fontSize: '1.2rem', color: '#666', marginBottom: '2rem'}}>
-    Zero code changes • Same API • Instant savings • 6+ AI providers
-  </div>
-</div>
+# Cut Your AI Costs by 80% Without Changing Code
 
-## Replace This Line, Save $1000s Monthly
-
-Change one line of code and immediately cut your AI costs by 60-90% while maintaining the same quality responses.
-
-<CodeGroup>
-
-```javascript Before: Expensive
-const openai = new OpenAI({
-  baseURL: "https://api.openai.com/v1",        // ❌ Expensive
-  apiKey: "sk-your-openai-key"
-});
-// Result: $1000/month for typical usage
-```
-
-```javascript After: Smart & Cheap
-const openai = new OpenAI({
-  baseURL: "https://llmadaptive.uk/api/v1",   // ✅ Intelligent routing
-  apiKey: "your-adaptive-key" 
-});
-// Result: $200-400/month for same usage = $600-800/month SAVED
-```
-
-</CodeGroup>
+Adaptive is a drop-in OpenAI replacement that automatically routes requests to the cheapest suitable model across 6+ AI providers.
 
 <Note>
-  **Instant Results**: Your existing code works immediately. Simple questions → cheap models (Gemini Flash). Complex tasks → premium models (Claude, GPT-4). Perfect balance of cost and quality.
+**One line change, massive savings**: Simply replace your OpenAI base URL and start saving immediately. Your existing code works unchanged.
 </Note>
 
-## See Your Savings in Real-Time
-
-<CardGroup cols={3}>
-  <Card title="💬 Simple Chat" icon="message">
-    **"Hello, how are you?"**
-    
-    OpenAI: $3.00/1M tokens  
-    Adaptive: $0.10/1M tokens  
-    **Savings: 97%** 
-  </Card>
-  <Card title="🧮 Complex Analysis" icon="calculator">
-    **"Analyze this dataset..."**
-    
-    OpenAI: $15.00/1M tokens  
-    Adaptive: $2.19/1M tokens  
-    **Savings: 85%**
-  </Card>
-  <Card title="💻 Code Generation" icon="code">
-    **"Write a React component..."**
-    
-    OpenAI: $10.00/1M tokens  
-    Adaptive: $0.34/1M tokens  
-    **Savings: 97%**
-  </Card>
-</CardGroup>
-
-## How Much Will You Save?
-
-<Note>
-**Quick Calculator**: If you currently spend $1,000/month on AI:
-- **Simple tasks** (60% of requests): Save $570/month
-- **Medium complexity** (30% of requests): Save $210/month  
-- **Complex tasks** (10% of requests): Save $20/month
-- **Total monthly savings: $800** (80% reduction)
-</Note>
-
-## Why Developers Choose Adaptive
+## Key Benefits
 
 <CardGroup cols={2}>
-  <Card title="⚡ 30-Second Setup" href="/quickstart" icon="clock">
-    Change one URL. That's it. Works with OpenAI SDK, Vercel AI SDK, LangChain, and any HTTP client.
+  <Card title="Instant Cost Savings" icon="dollar-sign">
+    Save 60-80% on AI costs from your first request. Simple tasks route to cheap models, complex tasks use premium models.
   </Card>
-  <Card title="🧠 AI-Powered Routing" href="/features/intelligent-routing" icon="brain">
-    Automatically selects optimal models based on prompt complexity, cost, and performance.
+  <Card title="Zero Code Changes" icon="code">
+    Drop-in replacement for OpenAI API. Change one URL and keep everything else the same.
   </Card>
-  <Card title="💰 Massive Savings" href="/features/intelligent-routing" icon="dollar-sign">
-    60-97% cost reduction. Simple tasks → cheap models, complex tasks → premium models.
+  <Card title="Intelligent Routing" icon="brain">
+    AI-powered model selection based on prompt complexity, cost, and performance requirements.
   </Card>
-  <Card title="🔄 6+ AI Providers" href="/features/provider-resiliency" icon="network-wired">
-    Access OpenAI, Claude, Gemini, Groq, DeepSeek, and Grok through one unified API.
+  <Card title="Multi-Provider Access" icon="network-wired">
+    Access OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok through one unified API.
   </Card>
 </CardGroup>
 
@@ -98,124 +33,220 @@ const openai = new OpenAI({
 
 <Steps>
   <Step title="Send Request">
-    Your app sends an OpenAI-compatible request to Adaptive
+    Your application sends a standard OpenAI-compatible request to Adaptive
   </Step>
-  <Step title="AI Analyzes">
-    Our routing AI analyzes your prompt and selects the optimal model/provider
+  <Step title="AI Analysis">
+    Our routing engine analyzes prompt complexity and selects the optimal model
   </Step>
   <Step title="Get Response">
-    Receive OpenAI-format responses regardless of the underlying provider
+    Receive responses in OpenAI format, regardless of the underlying provider
   </Step>
-  <Step title="Save Money">Monitor usage and savings in your dashboard</Step>
+  <Step title="Monitor Savings">
+    Track usage and cost savings through your dashboard
+  </Step>
 </Steps>
 
-## Quick Example
+## Before vs After
 
-**Before (OpenAI only):**
-
+<Tabs>
+<Tab title="Before: Expensive">
 ```javascript
 const openai = new OpenAI({
-  apiKey: "sk-...",
   baseURL: "https://api.openai.com/v1",
+  apiKey: "sk-your-openai-key"
 });
+
+// All requests go to expensive OpenAI models
+// Monthly cost: $1,000 for typical usage
 ```
+</Tab>
 
-**After (Adaptive with 6+ providers):**
-
+<Tab title="After: Smart & Cheap (JavaScript)">
 ```javascript
 const openai = new OpenAI({
-  apiKey: "your-adaptive-key",
-  baseURL: "https://llmadaptive.uk/api/v1", // Only change!
+  baseURL: "https://llmadaptive.uk/api/v1", // Only change needed
+  apiKey: "your-adaptive-key"
 });
 
-// Everything else stays exactly the same
-const response = await openai.chat.completions.create({
-  model: "", // Leave empty for intelligent routing
-  messages: [{ role: "user", content: "Hello!" }],
-});
+async function chat() {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: "Hello!" }]
+    });
+    console.log("Success:", response.choices[0].message.content);
+  } catch (error) {
+    console.error("Request failed:", error.message);
+  }
+}
+
+// Intelligent routing to optimal models
+// Monthly cost: $200-400 = $600-800 SAVED
 ```
+</Tab>
 
-<Tip>
-  **That's it!** Your existing code works immediately with intelligent routing
-  and cost savings.
-</Tip>
+<Tab title="After: Smart & Cheap (cURL)">
+```bash
+curl -sS https://llmadaptive.uk/api/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-adaptive-key" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }' || echo "Request failed"
 
-## Supported Models & Providers
+# Intelligent routing to optimal models
+# Monthly cost: $200-400 = $600-800 SAVED
+```
+</Tab>
 
-<Accordion title="View All Supported Models">
+<Tab title="After: Smart & Cheap (Python)">
+```python
+import requests
+import sys
 
-### OpenAI
+try:
+    r = requests.post("https://llmadaptive.uk/api/v1/chat/completions", 
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer your-adaptive-key"
+        },
+        json={
+            "model": "gpt-4",
+            "messages": [{"role": "user", "content": "Hello!"}]
+        }
+    )
+    r.raise_for_status()
+    response = r.json()
+    print("Success:", response["choices"][0]["message"]["content"])
+except requests.exceptions.RequestException as e:
+    print(f"Request failed: {e}", file=sys.stderr)
 
-- **GPT-4o** • **GPT-4o Mini** • **GPT-4 Turbo** • **GPT-3.5 Turbo**
+# Intelligent routing to optimal models  
+# Monthly cost: $200-400 = $600-800 SAVED
+```
+</Tab>
+</Tabs>
 
-### Anthropic
-
-- **Claude 4 Sonnet** • **Claude 3.5 Sonnet** • **Claude 3.5 Haiku** • **Claude 3 Opus**
-
-### Google Gemini
-
-- **Gemini 2.5 Pro** • **Gemini 2.5 Pro Large** • **Gemini 2.0 Flash** • **Gemini 1.5 Flash**
-
-### Groq (Ultra-fast inference)
-
-- **Llama 4 Scout 17B** • **Llama 4 Maverick 17B** • **Llama 3.3 70B** • **DeepSeek R1 Distill** • **Qwen QwQ 32B** • **Mixtral 8x7B**
-
-### DeepSeek (Advanced reasoning)
-
-- **DeepSeek Reasoner** • **DeepSeek Chat**
-
-### Grok (xAI)
-
-- **Grok 3** • **Grok 3 Fast** • **Grok 3 Mini** • **Grok Beta**
-
-</Accordion>
-
-## Real Cost Savings Examples
+## Real Cost Savings
 
 <CardGroup cols={3}>
-  <Card title="Simple Chat">
-    **90-95% savings** "Hello, how are you?" → Routes to Gemini 2.0 Flash
-    **$0.10** vs **$3.00** per 1M tokens
+  <Card title="Simple Chat" icon="message">
+    **"Hello, how are you?"**
+    
+    Routes to: Gemini Flash  
+    **$0.10** vs **$3.00** per 1M tokens  
+    **97% savings**
   </Card>
-  <Card title="Math Problems">
-    **60-80% savings** Complex reasoning → Routes to DeepSeek Reasoner **$2.19**
-    vs **$15.00** per 1M tokens
+  <Card title="Code Tasks" icon="code">
+    **"Write a React component..."**
+    
+    Routes to: DeepSeek  
+    **$0.34** vs **$10.00** per 1M tokens  
+    **97% savings**
   </Card>
-  <Card title="Code Generation">
-    **70-85% savings** Programming tasks → Routes to Llama 4 or DeepSeek
-    **$0.34** vs **$10.00** per 1M tokens
+  <Card title="Complex Analysis" icon="calculator">
+    **"Analyze this dataset..."**
+    
+    Routes to: Claude Sonnet  
+    **$2.19** vs **$15.00** per 1M tokens  
+    **85% savings**
   </Card>
 </CardGroup>
 
-## Get Started in 2 Minutes
+## Supported Providers & Models
+
+<Accordion title="View All Supported Models">
+
+**OpenAI**
+- GPT-4o, GPT-4o Mini, GPT-4 Turbo, GPT-3.5 Turbo
+
+**Anthropic**  
+- Claude 4 Sonnet, Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
+
+**Google Gemini**
+- Gemini 2.5 Pro, Gemini 2.5 Pro Large, Gemini 2.0 Flash, Gemini 1.5 Flash
+
+**Groq (Ultra-fast)**
+- Llama 4 Scout 17B, Llama 4 Maverick 17B, Llama 3.3 70B, DeepSeek R1 Distill
+
+**DeepSeek (Advanced reasoning)**
+- DeepSeek Reasoner, DeepSeek Chat
+
+**Grok (xAI)**
+- Grok 3, Grok 3 Fast, Grok 3 Mini, Grok Beta
+
+</Accordion>
+
+## Quick Start
 
 <Steps>
-  <Step title="Get Your API Key">
-    [Sign up for free](https://llmadaptive.uk) and generate your API key
+  <Step title="Get API Key">
+    [Sign up for free](https://llmadaptive.uk) and generate your API key (no credit card required)
   </Step>
   <Step title="Update Your Code">
     Change `baseURL` to `https://llmadaptive.uk/api/v1`
   </Step>
-  <Step title="Start Saving">
-    Use `model: ""` to enable intelligent routing
+  <Step title="Enable Smart Routing">
+    Use `model: ""` to let our AI choose the optimal model for each request
   </Step>
 </Steps>
 
+## Popular Integrations
+
+<CardGroup cols={2}>
+  <Card title="OpenAI SDK" href="/integrations/openai-sdk" icon="code">
+    Use with official OpenAI SDK for JavaScript, Python, and other languages
+  </Card>
+  <Card title="Vercel AI SDK" href="/integrations/vercel-ai-sdk" icon="nextjs">
+    Stream responses and build AI chat applications with Vercel AI SDK
+  </Card>
+  <Card title="LangChain" href="/integrations/langchain" icon="link">
+    Integrate with LangChain workflows and chains for complex AI applications
+  </Card>
+  <Card title="Direct API" href="/api-reference/chat-completions" icon="terminal">
+    Use REST API directly with any HTTP client or programming language
+  </Card>
+</CardGroup>
+
+## Example Response
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "choices": [{
+    "message": {
+      "content": "Hello! I'm ready to help you.",
+      "role": "assistant"
+    }
+  }],
+  "provider": "gemini",        // Shows which provider was selected
+  "usage": {
+    "total_tokens": 15,
+    "prompt_tokens": 5,
+    "completion_tokens": 10
+  },
+  "cache_tier": "none"         // Cache status for performance tracking
+}
+```
+
+<Note>
+Adaptive returns standard OpenAI-compatible responses with additional metadata showing which provider was selected and cache status.
+</Note>
+
+## Learn More
+
 <CardGroup cols={2}>
   <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
-    Get up and running in 5 minutes with code examples
+    Get up and running in 5 minutes with detailed setup instructions
   </Card>
-  <Card title="Integration Guides" icon="book" href="/integrations/openai-sdk">
-    Detailed guides for OpenAI SDK, Vercel AI, LangChain
+  <Card title="Intelligent Routing" icon="brain" href="/features/intelligent-routing">
+    Learn how our AI selects the optimal model for each request
   </Card>
-  <Card
-    title="API Reference"
-    icon="gear"
-    href="/api-reference/chat-completions"
-  >
-    Complete API documentation and parameters
+  <Card title="Cost Optimization" icon="dollar-sign" href="/features/performance">
+    Understand how we achieve 60-80% cost savings
   </Card>
-  <Card title="Features" icon="lightbulb" href="/features/intelligent-routing">
-    Learn about intelligent routing and cost optimization
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Complete API documentation with examples and parameters
   </Card>
 </CardGroup>

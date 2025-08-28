@@ -19,13 +19,8 @@ type FallbackService struct {
 }
 
 // NewFallbackService creates a new fallback service
-func NewFallbackService(cfg *config.Config) *FallbackService {
-	if cfg == nil {
-		panic("NewFallbackService: cfg cannot be nil")
-	}
-	return &FallbackService{
-		cfg: cfg,
-	}
+func NewFallbackService() *FallbackService {
+	return &FallbackService{}
 }
 
 // Execute runs the providers with the specified fallback configuration

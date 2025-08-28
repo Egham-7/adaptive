@@ -1,7 +1,6 @@
 package completions
 
 import (
-	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/model_router"
@@ -12,32 +11,21 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-const (
-	protocolStandard   = "standard"
-	protocolMinion     = "minion"
-	errUnknownProtocol = "unknown protocol"
-)
-
 // ResponseService handles HTTP responses for chat completion operations
 // It embeds the base response service and specializes it for completions
 type ResponseService struct {
 	*response.BaseService
-	completionService *CompletionService
-	modelRouter       *model_router.ModelRouter
+	modelRouter *model_router.ModelRouter
 }
 
-func NewResponseService(cfg *config.Config, modelRouter *model_router.ModelRouter) *ResponseService {
-	if cfg == nil {
-		panic("NewResponseService: cfg is nil")
-	}
+func NewResponseService(modelRouter *model_router.ModelRouter) *ResponseService {
 	if modelRouter == nil {
 		panic("NewResponseService: modelRouter is nil")
 	}
 
 	return &ResponseService{
-		BaseService:       response.NewBaseService(),
-		completionService: NewCompletionService(cfg),
-		modelRouter:       modelRouter,
+		BaseService: response.NewBaseService(),
+		modelRouter: modelRouter,
 	}
 }
 
@@ -59,43 +47,6 @@ func (rs *ResponseService) RateLimited(c *fiber.Ctx, message string) error {
 // InternalError sends an internal server error response specific to completions
 func (rs *ResponseService) InternalError(c *fiber.Ctx, message string) error {
 	return rs.Error(c, fiber.StatusInternalServerError, message, "internal_error", "completion_failed")
-}
-
-// HandleProtocol routes to the correct response flow based on protocol
-func (rs *ResponseService) HandleProtocol(
-	c *fiber.Ctx,
-	protocol models.ProtocolType,
-	req *models.ChatCompletionRequest,
-	resp *models.ProtocolResponse,
-	requestID string,
-	isStream bool,
-	cacheSource string,
-) error {
-	if isStream {
-		rs.setStreamHeaders(c)
-	}
-
-	switch protocol {
-	case models.ProtocolStandardLLM:
-		if err := rs.completionService.HandleStandardCompletion(c, req, resp.Standard, requestID, isStream, cacheSource); err != nil {
-			return rs.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
-		}
-		// Store successful response in semantic cache
-		rs.storeSuccessfulSemanticCache(req, resp, requestID)
-		return nil
-
-	case models.ProtocolMinion:
-		if err := rs.completionService.HandleMinionCompletion(c, req, resp.Minion, requestID, isStream, cacheSource); err != nil {
-			return rs.HandleError(c, fiber.StatusInternalServerError, err.Error(), requestID)
-		}
-		// Store successful response in semantic cache
-		rs.storeSuccessfulSemanticCache(req, resp, requestID)
-		return nil
-
-	default:
-		return rs.HandleError(c, fiber.StatusInternalServerError,
-			errUnknownProtocol+" "+string(protocol), requestID)
-	}
 }
 
 // HandleError sends a standardized error response
@@ -137,8 +88,8 @@ func (rs *ResponseService) HandleInternalError(
 	return rs.HandleError(c, fiber.StatusInternalServerError, message, requestID)
 }
 
-// setStreamHeaders sets SSE headers
-func (rs *ResponseService) setStreamHeaders(c *fiber.Ctx) {
+// SetStreamHeaders sets SSE headers
+func (rs *ResponseService) SetStreamHeaders(c *fiber.Ctx) {
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
@@ -147,8 +98,8 @@ func (rs *ResponseService) setStreamHeaders(c *fiber.Ctx) {
 	c.Set("Access-Control-Allow-Headers", "Cache-Control")
 }
 
-// storeSuccessfulSemanticCache stores the protocol response in semantic cache after successful completion
-func (rs *ResponseService) storeSuccessfulSemanticCache(
+// StoreSuccessfulSemanticCache stores the protocol response in semantic cache after successful completion
+func (rs *ResponseService) StoreSuccessfulSemanticCache(
 	req *models.ChatCompletionRequest,
 	resp *models.ProtocolResponse,
 	requestID string,

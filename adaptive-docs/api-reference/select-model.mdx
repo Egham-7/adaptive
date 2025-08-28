@@ -40,41 +40,15 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
     ```
     
     **Full specification (for custom models):**
-    <ParamField body="provider" type="string" required>
-      Provider name (e.g., "openai", "anthropic", "local", "custom")
-    </ParamField>
-    
-    <ParamField body="model_name" type="string">
-      Model identifier (required unless provider-only)
-    </ParamField>
-    
-    <ParamField body="cost_per_1m_input_tokens" type="number">
-      Cost per 1M input tokens (auto-filled for known models)
-    </ParamField>
-    
-    <ParamField body="cost_per_1m_output_tokens" type="number">
-      Cost per 1M output tokens (auto-filled for known models)
-    </ParamField>
-    
-    <ParamField body="max_context_tokens" type="number">
-      Maximum context window size (auto-filled for known models)
-    </ParamField>
-    
-    <ParamField body="supports_function_calling" type="boolean">
-      Whether the model supports function/tool calling (auto-filled for known models)
-    </ParamField>
-    
-    <ParamField body="max_output_tokens" type="number">
-      Maximum output tokens (optional)
-    </ParamField>
-    
-    <ParamField body="complexity" type="string">
-      Model complexity tier: "low", "medium", "high" (optional)
-    </ParamField>
-    
-    <ParamField body="task_type" type="string">
-      Optimized task type (optional)
-    </ParamField>
+    - **provider** (string, required): Provider name (e.g., "openai", "anthropic", "local", "custom")
+    - **model_name** (string): Model identifier (required unless provider-only)
+    - **cost_per_1m_input_tokens** (number): Cost per 1M input tokens (auto-filled for known models)
+    - **cost_per_1m_output_tokens** (number): Cost per 1M output tokens (auto-filled for known models)
+    - **max_context_tokens** (number): Maximum context window size (auto-filled for known models)
+    - **supports_function_calling** (boolean): Whether the model supports function/tool calling (auto-filled for known models)
+    - **max_output_tokens** (number): Maximum output tokens (optional)
+    - **complexity** (string): Model complexity tier: "low", "medium", "high" (optional)
+    - **task_type** (string): Optimized task type (optional)
   </Expandable>
 </ParamField>
 

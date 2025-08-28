@@ -35,9 +35,9 @@ func createBridgeContext(fasthttpCtx *fasthttp.RequestCtx) context.Context {
 	return ctx
 }
 
-// HandleStream manages the streaming response to the client with optimized performance
-func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, provider string, cacheSource string) error {
-	fiberlog.Infof("[%s] Starting stream handling", requestID)
+// HandleOpenAIStream manages OpenAI streaming response to the client with optimized performance
+func HandleOpenAIStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, provider string, cacheSource string) error {
+	fiberlog.Infof("[%s] Starting OpenAI stream handling", requestID)
 
 	// Get FastHTTP context once to avoid potential nil issues
 	fasthttpCtx := c.Context()
@@ -49,11 +49,34 @@ func HandleStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChun
 		// Create a context that bridges FastHTTP cancellation to standard context
 		ctx := createBridgeContext(fasthttpCtx)
 
-		streamReader, err := sse.GetSSEStreamReader(ctx, resp, requestID, provider, cacheSource)
-		if err != nil {
-			sendErrorEvent(w, requestID, "Failed to create stream reader", err)
-			return
+		streamReader := sse.NewOpenAIStreamReader(resp, requestID, provider, cacheSource)
+		streamReader.SetContext(ctx)
+
+		defer closeStreamReader(streamReader, requestID)
+
+		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
+			if fasthttpCtx != nil && fasthttpCtx.Err() != nil {
+				fiberlog.Infof("[%s] Client disconnected during stream", requestID)
+				return
+			}
+			sendErrorEvent(w, requestID, "Stream error", err)
 		}
+	}))
+	return nil
+}
+
+// HandleAnthropicStream manages Anthropic streaming response to the client with optimized performance
+func HandleAnthropicStream(c *fiber.Ctx, responseBody io.Reader, requestID string, provider string) error {
+	fiberlog.Infof("[%s] Starting Anthropic stream handling", requestID)
+
+	// Get FastHTTP context once to avoid potential nil issues
+	fasthttpCtx := c.Context()
+
+	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
+		startTime := time.Now()
+		var totalBytes int64
+
+		streamReader := sse.NewAnthropicSSEReader(responseBody, requestID, provider)
 		defer closeStreamReader(streamReader, requestID)
 
 		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
