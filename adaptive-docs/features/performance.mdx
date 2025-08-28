@@ -10,7 +10,7 @@ Adaptive delivers industry-leading performance through optimized Go architecture
 
 <CardGroup cols={4}>
   <Card title="Model Selection" icon="zap">
-    **<1ms**  
+    **&lt;1ms**  
     Instant routing decisions
   </Card>
   <Card title="Throughput" icon="chart-line">
@@ -22,7 +22,7 @@ Adaptive delivers industry-leading performance through optimized Go architecture
     Multi-tier efficiency
   </Card>
   <Card title="Overhead" icon="clock">
-    **<3ms**  
+    **&lt;3ms**  
     Total added latency
   </Card>
 </CardGroup>
@@ -89,11 +89,11 @@ Adaptive delivers industry-leading performance through optimized Go architecture
 ┌─────────────────┬──────────────┐
 │ Component       │ Time         │
 ├─────────────────┼──────────────┤
-│ Model Selection │ <1ms         │
-│ Cache Lookup    │ <1ms         │
-│ Provider Route  │ <1ms         │
+│ Model Selection │ &lt;1ms         │
+│ Cache Lookup    │ &lt;1ms         │
+│ Provider Route  │ &lt;1ms         │
 ├─────────────────┼──────────────┤
-│ Total Overhead  │ <3ms         │
+│ Total Overhead  │ &lt;3ms         │
 └─────────────────┴──────────────┘
 ```
 
@@ -155,7 +155,7 @@ Benchmarks run on identical hardware (4 CPU cores, 8GB RAM) with 1000 concurrent
 
 | Solution | Model Selection | Memory Usage | Cold Start | Throughput |
 |----------|----------------|--------------|------------|------------|
-| **Adaptive** | <1ms | 50MB | <1s | 10,000+ req/s |
+| **Adaptive** | &lt;1ms | 50MB | &lt;1s | 10,000+ req/s |
 | Python-based | 50-200ms | 500MB+ | 10-30s | 500 req/s |
 | LLM-based routing | 1-5s | 2GB+ | 60s+ | 10 req/s |
 
