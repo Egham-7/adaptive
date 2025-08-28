@@ -3,7 +3,6 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
-import { useId } from "react";
 import { DocsButton } from "@/components/ui/docs-button";
 import { LegalButton } from "@/components/ui/legal-button";
 import {
@@ -19,9 +18,6 @@ import { NavUser } from "./nav-user";
 
 export function SidebarNavFooter() {
 	const { user } = useUser(); // Fetch user data from Clerk's useUser hook
-	const docsId = useId();
-	const supportId = useId();
-	const legalId = useId();
 
 	if (!user) {
 		return null;
@@ -45,32 +41,17 @@ export function SidebarNavFooter() {
 				<div className="flex flex-wrap items-center justify-center gap-1">
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<DocsButton
-								id={docsId}
-								variant="ghost"
-								size="icon"
-								showText={false}
-							/>
+							<DocsButton variant="ghost" size="icon" showText={false} />
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<SupportButton
-								id={supportId}
-								variant="ghost"
-								size="icon"
-								showText={false}
-							/>
+							<SupportButton variant="ghost" size="icon" showText={false} />
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<LegalButton
-								id={legalId}
-								variant="ghost"
-								size="icon"
-								showText={false}
-							/>
+							<LegalButton variant="ghost" size="icon" showText={false} />
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
