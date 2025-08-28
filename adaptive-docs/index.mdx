@@ -1,160 +1,99 @@
 ---
-title: "Adaptive AI Platform"
-description: "The most intelligent inference platform. Save 60-80% on AI costs with zero code changes."
-icon: "house"
+title: "Introduction"
+description: "Welcome to Adaptive - the most intelligent LLM inference platform designed for modern developers."
+icon: "sparkles"
 ---
 
-# Cut Your AI Costs by 80% Without Changing Code
+<div className="relative">
+  <div className="px-4 py-16 lg:py-24 max-w-4xl mx-auto">
+    <h1 className="block text-4xl font-bold text-center text-gray-900 dark:text-zinc-50 tracking-tight">
+      The Most Intelligent LLM Inference Platform
+    </h1>
 
-Adaptive is a drop-in OpenAI replacement that automatically routes requests to the cheapest suitable model across 6+ AI providers.
+    <div className="max-w-2xl mx-auto px-4 mt-6 text-xl text-center text-gray-600 dark:text-zinc-400">
+      Adaptive automatically routes your AI requests to the optimal model across multiple providers, delivering exceptional performance while dramatically reducing costs.
+    </div>
 
-<Note>
-**One line change, massive savings**: Simply replace your OpenAI base URL and start saving immediately. Your existing code works unchanged.
-</Note>
+    <div className="flex justify-center mt-8">
+      <div className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 transition-colors">
+        ✨ Drop-in OpenAI replacement with zero code changes
+      </div>
+    </div>
+  </div>
+</div>
 
-## Key Benefits
+## Why Choose Adaptive?
 
 <CardGroup cols={2}>
-  <Card title="Instant Cost Savings" icon="dollar-sign">
-    Save 60-80% on AI costs from your first request. Simple tasks route to cheap models, complex tasks use premium models.
-  </Card>
-  <Card title="Zero Code Changes" icon="code">
-    Drop-in replacement for OpenAI API. Change one URL and keep everything else the same.
-  </Card>
   <Card title="Intelligent Routing" icon="brain">
-    AI-powered model selection based on prompt complexity, cost, and performance requirements.
+    Our AI analyzes each request and automatically selects the optimal model based on complexity, performance requirements, and cost efficiency.
+  </Card>
+  <Card title="Seamless Integration" icon="plug">
+    Drop-in replacement for OpenAI API. Simply change your base URL and everything works immediately.
   </Card>
   <Card title="Multi-Provider Access" icon="network-wired">
-    Access OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok through one unified API.
+    Access leading AI providers including OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok through one unified interface.
+  </Card>
+  <Card title="Enterprise Ready" icon="shield-check">
+    Built for scale with advanced caching, fallback mechanisms, and comprehensive monitoring and analytics.
   </Card>
 </CardGroup>
 
-## How It Works
+## How Adaptive Works
 
 <Steps>
-  <Step title="Send Request">
-    Your application sends a standard OpenAI-compatible request to Adaptive
+  <Step title="Intelligent Analysis">
+    Every request is analyzed in real-time to understand complexity, context, and requirements
   </Step>
-  <Step title="AI Analysis">
-    Our routing engine analyzes prompt complexity and selects the optimal model
+  <Step title="Optimal Routing">
+    Our AI selects the best model across multiple providers for performance, cost, and quality
   </Step>
-  <Step title="Get Response">
-    Receive responses in OpenAI format, regardless of the underlying provider
+  <Step title="Seamless Response">
+    Receive consistent OpenAI-compatible responses regardless of the underlying provider
   </Step>
-  <Step title="Monitor Savings">
-    Track usage and cost savings through your dashboard
+  <Step title="Continuous Learning">
+    The system learns from each interaction to improve routing decisions over time
   </Step>
 </Steps>
 
-## Before vs After
-
-<Tabs>
-<Tab title="Before: Expensive">
-```javascript
-const openai = new OpenAI({
-  baseURL: "https://api.openai.com/v1",
-  apiKey: "sk-your-openai-key"
-});
-
-// All requests go to expensive OpenAI models
-// Monthly cost: $1,000 for typical usage
-```
-</Tab>
-
-<Tab title="After: Smart & Cheap (JavaScript)">
-```javascript
-const openai = new OpenAI({
-  baseURL: "https://llmadaptive.uk/api/v1", // Only change needed
-  apiKey: "your-adaptive-key"
-});
-
-async function chat() {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: "Hello!" }]
-    });
-    console.log("Success:", response.choices[0].message.content);
-  } catch (error) {
-    console.error("Request failed:", error.message);
-  }
-}
-
-// Intelligent routing to optimal models
-// Monthly cost: $200-400 = $600-800 SAVED
-```
-</Tab>
-
-<Tab title="After: Smart & Cheap (cURL)">
-```bash
-curl -sS https://llmadaptive.uk/api/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-adaptive-key" \
-  -d '{
-    "model": "gpt-4",
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }' || echo "Request failed"
-
-# Intelligent routing to optimal models
-# Monthly cost: $200-400 = $600-800 SAVED
-```
-</Tab>
-
-<Tab title="After: Smart & Cheap (Python)">
-```python
-import requests
-import sys
-
-try:
-    r = requests.post("https://llmadaptive.uk/api/v1/chat/completions", 
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": "Bearer your-adaptive-key"
-        },
-        json={
-            "model": "gpt-4",
-            "messages": [{"role": "user", "content": "Hello!"}]
-        }
-    )
-    r.raise_for_status()
-    response = r.json()
-    print("Success:", response["choices"][0]["message"]["content"])
-except requests.exceptions.RequestException as e:
-    print(f"Request failed: {e}", file=sys.stderr)
-
-# Intelligent routing to optimal models  
-# Monthly cost: $200-400 = $600-800 SAVED
-```
-</Tab>
-</Tabs>
-
-## Real Cost Savings
+## Platform Capabilities
 
 <CardGroup cols={3}>
-  <Card title="Simple Chat" icon="message">
-    **"Hello, how are you?"**
-    
-    Routes to: Gemini Flash  
-    **$0.10** vs **$3.00** per 1M tokens  
-    **97% savings**
+  <Card title="Smart Routing" icon="route">
+    Advanced AI algorithms analyze each request to determine the optimal model and provider combination.
   </Card>
-  <Card title="Code Tasks" icon="code">
-    **"Write a React component..."**
-    
-    Routes to: DeepSeek  
-    **$0.34** vs **$10.00** per 1M tokens  
-    **97% savings**
+  <Card title="Cost Optimization" icon="trending-down">
+    Achieve significant cost reductions through intelligent model selection and efficient request routing.
   </Card>
-  <Card title="Complex Analysis" icon="calculator">
-    **"Analyze this dataset..."**
-    
-    Routes to: Claude Sonnet  
-    **$2.19** vs **$15.00** per 1M tokens  
-    **85% savings**
+  <Card title="Performance" icon="zap">
+    Lightning-fast response times with built-in caching and optimized provider connections.
   </Card>
 </CardGroup>
 
-## Supported Providers & Models
+## Advanced Features
+
+<CardGroup cols={3}>
+  <Card title="Semantic Caching" icon="database">
+    Intelligent caching system that understands context and meaning to deliver faster responses.
+  </Card>
+  <Card title="Provider Resiliency" icon="shield">
+    Automatic failover and circuit breaker patterns ensure high availability and reliability.
+  </Card>
+  <Card title="Real-time Analytics" icon="chart-line">
+    Comprehensive monitoring and insights into usage patterns, performance metrics, and optimization opportunities.
+  </Card>
+</CardGroup>
+
+## Supported AI Providers
+
+<CardGroup cols={2}>
+  <Card title="Leading AI Models" icon="stars">
+    Access the latest models from OpenAI, Anthropic, Google Gemini, Groq, DeepSeek, and Grok through one unified interface.
+  </Card>
+  <Card title="Always Up-to-Date" icon="refresh">
+    Automatically gain access to new models as they're released, without code changes or integration work.
+  </Card>
+</CardGroup>
 
 <Accordion title="View All Supported Models">
 
@@ -178,19 +117,16 @@ except requests.exceptions.RequestException as e:
 
 </Accordion>
 
-## Quick Start
+## Get Started in Minutes
 
-<Steps>
-  <Step title="Get API Key">
-    [Sign up for free](https://llmadaptive.uk) and generate your API key (no credit card required)
-  </Step>
-  <Step title="Update Your Code">
-    Change `baseURL` to `https://llmadaptive.uk/api/v1`
-  </Step>
-  <Step title="Enable Smart Routing">
-    Use `model: ""` to let our AI choose the optimal model for each request
-  </Step>
-</Steps>
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Follow our step-by-step guide to integrate Adaptive into your application in under 5 minutes.
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Explore our comprehensive API documentation with interactive examples and detailed specifications.
+  </Card>
+</CardGroup>
 
 ## Popular Integrations
 
@@ -209,44 +145,50 @@ except requests.exceptions.RequestException as e:
   </Card>
 </CardGroup>
 
-## Example Response
+## What Makes Adaptive Different
 
-```json
-{
-  "id": "chatcmpl-abc123",
-  "choices": [{
-    "message": {
-      "content": "Hello! I'm ready to help you.",
-      "role": "assistant"
-    }
-  }],
-  "provider": "gemini",        // Shows which provider was selected
-  "usage": {
-    "total_tokens": 15,
-    "prompt_tokens": 5,
-    "completion_tokens": 10
-  },
-  "cache_tier": "none"         // Cache status for performance tracking
-}
-```
-
-<Note>
-Adaptive returns standard OpenAI-compatible responses with additional metadata showing which provider was selected and cache status.
-</Note>
-
-## Learn More
-
-<CardGroup cols={2}>
-  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
-    Get up and running in 5 minutes with detailed setup instructions
+<CardGroup cols={3}>
+  <Card title="Transparent Routing" icon="eye">
+    Every response includes metadata showing which provider and model was selected, giving you full visibility into the routing decisions.
   </Card>
-  <Card title="Intelligent Routing" icon="brain" href="/features/intelligent-routing">
-    Learn how our AI selects the optimal model for each request
+  <Card title="OpenAI Compatible" icon="check">
+    All responses follow OpenAI format standards, ensuring seamless compatibility with existing tools and workflows.
   </Card>
-  <Card title="Cost Optimization" icon="dollar-sign" href="/features/performance">
-    Understand how we achieve 60-80% cost savings
-  </Card>
-  <Card title="API Reference" icon="book" href="/api-reference/introduction">
-    Complete API documentation with examples and parameters
+  <Card title="Enhanced Metadata" icon="info">
+    Additional insights including cache status, performance metrics, and routing rationale help you optimize your AI usage.
   </Card>
 </CardGroup>
+
+## Explore the Platform
+
+<CardGroup cols={2}>
+  <Card title="Intelligent Routing" icon="brain" href="/features/intelligent-routing">
+    Discover how our AI-powered routing engine selects the optimal model for each request
+  </Card>
+  <Card title="Performance & Caching" icon="zap" href="/features/performance">
+    Learn about our advanced caching strategies and performance optimizations
+  </Card>
+  <Card title="Provider Resiliency" icon="shield" href="/features/provider-resiliency">
+    Understand our failover mechanisms and reliability features
+  </Card>
+  <Card title="Integration Examples" icon="code" href="/examples/basic-chat">
+    See real-world examples and implementation patterns
+  </Card>
+</CardGroup>
+
+---
+
+<div className="text-center py-8">
+  <h3 className="text-2xl font-semibold text-gray-900 dark:text-zinc-50 mb-4">
+    Ready to optimize your AI infrastructure?
+  </h3>
+  <p className="text-lg text-gray-600 dark:text-zinc-400 mb-6">
+    Join thousands of developers who have already upgraded to intelligent LLM routing.
+  </p>
+  <a 
+    href="https://llmadaptive.uk/signup" 
+    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 transition-colors"
+  >
+    Get Started Free
+  </a>
+</div>

@@ -4,119 +4,80 @@ description: 'Drop-in replacement for OpenAI with intelligent routing'
 icon: "code"
 ---
 
-## Installation
+## Quick Setup
 
-Adaptive works with the official OpenAI SDK - no additional packages needed!
-
-<Tabs>
-<Tab title="npm">
-```bash
-npm install openai
-```
-</Tab>
-<Tab title="yarn">
-```bash
-yarn add openai
-```
-</Tab>
-<Tab title="pnpm">
-```bash
-pnpm add openai
-```
-</Tab>
-<Tab title="bun">
-```bash
-bun add openai
-```
-</Tab>
-</Tabs>
-
-## Basic Setup
-
-Simply change the `baseURL` in your existing OpenAI configuration:
+1. **Install the OpenAI SDK** (if you haven't already):
 
 <CodeGroup>
+```bash npm
+npm install openai
+```
 
+```bash yarn  
+yarn add openai
+```
+
+```bash pnpm
+pnpm add openai
+```
+</CodeGroup>
+
+2. **Change two lines** in your existing code:
+
+<CodeGroup>
 ```javascript JavaScript/Node.js
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: 'your-adaptive-api-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  apiKey: 'your-adaptive-api-key',        // ← Your Adaptive API key
+  baseURL: 'https://llmadaptive.uk/api/v1' // ← Only change needed
 });
 
+// Everything else works exactly the same
 const completion = await openai.chat.completions.create({
   model: '', // Leave empty for intelligent routing
-  messages: [
-    { role: 'user', content: 'Hello, world!' }
-  ],
+  messages: [{ role: 'user', content: 'Hello!' }]
 });
-
-console.log(completion.choices[0].message.content);
 ```
 
 ```python Python
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="your-adaptive-api-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    api_key="your-adaptive-api-key",        # ← Your Adaptive API key  
+    base_url="https://llmadaptive.uk/api/v1" # ← Only change needed
 )
 
+# Everything else works exactly the same
 completion = client.chat.completions.create(
-    model="",  # Leave empty for intelligent routing
-    messages=[
-        {"role": "user", "content": "Hello, world!"}
-    ]
+    model="", # Leave empty for intelligent routing
+    messages=[{"role": "user", "content": "Hello!"}]
 )
-
-print(completion.choices[0].message.content)
 ```
-
-```go Go
-package main
-
-import (
-    "context"
-    "fmt"
-    "github.com/sashabaranov/go-openai"
-)
-
-func main() {
-    config := openai.DefaultConfig("your-adaptive-api-key")
-    config.BaseURL = "https://llmadaptive.uk/api/v1"
-    client := openai.NewClientWithConfig(config)
-
-    resp, err := client.CreateChatCompletion(
-        context.Background(),
-        openai.ChatCompletionRequest{
-            Model: "", // Leave empty for intelligent routing
-            Messages: []openai.ChatCompletionMessage{
-                {
-                    Role:    openai.ChatMessageRoleUser,
-                    Content: "Hello, world!",
-                },
-            },
-        },
-    )
-
-    if err != nil {
-        fmt.Printf("Error: %v\n", err)
-        return
-    }
-
-    fmt.Println(resp.Choices[0].Message.Content)
-}
-```
-
 </CodeGroup>
 
-## Streaming Responses
+That's it! Your existing OpenAI code now uses intelligent routing.
 
-Adaptive fully supports streaming responses:
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Same API" icon="check">
+    All OpenAI methods, parameters, and responses work identically
+  </Card>
+  <Card title="Intelligent Routing" icon="brain">
+    Leave model empty ("") to automatically select the best provider
+  </Card>
+  <Card title="Streaming" icon="zap">
+    Streaming responses work exactly like OpenAI
+  </Card>
+  <Card title="Function Calling" icon="function">
+    Function calling and tools work without changes
+  </Card>
+</CardGroup>
+
+## Streaming Example
 
 <CodeGroup>
-
 ```javascript JavaScript
 const stream = await openai.chat.completions.create({
   model: '',
@@ -140,320 +101,30 @@ for chunk in stream:
     if chunk.choices[0].delta.content is not None:
         print(chunk.choices[0].delta.content, end="")
 ```
-
 </CodeGroup>
-
-## Configuration Parameters
-
-Adaptive supports all OpenAI parameters plus intelligent routing controls:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'Explain quantum computing' }],
-  
-  // Standard OpenAI parameters
-  temperature: 0.7,
-  max_completion_tokens: 1000,
-  top_p: 1,
-  frequency_penalty: 0,
-  presence_penalty: 0,
-  
-  // Adaptive intelligent routing
-  model_router: {
-    models: [
-      { provider: "openai" }, // All OpenAI models
-      { provider: "anthropic", model_name: "claude-3-sonnet-20240229" } // Specific model
-    ],
-    cost_bias: 0.3, // 0 = cheapest, 1 = best performance
-    complexity_threshold: 0.5, // Override complexity detection
-    token_threshold: 2000 // Override token threshold
-  },
-  
-  // Fallback configuration
-  fallback: {
-    enabled: true, // Enable/disable fallback (default: true)
-    mode: 'race' // 'sequential' or 'race'
-  },
-  
-  // Semantic caching for performance
-  prompt_response_cache: {
-    enabled: true,
-    semantic_threshold: 0.85 // Similarity threshold for cache hits
-  },
-  
-  // Prompt response cache for identical requests
-  prompt_cache: {
-    enabled: true,
-    ttl: 3600 // Cache duration in seconds (default: 1 hour)
-  }
-});
-```
-
-### Parameter Details
-
-#### `model_router`
-Controls intelligent model selection:
-
-- **`models`**: Array of allowed providers/models
-  - `{ provider: "openai" }` - All models from provider
-  - `{ provider: "anthropic", model_name: "claude-3-sonnet" }` - Specific model
-- **`cost_bias`**: Balance cost vs performance (0-1)
-  - `0` = Always choose cheapest option
-  - `0.5` = Balanced cost and performance  
-  - `1` = Always choose best performance
-- **`complexity_threshold`**: Override automatic complexity detection (0-1)
-- **`token_threshold`**: Override automatic token counting threshold
-
-#### `fallback`
-Controls provider fallback behavior:
-
-- **`enabled`**: Enable/disable fallback (default: true)
-- **`mode`**: Fallback strategy
-  - `"sequential"` = Try providers one by one (lower cost)
-  - `"race"` = Try multiple providers simultaneously (faster)
-
-#### `prompt_response_cache`
-Improves performance by caching similar requests:
-
-- **`enabled`**: Enable semantic caching
-- **`semantic_threshold`**: Similarity threshold (0-1) for cache hits
-  - Higher values = more strict matching
-  - Lower values = more cache hits but less accuracy
-
-#### `prompt_cache`
-Ultra-fast caching for identical requests (disabled by default):
-
-- **`enabled`**: Enable prompt response caching for this request
-- **`ttl`**: Cache duration in seconds (default: 3600, i.e., 1 hour)
-  - Provides sub-millisecond response times for repeated requests
-  - Only successful responses are cached
-
-## Function Calling
-
-Function calling works exactly like OpenAI:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [
-    { role: 'user', content: 'What\'s the weather like in Boston?' }
-  ],
-  tools: [
-    {
-      type: 'function',
-      function: {
-        name: 'get_current_weather',
-        description: 'Get the current weather in a given location',
-        parameters: {
-          type: 'object',
-          properties: {
-            location: {
-              type: 'string',
-              description: 'The city and state, e.g. San Francisco, CA',
-            },
-            unit: {
-              type: 'string',
-              enum: ['celsius', 'fahrenheit'],
-            },
-          },
-          required: ['location'],
-        },
-      },
-    },
-  ],
-});
-```
-
-## Vision Models
-
-Vision capabilities work when available in the selected model:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'What\'s in this image?' },
-        {
-          type: 'image_url',
-          image_url: {
-            url: 'https://example.com/image.jpg',
-          },
-        },
-      ],
-    },
-  ],
-});
-```
-
-## Error Handling
-
-Adaptive uses the same error format as OpenAI:
-
-```javascript
-try {
-  const completion = await openai.chat.completions.create({
-    model: '',
-    messages: [{ role: 'user', content: 'Hello!' }],
-  });
-} catch (error) {
-  if (error instanceof OpenAI.APIError) {
-    console.error('API Error:', error.status, error.message);
-  } else {
-    console.error('Unexpected error:', error);
-  }
-}
-```
-
-## Cache Tier Tracking
-
-Responses include `cache_tier` in the usage object to show if your request hit cache:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'What is 2+2?' }],
-});
-
-// Check cache tier
-console.log(completion.usage.cache_tier);
-// "semantic_exact" | "semantic_similar" | "prompt_response" | undefined
-```
-
-This helps track costs and cache performance in your analytics.
-
-## Migrating from OpenAI
-
-Migration is simple - just update two lines:
-
-```javascript
-// Before
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  // baseURL: 'https://api.openai.com/v1' // default
-});
-
-// After
-const openai = new OpenAI({
-  apiKey: process.env.ADAPTIVE_API_KEY, // New API key
-  baseURL: 'https://llmadaptive.uk/api/v1' // New base URL
-});
-
-// Everything else stays the same!
-```
-
-## Custom Providers
-
-Use custom providers alongside standard ones:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [
-    { role: 'user', content: 'Explain machine learning concepts' }
-  ],
-  
-  // Intelligent routing with custom provider
-  model_router: {
-    models: [
-      { provider: "openai" }, // Standard provider
-      { 
-        provider: "my-custom-llm", // Custom provider
-        model_name: "custom-model-v1",
-        cost_per_1m_input_tokens: 2.0,
-        cost_per_1m_output_tokens: 6.0,
-        max_context_tokens: 16000,
-        max_output_tokens: 4000,
-        supports_function_calling: true,
-        task_type: "Text Generation",
-        complexity: "medium"
-      }
-    ],
-    cost_bias: 0.5
-  },
-  
-  // Configure each custom provider
-  provider_configs: {
-    "my-custom-llm": {
-      base_url: "https://api.mycustom.com/v1",
-      api_key: "sk-custom-api-key-here",
-      auth_type: "bearer",
-      headers: {
-        "X-Custom-Header": "value"
-      },
-      timeout_ms: 45000
-    }
-  }
-});
-```
-
-## Customizing Standard Providers
-
-You can also override configuration for standard providers like OpenAI, Anthropic, etc.:
-
-```javascript
-// Use custom OpenAI endpoint or proxy
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [
-    { role: 'user', content: 'Hello from my custom endpoint!' }
-  ],
-  model_router: {
-    models: [
-      { provider: "openai" }, // Will use custom config below
-      { provider: "anthropic" }
-    ]
-  },
-  
-  // Override standard provider settings
-  provider_configs: {
-    "openai": {
-      base_url: "https://my-openai-proxy.com/v1",
-      api_key: "sk-my-custom-openai-key",
-      timeout_ms: 60000,
-      headers: {
-        "X-Proxy-Auth": "proxy-key-123"
-      }
-    },
-    "anthropic": {
-      base_url: "https://my-anthropic-proxy.com/v1", 
-      api_key: "sk-ant-custom-key",
-      timeout_ms: 45000
-    }
-  }
-});
-```
 
 ## Response Format
 
-Adaptive returns OpenAI-compatible responses with additional metadata:
+Adaptive returns standard OpenAI responses with one extra field:
 
 ```json
 {
   "id": "chatcmpl-123",
-  "object": "chat.completion",
-  "created": 1677652288,
-  "model": "",
-  "provider": "openai",  // ← Additional field
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Hello! How can I help you today?"
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 9,
-    "completion_tokens": 12,
-    "total_tokens": 21
-  }
+  "choices": [{
+    "message": {"content": "Hello! How can I help you?"}
+  }],
+  "usage": {"total_tokens": 21},
+  "provider": "gemini"  // ← Shows which provider was used
 }
 ```
 
-The `provider` field tells you which underlying provider was selected for your request.
+## Need More Control?
+
+<CardGroup cols={2}>
+  <Card title="API Reference" href="/api-reference/chat-completions" icon="book">
+    See all available parameters and options
+  </Card>
+  <Card title="Examples" href="/examples/basic-chat" icon="code">
+    Working code examples and use cases
+  </Card>
+</CardGroup>

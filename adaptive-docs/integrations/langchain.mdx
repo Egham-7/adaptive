@@ -1,305 +1,227 @@
 ---
-title: "Langchain Integration"
-description: "Connect LangChain (Python & JS) with Adaptive for intelligent routing."
-sidebarTitle: "LangChain"
+title: "LangChain"
+description: "Connect LangChain with Adaptive for intelligent routing"
 icon: "link"
 ---
 
-## Overview
+## Quick Setup
 
-Use Adaptive as your OpenAI-compatible base URL in LangChain to enable intelligent routing, streaming, and cost optimizations.
+1. **Install LangChain with OpenAI**:
 
-## Installation
-
-<Tabs>
-<Tab title="Python">
-```bash
+<CodeGroup>
+```bash Python
 pip install langchain langchain-openai
-````
+```
 
-</Tab>
-<Tab title="JavaScript">
-```bash
+```bash JavaScript/Node.js  
 npm install langchain @langchain/openai
 ```
-</Tab>
-</Tabs>
+</CodeGroup>
 
-## Quick Start
+2. **Use Adaptive as your base URL**:
 
-### Python
-
-```python
+<CodeGroup>
+```python Python
 from langchain_openai import ChatOpenAI
-llm = ChatOpenAI(api_key="ADAPTIVE_KEY", base_url="https://llmadaptive.uk/api/v1", model="")
-response = llm.invoke("Explain ML simply")
+
+llm = ChatOpenAI(
+    api_key="your-adaptive-api-key",
+    base_url="https://llmadaptive.uk/api/v1",
+    model="" # Empty string enables intelligent routing
+)
+
+response = llm.invoke("Explain machine learning simply")
 print(response.content)
 ```
 
-### JavaScript
-
-```js
+```javascript JavaScript/Node.js
 import { ChatOpenAI } from "@langchain/openai";
+
 const llm = new ChatOpenAI({
-  apiKey: "ADAPTIVE_KEY",
-  baseURL: "https://llmadaptive.uk/api/v1",
-  model: "",
+  apiKey: "your-adaptive-api-key",
+  baseURL: "https://llmadaptive.uk/api/v1", 
+  model: "" // Empty string enables intelligent routing
 });
-const res = await llm.invoke("Explain quantum computing");
-console.log(res.content);
+
+const response = await llm.invoke("Explain quantum computing");
+console.log(response.content);
+```
+</CodeGroup>
+
+That's it! Your LangChain code now uses intelligent routing.
+
+## Common Patterns
+
+### Streaming Responses
+
+<CodeGroup>
+```python Python
+for chunk in llm.stream("Tell me a story about AI"):
+    print(chunk.content, end="", flush=True)
 ```
 
-## Advanced Usage
+```javascript JavaScript
+const stream = await llm.stream("Tell me a story about AI");
+for await (const chunk of stream) {
+  process.stdout.write(chunk.content);
+}
+```
+</CodeGroup>
 
-### Streaming
+### Chains and Memory
 
-```python
-for chunk in llm.stream("Tell me a story"):
-    print(chunk.content, end="")
+<CodeGroup>
+```python Python
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+
+prompt = PromptTemplate(
+    input_variables=["topic"],
+    template="Write a brief summary about {topic}"
+)
+
+chain = LLMChain(llm=llm, prompt=prompt)
+result = chain.run(topic="artificial intelligence")
+print(result)
 ```
 
-## Configuration Parameters
+```javascript JavaScript
+import { LLMChain } from "langchain/chains";
+import { PromptTemplate } from "@langchain/core/prompts";
 
-Configure Adaptive's intelligent routing through `model_kwargs`:
+const prompt = PromptTemplate.fromTemplate(
+  "Write a brief summary about {topic}"
+);
 
-<Tabs>
-<Tab title="Python">
-```python
+const chain = new LLMChain({ llm, prompt });
+const result = await chain.call({ topic: "artificial intelligence" });
+console.log(result.text);
+```
+</CodeGroup>
+
+### Function/Tool Calling
+
+<CodeGroup>
+```python Python
+from langchain.tools import tool
+
+@tool
+def get_weather(location: str) -> str:
+    """Get the current weather for a location."""
+    return f"Weather in {location}: Sunny, 72°F"
+
+# Use with agents or tool-calling chains
+tools = [get_weather]
+# Your agent setup here...
+```
+
+```javascript JavaScript
+import { DynamicTool } from "@langchain/core/tools";
+
+const weatherTool = new DynamicTool({
+  name: "get_weather",
+  description: "Get the current weather for a location",
+  func: async (location) => {
+    return `Weather in ${location}: Sunny, 72°F`;
+  },
+});
+
+// Use with agents or tool-calling chains
+const tools = [weatherTool];
+```
+</CodeGroup>
+
+## What You Get
+
+<CardGroup cols={2}>
+  <Card title="Same LangChain API" icon="check">
+    All LangChain features work without any changes
+  </Card>
+  <Card title="Intelligent Routing" icon="brain">
+    Automatic model selection for each request
+  </Card>
+  <Card title="Cost Optimization" icon="dollar-sign">
+    Significant savings through smart provider selection
+  </Card>
+  <Card title="Provider Transparency" icon="eye">
+    See which AI provider was used in response metadata
+  </Card>
+</CardGroup>
+
+## Environment Variables
+
+<CodeGroup>
+```bash .env
+ADAPTIVE_API_KEY=your-adaptive-api-key
+```
+
+```python Python usage
+import os
+from langchain_openai import ChatOpenAI
+
 llm = ChatOpenAI(
-    api_key="ADAPTIVE_KEY",
+    api_key=os.getenv("ADAPTIVE_API_KEY"),
     base_url="https://llmadaptive.uk/api/v1",
-    model="",
-    model_kwargs={
-        # Intelligent routing configuration
-        "model_router": {
-            "models": [
-                {"provider": "openai"},  # All OpenAI models
-                {"provider": "anthropic", "model_name": "claude-3-sonnet"}  # Specific model
-            ],
-            "cost_bias": 0.2,  # 0 = cheapest, 1 = best performance
-            "complexity_threshold": 0.5,  # Override complexity detection
-            "token_threshold": 2000  # Override token threshold
-        },
-        
-        # Fallback configuration
-        "fallback": {
-            "enabled": True,  # Enable/disable fallback (default: True)
-            "mode": "race"  # 'sequential' or 'race'
-        },
-        
-        # Semantic caching
-        "prompt_response_cache": {
-            "enabled": True,
-            "semantic_threshold": 0.85  # Similarity threshold for cache hits
-        },
-        
-        # Prompt response cache for identical requests
-        "prompt_cache": {
-            "enabled": True,
-            "ttl": 3600  # Cache duration in seconds (default: 1 hour)
-        }
-    }
+    model=""
 )
 ```
-</Tab>
-<Tab title="JavaScript">
-```js
+
+```javascript JavaScript usage
+import { ChatOpenAI } from "@langchain/openai";
+
 const llm = new ChatOpenAI({
-  apiKey: "ADAPTIVE_KEY",
+  apiKey: process.env.ADAPTIVE_API_KEY,
   baseURL: "https://llmadaptive.uk/api/v1",
-  model: "",
-  modelKwargs: {
-    // Intelligent routing configuration
-    model_router: {
-      models: [
-        { provider: "openai" },  // All OpenAI models
-        { provider: "anthropic", model_name: "claude-3-sonnet" }  // Specific model
-      ],
-      cost_bias: 0.2,  // 0 = cheapest, 1 = best performance
-      complexity_threshold: 0.5,  // Override complexity detection
-      token_threshold: 2000  // Override token threshold
-    },
-    
-    // Fallback configuration
-    fallback: {
-      enabled: true,  // Enable/disable fallback (default: true)
-      mode: "race"  // 'sequential' or 'race'
-    },
-    
-    // Semantic caching
-    prompt_response_cache: {
-      enabled: true,
-      semantic_threshold: 0.85  // Similarity threshold for cache hits
-    },
-    
-    // Prompt response cache for identical requests
-    prompt_cache: {
-      enabled: true,
-      ttl: 3600  // Cache duration in seconds (default: 1 hour)
-    }
-  }
+  model: ""
 });
 ```
-</Tab>
-</Tabs>
+</CodeGroup>
 
-### Parameter Details
+## Migration from OpenAI
 
-#### `model_router`
-Controls intelligent model selection:
+Simply change your base URL - everything else stays the same:
 
-- **`models`**: Array of allowed providers/models
-  - `{"provider": "openai"}` - All models from provider
-  - `{"provider": "anthropic", "model_name": "claude-3-sonnet"}` - Specific model
-- **`cost_bias`**: Balance cost vs performance (0-1)
-  - `0` = Always choose cheapest option
-  - `0.5` = Balanced cost and performance  
-  - `1` = Always choose best performance
-- **`complexity_threshold`**: Override automatic complexity detection (0-1)  
-- **`token_threshold`**: Override automatic token counting threshold
-
-#### `fallback`
-Controls provider fallback behavior:
-
-- **`enabled`**: Enable/disable fallback (default: true)
-- **`mode`**: Fallback strategy
-  - `"sequential"` = Try providers one by one (lower cost)
-  - `"race"` = Try multiple providers simultaneously (faster)
-
-#### `prompt_response_cache`
-Improves performance by caching similar requests:
-
-- **`enabled`**: Enable semantic caching
-- **`semantic_threshold`**: Similarity threshold (0-1) for cache hits
-  - Higher values = more strict matching
-  - Lower values = more cache hits but less accuracy
-
-#### `prompt_cache`
-Ultra-fast caching for identical requests (disabled by default):
-
-- **`enabled`**: Enable prompt response caching for this request
-- **`ttl`**: Cache duration in seconds (default: 3600, i.e., 1 hour)
-  - Provides sub-millisecond response times for repeated requests
-  - Only successful responses are cached
-
-## Custom Providers
-
-You can configure custom providers alongside standard ones:
-
-<Tabs>
-<Tab title="Python">
-```python
+<CodeGroup>
+```python Before/After (Python)
+# Before
 llm = ChatOpenAI(
-    api_key="ADAPTIVE_KEY",
-    base_url="https://llmadaptive.uk/api/v1",
-    model="",
-    model_kwargs={
-        # Include custom provider in model list
-        "model_router": {
-            "models": [
-                {"provider": "openai"},  # Standard provider
-                {
-                    "provider": "my-custom-llm",  # Custom provider
-                    "model_name": "custom-model-v1",
-                    "cost_per_1m_input_tokens": 2.0,
-                    "cost_per_1m_output_tokens": 6.0,
-                    "max_context_tokens": 16000,
-                    "max_output_tokens": 4000,
-                    "supports_function_calling": True,
-                    "task_type": "Text Generation",
-                    "complexity": "medium"
-                }
-            ],
-            "cost_bias": 0.5
-        },
-        
-        # Configure each custom provider
-        "provider_configs": {
-            "my-custom-llm": {
-                "base_url": "https://api.mycustom.com/v1",
-                "api_key": "sk-custom-api-key-here",
-                "auth_type": "bearer",
-                "headers": {
-                    "X-Custom-Header": "value"
-                },
-                "timeout_ms": 45000
-            }
-    }
+    api_key="sk-openai-key",
+    # base_url defaults to OpenAI
+    model="gpt-4"
+)
+
+# After  
+llm = ChatOpenAI(
+    api_key="your-adaptive-api-key",     # ← New API key
+    base_url="https://llmadaptive.uk/api/v1", # ← Add this line
+    model=""  # ← Empty for intelligent routing
 )
 ```
-</Tab>
-<Tab title="JavaScript">
-```js
+
+```javascript Before/After (JavaScript)
+// Before
 const llm = new ChatOpenAI({
-  apiKey: "ADAPTIVE_KEY",
-  baseURL: "https://llmadaptive.uk/api/v1",
-  model: "",
-  modelKwargs: {
-    // Include custom provider in model list
-    model_router: {
-      models: [
-        { provider: "openai" },  // Standard provider
-        {
-          provider: "my-custom-llm",  // Custom provider
-          model_name: "custom-model-v1",
-          cost_per_1m_input_tokens: 2.0,
-          cost_per_1m_output_tokens: 6.0,
-          max_context_tokens: 16000,
-          max_output_tokens: 4000,
-          supports_function_calling: true,
-          task_type: "Text Generation",
-          complexity: "medium"
-        }
-      ],
-      cost_bias: 0.5
-    },
-    
-    // Required: Configuration for each custom provider (top-level)
-    provider_configs: {
-      "my-custom-llm": {
-        base_url: "https://api.mycustom.com/v1",
-        api_key: "sk-custom-api-key-here",
-        auth_type: "bearer",
-        headers: {
-          "X-Custom-Header": "value"
-        },
-        timeout_ms: 45000
-      }
-  }
+  apiKey: "sk-openai-key",
+  // baseURL defaults to OpenAI
+  model: "gpt-4"
+});
+
+// After
+const llm = new ChatOpenAI({
+  apiKey: "your-adaptive-api-key",        // ← New API key
+  baseURL: "https://llmadaptive.uk/api/v1", // ← Add this line  
+  model: ""  // ← Empty for intelligent routing
 });
 ```
-</Tab>
-</Tabs>
+</CodeGroup>
 
-## Cache Tier Tracking
+## Next Steps
 
-LangChain responses include cache information:
-
-```python
-response = llm.invoke("Hello world")
-print(response.usage_metadata.get('cache_tier'))
-# "semantic_exact" | "semantic_similar" | "prompt_response" | None
-```
-
-## Extras
-
-- **Function calling**, **tools**, **chains**, **memory** support — works out of the box.
-- For embeddings, use OpenAI's API (embeddings coming soon!).
-
-## Migration
-
-Simply switch:
-
-```diff
-- model=""
-+ model=""           # for Adaptive
-```
-
-## Best Practices
-
-| Tip                            | Description                           |
-| ------------------------------ | ------------------------------------- |
-| **Leave `model=""`**           | Enables intelligent routing           |
-| **Use `model_router`** | Controls routing behavior and providers |
-| **Handle errors**              | Wrap calls in try/catch or retries    |
-
+<CardGroup cols={2}>
+  <Card title="More Examples" href="/examples/basic-chat" icon="code">
+    See complete working examples with LangChain
+  </Card>
+  <Card title="API Reference" href="/api-reference/chat-completions" icon="book">
+    Explore all available options and parameters
+  </Card>
+</CardGroup>

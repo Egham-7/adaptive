@@ -4,36 +4,98 @@ description: "Automatic model selection for optimal cost and performance"
 icon: "route"
 ---
 
-Adaptive analyzes your requests and automatically routes to the best model. Set `model: ""` to enable intelligent routing.
+Adaptive's AI-powered routing engine analyzes every request and automatically selects the optimal model from multiple providers based on complexity, cost, and performance requirements.
 
-## Quick Examples
+## How It Works
 
-```javascript
-// Automatic routing (recommended)
-const completion = await openai.chat.completions.create({
-  model: "", // Let Adaptive choose
-  messages: [{ role: "user", content: "Hello!" }]
-});
-```
+<Steps>
+  <Step title="Request Analysis">
+    Our ML models analyze your prompt's complexity, length, and requirements in real-time
+  </Step>
+  <Step title="Provider Selection">
+    The routing engine considers available providers, costs, and performance metrics
+  </Step>
+  <Step title="Optimal Match">
+    The best model is selected and your request is routed automatically
+  </Step>
+  <Step title="Response Delivery">
+    You receive a standard response with metadata showing which provider was used
+  </Step>
+</Steps>
 
-## Routing Results
+## Quick Start
 
-- **Simple Q&A** → gpt-4o-mini (92% cost savings)
-- **Code Generation** → deepseek-chat (78% cost savings)  
-- **Creative Writing** → grok-3 (65% cost savings)
-
-## Configuration
-
-### Cost vs Performance
+Simply leave the model field empty to enable intelligent routing:
 
 <CodeGroup>
+```javascript JavaScript/Node.js
+const completion = await openai.chat.completions.create({
+  model: "", // Empty enables intelligent routing
+  messages: [{ role: "user", content: "Hello!" }]
+});
 
-```javascript JavaScript
+console.log(`Used provider: ${completion.provider}`);
+```
+
+```python Python
+completion = client.chat.completions.create(
+    model="", # Empty enables intelligent routing
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+print(f"Used provider: {completion.provider}")
+```
+
+```bash cURL
+curl https://llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+</CodeGroup>
+
+## Real Examples
+
+<CardGroup cols={3}>
+  <Card title="Simple Greeting" icon="message">
+    **"Hello, how are you?"**
+    
+    Routes to: Gemini Flash  
+    Cost: **$0.10** per 1M tokens  
+    Savings: **97%** vs GPT-4
+  </Card>
+  <Card title="Code Generation" icon="code">
+    **"Write a React component..."**
+    
+    Routes to: DeepSeek Coder  
+    Cost: **$0.34** per 1M tokens  
+    Savings: **87%** vs GPT-4
+  </Card>
+  <Card title="Complex Analysis" icon="brain">
+    **"Analyze this dataset..."**
+    
+    Routes to: Claude Sonnet  
+    Cost: **$2.19** per 1M tokens  
+    Savings: **72%** vs GPT-4
+  </Card>
+</CardGroup>
+
+## Configuration Options
+
+### Control Cost vs Performance
+
+Balance between cost savings and response quality:
+
+<CodeGroup>
+```javascript JavaScript/Node.js
 const completion = await openai.chat.completions.create({
   model: "",
-  messages: [{ role: "user", content: "Hello" }],
+  messages: [{ role: "user", content: "Explain quantum physics" }],
   model_router: {
-    cost_bias: 0.2 // 0 = cheapest, 1 = best performance
+    cost_bias: 0.3 // 0 = cheapest, 0.5 = balanced, 1 = best performance
   }
 });
 ```
@@ -41,40 +103,27 @@ const completion = await openai.chat.completions.create({
 ```python Python
 completion = client.chat.completions.create(
     model="",
-    messages=[{"role": "user", "content": "Hello"}],
+    messages=[{"role": "user", "content": "Explain quantum physics"}],
     model_router={
-        "cost_bias": 0.2  # 0 = cheapest, 1 = best performance
+        "cost_bias": 0.3  # 0 = cheapest, 0.5 = balanced, 1 = best performance
     }
 )
 ```
-
-```bash cURL
-curl https://llmadaptive.uk/api/v1/chat/completions \
-  -H "X-Stainless-API-Key: your-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "model_router": {
-      "cost_bias": 0.2
-    }
-  }'
-```
-
 </CodeGroup>
 
-### Limit Providers
+### Limit Available Providers
+
+Restrict routing to specific providers or models:
 
 <CodeGroup>
-
-```javascript JavaScript
+```javascript JavaScript/Node.js
 const completion = await openai.chat.completions.create({
   model: "",
-  messages: [{ role: "user", content: "Hello" }],
+  messages: [{ role: "user", content: "Write a story" }],
   model_router: {
     models: [
-      { provider: "openai" },
-      { provider: "anthropic", model_name: "claude-3-sonnet" }
+      { provider: "openai" }, // All OpenAI models
+      { provider: "anthropic", model_name: "claude-3-sonnet" } // Specific model
     ]
   }
 });
@@ -83,123 +132,140 @@ const completion = await openai.chat.completions.create({
 ```python Python
 completion = client.chat.completions.create(
     model="",
-    messages=[{"role": "user", "content": "Hello"}],
+    messages=[{"role": "user", "content": "Write a story"}],
     model_router={
         "models": [
-            {"provider": "openai"},
-            {"provider": "anthropic", "model_name": "claude-3-sonnet"}
+            {"provider": "openai"},  # All OpenAI models
+            {"provider": "anthropic", "model_name": "claude-3-sonnet"}  # Specific model
         ]
     }
 )
 ```
-
-```bash cURL
-curl https://llmadaptive.uk/api/v1/chat/completions \
-  -H "X-Stainless-API-Key: your-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "model_router": {
-      "models": [
-        {"provider": "openai"},
-        {"provider": "anthropic", "model_name": "claude-3-sonnet"}
-      ]
-    }
-  }'
-```
-
 </CodeGroup>
 
-## Performance
+## Routing Performance
 
-- 94% accuracy in model selection
-- Under 1ms model selection
-- 99.9% uptime
-
-## Response Format
-
-```json
-{
-  "model": "",
-  "provider": "openai", // Shows selected provider
-  "choices": [...],
-  "usage": {...}
-}
-```
+<CardGroup cols={3}>
+  <Card title="Accuracy" icon="target">
+    **94%** accurate model selection based on prompt analysis
+  </Card>
+  <Card title="Speed" icon="zap">
+    **<1ms** routing decision time with zero added latency
+  </Card>
+  <Card title="Reliability" icon="shield-check">
+    **99.9%** uptime with automatic failover mechanisms
+  </Card>
+</CardGroup>
 
 ## Preview Routing Decisions
 
-Want to see which model Adaptive would choose before running the completion? Use the [Select Model endpoint](/api-reference/select-model):
+Want to see which model would be selected before making the request? Use our model selection preview:
 
 <CodeGroup>
-
-```javascript JavaScript
-// Preview what model would be selected
-const selection = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+```javascript JavaScript/Node.js
+// Preview which model would be selected
+const response = await fetch('https://llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 
-    'Content-Type': 'application/json',
-    'X-Stainless-API-Key': 'your-key' 
+    'Authorization': 'Bearer your-adaptive-key',
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
+    prompt: 'Complex data analysis task',
     models: [
       { provider: 'openai' },
       { provider: 'anthropic' },
       { provider: 'deepseek' }
     ],
-    prompt: 'Complex analysis task',
-    cost_bias: 0.8
+    cost_bias: 0.5
   })
 });
 
-const result = await selection.json();
+const result = await response.json();
 console.log(`Would select: ${result.provider}/${result.model}`);
+console.log(`Estimated cost: $${result.estimated_cost} per 1M tokens`);
 ```
 
 ```python Python
 import requests
 
-# Preview what model would be selected
+# Preview which model would be selected
 response = requests.post(
     'https://llmadaptive.uk/api/v1/select-model',
-    headers={'X-Stainless-API-Key': 'your-key'},
+    headers={'Authorization': 'Bearer your-adaptive-key'},
     json={
+        'prompt': 'Complex data analysis task',
         'models': [
             {'provider': 'openai'},
             {'provider': 'anthropic'},
             {'provider': 'deepseek'}
         ],
-        'prompt': 'Complex analysis task',
-        'cost_bias': 0.8
+        'cost_bias': 0.5
     }
 )
 
 result = response.json()
 print(f"Would select: {result['provider']}/{result['model']}")
+print(f"Estimated cost: ${result['estimated_cost']} per 1M tokens")
 ```
-
-```bash cURL
-curl https://llmadaptive.uk/api/v1/select-model \
-  -H "X-Stainless-API-Key: your-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "models": [
-      {"provider": "openai"},
-      {"provider": "anthropic"},
-      {"provider": "deepseek"}
-    ],
-    "prompt": "Complex analysis task",
-    "cost_bias": 0.8
-  }'
-```
-
 </CodeGroup>
 
-Perfect for:
-- **Testing routing decisions** before implementing
-- **Using your own provider accounts** with intelligent selection
-- **On-premise inference** with cloud-quality routing decisions
-- **Enterprise contracts** optimization
-- **Data privacy** scenarios where you need local inference
+## Response Metadata
 
+Every response includes routing information:
+
+```json
+{
+  "id": "chatcmpl-abc123",
+  "choices": [{
+    "message": {"content": "Hello! How can I help you today?"}
+  }],
+  "usage": {
+    "prompt_tokens": 9,
+    "completion_tokens": 12,
+    "total_tokens": 21
+  },
+  "provider": "gemini",     // Which provider was selected
+  "model": "gemini-flash",  // Specific model used
+  "routing_reason": "cost_optimized", // Why this model was chosen
+  "cache_tier": "none"      // Cache status
+}
+```
+
+## Advanced Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Enterprise Optimization" icon="building">
+    **Custom provider contracts**: Use intelligent routing with your own API keys and enterprise pricing
+  </Card>
+  <Card title="Local Deployment" icon="server">
+    **On-premise inference**: Get cloud-quality routing decisions for local model deployments
+  </Card>
+  <Card title="A/B Testing" icon="flask">
+    **Model comparison**: Preview different routing strategies before implementing them
+  </Card>
+  <Card title="Cost Monitoring" icon="chart-line">
+    **Budget control**: Set cost thresholds and optimize spending automatically
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Note>
+**Tip**: Start with `cost_bias: 0.3` for most applications. This provides excellent cost savings while maintaining high quality responses.
+</Note>
+
+<Warning>
+**Important**: Always handle the case where no suitable model is found. The API will return an error with suggested alternatives.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Performance Features" href="/features/performance" icon="zap">
+    Learn about caching and performance optimizations
+  </Card>
+  <Card title="Provider Resiliency" href="/features/provider-resiliency" icon="shield">
+    Understand our failover and reliability features
+  </Card>
+</CardGroup>
