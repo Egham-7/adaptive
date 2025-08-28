@@ -14,6 +14,7 @@ from .llm_classification_models import ClassificationResult
 from .llm_core_models import (
     ModelCapability,
     ModelEntry,
+    ModelRouterConfig,
     ModelSelectionConfig,
     ModelSelectionRequest,
     TaskModelMapping,
@@ -42,6 +43,7 @@ __all__ = [
     # Core Models
     "ModelCapability",
     "ModelEntry",
+    "ModelRouterConfig",
     "ModelSelectionConfig",
     "ModelSelectionRequest",
     # Orchestration Models

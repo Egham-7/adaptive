@@ -25,7 +25,7 @@ type HealthService struct {
 type HealthStatus struct {
 	Service   string    `json:"service"`
 	Healthy   bool      `json:"healthy"`
-	Error     string    `json:"error,omitempty"`
+	Error     string    `json:"error,omitzero"`
 	CheckedAt time.Time `json:"checked_at"`
 }
 
@@ -33,7 +33,7 @@ type HealthStatus struct {
 type OverallHealth struct {
 	Healthy  bool           `json:"healthy"`
 	Services []HealthStatus `json:"services"`
-	Message  string         `json:"message,omitempty"`
+	Message  string         `json:"message,omitzero"`
 }
 
 // NewHealthService creates a new health service with extended timeouts for model loading

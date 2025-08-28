@@ -1,4 +1,8 @@
+import { useId } from "react";
+
 export function ProviderDownloadChart() {
+	const gradientId = useId();
+	const clipPathId = useId();
 	return (
 		<svg
 			className="w-full dark:text-muted-foreground"
@@ -9,7 +13,7 @@ export function ProviderDownloadChart() {
 			aria-label="Provider download statistics chart"
 		>
 			<rect width="386" height="123" rx="10" />
-			<g clipPath="url(#clip0_0_106)">
+			<g clipPath={`url(#${clipPathId})`}>
 				<circle
 					className="text-muted-foreground dark:text-muted"
 					cx="29"
@@ -44,7 +48,7 @@ export function ProviderDownloadChart() {
 				fillRule="evenodd"
 				clipRule="evenodd"
 				d="M3 123C3 123 14.3298 94.153 35.1282 88.0957C55.9266 82.0384 65.9333 80.5508 65.9333 80.5508C65.9333 80.5508 80.699 80.5508 92.1777 80.5508C103.656 80.5508 100.887 63.5348 109.06 63.5348C117.233 63.5348 117.217 91.9728 124.78 91.9728C132.343 91.9728 142.264 78.03 153.831 80.5508C165.398 83.0716 186.825 91.9728 193.761 91.9728C200.697 91.9728 206.296 63.5348 214.07 63.5348C221.844 63.5348 238.653 93.7771 244.234 91.9728C249.814 90.1684 258.8 60 266.19 60C272.075 60 284.1 88.057 286.678 88.0957C294.762 88.2171 300.192 72.9284 305.423 72.9284C312.323 72.9284 323.377 65.2437 335.553 63.5348C347.729 61.8259 348.218 82.07 363.639 80.5508C367.875 80.1335 372.949 82.2017 376.437 87.1008C379.446 91.3274 381.054 97.4325 382.521 104.647C383.479 109.364 382.521 123 382.521 123"
-				fill="url(#paint0_linear_0_106)"
+				fill={`url(#${gradientId})`}
 			/>
 			<path
 				className="text-primary-600 dark:text-primary-500"
@@ -54,7 +58,7 @@ export function ProviderDownloadChart() {
 			/>
 			<defs>
 				<linearGradient
-					id="paint0_linear_0_106"
+					id={gradientId}
 					x1="3"
 					y1="60"
 					x2="3"
@@ -72,7 +76,7 @@ export function ProviderDownloadChart() {
 						stopOpacity="0.103775"
 					/>
 				</linearGradient>
-				<clipPath id="clip0_0_106">
+				<clipPath id={clipPathId}>
 					<rect
 						width="358"
 						height="30"

@@ -1,22 +1,34 @@
 package models
 
-import "github.com/anthropics/anthropic-sdk-go"
+import (
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/packages/param"
+)
 
-// AnthropicMessageRequest extends anthropic.MessageNewParams with our custom fields
+// AnthropicMessageRequest uses individual fields from anthropic.MessageNewParams with our custom fields
 type AnthropicMessageRequest struct {
-	anthropic.MessageNewParams
+	// Core Anthropic Messages API fields (from anthropic.MessageNewParams)
+	MaxTokens     int64                                 `json:"max_tokens,omitzero"`
+	Messages      []anthropic.MessageParam              `json:"messages"`
+	Model         anthropic.Model                       `json:"model"`
+	Temperature   param.Opt[float64]                    `json:"temperature,omitzero"`
+	TopK          param.Opt[int64]                      `json:"top_k,omitzero"`
+	TopP          param.Opt[float64]                    `json:"top_p,omitzero"`
+	Metadata      anthropic.MetadataParam               `json:"metadata,omitzero"`
+	ServiceTier   anthropic.MessageNewParamsServiceTier `json:"service_tier,omitzero"`
+	StopSequences []string                              `json:"stop_sequences,omitzero"`
+	System        []anthropic.TextBlockParam            `json:"system,omitzero"`
+	Stream        *bool                                 `json:"stream,omitzero"`
+	Thinking      anthropic.ThinkingConfigParamUnion    `json:"thinking,omitzero"`
+	ToolChoice    anthropic.ToolChoiceUnionParam        `json:"tool_choice,omitzero"`
+	Tools         []anthropic.ToolUnionParam            `json:"tools,omitzero"`
 
 	// Custom fields for our internal processing
-	ModelRouterConfig   *ModelRouterConfig         `json:"model_router,omitempty"`
-	PromptResponseCache *CacheConfig               `json:"prompt_response_cache,omitempty"` // Optional prompt response cache configuration
-	PromptCache         *PromptCacheConfig         `json:"prompt_cache,omitempty"`          // Optional prompt response cache configuration
-	Fallback            *FallbackConfig            `json:"fallback,omitempty"`              // Fallback configuration with enabled toggle
-	ProviderConfigs     map[string]*ProviderConfig `json:"provider_configs,omitempty"`      // Custom provider configurations by provider name
-}
-
-// ToAnthropicParams converts AnthropicMessageRequest to Anthropic's MessageNewParams
-func (r *AnthropicMessageRequest) ToAnthropicParams() *anthropic.MessageNewParams {
-	return &r.MessageNewParams
+	ModelRouterConfig   *ModelRouterConfig         `json:"model_router,omitzero"`
+	PromptResponseCache *CacheConfig               `json:"prompt_response_cache,omitzero"` // Optional prompt response cache configuration
+	PromptCache         *PromptCacheConfig         `json:"prompt_cache,omitzero"`          // Optional prompt response cache configuration
+	Fallback            *FallbackConfig            `json:"fallback,omitzero"`              // Fallback configuration with enabled toggle
+	ProviderConfigs     map[string]*ProviderConfig `json:"provider_configs,omitzero"`      // Custom provider configurations by provider name
 }
 
 // AdaptiveAnthropicUsage extends Anthropic's Usage with cache tier information
@@ -40,16 +52,20 @@ type AnthropicMessage struct {
 	StopSequence string                        `json:"stop_sequence"`
 	Type         string                        `json:"type"`
 	Usage        AdaptiveAnthropicUsage        `json:"usage"`
-	Provider     string                        `json:"provider,omitempty"`
+	Provider     string                        `json:"provider,omitzero"`
 }
 
-// AnthropicMessageChunk extends Anthropic's MessageStreamEventUnion with enhanced usage and provider info
+// AnthropicMessageChunk matches Anthropic's streaming format exactly, with our provider extension
 type AnthropicMessageChunk struct {
-	Type         string                                             `json:"type"`
-	Message      *AnthropicMessage                                  `json:"message,omitempty"`
-	Delta        *anthropic.MessageStreamEventUnionDelta            `json:"delta,omitempty"`
-	Usage        *AdaptiveAnthropicUsage                            `json:"usage,omitempty"`
-	ContentBlock *anthropic.ContentBlockStartEventContentBlockUnion `json:"content_block,omitempty"`
-	Index        *int64                                             `json:"index,omitempty"`
-	Provider     string                                             `json:"provider,omitempty"`
+	Type string `json:"type"`
+
+	// Fields for different event types - only populated based on event type
+	Message      *AnthropicMessage                                  `json:"message,omitzero"`       // message_start only
+	Delta        *anthropic.MessageStreamEventUnionDelta            `json:"delta,omitzero"`         // content_block_delta, message_delta
+	Usage        *AdaptiveAnthropicUsage                            `json:"usage,omitzero"`         // message_delta only
+	ContentBlock *anthropic.ContentBlockStartEventContentBlockUnion `json:"content_block,omitzero"` // content_block_start only
+	Index        *int64                                             `json:"index,omitzero"`         // content_block_start, content_block_delta, content_block_stop
+
+	// Adaptive-specific fields (not in official Anthropic format) - omit from external API
+	Provider string `json:"provider,omitzero"` // Keep this for internal tracking, but it will be omitted when empty
 }

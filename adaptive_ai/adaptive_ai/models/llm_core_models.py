@@ -3,9 +3,6 @@
 
 from typing import Any
 
-from openai.types.chat import (
-    CompletionCreateParams,
-)
 from pydantic import BaseModel, Field
 
 from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskModelEntry
@@ -39,8 +36,8 @@ class ModelCapability(BaseModel):
     complexity: str | None = Field(None, alias="complexity")  # "easy", "medium", "hard"
 
 
-class ProtocolManagerConfig(BaseModel):
-    """Configuration for the protocol manager"""
+class ModelRouterConfig(BaseModel):
+    """Configuration for the model router"""
 
     models: list[ModelCapability] | None = None
     cost_bias: float | None = None
@@ -67,13 +64,17 @@ class ModelSelectionConfig(BaseModel):
 
 class ModelSelectionRequest(BaseModel):
     """
-    Model selection request that contains OpenAI's CompletionCreateParams
-    plus our custom model selection parameters.
+    Model selection request that contains the prompt and context information
+    needed for intelligent model routing, including tool usage detection.
     """
 
-    # The OpenAI chat completion request
-    chat_completion_request: CompletionCreateParams
+    # The user prompt to analyze
+    prompt: str
+
+    # Tool-related fields for function calling detection
+    tool_call: dict[str, Any] | None = None  # Current tool call being made
+    tools: list[dict[str, Any]] | None = None  # Available tool definitions
 
     # Our custom parameters for model selection
     user_id: str | None = None
-    protocol_manager_config: ProtocolManagerConfig | None = None
+    model_router: ModelRouterConfig | None = None

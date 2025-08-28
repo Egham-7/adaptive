@@ -1,283 +1,209 @@
 ---
-title: '5-Minute Success: From $1000/month to $200/month'
-description: 'Replace one line of code and start saving immediately'
+title: 'Quickstart'
+description: 'Get started with Adaptive in under 5 minutes'
 icon: "rocket"
 ---
 
-<div style={{textAlign: 'center', margin: '2rem 0', padding: '1.5rem', border: '2px solid #d4af37', borderRadius: '8px', background: 'linear-gradient(135deg, #fdf6e3 0%, #f7f1d3 100%)'}}>
-  <div style={{fontSize: '1.8rem', fontWeight: 'bold', color: '#d4af37', marginBottom: '0.5rem'}}>
-    ⚡ 5-Minute Success Path
-  </div>
-  <div style={{fontSize: '1rem', color: '#666'}}>
-    One URL change → Instant 60-80% savings → Same quality responses
-  </div>
-</div>
+Get started with Adaptive by changing one line of code. No complex setup required.
 
-## Step 1: Copy This URL (30 seconds)
-
-Replace your OpenAI base URL with this single line:
-
-```
-https://llmadaptive.uk/api/v1
-```
-
-**That's literally it.** Your existing code works immediately.
-
----
-
-## Step 2: Get Your Free API Key (2 minutes)
+## Step 1: Get Your API Key
 
 <Steps>
-  <Step title="Sign Up Free">
-    Visit [llmadaptive.uk](https://llmadaptive.uk) (no credit card required)
+  <Step title="Sign Up">
+    Create a free account at [llmadaptive.uk](https://llmadaptive.uk)
   </Step>
   <Step title="Generate Key">
-    Click "Generate API Key" → Copy your key
-  </Step>
-  <Step title="You're Done">
-    Total time: 2 minutes
+    Generate your API key from the dashboard
   </Step>
 </Steps>
 
----
-
-## Step 3: Update Your Code (1 minute)
+## Step 2: Choose Your SDK
 
 <Tabs>
-<Tab title="JavaScript/TypeScript">
-```javascript Before → After
-// Before: Expensive
-const openai = new OpenAI({
-  apiKey: 'sk-your-openai-key',
-  baseURL: 'https://api.openai.com/v1'        // ❌
+<Tab title="OpenAI SDK">
+```javascript
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: 'your-adaptive-api-key',
+  baseURL: 'https://llmadaptive.uk/api/v1'
 });
 
-// After: Smart & Cheap  
-const openai = new OpenAI({
-  apiKey: 'your-adaptive-key',                // ✅ Your new key
-  baseURL: 'https://llmadaptive.uk/api/v1'   // ✅ Only change needed
-});
-
-// Everything else stays exactly the same
-const response = await openai.chat.completions.create({
-  model: '',  // ← Leave empty for intelligent routing
+const response = await client.chat.completions.create({
+  model: '', // Leave empty for intelligent routing
   messages: [{ role: 'user', content: 'Hello!' }]
 });
 ```
-</Tab>
-<Tab title="Python">
-```python Before → After
-# Before: Expensive
+
+```python
+from openai import OpenAI
+
 client = OpenAI(
-    api_key="sk-your-openai-key",
-    base_url="https://api.openai.com/v1"      # ❌
+    api_key="your-adaptive-api-key",
+    base_url="https://llmadaptive.uk/api/v1"
 )
 
-# After: Smart & Cheap
-client = OpenAI(
-    api_key="your-adaptive-key",              # ✅ Your new key
-    base_url="https://llmadaptive.uk/api/v1"  # ✅ Only change needed
-)
-
-# Everything else stays exactly the same
 response = client.chat.completions.create(
-    model="",  # ← Leave empty for intelligent routing
+    model="", # Leave empty for intelligent routing
     messages=[{"role": "user", "content": "Hello!"}]
 )
 ```
 </Tab>
-<Tab title="cURL">
-```bash Before → After
-# Before: Expensive
-curl https://api.openai.com/v1/chat/completions \  # ❌
-  -H "Authorization: Bearer sk-your-openai-key" \
-  -d '{"model": "gpt-4", "messages": [...]}'
 
-# After: Smart & Cheap
-curl https://llmadaptive.uk/api/v1/chat/completions \  # ✅
-  -H "X-Stainless-API-Key: your-adaptive-key" \
-  -d '{"model": "", "messages": [...]}'  # ← Empty model for routing
+<Tab title="Anthropic SDK">
+```javascript
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  apiKey: 'your-adaptive-api-key',
+  baseURL: 'https://llmadaptive.uk/api/v1'
+});
+
+const response = await client.messages.create({
+  model: '', // Leave empty for intelligent routing
+  max_tokens: 1000,
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(
+    api_key="your-adaptive-api-key",
+    base_url="https://llmadaptive.uk/api/v1"
+)
+
+response = client.messages.create(
+    model="", # Leave empty for intelligent routing
+    max_tokens=1000,
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+</Tab>
+
+<Tab title="Vercel AI SDK">
+```javascript
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: openai('', {
+    baseURL: 'https://llmadaptive.uk/api/v1',
+    apiKey: 'your-adaptive-api-key'
+  }),
+  prompt: 'Hello!'
+});
+```
+
+```javascript Streaming
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const { textStream } = await streamText({
+  model: openai('', {
+    baseURL: 'https://llmadaptive.uk/api/v1',
+    apiKey: 'your-adaptive-api-key'
+  }),
+  prompt: 'Write a story about AI'
+});
+
+for await (const delta of textStream) {
+  process.stdout.write(delta);
+}
+```
+</Tab>
+
+<Tab title="LangChain">
+```javascript
+import { ChatOpenAI } from '@langchain/openai';
+
+const model = new ChatOpenAI({
+  openAIApiKey: 'your-adaptive-api-key',
+  configuration: {
+    baseURL: 'https://llmadaptive.uk/api/v1'
+  },
+  modelName: '' // Leave empty for intelligent routing
+});
+
+const response = await model.invoke('Hello!');
+```
+
+```python
+from langchain_openai import ChatOpenAI
+
+model = ChatOpenAI(
+    openai_api_key="your-adaptive-api-key",
+    openai_api_base="https://llmadaptive.uk/api/v1",
+    model_name="" # Leave empty for intelligent routing
+)
+
+response = model.invoke("Hello!")
+```
+</Tab>
+
+<Tab title="cURL">
+```bash
+curl https://llmadaptive.uk/api/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-adaptive-api-key" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
 ```
 </Tab>
 </Tabs>
 
----
+## Key Features
 
-## Step 4: Test & See Immediate Savings (2 minutes)
+<CardGroup cols={2}>
+  <Card title="Intelligent Routing" icon="brain">
+    Leave `model` empty and let our AI choose the optimal provider for your request
+  </Card>
+  <Card title="Cost Savings" icon="dollar-sign">
+    Save 60-80% on AI costs with automatic model selection
+  </Card>
+  <Card title="6+ Providers" icon="network-wired">
+    Access OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok
+  </Card>
+  <Card title="Drop-in Replacement" icon="plug">
+    Works with existing OpenAI and Anthropic SDK code
+  </Card>
+</CardGroup>
 
-Run your code and watch the magic happen:
+## Example Response
 
-```json Response shows which provider was chosen
+```json
 {
   "id": "chatcmpl-abc123",
   "choices": [{
     "message": {"content": "Hello! I'm ready to help."}
   }],
-  "provider": "gemini",     // ← Adaptive chose Gemini (97% cheaper!)
+  "provider": "gemini",
   "usage": {
-    "total_tokens": 15,
-    "cache_tier": "none"    // ← Cache status for performance tracking
+    "total_tokens": 15
   }
 }
 ```
 
 <Note>
-**Success!** You just made your first intelligent API call. Simple questions automatically route to cheap models like Gemini Flash, while complex tasks use premium models when needed.
+Adaptive returns standard OpenAI-compatible responses with additional metadata like `provider` to show which model was selected.
 </Note>
 
----
-
-## Your Immediate Benefits
+## Next Steps
 
 <CardGroup cols={2}>
-  <Card title="💰 Instant Savings" icon="dollar-sign">
-    **60-80% cost reduction** from your very first API call
-    
-    Simple chat: $3.00 → $0.10 per 1M tokens
+  <Card title="Features" href="/features/intelligent-routing" icon="lightbulb">
+    Learn about intelligent routing and caching
   </Card>
-  <Card title="🚀 Same Performance" icon="zap">
-    **Identical response format** to OpenAI
-    
-    Your app works exactly the same way
+  <Card title="Integration Guides" href="/integrations/openai-sdk" icon="book">
+    Detailed guides for each SDK
   </Card>
-  <Card title="🧠 Smart Routing" icon="brain">
-    **Automatic model selection** based on prompt complexity
-    
-    No manual model management needed
+  <Card title="API Reference" href="/api-reference/chat-completions" icon="terminal">
+    Complete API documentation
   </Card>
-  <Card title="🔄 6+ Providers" icon="network-wired">
-    **Access to all major AI providers** through one API
-    
-    OpenAI, Claude, Gemini, Groq, DeepSeek, Grok
+  <Card title="Examples" href="/examples/basic-chat" icon="code">
+    Working code examples
   </Card>
 </CardGroup>
-
----
-
-## Verify Your Setup (Optional)
-
-Want to confirm everything's working? Try this test:
-
-<Tabs>
-<Tab title="Simple Test">
-```javascript Quick validation
-const testResponse = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'Hi' }]
-});
-
-console.log(`Provider: ${testResponse.provider}`);
-console.log(`Cost per token: Much cheaper than OpenAI!`);
-```
-</Tab>
-<Tab title="Cost Comparison Test">
-```javascript See the savings
-// Test simple vs complex prompts
-const simple = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'Hello' }]
-});
-console.log(`Simple → ${simple.provider} (cheapest)`);
-
-const complex = await openai.chat.completions.create({
-  model: '',
-  messages: [{ 
-    role: 'user', 
-    content: 'Write a detailed analysis of quantum computing applications in cryptography'
-  }]
-});
-console.log(`Complex → ${complex.provider} (best for task)`);
-```
-</Tab>
-</Tabs>
-
----
-
-## What Just Happened?
-
-<Accordion title="🔍 Behind the Scenes">
-When you sent your first request:
-
-1. **AI Analysis**: Our routing AI analyzed your prompt complexity
-2. **Smart Selection**: Chose the optimal provider/model for your needs
-3. **Cost Optimization**: Balanced quality vs. cost automatically
-4. **Instant Response**: Returned OpenAI-compatible response
-
-You got the best model for your task at the lowest possible cost, automatically.
-</Accordion>
-
-<Accordion title="📊 Your Savings Breakdown">
-**For a typical $1,000/month OpenAI bill:**
-
-- **Simple tasks** (60% of requests): Save $570/month
-  - "Hello" → Gemini Flash ($0.10 vs $3.00 per 1M tokens)
-- **Medium tasks** (30% of requests): Save $210/month  
-  - Code questions → DeepSeek ($0.34 vs $10.00 per 1M tokens)
-- **Complex tasks** (10% of requests): Save $20/month
-  - Research → Claude ($2.19 vs $15.00 per 1M tokens)
-
-**Total monthly savings: $800** (80% reduction)
-</Accordion>
-
----
-
-## Next Steps (Choose Your Adventure)
-
-<CardGroup cols={2}>
-  <Card title="🎯 I Want More Control" href="/features/intelligent-routing">
-    **Configure routing behavior**
-    
-    Cost bias, provider selection, caching options
-  </Card>
-  <Card title="⚡ I Want Streaming" href="/integrations/vercel-ai-sdk">
-    **Add streaming responses**
-    
-    Real-time chat with Vercel AI SDK
-  </Card>
-  <Card title="🔧 I Use Frameworks" href="/integrations/langchain">
-    **LangChain & other integrations**
-    
-    Drop-in replacement for popular frameworks
-  </Card>
-  <Card title="📚 I Want Examples" href="/examples/basic-chat">
-    **See complete implementations**
-    
-    Working code for common use cases
-  </Card>
-</CardGroup>
-
----
-
-## Having Issues? (Rare, but we're here)
-
-<AccordionGroup>
-<Accordion title="Authentication Error">
-**Problem**: `401 Unauthorized` response
-
-**Solution**: 
-1. Check your API key in the request header
-2. Use `X-Stainless-API-Key` header (not `Authorization`)
-3. Verify your key is active at [llmadaptive.uk](https://llmadaptive.uk)
-</Accordion>
-
-<Accordion title="Different Response Format">
-**Problem**: Response looks different from OpenAI
-
-**Solution**: That's expected! We add helpful fields like `provider` and `cache_tier`. Your existing code reading `choices[0].message.content` still works perfectly.
-</Accordion>
-
-<Accordion title="Want Specific Model">
-**Problem**: Need to use a specific model sometimes
-
-**Solution**: 
-```javascript
-// For intelligent routing (recommended)
-model: ""
-
-// For specific provider/model
-model: "anthropic/claude-3-sonnet-20240229"
-```
-</Accordion>
-</AccordionGroup>
-
-**Still stuck?** Email us at support@llmadaptive.uk or [join our Discord](https://discord.gg/adaptive) for instant help.

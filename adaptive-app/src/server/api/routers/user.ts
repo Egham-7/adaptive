@@ -8,7 +8,7 @@ const providerSchema = z.object({
 	name: z.string(),
 	enabled: z.boolean(),
 	costPerToken: z.number(),
-	logoPath: z.string().url(),
+	logoPath: z.string(),
 });
 
 const userPreferencesSchema = z.object({

@@ -15,7 +15,7 @@ type PromptCacheKey struct {
 	Temperature param.Opt[float64]                              `json:"temperature"`
 	MaxTokens   param.Opt[int64]                                `json:"max_tokens"`
 	TopP        param.Opt[float64]                              `json:"top_p"`
-	Tools       []openai.ChatCompletionToolParam                `json:"tools,omitempty"`
+	Tools       []openai.ChatCompletionToolParam                `json:"tools,omitzero"`
 	ToolChoice  openai.ChatCompletionToolChoiceOptionUnionParam `json:"tool_choice"`
 }
 

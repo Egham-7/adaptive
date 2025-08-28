@@ -47,24 +47,28 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 		return fmt.Errorf("prompt cache initialization failed: %w", err)
 	}
 
-	// Create response service (depends on protocol manager)
-	respSvc := completions.NewResponseService(cfg, modelRouter)
+	// Create response service (depends on model router)
+	respSvc := completions.NewResponseService(modelRouter)
+
+	// Create completion service (depends on response service)
+	completionSvc := completions.NewCompletionService(respSvc)
 
 	// Create shared circuit breakers for all providers
 	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
 	// Initialize circuit breakers for each provider
-	for providerName := range cfg.Providers {
+	for providerName := range cfg.GetProviders("chat_completions") {
 		circuitBreakers[providerName] = circuitbreaker.New(redisClient)
 	}
 
 	// Create select model services
 	selectModelReqSvc := select_model.NewRequestService()
-	selectModelSvc := select_model.NewService(modelRouter, cfg)
+	selectModelSvc := select_model.NewService(modelRouter)
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, paramSvc, modelRouter, promptCache)
+	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, completionSvc, paramSvc, modelRouter, promptCache)
 	selectModelHandler := api.NewSelectModelHandler(selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
+	messagesHandler := api.NewMessagesHandler(cfg, modelRouter)
 
 	// Health endpoint (no auth required)
 	app.Get(healthEndpoint, healthHandler.Health)
@@ -72,6 +76,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	// Apply JWT authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
+	v1Group.Post("/messages", messagesHandler.Messages)
 	v1Group.Post("/select-model", selectModelHandler.SelectModel)
 
 	return nil
@@ -82,6 +87,7 @@ const (
 	defaultVersion      = "1.0.0"
 	healthEndpoint      = "/health"
 	chatEndpoint        = "/v1/chat/completions"
+	messagesEndpoint    = "/v1/messages"
 	selectModelEndpoint = "/v1/select-model"
 	allowedMethods      = "GET, POST, PUT, DELETE, OPTIONS"
 )
@@ -192,6 +198,7 @@ func main() {
 			"status":     "running",
 			"endpoints": map[string]string{
 				"chat":         chatEndpoint,
+				"messages":     messagesEndpoint,
 				"select-model": selectModelEndpoint,
 			},
 		})

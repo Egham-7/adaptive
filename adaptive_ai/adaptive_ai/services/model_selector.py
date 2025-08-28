@@ -509,11 +509,7 @@ class ModelSelectionService:
         prompt_token_count: int,
     ) -> list[ModelEntry]:
         """Apply cost-based ranking if cost_bias is provided."""
-        cost_bias = (
-            request.protocol_manager_config.cost_bias
-            if request.protocol_manager_config
-            else None
-        )
+        cost_bias = request.model_router.cost_bias if request.model_router else None
 
         if cost_bias is None or not candidate_models:
             return candidate_models
@@ -683,9 +679,9 @@ class ModelSelectionService:
         domain_classification: DomainClassificationResult | None = None,
     ) -> list[ModelEntry]:
         # Check if user provided their own models
-        if request.protocol_manager_config and request.protocol_manager_config.models:
+        if request.model_router and request.model_router.models:
             return self._use_user_specified_models(
-                request.protocol_manager_config.models,
+                request.model_router.models,
                 classification_result,
                 prompt_token_count,
                 request,
@@ -1044,20 +1040,19 @@ class ModelSelectionService:
 
         # Determine cost preference
         cost_bias = (
-            request.protocol_manager_config.cost_bias
-            if request.protocol_manager_config
-            and request.protocol_manager_config.cost_bias is not None
+            request.model_router.cost_bias
+            if request.model_router and request.model_router.cost_bias is not None
             else 0.5
         )
         prefer_cost = cost_bias < 0.5
 
         # Prepare custom models if provided
         custom_models_dict = None
-        if request.protocol_manager_config and request.protocol_manager_config.models:
+        if request.model_router and request.model_router.models:
 
             # Convert ModelCapability objects to dict format for unified selector
             custom_models_dict = []
-            for model_cap in request.protocol_manager_config.models:
+            for model_cap in request.model_router.models:
                 if self._is_fully_specified_model(model_cap):
                     model_dict = {
                         "provider": str(model_cap.provider),
