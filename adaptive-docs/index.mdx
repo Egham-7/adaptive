@@ -61,15 +61,69 @@ const openai = new OpenAI({
 ```
 </Tab>
 
-<Tab title="After: Smart & Cheap">
+<Tab title="After: Smart & Cheap (JavaScript)">
 ```javascript
 const openai = new OpenAI({
   baseURL: "https://llmadaptive.uk/api/v1", // Only change needed
   apiKey: "your-adaptive-key"
 });
 
+async function chat() {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: "Hello!" }]
+    });
+    console.log("Success:", response.choices[0].message.content);
+  } catch (error) {
+    console.error("Request failed:", error.message);
+  }
+}
+
 // Intelligent routing to optimal models
 // Monthly cost: $200-400 = $600-800 SAVED
+```
+</Tab>
+
+<Tab title="After: Smart & Cheap (cURL)">
+```bash
+curl -sS https://llmadaptive.uk/api/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-adaptive-key" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }' || echo "Request failed"
+
+# Intelligent routing to optimal models
+# Monthly cost: $200-400 = $600-800 SAVED
+```
+</Tab>
+
+<Tab title="After: Smart & Cheap (Python)">
+```python
+import requests
+import sys
+
+try:
+    r = requests.post("https://llmadaptive.uk/api/v1/chat/completions", 
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer your-adaptive-key"
+        },
+        json={
+            "model": "gpt-4",
+            "messages": [{"role": "user", "content": "Hello!"}]
+        }
+    )
+    r.raise_for_status()
+    response = r.json()
+    print("Success:", response["choices"][0]["message"]["content"])
+except requests.exceptions.RequestException as e:
+    print(f"Request failed: {e}", file=sys.stderr)
+
+# Intelligent routing to optimal models  
+# Monthly cost: $200-400 = $600-800 SAVED
 ```
 </Tab>
 </Tabs>

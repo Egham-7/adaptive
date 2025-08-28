@@ -365,7 +365,7 @@ async function main() {
     ]
   });
 
-  console.log(message.content[0]);
+  console.log(message.content?.[0]?.text);
 }
 
 main();`}

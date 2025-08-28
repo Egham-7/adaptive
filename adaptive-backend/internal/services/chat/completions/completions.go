@@ -298,7 +298,7 @@ func (cs *CompletionService) executeAnthropicCompletion(
 	fiberlog.Infof("[%s] generating Anthropic completion from %s (will convert to OpenAI format)", requestID, providerName)
 
 	// Convert to Anthropic params
-	ctx := context.Background()
+	ctx := c.UserContext()
 	if providerConfig.TimeoutMs > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(providerConfig.TimeoutMs)*time.Millisecond)
@@ -364,14 +364,14 @@ func (cs *CompletionService) executeOpenAICompletion(
 			return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 		}
 
-		streamResp := client.Chat.Completions.NewStreaming(c.Context(), *openAIParams)
+		streamResp := client.Chat.Completions.NewStreaming(c.UserContext(), *openAIParams)
 		return stream.HandleOpenAIStream(c, streamResp, requestID, providerName, cacheSource)
 	}
 
 	fiberlog.Infof("[%s] generating completion from %s", requestID, providerName)
 
 	// For non-streaming requests, apply context timeout based on provider config
-	ctx := context.Background()
+	ctx := c.UserContext()
 	if !isStream {
 		if providerConfig, exists := resolvedConfig.GetProviderConfig(providerName, "chat_completions"); exists && providerConfig.TimeoutMs > 0 {
 			var cancel context.CancelFunc

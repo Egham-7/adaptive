@@ -44,7 +44,7 @@
 			},
 			"suspicious": {
 				"noArrayIndexKey": "off",
-				"noUnknownAtRules": "off"
+				"noUnknownAtRules": "warn"
 			},
 			"correctness": {
 				"useUniqueElementIds": "off"

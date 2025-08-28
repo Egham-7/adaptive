@@ -1,5 +1,7 @@
 // src/components/chat/chat-sidebar/SidebarNavFooter.tsx
 
+"use client";
+
 import { useUser } from "@clerk/nextjs";
 import { useId } from "react";
 import { DocsButton } from "@/components/ui/docs-button";
@@ -43,23 +45,32 @@ export function SidebarNavFooter() {
 				<div className="flex flex-wrap items-center justify-center gap-1">
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<div id={docsId}>
-								<DocsButton variant="ghost" size="icon" showText={false} />
-							</div>
+							<DocsButton
+								id={docsId}
+								variant="ghost"
+								size="icon"
+								showText={false}
+							/>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<div id={supportId}>
-								<SupportButton variant="ghost" size="icon" showText={false} />
-							</div>
+							<SupportButton
+								id={supportId}
+								variant="ghost"
+								size="icon"
+								showText={false}
+							/>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
 						<SidebarMenuButton asChild>
-							<div id={legalId}>
-								<LegalButton variant="ghost" size="icon" showText={false} />
-							</div>
+							<LegalButton
+								id={legalId}
+								variant="ghost"
+								size="icon"
+								showText={false}
+							/>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 					<SidebarMenuItem>
