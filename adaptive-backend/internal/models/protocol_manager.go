@@ -51,8 +51,8 @@ type ProtocolSelectionRequest struct {
 	Prompt string `json:"prompt"`
 
 	// Our custom parameters for model selection
-	UserID            string             `json:"user_id,omitempty"`
-	ModelRouterConfig *ModelRouterConfig `json:"model_router,omitempty"`
+	UserID            string             `json:"user_id,omitzero"`
+	ModelRouterConfig *ModelRouterConfig `json:"model_router,omitzero"`
 }
 
 // OpenAIParameters aliases the ChatCompletion params type from OpenAI Go SDK.
@@ -69,7 +69,7 @@ type StandardLLMInfo struct {
 	Provider     string           `json:"provider"`
 	Model        string           `json:"model"`
 	Parameters   OpenAIParameters `json:"parameters"`
-	Alternatives []Alternative    `json:"alternatives,omitempty"`
+	Alternatives []Alternative    `json:"alternatives,omitzero"`
 }
 
 // MinionInfo holds the chosen HuggingFace model details.
@@ -77,14 +77,14 @@ type MinionInfo struct {
 	Provider     string           `json:"provider"`
 	Model        string           `json:"model"`
 	Parameters   OpenAIParameters `json:"parameters"`
-	Alternatives []Alternative    `json:"alternatives,omitempty"`
+	Alternatives []Alternative    `json:"alternatives,omitzero"`
 }
 
 // ProtocolResponse is the union of standard and/or minion info.
 type ProtocolResponse struct {
 	Protocol ProtocolType     `json:"protocol"`
-	Standard *StandardLLMInfo `json:"standard,omitempty"`
-	Minion   *MinionInfo      `json:"minion,omitempty"`
+	Standard *StandardLLMInfo `json:"standard,omitzero"`
+	Minion   *MinionInfo      `json:"minion,omitzero"`
 }
 
 // CacheConfig holds configuration for the protocol manager cache

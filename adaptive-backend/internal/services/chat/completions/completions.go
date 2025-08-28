@@ -42,10 +42,14 @@ func NewCompletionService(responseService *ResponseService) *CompletionService {
 
 // createClient creates an OpenAI client for the given provider using resolved config
 func (cs *CompletionService) createClient(providerName string, resolvedConfig *config.Config, isStream bool) (*openai.Client, error) {
+	if resolvedConfig == nil {
+		return nil, models.NewInternalError("resolved config is nil", nil)
+	}
+
 	// Use resolved config directly - no more merging needed
 	providerConfig, exists := resolvedConfig.GetProviderConfig(providerName, "chat_completions")
 	if !exists {
-		return nil, fmt.Errorf("provider '%s' is not configured", providerName)
+		return nil, models.NewProviderError(providerName, "provider is not configured", nil)
 	}
 
 	return cs.buildClient(providerConfig, providerName, isStream)

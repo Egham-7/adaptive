@@ -14,8 +14,8 @@ import (
 // JWTClaims represents the JWT payload structure
 type JWTClaims struct {
 	APIKey         string `json:"apiKey"`
-	UserID         string `json:"userId,omitempty"`
-	OrganizationID string `json:"organizationId,omitempty"`
+	UserID         string `json:"userId,omitzero"`
+	OrganizationID string `json:"organizationId,omitzero"`
 	jwt.RegisteredClaims
 }
 

@@ -33,7 +33,7 @@ const (
 type AppError struct {
 	Type       ErrorType `json:"type"`
 	Message    string    `json:"message"`
-	Code       string    `json:"code,omitempty"`
+	Code       string    `json:"code,omitzero"`
 	StatusCode int       `json:"-"`
 	Retryable  bool      `json:"retryable"`
 	Cause      error     `json:"-"`

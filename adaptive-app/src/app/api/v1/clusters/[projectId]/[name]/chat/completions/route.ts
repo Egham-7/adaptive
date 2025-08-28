@@ -296,7 +296,7 @@ export async function POST(
 			stream.on("finalChatCompletion", (completion) => {
 				const adaptiveCompletion = completion as ChatCompletion;
 				if (adaptiveCompletion.usage) {
-					setImmediate(async () => {
+					queueMicrotask(async () => {
 						try {
 							await api.usage.recordApiUsage({
 								apiKey,
@@ -320,7 +320,7 @@ export async function POST(
 			});
 
 			stream.on("error", (error) => {
-				setImmediate(async () => {
+				queueMicrotask(async () => {
 					try {
 						await api.usage.recordApiUsage({
 							apiKey,
@@ -368,7 +368,7 @@ export async function POST(
 			)) as ChatCompletion;
 
 			if (completion.usage) {
-				setImmediate(async () => {
+				queueMicrotask(async () => {
 					try {
 						await api.usage.recordApiUsage({
 							apiKey,
@@ -391,7 +391,7 @@ export async function POST(
 
 			return Response.json(completion);
 		} catch (error) {
-			setImmediate(async () => {
+			queueMicrotask(async () => {
 				try {
 					await api.usage.recordApiUsage({
 						apiKey,

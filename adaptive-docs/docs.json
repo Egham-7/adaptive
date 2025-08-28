@@ -11,68 +11,43 @@
   },
   "favicon": "/favicon.ico",
   "navigation": {
-    "dropdowns": [
+    "groups": [
       {
-        "dropdown": "Documentation",
-        "icon": "book",
-        "description": "How to use Adaptive effectively",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": ["index", "quickstart", "authentication"]
-          },
-          {
-            "group": "Integration Guides",
-            "pages": [
-              "integrations/openai-sdk",
-              "integrations/vercel-ai-sdk",
-              "integrations/langchain"
-            ]
-          },
-          {
-            "group": "Key Features",
-            "pages": [
-              "features/intelligent-routing",
-              "features/prompt-response-cache",
-              "features/semantic-cache",
-              "features/provider-resiliency",
-              "features/performance"
-            ]
-          }
+        "group": "Getting Started",
+        "pages": ["index", "quickstart", "authentication"]
+      },
+      {
+        "group": "Integration Guides",
+        "pages": [
+          "integrations/openai-sdk",
+          "integrations/vercel-ai-sdk",
+          "integrations/langchain"
         ]
       },
       {
-        "dropdown": "API Reference",
-        "icon": "terminal",
-        "description": "Explore the Adaptive API",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": ["api-reference/introduction"]
-          },
-          {
-            "group": "Core Endpoints",
-            "icon": "terminal",
-            "pages": ["api-reference/chat-completions", "api-reference/select-model"]
-          },
-          {
-            "group": "OpenAPI",
-            "openapi": {
-              "source": "api-reference/openapi.json"
-            }
-          }
+        "group": "Key Features",
+        "pages": [
+          "features/intelligent-routing",
+          "features/prompt-response-cache",
+          "features/semantic-cache",
+          "features/provider-resiliency",
+          "features/performance"
         ]
       },
       {
-        "dropdown": "Examples & Use Cases",
-        "icon": "lightbulb",
-        "description": "Real-world applications and starter templates",
+        "group": "API Reference",
+        "pages": [
+          "api-reference/introduction",
+          "api-reference/chat-completions",
+          "api-reference/select-model"
+        ]
+      },
+      {
+        "group": "Examples & Use Cases",
         "pages": ["examples/basic-chat", "examples/streaming-chat"]
       },
       {
-        "dropdown": "Support",
-        "icon": "life-ring",
-        "description": "Help and troubleshooting resources",
+        "group": "Support",
         "pages": ["troubleshooting", "terms-of-service", "privacy-policy"]
       }
     ]
@@ -159,6 +134,7 @@
       "languages": ["curl", "python", "javascript"]
     }
   },
+  "openapi": "api-reference/openapi.json",
   "contextual": {
     "options": ["copy", "view", "chatgpt"]
   },
@@ -168,3 +144,4 @@
     }
   }
 }
+

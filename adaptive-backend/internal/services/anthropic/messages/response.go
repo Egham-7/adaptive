@@ -77,22 +77,23 @@ func (rs *ResponseService) HandleStreamingResponse(
 
 			event := stream.Current()
 
-			// Convert using format adapter
-			adaptiveChunk, err := format_adapter.AnthropicToAdaptive.ConvertStreamingChunk(&event, "anthropic")
+			// Convert to adaptive format to clean up empty fields before sending to client
+			adaptiveEvent, err := format_adapter.AnthropicToAdaptive.ConvertStreamingChunk(&event, "anthropic")
 			if err != nil {
-				fiberlog.Errorf("[%s] failed to convert streaming chunk: %v", requestID, err)
+				fiberlog.Errorf("[%s] failed to convert anthropic streaming event: %v", requestID, err)
 				continue
 			}
 
-			// Write as SSE
-			chunkJSON, err := json.Marshal(adaptiveChunk)
+			// Marshal the clean adaptive format directly (no conversion back to SDK format)
+			eventJSON, err := json.Marshal(adaptiveEvent)
 			if err != nil {
-				fiberlog.Errorf("[%s] failed to marshal chunk: %v", requestID, err)
+				fiberlog.Errorf("[%s] failed to marshal adaptive event: %v", requestID, err)
 				continue
 			}
 
-			if _, err := fmt.Fprintf(w, "data: %s\n\n", chunkJSON); err != nil {
-				fiberlog.Errorf("[%s] failed to write chunk: %v", requestID, err)
+			// Write as proper SSE with event type
+			if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", adaptiveEvent.Type, eventJSON); err != nil {
+				fiberlog.Errorf("[%s] failed to write SSE event: %v", requestID, err)
 				break
 			}
 

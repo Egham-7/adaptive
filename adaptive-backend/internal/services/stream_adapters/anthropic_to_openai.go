@@ -20,6 +20,8 @@ type AnthropicToOpenAIStreamAdapter struct {
 	requestID       string
 	buffer          strings.Builder
 	done            bool
+	messageID       string
+	model           string
 }
 
 // NewAnthropicToOpenAIStreamAdapter creates a stream adapter that converts Anthropic format to OpenAI SSE
@@ -37,55 +39,86 @@ func NewAnthropicToOpenAIStreamAdapter(
 
 // Read implements io.Reader interface, converting Anthropic events to OpenAI SSE format
 func (a *AnthropicToOpenAIStreamAdapter) Read(p []byte) (n int, err error) {
-	// If we have buffered data, return it first
-	if a.buffer.Len() > 0 {
-		return a.readFromBuffer(p)
-	}
-
-	// If we're done, return EOF
-	if a.done {
-		return 0, io.EOF
-	}
-
-	// Get the next event from Anthropic stream
-	if !a.anthropicStream.Next() {
-		a.done = true
-		// Check for errors
-		if err := a.anthropicStream.Err(); err != nil {
-			return 0, err
+	for {
+		// If we have buffered data, return it first
+		if a.buffer.Len() > 0 {
+			return a.readFromBuffer(p)
 		}
-		// Write final SSE terminator
-		a.buffer.WriteString("data: [DONE]\n\n")
-		return a.readFromBuffer(p)
+
+		// If we're done, return EOF
+		if a.done {
+			return 0, io.EOF
+		}
+
+		// Get the next event from Anthropic stream
+		if !a.anthropicStream.Next() {
+			a.done = true
+			// Check for errors
+			if err := a.anthropicStream.Err(); err != nil {
+				return 0, err
+			}
+			// Write final SSE terminator
+			a.buffer.WriteString("data: [DONE]\n\n")
+			continue // Return to top of loop to read from buffer
+		}
+
+		anthropicEvent := a.anthropicStream.Current()
+
+		// Track message ID and model from MessageStartEvent
+		concreteEvent := anthropicEvent.AsAny()
+		switch event := concreteEvent.(type) {
+		case anthropic.MessageStartEvent:
+			a.messageID = event.Message.ID
+			a.model = string(event.Message.Model)
+		}
+
+		// Convert Anthropic event to OpenAI format - convert value types to pointers as needed
+		var eventToConvert any
+		switch event := concreteEvent.(type) {
+		case anthropic.MessageStartEvent:
+			eventToConvert = &event
+		case anthropic.ContentBlockStartEvent:
+			eventToConvert = &event
+		case anthropic.ContentBlockDeltaEvent:
+			eventToConvert = &event
+		case anthropic.MessageStopEvent:
+			eventToConvert = &event
+		default:
+			eventToConvert = concreteEvent
+		}
+
+		openaiChunk, err := format_adapter.AnthropicToOpenAI.ConvertStreamingChunk(eventToConvert, a.provider)
+		if err != nil {
+			fiberlog.Errorf("[%s] Failed to convert Anthropic event to OpenAI format: %v", a.requestID, err)
+			// Continue to next chunk instead of recursive call
+			continue
+		}
+
+		// Skip if no chunk was produced (some events don't map to OpenAI chunks)
+		if openaiChunk == nil {
+			continue // Continue to next chunk instead of recursive call
+		}
+
+		// Set tracked ID and model if they're empty
+		if openaiChunk.ID == "" {
+			openaiChunk.ID = a.messageID
+		}
+		if openaiChunk.Model == "" {
+			openaiChunk.Model = a.model
+		}
+
+		// Marshal the OpenAI chunk to JSON
+		openaiJSON, err := json.Marshal(openaiChunk)
+		if err != nil {
+			fiberlog.Errorf("[%s] Failed to marshal OpenAI chunk: %v", a.requestID, err)
+			// Continue to next chunk instead of recursive call
+			continue
+		}
+
+		// Format as SSE data
+		a.buffer.WriteString(fmt.Sprintf("data: %s\n\n", string(openaiJSON)))
+		// Continue to top of loop to read from buffer
 	}
-
-	anthropicEvent := a.anthropicStream.Current()
-
-	// Convert Anthropic event to OpenAI format
-	openaiChunk, err := format_adapter.AnthropicToOpenAI.ConvertStreamingChunk(&anthropicEvent, a.provider)
-	if err != nil {
-		fiberlog.Errorf("[%s] Failed to convert Anthropic event to OpenAI format: %v", a.requestID, err)
-		// Continue to next chunk
-		return a.Read(p)
-	}
-
-	// Skip if no chunk was produced (some events don't map to OpenAI chunks)
-	if openaiChunk == nil {
-		return a.Read(p)
-	}
-
-	// Marshal the OpenAI chunk to JSON
-	openaiJSON, err := json.Marshal(openaiChunk)
-	if err != nil {
-		fiberlog.Errorf("[%s] Failed to marshal OpenAI chunk: %v", a.requestID, err)
-		// Continue to next chunk
-		return a.Read(p)
-	}
-
-	// Format as SSE data
-	a.buffer.WriteString(fmt.Sprintf("data: %s\n\n", string(openaiJSON)))
-
-	return a.readFromBuffer(p)
 }
 
 // readFromBuffer reads data from the internal buffer

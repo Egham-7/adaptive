@@ -7,6 +7,7 @@ import (
 
 	"adaptive-backend/internal/models"
 
+	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
@@ -109,8 +110,8 @@ func (rs *RequestService) validateRequest(req *models.AnthropicMessageRequest, r
 
 	// Validate each message
 	for i, msg := range req.Messages {
-		// Validate role (must be valid)
-		if msg.Role != "user" && msg.Role != "assistant" {
+		// Validate role (must be valid) - use SDK role constants
+		if msg.Role != anthropic.MessageParamRoleUser && msg.Role != anthropic.MessageParamRoleAssistant {
 			return fmt.Errorf("message %d has invalid role '%s', must be 'user' or 'assistant'", i, msg.Role)
 		}
 
@@ -119,18 +120,50 @@ func (rs *RequestService) validateRequest(req *models.AnthropicMessageRequest, r
 			return fmt.Errorf("message %d has empty content", i)
 		}
 
-		// Check that at least one content block has non-empty text
-		hasNonEmptyContent := false
-		for _, block := range msg.Content {
-			if textBlock := block.OfText; textBlock != nil {
-				if strings.TrimSpace(textBlock.Text) != "" {
-					hasNonEmptyContent = true
+		// Check content validity based on role
+		hasValidContent := false
+
+		if msg.Role == anthropic.MessageParamRoleUser {
+			// User messages: valid if they contain at least one non-empty text block OR an image block
+			for _, block := range msg.Content {
+				if textBlock := block.OfText; textBlock != nil {
+					if strings.TrimSpace(textBlock.Text) != "" {
+						hasValidContent = true
+						break
+					}
+				}
+				if imageBlock := block.OfImage; imageBlock != nil {
+					hasValidContent = true
+					break
+				}
+			}
+		} else if msg.Role == anthropic.MessageParamRoleAssistant {
+			// Assistant messages: valid if they contain non-empty text, tool_use, or other non-text content
+			for _, block := range msg.Content {
+				if textBlock := block.OfText; textBlock != nil {
+					if strings.TrimSpace(textBlock.Text) != "" {
+						hasValidContent = true
+						break
+					}
+				}
+				if toolUseBlock := block.OfToolUse; toolUseBlock != nil {
+					hasValidContent = true
+					break
+				}
+				// Accept other non-text content types that the SDK may define
+				if block.OfText == nil {
+					hasValidContent = true
 					break
 				}
 			}
 		}
-		if !hasNonEmptyContent {
-			return fmt.Errorf("message %d has no non-empty text content", i)
+
+		if !hasValidContent {
+			if msg.Role == anthropic.MessageParamRoleUser {
+				return fmt.Errorf("message %d (user) has no valid content: must contain at least one non-empty text block or image block", i)
+			} else {
+				return fmt.Errorf("message %d (assistant) has no valid content: must contain non-empty text, tool_use block, or other supported content", i)
+			}
 		}
 	}
 

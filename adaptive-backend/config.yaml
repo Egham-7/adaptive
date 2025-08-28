@@ -16,31 +16,26 @@ endpoints:
       openai:
         api_key: "${OPENAI_API_KEY}"
         enabled: true
-        native_format: "openai"
 
       anthropic:
         api_key: "${ANTHROPIC_API_KEY}"
         enabled: true
         base_url: "https://api.anthropic.com/v1"
-        native_format: "openai"
 
       gemini:
         api_key: "${GEMINI_API_KEY}"
         enabled: true
         base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
-        native_format: "openai"
 
       deepseek:
         api_key: "${DEEPSEEK_API_KEY}"
         enabled: true
         base_url: "https://api.deepseek.com"
-        native_format: "openai"
 
       huggingface:
         api_key: "${HUGGINGFACE_API_KEY}"
         enabled: true
         base_url: "https://router.huggingface.co/v1"
-        native_format: "openai"
 
   messages:
     providers:

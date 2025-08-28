@@ -61,24 +61,30 @@ func (c *AdaptiveToAnthropicConverter) ConvertStreamingChunk(chunk *models.Anthr
 		return nil, fmt.Errorf("adaptive anthropic message chunk cannot be nil")
 	}
 
-	// Create base event union
+	// Create base event union with ONLY the type - no extra fields
 	event := &anthropic.MessageStreamEventUnion{
 		Type: chunk.Type,
 	}
 
-	// Handle different event types
+	// Handle different event types - only include relevant fields per Anthropic spec
 	switch chunk.Type {
 	case "message_start":
 		if chunk.Message != nil {
-			_, err := c.ConvertResponse(chunk.Message)
+			convertedMessage, err := c.ConvertResponse(chunk.Message)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert message in chunk: %w", err)
 			}
-			// Note: Actual assignment would depend on Anthropic SDK union structure
+			event.Message = *convertedMessage
 		}
 	case "message_delta":
 		if chunk.Delta != nil {
 			event.Delta = *chunk.Delta
+		}
+		if chunk.Usage != nil {
+			// Convert to MessageDeltaUsage type expected by message_delta events
+			event.Usage = anthropic.MessageDeltaUsage{
+				OutputTokens: chunk.Usage.OutputTokens,
+			}
 		}
 	case "content_block_start":
 		if chunk.ContentBlock != nil {
@@ -98,6 +104,9 @@ func (c *AdaptiveToAnthropicConverter) ConvertStreamingChunk(chunk *models.Anthr
 		if chunk.Index != nil {
 			event.Index = *chunk.Index
 		}
+	case "message_stop":
+		// message_stop events only need type
+		break
 	}
 
 	return event, nil

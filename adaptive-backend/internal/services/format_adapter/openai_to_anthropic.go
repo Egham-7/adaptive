@@ -516,7 +516,7 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *openai.ChatCompletion
 }
 
 // ConvertStreamingChunk converts OpenAI streaming chunk to Anthropic streaming event format
-func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCompletionChunk, provider string) (any, error) {
+func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCompletionChunk, provider string) (*anthropic.MessageStreamEventUnion, error) {
 	if chunk == nil {
 		return nil, fmt.Errorf("chat completion chunk cannot be nil")
 	}
@@ -532,7 +532,7 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 	// Check if this is the start of streaming (when delta starts)
 	if choice.Delta.Role != "" && choice.Delta.Content == "" && len(choice.Delta.ToolCalls) == 0 {
 		// This is a message start event
-		return &anthropic.MessageStartEvent{
+		return &anthropic.MessageStreamEventUnion{
 			Type: "message_start",
 			Message: anthropic.Message{
 				ID:      chunk.ID,
@@ -546,10 +546,10 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 
 	// Handle content delta (text content)
 	if choice.Delta.Content != "" {
-		return &anthropic.ContentBlockDeltaEvent{
+		return &anthropic.MessageStreamEventUnion{
 			Type:  "content_block_delta",
 			Index: choice.Index,
-			Delta: anthropic.RawContentBlockDeltaUnion{
+			Delta: anthropic.MessageStreamEventUnionDelta{
 				Type: "text_delta",
 				Text: choice.Delta.Content,
 			},
@@ -562,7 +562,7 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 
 		// Check if this is a new tool use block starting
 		if toolCall.ID != "" && toolCall.Function.Name != "" {
-			return &anthropic.ContentBlockStartEvent{
+			return &anthropic.MessageStreamEventUnion{
 				Type:  "content_block_start",
 				Index: choice.Index,
 				ContentBlock: anthropic.ContentBlockStartEventContentBlockUnion{
@@ -576,10 +576,10 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 
 		// Handle function arguments delta
 		if toolCall.Function.Arguments != "" {
-			return &anthropic.ContentBlockDeltaEvent{
+			return &anthropic.MessageStreamEventUnion{
 				Type:  "content_block_delta",
 				Index: choice.Index,
-				Delta: anthropic.RawContentBlockDeltaUnion{
+				Delta: anthropic.MessageStreamEventUnionDelta{
 					Type:        "input_json_delta",
 					PartialJSON: toolCall.Function.Arguments,
 				},
@@ -589,16 +589,33 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 
 	// Handle finish reason (end of streaming)
 	if choice.FinishReason != "" {
-		return &anthropic.MessageStopEvent{
-			Type: "message_stop",
-		}, nil
+		// Create message_delta event with usage when finishing
+		event := &anthropic.MessageStreamEventUnion{
+			Type: "message_delta",
+		}
+
+		// Add usage only if present in the chunk (not all providers send usage in streaming)
+		if chunk.Usage.CompletionTokens != 0 || chunk.Usage.PromptTokens != 0 {
+			event.Usage = anthropic.MessageDeltaUsage{
+				OutputTokens: chunk.Usage.CompletionTokens,
+				InputTokens:  chunk.Usage.PromptTokens,
+			}
+		}
+
+		// Add stop reason to delta
+		stopReason := c.convertFinishReason(choice.FinishReason)
+		event.Delta = anthropic.MessageStreamEventUnionDelta{
+			StopReason: stopReason,
+		}
+
+		return event, nil
 	}
 
 	// Default case - return a simple delta event if we have any content
-	return &anthropic.ContentBlockDeltaEvent{
+	return &anthropic.MessageStreamEventUnion{
 		Type:  "content_block_delta",
 		Index: choice.Index,
-		Delta: anthropic.RawContentBlockDeltaUnion{
+		Delta: anthropic.MessageStreamEventUnionDelta{
 			Type: "text_delta",
 			Text: "",
 		},

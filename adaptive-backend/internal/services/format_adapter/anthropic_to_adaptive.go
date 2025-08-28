@@ -87,11 +87,10 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 			StopReason:   eventVariant.Delta.StopReason,
 			StopSequence: eventVariant.Delta.StopSequence,
 		}
-		if eventVariant.Usage.OutputTokens != 0 || eventVariant.Usage.InputTokens != 0 {
-			adaptive.Usage = &models.AdaptiveAnthropicUsage{
-				InputTokens:  eventVariant.Usage.InputTokens,
-				OutputTokens: eventVariant.Usage.OutputTokens,
-			}
+		// Always include usage when it's present from the API
+		adaptive.Usage = &models.AdaptiveAnthropicUsage{
+			InputTokens:  eventVariant.Usage.InputTokens,
+			OutputTokens: eventVariant.Usage.OutputTokens,
 		}
 
 	case anthropic.ContentBlockStartEvent:
@@ -100,12 +99,21 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 
 	case anthropic.ContentBlockDeltaEvent:
 		// For ContentBlockDeltaEvent, we need to create a MessageStreamEventUnionDelta from the RawContentBlockDeltaUnion
-		// The RawContentBlockDeltaUnion contains the actual delta data we need
+		// Based on the delta type, populate only the relevant fields
+		deltaType := eventVariant.Delta.Type
 		adaptive.Delta = &anthropic.MessageStreamEventUnionDelta{
-			// We'll copy the fields from the RawContentBlockDeltaUnion
-			// The union fields will be populated based on the delta type
-			Text: eventVariant.Delta.Text,
+			Type: deltaType,
 		}
+
+		// Populate only the relevant fields based on delta type
+		switch deltaType {
+		case "text_delta":
+			adaptive.Delta.Text = eventVariant.Delta.Text
+		case "input_json_delta":
+			adaptive.Delta.PartialJSON = eventVariant.Delta.PartialJSON
+			// Add other delta types as needed
+		}
+
 		adaptive.Index = &eventVariant.Index
 
 	case anthropic.ContentBlockStopEvent:

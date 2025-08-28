@@ -1,8 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
+import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
 import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
+
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -75,16 +78,21 @@ export async function POST(req: NextRequest) {
 			);
 		}
 
+		// Create JWT token for backend authentication
+		const jwtToken = await createBackendJWT(apiKey);
+
 		// Use Anthropic SDK to call our backend
 		const anthropic = new Anthropic({
-			apiKey: apiKey,
+			apiKey: jwtToken, // Use JWT token instead of API key
 			baseURL: env.ADAPTIVE_API_BASE_URL,
 		});
 
 		const startTime = Date.now();
 
+		console.log("Stream:", body.stream);
+
 		if (body.stream) {
-			// Handle streaming with Anthropic SDK
+			// Handle streaming with Anthropic SDK using .on() event handlers for type safety
 			const stream = anthropic.messages.stream({
 				model: body.model,
 				max_tokens: body.max_tokens,
@@ -116,45 +124,88 @@ export async function POST(req: NextRequest) {
 				...(body.fallback && { fallback: body.fallback }),
 			} as Anthropic.MessageStreamParams);
 
-			// Create a ReadableStream that forwards the Anthropic stream
+			// Create ReadableStream using Anthropic SDK's high-level event handlers
 			const readableStream = new ReadableStream({
 				async start(controller) {
 					let finalMessage: Anthropic.Message | null = null;
 
 					try {
-						for await (const chunk of stream) {
-							const data = `data: ${JSON.stringify(chunk)}\n\n`;
-							controller.enqueue(new TextEncoder().encode(data));
-						}
+						// Use Anthropic SDK's cleaner high-level event handlers
+						stream
+							.on("connect", () => {
+								console.log("Connected to Anthropic API");
+							})
+							.on(
+								"streamEvent",
+								(
+									event: Anthropic.MessageStreamEvent,
+									_snapshot: Anthropic.Message,
+								) => {
+									// Send the raw SSE event for compatibility with existing frontend
+									const sseData = `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
+									controller.enqueue(new TextEncoder().encode(sseData));
+								},
+							)
+							.on("text", (textDelta: string, _textSnapshot: string) => {
+								// Optional: Could use this for text-only streaming optimizations
+								console.log("Text delta:", textDelta);
+							})
+							.on("message", (message: Anthropic.Message) => {
+								console.log("Message completed:", message.id);
+								finalMessage = message;
+							})
+							.on("finalMessage", (message: Anthropic.Message) => {
+								console.log("Final message received:", message.id);
+								finalMessage = message;
 
-						// Try to get final message for usage recording
-						try {
-							finalMessage = await stream.finalMessage();
-						} catch (finalError) {
-							console.warn(
-								"Could not get final message for usage recording:",
-								finalError,
-							);
-						}
+								// Send termination event
+								controller.enqueue(
+									new TextEncoder().encode("event: done\ndata: [DONE]\n\n"),
+								);
+								controller.close();
+							})
+							.on("error", (error: Error) => {
+								console.error("Anthropic stream error:", error);
+								const errorData = `event: error\ndata: ${JSON.stringify({
+									type: "error",
+									error: {
+										message: error.message || "Stream error",
+										type: "stream_error",
+									},
+								})}\n\n`;
+								controller.enqueue(new TextEncoder().encode(errorData));
+								controller.close();
+							})
+							.on("abort", (error: Error) => {
+								console.log("Stream aborted:", error.message);
+								controller.close();
+							})
+							.on("end", () => {
+								console.log("Stream ended");
+								// Note: ReadableStreamDefaultController doesn't have a 'closed' property
+								// We'll rely on the finalMessage event to close the controller
+							});
 
-						// Send final data event to close the stream
-						controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-						controller.close();
+						// Wait for stream completion
+						await stream.done();
 
-						// Record usage if available
-						if (finalMessage?.usage) {
-							setImmediate(async () => {
+						// Record usage if available (finalMessage is set in the event handlers above)
+						const messageForUsage = finalMessage as Anthropic.Message | null;
+						if (messageForUsage?.usage) {
+							const messageUsage = messageForUsage.usage;
+							const messageModel = messageForUsage.model;
+							queueMicrotask(async () => {
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
 										provider: "anthropic", // Default since we're using Anthropic format
-										model: finalMessage?.model ?? null,
+										model: messageModel ?? null,
 										usage: {
-											promptTokens: finalMessage?.usage?.input_tokens ?? 0,
-											completionTokens: finalMessage?.usage?.output_tokens ?? 0,
+											promptTokens: messageUsage.input_tokens ?? 0,
+											completionTokens: messageUsage.output_tokens ?? 0,
 											totalTokens:
-												(finalMessage?.usage?.input_tokens ?? 0) +
-												(finalMessage?.usage?.output_tokens ?? 0),
+												(messageUsage.input_tokens ?? 0) +
+												(messageUsage.output_tokens ?? 0),
 										},
 										duration: Date.now() - startTime,
 										timestamp: new Date(),
@@ -166,10 +217,55 @@ export async function POST(req: NextRequest) {
 						}
 					} catch (error) {
 						console.error("Stream error:", error);
-						// Send error event before closing
-						const errorData = `data: ${JSON.stringify({ type: "error", error: { message: "Stream failed" } })}\n\n`;
+
+						// Extract meaningful error message
+						let errorMessage = "Stream failed";
+						let errorType = "stream_error";
+
+						if (error instanceof Error) {
+							if (error.message.includes("API key not configured")) {
+								errorMessage = error.message;
+								errorType = "configuration_error";
+							} else if (
+								error.message.includes("request ended without sending")
+							) {
+								errorMessage = "Request timeout. Please try again.";
+								errorType = "timeout_error";
+							} else {
+								errorMessage = error.message;
+							}
+						}
+
+						// Send proper SSE error event before closing
+						const errorData = `event: error\ndata: ${JSON.stringify({
+							type: "error",
+							error: {
+								message: errorMessage,
+								type: errorType,
+							},
+						})}\n\n`;
 						controller.enqueue(new TextEncoder().encode(errorData));
 						controller.close();
+
+						// Record error usage
+						queueMicrotask(async () => {
+							try {
+								await api.usage.recordApiUsage({
+									apiKey,
+									provider: "anthropic",
+									model: null,
+									usage: {
+										promptTokens: 0,
+										completionTokens: 0,
+										totalTokens: 0,
+									},
+									duration: Date.now() - startTime,
+									timestamp: new Date(),
+								});
+							} catch (usageError) {
+								console.error("Failed to record error usage:", usageError);
+							}
+						});
 					}
 				},
 			});
@@ -204,14 +300,19 @@ export async function POST(req: NextRequest) {
 			...(body.model_router && {
 				model_router: body.model_router,
 			}),
-			...(body.semantic_cache && { semantic_cache: body.semantic_cache }),
+			...(body.semantic_cache && {
+				prompt_response_cache: {
+					enabled: body.semantic_cache.enabled,
+					semantic_threshold: body.semantic_cache.semantic_threshold,
+				},
+			}),
 			...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
 			...(body.fallback && { fallback: body.fallback }),
 		} as Anthropic.MessageCreateParams)) as Anthropic.Message;
 
 		// Record usage
 		if (message.usage) {
-			setImmediate(async () => {
+			queueMicrotask(async () => {
 				try {
 					await api.usage.recordApiUsage({
 						apiKey,

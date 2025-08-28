@@ -1,7 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
+import { env } from "@/env";
+import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
 import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
+
+export const runtime = "nodejs";
 
 // POST /api/v1/clusters/{projectId}/{name}/messages - Anthropic-compatible messages with cluster routing
 export async function POST(
@@ -119,10 +123,13 @@ export async function POST(
 			);
 		}
 
+		// Create JWT token for backend authentication
+		const jwtToken = await createBackendJWT(apiKey);
+
 		// Use Anthropic SDK to call our backend with cluster routing
 		const anthropic = new Anthropic({
-			apiKey: apiKey,
-			baseURL: `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080"}/v1/clusters/${projectId}/${name}`,
+			apiKey: jwtToken, // Use JWT token instead of API key
+			baseURL: `${env.ADAPTIVE_API_BASE_URL}/clusters/${projectId}/${name}`,
 		});
 
 		const startTime = Date.now();
@@ -158,27 +165,46 @@ export async function POST(
 			// Create a ReadableStream that forwards the Anthropic stream
 			const readableStream = new ReadableStream({
 				async start(controller) {
+					let finalMessage: Anthropic.Message | null = null;
+
 					try {
 						for await (const chunk of stream) {
-							const data = `data: ${JSON.stringify(chunk)}\n\n`;
-							controller.enqueue(new TextEncoder().encode(data));
+							// Format as proper SSE with event type and data
+							const eventType = chunk.type;
+							const sseData = `event: ${eventType}\ndata: ${JSON.stringify(chunk)}\n\n`;
+							controller.enqueue(new TextEncoder().encode(sseData));
 						}
 
-						// Record usage after stream completes
-						const finalMessage = await stream.finalMessage();
-						if (finalMessage.usage) {
-							setImmediate(async () => {
+						// Try to get final message for usage recording
+						try {
+							finalMessage = await stream.finalMessage();
+						} catch (finalError) {
+							console.warn(
+								"Could not get final message for usage recording:",
+								finalError,
+							);
+						}
+
+						// Send proper SSE termination event
+						controller.enqueue(
+							new TextEncoder().encode("event: done\ndata: [DONE]\n\n"),
+						);
+						controller.close();
+
+						// Record usage if available
+						if (finalMessage?.usage) {
+							queueMicrotask(async () => {
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
 										provider: "anthropic", // Default since we're using Anthropic format
-										model: finalMessage.model,
+										model: finalMessage?.model ?? null,
 										usage: {
-											promptTokens: finalMessage.usage.input_tokens,
-											completionTokens: finalMessage.usage.output_tokens,
+											promptTokens: finalMessage?.usage?.input_tokens ?? 0,
+											completionTokens: finalMessage?.usage?.output_tokens ?? 0,
 											totalTokens:
-												finalMessage.usage.input_tokens +
-												finalMessage.usage.output_tokens,
+												(finalMessage?.usage?.input_tokens ?? 0) +
+												(finalMessage?.usage?.output_tokens ?? 0),
 										},
 										duration: Date.now() - startTime,
 										timestamp: new Date(),
@@ -189,11 +215,58 @@ export async function POST(
 								}
 							});
 						}
-
-						controller.close();
 					} catch (error) {
 						console.error("Stream error:", error);
-						controller.error(error);
+
+						// Extract meaningful error message
+						let errorMessage = "Stream failed";
+						let errorType = "stream_error";
+
+						if (error instanceof Error) {
+							if (error.message.includes("API key not configured")) {
+								errorMessage = error.message;
+								errorType = "configuration_error";
+							} else if (
+								error.message.includes("request ended without sending")
+							) {
+								errorMessage = "Request timeout. Please try again.";
+								errorType = "timeout_error";
+							} else {
+								errorMessage = error.message;
+							}
+						}
+
+						// Send proper SSE error event before closing
+						const errorData = `event: error\ndata: ${JSON.stringify({
+							type: "error",
+							error: {
+								message: errorMessage,
+								type: errorType,
+							},
+						})}\n\n`;
+						controller.enqueue(new TextEncoder().encode(errorData));
+						controller.close();
+
+						// Record error usage
+						queueMicrotask(async () => {
+							try {
+								await api.usage.recordApiUsage({
+									apiKey,
+									provider: "anthropic",
+									model: null,
+									usage: {
+										promptTokens: 0,
+										completionTokens: 0,
+										totalTokens: 0,
+									},
+									duration: Date.now() - startTime,
+									timestamp: new Date(),
+									clusterId: cluster.id,
+								});
+							} catch (usageError) {
+								console.error("Failed to record error usage:", usageError);
+							}
+						});
 					}
 				},
 			});
@@ -233,7 +306,7 @@ export async function POST(
 
 		// Record usage
 		if (message.usage) {
-			setImmediate(async () => {
+			queueMicrotask(async () => {
 				try {
 					await api.usage.recordApiUsage({
 						apiKey,
