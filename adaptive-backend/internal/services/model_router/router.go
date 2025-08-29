@@ -116,10 +116,17 @@ func (pm *ModelRouter) StoreSuccessfulProtocol(
 	requestID string,
 	cacheConfigOverride *models.CacheConfig,
 ) error {
+	// Safely handle nil cacheConfigOverride - extract pointer safely
+	var cacheConfig *models.CacheConfig
+	if cacheConfigOverride != nil {
+		// cacheConfigOverride is already a pointer, use it directly
+		cacheConfig = cacheConfigOverride
+	}
+
 	// Check if cache should be used
 	useCache := pm.cache != nil
-	if cacheConfigOverride != nil {
-		useCache = cacheConfigOverride.Enabled
+	if cacheConfig != nil {
+		useCache = cacheConfig.Enabled
 	}
 
 	if !useCache || pm.cache == nil {
