@@ -45,11 +45,10 @@ func (c *OpenAIToAdaptiveConverter) ConvertRequest(req *openai.ChatCompletionNew
 		Modalities:          req.Modalities,
 		ReasoningEffort:     req.ReasoningEffort,
 		// Custom fields are left as nil/defaults - caller can set them as needed
-		ModelRouterConfig:   nil,
-		PromptResponseCache: nil,
-		PromptCache:         nil,
-		Fallback:            nil,
-		ProviderConfigs:     nil,
+		ModelRouterConfig: nil,
+		PromptCache:       nil,
+		Fallback:          nil,
+		ProviderConfigs:   nil,
 	}, nil
 }
 

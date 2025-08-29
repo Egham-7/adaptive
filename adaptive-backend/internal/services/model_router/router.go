@@ -27,7 +27,7 @@ func NewModelRouter(cfg *config.Config, redisClient *redis.Client) (*ModelRouter
 	semanticCacheConfig := cfg.ModelRouter.SemanticCache
 
 	fiberlog.Infof("ModelRouter: Initializing with semantic_cache enabled=%t, threshold=%.2f",
-		semanticCacheConfig.Enabled, semanticCacheConfig.Threshold)
+		semanticCacheConfig.Enabled, semanticCacheConfig.SemanticThreshold)
 
 	// Create cache only if enabled
 	if semanticCacheConfig.Enabled {
@@ -70,7 +70,7 @@ func (pm *ModelRouter) SelectProtocolWithCache(
 	// 1) Check if cache should be used (either default cache or override config)
 	useCache := cacheConfigOverride.Enabled
 	fiberlog.Debugf("[%s] Cache config override provided: enabled=%t, threshold=%.2f",
-		requestID, cacheConfigOverride.Enabled, cacheConfigOverride.Threshold)
+		requestID, cacheConfigOverride.Enabled, cacheConfigOverride.SemanticThreshold)
 
 	if useCache && pm.cache != nil {
 		fiberlog.Debugf("[%s] Checking cache for existing protocol response", requestID)
