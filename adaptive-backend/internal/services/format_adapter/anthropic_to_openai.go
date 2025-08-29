@@ -38,11 +38,10 @@ func (c *AnthropicToOpenAIConverter) ConvertRequest(req *models.AnthropicMessage
 	openaiReq := &models.ChatCompletionRequest{
 		Messages: openaiMessages,
 		// Copy our custom fields
-		ModelRouterConfig:   req.ModelRouterConfig,
-		PromptResponseCache: req.PromptResponseCache,
-		PromptCache:         req.PromptCache,
-		Fallback:            req.Fallback,
-		ProviderConfigs:     req.ProviderConfigs,
+		ModelRouterConfig: req.ModelRouterConfig,
+		PromptCache:       req.PromptCache,
+		Fallback:          req.Fallback,
+		ProviderConfigs:   req.ProviderConfigs,
 	}
 
 	// Convert parameters

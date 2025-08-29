@@ -115,7 +115,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 }
 
 // checkPromptCache checks if prompt cache is enabled and returns cached response if found
-func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, promptCacheConfig *models.PromptCacheConfig, requestID string) (*models.ChatCompletion, string, bool) {
+func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, promptCacheConfig *models.CacheConfig, requestID string) (*models.ChatCompletion, string, bool) {
 	if !promptCacheConfig.Enabled {
 		fiberlog.Debugf("[%s] prompt cache disabled", requestID)
 		return nil, "", false

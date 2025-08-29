@@ -26,7 +26,7 @@ type PromptCache struct {
 }
 
 // NewPromptCache creates a new prompt cache instance with semantic caching support
-func NewPromptCache(redisClient *redis.Client, config models.PromptCacheConfig) (*PromptCache, error) {
+func NewPromptCache(redisClient *redis.Client, config models.CacheConfig) (*PromptCache, error) {
 	fiberlog.Info("PromptCache: Initializing with semantic cache support")
 
 	pc := &PromptCache{
@@ -34,7 +34,7 @@ func NewPromptCache(redisClient *redis.Client, config models.PromptCacheConfig) 
 	}
 
 	// Initialize semantic cache if enabled and properly configured
-	if config.Enabled && config.OpenAIAPIKey != "" && config.RedisURL != "" {
+	if config.Enabled && config.OpenAIAPIKey != "" {
 		threshold := config.SemanticThreshold
 		if threshold <= 0 || threshold > 1 {
 			threshold = defaultSemanticThreshold

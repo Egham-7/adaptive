@@ -26,7 +26,7 @@ type AnthropicMessageRequest struct {
 	// Custom fields for our internal processing
 	ModelRouterConfig   *ModelRouterConfig         `json:"model_router,omitzero"`
 	PromptResponseCache *CacheConfig               `json:"prompt_response_cache,omitzero"` // Optional prompt response cache configuration
-	PromptCache         *PromptCacheConfig         `json:"prompt_cache,omitzero"`          // Optional prompt response cache configuration
+	PromptCache         *CacheConfig               `json:"prompt_cache,omitzero"`          // Optional prompt response cache configuration
 	Fallback            *FallbackConfig            `json:"fallback,omitzero"`              // Fallback configuration with enabled toggle
 	ProviderConfigs     map[string]*ProviderConfig `json:"provider_configs,omitzero"`      // Custom provider configurations by provider name
 }

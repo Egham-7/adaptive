@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 
+	"adaptive-backend/internal/config"
+	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/select_model"
 
@@ -14,6 +16,7 @@ import (
 // It determines which model/provider would be selected for a given provider-agnostic request
 // without actually executing the completion.
 type SelectModelHandler struct {
+	cfg             *config.Config
 	requestSvc      *select_model.RequestService
 	selectModelSvc  *select_model.Service
 	responseSvc     *select_model.ResponseService
@@ -22,12 +25,14 @@ type SelectModelHandler struct {
 
 // NewSelectModelHandler initializes the select model handler with injected dependencies.
 func NewSelectModelHandler(
+	cfg *config.Config,
 	requestSvc *select_model.RequestService,
 	selectModelSvc *select_model.Service,
 	responseSvc *select_model.ResponseService,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) *SelectModelHandler {
 	return &SelectModelHandler{
+		cfg:             cfg,
 		requestSvc:      requestSvc,
 		selectModelSvc:  selectModelSvc,
 		responseSvc:     responseSvc,
@@ -59,8 +64,21 @@ func (h *SelectModelHandler) SelectModel(c *fiber.Ctx) error {
 		return h.responseSvc.BadRequest(c, err.Error())
 	}
 
+	// Build model router config from select model request fields
+	requestConfig := &models.ModelRouterConfig{
+		Models: selectReq.Models,
+	}
+
+	// Set cost bias if provided
+	if selectReq.CostBias != nil {
+		requestConfig.CostBias = *selectReq.CostBias
+	}
+
+	// Resolve config by merging YAML config with request overrides
+	mergedConfig := h.cfg.MergeModelRouterConfig(requestConfig)
+
 	// Perform model selection using the service
-	resp, err := h.selectModelSvc.SelectModel(selectReq, userID, reqID, h.circuitBreakers)
+	resp, err := h.selectModelSvc.SelectModel(selectReq, userID, reqID, h.circuitBreakers, mergedConfig)
 	if err != nil {
 		return h.responseSvc.InternalError(c, fmt.Sprintf("Model selection failed: %s", err.Error()))
 	}

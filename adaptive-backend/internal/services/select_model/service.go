@@ -3,7 +3,6 @@ package select_model
 import (
 	"fmt"
 
-	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/model_router"
@@ -14,7 +13,6 @@ import (
 // Service handles model selection logic
 type Service struct {
 	modelRouter *model_router.ModelRouter
-	cfg         *config.Config
 }
 
 // NewService creates a new select model service
@@ -29,29 +27,9 @@ func (s *Service) SelectModel(
 	req *models.SelectModelRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
+	mergedConfig *models.ModelRouterConfig,
 ) (*models.SelectModelResponse, error) {
 	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
-
-	// Build model router config from select model request fields
-	requestConfig := &models.ModelRouterConfig{
-		Models: req.Models,
-	}
-
-	// Set cost bias if provided
-	if req.CostBias != nil {
-		requestConfig.CostBias = *req.CostBias
-	}
-
-	// Set semantic cache config if provided
-	if req.ModelRouterCache != nil {
-		requestConfig.SemanticCache = models.SemanticCacheConfig{
-			Enabled:   req.ModelRouterCache.Enabled,
-			Threshold: float64(req.ModelRouterCache.SemanticThreshold),
-		}
-	}
-
-	// Merge with YAML config to get defaults for other fields
-	mergedConfig := s.cfg.MergeModelRouterConfig(requestConfig)
 
 	fiberlog.Debugf("[%s] Built protocol config from select model request - cost bias: %.2f", requestID, mergedConfig.CostBias)
 
