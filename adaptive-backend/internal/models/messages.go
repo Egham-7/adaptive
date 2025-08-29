@@ -33,10 +33,10 @@ type AnthropicMessageRequest struct {
 
 // AdaptiveAnthropicUsage extends Anthropic's Usage with cache tier information
 type AdaptiveAnthropicUsage struct {
-	CacheCreationInputTokens int64  `json:"cache_creation_input_tokens"`
-	CacheReadInputTokens     int64  `json:"cache_read_input_tokens"`
-	InputTokens              int64  `json:"input_tokens"`
-	OutputTokens             int64  `json:"output_tokens"`
+	CacheCreationInputTokens int64  `json:"cache_creation_input_tokens,omitzero"`
+	CacheReadInputTokens     int64  `json:"cache_read_input_tokens,omitzero"`
+	InputTokens              int64  `json:"input_tokens,omitzero"`
+	OutputTokens             int64  `json:"output_tokens,omitzero"`
 	ServiceTier              string `json:"service_tier,omitempty"`
 	// Cache tier information for adaptive system
 	CacheTier string `json:"cache_tier,omitempty"` // e.g., "semantic_exact", "semantic_similar", "prompt_response"
@@ -45,13 +45,13 @@ type AdaptiveAnthropicUsage struct {
 // AnthropicMessage extends Anthropic's Message with enhanced usage and provider info
 type AnthropicMessage struct {
 	ID           string                        `json:"id"`
-	Content      []anthropic.ContentBlockUnion `json:"content"`
+	Content      []anthropic.ContentBlockUnion `json:"content,omitzero"`
 	Model        string                        `json:"model"`
 	Role         string                        `json:"role"`
-	StopReason   string                        `json:"stop_reason"`
-	StopSequence string                        `json:"stop_sequence"`
+	StopReason   string                        `json:"stop_reason,omitzero"`
+	StopSequence string                        `json:"stop_sequence,omitzero"`
 	Type         string                        `json:"type"`
-	Usage        AdaptiveAnthropicUsage        `json:"usage"`
+	Usage        AdaptiveAnthropicUsage        `json:"usage,omitzero"`
 	Provider     string                        `json:"provider,omitzero"`
 }
 
@@ -66,6 +66,6 @@ type AnthropicMessageChunk struct {
 	ContentBlock *anthropic.ContentBlockStartEventContentBlockUnion `json:"content_block,omitzero"` // content_block_start only
 	Index        *int64                                             `json:"index,omitzero"`         // content_block_start, content_block_delta, content_block_stop
 
-	// Adaptive-specific fields (not in official Anthropic format) - omit from external API
+	// Adaptive-specific fields
 	Provider string `json:"provider,omitzero"` // Keep this for internal tracking, but it will be omitted when empty
 }
