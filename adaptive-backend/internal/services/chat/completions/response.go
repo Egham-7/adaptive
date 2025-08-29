@@ -123,12 +123,8 @@ func (rs *ResponseService) StoreSuccessfulSemanticCache(
 		return
 	}
 
-	// Store in semantic cache - pass nil if ModelRouterConfig is not available
-	var cacheConfig *models.CacheConfig
-	if req.ModelRouterConfig != nil {
-		cacheConfig = &req.ModelRouterConfig.SemanticCache
-	}
-	if err := rs.modelRouter.StoreSuccessfulProtocol(prompt, *resp, requestID, cacheConfig); err != nil {
+	// Store in semantic cache
+	if err := rs.modelRouter.StoreSuccessfulProtocol(prompt, *resp, requestID, req.ModelRouterConfig); err != nil {
 		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
 	}
 }

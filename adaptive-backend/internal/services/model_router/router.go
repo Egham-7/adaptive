@@ -114,19 +114,14 @@ func (pm *ModelRouter) StoreSuccessfulProtocol(
 	prompt string,
 	resp models.ProtocolResponse,
 	requestID string,
-	cacheConfigOverride *models.CacheConfig,
+	modelRouterConfig *models.ModelRouterConfig,
 ) error {
-	// Safely handle nil cacheConfigOverride - extract pointer safely
-	var cacheConfig *models.CacheConfig
-	if cacheConfigOverride != nil {
-		// cacheConfigOverride is already a pointer, use it directly
-		cacheConfig = cacheConfigOverride
-	}
-
-	// Check if cache should be used
+	// Check if cache should be used - default to using cache if available
 	useCache := pm.cache != nil
-	if cacheConfig != nil {
-		useCache = cacheConfig.Enabled
+
+	// Override with explicit config if provided
+	if modelRouterConfig != nil {
+		useCache = modelRouterConfig.SemanticCache.Enabled
 	}
 
 	if !useCache || pm.cache == nil {
