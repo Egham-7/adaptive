@@ -35,6 +35,7 @@ export const usageRecordingRouter = createTRPCRouter({
 				clusterId: z.string().optional(), // Link usage to cluster
 				metadata: z.record(z.string(), z.any()).optional(),
 				error: z.string().optional(), // Add error field for failed requests
+				cacheTier: z.string().optional(), // Cache tier information
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -97,10 +98,20 @@ export const usageRecordingRouter = createTRPCRouter({
 				console.log("Input:", input);
 
 				// Calculate credit cost (what you charge the user)
-				const creditCost = calculateCreditCost(
+				let creditCost = calculateCreditCost(
 					input.usage.promptTokens,
 					input.usage.completionTokens,
 				);
+
+				// Apply cache tier pricing discounts
+				if (input.cacheTier === "prompt_response") {
+					creditCost = 0; // Free for prompt_response cache hits
+				} else if (
+					input.cacheTier === "semantic_exact" ||
+					input.cacheTier === "semantic_similar"
+				) {
+					creditCost = creditCost * 0.5; // 50% discount for semantic cache hits
+				}
 
 				console.log("🔍 Checking credit balance before API usage:.");
 
@@ -143,6 +154,7 @@ export const usageRecordingRouter = createTRPCRouter({
 							timestamp: input.timestamp,
 							error: input.error, // Include error in metadata if present
 							userId: apiKey.userId, // Get userId from the API key
+							cacheTier: input.cacheTier, // Store cache tier information
 						},
 					},
 				});
