@@ -66,7 +66,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(reqSvc, respSvc, completionSvc, paramSvc, modelRouter, promptCache)
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, paramSvc, modelRouter, promptCache)
 	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 	messagesHandler := api.NewMessagesHandler(cfg, modelRouter)
 

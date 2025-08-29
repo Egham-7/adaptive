@@ -38,6 +38,7 @@ type CompletionHandler struct {
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
 func NewCompletionHandler(
+	cfg *config.Config,
 	reqSvc *completions.RequestService,
 	respSvc *completions.ResponseService,
 	completionSvc *completions.CompletionService,
@@ -46,6 +47,7 @@ func NewCompletionHandler(
 	promptCache *cache.PromptCache,
 ) *CompletionHandler {
 	return &CompletionHandler{
+		cfg:           cfg,
 		reqSvc:        reqSvc,
 		respSvc:       respSvc,
 		completionSvc: completionSvc,
