@@ -95,8 +95,6 @@ export const usageRecordingRouter = createTRPCRouter({
 						1000000
 					: 0;
 
-				console.log("Input:", input);
-
 				// Calculate credit cost (what you charge the user)
 				let creditCost = calculateCreditCost(
 					input.usage.promptTokens,
