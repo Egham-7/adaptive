@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { api } from "@/trpc/server";
 import { selectModelRequestSchema } from "@/types/select-model";
+import { TOKEN_PRICING } from "@/lib/pricing-config";
 
 export async function POST(req: NextRequest) {
 	const rawBody = await req.json();
@@ -63,8 +64,8 @@ export async function POST(req: NextRequest) {
 	}
 
 	// Pre-flight credit check for select-model request ($0.001 per request)
-	// Convert $0.001 to tokens: $0.001 / $0.0015 per 1k tokens * 1000 = 0.67 tokens
-	const selectModelCostInTokens = Math.ceil((0.001 / 0.0015) * 1000); // ~1 token equivalent
+	// Convert $0.001 to tokens using centralized pricing
+	const selectModelCostInTokens = TOKEN_PRICING.tokensForUsd(0.001);
 
 	try {
 		await api.usage.checkCreditsBeforeUsage({

@@ -30,6 +30,11 @@ export const TOKEN_PRICING = {
 		return `$${amount.toFixed(6)}`;
 	},
 
+	// Convert USD amount to token equivalent (using input token pricing)
+	tokensForUsd: (usd: number): number => {
+		return Math.ceil((usd / TOKEN_PRICING.INPUT_TOKEN_PRICE_PER_MILLION) * 1_000_000);
+	},
+
 	// Get pricing display strings
 	getDisplayPricing: () => ({
 		input: `$${TOKEN_PRICING.INPUT_TOKEN_PRICE_PER_MILLION}/1M tokens`,
