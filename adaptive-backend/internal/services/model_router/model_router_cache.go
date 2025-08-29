@@ -39,10 +39,10 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	semanticCacheConfig := cfg.ModelRouter.SemanticCache
 
 	// Validate and set default threshold if invalid
-	threshold := semanticCacheConfig.Threshold
+	threshold := semanticCacheConfig.SemanticThreshold
 	if threshold <= 0 || threshold > 1 {
 		threshold = 0.9 // Default to sane value
-		fiberlog.Warnf("ModelRouterCache: Invalid threshold value %.2f, using default 0.9", semanticCacheConfig.Threshold)
+		fiberlog.Warnf("ModelRouterCache: Invalid threshold value %.2f, using default 0.9", semanticCacheConfig.SemanticThreshold)
 	}
 
 	fiberlog.Debugf("ModelRouterCache: Configuration - enabled=%t, threshold=%.2f",

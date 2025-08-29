@@ -24,7 +24,7 @@ type Config struct {
 	Endpoints   models.EndpointsConfig   `yaml:"endpoints"`
 	Services    models.ServicesConfig    `yaml:"services"`
 	Fallback    models.FallbackConfig    `yaml:"fallback"`
-	PromptCache models.PromptCacheConfig `yaml:"prompt_cache"`
+	PromptCache models.CacheConfig       `yaml:"prompt_cache"`
 	ModelRouter models.ModelRouterConfig `yaml:"protocol_manager"`
 }
 
@@ -335,9 +335,9 @@ func (c *Config) MergeProviderConfigs(overrides map[string]*models.ProviderConfi
 
 // MergePromptCacheConfig merges YAML prompt cache config with request override.
 // Only TTL can be overridden in requests for security reasons.
-func (c *Config) MergePromptCacheConfig(override *models.PromptCacheConfig) *models.PromptCacheConfig {
+func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.CacheConfig {
 	// Start with YAML config (these fields are not overridable)
-	merged := &models.PromptCacheConfig{
+	merged := &models.CacheConfig{
 		Enabled:           c.PromptCache.Enabled,
 		DefaultTTLSeconds: c.PromptCache.DefaultTTLSeconds,
 		RedisURL:          c.PromptCache.RedisURL,
@@ -386,7 +386,7 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *mod
 
 	// Merge semantic cache config - request override takes precedence
 	if override.SemanticCache.Enabled != c.ModelRouter.SemanticCache.Enabled ||
-		override.SemanticCache.Threshold != c.ModelRouter.SemanticCache.Threshold {
+		override.SemanticCache.SemanticThreshold != c.ModelRouter.SemanticCache.SemanticThreshold {
 		merged.SemanticCache = override.SemanticCache
 	}
 

@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
 
-		const baseURL = process.env.ADAPTIVE_API_BASE_URL;
+		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 
 		// Create JWT token for backend authentication
 		const jwtToken = await createBackendJWT(apiKey);
