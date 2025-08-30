@@ -1,8 +1,29 @@
 import { z } from "zod";
-import {
-	modelCapabilitySchema,
-	modelRouterConfigSchema,
-} from "./chat-completion";
+
+// Create Zod schema for ModelCapability
+const modelCapabilitySchema = z.object({
+	description: z.string().optional(),
+	provider: z.string(),
+	model_name: z.string(),
+	cost_per_1m_input_tokens: z.number(),
+	cost_per_1m_output_tokens: z.number(),
+	max_context_tokens: z.number(),
+	max_output_tokens: z.number().optional(),
+	supports_function_calling: z.boolean(),
+	languages_supported: z.array(z.string()).optional(),
+	model_size_params: z.string().optional(),
+	latency_tier: z.string().optional(),
+	task_type: z.string().optional(),
+	complexity: z.string().optional(),
+});
+
+// Create Zod schema for ModelRouterConfig
+const modelRouterConfigSchema = z.object({
+	models: z.array(modelCapabilitySchema).optional(),
+	cost_bias: z.number().optional(),
+	complexity_threshold: z.number().optional(),
+	token_threshold: z.number().optional(),
+});
 
 // Provider-agnostic select model request schema
 export const selectModelRequestSchema = z
