@@ -1,5 +1,18 @@
 import { z } from "zod";
 
+// Provider config schema - for backend API communication
+export const providerConfigSchema = z.object({
+	api_key: z.string().optional(),
+	base_url: z.string().optional(),
+	auth_type: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
+	auth_header_name: z.string().optional(),
+	health_endpoint: z.string().optional(),
+	rate_limit_rpm: z.number().optional(),
+	timeout_ms: z.number().optional(),
+	retry_config: z.record(z.string(), z.unknown()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
+});
+
 // Model capability schema matching Go backend ModelCapability struct
 export const modelCapabilitySchema = z.object({
 	description: z.string().optional(),
@@ -99,6 +112,54 @@ export const updateProviderModelSchema = z.object({
 	apiKey: z.string().optional(),
 });
 
+// Provider config management schemas (for database operations)
+export const createProviderConfigSchema = z.object({
+	projectId: z.string(),
+	providerId: z.string(),
+	displayName: z
+		.string()
+		.min(1, "Display name is required")
+		.max(100)
+		.optional(),
+	providerApiKey: z.string().min(1, "API key is required"),
+	customHeaders: z.record(z.string(), z.string()).optional(),
+	customSettings: z.record(z.string(), z.any()).optional(),
+
+	// Authentication for API call
+	apiKey: z.string().optional(),
+});
+
+// Update provider config schema
+export const updateProviderConfigSchema = z.object({
+	id: z.string(),
+	displayName: z.string().min(1).max(100).optional(),
+	providerApiKey: z.string().min(1, "API key is required").optional(),
+	customHeaders: z.record(z.string(), z.string()).optional(),
+	customSettings: z.record(z.string(), z.any()).optional(),
+
+	// Authentication for API call
+	apiKey: z.string().optional(),
+});
+
+// Get provider configs schema
+export const getProviderConfigsSchema = z.object({
+	projectId: z.string(),
+	providerId: z.string().optional(), // Filter by specific provider
+	apiKey: z.string().optional(),
+});
+
+// Get provider config by ID schema
+export const providerConfigByIdSchema = z.object({
+	id: z.string(),
+	apiKey: z.string().optional(),
+});
+
+// Delete provider config schema
+export const deleteProviderConfigSchema = z.object({
+	id: z.string(),
+	apiKey: z.string().optional(),
+});
+
 // Input schemas for API endpoints
 export const providerByIdSchema = z.object({
 	id: z.string(),
@@ -125,6 +186,7 @@ export const getAllProvidersSchema = z.object({
 });
 
 // Type exports
+export type ProviderConfig = z.infer<typeof providerConfigSchema>;
 export type CreateProviderInput = z.infer<typeof createProviderSchema>;
 export type UpdateProviderInput = z.infer<typeof updateProviderSchema>;
 export type AddProviderModelInput = z.infer<typeof addProviderModelSchema>;
@@ -132,3 +194,15 @@ export type UpdateProviderModelInput = z.infer<
 	typeof updateProviderModelSchema
 >;
 export type ProviderModel = z.infer<typeof providerModelSchema>;
+
+export type CreateProviderConfigInput = z.infer<
+	typeof createProviderConfigSchema
+>;
+export type UpdateProviderConfigInput = z.infer<
+	typeof updateProviderConfigSchema
+>;
+export type GetProviderConfigsInput = z.infer<typeof getProviderConfigsSchema>;
+export type ProviderConfigByIdInput = z.infer<typeof providerConfigByIdSchema>;
+export type DeleteProviderConfigInput = z.infer<
+	typeof deleteProviderConfigSchema
+>;

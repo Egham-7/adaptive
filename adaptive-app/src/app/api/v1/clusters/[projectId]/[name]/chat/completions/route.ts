@@ -300,7 +300,7 @@ export async function POST(
 						try {
 							await api.usage.recordApiUsage({
 								apiKey,
-								provider: adaptiveCompletion.provider,
+								provider: adaptiveCompletion.provider ?? null,
 								model: adaptiveCompletion.model,
 								usage: {
 									promptTokens: adaptiveCompletion.usage?.prompt_tokens ?? 0,
@@ -372,7 +372,7 @@ export async function POST(
 					try {
 						await api.usage.recordApiUsage({
 							apiKey,
-							provider: completion.provider,
+							provider: completion.provider ?? null,
 							model: completion.model,
 							usage: {
 								promptTokens: completion.usage?.prompt_tokens ?? 0,

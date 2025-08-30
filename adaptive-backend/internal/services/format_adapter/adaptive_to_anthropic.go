@@ -45,7 +45,7 @@ func (c *AdaptiveToAnthropicConverter) ConvertResponse(resp *models.AnthropicMes
 
 	return &anthropic.Message{
 		ID:           resp.ID,
-		Content:      resp.Content,
+		Content:      c.convertContentBlocksToAnthropic(resp.Content),
 		Model:        anthropic.Model(resp.Model),
 		Role:         "assistant",
 		StopReason:   anthropic.StopReason(resp.StopReason),
@@ -78,7 +78,10 @@ func (c *AdaptiveToAnthropicConverter) ConvertStreamingChunk(chunk *models.Anthr
 		}
 	case "message_delta":
 		if chunk.Delta != nil {
-			event.Delta = *chunk.Delta
+			event.Delta = anthropic.MessageStreamEventUnionDelta{
+				StopReason:   anthropic.StopReason(chunk.Delta.StopReason),
+				StopSequence: chunk.Delta.StopSequence,
+			}
 		}
 		if chunk.Usage != nil {
 			// Convert to MessageDeltaUsage type expected by message_delta events
@@ -95,7 +98,13 @@ func (c *AdaptiveToAnthropicConverter) ConvertStreamingChunk(chunk *models.Anthr
 		}
 	case "content_block_delta":
 		if chunk.Delta != nil {
-			event.Delta = *chunk.Delta
+			event.Delta = anthropic.MessageStreamEventUnionDelta{
+				Type:        chunk.Delta.Type,
+				Text:        chunk.Delta.Text,
+				PartialJSON: chunk.Delta.PartialJSON,
+				Thinking:    chunk.Delta.Thinking,
+				Signature:   chunk.Delta.Signature,
+			}
 		}
 		if chunk.Index != nil {
 			event.Index = *chunk.Index
@@ -134,4 +143,61 @@ func (c *AdaptiveToAnthropicConverter) SetCacheTier(usage *models.AdaptiveAnthro
 	default:
 		usage.CacheTier = ""
 	}
+}
+
+// convertContentBlocksToAnthropic converts our custom ContentBlockUnion to Anthropic ContentBlockUnion
+func (c *AdaptiveToAnthropicConverter) convertContentBlocksToAnthropic(content []models.ContentBlockUnion) []anthropic.ContentBlockUnion {
+	if content == nil {
+		return nil
+	}
+
+	result := make([]anthropic.ContentBlockUnion, len(content))
+	for i, block := range content {
+		// Create ContentBlockUnion directly by populating the appropriate fields
+		result[i] = anthropic.ContentBlockUnion{
+			Type:      block.Type,
+			Text:      block.Text,
+			Citations: c.convertTextCitationsToAnthropic(block.Citations),
+			Thinking:  block.Thinking,
+			Signature: block.Signature,
+			Data:      block.Data,
+			ID:        block.ID,
+			Name:      block.Name,
+			ToolUseID: block.ToolUseID,
+			Content:   block.Content,
+			// Skip Input field for now since it needs type conversion
+		}
+	}
+	return result
+}
+
+// convertTextCitationsToAnthropic converts our custom TextCitationUnion to Anthropic TextCitationUnion
+func (c *AdaptiveToAnthropicConverter) convertTextCitationsToAnthropic(citations []models.TextCitationUnion) []anthropic.TextCitationUnion {
+	if citations == nil {
+		return nil
+	}
+
+	result := make([]anthropic.TextCitationUnion, len(citations))
+	for i, citation := range citations {
+		// Create TextCitationUnion directly by populating the appropriate fields
+		result[i] = anthropic.TextCitationUnion{
+			Type:              citation.Type,
+			CitedText:         citation.CitedText,
+			DocumentIndex:     citation.DocumentIndex,
+			DocumentTitle:     citation.DocumentTitle,
+			StartCharIndex:    citation.StartCharIndex,
+			EndCharIndex:      citation.EndCharIndex,
+			FileID:            citation.FileID,
+			StartPageNumber:   citation.StartPageNumber,
+			EndPageNumber:     citation.EndPageNumber,
+			StartBlockIndex:   citation.StartBlockIndex,
+			EndBlockIndex:     citation.EndBlockIndex,
+			EncryptedIndex:    citation.EncryptedIndex,
+			Title:             citation.Title,
+			URL:               citation.URL,
+			SearchResultIndex: citation.SearchResultIndex,
+			Source:            citation.Source,
+		}
+	}
+	return result
 }

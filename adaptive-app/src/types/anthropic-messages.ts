@@ -12,7 +12,6 @@ import type {
 	Provider,
 	ProviderConfig,
 } from "./chat-completion";
-import { providerConfigSchema } from "./chat-completion";
 
 // Use Anthropic SDK types as base
 export type AnthropicMessage = Message;
@@ -62,6 +61,19 @@ const baseAnthropicMessageSchema = z.object({
 	metadata: anthropicMetadataSchema.optional(),
 	tools: z.array(z.any()).optional(),
 	tool_choice: anthropicToolChoiceSchema.optional(),
+});
+
+// Create reusable provider config schema
+const providerConfigSchema = z.object({
+	api_key: z.string().optional(),
+	base_url: z.string().optional(),
+	auth_type: z.enum(["bearer", "api_key", "basic", "custom"]).optional(),
+	auth_header_name: z.string().optional(),
+	health_endpoint: z.string().optional(),
+	rate_limit_rpm: z.number().optional(),
+	timeout_ms: z.number().optional(),
+	retry_config: z.record(z.string(), z.unknown()).optional(),
+	headers: z.record(z.string(), z.string()).optional(),
 });
 
 // Extended schema that adds our Adaptive-specific extensions

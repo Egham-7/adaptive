@@ -32,7 +32,7 @@ func (rs *RequestService) ParseRequest(c *fiber.Ctx) (*models.AnthropicMessageRe
 	}
 
 	// Validate request structure (fail fast)
-	if err := rs.validateRequest(req, requestID); err != nil {
+	if err := rs.validateRequest(req); err != nil {
 		fiberlog.Errorf("[%s] Request validation failed: %v", requestID, err)
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
@@ -95,7 +95,7 @@ func (rs *RequestService) GetRequestID(c *fiber.Ctx) string {
 }
 
 // validateRequest performs basic input validation on the parsed request
-func (rs *RequestService) validateRequest(req *models.AnthropicMessageRequest, requestID string) error {
+func (rs *RequestService) validateRequest(req *models.AnthropicMessageRequest) error {
 	if req == nil {
 		return fmt.Errorf("request is nil")
 	}
