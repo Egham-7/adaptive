@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -124,20 +125,33 @@ func (rs *ResponseService) HandleStreamingResponse(
 func (rs *ResponseService) HandleError(c *fiber.Ctx, err error, requestID string) error {
 	fiberlog.Errorf("[%s] anthropic messages error: %v", requestID, err)
 
-	// Handle different error types
-	statusCode := fiber.StatusInternalServerError
-	errorType := "api_error"
-	errorMessage := err.Error()
+	// Use the same error sanitization as the main app
+	sanitized := models.SanitizeError(err)
+	statusCode := sanitized.GetStatusCode()
 
-	// You could add more specific error handling here based on Anthropic SDK error types
-	// For example, checking for rate limits, authentication errors, etc.
-
-	return c.Status(statusCode).JSON(fiber.Map{
+	// Create response with sanitized error
+	response := fiber.Map{
 		"error": fiber.Map{
-			"type":    errorType,
-			"message": errorMessage,
+			"type":    sanitized.Type,
+			"message": sanitized.Message,
+			"code":    statusCode,
 		},
-	})
+	}
+
+	// Add retry info for retryable errors
+	if sanitized.Retryable {
+		response["error"].(fiber.Map)["retryable"] = true
+		if sanitized.Type == models.ErrorTypeRateLimit {
+			response["error"].(fiber.Map)["retry_after"] = "60s"
+		}
+	}
+
+	// Add error code if available
+	if sanitized.Code != "" {
+		response["error"].(fiber.Map)["error_code"] = sanitized.Code
+	}
+
+	return c.Status(statusCode).JSON(response)
 }
 
 // HandleBadRequest handles validation and request parsing errors
