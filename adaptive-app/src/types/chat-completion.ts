@@ -300,6 +300,7 @@ export type AdaptiveChatCompletionChunk = z.infer<
 // Extend OpenAI types with provider field
 export interface ChatCompletion extends OpenAIChatCompletion {
 	provider: Provider;
+	cache_tier?: CacheTier;
 }
 
 export interface ChatCompletionChunk extends OpenAIChatCompletionChunk {

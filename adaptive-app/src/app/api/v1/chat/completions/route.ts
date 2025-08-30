@@ -177,6 +177,7 @@ export async function POST(req: NextRequest) {
 								},
 								duration: Date.now() - startTime,
 								timestamp: new Date(),
+								cacheTier: adaptiveCompletion.cache_tier,
 							});
 						} catch (error) {
 							console.error("Failed to record usage:", error);
@@ -245,6 +246,7 @@ export async function POST(req: NextRequest) {
 							},
 							duration: Date.now() - nonStreamStartTime,
 							timestamp: new Date(),
+							cacheTier: completion.cache_tier,
 						});
 					} catch (error) {
 						console.error("Failed to record usage:", error);
