@@ -114,12 +114,14 @@ func (pm *ModelRouter) StoreSuccessfulProtocol(
 	prompt string,
 	resp models.ProtocolResponse,
 	requestID string,
-	cacheConfigOverride *models.CacheConfig,
+	modelRouterConfig *models.ModelRouterConfig,
 ) error {
-	// Check if cache should be used
+	// Check if cache should be used - default to using cache if available
 	useCache := pm.cache != nil
-	if cacheConfigOverride != nil {
-		useCache = cacheConfigOverride.Enabled
+
+	// Override with explicit config if provided
+	if modelRouterConfig != nil {
+		useCache = modelRouterConfig.SemanticCache.Enabled
 	}
 
 	if !useCache || pm.cache == nil {
