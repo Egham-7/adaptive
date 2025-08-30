@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
+import { TOKEN_PRICING } from "@/lib/pricing-config";
 import { api } from "@/trpc/server";
 import { selectModelRequestSchema } from "@/types/select-model";
-import { TOKEN_PRICING } from "@/lib/pricing-config";
 
 export async function POST(req: NextRequest) {
 	const rawBody = await req.json();
