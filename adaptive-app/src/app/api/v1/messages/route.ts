@@ -92,91 +92,138 @@ export async function POST(req: NextRequest) {
 		console.log("Stream:", body.stream);
 
 		if (body.stream) {
-			// Handle streaming with Anthropic SDK using .toReadableStream()
+			// Handle streaming by calling our backend directly
+			// The Anthropic SDK has issues when pointing to custom backends
 			try {
-				const stream = anthropic.messages.stream({
-					model: body.model,
-					max_tokens: body.max_tokens,
-					messages: body.messages,
-					...(body.system && { system: body.system }),
-					...(body.temperature !== undefined && {
-						temperature: body.temperature,
-					}),
-					...(body.top_p !== undefined && { top_p: body.top_p }),
-					...(body.top_k !== undefined && { top_k: body.top_k }),
-					...(body.stop_sequences && { stop_sequences: body.stop_sequences }),
-					...(body.metadata && { metadata: body.metadata }),
-					...(body.tools && { tools: body.tools }),
-					...(body.tool_choice && { tool_choice: body.tool_choice }),
-					// Custom adaptive extensions (cast to bypass SDK type checking)
-					...(body.provider_configs && {
-						provider_configs: body.provider_configs,
-					}),
-					...(body.model_router && {
-						model_router: body.model_router,
-					}),
-					...(body.semantic_cache && {
-						prompt_response_cache: {
-							enabled: body.semantic_cache.enabled,
-							semantic_threshold: body.semantic_cache.semantic_threshold,
-						},
-					}),
-					...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
-					...(body.fallback && { fallback: body.fallback }),
-				} as Anthropic.MessageStreamParams);
+				const backendUrl = `${env.ADAPTIVE_API_BASE_URL}/v1/messages`;
 
-				// Use the SDK's toReadableStream() method
-				const readableStream = stream.toReadableStream();
+				const response = await fetch(backendUrl, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${jwtToken}`,
+					},
+					body: JSON.stringify({
+						model: body.model,
+						max_tokens: body.max_tokens,
+						messages: body.messages,
+						stream: true,
+						...(body.system && { system: body.system }),
+						...(body.temperature !== undefined && {
+							temperature: body.temperature,
+						}),
+						...(body.top_p !== undefined && { top_p: body.top_p }),
+						...(body.top_k !== undefined && { top_k: body.top_k }),
+						...(body.stop_sequences && { stop_sequences: body.stop_sequences }),
+						...(body.metadata && { metadata: body.metadata }),
+						...(body.tools && { tools: body.tools }),
+						...(body.tool_choice && { tool_choice: body.tool_choice }),
+						...(body.provider_configs && {
+							provider_configs: body.provider_configs,
+						}),
+						...(body.model_router && {
+							model_router: body.model_router,
+						}),
+						...(body.semantic_cache && {
+							prompt_response_cache: {
+								enabled: body.semantic_cache.enabled,
+								semantic_threshold: body.semantic_cache.semantic_threshold,
+							},
+						}),
+						...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
+						...(body.fallback && { fallback: body.fallback }),
+					}),
+				});
 
-				// Set up usage tracking when stream completes
-				stream
-					.finalMessage()
-					.then((message) => {
-						if (message.usage) {
-							queueMicrotask(async () => {
-								try {
-									await api.usage.recordApiUsage({
-										apiKey,
-										provider: "anthropic",
-										model: message.model ?? null,
-										usage: {
-											promptTokens: message.usage.input_tokens ?? 0,
-											completionTokens: message.usage.output_tokens ?? 0,
-											totalTokens:
-												(message.usage.input_tokens ?? 0) +
-												(message.usage.output_tokens ?? 0),
-										},
-										duration: Date.now() - startTime,
-										timestamp: new Date(),
-									});
-								} catch (error) {
-									console.error("Failed to record usage:", error);
+				if (!response.ok) {
+					throw new Error(
+						`Backend responded with ${response.status}: ${response.statusText}`,
+					);
+				}
+
+				if (!response.body) {
+					throw new Error("No response body received from backend");
+				}
+
+				// Create a ReadableStream that forwards the backend stream
+				const readableStream = new ReadableStream({
+					async start(controller) {
+						const reader = response.body?.getReader();
+						const decoder = new TextDecoder();
+						let finalMessage: any = null;
+
+						try {
+							while (true) {
+								const { done, value } = await reader.read();
+
+								if (done) {
+									console.log("Backend stream completed");
+									break;
 								}
-							});
-						}
-					})
-					.catch((error) => {
-						console.error("Stream completion error:", error);
-						// Record error usage
-						queueMicrotask(async () => {
-							try {
-								await api.usage.recordApiUsage({
-									apiKey,
-									provider: "anthropic",
-									model: null,
-									usage: {
-										promptTokens: 0,
-										completionTokens: 0,
-										totalTokens: 0,
-									},
-									duration: Date.now() - startTime,
-									timestamp: new Date(),
-								});
-							} catch (usageError) {
-								console.error("Failed to record error usage:", usageError);
+
+								// Decode the chunk and forward it
+								const chunk = decoder.decode(value, { stream: true });
+								controller.enqueue(new TextEncoder().encode(chunk));
+
+								// Try to parse usage information for recording
+								const lines = chunk.split("\n");
+								for (const line of lines) {
+									if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+										try {
+											const data = JSON.parse(line.slice(6));
+											if (
+												data.type === "message_delta" &&
+												data.delta?.stop_reason === "end_turn"
+											) {
+												// Extract message info for usage recording
+												finalMessage = data.message;
+											}
+										} catch (_e) {
+											// Ignore parsing errors
+										}
+									}
+								}
 							}
-						});
-					});
+						} catch (error) {
+							console.error("Stream reading error:", error);
+							const errorData = `event: error\ndata: ${JSON.stringify({
+								type: "error",
+								error: {
+									message:
+										error instanceof Error ? error.message : "Stream error",
+									type: "stream_error",
+								},
+							})}\n\n`;
+							controller.enqueue(new TextEncoder().encode(errorData));
+						} finally {
+							controller.close();
+
+							// Record usage if available
+							if (finalMessage?.usage) {
+								queueMicrotask(async () => {
+									try {
+										await api.usage.recordApiUsage({
+											apiKey,
+											provider: "anthropic",
+											model: finalMessage.model ?? null,
+											usage: {
+												promptTokens: finalMessage.usage.input_tokens ?? 0,
+												completionTokens: finalMessage.usage.output_tokens ?? 0,
+												totalTokens:
+													(finalMessage.usage.input_tokens ?? 0) +
+													(finalMessage.usage.output_tokens ?? 0),
+											},
+											duration: Date.now() - startTime,
+											timestamp: new Date(),
+										});
+									} catch (error) {
+										console.error("Failed to record usage:", error);
+									}
+								});
+							}
+						}
+					},
+				});
 
 				return new Response(readableStream, {
 					headers: {

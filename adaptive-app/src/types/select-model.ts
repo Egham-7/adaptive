@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-// Create Zod schema for ModelCapability
+// Create Zod schema for ModelCapability (partial type for flexible model selection)
 const modelCapabilitySchema = z.object({
 	description: z.string().optional(),
-	provider: z.string(),
-	model_name: z.string(),
-	cost_per_1m_input_tokens: z.number(),
-	cost_per_1m_output_tokens: z.number(),
-	max_context_tokens: z.number(),
+	provider: z.string().optional(),
+	model_name: z.string().optional(),
+	cost_per_1m_input_tokens: z.number().optional(),
+	cost_per_1m_output_tokens: z.number().optional(),
+	max_context_tokens: z.number().optional(),
 	max_output_tokens: z.number().optional(),
-	supports_function_calling: z.boolean(),
+	supports_function_calling: z.boolean().optional(),
 	languages_supported: z.array(z.string()).optional(),
 	model_size_params: z.string().optional(),
 	latency_tier: z.string().optional(),
