@@ -10,11 +10,6 @@ const modelCapabilitySchema = z.object({
 	max_context_tokens: z.number().optional(),
 	max_output_tokens: z.number().optional(),
 	supports_function_calling: z.boolean().optional(),
-	languages_supported: z.array(z.string()).optional(),
-	model_size_params: z.string().optional(),
-	latency_tier: z.string().optional(),
-	task_type: z.string().optional(),
-	complexity: z.string().optional(),
 });
 
 // Create Zod schema for ModelRouterConfig
