@@ -459,16 +459,12 @@ print(message.content[0].text)`}
       {
         "provider": "openai",
         "model_name": "gpt-4o",
-        "cost_per_1m_input_tokens": 5.0,
-        "cost_per_1m_output_tokens": 15.0,
         "max_context_tokens": 128000,
         "supports_function_calling": true
       },
       {
         "provider": "anthropic", 
         "model_name": "claude-3-5-sonnet-20241022",
-        "cost_per_1m_input_tokens": 3.0,
-        "cost_per_1m_output_tokens": 15.0,
         "max_context_tokens": 200000,
         "supports_function_calling": true
       }
@@ -495,7 +491,6 @@ print(message.content[0].text)`}
   ],
   "metadata": {
     "reasoning": "Complex analytical task requires high-quality reasoning. Anthropic model selected for better analysis capabilities.",
-    "cost_per_1m_tokens": 15.0,
     "complexity": "high",
     "cache_source": "ml_classifier"
   }

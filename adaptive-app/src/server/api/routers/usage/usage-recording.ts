@@ -8,6 +8,7 @@ import {
 	hasSufficientCredits,
 } from "@/lib/credit-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+import { cacheTierSchema } from "@/types/chat-completion";
 import {
 	findModelBySimilarity,
 	hashApiKey,
@@ -35,7 +36,7 @@ export const usageRecordingRouter = createTRPCRouter({
 				clusterId: z.string().optional(), // Link usage to cluster
 				metadata: z.record(z.string(), z.any()).optional(),
 				error: z.string().optional(), // Add error field for failed requests
-				cacheTier: z.string().optional(), // Cache tier information
+				cacheTier: cacheTierSchema.optional(), // Cache tier information
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
