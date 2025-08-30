@@ -1,21 +1,32 @@
 import { z } from "zod";
 
-// Create Zod schema for ModelCapability
-const modelCapabilitySchema = z.object({
-	description: z.string().optional(),
-	provider: z.string(),
-	model_name: z.string(),
-	cost_per_1m_input_tokens: z.number(),
-	cost_per_1m_output_tokens: z.number(),
-	max_context_tokens: z.number(),
-	max_output_tokens: z.number().optional(),
-	supports_function_calling: z.boolean(),
-	languages_supported: z.array(z.string()).optional(),
-	model_size_params: z.string().optional(),
-	latency_tier: z.string().optional(),
-	task_type: z.string().optional(),
-	complexity: z.string().optional(),
-});
+// Create Zod schema for ModelCapability (partial type for flexible model selection)
+const modelCapabilitySchema = z
+	.object({
+		description: z.string().optional(),
+		provider: z.string().optional(),
+		model_name: z.string().optional(),
+		cost_per_1m_input_tokens: z.number().optional(),
+		cost_per_1m_output_tokens: z.number().optional(),
+		max_context_tokens: z.number().optional(),
+		max_output_tokens: z.number().optional(),
+		supports_function_calling: z.boolean().optional(),
+		languages_supported: z.array(z.string()).optional(),
+		model_size_params: z.string().optional(),
+		latency_tier: z.string().optional(),
+		task_type: z.string().optional(),
+		complexity: z.string().optional(),
+	})
+	.refine(
+		(data) => {
+			// Require at least one field to be defined
+			const values = Object.values(data);
+			return values.some((value) => value !== undefined);
+		},
+		{
+			message: "At least one model capability attribute must be provided",
+		},
+	);
 
 // Create Zod schema for ModelRouterConfig
 const modelRouterConfigSchema = z.object({
