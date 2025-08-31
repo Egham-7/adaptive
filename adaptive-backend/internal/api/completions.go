@@ -27,13 +27,14 @@ var (
 // It manages the lifecycle of chat completion requests, including provider selection,
 // fallback handling, and response processing.
 type CompletionHandler struct {
-	cfg           *config.Config
-	reqSvc        *completions.RequestService
-	respSvc       *completions.ResponseService
-	completionSvc *completions.CompletionService
-	paramSvc      *completions.ParameterService
-	modelRouter   *model_router.ModelRouter
-	promptCache   *cache.PromptCache
+	cfg             *config.Config
+	reqSvc          *completions.RequestService
+	respSvc         *completions.ResponseService
+	completionSvc   *completions.CompletionService
+	paramSvc        *completions.ParameterService
+	modelRouter     *model_router.ModelRouter
+	promptCache     *cache.PromptCache
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 }
 
 // NewCompletionHandler wires up dependencies and initializes the completion handler.
@@ -45,15 +46,17 @@ func NewCompletionHandler(
 	paramSvc *completions.ParameterService,
 	modelRouter *model_router.ModelRouter,
 	promptCache *cache.PromptCache,
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) *CompletionHandler {
 	return &CompletionHandler{
-		cfg:           cfg,
-		reqSvc:        reqSvc,
-		respSvc:       respSvc,
-		completionSvc: completionSvc,
-		paramSvc:      paramSvc,
-		modelRouter:   modelRouter,
-		promptCache:   promptCache,
+		cfg:             cfg,
+		reqSvc:          reqSvc,
+		respSvc:         respSvc,
+		completionSvc:   completionSvc,
+		paramSvc:        paramSvc,
+		modelRouter:     modelRouter,
+		promptCache:     promptCache,
+		circuitBreakers: circuitBreakers,
 	}
 }
 
@@ -94,7 +97,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 
 	resp, cacheSource, err := h.selectProtocol(
-		req, userID, reqID, make(map[string]*circuitbreaker.CircuitBreaker), resolvedConfig,
+		req, userID, reqID, h.circuitBreakers, resolvedConfig,
 	)
 	if err != nil {
 		// Check for invalid model specification error to return 400 instead of 500
