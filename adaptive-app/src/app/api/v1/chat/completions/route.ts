@@ -177,7 +177,7 @@ export async function POST(req: NextRequest) {
 								},
 								duration: Date.now() - startTime,
 								timestamp: new Date(),
-								cacheTier: adaptiveCompletion.cache_tier,
+								cacheTier: adaptiveCompletion.usage?.cache_tier,
 							});
 						} catch (error) {
 							console.error("Failed to record usage:", error);
