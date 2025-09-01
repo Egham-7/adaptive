@@ -31,34 +31,17 @@ func (s *Service) SelectModel(
 ) (*models.SelectModelResponse, error) {
 	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
 
-	fiberlog.Debugf("[%s] Built protocol config from select model request - cost bias: %.2f", requestID, mergedConfig.CostBias)
+	fiberlog.Debugf("[%s] Built model config from select model request - cost bias: %.2f", requestID, mergedConfig.CostBias)
 
-	// Perform protocol selection directly with prompt
-	resp, cacheSource, err := s.modelRouter.SelectProtocolWithCache(
+	// Perform model selection directly with prompt
+	// For direct select-model API, we don't have message history so no tool calls
+	resp, cacheSource, err := s.modelRouter.SelectModelWithCache(
 		req.Prompt, userID, requestID, mergedConfig, circuitBreakers,
+		nil, nil, // No tools/tool_call context in direct select-model API
 	)
 	if err != nil {
-		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
-		return nil, fmt.Errorf("protocol selection failed: %w", err)
-	}
-
-	// Extract provider and model based on protocol type
-	var provider, model string
-	var alternatives []models.Alternative
-
-	switch resp.Protocol {
-	case models.ProtocolStandardLLM:
-		if resp.Standard != nil {
-			provider = resp.Standard.Provider
-			model = resp.Standard.Model
-			alternatives = resp.Standard.Alternatives
-		}
-	case models.ProtocolMinion:
-		if resp.Minion != nil {
-			provider = resp.Minion.Provider
-			model = resp.Minion.Model
-			alternatives = resp.Minion.Alternatives
-		}
+		fiberlog.Errorf("[%s] Model selection error: %v", requestID, err)
+		return nil, fmt.Errorf("model selection failed: %w", err)
 	}
 
 	// Build metadata about the selection
@@ -66,10 +49,10 @@ func (s *Service) SelectModel(
 		CacheSource: cacheSource,
 	}
 
-	// Add cost and complexity information if available from protocol manager config
+	// Add cost and complexity information if available from model router config
 	if mergedConfig != nil {
 		for _, modelCap := range mergedConfig.Models {
-			if modelCap.ModelName == model && modelCap.Provider == provider {
+			if modelCap.ModelName == resp.Model && modelCap.Provider == resp.Provider {
 				metadata.CostPer1M = modelCap.CostPer1MInputTokens
 				if modelCap.Complexity != nil {
 					metadata.Complexity = *modelCap.Complexity
@@ -79,12 +62,12 @@ func (s *Service) SelectModel(
 		}
 	}
 
-	fiberlog.Infof("[%s] model selection completed - provider: %s, model: %s", requestID, provider, model)
+	fiberlog.Infof("[%s] model selection completed - provider: %s, model: %s", requestID, resp.Provider, resp.Model)
 
 	return &models.SelectModelResponse{
-		Provider:     provider,
-		Model:        model,
-		Alternatives: alternatives,
+		Provider:     resp.Provider,
+		Model:        resp.Model,
+		Alternatives: resp.Alternatives,
 		Metadata:     metadata,
 	}, nil
 }

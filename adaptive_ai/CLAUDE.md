@@ -1,5 +1,21 @@
 # Adaptive AI - Intelligent Model Selection Service
 
+## Memory and Documentation
+
+**IMPORTANT**: When working on this service, remember to:
+
+### Memory Management
+Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for ML model configurations, training results, troubleshooting solutions
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
+- **Best practices for memory storage**: Only commit meaningful, reusable information like ML model patterns, PyTorch configurations, classification algorithms, cost optimization strategies, and implementation details that provide value beyond common knowledge
+
+### Documentation
+For documentation needs, use Ref MCP tools:
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for Python, LitServe, PyTorch, HuggingFace, scikit-learn documentation
+- **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
+
 ## Overview
 
 The adaptive_ai service is a Python-based ML microservice that provides intelligent model selection for the Adaptive LLM infrastructure. Built with LitServe ML serving framework, it analyzes prompts using machine learning classifiers to select the optimal provider and model for each request, enabling significant cost savings and performance optimization.

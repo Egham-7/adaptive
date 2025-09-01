@@ -31,7 +31,6 @@ type CompletionHandler struct {
 	reqSvc          *completions.RequestService
 	respSvc         *completions.ResponseService
 	completionSvc   *completions.CompletionService
-	paramSvc        *completions.ParameterService
 	modelRouter     *model_router.ModelRouter
 	promptCache     *cache.PromptCache
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
@@ -43,7 +42,6 @@ func NewCompletionHandler(
 	reqSvc *completions.RequestService,
 	respSvc *completions.ResponseService,
 	completionSvc *completions.CompletionService,
-	paramSvc *completions.ParameterService,
 	modelRouter *model_router.ModelRouter,
 	promptCache *cache.PromptCache,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
@@ -53,7 +51,6 @@ func NewCompletionHandler(
 		reqSvc:          reqSvc,
 		respSvc:         respSvc,
 		completionSvc:   completionSvc,
-		paramSvc:        paramSvc,
 		modelRouter:     modelRouter,
 		promptCache:     promptCache,
 		circuitBreakers: circuitBreakers,
@@ -96,7 +93,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return c.JSON(cachedResponse)
 	}
 
-	resp, cacheSource, err := h.selectProtocol(
+	resp, cacheSource, err := h.selectModel(
 		req, userID, reqID, h.circuitBreakers, resolvedConfig,
 	)
 	if err != nil {
@@ -107,16 +104,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
 	}
 
-	params, err := h.paramSvc.GetParams(resp)
-	if err != nil {
-		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
-	}
-
-	if err := h.paramSvc.ApplyModelParameters(req, params, reqID); err != nil {
-		return h.respSvc.HandleInternalError(c, err.Error(), reqID)
-	}
-
-	return h.completionSvc.HandleProtocol(c, resp.Protocol, req, resp, reqID, isStream, cacheSource, resolvedConfig)
+	return h.completionSvc.HandleModel(c, req, resp, reqID, isStream, cacheSource, resolvedConfig)
 }
 
 // checkPromptCache checks if prompt cache is enabled and returns cached response if found
@@ -134,26 +122,26 @@ func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, 
 	return h.promptCache.Get(req, requestID)
 }
 
-// selectProtocol runs protocol selection and returns the chosen protocol response and cache source.
-func (h *CompletionHandler) selectProtocol(
+// selectModel runs model selection and returns the chosen model response and cache source.
+func (h *CompletionHandler) selectModel(
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 	resolvedConfig *config.Config,
 ) (
-	resp *models.ProtocolResponse,
+	resp *models.ModelSelectionResponse,
 	cacheSource string,
 	err error,
 ) {
-	fiberlog.Infof("[%s] Starting protocol selection for user: %s", requestID, userID)
+	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
 
 	// Check if model is explicitly provided (non-empty) - if so, use manual override
 	if req.Model != "" {
-		fiberlog.Infof("[%s] Model explicitly provided (%s), using manual override instead of protocol manager", requestID, req.Model)
-		return h.createManualProtocolResponse(req, requestID)
+		fiberlog.Infof("[%s] Model explicitly provided (%s), using manual override instead of model router", requestID, req.Model)
+		return h.createManualModelResponse(req, requestID)
 	}
 
-	fiberlog.Debugf("[%s] No explicit model provided, proceeding with protocol manager selection", requestID)
+	fiberlog.Debugf("[%s] No explicit model provided, proceeding with model router selection", requestID)
 
 	// Check if the singleton adapter is available
 	if format_adapter.AdaptiveToOpenAI == nil {
@@ -172,22 +160,26 @@ func (h *CompletionHandler) selectProtocol(
 		return nil, "", fmt.Errorf("failed to extract prompt: %w", err)
 	}
 
-	resp, cacheSource, err = h.modelRouter.SelectProtocolWithCache(
+	// Extract tool calls from the last message
+	toolCall := utils.ExtractToolCallsFromLastMessage(openAIParams.Messages)
+
+	resp, cacheSource, err = h.modelRouter.SelectModelWithCache(
 		prompt, userID, requestID, &resolvedConfig.ModelRouter, circuitBreakers,
+		req.Tools, toolCall,
 	)
 	if err != nil {
-		fiberlog.Errorf("[%s] Protocol selection error: %v", requestID, err)
-		return nil, "", fmt.Errorf("protocol selection failed: %w", err)
+		fiberlog.Errorf("[%s] Model selection error: %v", requestID, err)
+		return nil, "", fmt.Errorf("model selection failed: %w", err)
 	}
 
 	return resp, cacheSource, nil
 }
 
-// createManualProtocolResponse creates a manual protocol response when a model is explicitly provided
-func (h *CompletionHandler) createManualProtocolResponse(
+// createManualModelResponse creates a manual model response when a model is explicitly provided
+func (h *CompletionHandler) createManualModelResponse(
 	req *models.ChatCompletionRequest,
 	requestID string,
-) (*models.ProtocolResponse, string, error) {
+) (*models.ModelSelectionResponse, string, error) {
 	modelSpec := string(req.Model)
 
 	// Parse provider:model format
@@ -213,19 +205,11 @@ func (h *CompletionHandler) createManualProtocolResponse(
 	// Ensure the OpenAI parameter's Model is set to the provider-stripped model name
 	openAIParams.Model = shared.ChatModel(modelName)
 
-	// Create standard LLM info
-	standardInfo := &models.StandardLLMInfo{
+	// Create simplified model selection response
+	response := &models.ModelSelectionResponse{
 		Provider:     provider,
 		Model:        modelName,
-		Parameters:   *openAIParams,
 		Alternatives: []models.Alternative{}, // No alternatives for manual override
-	}
-
-	// Create protocol response
-	response := &models.ProtocolResponse{
-		Protocol: models.ProtocolStandardLLM,
-		Standard: standardInfo,
-		Minion:   nil, // Manual override always uses standard protocol
 	}
 
 	return response, "manual_override", nil

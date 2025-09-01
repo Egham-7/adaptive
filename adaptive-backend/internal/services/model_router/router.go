@@ -51,16 +51,18 @@ func NewModelRouter(cfg *config.Config, redisClient *redis.Client) (*ModelRouter
 	}, nil
 }
 
-// SelectProtocolWithCache checks the semantic cache, then calls the Python service for protocol selection if needed.
-// It returns the protocol response, the source (cache or service), and any error encountered.
+// SelectModelWithCache checks the semantic cache, then calls the Python service for model selection if needed.
+// It returns the model selection response, the source (cache or service), and any error encountered.
 // If cacheConfigOverride is provided, it will temporarily override the cache behavior for this request.
-func (pm *ModelRouter) SelectProtocolWithCache(
+func (pm *ModelRouter) SelectModelWithCache(
 	prompt string,
 	userID, requestID string,
 	modelRouterConfig *models.ModelRouterConfig,
 	cbs map[string]*circuitbreaker.CircuitBreaker,
-) (*models.ProtocolResponse, string, error) {
-	fiberlog.Debugf("[%s] Starting protocol selection for user: %s", requestID, userID)
+	tools any,
+	toolCall any,
+) (*models.ModelSelectionResponse, string, error) {
+	fiberlog.Debugf("[%s] Starting model selection for user: %s", requestID, userID)
 
 	cacheConfigOverride := modelRouterConfig.SemanticCache
 	fiberlog.Debugf("[%s] Using merged model router config - cost bias: %.2f", requestID, modelRouterConfig.CostBias)
@@ -73,46 +75,50 @@ func (pm *ModelRouter) SelectProtocolWithCache(
 		requestID, cacheConfigOverride.Enabled, cacheConfigOverride.SemanticThreshold)
 
 	if useCache && pm.cache != nil {
-		fiberlog.Debugf("[%s] Checking cache for existing protocol response", requestID)
+		fiberlog.Debugf("[%s] Checking cache for existing model response", requestID)
 		if hit, source, found := pm.cache.Lookup(prompt, requestID); found {
-			fiberlog.Infof("[%s] Cache hit (%s) - returning cached protocol: %s", requestID, source, hit.Protocol)
+			fiberlog.Infof("[%s] Cache hit (%s) - returning cached model: %s/%s", requestID, source, hit.Provider, hit.Model)
 			return hit, source, nil
 		}
-		fiberlog.Debugf("[%s] Cache miss - proceeding to protocol selection service", requestID)
+		fiberlog.Debugf("[%s] Cache miss - proceeding to model selection service", requestID)
 	} else {
 		if !cacheConfigOverride.Enabled {
 			fiberlog.Debugf("[%s] Cache disabled by request override", requestID)
 		} else {
-			fiberlog.Debugf("[%s] Cache disabled - proceeding directly to protocol selection service", requestID)
+			fiberlog.Debugf("[%s] Cache disabled - proceeding directly to model selection service", requestID)
 		}
 	}
 
-	// 2) Call Python service for protocol selection
-	fiberlog.Debugf("[%s] Calling protocol selection service", requestID)
+	// 2) Call Python service for model selection
+	fiberlog.Debugf("[%s] Calling model selection service", requestID)
 
 	// Filter out providers with open circuit breakers if circuit breakers are available
 	if cbs != nil && modelRouterConfig != nil {
 		pm.filterUnavailableProviders(modelRouterConfig, cbs, requestID)
 	}
 
-	req := models.ProtocolSelectionRequest{
-		Prompt:            prompt,
-		UserID:            userID,
-		ModelRouterConfig: modelRouterConfig,
+	req := models.ModelSelectionRequest{
+		Prompt:              prompt,
+		ToolCall:            toolCall,
+		Tools:               tools,
+		UserID:              userID,
+		Models:              modelRouterConfig.Models,
+		CostBias:            &modelRouterConfig.CostBias,
+		ComplexityThreshold: modelRouterConfig.ComplexityThreshold,
+		TokenThreshold:      modelRouterConfig.TokenThreshold,
 	}
-	resp := pm.client.SelectProtocol(req)
+	resp := pm.client.SelectModel(req)
 
-	fiberlog.Infof("[%s] Protocol selected: %s (provider: %s, model: %s)",
-		requestID, resp.Protocol,
-		getProviderFromResponse(resp), getModelFromResponse(resp))
+	fiberlog.Infof("[%s] Model selected: %s/%s",
+		requestID, resp.Provider, resp.Model)
 
 	return &resp, "", nil
 }
 
-// StoreSuccessfulProtocol stores a protocol response in the semantic cache after successful completion
-func (pm *ModelRouter) StoreSuccessfulProtocol(
+// StoreSuccessfulModel stores a model response in the semantic cache after successful completion
+func (pm *ModelRouter) StoreSuccessfulModel(
 	prompt string,
-	resp models.ProtocolResponse,
+	resp models.ModelSelectionResponse,
 	requestID string,
 	modelRouterConfig *models.ModelRouterConfig,
 ) error {
@@ -129,35 +135,14 @@ func (pm *ModelRouter) StoreSuccessfulProtocol(
 		return nil
 	}
 
-	fiberlog.Debugf("[%s] Storing successful protocol response in semantic cache", requestID)
+	fiberlog.Debugf("[%s] Storing successful model response in semantic cache", requestID)
 	if err := pm.cache.Store(prompt, resp); err != nil {
-		fiberlog.Errorf("[%s] Failed to store protocol response in semantic cache: %v", requestID, err)
+		fiberlog.Errorf("[%s] Failed to store model response in semantic cache: %v", requestID, err)
 		return err
 	}
 
-	fiberlog.Debugf("[%s] Successfully stored protocol response in semantic cache", requestID)
+	fiberlog.Debugf("[%s] Successfully stored model response in semantic cache", requestID)
 	return nil
-}
-
-// Helper functions to extract provider and model from response for logging
-func getProviderFromResponse(resp models.ProtocolResponse) string {
-	if resp.Standard != nil {
-		return resp.Standard.Provider
-	}
-	if resp.Minion != nil {
-		return resp.Minion.Provider
-	}
-	return "unknown"
-}
-
-func getModelFromResponse(resp models.ProtocolResponse) string {
-	if resp.Standard != nil {
-		return resp.Standard.Model
-	}
-	if resp.Minion != nil {
-		return resp.Minion.Model
-	}
-	return "unknown"
 }
 
 // ValidateContext ensures dependencies are set.

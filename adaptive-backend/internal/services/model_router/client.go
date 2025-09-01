@@ -9,7 +9,6 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go/packages/param"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -56,32 +55,32 @@ func NewModelRouterClientWithConfig(config ModelRouterClientConfig, redisClient 
 	}
 }
 
-func (c *ModelRouterClient) SelectProtocol(
-	req models.ProtocolSelectionRequest,
-) models.ProtocolResponse {
+func (c *ModelRouterClient) SelectModel(
+	req models.ModelSelectionRequest,
+) models.ModelSelectionResponse {
 	start := time.Now()
 
 	// Log the select model request details (non-PII at info level)
-	fiberlog.Infof("[PROTOCOL_SELECTION] Making request to adaptive_ai service - prompt_length: %d",
+	fiberlog.Infof("[MODEL_SELECTION] Making request to adaptive_ai service - prompt_length: %d",
 		len(req.Prompt))
 
 	// Debug-level log with PII and detailed config
-	fiberlog.Debugf("[PROTOCOL_SELECTION] Request details - user_id: %s", req.UserID)
-	if req.ModelRouterConfig != nil {
-		fiberlog.Debugf("[PROTOCOL_SELECTION] Request config - cost_bias: %.2f, available_models: %d",
-			req.ModelRouterConfig.CostBias, len(req.ModelRouterConfig.Models))
+	fiberlog.Debugf("[MODEL_SELECTION] Request details - user_id: %s", req.UserID)
+	if req.CostBias != nil {
+		fiberlog.Debugf("[MODEL_SELECTION] Request config - cost_bias: %.2f, available_models: %d",
+			*req.CostBias, len(req.Models))
 	}
 
 	if !c.circuitBreaker.CanExecute() {
-		fiberlog.Warnf("[CIRCUIT_BREAKER] Protocol Manager service unavailable (Open state). Using fallback.")
+		fiberlog.Warnf("[CIRCUIT_BREAKER] Model Router service unavailable (Open state). Using fallback.")
 		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
 		// Log circuit breaker error but continue with fallback
 		circuitErr := models.NewCircuitBreakerError("adaptive_ai")
 		fiberlog.Debugf("[CIRCUIT_BREAKER] %v", circuitErr)
-		return c.getFallbackProtocolResponse()
+		return c.getFallbackModelResponse()
 	}
 
-	var out models.ProtocolResponse
+	var out models.ModelSelectionResponse
 	opts := &services.RequestOptions{Timeout: c.timeout}
 	fiberlog.Debugf("[SELECT_MODEL] Sending POST request to /predict endpoint")
 	err := c.client.Post("/predict", req, &out, opts)
@@ -91,38 +90,27 @@ func (c *ModelRouterClient) SelectProtocol(
 		// Log provider error but continue with fallback
 		providerErr := models.NewProviderError("adaptive_ai", "prediction request failed", err)
 		fiberlog.Warnf("[PROVIDER_ERROR] %v", providerErr)
-		fiberlog.Warnf("[SELECT_MODEL] Request failed, using fallback protocol")
-		return c.getFallbackProtocolResponse()
+		fiberlog.Warnf("[SELECT_MODEL] Request failed, using fallback model")
+		return c.getFallbackModelResponse()
 	}
 
 	duration := time.Since(start)
 	c.circuitBreaker.RecordSuccess()
 	c.circuitBreaker.RecordRequestDuration(duration, true)
-	fiberlog.Infof("[SELECT_MODEL] Request successful in %v - protocol: %s",
-		duration, out.Protocol)
+	fiberlog.Infof("[SELECT_MODEL] Request successful in %v - model: %s/%s",
+		duration, out.Provider, out.Model)
 	return out
 }
 
-func (c *ModelRouterClient) getFallbackProtocolResponse() models.ProtocolResponse {
-	// Simple fallback: always route to standard LLM with basic parameters
-	return models.ProtocolResponse{
-		Protocol: models.ProtocolStandardLLM,
-		Standard: &models.StandardLLMInfo{
-			Provider: string(models.ProviderOpenAI),
-			Model:    "gpt-4o-mini",
-			Parameters: models.OpenAIParameters{
-				Temperature:      param.Opt[float64]{Value: 0.7},
-				TopP:             param.Opt[float64]{Value: 0.9},
-				MaxTokens:        param.Opt[int64]{Value: 1000},
-				N:                param.Opt[int64]{Value: 1},
-				FrequencyPenalty: param.Opt[float64]{Value: 0},
-				PresencePenalty:  param.Opt[float64]{Value: 0},
-			},
-			Alternatives: []models.Alternative{
-				{
-					Provider: string(models.ProviderOpenAI),
-					Model:    "gpt-4o",
-				},
+func (c *ModelRouterClient) getFallbackModelResponse() models.ModelSelectionResponse {
+	// Simple fallback: always route to gpt-4o-mini
+	return models.ModelSelectionResponse{
+		Provider: "openai",
+		Model:    "gpt-4o-mini",
+		Alternatives: []models.Alternative{
+			{
+				Provider: "openai",
+				Model:    "gpt-4o",
 			},
 		},
 	}

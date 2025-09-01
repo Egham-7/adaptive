@@ -1,5 +1,21 @@
 # Benchmarks - Performance Testing Suite
 
+## Memory and Documentation
+
+**IMPORTANT**: When working on this service, remember to:
+
+### Memory Management
+Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for benchmark results, performance insights, troubleshooting solutions
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
+- **Best practices for memory storage**: Only commit meaningful, reusable information like performance patterns, benchmarking configurations, optimization strategies, test methodologies, and results analysis that provide value beyond common knowledge
+
+### Documentation
+For documentation needs, use Ref MCP tools:
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for GenAI-Perf, Python testing, MMLU benchmarking documentation
+- **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
+
 ## Overview
 
 The benchmarks service provides comprehensive performance testing and evaluation tools for the Adaptive LLM infrastructure. It includes three specialized benchmark suites: GenAI performance testing, MMLU academic evaluation, and protocol model testing for validation of the AI service routing decisions.

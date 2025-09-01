@@ -1,1 +1,1 @@
-"""Test package for adaptive-ai."""
+# Tests package for adaptive_ai
