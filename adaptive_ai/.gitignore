@@ -37,7 +37,9 @@ env/
 .pytest_cache/
 .nox/
 .coverage
+coverage.xml
 htmlcov/
+coverage/
 
 # Type checking / linters
 .mypy_cache/

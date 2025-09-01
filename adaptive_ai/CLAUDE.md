@@ -61,7 +61,6 @@ adaptive_ai/
 │   │   ├── prompt_classifier.py  # Task type classification
 │   │   ├── domain_classifier.py  # Domain-specific classification
 │   │   ├── cost_optimizer.py     # Cost optimization logic
-│   │   ├── protocol_manager.py   # Protocol decision engine
 │   │   ├── model_registry.py     # Model metadata and capabilities
 │   │   ├── classification_result_embedding_cache.py # Caching layer
 │   │   └── unified_model_selector.py  # Unified selection interface
@@ -186,9 +185,12 @@ The service exposes a LitServe API that accepts model selection requests and ret
         "model": "gpt-4",
         "temperature": 0.7
     },
-    "protocol_manager_config": {
-        "models": ["gpt-4", "claude-3-sonnet"],
-        "cost_preference": "balanced",
+    "model_router": {
+        "candidates": [
+            {"provider": "openai", "model": "gpt-4"},
+            {"provider": "anthropic", "model": "claude-3-sonnet"}
+        ],
+        "preference": "balanced",
         "max_cost_per_token": 0.001
     },
     "user_preferences": {
@@ -202,8 +204,7 @@ The service exposes a LitServe API that accepts model selection requests and ret
 ### Response Format
 ```python
 {
-    "protocol": "standard_llm",
-    "standard": {
+    "selection": {
         "provider": "openai",
         "model": "gpt-4",
         "parameters": {
@@ -214,9 +215,11 @@ The service exposes a LitServe API that accepts model selection requests and ret
             {
                 "provider": "anthropic",
                 "model": "claude-3-sonnet",
-                "cost_ratio": 0.85
+                "cost_ratio": 0.85,
+                "reason": "fallback_option"
             }
-        ]
+        ],
+        "reasoning": "Selected GPT-4 for balanced cost-performance trade-off based on prompt complexity analysis"
     }
 }
 ```
@@ -255,13 +258,6 @@ The service exposes a LitServe API that accepts model selection requests and ret
 - Tracks usage patterns and optimizes over time
 - Provides cost savings metrics and recommendations
 
-### Protocol Manager
-**File**: `adaptive_ai/services/protocol_manager.py`
-
-- Decides between standard LLM calls vs. specialized protocols
-- Manages protocol-specific parameter tuning
-- Coordinates with the Go backend for protocol execution
-- Handles protocol fallback and error recovery
 
 ## ML Models and Classification
 

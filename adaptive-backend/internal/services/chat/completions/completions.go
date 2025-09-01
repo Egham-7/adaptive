@@ -130,7 +130,7 @@ func (cs *CompletionService) HandleCompletion(
 
 		providers = append(providers, resp.Alternatives...)
 
-		return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig), requestID, "streaming_completion", isStream)
+		return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig), requestID, isStream)
 	}
 
 	// For non-streaming requests, use fallback logic
@@ -144,7 +144,7 @@ func (cs *CompletionService) HandleCompletion(
 
 	providers = append(providers, resp.Alternatives...)
 
-	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig), requestID, "completion", isStream)
+	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig), requestID, isStream)
 }
 
 // createExecuteFunc creates an execution function for the fallback service

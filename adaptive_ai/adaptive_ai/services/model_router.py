@@ -226,8 +226,30 @@ class ModelRouter:
         # If model has no task type specified, assume it supports all tasks
         if model.task_type is None:
             return True
-        # Check if the model's task type matches the requested task type
-        return model.task_type == task_type
+        
+        # Normalize both sides to comparable strings for enum vs string comparison
+        model_task_str = None
+        if model.task_type is not None:
+            # Handle both string and enum types
+            if hasattr(model.task_type, 'value'):
+                model_task_str = str(model.task_type.value).lower().strip()
+            elif hasattr(model.task_type, 'name'):
+                model_task_str = str(model.task_type.name).lower().strip()
+            else:
+                model_task_str = str(model.task_type).lower().strip()
+        
+        task_type_str = None
+        if task_type is not None:
+            # Handle both string and enum types
+            if hasattr(task_type, 'value'):
+                task_type_str = str(task_type.value).lower().strip()
+            elif hasattr(task_type, 'name'):
+                task_type_str = str(task_type.name).lower().strip()
+            else:
+                task_type_str = str(task_type).lower().strip()
+        
+        # Compare normalized strings
+        return model_task_str == task_type_str
 
     def _calculate_complexity_score(
         self, model: ModelCapability, models: list[ModelCapability]
@@ -237,14 +259,15 @@ class ModelRouter:
             return model.complexity_score
 
         # Use cost as complexity proxy
-        max_cost = (
-            max(
-                (m.cost_per_1m_input_tokens or 0)
-                for m in models
-                if m.cost_per_1m_input_tokens
-            )
-            or 1
-        )  # Avoid division by zero
+        # Precompute valid costs to avoid ValueError when no valid costs exist
+        valid_costs = [
+            m.cost_per_1m_input_tokens or 0
+            for m in models
+            if m.cost_per_1m_input_tokens
+        ]
+        
+        DEFAULT_COST = 1.0  # Default cost for normalization
+        max_cost = max(valid_costs) if valid_costs else DEFAULT_COST
 
         return (model.cost_per_1m_input_tokens or 0) / max_cost if max_cost > 0 else 0.5
 

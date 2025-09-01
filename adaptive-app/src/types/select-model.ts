@@ -48,7 +48,7 @@ export const selectModelRequestSchema = z
 		// Optional user identifier for tracking and personalization
 		user: z.string().optional(),
 		// Model router configuration for routing decisions
-		model_router_config: modelRouterConfigSchema.optional(),
+		model_router: modelRouterConfigSchema.optional(),
 	})
 	.strict();
 

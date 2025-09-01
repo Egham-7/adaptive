@@ -129,12 +129,14 @@ class YAMLModelDatabase:
 
                     # Store by unique_id (provider:model_name) to allow multi-provider models
                     unique_id = model_capability.unique_id
-                    if unique_id in self._models:
+                    # Normalize unique_id to lowercase for case-insensitive lookup
+                    normalized_unique_id = unique_id.lower()
+                    if normalized_unique_id in self._models:
                         logger.warning(
                             f"Overwriting existing model entry: '{unique_id}'"
                         )
 
-                    self._models[unique_id] = model_capability
+                    self._models[normalized_unique_id] = model_capability
 
                     # Also store by normalized model name for multi-provider lookup
                     normalized_name = model_name.lower().strip()
@@ -165,7 +167,10 @@ class YAMLModelDatabase:
         Returns:
             ModelCapability if found, None otherwise
         """
-        return self._models.get(unique_id)
+        if unique_id is None:
+            return None
+        # Normalize unique_id to lowercase for case-insensitive lookup
+        return self._models.get(unique_id.lower())
 
     def get_models_by_name(self, model_name: str) -> list[ModelCapability]:
         """
@@ -183,7 +188,10 @@ class YAMLModelDatabase:
 
     def has_model(self, unique_id: str) -> bool:
         """Check if model exists in database by unique_id."""
-        return unique_id in self._models
+        if unique_id is None:
+            return False
+        # Normalize unique_id to lowercase for case-insensitive lookup
+        return unique_id.lower() in self._models
 
     def get_model_count(self) -> int:
         """Get total number of unique models loaded."""

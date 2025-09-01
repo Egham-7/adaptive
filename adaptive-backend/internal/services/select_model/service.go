@@ -31,7 +31,11 @@ func (s *Service) SelectModel(
 ) (*models.SelectModelResponse, error) {
 	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
 
-	fiberlog.Debugf("[%s] Built model config from select model request - cost bias: %.2f", requestID, mergedConfig.CostBias)
+	if mergedConfig != nil {
+		fiberlog.Debugf("[%s] Built model config from select model request - cost bias: %.2f", requestID, mergedConfig.CostBias)
+	} else {
+		fiberlog.Debugf("[%s] Built model config from select model request - using default config (mergedConfig is nil)", requestID)
+	}
 
 	// Perform model selection directly with prompt
 	// For direct select-model API, we don't have message history so no tool calls

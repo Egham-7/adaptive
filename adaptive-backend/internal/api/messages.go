@@ -69,35 +69,22 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 	isStreaming := req.Stream != nil && *req.Stream
 	fiberlog.Debugf("[%s] Request type: streaming=%t", requestID, isStreaming)
 
-	// If a model is specified, use model router for intelligent provider selection
+	// If a model is specified, directly route to the appropriate provider without model router
 	if req.Model != "" {
 		modelStr := string(req.Model)
-		fiberlog.Debugf("[%s] Model specified: %s, using model router for provider selection", requestID, modelStr)
+		fiberlog.Debugf("[%s] Model specified: %s, directly routing to provider", requestID, modelStr)
 
-		// Extract prompt for routing
-		prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
+		// Parse provider and model from the model specification (expecting "provider:model" format)
+		provider, parsedModel, err := utils.ParseProviderModel(modelStr)
 		if err != nil {
-			fiberlog.Warnf("[%s] Failed to extract prompt for routing: %v", requestID, err)
-			return h.responseSvc.HandleBadRequest(c, "failed to extract prompt for routing: "+err.Error(), requestID)
+			fiberlog.Errorf("[%s] Failed to parse model specification %s: %v", requestID, modelStr, err)
+			return h.responseSvc.HandleBadRequest(c, fmt.Sprintf("invalid model specification '%s': must be in 'provider:model' format", modelStr), requestID)
 		}
 
-		// Use model router to determine the correct provider for this model
-		userID := "anonymous"
-		toolCall := utils.ExtractToolCallsFromAnthropicMessages(req.Messages)
+		// Update the request with the parsed model name
+		req.Model = anthropic.Model(parsedModel)
 
-		modelResp, _, err := h.modelRouter.SelectModelWithCache(
-			prompt, userID, requestID, &resolvedConfig.ModelRouter, h.circuitBreakers,
-			req.Tools, toolCall,
-		)
-		if err != nil {
-			fiberlog.Errorf("[%s] Model router failed for specified model %s: %v", requestID, modelStr, err)
-			return h.responseSvc.HandleError(c, err, requestID)
-		}
-
-		// Use the router's provider and model selection (no fallback for user-specified models)
-		provider := modelResp.Provider
-		req.Model = anthropic.Model(modelResp.Model)
-		fiberlog.Infof("[%s] Model router selected provider %s for specified model %s", requestID, provider, modelResp.Model)
+		fiberlog.Infof("[%s] User-specified model %s routed to provider %s", requestID, modelStr, provider)
 
 		// Get provider configuration
 		providers := resolvedConfig.GetProviders("messages")
@@ -149,7 +136,7 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 		fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s (with %d alternatives)",
 			requestID, modelResp.Provider, modelResp.Model, len(modelResp.Alternatives))
 
-		return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, isStreaming), requestID, "anthropic_messages", isStreaming)
+		return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, isStreaming), requestID, isStreaming)
 	}
 
 	// If we reach here, something went wrong with the logic above

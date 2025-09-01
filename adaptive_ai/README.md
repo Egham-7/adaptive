@@ -30,7 +30,7 @@ uv run adaptive-ai
     "messages": [{"role": "user", "content": "Hello"}],
     "temperature": 0.7
   },
-  "protocol_manager": {
+  "model_router": {
     "cost_bias": 0.3,
     "models": [{"provider": "openai"}, {"provider": "anthropic"}]
   }
