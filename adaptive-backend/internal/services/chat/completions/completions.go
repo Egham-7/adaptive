@@ -29,13 +29,16 @@ type CompletionService struct {
 }
 
 // NewCompletionService creates a new completion service.
-func NewCompletionService(responseService *ResponseService) *CompletionService {
+func NewCompletionService(cfg *config.Config, responseService *ResponseService) *CompletionService {
 	if responseService == nil {
 		panic("NewCompletionService: responseService cannot be nil")
 	}
+	if cfg == nil {
+		panic("NewCompletionService: cfg cannot be nil")
+	}
 
 	return &CompletionService{
-		fallbackService: fallback.NewFallbackService(),
+		fallbackService: fallback.NewFallbackService(cfg),
 		responseService: responseService,
 	}
 }
