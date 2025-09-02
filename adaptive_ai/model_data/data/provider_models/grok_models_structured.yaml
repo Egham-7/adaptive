@@ -86,7 +86,7 @@ models:
     - English
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Text Generation
+    task_type: Reasoning
     complexity: hard
     release_date: null
     training_data_cutoff: null
@@ -149,8 +149,8 @@ models:
     - English
     model_size_params: 3b
     latency_tier: fast
-    task_type: Code Generation
-    complexity: easy
+    task_type: Reasoning
+    complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:

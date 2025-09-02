@@ -309,7 +309,7 @@ models:
     - English
     model_size_params: Unknown
     latency_tier: fast
-    task_type: Text Generation
+    task_type: Classification
     complexity: easy
     metadata:
       matching_operator: includes
@@ -388,8 +388,8 @@ models:
     - zh
     model_size_params: Unknown
     latency_tier: high
-    task_type: Text Generation
-    complexity: high
+    task_type: Reasoning
+    complexity: hard
     additional_pricing:
       cache_read_per_1m: 0.31
     metadata:

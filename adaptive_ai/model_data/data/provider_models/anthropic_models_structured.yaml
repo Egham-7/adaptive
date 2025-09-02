@@ -98,8 +98,8 @@ models:
     - Japanese
     model_size_params: Unknown
     latency_tier: fast
-    task_type: Text Generation
-    complexity: medium
+    task_type: Chatbot
+    complexity: easy
     release_date: null
     training_data_cutoff: null
     metadata:

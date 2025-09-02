@@ -125,8 +125,8 @@ models:
     - English
     model_size_params: 8b
     latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
+    task_type: Chatbot
+    complexity: easy
     release_date: null
     training_data_cutoff: null
     metadata:
@@ -545,7 +545,7 @@ models:
     - English
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Chatbot
+    task_type: Brainstorming
     complexity: medium
     release_date: null
     training_data_cutoff: null
@@ -611,7 +611,7 @@ models:
     - English
     model_size_params: 20b
     latency_tier: medium
-    task_type: Text Generation
+    task_type: Code Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null

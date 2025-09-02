@@ -3,124 +3,165 @@ Model registry service for validating model names across all providers.
 """
 
 from adaptive_ai.models.llm_core_models import ModelCapability
-from adaptive_ai.models.llm_enums import ProviderType
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
 
 class ModelRegistry:
-    """Service for validating and managing model availability across providers."""
+    """Service for validating and managing model availability across providers.
+
+    This class focuses on core model lookup and filtering functionality.
+    Simple operations are delegated directly to yaml_model_db.
+    """
 
     def __init__(self) -> None:
         """Initialize the model registry with YAML models only."""
         pass
 
-    def is_valid_model(self, model_name: str) -> bool:
+    # Core model lookup methods
+    def get_model_capability(self, unique_id: str) -> ModelCapability | None:
         """
-        Check if a model name is valid (exists in any provider's capabilities).
+        Get the full ModelCapability object for a unique_id.
 
         Args:
-            model_name: The model name to validate
-
-        Returns:
-            True if the model exists, False otherwise
-        """
-        return yaml_model_db.has_model(model_name)
-
-    def validate_models(self, models: list[str]) -> tuple[list[str], list[str]]:
-        """
-        Validate a list of model names.
-
-        Args:
-            models: List of model names to validate
-
-        Returns:
-            Tuple of (valid_models, invalid_models)
-        """
-        valid_models = []
-        invalid_models = []
-
-        for model in models:
-            if self.is_valid_model(model):
-                valid_models.append(model)
-            else:
-                invalid_models.append(model)
-
-        return valid_models, invalid_models
-
-    def get_all_valid_models(self) -> set[str]:
-        """
-        Get all valid model names across all providers.
-
-        Returns:
-            Set of all valid model names
-        """
-        # Get all YAML models
-        yaml_model_db.load_models()
-        all_models = set()
-        for model_capability in yaml_model_db._models.values():
-            all_models.add(model_capability.model_name)
-        return all_models
-
-    def get_providers_for_model(self, model_name: str) -> set[ProviderType]:
-        """
-        Get all providers that support a given model.
-
-        Args:
-            model_name: The model name to check
-
-        Returns:
-            Set of providers that support this model
-        """
-        # Get provider from YAML model capability
-        capability = yaml_model_db.get_model(model_name)
-        if capability and capability.provider:
-            return {capability.provider}
-        return set()
-
-    def get_model_count(self) -> int:
-        """
-        Get the total number of valid models.
-
-        Returns:
-            Total count of valid models
-        """
-        return yaml_model_db.get_model_count()
-
-    def get_model_capability(self, model_name: str) -> ModelCapability | None:
-        """
-        Get the full ModelCapability object for a model name.
-
-        Args:
-            model_name: The model name to get capability for
+            unique_id: The unique_id to get capability for (format: "provider:model_name")
 
         Returns:
             ModelCapability object if model exists, None otherwise
         """
-        return yaml_model_db.get_model(model_name)
+        return yaml_model_db.get_model(unique_id)
 
-    def convert_names_to_capabilities(
-        self, model_names: list[str]
-    ) -> tuple[list[ModelCapability], list[str]]:
+    def get_models_by_name(self, model_name: str) -> list[ModelCapability]:
         """
-        Convert a list of model names to ModelCapability objects.
+        Get all model capabilities for a given model name across all providers.
 
         Args:
-            model_names: List of model names to convert
+            model_name: The model name to search for
 
         Returns:
-            Tuple of (valid_capabilities, invalid_model_names)
+            List of ModelCapability objects from all providers that serve this model
         """
-        valid_capabilities = []
-        invalid_names = []
+        return yaml_model_db.get_models_by_name(model_name)
 
-        for model_name in model_names:
-            capability = self.get_model_capability(model_name)
-            if capability:
-                valid_capabilities.append(capability)
-            else:
-                invalid_names.append(model_name)
+    # Simple validation methods (delegate to yaml_model_db)
+    def is_valid_model(self, unique_id: str) -> bool:
+        """Check if a model unique_id is valid (exists in any provider's capabilities)."""
+        return yaml_model_db.has_model(unique_id)
 
-        return valid_capabilities, invalid_names
+    def is_valid_model_name(self, model_name: str) -> bool:
+        """Check if a model name is valid (exists in any provider's capabilities)."""
+        return len(self.get_models_by_name(model_name)) > 0
+
+    def get_providers_for_model(self, model_name: str) -> set[str]:
+        """Get all providers that support a given model name."""
+        models = self.get_models_by_name(model_name)
+        return {model.provider for model in models if model.provider is not None}
+
+    # Core filtering functionality - this is the main value-add
+    def find_models_matching_criteria(
+        self, partial_model: ModelCapability
+    ) -> list[ModelCapability]:
+        """
+        Find models that match the criteria specified in a partial ModelCapability.
+
+        This uses functional predicates for clean, composable filtering.
+
+        Args:
+            partial_model: ModelCapability with some fields set as criteria
+
+        Returns:
+            List of full ModelCapability objects that match the criteria
+
+        Examples:
+            # Find OpenAI models with >8K context
+            criteria = ModelCapability(
+                provider="openai",
+                max_context_tokens=8000  # This means "at least 8000"
+            )
+            models = registry.find_models_matching_criteria(criteria)
+        """
+        # Models are already loaded at startup
+        all_models = list(yaml_model_db.get_all_models().values())
+
+        # Create filter predicates based on partial model criteria
+        filters = []
+
+        # Provider filtering (case-insensitive)
+        if partial_model.provider:
+            provider_lower = partial_model.provider.lower()
+            filters.append(lambda m: (m.provider or "").lower() == provider_lower)
+
+        # Model name filtering
+        if partial_model.model_name:
+            name_lower = partial_model.model_name.lower()
+            filters.append(lambda m: m.model_name.lower() == name_lower)
+
+        # Context filtering (min requirement)
+        if partial_model.max_context_tokens is not None:
+            min_tokens = partial_model.max_context_tokens
+            filters.append(
+                lambda m: (
+                    m.max_context_tokens is not None
+                    and m.max_context_tokens >= min_tokens
+                )
+            )
+
+        # Cost filtering (max budget for input)
+        if partial_model.cost_per_1m_input_tokens is not None:
+            max_cost_input = partial_model.cost_per_1m_input_tokens
+            filters.append(
+                lambda m: (
+                    m.cost_per_1m_input_tokens is not None
+                    and m.cost_per_1m_input_tokens <= max_cost_input
+                )
+            )
+
+        # Cost filtering (max budget for output)
+        if partial_model.cost_per_1m_output_tokens is not None:
+            max_cost_output = partial_model.cost_per_1m_output_tokens
+            filters.append(
+                lambda m: (
+                    m.cost_per_1m_output_tokens is not None
+                    and m.cost_per_1m_output_tokens <= max_cost_output
+                )
+            )
+
+        # Function calling support
+        if partial_model.supports_function_calling is True:
+            filters.append(lambda m: m.supports_function_calling is True)
+
+        # Task type filtering
+        if partial_model.task_type is not None:
+            task_type = partial_model.task_type
+            # Normalize task_type for comparison (case-insensitive, trimmed)
+            normalized_task_type = str(task_type).strip().lower() if task_type is not None else None
+            filters.append(
+                lambda m: (
+                    m.task_type is None  # No restriction means supports all
+                    or (
+                        normalized_task_type is not None 
+                        and str(m.task_type).strip().lower() == normalized_task_type
+                        if m.task_type is not None else False
+                    )
+                )
+            )
+
+        # Complexity filtering
+        if partial_model.complexity is not None:
+            complexity_lower = partial_model.complexity.lower()
+            filters.append(
+                lambda m: (
+                    m.complexity is not None
+                    and m.complexity.lower() == complexity_lower
+                )
+            )
+
+        # Apply all filters with AND logic using list comprehension
+        if not filters:
+            # No criteria specified - return all models
+            return all_models
+
+        # Filter models by applying all predicates using comprehension
+        return [model for model in all_models if all(f(model) for f in filters)]
 
 
 # Global instance for use across the application
