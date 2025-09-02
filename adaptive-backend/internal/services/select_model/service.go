@@ -39,7 +39,7 @@ func (s *Service) SelectModel(
 
 	// Perform model selection directly with prompt
 	// For direct select-model API, we don't have message history so no tool calls
-	resp, cacheSource, err := s.modelRouter.SelectModelWithCache(
+	resp, _, err := s.modelRouter.SelectModelWithCache(
 		req.Prompt, userID, requestID, mergedConfig, circuitBreakers,
 		nil, nil, // No tools/tool_call context in direct select-model API
 	)
@@ -48,30 +48,11 @@ func (s *Service) SelectModel(
 		return nil, fmt.Errorf("model selection failed: %w", err)
 	}
 
-	// Build metadata about the selection
-	metadata := models.SelectionMetadata{
-		CacheSource: cacheSource,
-	}
-
-	// Add cost and complexity information if available from model router config
-	if mergedConfig != nil {
-		for _, modelCap := range mergedConfig.Models {
-			if modelCap.ModelName == resp.Model && modelCap.Provider == resp.Provider {
-				metadata.CostPer1M = modelCap.CostPer1MInputTokens
-				if modelCap.Complexity != nil {
-					metadata.Complexity = *modelCap.Complexity
-				}
-				break
-			}
-		}
-	}
-
 	fiberlog.Infof("[%s] model selection completed - provider: %s, model: %s", requestID, resp.Provider, resp.Model)
 
 	return &models.SelectModelResponse{
 		Provider:     resp.Provider,
 		Model:        resp.Model,
 		Alternatives: resp.Alternatives,
-		Metadata:     metadata,
 	}, nil
 }
