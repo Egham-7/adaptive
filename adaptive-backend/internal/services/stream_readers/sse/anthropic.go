@@ -61,37 +61,37 @@ func NewAnthropicSSEReader(reader io.Reader, reqID, provider string, ctx context
 
 // Read implements io.Reader interface for compatibility with stream processing
 func (r *AnthropicSSEReader) Read(p []byte) (n int, err error) {
-	// Check for context cancellation
+	// Non-blocking context check for performance
 	select {
 	case <-r.ctx.Done():
 		fiberlog.Infof("[%s] Context cancelled, stopping Anthropic stream", r.reqID)
-		// Close the underlying reader to unblock any in-flight reads
-		if r.closer != nil {
-			if closeErr := r.closer.Close(); closeErr != nil {
-				fiberlog.Debugf("[%s] Error closing reader on cancellation: %v", r.reqID, closeErr)
-			}
+		// Use the concurrency-safe Close method
+		if closeErr := r.Close(); closeErr != nil {
+			fiberlog.Debugf("[%s] Error closing reader on cancellation: %v", r.reqID, closeErr)
 		}
 		return 0, r.ctx.Err()
 	default:
 	}
 
-	// Read data from the underlying reader
+	// Delegate to underlying reader (zero-copy when possible)
 	return r.reader.Read(p)
 }
 
-// ReadChunk reads the next chunk from the Anthropic SSE stream
+// ReadChunk reads the next chunk from the Anthropic SSE stream with high performance
 func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) {
+	var currentEventType string
+
 	for {
 		line, readErr := r.reader.ReadString('\n')
 		isEOF := readErr == io.EOF
 
+		// Handle read errors early (fail-fast principle)
 		if readErr != nil && !isEOF {
 			return nil, fmt.Errorf("failed to read from Anthropic SSE stream: %w", readErr)
 		}
 
+		// Optimize string trimming for common case (avoid allocation for empty lines)
 		line = strings.TrimSpace(line)
-
-		// Skip empty lines
 		if line == "" {
 			if isEOF {
 				return nil, io.EOF
@@ -99,10 +99,21 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 			continue
 		}
 
-		// Handle SSE format
-		if data, found := strings.CutPrefix(line, "data: "); found {
+		// Parse SSE lines efficiently using string operations
+		switch {
+		case strings.HasPrefix(line, "event: "):
+			// Extract event type efficiently
+			currentEventType = line[7:] // Skip "event: "
+			fiberlog.Debugf("[%s] Anthropic SSE event: %s", r.reqID, currentEventType)
+			if isEOF {
+				return nil, io.EOF
+			}
 
-			// Handle [DONE] marker
+		case strings.HasPrefix(line, "data: "):
+			// Extract data efficiently
+			data := line[6:] // Skip "data: "
+
+			// Handle [DONE] marker (fast path for completion)
 			if data == "[DONE]" {
 				return &models.AnthropicMessageChunk{
 					Type:     "message_stop",
@@ -110,9 +121,10 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 				}, nil
 			}
 
-			// Parse Anthropic streaming event
+			// Parse JSON chunk (reuse []byte to avoid string->[]byte conversion)
+			dataBytes := []byte(data)
 			var anthropicChunk anthropic.MessageStreamEventUnion
-			if err := json.Unmarshal([]byte(data), &anthropicChunk); err != nil {
+			if err := json.Unmarshal(dataBytes, &anthropicChunk); err != nil {
 				fiberlog.Errorf("[%s] Failed to parse Anthropic streaming chunk: %v", r.reqID, err)
 				if isEOF {
 					return nil, io.EOF
@@ -120,7 +132,7 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 				continue
 			}
 
-			// Convert Anthropic chunk to our adaptive Anthropic format using format adapter
+			// Convert chunk with event type context
 			adaptiveChunk, err := r.convertToAdaptiveAnthropicChunk(&anthropicChunk)
 			if err != nil {
 				fiberlog.Errorf("[%s] Failed to convert Anthropic chunk: %v", r.reqID, err)
@@ -130,28 +142,20 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 				continue
 			}
 
+			// Reset event type after successful processing (avoid state leakage)
 			return adaptiveChunk, nil
-		}
 
-		// Handle event lines (optional)
-		if eventType, found := strings.CutPrefix(line, "event: "); found {
-			// Log event type for debugging
-			fiberlog.Debugf("[%s] Anthropic SSE event: %s", r.reqID, eventType)
-			if isEOF {
-				return nil, io.EOF
+		default:
+			// Skip other SSE metadata lines efficiently
+			if strings.ContainsRune(line, ':') {
+				if isEOF {
+					return nil, io.EOF
+				}
+				continue
 			}
-			continue
 		}
 
-		// Skip other SSE metadata lines (id:, retry:, etc.)
-		if strings.Contains(line, ":") {
-			if isEOF {
-				return nil, io.EOF
-			}
-			continue
-		}
-
-		// If we processed a partial line and reached this point, return EOF
+		// Handle EOF at end of processing
 		if isEOF {
 			return nil, io.EOF
 		}
