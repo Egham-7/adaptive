@@ -133,14 +133,17 @@ class ModelRegistry:
         if partial_model.task_type is not None:
             task_type = partial_model.task_type
             # Normalize task_type for comparison (case-insensitive, trimmed)
-            normalized_task_type = str(task_type).strip().lower() if task_type is not None else None
+            normalized_task_type = (
+                str(task_type).strip().lower() if task_type is not None else None
+            )
             filters.append(
                 lambda m: (
                     m.task_type is None  # No restriction means supports all
                     or (
-                        normalized_task_type is not None 
+                        normalized_task_type is not None
                         and str(m.task_type).strip().lower() == normalized_task_type
-                        if m.task_type is not None else False
+                        if m.task_type is not None
+                        else False
                     )
                 )
             )

@@ -69,6 +69,7 @@ class ModelRouter:
     _MIN_TEMPERATURE = 0.1
     _MAX_TEMPERATURE = 1.0
     _MAX_TOKENS_LIMIT = 2500
+    _DEFAULT_COST = 1.0  # Default cost for normalization
 
     def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
         """Initialize router with optional logger."""
@@ -226,28 +227,28 @@ class ModelRouter:
         # If model has no task type specified, assume it supports all tasks
         if model.task_type is None:
             return True
-        
+
         # Normalize both sides to comparable strings for enum vs string comparison
         model_task_str = None
         if model.task_type is not None:
             # Handle both string and enum types
-            if hasattr(model.task_type, 'value'):
+            if hasattr(model.task_type, "value"):
                 model_task_str = str(model.task_type.value).lower().strip()
-            elif hasattr(model.task_type, 'name'):
+            elif hasattr(model.task_type, "name"):
                 model_task_str = str(model.task_type.name).lower().strip()
             else:
                 model_task_str = str(model.task_type).lower().strip()
-        
+
         task_type_str = None
         if task_type is not None:
             # Handle both string and enum types
-            if hasattr(task_type, 'value'):
+            if hasattr(task_type, "value"):
                 task_type_str = str(task_type.value).lower().strip()
-            elif hasattr(task_type, 'name'):
+            elif hasattr(task_type, "name"):
                 task_type_str = str(task_type.name).lower().strip()
             else:
                 task_type_str = str(task_type).lower().strip()
-        
+
         # Compare normalized strings
         return model_task_str == task_type_str
 
@@ -265,9 +266,8 @@ class ModelRouter:
             for m in models
             if m.cost_per_1m_input_tokens
         ]
-        
-        DEFAULT_COST = 1.0  # Default cost for normalization
-        max_cost = max(valid_costs) if valid_costs else DEFAULT_COST
+
+        max_cost = max(valid_costs) if valid_costs else self._DEFAULT_COST
 
         return (model.cost_per_1m_input_tokens or 0) / max_cost if max_cost > 0 else 0.5
 
