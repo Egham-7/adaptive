@@ -76,7 +76,10 @@ func HandleAnthropicStream(c *fiber.Ctx, responseBody io.Reader, requestID strin
 		startTime := time.Now()
 		var totalBytes int64
 
-		streamReader := sse.NewAnthropicSSEReader(responseBody, requestID, provider)
+		// Create a context that bridges FastHTTP cancellation to standard context
+		ctx := createBridgeContext(fasthttpCtx)
+
+		streamReader := sse.NewAnthropicSSEReader(responseBody, requestID, provider, ctx)
 		defer closeStreamReader(streamReader, requestID)
 
 		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {

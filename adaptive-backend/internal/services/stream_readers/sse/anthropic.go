@@ -2,6 +2,7 @@ package sse
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,19 +20,32 @@ type AnthropicSSEReader struct {
 	reader   *bufio.Reader
 	reqID    string
 	provider string
+	ctx      context.Context
 }
 
 // NewAnthropicSSEReader creates a new Anthropic SSE reader
-func NewAnthropicSSEReader(reader io.Reader, reqID, provider string) *AnthropicSSEReader {
+func NewAnthropicSSEReader(reader io.Reader, reqID, provider string, ctx context.Context) *AnthropicSSEReader {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	return &AnthropicSSEReader{
 		reader:   bufio.NewReader(reader),
 		reqID:    reqID,
 		provider: provider,
+		ctx:      ctx,
 	}
 }
 
 // Read implements io.Reader interface for compatibility with stream processing
 func (r *AnthropicSSEReader) Read(p []byte) (n int, err error) {
+	// Check for context cancellation
+	select {
+	case <-r.ctx.Done():
+		fiberlog.Infof("[%s] Context cancelled, stopping Anthropic stream", r.reqID)
+		return 0, r.ctx.Err()
+	default:
+	}
+
 	// Read data from the underlying reader
 	return r.reader.Read(p)
 }
