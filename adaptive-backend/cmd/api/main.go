@@ -50,7 +50,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	respSvc := completions.NewResponseService(modelRouter)
 
 	// Create completion service (depends on response service)
-	completionSvc := completions.NewCompletionService(respSvc)
+	completionSvc := completions.NewCompletionService(cfg, respSvc)
 
 	// Create shared circuit breakers for all providers
 	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)

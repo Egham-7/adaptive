@@ -186,12 +186,27 @@ The service exposes a LitServe API that accepts model selection requests and ret
         "temperature": 0.7
     },
     "model_router": {
-        "candidates": [
-            {"provider": "openai", "model": "gpt-4"},
-            {"provider": "anthropic", "model": "claude-3-sonnet"}
+        "models": [
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "cost_per_1m_input_tokens": 30.0,
+                "cost_per_1m_output_tokens": 60.0,
+                "max_context_tokens": 128000,
+                "supports_function_calling": true
+            },
+            {
+                "provider": "anthropic",
+                "model_name": "claude-3-sonnet-20240229",
+                "cost_per_1m_input_tokens": 15.0,
+                "cost_per_1m_output_tokens": 75.0,
+                "max_context_tokens": 200000,
+                "supports_function_calling": true
+            }
         ],
-        "preference": "balanced",
-        "max_cost_per_token": 0.001
+        "cost_bias": 0.5,
+        "complexity_threshold": 0.7,
+        "token_threshold": 1000
     },
     "user_preferences": {
         "preferred_providers": ["openai", "anthropic"],

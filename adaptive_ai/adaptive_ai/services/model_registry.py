@@ -2,6 +2,8 @@
 Model registry service for validating model names across all providers.
 """
 
+from collections.abc import Callable
+
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
@@ -80,10 +82,12 @@ class ModelRegistry:
             models = registry.find_models_matching_criteria(criteria)
         """
         # Models are already loaded at startup
-        all_models = list(yaml_model_db.get_all_models().values())
+        all_models: list[ModelCapability] = list(
+            yaml_model_db.get_all_models().values()
+        )
 
         # Create filter predicates based on partial model criteria
-        filters = []
+        filters: list[Callable[[ModelCapability], bool]] = []
 
         # Provider filtering
         if partial_model.provider is not None and partial_model.provider.strip():

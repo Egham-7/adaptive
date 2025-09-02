@@ -40,7 +40,7 @@ func NewMessagesHandler(
 		responseSvc:     messages.NewResponseService(),
 		modelRouter:     modelRouter,
 		circuitBreakers: circuitBreakers,
-		fallbackService: fallback.NewFallbackService(),
+		fallbackService: fallback.NewFallbackService(cfg),
 	}
 }
 
@@ -122,7 +122,7 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 		}
 
 		// Use fallback service with model router response (system-selected models get fallback)
-		fallbackConfig := h.fallbackService.GetFallbackConfig(nil)
+		fallbackConfig := h.fallbackService.GetFallbackConfig(req.Fallback)
 
 		// Create provider list with primary and alternatives from model router
 		providers := []models.Alternative{{
@@ -173,8 +173,17 @@ func (h *MessagesHandler) createExecuteFunc(
 				// Return the provider error to trigger fallback
 				return err
 			}
-			// For non-retryable errors, wrap them to prevent fallback
-			return fmt.Errorf("non-retryable error: %w", err)
+			// For non-retryable errors, return original AppError or create one with Retryable=false
+			if appErr, ok := err.(*models.AppError); ok {
+				// Return the original AppError to preserve the concrete type and Retryable=false signal
+				return appErr
+			}
+			// For non-AppError types, create a non-retryable AppError
+			return &models.AppError{
+				Type:      models.ErrorTypeProvider,
+				Message:   fmt.Sprintf("non-retryable error: %v", err),
+				Retryable: false,
+			}
 		}
 
 		return nil
