@@ -1,396 +1,37 @@
 provider_info:
   name: OPENAI
-  total_models: 148
-  data_source: https://helicone.ai/api/llm-costs?provider=openai
-  last_updated: '2025-08-09'
+  total_models: 25
+  data_source: https://platform.openai.com/docs/models
+  last_updated: "2025-09-01"
   currency: USD
   pricing_unit: per 1 million tokens
+  note: Chat completion models only - excludes embedding, TTS, transcription, image generation, moderation, and realtime models
 models:
-  ada:
-    description: Ada is a model developed by OpenAI, designed for efficient text generation
-      tasks with a focus on providing quick responses and basic capabilities.
+  gpt-5:
+    description: The best model for coding and agentic tasks across domains
     provider: OPENAI
-    model_name: ada
-    cost_per_1m_input_tokens: 0.4
-    cost_per_1m_output_tokens: 0.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 2.7b
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742155.463207
-  ada_batch:
-    description: Ada-batch is a model designed for efficient text processing tasks,
-      likely optimized for batch operations in various applications.
-    provider: OPENAI
-    model_name: ada-batch
-    cost_per_1m_input_tokens: 0.2
-    cost_per_1m_output_tokens: 0.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742158.351118
-  babbage:
-    description: Babbage is a model developed by OpenAI that offers efficient text
-      generation capabilities, suitable for a variety of applications including chat
-      and basic content creation.
-    provider: OPENAI
-    model_name: babbage
-    cost_per_1m_input_tokens: 0.5
-    cost_per_1m_output_tokens: 0.5
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 175b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742161.33357
-  babbage_batch:
-    description: Babbage-batch is a model developed by OpenAI, designed for efficient
-      text generation and processing tasks, likely with a focus on providing responses
-      in a conversational context.
-    provider: OPENAI
-    model_name: babbage-batch
-    cost_per_1m_input_tokens: 0.25
-    cost_per_1m_output_tokens: 0.25
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742586.814372
-  chatgpt_4o_latest:
-    description: ChatGPT-4o-latest is an advanced conversational AI model designed
-      for generating human-like text, providing answers, and assisting with various
-      tasks such as writing and brainstorming.
-    provider: OPENAI
-    model_name: chatgpt-4o-latest
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  chatgpt_4o_latest_batch:
-    description: ChatGPT-4o-latest-batch is an advanced conversational AI model designed
-      for generating human-like text responses, capable of handling a variety of tasks
-      including writing, brainstorming, and learning assistance.
-    provider: OPENAI
-    model_name: chatgpt-4o-latest-batch
-    cost_per_1m_input_tokens: 2.5
-    cost_per_1m_output_tokens: 7.5
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  curie:
-    description: Curie is a versatile language model from OpenAI, capable of performing
-      a wide range of language tasks with good quality and instruction-following abilities.
-    provider: OPENAI
-    model_name: curie
-    cost_per_1m_input_tokens: 2
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 6b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742589.3910599
-  curie_batch:
-    description: Curie-batch is a model developed by OpenAI, likely designed for efficient
-      processing of tasks with a focus on text generation and conversational capabilities.
-    provider: OPENAI
-    model_name: curie-batch
-    cost_per_1m_input_tokens: 1
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742592.4367712
-  davinci:
-    description: Davinci is a powerful language model from OpenAI, designed for a
-      wide range of text generation tasks, including creative writing, summarization,
-      and complex reasoning.
-    provider: OPENAI
-    model_name: davinci
-    cost_per_1m_input_tokens: 20
-    cost_per_1m_output_tokens: 20
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 175b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742595.506986
-  davinci_batch:
-    description: Davinci-batch is a powerful language model designed for complex text
-      generation tasks, capable of handling a wide range of applications including
-      creative writing, summarization, and more.
-    provider: OPENAI
-    model_name: davinci-batch
-    cost_per_1m_input_tokens: 10
+    model_name: gpt-5
+    cost_per_1m_input_tokens: 1.25
     cost_per_1m_output_tokens: 10
-    max_context_tokens: 4096
-    max_output_tokens: 1024
+    max_context_tokens: 200000
+    max_output_tokens: 100000
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742598.134356
-  ft_gpt_3_5_turbo_:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text responses, suitable for a variety of applications
-      including chatbots and text generation.
-    provider: OPENAI
-    model_name: ft:gpt-3.5-turbo-
-    cost_per_1m_input_tokens: 3
-    cost_per_1m_output_tokens: 6
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: startsWith
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742600.790751
-  ft_gpt_4o_2024_08_06_:
-    description: The ft:gpt-4o-2024-08-06 model is a sophisticated AI developed by
-      OpenAI, aimed at advancing towards artificial general intelligence with a focus
-      on safe and beneficial applications. It is designed to handle complex tasks
-      and provide high-quality outputs in various contexts.
-    provider: OPENAI
-    model_name: 'ft:gpt-4o-2024-08-06:'
-    cost_per_1m_input_tokens: 3.75
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
     model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
@@ -398,2313 +39,37 @@ models:
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: startsWith
-      available_in_playground: true
-  ft_gpt_4o_mini_2024_07_18_:
-    description: The ft:gpt-4o-mini-2024-07-18 model is a compact variant of the GPT-4
-      architecture, designed for efficient text generation and conversational tasks
-      while maintaining a focus on user-friendly interactions.
-    provider: OPENAI
-    model_name: 'ft:gpt-4o-mini-2024-07-18:'
-    cost_per_1m_input_tokens: 0.3
-    cost_per_1m_output_tokens: 1.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: startsWith
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742603.6345742
-  gpt_3_5_turbo:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text and engaging in dialogue, with enhanced performance
-      over previous iterations.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742606.4244301
-  gpt_3_5_turbo_0125:
-    description: GPT-3.5 Turbo is a highly efficient language model optimized for
-      conversational tasks, capable of generating coherent and contextually relevant
-      text responses.
+      status: available
+      category: frontier
+  gpt-5-mini:
+    description: A faster, cost-efficient version of GPT-5 for well-defined tasks
     provider: OPENAI
-    model_name: gpt-3.5-turbo-0125
-    cost_per_1m_input_tokens: 0.5
-    cost_per_1m_output_tokens: 1.5
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742609.226048
-  gpt_3_5_turbo_0125_batch:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text responses, capable of handling a variety of tasks
-      including dialogue, content creation, and more.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-0125-batch
+    model_name: gpt-5-mini
     cost_per_1m_input_tokens: 0.25
-    cost_per_1m_output_tokens: 0.75
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742612.363041
-  gpt_3_5_turbo_0301:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      chat-based interactions, capable of generating coherent and contextually relevant
-      responses.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-0301
-    cost_per_1m_input_tokens: 1.5
     cost_per_1m_output_tokens: 2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742617.995132
-  gpt_3_5_turbo_0301_batch:
-    description: GPT-3.5 Turbo is a highly efficient language model optimized for
-      conversational tasks, capable of generating coherent and contextually relevant
-      text responses.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-0301-batch
-    cost_per_1m_input_tokens: 0.75
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742621.4173498
-  gpt_3_5_turbo_0613:
-    description: GPT-3.5 Turbo is an advanced language model optimized for conversational
-      tasks, offering improved efficiency and performance over previous iterations.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-0613
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742624.3310652
-  gpt_3_5_turbo_0613_batch:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text and engaging in dialogue, with enhanced performance
-      for various tasks.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-0613-batch
-    cost_per_1m_input_tokens: 0.75
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742627.744694
-  gpt_3_5_turbo_1106:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text and engaging in dialogue, with enhanced performance
-      for various tasks.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-1106
-    cost_per_1m_input_tokens: 1
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742630.5605912
-  gpt_3_5_turbo_1106_batch:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text, capable of handling a variety of tasks including
-      dialogue, content creation, and more.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-1106-batch
-    cost_per_1m_input_tokens: 0.5
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742633.9119291
-  gpt_3_5_turbo_16k_0613:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text and engaging in dialogue, with enhanced capabilities
-      for understanding context and providing detailed responses.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-16k-0613
-    cost_per_1m_input_tokens: 3
-    cost_per_1m_output_tokens: 4
-    max_context_tokens: 16384
-    max_output_tokens: 4096
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742636.794975
-  gpt_3_5_turbo_16k_0613_batch:
-    description: GPT-3.5 Turbo is an advanced conversational AI model optimized for
-      generating human-like text and handling complex interactions, with a larger
-      context window for improved performance in dialogue and content generation.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-16k-0613-batch
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 16000
-    max_output_tokens: 4000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742640.2205398
-  gpt_3_5_turbo_batch:
-    description: GPT-3.5 Turbo Batch is an advanced conversational AI model optimized
-      for efficient text generation and interaction, capable of handling multiple
-      requests in a batch format.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-batch
-    cost_per_1m_input_tokens: 0.75
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742643.037676
-  gpt_3_5_turbo_instruct:
-    description: GPT-3.5-turbo-instruct is an advanced language model optimized for
-      instruction-following tasks, capable of generating coherent and contextually
-      relevant text based on user prompts.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-instruct
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742646.0514922
-  gpt_3_5_turbo_instruct_0914:
-    description: GPT-3.5 Turbo Instruct is an advanced language model optimized for
-      instruction-following tasks, providing high-quality text generation and conversational
-      capabilities.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-instruct-0914
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742648.877884
-  gpt_3_5_turbo_instruct_0914_batch:
-    description: GPT-3.5 Turbo Instruct is an advanced language model optimized for
-      instruction-following tasks, capable of generating coherent and contextually
-      relevant text based on user prompts.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-instruct-0914-batch
-    cost_per_1m_input_tokens: 0.75
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742652.0424361
-  gpt_3_5_turbo_instruct_batch:
-    description: GPT-3.5 Turbo Instruct Batch is an advanced language model optimized
-      for instruction-following tasks, capable of generating coherent and contextually
-      relevant text based on user prompts.
-    provider: OPENAI
-    model_name: gpt-3.5-turbo-instruct-batch
-    cost_per_1m_input_tokens: 0.75
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742655.26914
-  gpt_35_turbo:
-    description: gpt-35-turbo is a highly efficient language model designed for versatile
-      text generation, capable of handling a wide range of conversational and creative
-      tasks.
-    provider: OPENAI
-    model_name: gpt-35-turbo
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_35_turbo_16k:
-    description: GPT-35-turbo-16k is an advanced language model designed for a variety
-      of tasks including text generation and conversational interactions, with a focus
-      on efficiency and a large context window.
-    provider: OPENAI
-    model_name: gpt-35-turbo-16k
-    cost_per_1m_input_tokens: 3
-    cost_per_1m_output_tokens: 4
-    max_context_tokens: 16000
-    max_output_tokens: 4000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_35_turbo_16k_0613:
-    description: GPT-35-turbo-16k-0613 is an advanced conversational AI model designed
-      for generating human-like text, capable of handling complex queries and providing
-      detailed responses.
-    provider: OPENAI
-    model_name: gpt-35-turbo-16k-0613
-    cost_per_1m_input_tokens: 3
-    cost_per_1m_output_tokens: 4
-    max_context_tokens: 16000
-    max_output_tokens: 4000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_35_turbo_16k_0613_batch:
-    description: GPT-35 Turbo is an advanced language model designed for efficient
-      text generation and conversational interactions, capable of handling complex
-      queries and providing detailed responses.
-    provider: OPENAI
-    model_name: gpt-35-turbo-16k-0613-batch
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 16000
-    max_output_tokens: 4000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_35_turbo_16k_batch:
-    description: GPT-35 Turbo is an advanced conversational AI model designed for
-      efficient text generation and interaction, capable of handling complex queries
-      and providing detailed responses.
-    provider: OPENAI
-    model_name: gpt-35-turbo-16k-batch
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 16000
-    max_output_tokens: 4000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_35_turbo_batch:
-    description: gpt-35-turbo-batch is a variant of OpenAI's GPT-3.5 model optimized
-      for batch processing, designed to enhance efficiency in generating text and
-      handling multiple requests simultaneously.
-    provider: OPENAI
-    model_name: gpt-35-turbo-batch
-    cost_per_1m_input_tokens: 0.75
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4:
-    description: GPT-4 is a large multimodal model with broad general knowledge and
-      advanced reasoning.
-    provider: OPENAI
-    model_name: gpt-4
-    cost_per_1m_input_tokens: 30
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 8192
-    max_output_tokens: 4096
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: 175b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_0125_preview:
-    description: GPT-4-0125-preview is an advanced AI model developed by OpenAI, designed
-      for a variety of tasks including text generation and conversational interactions,
-      with a focus on achieving human-level problem-solving capabilities.
-    provider: OPENAI
-    model_name: gpt-4-0125-preview
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 30
     max_context_tokens: 128000
     max_output_tokens: 32000
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_0125_preview_batch:
-    description: GPT-4-0125-preview-batch is an advanced AI model developed by OpenAI,
-      designed for a variety of natural language processing tasks, including text
-      generation and conversational interactions.
-    provider: OPENAI
-    model_name: gpt-4-0125-preview-batch
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_0314:
-    description: GPT-4-0314 is an advanced AI model developed by OpenAI, designed
-      for a variety of tasks including text generation and conversational interactions,
-      with a focus on providing safe and beneficial AI solutions.
-    provider: OPENAI
-    model_name: gpt-4-0314
-    cost_per_1m_input_tokens: 30
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_0314_batch:
-    description: GPT-4-0314-batch is an advanced language model designed for a variety
-      of text generation tasks, leveraging sophisticated reasoning and large context
-      capabilities.
-    provider: OPENAI
-    model_name: gpt-4-0314-batch
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_0613:
-    description: GPT-4-0613 is a sophisticated language model designed for a variety
-      of tasks including text generation, conversation, and reasoning, with a focus
-      on achieving high performance in natural language understanding and generation.
-    provider: OPENAI
-    model_name: gpt-4-0613
-    cost_per_1m_input_tokens: 30
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_0613_batch:
-    description: GPT-4-0613-batch is an advanced language model developed by OpenAI,
-      designed for a variety of natural language processing tasks, including text
-      generation and conversational interactions.
-    provider: OPENAI
-    model_name: gpt-4-0613-batch
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_1106_preview:
-    description: GPT-4-1106-preview is an advanced language model designed for a variety
-      of text generation tasks, showcasing improved reasoning and contextual understanding
-      compared to its predecessors.
-    provider: OPENAI
-    model_name: gpt-4-1106-preview
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_1106_preview_batch:
-    description: GPT-4-1106-preview-batch is an advanced AI model designed for improved
-      coding, instruction following, and long-context reasoning, outperforming previous
-      iterations in various tasks.
-    provider: OPENAI
-    model_name: gpt-4-1106-preview-batch
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_1106_vision_preview:
-    description: GPT-4-1106-vision-preview is a vision-enabled chat model that integrates
-      advanced text and image processing capabilities, allowing users to analyze images
-      and respond to prompts in a conversational manner.
-    provider: OPENAI
-    model_name: gpt-4-1106-vision-preview
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 32768
-    max_output_tokens: 8192
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_1106_vision_preview_batch:
-    description: GPT-4 model with vision capabilities, designed for advanced text
-      and image understanding, potentially supporting a range of tasks including conversational
-      AI and content generation.
-    provider: OPENAI
-    model_name: gpt-4-1106-vision-preview-batch
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_32k:
-    description: GPT-4-32k is an advanced language model designed for complex text
-      generation tasks, capable of handling extensive context and providing sophisticated
-      responses.
-    provider: OPENAI
-    model_name: gpt-4-32k
-    cost_per_1m_input_tokens: 60
-    cost_per_1m_output_tokens: 120
-    max_context_tokens: 32000
-    max_output_tokens: 8000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_32k_0314:
-    description: GPT-4-32K is an advanced language model by OpenAI, designed for high-capacity
-      tasks with a maximum context window of 32,000 tokens, enabling it to handle
-      extensive text generation and complex reasoning.
-    provider: OPENAI
-    model_name: gpt-4-32k-0314
-    cost_per_1m_input_tokens: 60
-    cost_per_1m_output_tokens: 120
-    max_context_tokens: 32000
-    max_output_tokens: 8000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_32k_0314_batch:
-    description: GPT-4-32k-0314-batch is an advanced language model designed for complex
-      text generation tasks, capable of handling extensive context and providing sophisticated
-      responses.
-    provider: OPENAI
-    model_name: gpt-4-32k-0314-batch
-    cost_per_1m_input_tokens: 30
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 32000
-    max_output_tokens: 8000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_32k_0613:
-    description: GPT-4-32k-0613 is an advanced language model designed for complex
-      text generation tasks, capable of handling large context windows and providing
-      sophisticated responses.
-    provider: OPENAI
-    model_name: gpt-4-32k-0613
-    cost_per_1m_input_tokens: 60
-    cost_per_1m_output_tokens: 120
-    max_context_tokens: 32000
-    max_output_tokens: 8000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: 32k
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_32k_0613_batch:
-    description: GPT-4 model with a large context window, designed for advanced text
-      generation and understanding tasks.
-    provider: OPENAI
-    model_name: gpt-4-32k-0613-batch
-    cost_per_1m_input_tokens: 30
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 32000
-    max_output_tokens: 8000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_32k_batch:
-    description: GPT-4-32k-batch is an advanced language model designed for high-capacity
-      tasks, capable of handling extensive context and generating coherent text across
-      various applications.
-    provider: OPENAI
-    model_name: gpt-4-32k-batch
-    cost_per_1m_input_tokens: 30
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 32000
-    max_output_tokens: 8000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_batch:
-    description: GPT-4-batch is an advanced AI model developed by OpenAI, designed
-      to assist with a variety of tasks including text generation, learning, and brainstorming,
-      with a focus on achieving human-level problem-solving capabilities.
-    provider: OPENAI
-    model_name: gpt-4-batch
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_turbo:
-    description: GPT-4 Turbo is an advanced language model designed for efficient
-      text generation and conversational interactions, offering improved performance
-      over its predecessors.
-    provider: OPENAI
-    model_name: gpt-4-turbo
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_turbo_0125_preview:
-    description: GPT-4 Turbo is an advanced language model designed for efficient
-      text generation and conversational interactions, with a focus on providing high-quality
-      responses in various contexts.
-    provider: OPENAI
-    model_name: gpt-4-turbo-0125-preview
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_turbo_0125_preview_batch:
-    description: GPT-4 Turbo is an advanced AI model designed for efficient text generation
-      and conversational interactions, with a focus on providing high-quality responses
-      in various contexts.
-    provider: OPENAI
-    model_name: gpt-4-turbo-0125-preview-batch
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_turbo_2024_04_09:
-    description: GPT-4 Turbo is an advanced AI model designed for efficient text generation
-      and conversational interactions, capable of handling complex queries and providing
-      insightful responses.
-    provider: OPENAI
-    model_name: gpt-4-turbo-2024-04-09
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_turbo_2024_04_09_batch:
-    description: GPT-4 Turbo is an advanced AI model designed for high-performance
-      text generation with a massive context window, enabling it to handle extensive
-      inputs and provide coherent outputs.
-    provider: OPENAI
-    model_name: gpt-4-turbo-2024-04-09-batch
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 128000
-    max_output_tokens: 4096
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_turbo_batch:
-    description: GPT-4 Turbo Batch is an advanced AI model designed for efficient
-      text generation and conversational interactions, optimized for handling multiple
-      requests in a batch format.
-    provider: OPENAI
-    model_name: gpt-4-turbo-batch
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_vision_preview:
-    description: GPT-4 Vision Preview is an advanced multimodal model capable of processing
-      both text and visual inputs, designed to enhance understanding and interaction
-      with complex data.
-    provider: OPENAI
-    model_name: gpt-4-vision-preview
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_vision_preview_batch:
-    description: GPT-4 Vision Preview Batch is an advanced multimodal model capable
-      of processing both text and visual inputs, designed to enhance understanding
-      and interaction with complex data.
-    provider: OPENAI
-    model_name: gpt-4-vision-preview-batch
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4_1:
-    description: GPT-4.1 is an advanced language model designed for a wide range of
-      natural language processing tasks, including text generation, conversation,
-      and more, with improved reasoning capabilities over its predecessors.
-    provider: OPENAI
-    model_name: gpt-4.1
-    cost_per_1m_input_tokens: 2
-    cost_per_1m_output_tokens: 8
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742657.91765
-  gpt_4_1_2025_04_14:
-    description: GPT-4.1 is an advanced language model designed for a wide range of
-      text generation tasks, offering improved reasoning and contextual understanding
-      over its predecessors.
-    provider: OPENAI
-    model_name: gpt-4.1-2025-04-14
-    cost_per_1m_input_tokens: 2
-    cost_per_1m_output_tokens: 8
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742660.707121
-  gpt_4_1_2025_04_14_batch:
-    description: GPT-4.1 is an advanced language model designed for a wide range of
-      text generation tasks, offering improved reasoning and contextual understanding
-      over its predecessors.
-    provider: OPENAI
-    model_name: gpt-4.1-2025-04-14-batch
-    cost_per_1m_input_tokens: 1
-    cost_per_1m_output_tokens: 4
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742663.510473
-  gpt_4_1_batch:
-    description: GPT-4.1-batch is an advanced language model designed for high-quality
-      text generation, capable of understanding and producing human-like text across
-      various contexts.
-    provider: OPENAI
-    model_name: gpt-4.1-batch
-    cost_per_1m_input_tokens: 1
-    cost_per_1m_output_tokens: 4
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742667.2046819
-  gpt_4_1_mini:
-    description: GPT-4.1-mini is a compact version of the GPT-4 model, designed for
-      efficient text generation and conversational tasks while maintaining a balance
-      between performance and resource usage.
-    provider: OPENAI
-    model_name: gpt-4.1-mini
-    cost_per_1m_input_tokens: 0.4
-    cost_per_1m_output_tokens: 1.6
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742670.2126489
-  gpt_4_1_mini_2025_04_14:
-    description: GPT-4.1 Mini is a compact version of the GPT-4 model, designed for
-      efficient text generation and conversational tasks while maintaining a balance
-      between performance and resource usage.
-    provider: OPENAI
-    model_name: gpt-4.1-mini-2025-04-14
-    cost_per_1m_input_tokens: 0.4
-    cost_per_1m_output_tokens: 1.6
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742673.281226
-  gpt_4_1_mini_2025_04_14_batch:
-    description: GPT-4.1 Mini is a compact version of the GPT-4 model, designed for
-      efficient text generation and conversational tasks with reduced resource requirements.
-    provider: OPENAI
-    model_name: gpt-4.1-mini-2025-04-14-batch
-    cost_per_1m_input_tokens: 0.2
-    cost_per_1m_output_tokens: 0.8
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742676.11516
-  gpt_4_1_mini_batch:
-    description: GPT-4.1 Mini Batch is a compact version of the GPT-4 model designed
-      for efficient text generation and conversational tasks, optimized for lower
-      resource consumption while maintaining reasonable performance.
-    provider: OPENAI
-    model_name: gpt-4.1-mini-batch
-    cost_per_1m_input_tokens: 0.2
-    cost_per_1m_output_tokens: 0.8
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742679.081984
-  gpt_4_1_nano:
-    description: GPT-4.1 Nano is a compact version of the GPT-4 model, optimized for
-      efficiency while maintaining strong text generation capabilities.
-    provider: OPENAI
-    model_name: gpt-4.1-nano
-    cost_per_1m_input_tokens: 0.1
-    cost_per_1m_output_tokens: 0.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742681.84896
-  gpt_4_1_nano_2025_04_14:
-    description: GPT-4.1 Nano is a compact version of the GPT-4 model, designed for
-      efficient text generation with a focus on maintaining high-quality outputs while
-      minimizing resource usage.
-    provider: OPENAI
-    model_name: gpt-4.1-nano-2025-04-14
-    cost_per_1m_input_tokens: 0.1
-    cost_per_1m_output_tokens: 0.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742684.664876
-  gpt_4_1_nano_2025_04_14_batch:
-    description: GPT-4.1 Nano is a compact version of the GPT-4 model, optimized for
-      efficiency while maintaining advanced language understanding and generation
-      capabilities.
-    provider: OPENAI
-    model_name: gpt-4.1-nano-2025-04-14-batch
-    cost_per_1m_input_tokens: 0.05
-    cost_per_1m_output_tokens: 0.2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742687.224468
-  gpt_4_1_nano_batch:
-    description: GPT-4.1 Nano Batch is a compact version of the GPT-4 model, optimized
-      for efficient processing while maintaining advanced language understanding and
-      generation capabilities.
-    provider: OPENAI
-    model_name: gpt-4.1-nano-batch
-    cost_per_1m_input_tokens: 0.05
-    cost_per_1m_output_tokens: 0.2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742690.503
-  gpt_4o:
-    description: GPT-4o is OpenAI's flagship model with advanced reasoning and multimodal
-      capabilities.
-    provider: OPENAI
-    model_name: gpt-4o
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 128000
-    max_output_tokens: 4096
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    - pt
-    - it
-    - ru
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_2024_05_13:
-    description: GPT-4o is a versatile, high-intelligence flagship model designed
-      for efficient deployment, offering strong reasoning capabilities, improved performance
-      in non-English languages, and enhanced visual capabilities.
-    provider: OPENAI
-    model_name: gpt-4o-2024-05-13
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_2024_05_13_batch:
-    description: GPT-4o is OpenAI's versatile flagship model capable of processing
-      both text and image inputs, designed for high intelligence and adaptability
-      across various tasks.
-    provider: OPENAI
-    model_name: gpt-4o-2024-05-13-batch
-    cost_per_1m_input_tokens: 2.5
-    cost_per_1m_output_tokens: 7.5
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_2024_08_06:
-    description: GPT-4o is an advanced AI model designed for multimodal capabilities,
-      integrating various forms of data processing and reasoning to enhance performance
-      across diverse tasks.
-    provider: OPENAI
-    model_name: gpt-4o-2024-08-06
-    cost_per_1m_input_tokens: 2.5
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_2024_08_06_batch:
-    description: GPT-4o is a sophisticated model designed to advance towards artificial
-      general intelligence, capable of solving complex human-level problems and outperforming
-      humans in economically valuable tasks.
-    provider: OPENAI
-    model_name: gpt-4o-2024-08-06-batch
-    cost_per_1m_input_tokens: 1.25
-    cost_per_1m_output_tokens: 5
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_2024_11_20:
-    description: GPT-4o is an advanced AI model from OpenAI designed for versatile
-      applications, including text generation and conversational interactions, with
-      a focus on efficiency and multi-modal capabilities.
-    provider: OPENAI
-    model_name: gpt-4o-2024-11-20
-    cost_per_1m_input_tokens: 2.5
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_2024_11_20_batch:
-    description: GPT-4o is an advanced AI model designed for multi-modal capabilities,
-      integrating various forms of data processing and reasoning, aiming towards artificial
-      general intelligence.
-    provider: OPENAI
-    model_name: gpt-4o-2024-11-20-batch
-    cost_per_1m_input_tokens: 1.25
-    cost_per_1m_output_tokens: 5
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_batch:
-    description: GPT-4o-batch is an advanced AI model designed for versatile applications,
-      including text generation and conversational interactions, with a focus on efficiency
-      and broader capabilities.
-    provider: OPENAI
-    model_name: gpt-4o-batch
-    cost_per_1m_input_tokens: 2.5
-    cost_per_1m_output_tokens: 7.5
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_mini:
-    description: GPT-4o mini is a cost-efficient small model with strong performance
-      across diverse tasks.
-    provider: OPENAI
-    model_name: gpt-4o-mini
-    cost_per_1m_input_tokens: 0.15
-    cost_per_1m_output_tokens: 0.6
-    max_context_tokens: 128000
-    max_output_tokens: 16384
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    - pt
-    - it
-    - ru
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
     model_size_params: Unknown
     latency_tier: low
     task_type: Text Generation
@@ -2712,971 +77,326 @@ models:
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-  gpt_4o_mini_2024_07_18:
-    description: GPT-4o Mini is a lightweight yet powerful AI model designed for versatile
-      applications, excelling in reasoning, math, and coding tasks while supporting
-      text and image inputs.
-    provider: OPENAI
-    model_name: gpt-4o-mini-2024-07-18
-    cost_per_1m_input_tokens: 0.15
-    cost_per_1m_output_tokens: 0.6
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_mini_2024_07_18_batch:
-    description: GPT-4o Mini is a versatile AI model designed for efficient text and
-      image processing, with future capabilities for audio and video. It aims to provide
-      cost-effective solutions while maintaining strong performance across various
-      tasks.
-    provider: OPENAI
-    model_name: gpt-4o-mini-2024-07-18-batch
-    cost_per_1m_input_tokens: 0.075
-    cost_per_1m_output_tokens: 0.3
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_mini_2024_07_18_ft_:
-    description: GPT-4o Mini is a compact version of the GPT-4 architecture, optimized
-      for efficient performance while maintaining strong text generation capabilities.
-    provider: OPENAI
-    model_name: gpt-4o-mini-2024-07-18.ft-
-    cost_per_1m_input_tokens: 0.3
-    cost_per_1m_output_tokens: 1.2
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: startsWith
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742693.500156
-  gpt_4o_mini_batch:
-    description: The gpt-4o-mini-batch model is likely a smaller variant of the GPT-4
-      architecture, optimized for efficient processing and potentially designed for
-      batch operations, making it suitable for various text generation tasks.
-    provider: OPENAI
-    model_name: gpt-4o-mini-batch
-    cost_per_1m_input_tokens: 0.075
-    cost_per_1m_output_tokens: 0.3
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742696.694514
-  gpt_4o_mini_realtime:
-    description: gpt-4o-mini-realtime is a compact version of the GPT-4 architecture
-      designed for real-time applications, likely optimized for efficiency and speed
-      in generating text responses.
-    provider: OPENAI
-    model_name: gpt-4o-mini-realtime
-    cost_per_1m_input_tokens: 0.15
-    cost_per_1m_output_tokens: 0.6
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742700.276392
-  gpt_4o_mini_realtime_batch:
-    description: GPT-4o-mini-realtime-batch is a powerful language model designed
-      for efficient processing of complex queries with a large context window, suitable
-      for a variety of tasks in multiple languages.
-    provider: OPENAI
-    model_name: gpt-4o-mini-realtime-batch
-    cost_per_1m_input_tokens: 0.075
-    cost_per_1m_output_tokens: 0.3
-    max_context_tokens: 128000
-    max_output_tokens: 4096
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742703.301108
-  gpt_4o_realtime:
-    description: GPT-4o Realtime is an advanced conversational AI model designed for
-      low-latency speech interactions, enabling 'speech in, speech out' capabilities
-      for real-time applications.
-    provider: OPENAI
-    model_name: gpt-4o-realtime
-    cost_per_1m_input_tokens: 5
-    cost_per_1m_output_tokens: 20
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
-      available_in_playground: true
-  gpt_4o_realtime_batch:
-    description: GPT-4o is an advanced AI model designed for multi-modal capabilities,
-      aiming to unify various tasks under a single framework, enhancing reasoning
-      and performance across different applications.
-    provider: OPENAI
-    model_name: gpt-4o-realtime-batch
-    cost_per_1m_input_tokens: 2.5
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_4o_search_preview:
-    description: GPT-4o Search Preview is a specialized model designed for web search
-      tasks, demonstrating competitive response times and optimized for retrieving
-      and ranking information.
-    provider: OPENAI
-    model_name: gpt-4o-search-preview
-    cost_per_1m_input_tokens: 2.5
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
-      available_in_playground: true
-  gpt_4o_search_preview_batch:
-    description: GPT-4o is an advanced AI model designed for multi-modal capabilities,
-      integrating various forms of data processing and reasoning, aiming to enhance
-      human-like problem-solving across diverse tasks.
-    provider: OPENAI
-    model_name: gpt-4o-search-preview-batch
-    cost_per_1m_input_tokens: 1.25
-    cost_per_1m_output_tokens: 5
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: high
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  gpt_5:
-    description: GPT-5 is an advanced language model designed for a wide range of
-      natural language processing tasks, including text generation, conversation,
-      and more, leveraging sophisticated reasoning and large context capabilities.
-    provider: OPENAI
-    model_name: gpt-5
-    cost_per_1m_input_tokens: 1.25
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: slow
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742706.775624
-  gpt_5_batch:
-    description: GPT-5-Batch is an advanced language model designed for high-performance
-      text generation and conversational tasks, leveraging sophisticated reasoning
-      capabilities and large context handling.
-    provider: OPENAI
-    model_name: gpt-5-batch
-    cost_per_1m_input_tokens: 0.625
-    cost_per_1m_output_tokens: 5
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742709.507998
-  gpt_5_chat_latest:
-    description: GPT-5 Chat is an advanced conversational AI model designed for engaging
-      and contextually aware interactions, capable of understanding and generating
-      human-like text responses.
-    provider: OPENAI
-    model_name: gpt-5-chat-latest
-    cost_per_1m_input_tokens: 1.25
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742712.266849
-  gpt_5_chat_latest_batch:
-    description: GPT-5 Chat is an advanced conversational AI model designed for engaging
-      and contextually aware interactions, capable of understanding and generating
-      human-like text responses.
-    provider: OPENAI
-    model_name: gpt-5-chat-latest-batch
-    cost_per_1m_input_tokens: 0.625
-    cost_per_1m_output_tokens: 5
-    max_context_tokens: 8000
-    max_output_tokens: 2000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Chatbot
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742715.442697
-  gpt_5_mini:
-    description: GPT-5 Mini is a lightweight variant of the GPT-5 model, designed
-      for efficient text generation and conversational tasks with reduced resource
-      requirements.
-    provider: OPENAI
-    model_name: gpt-5-mini
-    cost_per_1m_input_tokens: 0.25
-    cost_per_1m_output_tokens: 2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 5b
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742718.351391
-  gpt_5_mini_batch:
-    description: GPT-5 Mini Batch is a lightweight variant of the GPT-5 model designed
-      for efficient text generation and conversational tasks, optimized for lower
-      resource consumption while maintaining reasonable performance.
-    provider: OPENAI
-    model_name: gpt-5-mini-batch
-    cost_per_1m_input_tokens: 0.125
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742722.040062
-  gpt_5_nano:
-    description: gpt-5-nano is a compact version of the GPT-5 model, designed for
-      efficient text generation and conversational tasks with reduced resource requirements.
+      status: available
+      category: frontier
+  gpt-5-nano:
+    description: Fastest, most cost-efficient version of GPT-5
     provider: OPENAI
     model_name: gpt-5-nano
     cost_per_1m_input_tokens: 0.05
     cost_per_1m_output_tokens: 0.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742724.858436
-  gpt_5_nano_batch:
-    description: GPT-5 Nano Batch is a compact version of the GPT-5 model designed
-      for efficient processing and quick inference, suitable for a variety of text
-      generation tasks.
-    provider: OPENAI
-    model_name: gpt-5-nano-batch
-    cost_per_1m_input_tokens: 0.025
-    cost_per_1m_output_tokens: 0.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742727.881719
-  o1:
-    description: OpenAI o1 is a model aimed at advancing towards artificial general
-      intelligence, focusing on solving human-level problems with high autonomy.
-    provider: OPENAI
-    model_name: o1
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742730.693698
-  o1_2024_12_17:
-    description: The o1-2024-12-17 model from OpenAI is an advanced reasoning model
-      designed for sophisticated text generation and API integration, featuring an
-      extensive context window and enhanced output capabilities.
-    provider: OPENAI
-    model_name: o1-2024-12-17
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 200000
-    max_output_tokens: 100000
+    max_context_tokens: 64000
+    max_output_tokens: 16000
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
-    - text
+      - text
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
     model_size_params: Unknown
-    latency_tier: slow
+    latency_tier: very_low
     task_type: Text Generation
-    complexity: hard
+    complexity: low
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-  o1_2024_12_17_batch:
-    description: The o1-2024-12-17 model is a state-of-the-art AI model designed for
-      advanced reasoning and problem-solving tasks, featuring a large context window
-      and enhanced capabilities based on user feedback.
+      status: available
+      category: frontier
+  gpt-4.1:
+    description: Smartest non-reasoning model
     provider: OPENAI
-    model_name: o1-2024-12-17-batch
-    cost_per_1m_input_tokens: 7.5
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 200000
-    max_output_tokens: 100000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Open QA
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  o1_batch:
-    description: The o1-batch model from OpenAI is designed for complex problem-solving
-      and advanced code generation, showcasing enhanced reasoning capabilities suitable
-      for high-volume processing tasks.
-    provider: OPENAI
-    model_name: o1-batch
-    cost_per_1m_input_tokens: 7.5
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Code Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  o1_mini:
-    description: o1-mini is a lightweight model designed for efficient text generation
-      and basic conversational tasks, suitable for applications requiring quick responses.
-    provider: OPENAI
-    model_name: o1-mini
-    cost_per_1m_input_tokens: 3
-    cost_per_1m_output_tokens: 12
-    max_context_tokens: 512
-    max_output_tokens: 128
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742733.325137
-  o1_mini_2024_09_12:
-    description: The o1-mini-2024-09-12 model from OpenAI is designed for efficient
-      text generation and basic conversational tasks, suitable for applications requiring
-      quick responses and simple interactions.
-    provider: OPENAI
-    model_name: o1-mini-2024-09-12
-    cost_per_1m_input_tokens: 3
-    cost_per_1m_output_tokens: 12
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742736.2204611
-  o1_mini_2024_09_12_batch:
-    description: The o1-mini-2024-09-12-batch model is a lightweight variant designed
-      for efficient text generation and basic conversational tasks, likely optimized
-      for speed and accessibility.
-    provider: OPENAI
-    model_name: o1-mini-2024-09-12-batch
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 6
-    max_context_tokens: 512
-    max_output_tokens: 128
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742739.101547
-  o1_mini_batch:
-    description: The o1-mini-batch model from OpenAI is designed for efficient processing
-      of large-scale tasks, capable of handling advanced coding and complex algorithm
-      generation, while supporting a high context window for extensive input.
-    provider: OPENAI
-    model_name: o1-mini-batch
-    cost_per_1m_input_tokens: 1.5
-    cost_per_1m_output_tokens: 6
-    max_context_tokens: 128000
-    max_output_tokens: 65000
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Code Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  o1_preview:
-    description: The o1-preview model from OpenAI is designed to advance towards artificial
-      general intelligence, focusing on solving complex human-level problems. It is
-      part of OpenAI's mission to develop safe and beneficial AI technologies.
-    provider: OPENAI
-    model_name: o1-preview
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 60
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Open QA
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742742.015716
-  o1_preview_2024_09_12:
-    description: OpenAI's o1-preview-2024-09-12 is a sophisticated large language
-      model designed for complex tasks, featuring an extensive context window and
-      advanced capabilities.
-    provider: OPENAI
-    model_name: o1-preview-2024-09-12
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 60
+    model_name: gpt-4.1
+    cost_per_1m_input_tokens: 2
+    cost_per_1m_output_tokens: 8
     max_context_tokens: 128000
     max_output_tokens: 32000
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
     model_size_params: Unknown
-    latency_tier: slow
+    latency_tier: medium
     task_type: Text Generation
-    complexity: hard
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742744.720902
-  o1_preview_2024_09_12_batch:
-    description: The o1-preview-2024-09-12-batch model from OpenAI is designed to
-      advance towards artificial general intelligence, focusing on solving human-level
-      problems with enhanced capabilities.
+      status: available
+      category: frontier
+  gpt-4.1-mini:
+    description: Smaller, faster version of GPT-4.1
     provider: OPENAI
-    model_name: o1-preview-2024-09-12-batch
-    cost_per_1m_input_tokens: 7.5
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 8192
-    max_output_tokens: 2048
+    model_name: gpt-4.1-mini
+    cost_per_1m_input_tokens: 0.4
+    cost_per_1m_output_tokens: 1.6
+    max_context_tokens: 128000
+    max_output_tokens: 16384
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
     model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  o1_preview_batch:
-    description: The o1-preview-batch model from OpenAI is part of the advanced o1
-      series, designed for enhanced reasoning capabilities, particularly in math,
-      science, and programming tasks. It is optimized for thoughtful responses and
-      is expected to evolve with regular updates.
-    provider: OPENAI
-    model_name: o1-preview-batch
-    cost_per_1m_input_tokens: 7.5
-    cost_per_1m_output_tokens: 30
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
+    latency_tier: low
     task_type: Text Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742747.28277
-  o1_pro:
-    description: The o1-pro model by OpenAI is an advanced AI model optimized for
-      high reasoning capabilities and extensive context handling, suitable for complex
-      tasks requiring large input and output capacities.
+      status: available
+      category: all_models
+  gpt-4.1-nano:
+    description: Fastest, most cost-efficient version of GPT-4.1
+    provider: OPENAI
+    model_name: gpt-4.1-nano
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: very_low
+    task_type: Text Generation
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o3:
+    description: Reasoning model for complex tasks, succeeded by GPT-5
+    provider: OPENAI
+    model_name: o3
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o3-pro:
+    description: Version of o3 with more compute for better responses
+    provider: OPENAI
+    model_name: o3-pro
+    cost_per_1m_input_tokens: 150
+    cost_per_1m_output_tokens: 600
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o3-mini:
+    description: A small model alternative to o3
+    provider: OPENAI
+    model_name: o3-mini
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: 128000
+    max_output_tokens: 65000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Reasoning
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o4-mini:
+    description: Fast, cost-efficient reasoning model, succeeded by GPT-5 mini
+    provider: OPENAI
+    model_name: o4-mini
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Reasoning
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o1:
+    description: Previous full o-series reasoning model
+    provider: OPENAI
+    model_name: o1
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o1-pro:
+    description: Version of o1 with more compute for better responses
     provider: OPENAI
     model_name: o1-pro
     cost_per_1m_input_tokens: 150
@@ -3685,1199 +405,457 @@ models:
     max_output_tokens: 100000
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
-    - text
+      - text
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
     model_size_params: Unknown
     latency_tier: slow
-    task_type: Text Generation
-    complexity: hard
+    task_type: Reasoning
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742750.058475
-  o1_pro_batch:
-    description: The o1-pro-batch model from OpenAI is designed for advanced text
-      generation and conversational tasks, potentially with capabilities aimed at
-      supporting complex reasoning and interactions.
-    provider: OPENAI
-    model_name: o1-pro-batch
-    cost_per_1m_input_tokens: 75
-    cost_per_1m_output_tokens: 300
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742753.022976
-  o3_2025_04_16:
-    description: OpenAI o3-2025-04-16 is a transformer-based model designed for complex
-      code generation and advanced reasoning tasks, offering nuanced and accurate
-      responses to intricate queries.
+      status: available
+      category: all_models
+  o1-mini:
+    description: A small model alternative to o1 (Deprecated)
     provider: OPENAI
-    model_name: o3-2025-04-16
-    cost_per_1m_input_tokens: 2
-    cost_per_1m_output_tokens: 8
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Code Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  o3_2025_04_16_batch:
-    description: The o3-2025-04-16-batch model from OpenAI is designed to tackle complex
-      reasoning tasks and is positioned as a step towards artificial general intelligence
-      (AGI). It aims to provide advanced capabilities in understanding and generating
-      human-like text.
-    provider: OPENAI
-    model_name: o3-2025-04-16-batch
-    cost_per_1m_input_tokens: 1
-    cost_per_1m_output_tokens: 4
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  o3_mini:
-    description: The o3-mini model by OpenAI is designed for efficient text generation
-      and basic reasoning tasks, suitable for general use cases.
-    provider: OPENAI
-    model_name: o3-mini
-    cost_per_1m_input_tokens: 1.1
-    cost_per_1m_output_tokens: 4.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
+    model_name: o1-mini
+    cost_per_1m_input_tokens: 3
+    cost_per_1m_output_tokens: 12
+    max_context_tokens: 128000
+    max_output_tokens: 65000
     supports_streaming: true
     supports_function_calling: false
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
-    - text
+      - text
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
     model_size_params: Unknown
     latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742755.727137
-  o3_mini_2025_01_31:
-    description: OpenAI o3-mini is a cost-effective AI model designed for advanced
-      reasoning, particularly in coding and STEM applications, offering adjustable
-      reasoning levels and efficient performance.
-    provider: OPENAI
-    model_name: o3-mini-2025-01-31
-    cost_per_1m_input_tokens: 1.1
-    cost_per_1m_output_tokens: 4.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Code Generation
+    task_type: Reasoning
     complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-  o3_mini_2025_01_31_batch:
-    description: The o3-mini-2025-01-31-batch model is designed for efficient text
-      generation and basic reasoning tasks, aimed at providing accessible AI capabilities
-      for a broader audience.
+      status: deprecated
+      category: all_models
+  o1-preview:
+    description: Preview of our first o-series reasoning model (Deprecated)
     provider: OPENAI
-    model_name: o3-mini-2025-01-31-batch
-    cost_per_1m_input_tokens: 0.55
-    cost_per_1m_output_tokens: 2.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
+    model_name: o1-preview
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 128000
+    max_output_tokens: 32000
     supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
+    supports_function_calling: true
+    supports_vision: false
     multimodal_capabilities:
-    - text
+      - text
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
     model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742758.3532538
-  o3_mini_batch:
-    description: The o3-mini-batch model by OpenAI is designed for efficient processing
-      and is likely optimized for specific tasks, potentially including text generation
-      and reasoning capabilities.
+      status: deprecated
+      category: all_models
+  computer-use-preview:
+    description: Specialized model for computer use tool
     provider: OPENAI
-    model_name: o3-mini-batch
-    cost_per_1m_input_tokens: 0.55
-    cost_per_1m_output_tokens: 2.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742761.2923179
-  o3_pro:
-    description: OpenAI's o3-pro model is an advanced AI designed for complex code
-      generation, enhanced reasoning, and domain-specific performance, integrating
-      features like web search and file analysis.
-    provider: OPENAI
-    model_name: o3-pro
-    cost_per_1m_input_tokens: 20
-    cost_per_1m_output_tokens: 80
+    model_name: computer-use-preview
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
     max_context_tokens: 8192
     max_output_tokens: 2048
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
+      - English
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Code Generation
-    complexity: hard
+    task_type: Computer Use
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
       available_in_playground: true
-  o3_pro_batch:
-    description: The o3-pro-batch model by OpenAI is designed to tackle complex problems
-      with advanced reasoning capabilities, potentially contributing to the development
-      of artificial general intelligence (AGI).
+      status: preview
+      category: specialized
+  gpt-4o:
+    description: Fast, intelligent, flexible GPT model
     provider: OPENAI
-    model_name: o3-pro-batch
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 40
-    max_context_tokens: 8192
-    max_output_tokens: 2048
+    model_name: gpt-4o
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 128000
+    max_output_tokens: 4096
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Open QA
-    complexity: hard
+    task_type: Text Generation
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-  o4_mini:
-    description: o4-mini is a compact reasoning model optimized for fast and efficient
-      performance in coding and visual tasks, designed for interactive conversation
-      and AI-driven dialogue systems.
+      status: available
+      category: all_models
+  gpt-4o-mini:
+    description: Fast, affordable small model for focused tasks
     provider: OPENAI
-    model_name: o4-mini
-    cost_per_1m_input_tokens: 1.1
-    cost_per_1m_output_tokens: 4.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: fast
-    task_type: Chatbot
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
-      available_in_playground: true
-  o4_mini_2025_04_16:
-    description: The o4-mini-2025-04-16 is a lightweight inference model from OpenAI,
-      designed for efficient reasoning tasks without supporting advanced features
-      like fine-grained token control.
-    provider: OPENAI
-    model_name: o4-mini-2025-04-16
-    cost_per_1m_input_tokens: 1.1
-    cost_per_1m_output_tokens: 4.4
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742764.1321018
-  o4_mini_2025_04_16_batch:
-    description: The o4-mini model is a lightweight inference model designed for efficient
-      reasoning and multi-modal capabilities, focusing on quick responses and logical
-      reasoning.
-    provider: OPENAI
-    model_name: o4-mini-2025-04-16-batch
-    cost_per_1m_input_tokens: 0.55
-    cost_per_1m_output_tokens: 2.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742767.057367
-  o4_mini_batch:
-    description: The o4-mini-batch model by OpenAI is a lightweight inference model
-      designed for efficient processing, focusing on general text generation tasks.
-    provider: OPENAI
-    model_name: o4-mini-batch
-    cost_per_1m_input_tokens: 0.55
-    cost_per_1m_output_tokens: 2.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.7
-      enriched_at: 1754742769.937542
-  openai_gpt_4o_mini_search_preview:
-    description: The openai/gpt-4o-mini-search-preview model is a lightweight variant
-      of the GPT-4 architecture, designed for efficient text generation and interaction,
-      likely optimized for search-related tasks.
-    provider: OPENAI
-    model_name: openai/gpt-4o-mini-search-preview
+    model_name: gpt-4o-mini
     cost_per_1m_input_tokens: 0.15
     cost_per_1m_output_tokens: 0.6
-    max_context_tokens: 2048
-    max_output_tokens: 512
+    max_context_tokens: 128000
+    max_output_tokens: 16384
     supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
+    supports_function_calling: true
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
     model_size_params: Unknown
-    latency_tier: fast
+    latency_tier: low
     task_type: Text Generation
-    complexity: easy
+    complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: includes
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742772.70694
-  openai_gpt_4o_mini_search_preview_batch:
-    description: The openai/gpt-4o-mini-search-preview-batch model is designed for
-      efficient text generation and conversational interactions, likely optimized
-      for search-related tasks.
-    provider: OPENAI
-    model_name: openai/gpt-4o-mini-search-preview-batch
-    cost_per_1m_input_tokens: 0.075
-    cost_per_1m_output_tokens: 0.3
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742775.6000571
-  text_ada_001:
-    description: text-ada-001 is a lightweight model designed for efficient text generation
-      tasks, suitable for applications requiring quick responses and basic language
-      understanding.
+      status: available
+      category: all_models
+  gpt-4-turbo:
+    description: An older high-intelligence GPT model
     provider: OPENAI
-    model_name: text-ada-001
+    model_name: gpt-4-turbo
+    cost_per_1m_input_tokens: 10
+    cost_per_1m_output_tokens: 30
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-4:
+    description: An older high-intelligence GPT model
+    provider: OPENAI
+    model_name: gpt-4
+    cost_per_1m_input_tokens: 30
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 8192
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: 175b
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-4-turbo-preview:
+    description: An older fast GPT model
+    provider: OPENAI
+    model_name: gpt-4-turbo-preview
+    cost_per_1m_input_tokens: 10
+    cost_per_1m_output_tokens: 30
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-3.5-turbo:
+    description: Legacy GPT model for cheaper chat and non-chat tasks
+    provider: OPENAI
+    model_name: gpt-3.5-turbo
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - English
+    model_size_params: unknown
+    latency_tier: medium
+    task_type: Chatbot
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  babbage-002:
+    description: Replacement for the GPT-3 ada and babbage base models
+    provider: OPENAI
+    model_name: babbage-002
     cost_per_1m_input_tokens: 0.4
     cost_per_1m_output_tokens: 0.4
     max_context_tokens: 2048
     max_output_tokens: 512
     supports_streaming: true
     supports_function_calling: false
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
-    - text
+      - text
     languages_supported:
-    - English
-    model_size_params: 2.7b
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742778.1577501
-  text_ada_001_batch:
-    description: text-ada-001-batch is a lightweight model designed for efficient
-      text generation tasks, suitable for applications requiring quick responses and
-      basic language understanding.
-    provider: OPENAI
-    model_name: text-ada-001-batch
-    cost_per_1m_input_tokens: 0.2
-    cost_per_1m_output_tokens: 0.2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
+      - English
     model_size_params: Unknown
     latency_tier: fast
     task_type: Text Generation
-    complexity: easy
+    complexity: low
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742780.931844
-  text_curie_001:
-    description: text-curie-001 is a versatile language model designed for a variety
-      of text generation tasks, offering a balance between performance and efficiency.
+      status: available
+      category: all_models
+  davinci-002:
+    description: Replacement for the GPT-3 curie and davinci base models
     provider: OPENAI
-    model_name: text-curie-001
+    model_name: davinci-002
     cost_per_1m_input_tokens: 2
     cost_per_1m_output_tokens: 2
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 6b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742783.836403
-  text_curie_001_batch:
-    description: text-curie-001-batch is a model developed by OpenAI, designed for
-      efficient text generation and capable of handling a variety of natural language
-      processing tasks.
-    provider: OPENAI
-    model_name: text-curie-001-batch
-    cost_per_1m_input_tokens: 1
-    cost_per_1m_output_tokens: 1
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742786.63762
-  text_davinci_001:
-    description: text-davinci-001 is a powerful language model designed for a variety
-      of text generation tasks, capable of producing coherent and contextually relevant
-      text based on prompts.
-    provider: OPENAI
-    model_name: text-davinci-001
-    cost_per_1m_input_tokens: 20
-    cost_per_1m_output_tokens: 20
     max_context_tokens: 4096
     max_output_tokens: 1024
     supports_streaming: true
     supports_function_calling: false
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
-    - text
+      - text
     languages_supported:
-    - English
-    model_size_params: 175b
+      - English
+    model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
-    complexity: hard
+    complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742789.316554
-  text_davinci_001_batch:
-    description: text-davinci-001-batch is a powerful language model designed for
-      a variety of text generation tasks, capable of producing coherent and contextually
-      relevant outputs.
+      status: available
+      category: all_models
+  gpt-5-chat-latest:
+    description: GPT-5 model used in ChatGPT (not recommended for API use)
     provider: OPENAI
-    model_name: text-davinci-001-batch
-    cost_per_1m_input_tokens: 10
+    model_name: gpt-5-chat-latest
+    cost_per_1m_input_tokens: 1.25
     cost_per_1m_output_tokens: 10
-    max_context_tokens: 4096
-    max_output_tokens: 1024
+    max_context_tokens: 200000
+    max_output_tokens: 100000
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
-    model_size_params: 175b
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
-    complexity: hard
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742792.13852
-  text_davinci_002:
-    description: text-davinci-002 is a powerful language model designed for a variety
-      of text generation tasks, capable of producing coherent and contextually relevant
-      responses.
+      status: available
+      category: chatgpt_models
+  chatgpt-4o-latest:
+    description: GPT-4o model used in ChatGPT (not recommended for API use)
     provider: OPENAI
-    model_name: text-davinci-002
-    cost_per_1m_input_tokens: 20
-    cost_per_1m_output_tokens: 20
-    max_context_tokens: 4096
-    max_output_tokens: 1024
+    model_name: chatgpt-4o-latest
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 8000
+    max_output_tokens: 2000
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
-    - text
+      - text
+      - vision
     languages_supported:
-    - English
-    model_size_params: 175b
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
-    complexity: hard
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
       matching_operator: equals
       available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742794.763115
-  text_davinci_002_batch:
-    description: text-davinci-002-batch is an advanced language model designed for
-      high-quality text generation, capable of handling complex prompts and providing
-      detailed responses.
-    provider: OPENAI
-    model_name: text-davinci-002-batch
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 175b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  text_davinci_003:
-    description: text-davinci-003 is a powerful language model designed for generating
-      coherent and contextually relevant text, excelling in natural language processing
-      tasks such as summarization and conversation.
-    provider: OPENAI
-    model_name: text-davinci-003
-    cost_per_1m_input_tokens: 20
-    cost_per_1m_output_tokens: 20
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 175b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-  text_davinci_003_batch:
-    description: text-davinci-003-batch is an advanced language model optimized for
-      generating high-quality text outputs, capable of handling a variety of tasks
-      including creative writing, summarization, and more complex reasoning.
-    provider: OPENAI
-    model_name: text-davinci-003-batch
-    cost_per_1m_input_tokens: 10
-    cost_per_1m_output_tokens: 10
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: 175b
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.9
-      enriched_at: 1754742797.403223
-  text_embedding_3_large:
-    description: text-embedding-3-large is an advanced model designed for generating
-      high-quality embeddings for text, enabling various applications such as semantic
-      search and clustering.
-    provider: OPENAI
-    model_name: text-embedding-3-large
-    cost_per_1m_input_tokens: 0.13
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 4096
-    max_output_tokens: 1024
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: large
-    latency_tier: medium
-    task_type: Other
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742800.193387
-  text_embedding_3_large_batch:
-    description: The text-embedding-3-large-batch model by OpenAI is designed for
-      efficient batch processing of text embeddings, allowing for high throughput
-      in generating vector representations of text inputs.
-    provider: OPENAI
-    model_name: text-embedding-3-large-batch
-    cost_per_1m_input_tokens: 0.065
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 6000
-    max_output_tokens: 1500
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: large
-    latency_tier: medium
-    task_type: Other
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742803.044265
-  text_embedding_3_small:
-    description: The text-embedding-3-small model from OpenAI is designed for generating
-      embeddings for natural language processing tasks, particularly useful in semantic
-      search and document representation.
-    provider: OPENAI
-    model_name: text-embedding-3-small
-    cost_per_1m_input_tokens: 0.02
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: small
-    latency_tier: fast
-    task_type: Other
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742805.7252522
-  text_embedding_3_small_batch:
-    description: The text-embedding-3-small-batch model by OpenAI is designed for
-      generating embeddings, which are numerical representations of text that capture
-      semantic meaning. It is optimized for tasks requiring efficient processing of
-      text data.
-    provider: OPENAI
-    model_name: text-embedding-3-small-batch
-    cost_per_1m_input_tokens: 0.01
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 512
-    max_output_tokens: 128
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Other
-    complexity: easy
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742808.1387022
-  text_embedding_ada:
-    description: text-embedding-ada is an advanced model designed for generating high-quality
-      text embeddings, enabling nuanced semantic understanding and representation
-      of text data.
-    provider: OPENAI
-    model_name: text-embedding-ada
-    cost_per_1m_input_tokens: 0.1
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Other
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742810.7025762
-  text_embedding_ada_002:
-    description: text-embedding-ada-002 is an advanced embedding model designed for
-      generating high-quality text embeddings, suitable for various natural language
-      processing tasks such as semantic search and clustering.
-    provider: OPENAI
-    model_name: text-embedding-ada-002
-    cost_per_1m_input_tokens: 0.1
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Other
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742813.4622662
-  text_embedding_ada_002_batch:
-    description: text-embedding-ada-002-batch is an advanced model designed for generating
-      high-quality embeddings for text, enabling various applications such as semantic
-      search and clustering.
-    provider: OPENAI
-    model_name: text-embedding-ada-002-batch
-    cost_per_1m_input_tokens: 0.05
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Other
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742815.914977
-  text_embedding_ada_002_v2:
-    description: text-embedding-ada-002-v2 is an advanced model designed for generating
-      high-quality embeddings for text, enabling various applications such as semantic
-      search and clustering.
-    provider: OPENAI
-    model_name: text-embedding-ada-002-v2
-    cost_per_1m_input_tokens: 0.1
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Other
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742818.412527
-  text_embedding_ada_002_v2_batch:
-    description: text-embedding-ada-002-v2-batch is an advanced model designed for
-      generating high-quality embeddings for text, enabling various applications such
-      as semantic search, clustering, and classification.
-    provider: OPENAI
-    model_name: text-embedding-ada-002-v2-batch
-    cost_per_1m_input_tokens: 0.05
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 8192
-    max_output_tokens: 2048
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Other
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.8
-      enriched_at: 1754742821.645206
-  text_embedding_ada_batch:
-    description: text-embedding-ada-batch is an embedding model designed for efficient
-      batch processing of text data, enabling large-scale text analysis and representation.
-    provider: OPENAI
-    model_name: text-embedding-ada-batch
-    cost_per_1m_input_tokens: 0.05
-    cost_per_1m_output_tokens: 0
-    max_context_tokens: 2048
-    max_output_tokens: 512
-    supports_streaming: true
-    supports_function_calling: false
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - English
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Other
-    complexity: medium
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.85
-      enriched_at: 1754742824.0659049
-  gpt_4_1_nano:
-    description: Cost-effective, highly efficient version of GPT-4, suitable for simple queries.
-    provider: OPENAI
-    model_name: gpt-4.1-nano
-    cost_per_1m_input_tokens: 0.10
-    cost_per_1m_output_tokens: 0.40
-    max_context_tokens: 128000
-    max_output_tokens: 4096
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    model_size_params: Proprietary-Mini
-    latency_tier: very low
-    task_type: general
-    complexity: low
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: adaptive_ai_config
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: adaptive_ai_migration
-      confidence_score: 1.0
-      enriched_at: 1754742825.0
-  gpt_4_1_mini:
-    description: Compact and efficient GPT-4 variant optimized for cost-conscious applications with good general capabilities.
-    provider: OPENAI
-    model_name: gpt-4.1-mini
-    cost_per_1m_input_tokens: 0.15
-    cost_per_1m_output_tokens: 0.60
-    max_context_tokens: 128000
-    max_output_tokens: 4096
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-    - text
-    languages_supported:
-    - en
-    model_size_params: Proprietary-Small
-    latency_tier: low
-    task_type: general
-    complexity: low
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: adaptive_ai_config
-      last_updated: '2025-08-09'
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: adaptive_ai_migration
-      confidence_score: 1.0
-      enriched_at: 1754742826.0
+      status: available
+      category: chatgpt_models

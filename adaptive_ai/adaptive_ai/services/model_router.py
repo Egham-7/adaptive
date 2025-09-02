@@ -1,251 +1,345 @@
-from threading import RLock
-from typing import Any, Protocol
+"""Model routing service with complexity-aware intelligent selection."""
 
-import cachetools
+from __future__ import annotations
 
-from adaptive_ai.models.llm_classification_models import ClassificationResult
+from typing import Any
+
 from adaptive_ai.models.llm_core_models import (
-    ModelSelectionRequest,
+    ModelCapability,
 )
-from adaptive_ai.models.llm_orchestration_models import (
-    OpenAIParameters,
-)
+from adaptive_ai.models.llm_enums import TaskType
+from adaptive_ai.services.model_registry import model_registry
+from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
 
-class LitLoggerProtocol(Protocol):
-    def log(self, key: str, value: Any) -> None: ...
+class LitLoggerProtocol:
+    """Protocol for LitServe compatible logging."""
+
+    def log(self, key: str, value: Any) -> None:
+        """Log a key-value pair."""
+        ...
 
 
 class ModelRouter:
-    MAX_TOKEN_COUNT = 10000  # Maximum reasonable token count for normalization
+    """Intelligent model routing with complexity-aware selection.
 
-    # Pre-computed threshold constants for faster comparisons
-    DEFAULT_COMPLEXITY_THRESHOLD = 0.4
-    STANDARD_PROTOCOL_TOKEN_THRESHOLD = 60000  # Use standard protocol for long prompts
+    The ModelRouter selects optimal LLM models based on task complexity analysis,
+    cost optimization preferences, and model capability matching.
 
-    def __init__(
+    Key Features:
+    - Handles full ModelCapability objects (route to specific models)
+    - Handles partial ModelCapability objects (use as filter criteria)
+    - Complexity-aware model selection using task classification
+    - Cost optimization with configurable bias
+    - Simple filtering using ModelCapability fields directly
+
+    Architecture:
+    1. Process input models:
+       - Full models: Use directly for routing
+       - Partial models: Find matching models using criteria
+       - No models: Use all available models
+    2. Apply complexity-based scoring and ranking
+    3. Apply cost bias to balance price vs. performance
+    4. Return ranked list of suitable models
+
+    Args:
+        lit_logger: Optional LitServe compatible logger for metrics and debugging
+
+    Example:
+        >>> router = ModelRouter()
+
+        >>> # Route to specific models
+        >>> full_models = [
+        ...     ModelCapability(provider="openai", model_name="gpt-4", ...),
+        ...     ModelCapability(provider="anthropic", model_name="claude-3", ...)
+        ... ]
+        >>> models = router.select_models(0.7, TaskType.CODE_GENERATION, full_models)
+
+        >>> # Use partial models as filter criteria
+        >>> criteria = [
+        ...     ModelCapability(provider="openai", max_context_tokens=8000),  # OpenAI with 8K+ context
+        ...     ModelCapability(supports_function_calling=True, cost_per_1m_input_tokens=10.0)  # Functions + budget
+        ... ]
+        >>> models = router.select_models(0.5, TaskType.TEXT_GENERATION, criteria)
+    """
+
+    # Constants for scoring and thresholds
+    _CAPABILITY_BONUS_MULTIPLIER = 0.2
+    _DEFAULT_COMPLEXITY_SCORE = 0.5
+    _MIN_TEMPERATURE = 0.1
+    _MAX_TEMPERATURE = 1.0
+    _MAX_TOKENS_LIMIT = 2500
+    _DEFAULT_COST = 1.0  # Default cost for normalization
+
+    def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
+        """Initialize router with optional logger."""
+        self._lit_logger = lit_logger
+        self._model_registry: dict[str, ModelCapability] = {}
+        self._load_registry_models()
+
+    def _load_registry_models(self) -> None:
+        """Load models from the registry into simplified structure."""
+        # Models are automatically loaded at startup in yaml_model_db
+        all_models = yaml_model_db.get_all_models().keys()
+
+        if not all_models:
+            self._log("registry_warning", {"message": "No valid models loaded"})
+            return
+
+        for model_name in all_models:
+            self._load_single_model(model_name)
+
+        self._log("registry_loaded", {"model_count": len(self._model_registry)})
+
+    def _load_single_model(self, model_name: str) -> None:
+        """Load a single model with error handling."""
+        try:
+            capability = model_registry.get_model_capability(model_name)
+            if capability:
+                self._model_registry[capability.unique_id] = capability
+        except Exception as e:
+            self._log("model_load_error", {"model": model_name, "error": str(e)})
+
+    def _log(self, key: str, value: Any) -> None:
+        """Internal logging method."""
+        if self._lit_logger:
+            self._lit_logger.log(key, value)
+
+    def select_models(
         self,
-        lit_logger: LitLoggerProtocol | None = None,
-    ) -> None:
-        self.lit_logger: LitLoggerProtocol | None = lit_logger
+        task_complexity: float,
+        task_type: TaskType,
+        models_input: list[ModelCapability] | None = None,
+        cost_bias: float = 0.5,
+    ) -> list[ModelCapability]:
+        """Select best models with complexity-aware routing.
 
-        # Cache for protocol decisions to avoid repeated computations
-        self._protocol_decision_cache: cachetools.LRUCache[tuple[float, float, int], bool] = (  # type: ignore[type-arg]
-            cachetools.LRUCache(maxsize=500)
-        )
-        # Thread safety lock for cache access
-        self._cache_lock = RLock()
-
-        self.log(
-            "protocol_manager_init",
-            {"rule_based": True, "caching_enabled": True},
-        )
-
-    @property
-    def cache_stats(self) -> dict[str, Any]:
-        """Get cache statistics."""
-        with self._cache_lock:
-            return {
-                "protocol_decision_cache": {
-                    "size": self._protocol_decision_cache.currsize,
-                    "max_size": self._protocol_decision_cache.maxsize,
-                }
-            }
-
-    def log(self, key: str, value: Any) -> None:
-        if self.lit_logger:
-            self.lit_logger.log(key, value)
-
-    def _should_use_standard_protocol(
-        self,
-        classification_result: ClassificationResult,
-        token_count: int,
-        request: ModelSelectionRequest | None = None,
-    ) -> bool:
-        """Determine if standard protocol should be used based on complexity score and token length."""
-        # If user explicitly provided models, always use standard protocol
-        if request and request.model_router and request.model_router.models:
-            return True
-
-        # Use NVIDIA's professionally trained complexity score and prompt length
-        complexity_score = classification_result.prompt_complexity_score[0]
-
-        # Get configurable thresholds or use pre-computed defaults
-        complexity_threshold = self.DEFAULT_COMPLEXITY_THRESHOLD
-        token_threshold = self.STANDARD_PROTOCOL_TOKEN_THRESHOLD
-
-        if request and request.model_router:
-            if request.model_router.complexity_threshold is not None:
-                complexity_threshold = request.model_router.complexity_threshold
-            if request.model_router.token_threshold is not None:
-                token_threshold = request.model_router.token_threshold
-
-        # Create cache key based on actual decision factors
-        cache_key = (complexity_score, complexity_threshold, token_count)
-
-        # Check cache first (thread-safe)
-        with self._cache_lock:
-            cached_result = self._protocol_decision_cache.get(cache_key)
-            if cached_result is not None:
-                return bool(cached_result)
-
-        # Decision based on complexity score OR token length
-        decision = (
-            complexity_score > complexity_threshold or token_count > token_threshold
-        )
-
-        # Cache the result (LRU cache handles eviction automatically, thread-safe)
-        with self._cache_lock:
-            self._protocol_decision_cache[cache_key] = decision
-
-        return decision
-
-    def select_best_protocol(
-        self,
-        classification_result: ClassificationResult,
-        token_count: int,
-        available_protocols: list[str],
-        request: ModelSelectionRequest | None = None,
-    ) -> str:
-        """Select the best protocol based on NVIDIA's complexity score."""
-        should_use_standard = self._should_use_standard_protocol(
-            classification_result, token_count, request
-        )
-
-        # Prefer standard_llm if complexity/tokens are high and available
-        if should_use_standard and "standard_llm" in available_protocols:
-            return "standard_llm"
-        elif "minion" in available_protocols:
-            return "minion"
-        else:
-            # Fallback to first available protocol
-            return available_protocols[0]
-
-    def get_tuned_parameters(
-        self, classification_result: ClassificationResult, task_type: str
-    ) -> OpenAIParameters:
-        """Get OpenAI parameters tuned based on classification features.
-
-        Public interface for parameter tuning functionality.
+        This is the main entry point for model selection. It processes the input models
+        and applies intelligent routing based on whether they are full or partial specs.
 
         Args:
-            classification_result: The classification result containing complexity scores
-            task_type: The task type string for parameter customization
+            task_complexity: Task complexity score (0.0-1.0) from ML classification
+            task_type: Type of task for filtering compatibility
+            models_input: Optional list of ModelCapability objects:
+                         - Full models: Route directly to these specific models
+                         - Partial models: Use as filter criteria to find matching models
+                         - Mix allowed: Can have both full and partial in same list
+                         - If None: Use all available models
+            cost_bias: Cost vs. capability preference (0.0-1.0)
 
         Returns:
-            OpenAIParameters: Tuned parameters optimized for the given task and complexity
+            List of ModelCapability objects ranked by suitability (best first)
+
+        Examples:
+            >>> # Use all models
+            >>> models = router.select_models(0.5, TaskType.TEXT_GENERATION)
+
+            >>> # Route to specific models
+            >>> specific = [
+            ...     ModelCapability(provider="openai", model_name="gpt-4", cost_per_1m_input_tokens=30.0, ...),
+            ...     ModelCapability(provider="anthropic", model_name="claude-3", cost_per_1m_input_tokens=15.0, ...)
+            ... ]
+            >>> models = router.select_models(0.7, TaskType.CODE_GENERATION, specific)
+
+            >>> # Use partial models as criteria
+            >>> criteria = [
+            ...     ModelCapability(provider="openai", max_context_tokens=8000),  # Find OpenAI models with 8K+ context
+            ...     ModelCapability(supports_function_calling=True)              # Find any models with functions
+            ... ]
+            >>> models = router.select_models(0.6, TaskType.CODE_GENERATION, criteria)
         """
-        return self._get_tuned_parameters(classification_result, task_type)
+        if not 0.0 <= task_complexity <= 1.0:
+            raise ValueError(
+                f"task_complexity must be between 0.0 and 1.0, got {task_complexity}"
+            )
 
-    def _get_tuned_parameters(
-        self, classification_result: ClassificationResult, task_type: str
-    ) -> OpenAIParameters:
-        """Get OpenAI parameters tuned based on classification features (optimized)."""
-        creativity = classification_result.creativity_scope[0]
-        reasoning = classification_result.reasoning[0]
-        complexity = classification_result.prompt_complexity_score[0]
+        # Get candidate models based on input
+        candidate_models = self._get_candidate_models(models_input, task_type)
 
-        task_configs = self._get_task_config_optimized(task_type)
+        # Apply complexity routing and cost bias
+        complexity_sorted = self._apply_complexity_routing(
+            candidate_models, task_complexity
+        )
+        final_models = self._apply_cost_bias(complexity_sorted, cost_bias)
 
-        temperature = max(
-            0.1,
-            min(
-                1.0,
-                task_configs["base_temp"]
-                + task_configs["temp_factor"]
-                * (
-                    complexity
-                    if task_type in {"Code Generation", "Classification"}
-                    else creativity
-                ),
-            ),
+        return final_models
+
+    def _get_candidate_models(
+        self, models_input: list[ModelCapability] | None, task_type: TaskType
+    ) -> list[ModelCapability]:
+        """Get candidate models from input, handling full vs partial specs."""
+        if models_input is None:
+            # No models specified - use all available models
+            all_models = list(self._model_registry.values())
+            return self._filter_by_task_type(all_models, task_type)
+
+        candidate_models = []
+        for model in models_input:
+            if model.is_partial:
+                # Partial model - use as filter criteria
+                matching_models = model_registry.find_models_matching_criteria(model)
+                candidate_models.extend(matching_models)
+            else:
+                # Full model - use directly (but verify it exists in registry)
+                full_model = self._model_registry.get(model.unique_id)
+                if full_model:
+                    candidate_models.append(full_model)
+                else:
+                    # Model not in registry, use the provided model as-is
+                    candidate_models.append(model)
+
+        # Remove duplicates using dict comprehension for order preservation
+        unique_models = list(
+            {model.unique_id: model for model in candidate_models}.values()
         )
 
-        max_tokens = min(
-            2500,
-            task_configs["base_tokens"]
-            + int(
-                task_configs["token_factor"]
-                * (
-                    complexity
-                    if task_type in {"Code Generation", "Classification"}
-                    else creativity
-                )
-            ),
-        )
+        # Filter by task type
+        return self._filter_by_task_type(unique_models, task_type)
 
-        frequency_penalty = min(
-            0.5, reasoning * 0.2 if task_type == "Code Generation" else 0.0
-        )
-        presence_penalty = min(
-            0.6, creativity * 0.4 if task_type == "Brainstorming" else 0.0
-        )
+    def _filter_by_task_type(
+        self, models: list[ModelCapability], task_type: TaskType
+    ) -> list[ModelCapability]:
+        """Filter models based on task type compatibility."""
+        if not task_type:
+            return models
 
-        if task_type == "Text Generation":
-            top_p = min(0.95, 0.85 + creativity * 0.1)
-        elif task_type == "Brainstorming":
-            top_p = min(0.98, 0.9 + creativity * 0.08)
-        else:
-            top_p = 0.9
+        filtered_models = [
+            model
+            for model in models
+            if self._model_supports_task_type(model, task_type)
+        ]
 
-        self.log(
-            "parameter_tuning",
+        self._log(
+            "task_type_filtering",
             {
                 "task_type": task_type,
-                "tuned_parameters": {
-                    "temperature": round(temperature, 2),
-                    "top_p": round(top_p, 2),
-                    "max_tokens": max_tokens,
-                    "frequency_penalty": round(frequency_penalty, 2),
-                    "presence_penalty": round(presence_penalty, 2),
-                },
+                "total_models": len(models),
+                "filtered_models": len(filtered_models),
             },
         )
 
-        return OpenAIParameters(
-            temperature=round(temperature, 2),
-            top_p=round(top_p, 2),
-            max_tokens=int(max_tokens),
-            n=1,
-            stop=None,
-            frequency_penalty=round(frequency_penalty, 2),
-            presence_penalty=round(presence_penalty, 2),
-        )
+        return filtered_models
 
-    def _get_task_config_optimized(self, task_type: str) -> dict[str, float]:
-        """Get task configuration with optimized lookup."""
-        configs = {
-            "Code Generation": {
-                "base_temp": 0.5,
-                "temp_factor": -0.3,
-                "base_tokens": 1200,
-                "token_factor": 800,
-            },
-            "Text Generation": {
-                "base_temp": 0.6,
-                "temp_factor": 0.4,
-                "base_tokens": 1000,
-                "token_factor": 1000,
-            },
-            "Classification": {
-                "base_temp": 0.3,
-                "temp_factor": -0.2,
-                "base_tokens": 200,
-                "token_factor": 300,
-            },
-            "Brainstorming": {
-                "base_temp": 0.8,
-                "temp_factor": 0.2,
-                "base_tokens": 1200,
-                "token_factor": 800,
-            },
-        }
-        return configs.get(
-            task_type,
+    def _model_supports_task_type(
+        self, model: ModelCapability, task_type: TaskType
+    ) -> bool:
+        """Check if a model supports a specific task type."""
+        # If model has no task type specified, assume it supports all tasks
+        if model.task_type is None:
+            return True
+
+        # Normalize both sides to comparable strings for enum vs string comparison
+        model_task_str = None
+        if model.task_type is not None:
+            # Handle both string and enum types
+            if hasattr(model.task_type, "value"):
+                model_task_str = str(model.task_type.value).lower().strip()
+            elif hasattr(model.task_type, "name"):
+                model_task_str = str(model.task_type.name).lower().strip()
+            else:
+                model_task_str = str(model.task_type).lower().strip()
+
+        task_type_str = None
+        if task_type is not None:
+            # Handle both string and enum types
+            if hasattr(task_type, "value"):
+                task_type_str = str(task_type.value).lower().strip()
+            elif hasattr(task_type, "name"):
+                task_type_str = str(task_type.name).lower().strip()
+            else:
+                task_type_str = str(task_type).lower().strip()
+
+        # Compare normalized strings
+        return model_task_str == task_type_str
+
+    def _calculate_complexity_score(
+        self, model: ModelCapability, models: list[ModelCapability]
+    ) -> float:
+        """Calculate complexity score for a model."""
+        if model.complexity is not None:
+            return model.complexity_score
+
+        # Use cost as complexity proxy
+        # Precompute valid costs to avoid ValueError when no valid costs exist
+        valid_costs = [
+            m.cost_per_1m_input_tokens or 0
+            for m in models
+            if m.cost_per_1m_input_tokens
+        ]
+
+        max_cost = max(valid_costs) if valid_costs else self._DEFAULT_COST
+
+        return (model.cost_per_1m_input_tokens or 0) / max_cost if max_cost > 0 else 0.5
+
+    def _apply_complexity_routing(
+        self, models: list[ModelCapability], task_complexity: float
+    ) -> list[ModelCapability]:
+        """Apply complexity-based model routing and scoring."""
+        if not models:
+            return models
+
+        def calculate_alignment_score(model: ModelCapability) -> float:
+            model_complexity = self._calculate_complexity_score(model, models)
+            complexity_diff = abs(task_complexity - model_complexity)
+            alignment_score = 1.0 - complexity_diff
+
+            # Boost score if model can handle complexity
+            if model_complexity >= task_complexity:
+                capability_bonus = 0.2 * (1.0 - complexity_diff)
+                alignment_score += capability_bonus
+
+            return alignment_score
+
+        # Use comprehension to calculate all scores
+        scored_models = [(calculate_alignment_score(model), model) for model in models]
+
+        self._log(
+            "complexity_routing",
             {
-                "base_temp": 0.7,
-                "temp_factor": 0.0,
-                "base_tokens": 1000,
-                "token_factor": 0,
+                "task_complexity": task_complexity,
+                "model_scores": [
+                    {
+                        "model": f"{model.provider}/{model.model_name}",
+                        "alignment_score": round(score, 3),
+                    }
+                    for score, model in scored_models[:5]  # Top 5 for logging
+                ],
             },
         )
+
+        # Sort by alignment score (highest first) and return models
+        return [
+            model
+            for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)
+        ]
+
+    def _apply_cost_bias(
+        self, models: list[ModelCapability], cost_bias: float = 0.5
+    ) -> list[ModelCapability]:
+        """Apply cost bias using weighted scoring."""
+        if not models:
+            return models
+
+        # Pre-calculate max values for normalization
+        max_cost = max((m.cost_per_1m_input_tokens or 0) for m in models)
+        max_capability = max((m.max_context_tokens or 0) for m in models)
+
+        def calculate_final_score(model: ModelCapability) -> float:
+            cost = model.cost_per_1m_input_tokens or 0
+            capability = model.max_context_tokens or 0
+
+            # Normalize scores (0-1)
+            cost_score = 1 - (cost / max_cost if max_cost > 0 else 0)
+            capability_score = capability / max_capability if max_capability > 0 else 0
+
+            # Apply bias (0 = all cost, 1 = all capability)
+            return (1 - cost_bias) * cost_score + cost_bias * capability_score
+
+        # Use comprehension to calculate all scores
+        scored_models = [(calculate_final_score(model), model) for model in models]
+
+        # Sort by score (highest first)
+        return [
+            model
+            for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)
+        ]

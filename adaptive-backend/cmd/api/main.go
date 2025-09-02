@@ -33,7 +33,6 @@ import (
 func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHandler, redisClient *redis.Client) error {
 	// Create shared services once
 	reqSvc := completions.NewRequestService()
-	paramSvc := completions.NewParameterService()
 
 	// Create protocol manager (shared between handlers)
 	modelRouter, err := model_router.NewModelRouter(cfg, redisClient)
@@ -66,7 +65,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, paramSvc, modelRouter, promptCache, circuitBreakers)
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, modelRouter, promptCache, circuitBreakers)
 	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, circuitBreakers)
 

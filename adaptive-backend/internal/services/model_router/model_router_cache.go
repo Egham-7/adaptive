@@ -27,7 +27,7 @@ func DefaultCacheConfig() models.CacheConfig {
 
 // ModelRouterCache wraps the semanticcache library for protocol manager specific operations
 type ModelRouterCache struct {
-	cache             *semanticcache.SemanticCache[string, models.ProtocolResponse]
+	cache             *semanticcache.SemanticCache[string, models.ModelSelectionResponse]
 	semanticThreshold float32
 }
 
@@ -70,7 +70,7 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 
 	// Create backend factory and Redis backend
 	fiberlog.Debug("ModelRouterCache: Creating Redis backend")
-	factory := &backends.BackendFactory[string, models.ProtocolResponse]{}
+	factory := &backends.BackendFactory[string, models.ModelSelectionResponse]{}
 	backend, err := factory.NewBackend(types.BackendRedis, config)
 	if err != nil {
 		fiberlog.Errorf("ModelRouterCache: Failed to create Redis backend: %v", err)
@@ -106,7 +106,7 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 }
 
 // Lookup searches for a cached protocol response using exact match first, then semantic similarity
-func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ProtocolResponse, string, bool) {
+func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ModelSelectionResponse, string, bool) {
 	fiberlog.Debugf("[%s] ModelRouterCache: Starting cache lookup", requestID)
 
 	// 1) First try exact key matching
@@ -133,8 +133,8 @@ func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ProtocolR
 }
 
 // Store saves a protocol response to the cache
-func (pmc *ModelRouterCache) Store(prompt string, resp models.ProtocolResponse) error {
-	fiberlog.Debugf("ModelRouterCache: Storing protocol response (protocol: %s)", resp.Protocol)
+func (pmc *ModelRouterCache) Store(prompt string, resp models.ModelSelectionResponse) error {
+	fiberlog.Debugf("ModelRouterCache: Storing model response (model: %s/%s)", resp.Provider, resp.Model)
 	err := pmc.cache.Set(prompt, prompt, resp)
 	if err != nil {
 		fiberlog.Errorf("ModelRouterCache: Failed to store in cache: %v", err)

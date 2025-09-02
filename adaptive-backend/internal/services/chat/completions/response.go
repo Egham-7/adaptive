@@ -98,14 +98,14 @@ func (rs *ResponseService) SetStreamHeaders(c *fiber.Ctx) {
 	c.Set("Access-Control-Allow-Headers", "Cache-Control")
 }
 
-// StoreSuccessfulSemanticCache stores the protocol response in semantic cache after successful completion
+// StoreSuccessfulSemanticCache stores the model response in semantic cache after successful completion
 func (rs *ResponseService) StoreSuccessfulSemanticCache(
 	req *models.ChatCompletionRequest,
-	resp *models.ProtocolResponse,
+	resp *models.ModelSelectionResponse,
 	requestID string,
 ) {
 	if rs.modelRouter == nil {
-		fiberlog.Debugf("[%s] Protocol manager not available for semantic cache storage", requestID)
+		fiberlog.Debugf("[%s] Model router not available for semantic cache storage", requestID)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (rs *ResponseService) StoreSuccessfulSemanticCache(
 	}
 
 	// Store in semantic cache
-	if err := rs.modelRouter.StoreSuccessfulProtocol(prompt, *resp, requestID, req.ModelRouterConfig); err != nil {
+	if err := rs.modelRouter.StoreSuccessfulModel(prompt, *resp, requestID, req.ModelRouterConfig); err != nil {
 		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
 	}
 }

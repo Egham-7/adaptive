@@ -1,5 +1,21 @@
 # Adaptive Backend - Go API Server
 
+## Memory and Documentation
+
+**IMPORTANT**: When working on this service, remember to:
+
+### Memory Management
+Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for important configurations, API changes, troubleshooting solutions
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
+- **Best practices for memory storage**: Only commit meaningful, reusable information like Go patterns, Fiber configurations, provider integrations, circuit breaker implementations, and troubleshooting solutions that provide value beyond common knowledge
+
+### Documentation
+For documentation needs, use Ref MCP tools:
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for Go, Fiber, Redis, provider API documentation
+- **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
+
 ## Overview
 
 The adaptive-backend is a high-performance Go API server that provides an OpenAI-compatible chat completions API with intelligent multi-provider routing. Built with Fiber web framework, it serves as the main entry point for the Adaptive LLM infrastructure.

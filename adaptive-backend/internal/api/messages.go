@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"adaptive-backend/internal/config"
+	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/anthropic/messages"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/fallback"
@@ -68,70 +69,114 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 	isStreaming := req.Stream != nil && *req.Stream
 	fiberlog.Debugf("[%s] Request type: streaming=%t", requestID, isStreaming)
 
-	// Determine which provider to use
-	provider := "anthropic" // Default to anthropic for messages endpoint
-
-	// If a model is specified and contains a provider prefix, extract it
+	// If a model is specified, directly route to the appropriate provider without model router
 	if req.Model != "" {
 		modelStr := string(req.Model)
-		fiberlog.Debugf("[%s] Processing model specification: %s", requestID, modelStr)
-		if parsedProvider, model, err := utils.ParseProviderModelWithDefault(modelStr, "anthropic"); err == nil {
-			provider = parsedProvider // Use parsed provider
-			// Update the model in the request to remove provider prefix
-			req.Model = anthropic.Model(model)
-			fiberlog.Infof("[%s] Model parsed - provider: %s, model: %s", requestID, provider, model)
-		} else {
-			// If parsing fails, treat as validation error
-			fiberlog.Warnf("[%s] Model parsing failed: %v", requestID, err)
-			return h.responseSvc.HandleBadRequest(c, "invalid model specification: "+err.Error(), requestID)
+		fiberlog.Debugf("[%s] Model specified: %s, directly routing to provider", requestID, modelStr)
+
+		// Parse provider and model from the model specification (expecting "provider:model" format)
+		provider, parsedModel, err := utils.ParseProviderModel(modelStr)
+		if err != nil {
+			fiberlog.Errorf("[%s] Failed to parse model specification %s: %v", requestID, modelStr, err)
+			return h.responseSvc.HandleBadRequest(c, fmt.Sprintf("invalid model specification '%s': must be in 'provider:model' format", modelStr), requestID)
 		}
+
+		// Update the request with the parsed model name
+		req.Model = anthropic.Model(parsedModel)
+
+		fiberlog.Infof("[%s] User-specified model %s routed to provider %s", requestID, modelStr, provider)
+
+		// Get provider configuration
+		providers := resolvedConfig.GetProviders("messages")
+		providerConfig, exists := providers[provider]
+		if !exists {
+			return h.responseSvc.HandleProviderNotConfigured(c, provider, requestID)
+		}
+
+		// Direct execution - no fallback for user-specified models
+		return h.messagesSvc.HandleProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, h.responseSvc)
 	}
 
-	// If no explicit model is provided, use model router for selection
+	// If no model is specified, use model router for selection WITH fallback
 	if req.Model == "" {
-		fiberlog.Debugf("[%s] No model specified, using model router for selection", requestID)
+		fiberlog.Debugf("[%s] No model specified, using model router for selection with fallback", requestID)
+
 		// Extract prompt for routing
 		prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
 		if err != nil {
 			fiberlog.Warnf("[%s] Failed to extract prompt for routing: %v", requestID, err)
 			return h.responseSvc.HandleBadRequest(c, "failed to extract prompt for routing: "+err.Error(), requestID)
 		}
-		fiberlog.Debugf("[%s] Extracted prompt for routing (length: %d chars)", requestID, len(prompt))
 
 		// Use model router to select best model WITH CIRCUIT BREAKERS
-		userID := "anonymous" // Could extract from auth context if available
+		userID := "anonymous"
+		toolCall := utils.ExtractToolCallsFromAnthropicMessages(req.Messages)
 
-		protocolResp, _, err := h.modelRouter.SelectProtocolWithCache(
+		modelResp, _, err := h.modelRouter.SelectModelWithCache(
 			prompt, userID, requestID, &resolvedConfig.ModelRouter, h.circuitBreakers,
+			req.Tools, toolCall,
 		)
 		if err != nil {
 			fiberlog.Errorf("[%s] Model router selection failed: %v", requestID, err)
 			return h.responseSvc.HandleError(c, err, requestID)
 		}
 
-		// Use the selected provider and model
-		if protocolResp.Standard != nil {
-			provider = protocolResp.Standard.Provider
-			req.Model = anthropic.Model(protocolResp.Standard.Model)
-			fiberlog.Infof("[%s] Model router selected (standard) - provider: %s, model: %s", requestID, provider, protocolResp.Standard.Model)
-		} else if protocolResp.Minion != nil {
-			provider = protocolResp.Minion.Provider
-			req.Model = anthropic.Model(protocolResp.Minion.Model)
-			fiberlog.Infof("[%s] Model router selected (minion) - provider: %s, model: %s", requestID, provider, protocolResp.Minion.Model)
-		} else {
-			fiberlog.Errorf("[%s] Model router returned invalid response - no standard or minion protocol found", requestID)
-			return h.responseSvc.HandleError(c, fmt.Errorf("invalid protocol response from model router"), requestID)
+		// Use fallback service with model router response (system-selected models get fallback)
+		fallbackConfig := h.fallbackService.GetFallbackConfig(nil)
+
+		// Create provider list with primary and alternatives from model router
+		providers := []models.Alternative{{
+			Provider: modelResp.Provider,
+			Model:    modelResp.Model,
+		}}
+		providers = append(providers, modelResp.Alternatives...)
+
+		// Update request with selected model
+		req.Model = anthropic.Model(modelResp.Model)
+		fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s (with %d alternatives)",
+			requestID, modelResp.Provider, modelResp.Model, len(modelResp.Alternatives))
+
+		return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, isStreaming), requestID, isStreaming)
+	}
+
+	// If we reach here, something went wrong with the logic above
+	return h.responseSvc.HandleError(c, fmt.Errorf("invalid request state - no model handling path matched"), requestID)
+}
+
+// createExecuteFunc creates an execution function for the fallback service
+func (h *MessagesHandler) createExecuteFunc(
+	req *models.AnthropicMessageRequest,
+	isStreaming bool,
+) models.ExecutionFunc {
+	return func(c *fiber.Ctx, provider models.Alternative, reqID string) error {
+		// Get provider configuration from resolved config
+		resolvedConfig, err := h.cfg.ResolveConfigFromAnthropicRequest(req)
+		if err != nil {
+			return fmt.Errorf("failed to resolve config: %w", err)
 		}
-	}
 
-	// Get provider configuration from resolved config
-	providers := resolvedConfig.GetProviders("messages")
-	providerConfig, exists := providers[provider]
-	if !exists {
-		return h.responseSvc.HandleProviderNotConfigured(c, provider, requestID)
-	}
-	fiberlog.Debugf("[%s] Provider configuration found for: %s", requestID, provider)
+		providers := resolvedConfig.GetProviders("messages")
+		providerConfig, exists := providers[provider.Provider]
+		if !exists {
+			return fmt.Errorf("provider %s not configured", provider.Provider)
+		}
 
-	// Delegate provider handling to messages service
-	return h.messagesSvc.HandleProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, h.responseSvc)
+		// Create a copy to avoid race conditions when mutating req.Model
+		reqCopy := *req
+		reqCopy.Model = anthropic.Model(provider.Model)
+
+		// Call the messages service and handle retryable errors
+		err = h.messagesSvc.HandleProviderRequest(c, &reqCopy, provider.Provider, providerConfig, isStreaming, reqID, h.responseSvc)
+		// Check if the error is a retryable provider error that should trigger fallback
+		if err != nil {
+			if appErr, ok := err.(*models.AppError); ok && appErr.Type == models.ErrorTypeProvider && appErr.Retryable {
+				// Return the provider error to trigger fallback
+				return err
+			}
+			// For non-retryable errors, wrap them to prevent fallback
+			return fmt.Errorf("non-retryable error: %w", err)
+		}
+
+		return nil
+	}
 }

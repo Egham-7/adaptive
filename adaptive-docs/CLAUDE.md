@@ -1,5 +1,21 @@
 # Adaptive Docs - Documentation Site
 
+## Memory and Documentation
+
+**IMPORTANT**: When working on this service, remember to:
+
+### Memory Management
+Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for documentation structure decisions, content guidelines, troubleshooting solutions
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
+- **Best practices for memory storage**: Only commit meaningful, reusable information like documentation patterns, Mintlify configurations, content strategies, writing guidelines, and implementation details that provide value beyond common knowledge
+
+### Documentation
+For documentation needs, use Ref MCP tools:
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for Mintlify, MDX, documentation best practices
+- **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
+
 ## Overview
 
 The adaptive-docs service provides comprehensive public-facing documentation for the Adaptive LLM infrastructure. Built with Mintlify, it offers interactive API documentation, integration guides, feature explanations, and troubleshooting resources for developers using the Adaptive platform.

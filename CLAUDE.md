@@ -1,18 +1,29 @@
 # Claude Assistant Configuration
 
-## Documentation and Best Practices
+## Memory and Documentation
+
+When working with this project, use the following MCP tools:
+
+### Memory Management
+**IMPORTANT**: Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` when learning important project details, user preferences, or configuration changes
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and project knowledge
+- **Best practices for memory storage**: Only commit meaningful, reusable information like architecture decisions, custom configurations, user workflow preferences, troubleshooting solutions, code patterns, and implementation details that provide value beyond common knowledge
+
+### Documentation and Best Practices
 
 When you're unsure about documentation, APIs, or best practices for any library, framework, or technology:
 
-1. **First, check if Context7 MCP server is available** by using the `mcp__context7__resolve-library-id` and `mcp__context7__get-library-docs` tools
-2. **Only use Context7 if available** - if the MCP server tools are not accessible, fall back to other research methods
-3. **Use Context7 for up-to-date documentation** on any programming language, framework, or library when you need:
+1. **Use Ref MCP for documentation** by using the `mcp__Ref__ref_search_documentation` and `mcp__Ref__ref_read_url` tools
+2. **Search comprehensively** - Ref MCP searches public documentation, GitHub repos, and private resources
+3. **Use Ref MCP for current documentation** on any programming language, framework, or library when you need:
    - Current API documentation
    - Code examples and snippets
    - Best practices and patterns
    - Version-specific information
 
-## When to Use Context7
+## When to Use Documentation Tools
 
 - When implementing features with unfamiliar libraries
 - When debugging issues with specific APIs
@@ -24,12 +35,12 @@ When you're unsure about documentation, APIs, or best practices for any library,
 
 ```
 1. Identify the library/technology you need help with
-2. Use resolve-library-id to find the correct library identifier
-3. Use get-library-docs with relevant topic/context
-4. Apply the documentation to solve the problem
+2. Use ref_search_documentation with relevant query including language/framework
+3. Use ref_read_url to read specific documentation pages
+4. Store important findings in ByteRover memory for future reference
 ```
 
-This ensures you always have access to the most current and accurate documentation when available.
+This ensures you always have access to the most current documentation and can remember important project details across sessions.
 
 ## Common Commands
 
@@ -190,7 +201,8 @@ This ensures you always have access to the most current and accurate documentati
 - **Prisma**: Database ORM and migrations
 - **Stripe CLI**: For webhook testing
 - **uv**: Fast Python package manager
-- **Context7 MCP**: For up-to-date documentation (when available)
+- **ByteRover MCP**: For persistent memory across sessions (when available)
+- **Ref MCP**: For up-to-date documentation (when available)
 
 ## Project Structure - Adaptive LLM Infrastructure
 

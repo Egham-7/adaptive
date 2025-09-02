@@ -109,7 +109,7 @@ Adaptive processes data across three services with different data handling chara
 **Configuration**: Disabled by default, must be explicitly enabled
 ```yaml
 # Backend config.yaml
-protocol_manager:
+model_router:
   semantic_cache:
     enabled: true          # Disabled by default
     threshold: 0.95        # 95% similarity required
@@ -428,7 +428,7 @@ prompt_cache:
   default_ttl_seconds: 3600
   redis_url: "${REDIS_URL:-redis://localhost:6379}"
 
-protocol_manager:
+model_router:
   semantic_cache:
     enabled: true                   # Embeddings only, not content
     threshold: 0.95                 # 95% similarity required

@@ -81,11 +81,10 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             top2_prob_rounded = [
                 [round(value, 3) for value in sublist] for sublist in top2_prob
             ]
-            counter = 0
-            for sublist in top2_prob_rounded:
+            # Use comprehensions with enumeration to replace manual counter
+            for i, sublist in enumerate(top2_prob_rounded):
                 if sublist[1] < 0.1:
-                    top2_strings[counter][1] = "NA"
-                counter += 1
+                    top2_strings[i][1] = "NA"
             task_type_1 = [sublist[0] for sublist in top2_strings]
             task_type_2 = [sublist[1] for sublist in top2_strings]
             task_type_prob = [sublist[0] for sublist in top2_prob_rounded]

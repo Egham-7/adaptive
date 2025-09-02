@@ -92,8 +92,8 @@ prompt_cache:
   default_ttl_seconds: 3600
   redis_url: "${REDIS_URL:-redis://localhost:6379}"
 
-# Protocol manager configuration
-protocol_manager:
+# Model router configuration
+model_router:
   semantic_cache:
     enabled: true
     threshold: 0.95
