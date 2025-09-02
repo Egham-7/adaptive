@@ -25,34 +25,21 @@ from .llm_enums import (
     TaskType,
 )
 
-# Import data models related to the orchestrator's response structure
-from .llm_orchestration_models import (
-    Alternative,
-    MinionInfo,
-    OpenAIParameters,
-    OrchestratorResponse,
-    StandardLLMInfo,
-)
+# Note: llm_orchestration_models removed - orchestration models no longer needed
 
 # Define what is exposed when a user imports * from this package or references the package
 __all__ = [
-    "Alternative",
     # Classification Models
     "ClassificationResult",
-    "MinionInfo",
     # Core Models
     "ModelCapability",
     "ModelEntry",
     "ModelRouterConfig",
     "ModelSelectionConfig",
     "ModelSelectionRequest",
-    # Orchestration Models
-    "OpenAIParameters",
-    "OrchestratorResponse",
-    "ProtocolType",
     # Enums
+    "ProtocolType",
     "ProviderType",
-    "StandardLLMInfo",
     "TaskModelMapping",
     "TaskType",
 ]

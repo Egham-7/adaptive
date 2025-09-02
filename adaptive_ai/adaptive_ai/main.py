@@ -13,20 +13,9 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
 )
 from adaptive_ai.models.llm_enums import ProtocolType
-from adaptive_ai.models.llm_orchestration_models import (
-    Alternative,
-    MinionInfo,
-    OrchestratorResponse,
-    StandardLLMInfo,
-)
-
-# Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
-from adaptive_ai.services.domain_classifier import get_domain_classifier
 from adaptive_ai.services.model_router import ModelRouter
-from adaptive_ai.services.model_selector import (
-    ModelSelectionService,
-)
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
+from adaptive_ai.services.unified_model_selector import ModelSelector
 
 
 # LitServe Console Logger
@@ -39,11 +28,10 @@ class ModelRouterAPI(ls.LitAPI):
     def setup(self, device: str) -> None:
         self.settings = get_settings()
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
-        self.domain_classifier = get_domain_classifier(lit_logger=self)
-
+        
         self.tokenizer = tiktoken.get_encoding("cl100k_base")
 
-        self.model_selection_service = ModelSelectionService(lit_logger=self)
+        self.model_selector = ModelSelector()
         self.model_router = ModelRouter(lit_logger=self)
 
     def decode_request(self, request: dict[str, Any]) -> ModelSelectionRequest:
