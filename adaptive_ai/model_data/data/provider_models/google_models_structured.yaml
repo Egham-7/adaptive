@@ -1,16 +1,271 @@
 provider_info:
-  name: GEMINI
-  total_models: 3
+  name: GOOGLE
+  total_models: 20
   data_source: https://helicone.ai/api/llm-costs?provider=google
-  last_updated: "2025-08-06"
+  last_updated: '2025-08-06'
   currency: USD
   pricing_unit: per 1 million tokens
 models:
+  claude_3_5_haiku:
+    description: Claude-3-5-Haiku is an advanced AI model optimized for speed and
+      designed to handle complex reasoning and natural language tasks effectively.
+    provider: GOOGLE
+    model_name: claude-3-5-haiku
+    cost_per_1m_input_tokens: 0.8
+    cost_per_1m_output_tokens: 4.0
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_function_calling: true
+    languages_supported:
+    - en
+    - zh
+    - fr
+    - de
+    - ja
+    - ko
+    - es
+    model_size_params: Unknown
+    latency_tier: very low
+    task_type: Code Generation
+    complexity: high
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.8
+      enriched_at: 1754572703.0671034
+  claude_3_5_sonnet:
+    description: Claude 3.5 Sonnet is an advanced AI model with a massive context
+      window of 200,000 tokens, enabling it to handle extensive information retention
+      and processing over long interactions.
+    provider: GOOGLE
+    model_name: claude-3-5-sonnet
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: 200000
+    max_output_tokens: 50000
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Text Generation
+    complexity: hard
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754572705.9838197
+  claude_3_7_sonnet:
+    description: Claude-3-7-sonnet is a next-generation AI model developed by Anthropic,
+      designed to balance capability and performance, providing advanced reasoning,
+      natural language understanding, and real-time information retrieval.
+    provider: GOOGLE
+    model_name: claude-3-7-sonnet
+    cost_per_1m_input_tokens: 3.0
+    cost_per_1m_output_tokens: 15.0
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_function_calling: true
+    languages_supported:
+    - English
+    model_size_params: 7b
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754572709.2625697
+  claude_3_opus:
+    description: Claude-3-Opus is a mid-size AI model designed for high-volume tasks
+      such as coding and in-depth research, offering superior intelligence and performance
+      for complex problem-solving.
+    provider: GOOGLE
+    model_name: claude-3-opus
+    cost_per_1m_input_tokens: 15.0
+    cost_per_1m_output_tokens: 75.0
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Code Generation
+    complexity: medium
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.8
+      enriched_at: 1754572712.876824
+  gemini_1.0_pro:
+    description: Gemini 1.0 Pro is a multimodal AI model designed to process and understand
+      various forms of unstructured data, including text, images, audio, and video,
+      making it suitable for a wide range of applications in AI services.
+    provider: GOOGLE
+    model_name: gemini-1.0-pro
+    cost_per_1m_input_tokens: 0.125
+    cost_per_1m_output_tokens: 0.375
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_function_calling: true
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Other
+    complexity: hard
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754572720.0989223
+  gemini_1.0_pro_vision_001:
+    description: Gemini 1.0 Pro Vision 001 is a multimodal model designed for advanced
+      reasoning and processing of various content types, optimized for integration
+      into applications via Google Cloud Vertex AI.
+    provider: GOOGLE
+    model_name: gemini-1.0-pro-vision-001
+    cost_per_1m_input_tokens: 0.125
+    cost_per_1m_output_tokens: 0.375
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_function_calling: true
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Other
+    complexity: hard
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754572724.7691016
+  gemini_1.5_flash:
+    description: Gemini 1.5 Flash is a multimodal AI model optimized for speed, capable
+      of processing various input types including text, images, audio, video, and
+      PDFs. It supports advanced features like system instructions and JSON mode,
+      making it suitable for a range of applications.
+    provider: GOOGLE
+    model_name: gemini-1.5-flash
+    cost_per_1m_input_tokens: 0.35
+    cost_per_1m_output_tokens: 1.05
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_function_calling: true
+    languages_supported:
+    - English
+    model_size_params: 8b
+    latency_tier: fast
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754572728.5480685
+  gemini_1.5_pro:
+    description: Gemini-1.5-Pro is a sophisticated AI model developed by Google, designed
+      for advanced reasoning and complex tasks, likely excelling in various applications
+      including text generation and conversational interactions.
+    provider: GOOGLE
+    model_name: gemini-1.5-pro
+    cost_per_1m_input_tokens: 3.5
+    cost_per_1m_output_tokens: 10.5
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.7
+      enriched_at: 1754572731.766179
+  gemini_2.0_flash:
+    description: Gemini 2.0 Flash is a high-performance AI model designed for multimodal
+      generation and capable of processing extensive context windows, making it suitable
+      for complex tasks involving large amounts of data.
+    provider: GOOGLE
+    model_name: gemini-2.0-flash
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 2000000
+    max_output_tokens: 500000
+    supports_function_calling: true
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Other
+    complexity: hard
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.9
+      enriched_at: 1754574059.4780324
+  gemini_2.0_flash_lite:
+    description: Gemini 2.0 Flash-Lite is a cost-efficient, high-speed multimodal
+      AI model designed for generating and editing contextual images and understanding
+      unstructured data such as images and videos.
+    provider: GOOGLE
+    model_name: gemini-2.0-flash-lite
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.3
+    max_context_tokens: 1000
+    max_output_tokens: 250
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Text Generation
+    complexity: easy
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.8
+      enriched_at: 1754572740.8134894
   gemini_2.5_flash:
-    description:
-      Gemini 2.5 Flash is Google's fast and versatile model for diverse
+    description: Gemini 2.5 Flash is Google's fast and versatile model for diverse
       tasks.
-    provider: GEMINI
+    provider: GOOGLE
     model_name: gemini-2.5-flash
     cost_per_1m_input_tokens: 0.3
     cost_per_1m_output_tokens: 2.5
@@ -18,13 +273,13 @@ models:
     max_output_tokens: 8192
     supports_function_calling: true
     languages_supported:
-      - en
-      - es
-      - fr
-      - de
-      - ja
-      - ko
-      - zh
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
     model_size_params: Unknown
     latency_tier: low
     task_type: Text Generation
@@ -40,11 +295,10 @@ models:
       confidence_score: 0.85
       enriched_at: 1754574063.39629
   gemini_2.5_flash_lite:
-    description:
-      Gemini 2.5 Flash Lite is a lightweight model designed for efficient
+    description: Gemini 2.5 Flash Lite is a lightweight model designed for efficient
       performance, likely optimized for quick inference and basic text generation
       tasks.
-    provider: GEMINI
+    provider: GOOGLE
     model_name: gemini-2.5-flash-lite
     cost_per_1m_input_tokens: 0.1
     cost_per_1m_output_tokens: 0.4
@@ -52,7 +306,7 @@ models:
     max_output_tokens: 128
     supports_function_calling: false
     languages_supported:
-      - English
+    - English
     model_size_params: Unknown
     latency_tier: fast
     task_type: Classification
@@ -65,11 +319,59 @@ models:
       method: langgraph_workflow
       confidence_score: 0.7
       enriched_at: 1754572747.0134084
+  gemini_2.5_flash_lite_preview_06_17:
+    description: Gemini 2.5 Flash Lite is a lightweight version of Google's Gemini
+      model, designed for efficient performance with a focus on general text generation
+      and conversational capabilities.
+    provider: GOOGLE
+    model_name: gemini-2.5-flash-lite-preview-06-17
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 2048
+    max_output_tokens: 512
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Text Generation
+    complexity: easy
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.7
+      enriched_at: 1754572750.5448644
+  gemini_2.5_flash_preview:
+    description: Gemini 2.5 Flash is a high-performance model designed for versatile
+      applications, featuring a large context window and optimized for efficient processing.
+    provider: GOOGLE
+    model_name: gemini-2.5-flash-preview
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: 1000000
+    max_output_tokens: 250000
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754572753.7122433
   gemini_2.5_pro:
-    description:
-      Gemini 2.5 Pro is Google's most capable model for complex reasoning
+    description: Gemini 2.5 Pro is Google's most capable model for complex reasoning
       tasks.
-    provider: GEMINI
+    provider: GOOGLE
     model_name: gemini-2.5-pro
     cost_per_1m_input_tokens: 1.25
     cost_per_1m_output_tokens: 10.0
@@ -77,13 +379,13 @@ models:
     max_output_tokens: 8192
     supports_function_calling: true
     languages_supported:
-      - en
-      - es
-      - fr
-      - de
-      - ja
-      - ko
-      - zh
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
     model_size_params: Unknown
     latency_tier: high
     task_type: Reasoning
@@ -98,3 +400,208 @@ models:
       method: langgraph_workflow
       confidence_score: 0.75
       enriched_at: 1754572757.7659461
+  gemini_2.5_pro_exp_03_25:
+    description: Gemini 2.5 Pro is a sophisticated AI model developed by Google, designed
+      for advanced text generation and conversational tasks, leveraging extensive
+      training data and capabilities.
+    provider: GOOGLE
+    model_name: gemini-2.5-pro-exp-03-25
+    cost_per_1m_input_tokens: 0.0
+    cost_per_1m_output_tokens: 0.0
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.7
+      enriched_at: 1754572760.5844796
+  gemini_2.5_pro_preview:
+    description: Gemini 2.5 Pro is Google's most advanced AI model, designed for complex
+      reasoning, multimodal capabilities, and enhanced performance in web development
+      and programming tasks.
+    provider: GOOGLE
+    model_name: gemini-2.5-pro-preview
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_function_calling: true
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Open QA
+    complexity: hard
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754572764.1132243
+  gemini_flash_1.5_8b:
+    description: Gemini Flash 1.5 is a model designed for various tasks, leveraging
+      advanced reasoning and context capabilities, though specific performance details
+      are limited.
+    provider: GOOGLE
+    model_name: gemini-flash-1.5-8b
+    cost_per_1m_input_tokens: 0.0375
+    cost_per_1m_output_tokens: 0.15
+    max_context_tokens: 2048
+    max_output_tokens: 512
+    supports_function_calling: false
+    languages_supported:
+    - English
+    model_size_params: 8b
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: medium
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.7
+      enriched_at: 1754572767.1685493
+  gemini_pro:
+    description: Gemini-pro is an advanced AI model developed by Google, designed
+      for sophisticated reasoning and handling complex tasks, including research assistance
+      and report generation.
+    provider: GOOGLE
+    model_name: gemini-pro
+    cost_per_1m_input_tokens: 0.125
+    cost_per_1m_output_tokens: 0.375
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_function_calling: true
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Open QA
+    complexity: hard
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.75
+      enriched_at: 1754572770.7081861
+  gemini_2_5_flash_lite_preview_06_17:
+    description: Compact and very fast, suitable for simple, low-latency tasks.
+    provider: GOOGLE
+    model_name: gemini-2.5-flash-lite-preview-06-17
+    cost_per_1m_input_tokens: 0.075
+    cost_per_1m_output_tokens: 0.30
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Proprietary-Very-Small
+    latency_tier: very low
+    task_type: general
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742830.0
+  gemini_2_5_flash:
+    description: Google's flexible and fast model, good for many tasks including complex reasoning.
+    provider: GOOGLE
+    model_name: gemini-2.5-flash
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.60
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - Spanish
+    - French
+    - German
+    - Japanese
+    - Korean
+    - Chinese
+    model_size_params: Proprietary-Medium
+    latency_tier: medium
+    task_type: general
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742831.0
+  gemini_2_5_pro:
+    description: Google's most capable model, designed for highly complex tasks and long contexts.
+    provider: GOOGLE
+    model_name: gemini-2.5-pro
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10.00
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    - Spanish
+    - French
+    - German
+    - Japanese
+    - Korean
+    - Chinese
+    model_size_params: Proprietary-Large
+    latency_tier: high
+    task_type: reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: adaptive_ai_config
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: adaptive_ai_migration
+      confidence_score: 1.0
+      enriched_at: 1754742832.0

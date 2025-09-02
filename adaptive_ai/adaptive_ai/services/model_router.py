@@ -156,11 +156,10 @@ class ModelRouter:
         # Get candidate models based on input
         candidate_models = self._get_candidate_models(models_input, task_type)
 
-        # Apply complexity routing and cost bias
-        complexity_sorted = self._apply_complexity_routing(
-            candidate_models, task_complexity
+        # Apply integrated complexity and cost routing
+        final_models = self._apply_integrated_routing(
+            candidate_models, task_complexity, cost_bias
         )
-        final_models = self._apply_cost_bias(complexity_sorted, cost_bias)
 
         return final_models
 
@@ -339,6 +338,56 @@ class ModelRouter:
         scored_models = [(calculate_final_score(model), model) for model in models]
 
         # Sort by score (highest first)
+        return [
+            model
+            for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)
+        ]
+
+    def _apply_integrated_routing(
+        self, models: list[ModelCapability], task_complexity: float, cost_bias: float
+    ) -> list[ModelCapability]:
+        """Apply integrated complexity and cost routing in a single step."""
+        if not models:
+            return models
+
+        # Pre-calculate max values for normalization
+        total_costs = [
+            (m.cost_per_1m_input_tokens or 0) + (m.cost_per_1m_output_tokens or 0)
+            for m in models
+        ]
+        max_cost = max(total_costs) if total_costs else 0
+        max_capability = max((m.max_context_tokens or 0) for m in models)
+
+        def calculate_integrated_score(model: ModelCapability) -> float:
+            # Complexity alignment score
+            model_complexity = self._calculate_complexity_score(model, models)
+            complexity_diff = abs(task_complexity - model_complexity)
+            alignment_score = 1.0 - complexity_diff
+            
+            # Boost score if model can handle complexity
+            if model_complexity >= task_complexity:
+                capability_bonus = 0.2 * (1.0 - complexity_diff)
+                alignment_score += capability_bonus
+
+            # Cost and capability scores
+            cost = (model.cost_per_1m_input_tokens or 0) + (model.cost_per_1m_output_tokens or 0)
+            capability = model.max_context_tokens or 0
+            
+            cost_score = 1 - (cost / max_cost if max_cost > 0 else 0)
+            capability_score = capability / max_capability if max_capability > 0 else 0
+            
+            # Combine complexity alignment with cost-capability trade-off
+            cost_capability_score = (1 - cost_bias) * cost_score + cost_bias * capability_score
+            
+            # Final score: weighted combination of complexity alignment and cost-capability
+            final_score = 0.6 * alignment_score + 0.4 * cost_capability_score
+            
+            return final_score
+
+        # Calculate scores and sort
+        scored_models = [(calculate_integrated_score(model), model) for model in models]
+        
+        # Sort by final score (highest first)
         return [
             model
             for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)

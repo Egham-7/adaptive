@@ -2,13 +2,73 @@ provider_info:
   name: GROK
   total_models: 9
   data_source: https://helicone.ai/api/llm-costs?provider=x
-  last_updated: "2025-08-09"
+  last_updated: '2025-08-09'
   currency: USD
   pricing_unit: per 1 million tokens
 models:
+  grok_2_1212:
+    description: Grok-2-1212 is a highly capable language model designed for advanced
+      text generation, classification, and visual comprehension tasks, featuring a
+      large context window and improved multilingual support.
+    provider: GROK
+    model_name: grok-2-1212
+    cost_per_1m_input_tokens: 2
+    cost_per_1m_output_tokens: 10
+    max_context_tokens: 131072
+    max_output_tokens: 32768
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: '1212'
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  grok_2_vision_1212:
+    description: Grok-2-Vision-1212 is an advanced image-based AI model that excels
+      in visual comprehension and instruction adherence, featuring enhanced multilingual
+      capabilities.
+    provider: GROK
+    model_name: grok-2-vision-1212
+    cost_per_1m_input_tokens: 2
+    cost_per_1m_output_tokens: 10
+    max_context_tokens: 131072
+    max_output_tokens: 32768
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: '1212'
+    latency_tier: slow
+    task_type: Other
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.7
+      enriched_at: 1754742541.244245
   grok_3:
-    description:
-      Grok 3 is a state-of-the-art large language model designed for advanced
+    description: Grok 3 is a state-of-the-art large language model designed for advanced
       reasoning and processing large documents, featuring a massive context window
       and optimized for various AI applications.
     provider: GROK
@@ -21,9 +81,9 @@ models:
     supports_function_calling: true
     supports_vision: null
     multimodal_capabilities:
-      - text
+    - text
     languages_supported:
-      - English
+    - English
     model_size_params: Unknown
     latency_tier: medium
     task_type: Reasoning
@@ -32,12 +92,11 @@ models:
     training_data_cutoff: null
     metadata:
       source: helicone_api
-      last_updated: "2025-08-09"
+      last_updated: '2025-08-09'
       matching_operator: equals
       available_in_playground: true
   grok_3_fast:
-    description:
-      Grok-3-fast is a conversational AI model designed for efficient text
+    description: Grok-3-fast is a conversational AI model designed for efficient text
       generation and understanding, particularly noted for its performance in Chinese
       language comprehension.
     provider: GROK
@@ -50,10 +109,10 @@ models:
     supports_function_calling: false
     supports_vision: null
     multimodal_capabilities:
-      - text
+    - text
     languages_supported:
-      - English
-      - Chinese
+    - English
+    - Chinese
     model_size_params: 3b
     latency_tier: fast
     task_type: Chatbot
@@ -62,7 +121,7 @@ models:
     training_data_cutoff: null
     metadata:
       source: helicone_api
-      last_updated: "2025-08-09"
+      last_updated: '2025-08-09'
       matching_operator: equals
       available_in_playground: true
     _enrichment:
@@ -71,8 +130,7 @@ models:
       confidence_score: 0.8
       enriched_at: 1754742545.020226
   grok_3_mini:
-    description:
-      Grok-3-mini is a lightweight reasoning model designed for fast, logical
+    description: Grok-3-mini is a lightweight reasoning model designed for fast, logical
       responses, particularly effective in coding, mathematical, and deep science
       tasks. It emphasizes thoughtful processing before generating answers, making
       it suitable for reasoning-heavy applications.
@@ -86,9 +144,9 @@ models:
     supports_function_calling: false
     supports_vision: null
     multimodal_capabilities:
-      - text
+    - text
     languages_supported:
-      - English
+    - English
     model_size_params: 3b
     latency_tier: fast
     task_type: Reasoning
@@ -97,7 +155,7 @@ models:
     training_data_cutoff: null
     metadata:
       source: helicone_api
-      last_updated: "2025-08-09"
+      last_updated: '2025-08-09'
       matching_operator: equals
       available_in_playground: true
     _enrichment:
@@ -106,8 +164,7 @@ models:
       confidence_score: 0.8
       enriched_at: 1754742548.0509171
   grok_3_mini_fast:
-    description:
-      Grok-3-Mini-Fast is a lightweight and fast reasoning model designed
+    description: Grok-3-Mini-Fast is a lightweight and fast reasoning model designed
       for interactive educational applications, real-time tutoring, and logic-based
       tasks. It excels in tasks that do not require deep domain knowledge and provides
       accessible raw reasoning traces.
@@ -121,9 +178,9 @@ models:
     supports_function_calling: true
     supports_vision: null
     multimodal_capabilities:
-      - text
+    - text
     languages_supported:
-      - English
+    - English
     model_size_params: 3b
     latency_tier: fast
     task_type: Text Generation
@@ -132,12 +189,11 @@ models:
     training_data_cutoff: null
     metadata:
       source: helicone_api
-      last_updated: "2025-08-09"
+      last_updated: '2025-08-09'
       matching_operator: equals
       available_in_playground: true
   grok_4:
-    description:
-      Grok-4 is an advanced AI model designed for various tasks, showcasing
+    description: Grok-4 is an advanced AI model designed for various tasks, showcasing
       capabilities in text generation and conversational interactions, with a focus
       on understanding complex queries.
     provider: GROK
@@ -150,9 +206,9 @@ models:
     supports_function_calling: true
     supports_vision: null
     multimodal_capabilities:
-      - text
+    - text
     languages_supported:
-      - English
+    - English
     model_size_params: Unknown
     latency_tier: medium
     task_type: Chatbot
@@ -161,7 +217,7 @@ models:
     training_data_cutoff: null
     metadata:
       source: helicone_api
-      last_updated: "2025-08-09"
+      last_updated: '2025-08-09'
       matching_operator: includes
       available_in_playground: true
     _enrichment:
@@ -169,3 +225,64 @@ models:
       method: langgraph_workflow
       confidence_score: 0.7
       enriched_at: 1754742551.164572
+  grok_beta:
+    description: Grok Beta is an experimental language model by xAI, designed for
+      advanced reasoning and complex multi-step use cases, integrated with real-time
+      data from the X platform.
+    provider: GROK
+    model_name: grok-beta
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+  grok_vision_beta:
+    description: Grok-vision-beta is a versatile AI model capable of processing and
+      generating text, images, video, and audio, with a significant focus on multimodal
+      capabilities.
+    provider: GROK
+    model_name: grok-vision-beta
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: null
+    multimodal_capabilities:
+    - text
+    languages_supported:
+    - English
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Other
+    complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: '2025-08-09'
+      matching_operator: equals
+      available_in_playground: true
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.7
+      enriched_at: 1754742554.339745
