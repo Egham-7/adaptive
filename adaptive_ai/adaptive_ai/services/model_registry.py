@@ -86,14 +86,14 @@ class ModelRegistry:
         filters = []
 
         # Provider filtering
-        if partial_model.provider:
-            provider_lower = partial_model.provider.lower()
-            filters.append(lambda m: m.provider.lower() == provider_lower)
+        if partial_model.provider is not None and partial_model.provider.strip():
+            provider_norm = partial_model.provider.strip().lower()
+            filters.append(lambda m: (getattr(m, "provider", "") or "").strip().lower() == provider_norm)
 
         # Model name filtering
-        if partial_model.model_name:
-            name_lower = partial_model.model_name.lower()
-            filters.append(lambda m: m.model_name.lower() == name_lower)
+        if partial_model.model_name is not None and partial_model.model_name.strip():
+            model_name_norm = partial_model.model_name.strip().lower()
+            filters.append(lambda m: (getattr(m, "model_name", "") or "").strip().lower() == model_name_norm)
 
         # Context filtering (min requirement)
         if partial_model.max_context_tokens is not None:

@@ -1,4 +1,4 @@
-# Protocol and Model Testing
+# Model Selection Testing
 
 This module tests the MinionS protocol and model selection using the routellm/gpt4_dataset from HuggingFace.
 
@@ -27,7 +27,7 @@ mypy src/ tests/
 
 ## Main Testing
 
-The main testing is done in `protocol_testing.ipynb` which:
+The main testing is done in `model_selection_testing.ipynb` which:
 1. Loads the routellm/gpt4_dataset
 2. Tests model selection algorithms
 3. Evaluates MinionS protocol performance

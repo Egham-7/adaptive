@@ -1,6 +1,6 @@
 provider_info:
   name: GEMINI
-  total_models: 20
+  total_models: 3
   data_source: https://helicone.ai/api/llm-costs?provider=google
   last_updated: "2025-08-06"
   currency: USD

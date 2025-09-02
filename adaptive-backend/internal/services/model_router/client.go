@@ -1,6 +1,9 @@
 package model_router
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"time"
 
 	"adaptive-backend/internal/config"
@@ -56,6 +59,7 @@ func NewModelRouterClientWithConfig(config ModelRouterClientConfig, redisClient 
 }
 
 func (c *ModelRouterClient) SelectModel(
+	ctx context.Context,
 	req models.ModelSelectionRequest,
 ) models.ModelSelectionResponse {
 	start := time.Now()
@@ -64,8 +68,12 @@ func (c *ModelRouterClient) SelectModel(
 	fiberlog.Infof("[MODEL_SELECTION] Making request to adaptive_ai service - prompt_length: %d",
 		len(req.Prompt))
 
-	// Debug-level log with PII and detailed config
-	fiberlog.Debugf("[MODEL_SELECTION] Request details - user_id: %s", req.UserID)
+	// Debug-level log with hashed user identifier
+	if req.UserID != "" {
+		hash := sha256.Sum256([]byte(req.UserID))
+		hashedUserID := hex.EncodeToString(hash[:])
+		fiberlog.Debugf("[MODEL_SELECTION] Request details - user_id_hash: %s", hashedUserID)
+	}
 	if req.CostBias != nil {
 		fiberlog.Debugf("[MODEL_SELECTION] Request config - cost_bias: %.2f, available_models: %d",
 			*req.CostBias, len(req.Models))
@@ -81,7 +89,7 @@ func (c *ModelRouterClient) SelectModel(
 	}
 
 	var out models.ModelSelectionResponse
-	opts := &services.RequestOptions{Timeout: c.timeout}
+	opts := &services.RequestOptions{Timeout: c.timeout, Context: ctx}
 	fiberlog.Debugf("[SELECT_MODEL] Sending POST request to /predict endpoint")
 	err := c.client.Post("/predict", req, &out, opts)
 	if err != nil {

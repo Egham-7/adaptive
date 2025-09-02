@@ -1,6 +1,7 @@
 package model_router
 
 import (
+	"context"
 	"fmt"
 
 	"adaptive-backend/internal/config"
@@ -107,7 +108,7 @@ func (pm *ModelRouter) SelectModelWithCache(
 		ComplexityThreshold: modelRouterConfig.ComplexityThreshold,
 		TokenThreshold:      modelRouterConfig.TokenThreshold,
 	}
-	resp := pm.client.SelectModel(req)
+	resp := pm.client.SelectModel(context.Background(), req)
 
 	fiberlog.Infof("[%s] Model selected: %s/%s",
 		requestID, resp.Provider, resp.Model)

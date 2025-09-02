@@ -6,6 +6,9 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+# Type alias for probability values constrained to [0.0, 1.0] range
+UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
+
 
 class ClassificationResult(BaseModel):
     """Results from prompt classification including task type and complexity metrics.
@@ -37,38 +40,38 @@ class ClassificationResult(BaseModel):
         description="Secondary task type for each prompt in batch",
         examples=[["Summarization", "Classification"]],
     )
-    task_type_prob: list[float] = Field(
+    task_type_prob: list[UnitFloat] = Field(
         description="Confidence scores for primary task types", examples=[[0.89, 0.76]]
     )
-    creativity_scope: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    creativity_scope: list[UnitFloat] = Field(
         description="Creativity level required for each task (0=analytical, 1=creative)",
         examples=[[0.2, 0.8]],
     )
-    reasoning: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    reasoning: list[UnitFloat] = Field(
         description="Reasoning complexity required (0=simple, 1=complex)",
         examples=[[0.7, 0.4]],
     )
-    contextual_knowledge: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    contextual_knowledge: list[UnitFloat] = Field(
         description="Context knowledge requirement (0=none, 1=extensive)",
         examples=[[0.3, 0.6]],
     )
-    prompt_complexity_score: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    prompt_complexity_score: list[UnitFloat] = Field(
         description="Overall prompt complexity (0=simple, 1=complex)",
         examples=[[0.45, 0.72]],
     )
-    domain_knowledge: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    domain_knowledge: list[UnitFloat] = Field(
         description="Domain-specific knowledge requirement (0=general, 1=specialist)",
         examples=[[0.1, 0.9]],
     )
-    number_of_few_shots: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    number_of_few_shots: list[UnitFloat] = Field(
         description="Few-shot learning requirement (0=none, 1=many examples)",
         examples=[[0.0, 0.3]],
     )
-    no_label_reason: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    no_label_reason: list[UnitFloat] = Field(
         description="Confidence in classification accuracy (0=low, 1=high)",
         examples=[[0.9, 0.85]],
     )
-    constraint_ct: list[Annotated[float, Field(ge=0.0, le=1.0)]] = Field(
+    constraint_ct: list[UnitFloat] = Field(
         description="Constraint complexity detected (0=none, 1=many constraints)",
         examples=[[0.2, 0.5]],
     )
