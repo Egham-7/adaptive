@@ -1,5 +1,21 @@
 # Adaptive App - Next.js Frontend
 
+## Memory and Documentation
+
+**IMPORTANT**: When working on this service, remember to:
+
+### Memory Management
+Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for important configurations, user preferences, troubleshooting solutions
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
+- **Best practices for memory storage**: Only commit meaningful, reusable information like React patterns, Next.js configurations, database schemas, authentication setups, and implementation details that provide value beyond common knowledge
+
+### Documentation
+For documentation needs, use Ref MCP tools:
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for React, Next.js, Prisma, tRPC documentation
+- **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
+
 ## Overview
 
 The adaptive-app is a modern Next.js frontend that provides a comprehensive web interface for the Adaptive LLM infrastructure. Built with React 19, Next.js 15, and TypeScript, it offers multi-tenant chat capabilities, real-time analytics dashboards, credit management, and API key administration.

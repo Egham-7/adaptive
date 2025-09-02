@@ -106,8 +106,8 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: very_low
-    task_type: Classification
-    complexity: easy
+    task_type: Text Generation
+    complexity: low
     release_date: null
     training_data_cutoff: null
     metadata:
@@ -246,7 +246,7 @@ models:
     model_size_params: Unknown
     latency_tier: slow
     task_type: Reasoning
-    complexity: hard
+    complexity: high
     release_date: null
     training_data_cutoff: null
     metadata:
@@ -553,7 +553,7 @@ models:
       - ru
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Open QA
+    task_type: Text Generation
     complexity: high
     release_date: null
     training_data_cutoff: null
@@ -591,8 +591,8 @@ models:
       - ru
     model_size_params: Unknown
     latency_tier: low
-    task_type: Chatbot
-    complexity: easy
+    task_type: Text Generation
+    complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:
@@ -722,8 +722,8 @@ models:
       - English
     model_size_params: unknown
     latency_tier: medium
-    task_type: Summarization
-    complexity: easy
+    task_type: Chatbot
+    complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:
@@ -750,8 +750,8 @@ models:
       - English
     model_size_params: Unknown
     latency_tier: fast
-    task_type: Extraction
-    complexity: easy
+    task_type: Text Generation
+    complexity: low
     release_date: null
     training_data_cutoff: null
     metadata:
@@ -778,8 +778,8 @@ models:
       - English
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Rewrite
-    complexity: easy
+    task_type: Text Generation
+    complexity: medium
     release_date: null
     training_data_cutoff: null
     metadata:

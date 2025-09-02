@@ -1,14 +1,30 @@
 # Benchmarks - Performance Testing Suite
 
+## Memory and Documentation
+
+**IMPORTANT**: When working on this service, remember to:
+
+### Memory Management
+Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for benchmark results, performance insights, troubleshooting solutions
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
+- **Best practices for memory storage**: Only commit meaningful, reusable information like performance patterns, benchmarking configurations, optimization strategies, test methodologies, and results analysis that provide value beyond common knowledge
+
+### Documentation
+For documentation needs, use Ref MCP tools:
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for GenAI-Perf, Python testing, MMLU benchmarking documentation
+- **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
+
 ## Overview
 
-The benchmarks service provides comprehensive performance testing and evaluation tools for the Adaptive LLM infrastructure. It includes three specialized benchmark suites: GenAI performance testing, MMLU academic evaluation, and protocol model testing for validation of the AI service routing decisions.
+The benchmarks service provides comprehensive performance testing and evaluation tools for the Adaptive LLM infrastructure. It includes three specialized benchmark suites: GenAI performance testing, MMLU academic evaluation, and model selection testing for validation of the AI service routing decisions.
 
 ## Key Features
 
 - **GenAI Performance Testing**: Load testing with NVIDIA's GenAI-Perf for throughput and latency analysis
 - **MMLU Academic Benchmarking**: Massive Multitask Language Understanding evaluation for model quality assessment
-- **Protocol Model Testing**: Validation of adaptive_ai service routing and model selection decisions
+- **Model Selection Testing**: Validation of adaptive_ai service routing and model selection decisions
 - **Concurrency Analysis**: Multi-level concurrency testing (1, 10, 25+ concurrent requests)
 - **Response Quality Evaluation**: Automated quality scoring and comparison across providers
 - **Performance Metrics**: Comprehensive latency, throughput, and reliability measurements
@@ -40,22 +56,22 @@ benchmarks/
 ├── MMLU benchmark/                  # Academic benchmarking
 │   ├── main.py                     # MMLU evaluation runner
 │   ├── api_testing.ipynb           # API testing notebook
-│   ├── protocol_analysis.ipynb     # Protocol analysis notebook
+│   ├── model_selection_analysis.ipynb # Model selection analysis notebook
 │   ├── pyproject.toml              # Dependencies
 │   ├── uv.lock                     # Dependency lock file
 │   ├── mmlu_analysis_20250713_221207.png  # Analysis results
 │   └── README.md                   # MMLU specific documentation
 │
-└── protocol-model-testing/         # Protocol validation testing
-    ├── main.py                     # Protocol testing runner
-    ├── protocol_testing.ipynb      # Interactive testing notebook
+└── model-selection-testing/         # Model selection validation testing
+    ├── main.py                     # Model selection testing runner
+    ├── model_selection_testing.ipynb # Interactive testing notebook
     ├── pyproject.toml              # Dependencies
     ├── uv.lock                     # Dependency lock file
     ├── results/                    # Protocol testing results
     │   ├── adaptive_ai_test_report_20250716_180857.txt
     │   └── adaptive_ai_test_report_20250719_102301.txt
-    ├── protocol_model_testing.egg-info/  # Package metadata
-    └── README.md                   # Protocol testing documentation
+    ├── model_selection_testing.egg-info/  # Package metadata
+    └── README.md                   # Model selection testing documentation
 ```
 
 ## Environment Configuration
@@ -171,8 +187,8 @@ uv run python main.py
 # Launch interactive analysis
 uv run jupyter notebook api_testing.ipynb
 
-# Run protocol analysis
-uv run jupyter notebook protocol_analysis.ipynb
+# Run model selection analysis
+uv run jupyter notebook model_selection_analysis.ipynb
 ```
 
 #### Key Metrics
@@ -181,9 +197,9 @@ uv run jupyter notebook protocol_analysis.ipynb
 - **Model Comparison**: Accuracy comparison across providers
 - **Cost-Quality Ratio**: Quality per dollar spent
 
-### 3. Protocol Model Testing
+### 3. Model Selection Testing
 
-**Directory**: `protocol-model-testing/`
+**Directory**: `model-selection-testing/`
 **Purpose**: Validation of adaptive_ai service routing and model selection decisions
 
 #### Features
@@ -201,17 +217,17 @@ uv run jupyter notebook protocol_analysis.ipynb
 
 #### Development Commands
 ```bash
-# Navigate to protocol testing directory
-cd benchmarks/protocol-model-testing/
+# Navigate to model selection testing directory
+cd benchmarks/model-selection-testing/
 
 # Install dependencies
 uv install
 
-# Run protocol validation tests
+# Run model selection validation tests
 uv run python main.py
 
 # Launch interactive testing
-uv run jupyter notebook protocol_testing.ipynb
+uv run jupyter notebook model_selection_testing.ipynb
 
 # Run comprehensive test suite
 uv run pytest tests/ -v
@@ -259,7 +275,7 @@ uv run pytest tests/ -v
 ### Environment Setup
 ```bash
 # Install all benchmark dependencies
-for dir in genai-perf "MMLU benchmark" protocol-model-testing; do
+for dir in genai-perf "MMLU benchmark" model-selection-testing; do
     cd "benchmarks/$dir"
     uv install
     cd ../../
@@ -280,7 +296,7 @@ uv run python -c "import requests, pandas, matplotlib; print('Dependencies insta
 # Run specific benchmark suite
 cd benchmarks/genai-perf/ && uv run python main.py
 cd "benchmarks/MMLU benchmark/" && uv run python main.py
-cd benchmarks/protocol-model-testing/ && uv run python main.py
+cd benchmarks/model-selection-testing/ && uv run python main.py
 
 # Run with custom parameters
 CONCURRENCY=50 DURATION=600 uv run python main.py
@@ -372,8 +388,8 @@ python -c "import requests, pandas; print('Tools ready')"
 cd benchmarks/genai-perf/
 uv run genai-perf --model test --concurrency 1 --num-prompts 5
 
-# Validate protocol testing
-cd benchmarks/protocol-model-testing/
+# Validate model selection testing
+cd benchmarks/model-selection-testing/
 uv run python -c "from main import test_classification; test_classification()"
 ```
 

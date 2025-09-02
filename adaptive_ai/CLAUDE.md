@@ -1,5 +1,21 @@
 # Adaptive AI - Intelligent Model Selection Service
 
+## Memory and Documentation
+
+**IMPORTANT**: When working on this service, remember to:
+
+### Memory Management
+Use ByteRover MCP for persistent memory across sessions:
+- **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
+- **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for ML model configurations, training results, troubleshooting solutions
+- **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
+- **Best practices for memory storage**: Only commit meaningful, reusable information like ML model patterns, PyTorch configurations, classification algorithms, cost optimization strategies, and implementation details that provide value beyond common knowledge
+
+### Documentation
+For documentation needs, use Ref MCP tools:
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for Python, LitServe, PyTorch, HuggingFace, scikit-learn documentation
+- **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
+
 ## Overview
 
 The adaptive_ai service is a Python-based ML microservice that provides intelligent model selection for the Adaptive LLM infrastructure. Built with LitServe ML serving framework, it analyzes prompts using machine learning classifiers to select the optimal provider and model for each request, enabling significant cost savings and performance optimization.
@@ -45,7 +61,6 @@ adaptive_ai/
 │   │   ├── prompt_classifier.py  # Task type classification
 │   │   ├── domain_classifier.py  # Domain-specific classification
 │   │   ├── cost_optimizer.py     # Cost optimization logic
-│   │   ├── protocol_manager.py   # Protocol decision engine
 │   │   ├── model_registry.py     # Model metadata and capabilities
 │   │   ├── classification_result_embedding_cache.py # Caching layer
 │   │   └── unified_model_selector.py  # Unified selection interface
@@ -170,10 +185,28 @@ The service exposes a LitServe API that accepts model selection requests and ret
         "model": "gpt-4",
         "temperature": 0.7
     },
-    "protocol_manager_config": {
-        "models": ["gpt-4", "claude-3-sonnet"],
-        "cost_preference": "balanced",
-        "max_cost_per_token": 0.001
+    "model_router": {
+        "models": [
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "cost_per_1m_input_tokens": 30.0,
+                "cost_per_1m_output_tokens": 60.0,
+                "max_context_tokens": 128000,
+                "supports_function_calling": true
+            },
+            {
+                "provider": "anthropic",
+                "model_name": "claude-3-sonnet-20240229",
+                "cost_per_1m_input_tokens": 15.0,
+                "cost_per_1m_output_tokens": 75.0,
+                "max_context_tokens": 200000,
+                "supports_function_calling": true
+            }
+        ],
+        "cost_bias": 0.5,
+        "complexity_threshold": 0.7,
+        "token_threshold": 1000
     },
     "user_preferences": {
         "preferred_providers": ["openai", "anthropic"],
@@ -186,8 +219,7 @@ The service exposes a LitServe API that accepts model selection requests and ret
 ### Response Format
 ```python
 {
-    "protocol": "standard_llm",
-    "standard": {
+    "selection": {
         "provider": "openai",
         "model": "gpt-4",
         "parameters": {
@@ -198,9 +230,11 @@ The service exposes a LitServe API that accepts model selection requests and ret
             {
                 "provider": "anthropic",
                 "model": "claude-3-sonnet",
-                "cost_ratio": 0.85
+                "cost_ratio": 0.85,
+                "reason": "fallback_option"
             }
-        ]
+        ],
+        "reasoning": "Selected GPT-4 for balanced cost-performance trade-off based on prompt complexity analysis"
     }
 }
 ```
@@ -239,13 +273,6 @@ The service exposes a LitServe API that accepts model selection requests and ret
 - Tracks usage patterns and optimizes over time
 - Provides cost savings metrics and recommendations
 
-### Protocol Manager
-**File**: `adaptive_ai/services/protocol_manager.py`
-
-- Decides between standard LLM calls vs. specialized protocols
-- Manages protocol-specific parameter tuning
-- Coordinates with the Go backend for protocol execution
-- Handles protocol fallback and error recovery
 
 ## ML Models and Classification
 

@@ -92,7 +92,7 @@ class YAMLModelDatabase:
 
         return ModelCapability(
             description=yaml_data.get("description"),
-            provider=provider_name.lower(),  # Store consistently in lowercase
+            provider=provider_name.lower(),  # Use provider name as simple string
             model_name=model_name.strip(),  # Ensure no leading/trailing whitespace
             cost_per_1m_input_tokens=yaml_data.get("cost_per_1m_input_tokens"),
             cost_per_1m_output_tokens=yaml_data.get("cost_per_1m_output_tokens"),

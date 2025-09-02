@@ -19,8 +19,10 @@ type FallbackService struct {
 }
 
 // NewFallbackService creates a new fallback service
-func NewFallbackService() *FallbackService {
-	return &FallbackService{}
+func NewFallbackService(cfg *config.Config) *FallbackService {
+	return &FallbackService{
+		cfg: cfg,
+	}
 }
 
 // Execute runs the providers with the specified fallback configuration
@@ -30,10 +32,9 @@ func (fs *FallbackService) Execute(
 	fallbackConfig models.FallbackConfig,
 	executeFunc models.ExecutionFunc,
 	requestID string,
-	protocolType string,
 	isStream bool,
 ) error {
-	if c == nil || executeFunc == nil || requestID == "" || protocolType == "" {
+	if c == nil || executeFunc == nil || requestID == "" {
 		return models.NewValidationError("invalid input parameters", nil)
 	}
 	if len(providers) == 0 {
@@ -42,18 +43,18 @@ func (fs *FallbackService) Execute(
 
 	if len(providers) == 1 || fallbackConfig.Mode == "" {
 		// Only one provider or fallback disabled (empty mode), execute directly
-		fiberlog.Infof("[%s] Using single %s provider: %s (%s)", requestID, protocolType, providers[0].Provider, providers[0].Model)
+		fiberlog.Infof("[%s] Using single provider: %s (%s)", requestID, providers[0].Provider, providers[0].Model)
 		return executeFunc(c, providers[0], requestID)
 	}
 
 	switch fallbackConfig.Mode {
 	case models.FallbackModeSequential:
-		return fs.executeSequential(c, providers, executeFunc, requestID, protocolType)
+		return fs.executeSequential(c, providers, executeFunc, requestID)
 	case models.FallbackModeRace:
-		return fs.executeRace(c, providers, fallbackConfig, executeFunc, requestID, protocolType, isStream)
+		return fs.executeRace(c, providers, fallbackConfig, executeFunc, requestID, isStream)
 	default:
 		fiberlog.Warnf("[%s] Unknown fallback mode %s, using sequential", requestID, fallbackConfig.Mode)
-		return fs.executeSequential(c, providers, executeFunc, requestID, protocolType)
+		return fs.executeSequential(c, providers, executeFunc, requestID)
 	}
 }
 
@@ -63,7 +64,6 @@ func (fs *FallbackService) executeSequential(
 	providers []models.Alternative,
 	executeFunc models.ExecutionFunc,
 	requestID string,
-	protocolType string,
 ) error {
 	for i, provider := range providers {
 		providerType := "alternative"
@@ -71,16 +71,16 @@ func (fs *FallbackService) executeSequential(
 			providerType = "primary"
 		}
 
-		fiberlog.Infof("[%s] Using %s %s provider: %s (%s)", requestID, providerType, protocolType, provider.Provider, provider.Model)
+		fiberlog.Infof("[%s] Using %s provider: %s (%s)", requestID, providerType, provider.Provider, provider.Model)
 
 		if err := executeFunc(c, provider, requestID); err == nil {
 			return nil
 		} else {
-			fiberlog.Warnf("[%s] %s %s provider %s (%s) failed: %v", requestID, providerType, protocolType, provider.Provider, provider.Model, err)
+			fiberlog.Warnf("[%s] %s provider %s (%s) failed: %v", requestID, providerType, provider.Provider, provider.Model, err)
 		}
 	}
 
-	return fmt.Errorf("all %s providers failed", protocolType)
+	return fmt.Errorf("all providers failed")
 }
 
 // executeRace tries all providers in parallel and returns the first successful result
@@ -90,16 +90,15 @@ func (fs *FallbackService) executeRace(
 	fallbackConfig models.FallbackConfig,
 	executeFunc models.ExecutionFunc,
 	requestID string,
-	protocolType string,
 	isStream bool,
 ) error {
 	// For streaming requests, fall back to sequential since we can't race streams
 	if isStream {
 		fiberlog.Infof("[%s] Race mode not supported for streaming, using sequential fallback", requestID)
-		return fs.executeSequential(c, providers, executeFunc, requestID, protocolType)
+		return fs.executeSequential(c, providers, executeFunc, requestID)
 	}
 
-	fiberlog.Infof("[%s] Racing %d %s providers", requestID, len(providers), protocolType)
+	fiberlog.Infof("[%s] Racing %d providers", requestID, len(providers))
 
 	resultCh := make(chan models.FallbackResult, len(providers))
 
@@ -206,7 +205,7 @@ func (fs *FallbackService) executeRace(
 
 raceComplete:
 	// All providers failed
-	return fmt.Errorf("all %s providers failed in race: %v", protocolType, errors)
+	return fmt.Errorf("all providers failed in race: %v", errors)
 }
 
 // GetFallbackConfig gets the merged fallback configuration from config and request

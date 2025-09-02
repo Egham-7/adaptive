@@ -25,7 +25,7 @@ type Config struct {
 	Services    models.ServicesConfig    `yaml:"services"`
 	Fallback    models.FallbackConfig    `yaml:"fallback"`
 	PromptCache models.CacheConfig       `yaml:"prompt_cache"`
-	ModelRouter models.ModelRouterConfig `yaml:"protocol_manager"`
+	ModelRouter models.ModelRouterConfig `yaml:"model_router"`
 }
 
 // LoadFromFile loads configuration from a YAML file with environment variable substitution

@@ -1,7 +1,0 @@
-README.md
-pyproject.toml
-protocol_model_testing.egg-info/PKG-INFO
-protocol_model_testing.egg-info/SOURCES.txt
-protocol_model_testing.egg-info/dependency_links.txt
-protocol_model_testing.egg-info/requires.txt
-protocol_model_testing.egg-info/top_level.txt

@@ -1,67 +1,77 @@
-from enum import Enum
+"""Classification models for prompt analysis and task complexity detection."""
+
+from __future__ import annotations
+
+from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-
-class DomainType(str, Enum):
-    ADULT = "Adult"
-    ARTS_AND_ENTERTAINMENT = "Arts_and_Entertainment"
-    AUTOS_AND_VEHICLES = "Autos_and_Vehicles"
-    BEAUTY_AND_FITNESS = "Beauty_and_Fitness"
-    BOOKS_AND_LITERATURE = "Books_and_Literature"
-    BUSINESS_AND_INDUSTRIAL = "Business_and_Industrial"
-    COMPUTERS_AND_ELECTRONICS = "Computers_and_Electronics"
-    FINANCE = "Finance"
-    FOOD_AND_DRINK = "Food_and_Drink"
-    GAMES = "Games"
-    HEALTH = "Health"
-    HOBBIES_AND_LEISURE = "Hobbies_and_Leisure"
-    HOME_AND_GARDEN = "Home_and_Garden"
-    INTERNET_AND_TELECOM = "Internet_and_Telecom"
-    JOBS_AND_EDUCATION = "Jobs_and_Education"
-    LAW_AND_GOVERNMENT = "Law_and_Government"
-    NEWS = "News"
-    ONLINE_COMMUNITIES = "Online_Communities"
-    PEOPLE_AND_SOCIETY = "People_and_Society"
-    PETS_AND_ANIMALS = "Pets_and_Animals"
-    REAL_ESTATE = "Real_Estate"
-    REFERENCE = "Reference"
-    SCIENCE = "Science"
-    SENSITIVE_SUBJECTS = "Sensitive_Subjects"
-    SHOPPING = "Shopping"
-    SPORTS = "Sports"
-    TRAVEL_AND_TRANSPORTATION = "Travel_and_Transportation"
-    OTHERDOMAINS = "Otherdomains"
-
-
-class DomainClassificationResult(BaseModel):
-    domain: DomainType = Field(description="Primary classified domain")
-    confidence: float = Field(
-        description="Confidence score for domain classification (0.0-1.0)"
-    )
-    domain_probabilities: dict[str, float] = Field(
-        description="Probability scores for all domains"
-    )
+# Type alias for probability values constrained to [0.0, 1.0] range
+UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
 
 
 class ClassificationResult(BaseModel):
-    task_type_1: list[str] = Field(alias="task_type_1")
-    task_type_2: list[str] = Field(alias="task_type_2")
-    task_type_prob: list[float] = Field(alias="task_type_prob")
-    creativity_scope: list[float] = Field(alias="creativity_scope")
-    reasoning: list[float] = Field(alias="reasoning")
-    contextual_knowledge: list[float] = Field(alias="contextual_knowledge")
-    prompt_complexity_score: list[float] = Field(alias="prompt_complexity_score")
-    domain_knowledge: list[float] = Field(alias="domain_knowledge")
-    number_of_few_shots: list[float] = Field(alias="number_of_few_shots")
-    no_label_reason: list[float] = Field(alias="no_label_reason")
-    constraint_ct: list[float] = Field(alias="constraint_ct")
+    """Results from prompt classification including task type and complexity metrics.
 
+    This model contains the output from ML classifiers that analyze prompts
+    to determine task types, complexity scores, and various task characteristics.
+    All list fields contain results for batch processing where each index
+    corresponds to a single prompt in the batch.
 
-class EnhancedClassificationResult(BaseModel):
-    task_classification: ClassificationResult = Field(
-        description="Task-based classification results"
+    Attributes:
+        task_type_1: Primary task type classifications for each prompt
+        task_type_2: Secondary task type classifications for each prompt
+        task_type_prob: Confidence scores for primary task types
+        creativity_scope: Creativity level scores (0.0-1.0)
+        reasoning: Reasoning complexity scores (0.0-1.0)
+        contextual_knowledge: Required contextual knowledge scores (0.0-1.0)
+        prompt_complexity_score: Overall complexity scores (0.0-1.0)
+        domain_knowledge: Domain-specific knowledge requirement scores (0.0-1.0)
+        number_of_few_shots: Few-shot learning requirement scores (0.0-1.0)
+        no_label_reason: Confidence in classification accuracy (0.0-1.0)
+        constraint_ct: Number of constraints detected in prompts (0.0-1.0)
+    """
+
+    task_type_1: list[str] = Field(
+        description="Primary task type for each prompt in batch",
+        examples=[["Text Generation", "Code Generation"]],
     )
-    domain_classification: DomainClassificationResult = Field(
-        description="Domain-based classification results"
+    task_type_2: list[str] = Field(
+        description="Secondary task type for each prompt in batch",
+        examples=[["Summarization", "Classification"]],
+    )
+    task_type_prob: list[UnitFloat] = Field(
+        description="Confidence scores for primary task types", examples=[[0.89, 0.76]]
+    )
+    creativity_scope: list[UnitFloat] = Field(
+        description="Creativity level required for each task (0=analytical, 1=creative)",
+        examples=[[0.2, 0.8]],
+    )
+    reasoning: list[UnitFloat] = Field(
+        description="Reasoning complexity required (0=simple, 1=complex)",
+        examples=[[0.7, 0.4]],
+    )
+    contextual_knowledge: list[UnitFloat] = Field(
+        description="Context knowledge requirement (0=none, 1=extensive)",
+        examples=[[0.3, 0.6]],
+    )
+    prompt_complexity_score: list[UnitFloat] = Field(
+        description="Overall prompt complexity (0=simple, 1=complex)",
+        examples=[[0.45, 0.72]],
+    )
+    domain_knowledge: list[UnitFloat] = Field(
+        description="Domain-specific knowledge requirement (0=general, 1=specialist)",
+        examples=[[0.1, 0.9]],
+    )
+    number_of_few_shots: list[UnitFloat] = Field(
+        description="Few-shot learning requirement (0=none, 1=many examples)",
+        examples=[[0.0, 0.3]],
+    )
+    no_label_reason: list[UnitFloat] = Field(
+        description="Confidence in classification accuracy (0=low, 1=high)",
+        examples=[[0.9, 0.85]],
+    )
+    constraint_ct: list[UnitFloat] = Field(
+        description="Constraint complexity detected (0=none, 1=many constraints)",
+        examples=[[0.2, 0.5]],
     )

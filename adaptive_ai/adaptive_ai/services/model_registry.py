@@ -2,6 +2,8 @@
 Model registry service for validating model names across all providers.
 """
 
+from collections.abc import Callable
+
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
@@ -80,20 +82,28 @@ class ModelRegistry:
             models = registry.find_models_matching_criteria(criteria)
         """
         # Models are already loaded at startup
-        all_models = list(yaml_model_db.get_all_models().values())
+        all_models: list[ModelCapability] = list(
+            yaml_model_db.get_all_models().values()
+        )
 
         # Create filter predicates based on partial model criteria
-        filters = []
+        filters: list[Callable[[ModelCapability], bool]] = []
 
-        # Provider filtering (case-insensitive)
-        if partial_model.provider:
-            provider_lower = partial_model.provider.lower()
-            filters.append(lambda m: (m.provider or "").lower() == provider_lower)
+        # Provider filtering
+        if partial_model.provider is not None and partial_model.provider.strip():
+            provider_norm = partial_model.provider.strip().lower()
+            filters.append(
+                lambda m: (getattr(m, "provider", "") or "").strip().lower()
+                == provider_norm
+            )
 
         # Model name filtering
-        if partial_model.model_name:
-            name_lower = partial_model.model_name.lower()
-            filters.append(lambda m: m.model_name.lower() == name_lower)
+        if partial_model.model_name is not None and partial_model.model_name.strip():
+            model_name_norm = partial_model.model_name.strip().lower()
+            filters.append(
+                lambda m: (getattr(m, "model_name", "") or "").strip().lower()
+                == model_name_norm
+            )
 
         # Context filtering (min requirement)
         if partial_model.max_context_tokens is not None:
@@ -133,14 +143,17 @@ class ModelRegistry:
         if partial_model.task_type is not None:
             task_type = partial_model.task_type
             # Normalize task_type for comparison (case-insensitive, trimmed)
-            normalized_task_type = str(task_type).strip().lower() if task_type is not None else None
+            normalized_task_type = (
+                str(task_type).strip().lower() if task_type is not None else None
+            )
             filters.append(
                 lambda m: (
                     m.task_type is None  # No restriction means supports all
                     or (
-                        normalized_task_type is not None 
+                        normalized_task_type is not None
                         and str(m.task_type).strip().lower() == normalized_task_type
-                        if m.task_type is not None else False
+                        if m.task_type is not None
+                        else False
                     )
                 )
             )

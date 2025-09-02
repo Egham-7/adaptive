@@ -3,6 +3,7 @@ import type {
 	ChatCompletion as OpenAIChatCompletion,
 	ChatCompletionChunk as OpenAIChatCompletionChunk,
 } from "openai/resources/chat/completions";
+import { z } from "zod";
 
 // Define supported providers as a union type
 export type Provider =
@@ -23,7 +24,8 @@ export const CACHE_TIER_VALUES = [
 	"prompt_response",
 ] as const;
 
-export type CacheTier = (typeof CACHE_TIER_VALUES)[number];
+export const cacheTierSchema = z.enum(CACHE_TIER_VALUES);
+export type CacheTier = z.infer<typeof cacheTierSchema>;
 
 // Export individual constants for backward compatibility
 export const CACHE_TIER_SEMANTIC_EXACT = CACHE_TIER_VALUES[0];
@@ -111,6 +113,7 @@ export interface AdaptiveUsage {
 export interface ChatCompletion extends Omit<OpenAIChatCompletion, "usage"> {
 	provider?: Provider;
 	usage?: AdaptiveUsage;
+	cache_tier?: CacheTier;
 }
 
 export interface ChatCompletionChunk

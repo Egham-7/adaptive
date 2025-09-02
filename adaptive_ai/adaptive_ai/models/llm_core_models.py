@@ -1,65 +1,103 @@
-# llm_core_models.py
-
-
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
-from .llm_enums import ProviderType, TaskType  # Import ProviderType for TaskModelEntry
+from .llm_enums import TaskType
+
+# =============================================================================
+# Model Capability & Configuration Models
+# =============================================================================
 
 
 class ModelCapability(BaseModel):
+    """Unified model capability supporting both partial and full specifications."""
+
+    # Required fields
+    provider: str | None = None
+    model_name: str | None = None
+
+    # Optional fields (for partial specs)
+    cost_per_1m_input_tokens: float | None = None
+    cost_per_1m_output_tokens: float | None = None
+    max_context_tokens: int | None = None
+    supports_function_calling: bool | None = None
+
+    # Task info
+    task_type: TaskType | str | None = None
+    complexity: str | None = None  # "easy", "medium", "hard"
+
+    # Metadata
     description: str | None = None
-    provider: Any = None  # Accept any provider string or ProviderType
-    model_name: str
-    cost_per_1m_input_tokens: float | None = Field(
-        None, alias="cost_per_1m_input_tokens"
-    )
-    cost_per_1m_output_tokens: float | None = Field(
-        None, alias="cost_per_1m_output_tokens"
-    )
-    max_context_tokens: int | None = Field(None, alias="max_context_tokens")
-    max_output_tokens: int | None = Field(None, alias="max_output_tokens")
-    supports_function_calling: bool | None = Field(
-        None, alias="supports_function_calling"
-    )
-    languages_supported: list[str] = Field(
-        default_factory=list, alias="languages_supported"
-    )
-    model_size_params: str | None = Field(None, alias="model_size_params")
-    latency_tier: str | None = Field(None, alias="latency_tier")
+    languages_supported: list[str] = Field(default_factory=list)
 
-    # NEW: Task-specific capabilities for custom models
-    task_type: str | None = Field(
-        None, alias="task_type"
-    )  # "OPEN_QA", "CODE_GENERATION", etc.
-    complexity: str | None = Field(None, alias="complexity")  # "easy", "medium", "hard"
+    @property
+    def is_partial(self) -> bool:
+        """True if this is a partial specification missing required fields."""
+        return any(
+            field is None
+            for field in [
+                self.cost_per_1m_input_tokens,
+                self.cost_per_1m_output_tokens,
+                self.max_context_tokens,
+                self.supports_function_calling,
+            ]
+        )
 
+    @property
+    def unique_id(self) -> str:
+        """Unique identifier for this model with normalized case."""
+        if not self.provider:
+            raise ValueError("Provider is required for unique_id")
+        if not self.model_name:
+            raise ValueError("Model name is required for unique_id")
+        return f"{self.provider.lower()}:{self.model_name.lower()}"
 
-class ModelRouterConfig(BaseModel):
-    """Configuration for the model router"""
+    @property
+    def complexity_score(self) -> float:
+        """Convert string complexity to numeric score (0.0-1.0).
 
-    models: list[ModelCapability] | None = None
-    cost_bias: float | None = None
-    complexity_threshold: float | None = None
-    token_threshold: int | None = None
+        Returns:
+            0.2 for "easy", 0.5 for "medium", 0.8 for "hard", 0.5 for None/unknown
+        """
+        if not self.complexity:
+            return 0.5  # Default for unknown complexity
 
+        complexity_lower = self.complexity.lower().strip()
+        complexity_mapping = {
+            "easy": 0.2,
+            "medium": 0.5,
+            "hard": 0.8,
+        }
 
-class ModelEntry(BaseModel):
-    providers: list[ProviderType | str]
-    model_name: str = Field(alias="model_name")
-    # Remove _original_provider since we no longer need fallback metadata
+        return complexity_mapping.get(complexity_lower, 0.5)
 
+    @model_validator(mode="after")
+    def validate_at_least_one_field(self) -> "ModelCapability":
+        """Ensure at least one field is present in the model capability."""
+        fields_to_check = [
+            self.provider,
+            self.model_name,
+            self.cost_per_1m_input_tokens,
+            self.cost_per_1m_output_tokens,
+            self.max_context_tokens,
+            self.supports_function_calling,
+            self.task_type,
+            self.complexity,
+            self.description,
+        ]
 
-class TaskModelMapping(BaseModel):
-    model_entries: list[ModelEntry] = Field(alias="model_entries")
+        # Check if languages_supported has any items
+        has_languages = bool(self.languages_supported)
 
+        # Check if any field has a non-None value
+        has_non_none_field = any(field is not None for field in fields_to_check)
 
-class ModelSelectionConfig(BaseModel):
-    model_capabilities: dict[str, ModelCapability] = Field(alias="model_capabilities")
-    task_model_mappings: dict[TaskType, TaskModelMapping] = Field(
-        alias="task_model_mappings"
-    )
+        if not has_non_none_field and not has_languages:
+            raise ValueError(
+                "ModelCapability must have at least one non-None field specified"
+            )
+
+        return self
 
 
 class ModelSelectionRequest(BaseModel):
@@ -77,4 +115,21 @@ class ModelSelectionRequest(BaseModel):
 
     # Our custom parameters for model selection
     user_id: str | None = None
-    model_router: ModelRouterConfig | None = None
+
+    models: list[ModelCapability] | None = None
+    cost_bias: float | None = None
+    complexity_threshold: float | None = None
+    token_threshold: int | None = None
+
+
+class Alternative(BaseModel):
+    provider: str
+    model: str
+
+
+class ModelSelectionResponse(BaseModel):
+    """Simplified response with just the selected model and alternatives."""
+
+    provider: str
+    model: str
+    alternatives: list[Alternative]

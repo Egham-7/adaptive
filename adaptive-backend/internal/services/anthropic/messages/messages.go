@@ -89,7 +89,7 @@ func (ms *MessagesService) SendMessage(
 
 	if err != nil {
 		fiberlog.Errorf("[%s] Anthropic API request failed after %v: %v", requestID, duration, err)
-		return nil, fmt.Errorf("anthropic API error: %w", err)
+		return nil, models.NewProviderError("anthropic", "message request failed", err)
 	}
 
 	fiberlog.Infof("[%s] Anthropic API request completed successfully in %v - usage: input:%d, output:%d",
@@ -259,7 +259,7 @@ func (ms *MessagesService) handleOpenAINonStreamingRequest(
 	})
 	if err != nil {
 		fiberlog.Errorf("[%s] Chat completion failed for provider %s: %v", requestID, provider, err)
-		return err
+		return models.NewProviderError(provider, "completion request failed", err)
 	}
 
 	// Convert OpenAI response back to Anthropic format
