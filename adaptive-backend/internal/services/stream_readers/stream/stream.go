@@ -9,12 +9,15 @@ import (
 	"io"
 	"time"
 
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/stream_readers/sse"
 
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/ssestream"
+	openai_ssestream "github.com/openai/openai-go/packages/ssestream"
 	"github.com/valyala/fasthttp"
 )
 
@@ -36,7 +39,7 @@ func createBridgeContext(fasthttpCtx *fasthttp.RequestCtx) context.Context {
 }
 
 // HandleOpenAIStream manages OpenAI streaming response to the client with optimized performance
-func HandleOpenAIStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompletionChunk], requestID string, provider string, cacheSource string) error {
+func HandleOpenAIStream(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatCompletionChunk], requestID string, provider string, cacheSource string) error {
 	fiberlog.Infof("[%s] Starting OpenAI stream handling", requestID)
 
 	// Get FastHTTP context once to avoid potential nil issues
@@ -79,6 +82,12 @@ func HandleAnthropicStream(c *fiber.Ctx, responseBody io.Reader, requestID strin
 	// Get FastHTTP context once to avoid potential nil issues
 	fasthttpCtx := c.Context()
 
+	// Set SSE headers for proper streaming
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Access-Control-Allow-Origin", "*")
+
 	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		startTime := time.Now()
 		var totalBytes int64
@@ -96,12 +105,58 @@ func HandleAnthropicStream(c *fiber.Ctx, responseBody io.Reader, requestID strin
 			closeStreamReader(streamReader, requestID)
 		}()
 
-		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
-			if fasthttpCtx != nil && fasthttpCtx.Err() != nil {
-				fiberlog.Infof("[%s] Client disconnected during stream", requestID)
+		// Process Anthropic chunks and convert to proper SSE format
+		for {
+			// Check for client disconnect using FastHTTP's Done channel
+			select {
+			case <-fasthttpCtx.Done():
+				fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
+				return
+			default:
+			}
+
+			// Read next chunk from Anthropic stream
+			chunk, err := streamReader.ReadChunk()
+			if err == io.EOF {
+				// Write completion message
+				if _, writeErr := fmt.Fprintf(w, "data: [DONE]\n\n"); writeErr != nil {
+					fiberlog.Errorf("[%s] failed to write done message: %v", requestID, writeErr)
+				}
+				if flushErr := w.Flush(); flushErr != nil {
+					fiberlog.Errorf("[%s] failed to flush buffer: %v", requestID, flushErr)
+				}
+
+				duration := time.Since(startTime)
+				fiberlog.Infof("[%s] Anthropic stream completed: %d bytes in %v (%.2f KB/s)",
+					requestID, totalBytes, duration, float64(totalBytes)/duration.Seconds()/1024)
 				return
 			}
-			sendErrorEvent(w, requestID, "Stream error", err)
+			if err != nil {
+				fiberlog.Errorf("[%s] Error reading Anthropic chunk: %v", requestID, err)
+				sendErrorEvent(w, requestID, "Stream error", err)
+				return
+			}
+
+			// Marshal the chunk to JSON
+			chunkJSON, err := json.Marshal(chunk)
+			if err != nil {
+				fiberlog.Errorf("[%s] failed to marshal Anthropic chunk: %v", requestID, err)
+				continue
+			}
+
+			// Write as proper SSE with event type
+			sseData := fmt.Sprintf("event: %s\ndata: %s\n\n", chunk.Type, string(chunkJSON))
+			if _, err := w.WriteString(sseData); err != nil {
+				fiberlog.Errorf("[%s] failed to write SSE event: %v", requestID, err)
+				break
+			}
+
+			totalBytes += int64(len(sseData))
+
+			if err := w.Flush(); err != nil {
+				fiberlog.Errorf("[%s] failed to flush chunk: %v", requestID, err)
+				break
+			}
 		}
 	}))
 	return nil
@@ -254,12 +309,81 @@ func writeChunk(w *bufio.Writer, data []byte, requestID string) error {
 	return nil
 }
 
-func closeStreamReader(streamReader io.ReadCloser, requestID string) {
-	if streamReader == nil {
-		fiberlog.Warnf("[%s] Attempted to close nil stream reader", requestID)
-		return
-	}
+// HandleAnthropicNativeStream handles native Anthropic SDK streams with proper SSE formatting
+func HandleAnthropicNativeStream(c *fiber.Ctx, stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID string, provider string) error {
+	fiberlog.Infof("[%s] Starting native Anthropic stream handling", requestID)
 
+	ctx := c.Context()
+
+	// Set SSE headers
+	c.Set("Content-Type", "text/event-stream")
+	c.Set("Cache-Control", "no-cache")
+	c.Set("Connection", "keep-alive")
+	c.Set("Access-Control-Allow-Origin", "*")
+
+	// Use the stream handler for Anthropic streaming
+	ctx.SetBodyStreamWriter(func(w *bufio.Writer) {
+		defer func() {
+			if err := stream.Close(); err != nil {
+				fiberlog.Errorf("[%s] failed to close anthropic stream: %v", requestID, err)
+			}
+		}()
+
+		for stream.Next() {
+			// Check for context cancellation
+			select {
+			case <-ctx.Done():
+				fiberlog.Infof("[%s] stream cancelled by client", requestID)
+				return
+			default:
+			}
+
+			event := stream.Current()
+
+			// Convert to adaptive format to clean up empty fields before sending to client
+			adaptiveEvent, err := format_adapter.AnthropicToAdaptive.ConvertStreamingChunk(&event, provider)
+			if err != nil {
+				fiberlog.Errorf("[%s] failed to convert anthropic streaming event: %v", requestID, err)
+				continue
+			}
+
+			// Marshal the clean adaptive format directly (no conversion back to SDK format)
+			eventJSON, err := json.Marshal(adaptiveEvent)
+			if err != nil {
+				fiberlog.Errorf("[%s] failed to marshal adaptive event: %v", requestID, err)
+				continue
+			}
+
+			// Write as proper SSE with event type
+			if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", adaptiveEvent.Type, eventJSON); err != nil {
+				fiberlog.Errorf("[%s] failed to write SSE event: %v", requestID, err)
+				break
+			}
+
+			if err := w.Flush(); err != nil {
+				fiberlog.Errorf("[%s] failed to flush chunk: %v", requestID, err)
+				break
+			}
+		}
+
+		// Check for stream errors
+		if err := stream.Err(); err != nil {
+			fiberlog.Errorf("[%s] anthropic stream error: %v", requestID, err)
+		}
+
+		// Write completion message
+		if _, err := fmt.Fprintf(w, "data: [DONE]\n\n"); err != nil {
+			fiberlog.Errorf("[%s] failed to write done message: %v", requestID, err)
+		}
+		if err := w.Flush(); err != nil {
+			fiberlog.Errorf("[%s] failed to flush buffer: %v", requestID, err)
+		}
+	})
+
+	return nil
+}
+
+func closeStreamReader(streamReader io.ReadCloser, requestID string) {
 	closeStart := time.Now()
 	if err := streamReader.Close(); err != nil {
 		fiberlog.Errorf("[%s] Error closing stream reader: %v", requestID, err)
