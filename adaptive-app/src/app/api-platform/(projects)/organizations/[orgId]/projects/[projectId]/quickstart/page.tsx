@@ -455,14 +455,21 @@ print(message.content[0].text)`}
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${exampleKey}" \\
   -d '{
-    "messages": [
+    "models": [
       {
-        "role": "user",
-        "content": "Write a comprehensive analysis of quantum computing"
+        "provider": "openai",
+        "model_name": "gpt-4o",
+        "max_context_tokens": 128000,
+        "supports_function_calling": true
+      },
+      {
+        "provider": "anthropic", 
+        "model_name": "claude-3-5-sonnet-20241022",
+        "max_context_tokens": 200000,
+        "supports_function_calling": true
       }
     ],
-    "temperature": 0.7,
-    "max_tokens": 2000
+    "prompt": "Write a comprehensive analysis of quantum computing"
   }'`}
 										language="bash"
 										title="Select Best Model - cURL"
@@ -474,16 +481,16 @@ print(message.content[0].text)`}
 										</h5>
 										<CustomCodeBlock
 											code={`{
-  "request": {
-    "messages": [...],
-    "temperature": 0.7,
-    "max_tokens": 2000
-  },
+  "provider": "anthropic",
+  "model": "claude-3-5-sonnet-20241022",
+  "alternatives": [
+    {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
   "metadata": {
-    "provider": "openai",
-    "model": "gpt-4o",
-    "reasoning": "Complex analytical task requires high-quality reasoning",
-    "cost_per_1m_tokens": 15.0,
+    "reasoning": "Complex analytical task requires high-quality reasoning. Anthropic model selected for better analysis capabilities.",
     "complexity": "high",
     "cache_source": "ml_classifier"
   }
