@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
@@ -17,11 +18,12 @@ import (
 
 // AnthropicSSEReader handles Anthropic Server-Sent Events streaming
 type AnthropicSSEReader struct {
-	reader   *bufio.Reader
-	reqID    string
-	provider string
-	ctx      context.Context
-	closer   io.Closer
+	reader    *bufio.Reader
+	reqID     string
+	provider  string
+	ctx       context.Context
+	closer    io.Closer
+	closeOnce sync.Once
 }
 
 // NewAnthropicSSEReader creates a new Anthropic SSE reader
@@ -174,8 +176,12 @@ func (r *AnthropicSSEReader) convertToAdaptiveAnthropicChunk(anthropicChunk *ant
 
 // Close closes the reader (if applicable)
 func (r *AnthropicSSEReader) Close() error {
-	if r.closer != nil {
-		return r.closer.Close()
-	}
-	return nil
+	var err error
+	r.closeOnce.Do(func() {
+		if r.closer != nil {
+			err = r.closer.Close()
+			r.closer = nil
+		}
+	})
+	return err
 }

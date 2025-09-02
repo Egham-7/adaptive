@@ -132,6 +132,11 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 						return n, handleErr
 					}
 					if n > 0 {
+						// Mark stream as done and enqueue [DONE] message to prevent repeated errors
+						r.Buffer = []byte(sseDoneMessage)
+						r.doneMux.Lock()
+						r.done = true
+						r.doneMux.Unlock()
 						return n, nil
 					}
 				}
