@@ -78,96 +78,124 @@ func (r *OpenAIStreamReader) SetContext(ctx context.Context) {
 }
 
 func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
-	// Check for context cancellation
-	select {
-	case <-r.ctx.Done():
-		fiberlog.Infof("[%s] Context cancelled, stopping OpenAI stream", r.RequestID)
-		return 0, r.ctx.Err()
-	default:
-	}
-
-	if len(r.Buffer) > 0 {
-		n = copy(p, r.Buffer)
-		r.Buffer = r.Buffer[n:]
-		return n, nil
-	}
-
-	r.doneMux.RLock()
-	done := r.done
-	r.doneMux.RUnlock()
-
-	if done {
-		return 0, io.EOF
-	}
-
-	// Check if we can advance to the next chunk
-	hasNext := r.stream.Next()
-	fiberlog.Debugf("[%s] Stream.Next() returned: %v", r.RequestID, hasNext)
-
-	if !hasNext {
-		// Check for stream errors
-		if err := r.stream.Err(); err != nil {
-			if errors.Is(err, io.EOF) {
-				fiberlog.Infof("[%s] Stream completed normally", r.RequestID)
-			} else {
-				fiberlog.Debugf("[%s] Stream error detected: %v", r.RequestID, err)
-				streamErr := &StreamError{
-					ErrorDetails: OpenAIError{
-						Message: err.Error(),
-						Type:    "upstream_error",
-						Param:   nil,
-						Code:    nil,
-					},
+	for {
+		// Check for context cancellation
+		select {
+		case <-r.ctx.Done():
+			fiberlog.Infof("[%s] Context cancelled, stopping OpenAI stream", r.RequestID)
+			// Close the active stream to unblock any waiting goroutines
+			if r.stream != nil {
+				if closeErr := r.stream.Close(); closeErr != nil {
+					fiberlog.Debugf("[%s] Error closing stream on cancellation: %v", r.RequestID, closeErr)
 				}
-				return r.handleError(streamErr, p)
+				r.stream = nil
 			}
-		} else {
-			fiberlog.Infof("[%s] No more chunks available - normal completion", r.RequestID)
+			return 0, r.ctx.Err()
+		default:
 		}
 
-		r.Buffer = []byte(sseDoneMessage)
-		r.doneMux.Lock()
-		r.done = true
-		r.doneMux.Unlock()
-		return r.Read(p)
-	}
-
-	// Get and process the current chunk
-	chunk := r.stream.Current()
-
-	// Detailed chunk logging
-	var choiceContent string
-	if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
-		content := chunk.Choices[0].Delta.Content
-		if len(content) > 50 {
-			choiceContent = content[:47] + "..."
-		} else {
-			choiceContent = content
+		if len(r.Buffer) > 0 {
+			n = copy(p, r.Buffer)
+			r.Buffer = r.Buffer[n:]
+			return n, nil
 		}
-	}
 
-	fiberlog.Debugf("[%s] Processing chunk: ID=%s, Choices=%d, Content='%s', FinishReason=%v, Usage.TotalTokens=%d",
-		r.RequestID, chunk.ID, len(chunk.Choices), choiceContent,
-		func() string {
-			if len(chunk.Choices) > 0 {
-				return string(chunk.Choices[0].FinishReason)
+		r.doneMux.RLock()
+		done := r.done
+		r.doneMux.RUnlock()
+
+		if done {
+			return 0, io.EOF
+		}
+
+		// Check if we can advance to the next chunk
+		hasNext := r.stream.Next()
+		fiberlog.Debugf("[%s] Stream.Next() returned: %v", r.RequestID, hasNext)
+
+		if !hasNext {
+			// Check for stream errors
+			if err := r.stream.Err(); err != nil {
+				if errors.Is(err, io.EOF) {
+					fiberlog.Infof("[%s] Stream completed normally", r.RequestID)
+				} else {
+					fiberlog.Debugf("[%s] Stream error detected: %v", r.RequestID, err)
+					streamErr := &StreamError{
+						ErrorDetails: OpenAIError{
+							Message: err.Error(),
+							Type:    "upstream_error",
+							Param:   nil,
+							Code:    nil,
+						},
+					}
+					n, handleErr := r.handleError(streamErr, p)
+					if handleErr != nil {
+						return n, handleErr
+					}
+					if n > 0 {
+						// Mark stream as done and enqueue [DONE] message to prevent repeated errors
+						r.Buffer = []byte(sseDoneMessage)
+						r.doneMux.Lock()
+						r.done = true
+						r.doneMux.Unlock()
+						return n, nil
+					}
+				}
+			} else {
+				fiberlog.Infof("[%s] No more chunks available - normal completion", r.RequestID)
 			}
-			return "none"
-		}(),
-		chunk.Usage.TotalTokens)
 
-	if err := r.processChunk(&chunk); err != nil {
-		fiberlog.Debugf("[%s] Chunk processing failed for chunk ID=%s: %v", r.RequestID, chunk.ID, err)
-		streamErr := &StreamError{
-			ErrorDetails: OpenAIError{
-				Message: err.Error(),
-				Type:    "chunk_processing_error",
-			},
+			r.Buffer = []byte(sseDoneMessage)
+			r.doneMux.Lock()
+			r.done = true
+			r.doneMux.Unlock()
+			// Continue the loop instead of recursive call
+			continue
 		}
-		return r.handleError(streamErr, p)
-	}
 
-	return r.Read(p)
+		// Get and process the current chunk
+		chunk := r.stream.Current()
+
+		// Detailed chunk logging
+		var choiceContent string
+		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+			content := chunk.Choices[0].Delta.Content
+			if len(content) > 50 {
+				choiceContent = content[:47] + "..."
+			} else {
+				choiceContent = content
+			}
+		}
+
+		fiberlog.Debugf("[%s] Processing chunk: ID=%s, Choices=%d, Content='%s', FinishReason=%v, Usage.TotalTokens=%d",
+			r.RequestID, chunk.ID, len(chunk.Choices), choiceContent,
+			func() string {
+				if len(chunk.Choices) > 0 {
+					return string(chunk.Choices[0].FinishReason)
+				}
+				return "none"
+			}(),
+			chunk.Usage.TotalTokens)
+
+		if err := r.processChunk(&chunk); err != nil {
+			fiberlog.Debugf("[%s] Chunk processing failed for chunk ID=%s: %v", r.RequestID, chunk.ID, err)
+			streamErr := &StreamError{
+				ErrorDetails: OpenAIError{
+					Message: err.Error(),
+					Type:    "chunk_processing_error",
+				},
+			}
+			n, handleErr := r.handleError(streamErr, p)
+			if handleErr != nil {
+				return n, handleErr
+			}
+			if n > 0 {
+				return n, nil
+			}
+		}
+
+		// Continue the loop instead of recursive call
+		continue
+	}
 }
 
 func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
@@ -235,7 +263,10 @@ func (r *OpenAIStreamReader) handleError(err error, p []byte) (int, error) {
 		copy(r.Buffer, bb.B)
 	}
 
-	return r.Read(p)
+	// Return the data directly instead of recursive call
+	n := copy(p, r.Buffer)
+	r.Buffer = r.Buffer[n:]
+	return n, nil
 }
 
 // processChunk orchestrates the transformation and buffering of a chunk.

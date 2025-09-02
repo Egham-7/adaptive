@@ -2,10 +2,12 @@ package sse
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
@@ -16,22 +18,63 @@ import (
 
 // AnthropicSSEReader handles Anthropic Server-Sent Events streaming
 type AnthropicSSEReader struct {
-	reader   *bufio.Reader
-	reqID    string
-	provider string
+	reader    *bufio.Reader
+	reqID     string
+	provider  string
+	ctx       context.Context
+	closer    io.Closer
+	closeOnce sync.Once
 }
 
 // NewAnthropicSSEReader creates a new Anthropic SSE reader
-func NewAnthropicSSEReader(reader io.Reader, reqID, provider string) *AnthropicSSEReader {
-	return &AnthropicSSEReader{
+func NewAnthropicSSEReader(reader io.Reader, reqID, provider string, ctx context.Context) *AnthropicSSEReader {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var closer io.Closer
+	if readCloser, ok := reader.(io.ReadCloser); ok {
+		closer = readCloser
+	}
+
+	r := &AnthropicSSEReader{
 		reader:   bufio.NewReader(reader),
 		reqID:    reqID,
 		provider: provider,
+		ctx:      ctx,
+		closer:   closer,
 	}
+
+	// Spawn goroutine to handle context cancellation
+	if closer != nil {
+		go func() {
+			<-ctx.Done()
+			fiberlog.Debugf("[%s] Context cancelled, closing Anthropic stream", reqID)
+			if closeErr := closer.Close(); closeErr != nil {
+				fiberlog.Debugf("[%s] Error closing stream on cancellation: %v", reqID, closeErr)
+			}
+		}()
+	}
+
+	return r
 }
 
 // Read implements io.Reader interface for compatibility with stream processing
 func (r *AnthropicSSEReader) Read(p []byte) (n int, err error) {
+	// Check for context cancellation
+	select {
+	case <-r.ctx.Done():
+		fiberlog.Infof("[%s] Context cancelled, stopping Anthropic stream", r.reqID)
+		// Close the underlying reader to unblock any in-flight reads
+		if r.closer != nil {
+			if closeErr := r.closer.Close(); closeErr != nil {
+				fiberlog.Debugf("[%s] Error closing reader on cancellation: %v", r.reqID, closeErr)
+			}
+		}
+		return 0, r.ctx.Err()
+	default:
+	}
+
 	// Read data from the underlying reader
 	return r.reader.Read(p)
 }
@@ -133,6 +176,12 @@ func (r *AnthropicSSEReader) convertToAdaptiveAnthropicChunk(anthropicChunk *ant
 
 // Close closes the reader (if applicable)
 func (r *AnthropicSSEReader) Close() error {
-	// Anthropic SSE reader doesn't need explicit cleanup
-	return nil
+	var err error
+	r.closeOnce.Do(func() {
+		if r.closer != nil {
+			err = r.closer.Close()
+			r.closer = nil
+		}
+	})
+	return err
 }
