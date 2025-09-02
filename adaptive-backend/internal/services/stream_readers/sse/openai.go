@@ -83,6 +83,13 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 		select {
 		case <-r.ctx.Done():
 			fiberlog.Infof("[%s] Context cancelled, stopping OpenAI stream", r.RequestID)
+			// Close the active stream to unblock any waiting goroutines
+			if r.stream != nil {
+				if closeErr := r.stream.Close(); closeErr != nil {
+					fiberlog.Debugf("[%s] Error closing stream on cancellation: %v", r.RequestID, closeErr)
+				}
+				r.stream = nil
+			}
 			return 0, r.ctx.Err()
 		default:
 		}
@@ -120,7 +127,13 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 							Code:    nil,
 						},
 					}
-					return r.handleError(streamErr, p)
+					n, handleErr := r.handleError(streamErr, p)
+					if handleErr != nil {
+						return n, handleErr
+					}
+					if n > 0 {
+						return n, nil
+					}
 				}
 			} else {
 				fiberlog.Infof("[%s] No more chunks available - normal completion", r.RequestID)
@@ -166,7 +179,13 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 					Type:    "chunk_processing_error",
 				},
 			}
-			return r.handleError(streamErr, p)
+			n, handleErr := r.handleError(streamErr, p)
+			if handleErr != nil {
+				return n, handleErr
+			}
+			if n > 0 {
+				return n, nil
+			}
 		}
 
 		// Continue the loop instead of recursive call

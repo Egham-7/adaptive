@@ -38,10 +38,10 @@ func (s *Service) SelectModel(
 	}
 
 	// Perform model selection directly with prompt
-	// For direct select-model API, we don't have message history so no tool calls
+	// Pass through tool context for function-calling-aware routing
 	resp, _, err := s.modelRouter.SelectModelWithCache(
 		req.Prompt, userID, requestID, mergedConfig, circuitBreakers,
-		nil, nil, // No tools/tool_call context in direct select-model API
+		req.Tools, req.ToolCall, // Pass tool context for intelligent routing
 	)
 	if err != nil {
 		fiberlog.Errorf("[%s] Model selection error: %v", requestID, err)
