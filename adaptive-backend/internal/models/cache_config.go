@@ -20,7 +20,6 @@ type ModelRouterConfig struct {
 	Models              []ModelCapability `json:"models,omitzero"`
 	CostBias            float32           `json:"cost_bias,omitzero"`
 	ComplexityThreshold *float32          `json:"complexity_threshold,omitzero"`
-	TokenThreshold      *int              `json:"token_threshold,omitzero"`
 }
 
 // ModelRouterClientConfig holds client configuration for model router

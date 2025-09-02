@@ -54,6 +54,13 @@ func HandleOpenAIStream(c *fiber.Ctx, resp *ssestream.Stream[openai.ChatCompleti
 
 		defer closeStreamReader(streamReader, requestID)
 
+		// Add proactive cleanup on context cancellation
+		go func() {
+			<-ctx.Done()
+			fiberlog.Debugf("[%s] Context cancelled, proactively closing OpenAI stream reader", requestID)
+			closeStreamReader(streamReader, requestID)
+		}()
+
 		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
 			if fasthttpCtx != nil && fasthttpCtx.Err() != nil {
 				fiberlog.Infof("[%s] Client disconnected during stream", requestID)
@@ -76,8 +83,18 @@ func HandleAnthropicStream(c *fiber.Ctx, responseBody io.Reader, requestID strin
 		startTime := time.Now()
 		var totalBytes int64
 
-		streamReader := sse.NewAnthropicSSEReader(responseBody, requestID, provider)
+		// Create a context that bridges FastHTTP cancellation to standard context
+		ctx := createBridgeContext(fasthttpCtx)
+
+		streamReader := sse.NewAnthropicSSEReader(responseBody, requestID, provider, ctx)
 		defer closeStreamReader(streamReader, requestID)
+
+		// Add proactive cleanup on context cancellation
+		go func() {
+			<-ctx.Done()
+			fiberlog.Debugf("[%s] Context cancelled, proactively closing Anthropic stream reader", requestID)
+			closeStreamReader(streamReader, requestID)
+		}()
 
 		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
 			if fasthttpCtx != nil && fasthttpCtx.Err() != nil {
