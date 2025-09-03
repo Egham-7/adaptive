@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+// Create Zod schema for CacheConfig (only configurable fields)
+const cacheConfigSchema = z.object({
+	enabled: z.boolean().optional(),
+	semantic_threshold: z.number().optional(),
+});
+
 // Create Zod schema for ModelCapability (partial type for flexible model selection)
 const modelCapabilitySchema = z
 	.object({
@@ -27,14 +33,6 @@ const modelCapabilitySchema = z
 			message: "At least one model capability attribute must be provided",
 		},
 	);
-
-// Create Zod schema for ModelRouterConfig
-const modelRouterConfigSchema = z.object({
-	models: z.array(modelCapabilitySchema).optional(),
-	cost_bias: z.number().optional(),
-	complexity_threshold: z.number().optional(),
-	token_threshold: z.number().optional(),
-});
 
 // Tool definition schema
 const toolSchema = z.object({
@@ -67,12 +65,14 @@ export const selectModelRequestSchema = z
 		prompt: z.string().min(1, "Prompt cannot be empty"),
 		// Optional user identifier for tracking and personalization
 		user: z.string().optional(),
+		// Cost bias for balancing cost vs performance (0.0 = cheapest, 1.0 = best)
+		cost_bias: z.number().min(0).max(1).optional(),
+		// Model router cache configuration
+		model_router_cache: cacheConfigSchema.optional(),
 		// Tool definitions for function calling detection
 		tools: z.array(toolSchema).optional(),
 		// Current tool call being made (if any)
 		tool_call: toolCallSchema.optional(),
-		// Model router configuration for routing decisions
-		model_router: modelRouterConfigSchema.optional(),
 	})
 	.strict();
 
@@ -98,3 +98,4 @@ export type Alternative = z.infer<typeof alternativeSchema>;
 export type SelectModelResponse = z.infer<typeof selectModelResponseSchema>;
 export type Tool = z.infer<typeof toolSchema>;
 export type ToolCall = z.infer<typeof toolCallSchema>;
+export type CacheConfig = z.infer<typeof cacheConfigSchema>;

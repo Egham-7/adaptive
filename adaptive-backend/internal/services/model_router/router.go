@@ -99,13 +99,12 @@ func (pm *ModelRouter) SelectModelWithCache(
 	}
 
 	req := models.ModelSelectionRequest{
-		Prompt:              prompt,
-		ToolCall:            toolCall,
-		Tools:               tools,
-		UserID:              userID,
-		Models:              modelRouterConfig.Models,
-		CostBias:            &modelRouterConfig.CostBias,
-		ComplexityThreshold: modelRouterConfig.ComplexityThreshold,
+		Prompt:   prompt,
+		ToolCall: toolCall,
+		Tools:    tools,
+		UserID:   userID,
+		Models:   modelRouterConfig.Models,
+		CostBias: &modelRouterConfig.CostBias,
 	}
 	resp := pm.client.SelectModel(context.Background(), req)
 

@@ -1,6 +1,6 @@
 ---
 title: "Messages"
-api: "POST https://llmadaptive.uk/api/v1/messages"
+api: "POST https://www.llmadaptive.uk/api/v1/messages"
 description: "Create messages using Anthropic's API format with intelligent routing"
 icon: "message"
 ---
@@ -12,20 +12,20 @@ The Messages endpoint provides an Anthropic Claude-compatible API with intellige
 ## Endpoint
 
 ```
-POST https://llmadaptive.uk/api/v1/messages
+POST https://www.llmadaptive.uk/api/v1/messages
 ```
 
 ## Authentication
 
 <CodeGroup>
 ```bash Bearer Token
-curl https://llmadaptive.uk/api/v1/messages \
+curl https://www.llmadaptive.uk/api/v1/messages \
   -H "Authorization: Bearer your-adaptive-key" \
   -H "Content-Type: application/json"
 ```
 
 ```bash Anthropic Style
-curl https://llmadaptive.uk/api/v1/messages \
+curl https://www.llmadaptive.uk/api/v1/messages \
   -H "x-api-key: your-adaptive-key" \
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01"
@@ -40,7 +40,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({
   apiKey: 'your-adaptive-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
 });
 
 const message = await anthropic.messages.create({
@@ -59,7 +59,7 @@ import anthropic
 
 client = anthropic.Anthropic(
     api_key="your-adaptive-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
 message = client.messages.create(
@@ -74,7 +74,7 @@ print(message.content[0].text)
 ```
 
 ```bash cURL
-curl https://llmadaptive.uk/api/v1/messages \
+curl https://www.llmadaptive.uk/api/v1/messages \
   -H "x-api-key: your-adaptive-key" \
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01" \
@@ -176,7 +176,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({
   apiKey: 'your-adaptive-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
 });
 
 const message = await anthropic.messages.create({
@@ -216,7 +216,7 @@ import anthropic
 
 client = anthropic.Anthropic(
     api_key="your-adaptive-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
 message = client.messages.create(
@@ -332,7 +332,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({
   apiKey: 'your-adaptive-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
 });
 
 const stream = await anthropic.messages.create({
@@ -356,7 +356,7 @@ import anthropic
 
 client = anthropic.Anthropic(
     api_key="your-adaptive-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
 stream = client.messages.create(
@@ -395,7 +395,7 @@ message = client.messages.create(
 import requests
 
 response = requests.post(
-    'https://llmadaptive.uk/api/v1/messages',  # ← Changed URL
+    'https://www.llmadaptive.uk/api/v1/messages',  # ← Changed URL
     headers={
         'Authorization': 'Bearer your-adaptive-key',  # ← Adaptive key
         'Content-Type': 'application/json',
