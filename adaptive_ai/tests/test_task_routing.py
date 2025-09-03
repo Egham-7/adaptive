@@ -22,6 +22,7 @@ class TestTaskSpecializationRouting:
                 "prompt": "Write a Python function to implement a binary search algorithm with proper error handling",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert code_response.status_code == 200
         code_result = code_response.json()
@@ -30,6 +31,7 @@ class TestTaskSpecializationRouting:
         chat_response = requests.post(
             f"{base_url}/predict",
             json={"prompt": "What's your favorite color?", "cost_bias": 0.5},
+            timeout=30,
         )
         assert chat_response.status_code == 200
         chat_result = chat_response.json()
@@ -58,7 +60,7 @@ class TestTaskSpecializationRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -81,7 +83,7 @@ class TestTaskSpecializationRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -104,6 +106,7 @@ class TestTaskSpecializationRouting:
                 "prompt": "Write a Python function to implement binary search with error handling",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert code_response.status_code == 200
         code_result = code_response.json()
@@ -112,6 +115,7 @@ class TestTaskSpecializationRouting:
         chat_response = requests.post(
             f"{base_url}/predict",
             json={"prompt": "How are you doing today?", "cost_bias": 0.5},
+            timeout=30,
         )
         assert chat_response.status_code == 200
         chat_result = chat_response.json()
@@ -142,7 +146,7 @@ class TestTaskSpecializationRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -174,7 +178,7 @@ class TestTaskSpecializationRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -207,7 +211,7 @@ class TestTaskSpecializationRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -230,6 +234,7 @@ class TestTaskSpecializationRouting:
                 "prompt": "Click on the submit button and fill out the form with my information",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert computer_response.status_code == 200
         computer_result = computer_response.json()
@@ -238,6 +243,7 @@ class TestTaskSpecializationRouting:
         chat_response = requests.post(
             f"{base_url}/predict",
             json={"prompt": "How are you doing today?", "cost_bias": 0.5},
+            timeout=30,
         )
         assert chat_response.status_code == 200
         chat_result = chat_response.json()

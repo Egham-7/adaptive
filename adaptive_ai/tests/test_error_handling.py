@@ -18,7 +18,7 @@ class TestErrorHandling:
         request_data = {"prompt": "", "cost_bias": 0.5}
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert - empty prompt now handled gracefully (after Pydantic validation fix)
         # The ML classifier can handle empty prompts with bounded number_of_few_shots
@@ -35,7 +35,7 @@ class TestErrorHandling:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert - might return error or clamp to valid range
         # The behavior depends on the API's validation
@@ -50,7 +50,7 @@ class TestErrorHandling:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert - should return validation error
         assert response.status_code in [400, 422]

@@ -27,7 +27,7 @@ class TestProviderConstraints:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -58,7 +58,7 @@ class TestProviderConstraints:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200

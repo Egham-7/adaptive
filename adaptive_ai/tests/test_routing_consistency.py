@@ -23,7 +23,9 @@ class TestRoutingConsistency:
         # Act - make multiple requests
         responses = []
         for _ in range(3):
-            response = requests.post(f"{base_url}/predict", json=request_data)
+            response = requests.post(
+                f"{base_url}/predict", json=request_data, timeout=30
+            )
             assert response.status_code == 200
             responses.append(response.json())
 

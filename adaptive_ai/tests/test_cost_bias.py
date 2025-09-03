@@ -41,7 +41,9 @@ class TestCostBiasValidation:
 
         for bias in cost_bias_values:
             response = requests.post(
-                f"{base_url}/predict", json={"prompt": prompt, "cost_bias": bias}
+                f"{base_url}/predict",
+                json={"prompt": prompt, "cost_bias": bias},
+                timeout=30,
             )
             assert response.status_code == 200
             result = response.json()
@@ -99,7 +101,9 @@ class TestCostBiasValidation:
 
         for bias, mode in boundary_tests:
             response = requests.post(
-                f"{base_url}/predict", json={"prompt": prompt, "cost_bias": bias}
+                f"{base_url}/predict",
+                json={"prompt": prompt, "cost_bias": bias},
+                timeout=30,
             )
             assert response.status_code == 200
             result = response.json()
@@ -137,6 +141,7 @@ class TestCostBiasValidation:
         balanced_response = requests.post(
             f"{base_url}/predict",
             json={"prompt": prompt, "cost_bias": 0.5},  # Neutral/balanced
+            timeout=30,
         )
         assert balanced_response.status_code == 200
         balanced_result = balanced_response.json()
@@ -145,6 +150,7 @@ class TestCostBiasValidation:
         slightly_cheap_response = requests.post(
             f"{base_url}/predict",
             json={"prompt": prompt, "cost_bias": 0.4},  # Slightly cost-oriented
+            timeout=30,
         )
         assert slightly_cheap_response.status_code == 200
         slightly_cheap_result = slightly_cheap_response.json()
@@ -152,6 +158,7 @@ class TestCostBiasValidation:
         slightly_expensive_response = requests.post(
             f"{base_url}/predict",
             json={"prompt": prompt, "cost_bias": 0.6},  # Slightly quality-oriented
+            timeout=30,
         )
         assert slightly_expensive_response.status_code == 200
         slightly_expensive_result = slightly_expensive_response.json()
@@ -200,7 +207,9 @@ class TestCostBiasValidation:
 
         for bias in bias_sequence:
             response = requests.post(
-                f"{base_url}/predict", json={"prompt": prompt, "cost_bias": bias}
+                f"{base_url}/predict",
+                json={"prompt": prompt, "cost_bias": bias},
+                timeout=30,
             )
             assert response.status_code == 200
             result = response.json()
@@ -214,18 +223,22 @@ class TestCostBiasValidation:
 
         # Check that we're not getting identical models across the entire range
         unique_models = set(models)
-        
+
         # Log the models to understand behavior
         print(f"Models selected across 0.2-0.8 range: {models}")
         print(f"Unique models: {unique_models}")
-        
+
         # Relaxed assertion: cost bias might show consistency in middle range
         # The key test is that extreme values (0.0 vs 1.0) show different behavior
         if len(unique_models) == 1:
-            print(f"ℹ️  Note: Same model '{models[0]}' selected across 0.2-0.8 range")
-            print("    This suggests the algorithm finds this model optimal for this task across moderate cost biases")
+            print(f"(i) Note: Same model '{models[0]}' selected across 0.2-0.8 range")
+            print(
+                "    This suggests the algorithm finds this model optimal for this task across moderate cost biases"
+            )
         else:
-            print(f"✓ Progressive variation: {len(unique_models)} different models across bias range")
+            print(
+                f"✓ Progressive variation: {len(unique_models)} different models across bias range"
+            )
 
         # Verify we're not seeing completely random behavior
         # If cost bias works, lower values should not consistently pick more expensive models
@@ -277,6 +290,7 @@ class TestCostBiasValidation:
                 response = requests.post(
                     f"{base_url}/predict",
                     json={"prompt": scenario["prompt"], "cost_bias": cost_bias},
+                    timeout=30,
                 )
                 assert response.status_code == 200
                 result = response.json()
@@ -289,10 +303,12 @@ class TestCostBiasValidation:
                 low_cost_response = requests.post(
                     f"{base_url}/predict",
                     json={"prompt": scenario["prompt"], "cost_bias": 0.1},
+                    timeout=30,
                 )
                 high_cost_response = requests.post(
                     f"{base_url}/predict",
                     json={"prompt": scenario["prompt"], "cost_bias": 0.9},
+                    timeout=30,
                 )
 
                 assert low_cost_response.status_code == 200
@@ -319,14 +335,14 @@ class TestCostBiasValidation:
 
         # Ultra-low cost bias (cheapest models)
         cheap_response = requests.post(
-            f"{base_url}/predict", json={"prompt": prompt, "cost_bias": 0.0}
+            f"{base_url}/predict", json={"prompt": prompt, "cost_bias": 0.0}, timeout=30
         )
         assert cheap_response.status_code == 200
         cheap_result = cheap_response.json()
 
         # Ultra-high cost bias (premium models)
         premium_response = requests.post(
-            f"{base_url}/predict", json={"prompt": prompt, "cost_bias": 1.0}
+            f"{base_url}/predict", json={"prompt": prompt, "cost_bias": 1.0}, timeout=30
         )
         assert premium_response.status_code == 200
         premium_result = premium_response.json()
@@ -370,7 +386,7 @@ class TestCostBiasValidation:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -388,6 +404,7 @@ class TestCostBiasValidation:
         explicit_response = requests.post(
             f"{base_url}/predict",
             json={"prompt": "What is machine learning?", "cost_bias": 0.5},
+            timeout=30,
         )
         assert explicit_response.status_code == 200
         explicit_result = explicit_response.json()

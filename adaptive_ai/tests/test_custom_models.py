@@ -30,7 +30,7 @@ class TestCustomModelsRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -71,7 +71,7 @@ class TestCustomModelsRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert
         assert response.status_code == 200
@@ -103,7 +103,7 @@ class TestCustomModelsRouting:
         }
 
         # Act
-        response = requests.post(f"{base_url}/predict", json=request_data)
+        response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
         # Assert - might use the partial model or return error
         assert response.status_code in [200, 400, 422, 500]

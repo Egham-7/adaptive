@@ -20,6 +20,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "What causes climate change and how does it affect global weather patterns?",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -36,6 +37,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Based on the document provided, what is the main conclusion about renewable energy adoption?",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -51,6 +53,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Please summarize this 50-page research paper on quantum computing applications in cryptography",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -67,6 +70,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Generate a professional email template for customer service responses",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -82,6 +86,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Write a Python class that implements a balanced binary search tree with insert, delete, and search operations",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -108,6 +113,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Hello! How can I help you today?",
                 "cost_bias": 0.2,  # Prefer efficiency for simple chat
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -133,6 +139,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Classify this text as positive, negative, or neutral sentiment: 'I really enjoyed the movie but the ending was disappointing'",
                 "cost_bias": 0.3,  # Classification can use efficient models
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -148,6 +155,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Rewrite this technical documentation to be more accessible to non-technical users",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -163,6 +171,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Brainstorm innovative ideas for sustainable urban transportation systems",
                 "cost_bias": 0.6,  # Creative tasks may benefit from higher capability models
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -179,6 +188,7 @@ class TestTaskTypeSpecialization:
                 "prompt": "Extract the key financial metrics from this earnings report: revenue, profit margin, and growth rate",
                 "cost_bias": 0.4,  # Extraction can be efficient
             },
+            timeout=30,
         )
         assert response.status_code == 200
         result = response.json()
@@ -207,6 +217,7 @@ class TestProviderConstraints:
                     "models": [{"provider": provider}],
                     "cost_bias": 0.5,
                 },
+                timeout=30,
             )
 
             if response.status_code == 200:
@@ -233,6 +244,7 @@ class TestProviderConstraints:
                 "models": [{"provider": "ANTHROPIC"}],
                 "cost_bias": 0.1,  # Prefer cheap Anthropic models
             },
+            timeout=30,
         )
 
         anthropic_premium = requests.post(
@@ -242,6 +254,7 @@ class TestProviderConstraints:
                 "models": [{"provider": "ANTHROPIC"}],
                 "cost_bias": 0.9,  # Prefer premium Anthropic models
             },
+            timeout=30,
         )
 
         if anthropic_cheap.status_code == 200 and anthropic_premium.status_code == 200:
@@ -281,6 +294,7 @@ class TestProviderConstraints:
                 "models": [{"max_context_tokens": 150000}],  # High context requirement
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
 
         if response.status_code == 200:
@@ -299,7 +313,7 @@ class TestProviderConstraints:
 
             print("✓ Context length constraints working")
         else:
-            print("ℹ️  No models meet high context requirements")
+            print("(i) No models meet high context requirements")
 
     def test_function_calling_constraints(self, base_url):
         """Test function calling capability constraints."""
@@ -310,6 +324,7 @@ class TestProviderConstraints:
                 "models": [{"supports_function_calling": True}],
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
 
         if response.status_code == 200:
@@ -328,7 +343,7 @@ class TestProviderConstraints:
 
             print("✓ Function calling constraints working")
         else:
-            print("ℹ️  Function calling constraint test failed")
+            print("(i) Function calling constraint test failed")
 
 
 class TestComplexRoutingScenarios:
@@ -355,6 +370,7 @@ class TestComplexRoutingScenarios:
                 ],
                 "cost_bias": 0.6,
             },
+            timeout=30,
         )
 
         if response.status_code == 200:
@@ -367,7 +383,7 @@ class TestComplexRoutingScenarios:
 
             print("✓ Multi-constraint routing working")
         else:
-            print("ℹ️  Multi-constraint may be too restrictive")
+            print("(i) Multi-constraint may be too restrictive")
 
     def test_reasoning_vs_code_specialization(self, base_url):
         """Test that reasoning and code tasks route to different specialists."""
@@ -378,6 +394,7 @@ class TestComplexRoutingScenarios:
                 "prompt": "Prove that the square root of 2 is irrational using proof by contradiction",
                 "cost_bias": 0.7,
             },
+            timeout=30,
         )
 
         # Complex code generation
@@ -387,6 +404,7 @@ class TestComplexRoutingScenarios:
                 "prompt": "Implement a distributed cache with consistent hashing and replication",
                 "cost_bias": 0.7,
             },
+            timeout=30,
         )
 
         assert reasoning_response.status_code == 200
@@ -425,7 +443,7 @@ class TestComplexRoutingScenarios:
         elif reasoning_specialized or code_specialized:
             print("✓ PARTIAL: At least one task routes to specialist")
         else:
-            print("ℹ️  Specialization routing may need optimization")
+            print("(i) Specialization routing may need optimization")
 
     def test_creative_vs_analytical_routing(self, base_url):
         """Test creative vs analytical tasks route differently."""
@@ -436,6 +454,7 @@ class TestComplexRoutingScenarios:
                 "prompt": "Write an imaginative short story about time travel with unexpected plot twists",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
 
         # Analytical task
@@ -445,6 +464,7 @@ class TestComplexRoutingScenarios:
                 "prompt": "Perform a detailed statistical analysis of this dataset and identify key trends",
                 "cost_bias": 0.5,
             },
+            timeout=30,
         )
 
         assert creative_response.status_code == 200
@@ -470,7 +490,7 @@ class TestComplexRoutingScenarios:
         if creative_model != analytical_model:
             print("✓ Creative and analytical tasks route to different models")
         else:
-            print("ℹ️  Same model selected for both creative and analytical tasks")
+            print("(i) Same model selected for both creative and analytical tasks")
 
         assert creative_model, "Creative task should select valid model"
         assert analytical_model, "Analytical task should select valid model"
@@ -493,6 +513,7 @@ class TestTaskComplexityRouting:
                 "prompt": "Write a function that adds two numbers",
                 "cost_bias": 0.3,  # Prefer efficiency
             },
+            timeout=30,
         )
 
         # Complex code task
@@ -502,6 +523,7 @@ class TestTaskComplexityRouting:
                 "prompt": "Implement a distributed consensus algorithm like Raft with leader election, log replication, and failure recovery mechanisms",
                 "cost_bias": 0.3,  # Same cost preference
             },
+            timeout=30,
         )
 
         assert simple_response.status_code == 200
@@ -527,13 +549,15 @@ class TestTaskComplexityRouting:
         if simple_model != complex_model:
             print("✓ Task complexity affects model selection")
         else:
-            print("ℹ️  Same model selected regardless of complexity")
+            print("(i) Same model selected regardless of complexity")
 
     def test_mathematical_reasoning_complexity(self, base_url):
         """Test mathematical reasoning with different complexity levels."""
         # Simple math
         simple_math = requests.post(
-            f"{base_url}/predict", json={"prompt": "What is 15 * 8?", "cost_bias": 0.2}
+            f"{base_url}/predict",
+            json={"prompt": "What is 15 * 8?", "cost_bias": 0.2},
+            timeout=30,
         )
 
         # Complex math
@@ -543,6 +567,7 @@ class TestTaskComplexityRouting:
                 "prompt": "Solve the system of differential equations: dx/dt = 2x - 3y, dy/dt = x + 4y with initial conditions x(0)=1, y(0)=0",
                 "cost_bias": 0.8,  # Allow premium models for complex math
             },
+            timeout=30,
         )
 
         assert simple_math.status_code == 200
@@ -562,7 +587,7 @@ class TestTaskComplexityRouting:
         if complex_model in reasoning_models:
             print("✓ Complex math routes to reasoning specialist")
         else:
-            print(f"ℹ️  Complex math routed to general model: {complex_model}")
+            print(f"(i) Complex math routed to general model: {complex_model}")
 
         assert simple_result["model"], "Simple math should select valid model"
         assert complex_result["model"], "Complex math should select valid model"
