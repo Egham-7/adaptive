@@ -46,7 +46,7 @@ const model = adaptive();
 import { createAdaptive } from "@adaptive-llm/adaptive-ai-provider";
 
 const customAdaptive = createAdaptive({
-  baseURL: "https://llmadaptive.uk/api/v1",
+  baseURL: "https://www.llmadaptive.uk/api/v1",
   apiKey: process.env.ADAPTIVE_API_KEY,
   headers: {
     "User-Agent": "MyApp/1.0",
@@ -84,7 +84,7 @@ import { generateText } from 'ai';
 
 const adaptiveOpenAI = openai({
   apiKey: process.env.ADAPTIVE_API_KEY,
-  baseURL: 'https://llmadaptive.uk/api/v1',
+  baseURL: 'https://www.llmadaptive.uk/api/v1',
 });
 
 const { text } = await generateText({
@@ -99,7 +99,7 @@ import { generateText } from 'ai';
 
 const adaptiveOpenAI = openai({
   apiKey: process.env.ADAPTIVE_API_KEY!,
-  baseURL: 'https://llmadaptive.uk/api/v1',
+  baseURL: 'https://www.llmadaptive.uk/api/v1',
 });
 
 const { text } = await generateText({
@@ -228,7 +228,7 @@ import { streamText } from 'ai';
 
 const adaptiveOpenAI = openai({
   apiKey: process.env.ADAPTIVE_API_KEY,
-  baseURL: 'https://llmadaptive.uk/api/v1',
+  baseURL: 'https://www.llmadaptive.uk/api/v1',
 });
 
 export async function POST(req) {

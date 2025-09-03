@@ -39,7 +39,7 @@ func (s *Service) SelectModel(
 
 	// Perform model selection directly with prompt
 	// Pass through tool context for function-calling-aware routing
-	resp, _, err := s.modelRouter.SelectModelWithCache(
+	resp, cacheSource, err := s.modelRouter.SelectModelWithCache(
 		req.Prompt, userID, requestID, mergedConfig, circuitBreakers,
 		req.Tools, req.ToolCall, // Pass tool context for intelligent routing
 	)
@@ -54,5 +54,6 @@ func (s *Service) SelectModel(
 		Provider:     resp.Provider,
 		Model:        resp.Model,
 		Alternatives: resp.Alternatives,
+		CacheTier:    cacheSource,
 	}, nil
 }

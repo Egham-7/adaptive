@@ -1,6 +1,6 @@
 ---
 title: 'Select Model'
-api: 'POST https://llmadaptive.uk/api/v1/select-model'
+api: 'POST https://www.llmadaptive.uk/api/v1/select-model'
 description: 'Get intelligent model selection for any provider or infrastructure'
 icon: "brain"
 ---
@@ -131,11 +131,11 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
   
   <Expandable title="Semantic Cache Configuration">
     <ParamField body="enabled" type="boolean">
-      Whether to use semantic caching for this request
+      Override whether to use semantic caching for this specific request (overrides server configuration)
     </ParamField>
     
     <ParamField body="semantic_threshold" type="number">
-      Similarity threshold for cache hits (0.0-1.0, higher = more strict matching)
+      Override similarity threshold for cache hits (0.0-1.0, higher = more strict matching)
     </ParamField>
   </Expandable>
 </ParamField>
@@ -177,7 +177,7 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
 
 ```bash
 # Mix and match specification styles
-response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -209,7 +209,7 @@ fi
 
 ```bash
 # Even simpler - just say what providers you have access to
-response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -243,7 +243,7 @@ fi
 
 ```bash
 # Only specify details for custom/unknown models
-response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -319,7 +319,7 @@ console.log(result);
 
 ```bash
 # Models with function calling will be prioritized when tools are provided
-response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -499,7 +499,7 @@ if (result.provider === "openai") {
 ### 2. On-Premise Model Routing
 ```javascript
 // Tell Adaptive about your local models (plus a cloud fallback)
-const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+const res = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -524,7 +524,7 @@ if (selection.provider === "local" && selection.model === "llama-3-8b") {
 ### 3. Enterprise Contract Optimization
 ```javascript
 // Maximize usage of your enterprise contracts
-const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+const res = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -607,7 +607,7 @@ console.log(`Cost-optimized: ${withConstraints.model}`);
 ### Validate Your Setup
 ```javascript
 // Make sure your routing rules work
-const shouldUseCheap = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+const shouldUseCheap = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -616,7 +616,7 @@ const shouldUseCheap = await fetch('https://llmadaptive.uk/api/v1/select-model',
   })
 }).then(r => r.json());
 
-const shouldUseExpensive = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+const shouldUseExpensive = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({

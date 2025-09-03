@@ -44,6 +44,7 @@ type SelectModelResponse struct {
 	Model string `json:"model"`
 	// Alternative provider/model combinations
 	Alternatives []Alternative `json:"alternatives,omitzero"`
+	CacheTier    string        `json:"cache_tier,omitzero"`
 }
 
 // ModelSelectionRequest represents a request for model selection.
@@ -57,10 +58,9 @@ type ModelSelectionRequest struct {
 	Tools    any `json:"tools,omitzero"`     // Available tool definitions
 
 	// Our custom parameters for model selection (flattened for Python service)
-	UserID              string            `json:"user_id,omitzero"`
-	Models              []ModelCapability `json:"models,omitzero"`
-	CostBias            *float32          `json:"cost_bias,omitzero"`
-	ComplexityThreshold *float32          `json:"complexity_threshold,omitzero"`
+	UserID   string            `json:"user_id,omitzero"`
+	Models   []ModelCapability `json:"models,omitzero"`
+	CostBias *float32          `json:"cost_bias,omitzero"`
 }
 
 // Alternative represents a provider+model fallback candidate.

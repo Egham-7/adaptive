@@ -47,7 +47,7 @@ print(f"Used provider: {completion.provider}")
 ```
 
 ```bash cURL
-curl https://llmadaptive.uk/api/v1/chat/completions \
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
   -H "Authorization: Bearer your-adaptive-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -153,9 +153,7 @@ Balance between cost savings and response quality:
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Explain quantum physics" }],
-  model_router: {
-    cost_bias: 0.3 // 0 = cheapest, 0.5 = balanced, 1 = best performance
-  }
+  cost_bias: 0.3 // 0 = cheapest, 0.5 = balanced, 1 = best performance
 });
 ```
 
@@ -163,9 +161,7 @@ const completion = await openai.chat.completions.create({
 completion = client.chat.completions.create(
     model="",
     messages=[{"role": "user", "content": "Explain quantum physics"}],
-    model_router={
-        "cost_bias": 0.3  # 0 = cheapest, 0.5 = balanced, 1 = best performance
-    }
+    cost_bias=0.3  # 0 = cheapest, 0.5 = balanced, 1 = best performance
 )
 ```
 </CodeGroup>
@@ -179,12 +175,10 @@ Restrict routing to specific providers or models:
 const completion = await openai.chat.completions.create({
   model: "",
   messages: [{ role: "user", content: "Write a story" }],
-  model_router: {
-    models: [
-      { provider: "openai" }, // All OpenAI models
-      { provider: "anthropic", model_name: "claude-3-sonnet" } // Specific model
-    ]
-  }
+  models: [
+    { provider: "openai" }, // All OpenAI models
+    { provider: "anthropic", model_name: "claude-3-sonnet" } // Specific model
+  ]
 });
 ```
 
@@ -192,12 +186,10 @@ const completion = await openai.chat.completions.create({
 completion = client.chat.completions.create(
     model="",
     messages=[{"role": "user", "content": "Write a story"}],
-    model_router={
-        "models": [
-            {"provider": "openai"},  # All OpenAI models
-            {"provider": "anthropic", "model_name": "claude-3-sonnet"}  # Specific model
-        ]
-    }
+    models=[
+        {"provider": "openai"},  # All OpenAI models
+        {"provider": "anthropic", "model_name": "claude-3-sonnet"}  # Specific model
+    ]
 )
 ```
 </CodeGroup>
@@ -223,7 +215,7 @@ Want to see which model would be selected before making the request? Use our mod
 <CodeGroup>
 ```javascript JavaScript/Node.js
 // Preview which model would be selected
-const response = await fetch('https://llmadaptive.uk/api/v1/select-model', {
+const response = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 
     'Authorization': 'Bearer your-adaptive-key',
@@ -250,7 +242,7 @@ import requests
 
 # Preview which model would be selected
 response = requests.post(
-    'https://llmadaptive.uk/api/v1/select-model',
+    'https://www.llmadaptive.uk/api/v1/select-model',
     headers={'Authorization': 'Bearer your-adaptive-key'},
     json={
         'prompt': 'Complex data analysis task',

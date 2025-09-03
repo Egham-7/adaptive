@@ -10,7 +10,7 @@ Adaptive uses API keys for authentication. Get your API key from the dashboard a
 
 <Steps>
   <Step title="Create Account">
-    Sign up for free at [llmadaptive.uk](https://llmadaptive.uk) - no credit card required
+    Sign up for free at [llmadaptive.uk](https://www.llmadaptive.uk) - no credit card required
   </Step>
   <Step title="Create Project">
     Create a new project or select an existing one from your dashboard
@@ -36,7 +36,7 @@ Adaptive accepts standard OpenAI-compatible authentication headers:
 <Tabs>
 <Tab title="Bearer Token (Recommended)">
 ```bash
-curl https://llmadaptive.uk/api/v1/chat/completions \
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
   -H "Authorization: Bearer your-adaptive-api-key" \
   -H "Content-Type: application/json" \
   -d '{"model": "", "messages": [{"role": "user", "content": "Hello!"}]}'
@@ -45,7 +45,7 @@ curl https://llmadaptive.uk/api/v1/chat/completions \
 
 <Tab title="X-Stainless-API-Key">
 ```bash
-curl https://llmadaptive.uk/api/v1/chat/completions \
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
   -H "X-Stainless-API-Key: your-adaptive-api-key" \
   -H "Content-Type: application/json" \
   -d '{"model": "", "messages": [{"role": "user", "content": "Hello!"}]}'
@@ -54,7 +54,7 @@ curl https://llmadaptive.uk/api/v1/chat/completions \
 
 <Tab title="Anthropic Style">
 ```bash
-curl https://llmadaptive.uk/api/v1/messages \
+curl https://www.llmadaptive.uk/api/v1/messages \
   -H "x-api-key: your-adaptive-api-key" \
   -H "Content-Type: application/json" \
   -H "anthropic-version: 2023-06-01" \
@@ -71,7 +71,7 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({
   apiKey: process.env.ADAPTIVE_API_KEY,
-  baseURL: "https://llmadaptive.uk/api/v1"
+  baseURL: "https://www.llmadaptive.uk/api/v1"
 });
 
 const completion = await openai.chat.completions.create({
@@ -86,7 +86,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key=os.getenv("ADAPTIVE_API_KEY"),
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
 completion = client.chat.completions.create(
@@ -109,7 +109,7 @@ import (
 func main() {
     client := openai.NewClient(
         option.WithAPIKey(os.Getenv("ADAPTIVE_API_KEY")),
-        option.WithBaseURL("https://llmadaptive.uk/api/v1"),
+        option.WithBaseURL("https://www.llmadaptive.uk/api/v1"),
     )
 
     completion, err := client.Chat.Completions.New(context.Background(), openai.ChatCompletionNewParams{
@@ -134,7 +134,7 @@ require_once 'vendor/autoload.php';
 
 $client = new GuzzleHttp\Client();
 
-$response = $client->post('https://llmadaptive.uk/api/v1/chat/completions', [
+$response = $client->post('https://www.llmadaptive.uk/api/v1/chat/completions', [
     'headers' => [
         'Authorization' => 'Bearer ' . getenv('ADAPTIVE_API_KEY'),
         'Content-Type' => 'application/json',
@@ -164,7 +164,7 @@ echo $data['choices'][0]['message']['content'];
 ADAPTIVE_API_KEY=your-adaptive-api-key-here
 
 # Optional: For development vs production
-ADAPTIVE_BASE_URL=https://llmadaptive.uk/api/v1
+ADAPTIVE_BASE_URL=https://www.llmadaptive.uk/api/v1
 ```
 </Tab>
 
@@ -375,7 +375,7 @@ const getApiKey = () => {
 
 const openai = new OpenAI({
   apiKey: getApiKey(),
-  baseURL: "https://llmadaptive.uk/api/v1"
+  baseURL: "https://www.llmadaptive.uk/api/v1"
 });
 ```
 
@@ -393,7 +393,7 @@ def get_api_key():
 
 client = OpenAI(
     api_key=get_api_key(),
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 ```
 </CodeGroup>

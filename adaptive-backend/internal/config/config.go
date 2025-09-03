@@ -334,21 +334,23 @@ func (c *Config) MergeProviderConfigs(overrides map[string]*models.ProviderConfi
 }
 
 // MergePromptCacheConfig merges YAML prompt cache config with request override.
-// Only TTL can be overridden in requests for security reasons.
+// Enabled and semantic threshold can be overridden in requests.
 func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.CacheConfig {
-	// Start with YAML config (these fields are not overridable)
+	// Start with YAML config (RedisURL and OpenAIAPIKey are not overridable)
 	merged := &models.CacheConfig{
 		Enabled:           c.PromptCache.Enabled,
-		DefaultTTLSeconds: c.PromptCache.DefaultTTLSeconds,
 		RedisURL:          c.PromptCache.RedisURL,
 		SemanticThreshold: c.PromptCache.SemanticThreshold,
 		OpenAIAPIKey:      c.PromptCache.OpenAIAPIKey,
 	}
 
-	// Apply request override if provided (only TTL is allowed)
+	// Apply request override if provided (enabled and semantic threshold are allowed)
 	if override != nil {
-		if override.TTL > 0 {
-			merged.TTL = override.TTL
+		// Override enabled state if explicitly provided
+		merged.Enabled = override.Enabled
+
+		if override.SemanticThreshold > 0 {
+			merged.SemanticThreshold = override.SemanticThreshold
 		}
 	}
 
@@ -376,9 +378,6 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *mod
 	}
 	if override.CostBias > 0 {
 		merged.CostBias = override.CostBias
-	}
-	if override.ComplexityThreshold != nil {
-		merged.ComplexityThreshold = override.ComplexityThreshold
 	}
 
 	// Merge semantic cache config - request override takes precedence
