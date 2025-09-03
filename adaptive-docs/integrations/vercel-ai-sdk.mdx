@@ -9,7 +9,7 @@ icon: "triangle"
 
 The Vercel AI SDK works seamlessly with Adaptive through two methods:
 
-- **Adaptive Provider (Recommended):** Use the native `@adaptive-llm/adaptive` provider for built-in support.
+- **Adaptive Provider (Recommended):** Use the native `@adaptive-llm/adaptive-ai-provider` provider for built-in support.
 - **OpenAI Provider:** Use Adaptive via `@ai-sdk/openai` with a custom base URL.
 
 ---
@@ -20,15 +20,15 @@ The Vercel AI SDK works seamlessly with Adaptive through two methods:
 
 <CodeGroup>
 ```bash npm
-npm install ai @adaptive-llm/adaptive
+npm install ai @adaptive-llm/adaptive-ai-provider
 ```
 
 ```bash yarn
-yarn add ai @adaptive-llm/adaptive
+yarn add ai @adaptive-llm/adaptive-ai-provider
 ```
 
 ```bash pnpm
-pnpm add ai @adaptive-llm/adaptive
+pnpm add ai @adaptive-llm/adaptive-ai-provider
 ```
 </CodeGroup>
 
@@ -36,14 +36,14 @@ pnpm add ai @adaptive-llm/adaptive
 
 <CodeGroup>
 ```javascript Basic Configuration
-import { adaptive } from "@adaptive-llm/adaptive";
+import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
 
 // Use default configuration
 const model = adaptive();
 ```
 
 ```javascript Custom Configuration
-import { createAdaptive } from "@adaptive-llm/adaptive";
+import { createAdaptive } from "@adaptive-llm/adaptive-ai-provider";
 
 const customAdaptive = createAdaptive({
   baseURL: "https://llmadaptive.uk/api/v1",
@@ -118,7 +118,7 @@ console.log(text);
 <CodeGroup>
 ```javascript Adaptive Provider
 import { generateText } from 'ai';
-import { adaptive } from '@adaptive-llm/adaptive';
+import { adaptive } from '@adaptive-llm/adaptive-ai-provider';
 
 const { text } = await generateText({
   model: adaptive(),
@@ -143,7 +143,7 @@ const { text } = await generateText({
 <CodeGroup>
 ```javascript Adaptive Provider
 import { streamText } from 'ai';
-import { adaptive } from '@adaptive-llm/adaptive';
+import { adaptive } from '@adaptive-llm/adaptive-ai-provider';
 
 const { textStream } = await streamText({
   model: adaptive(),
@@ -206,7 +206,7 @@ export default function Chat() {
 
 ```javascript API Route - Adaptive Provider
 // pages/api/chat.js or app/api/chat/route.js
-import { adaptive } from '@adaptive-llm/adaptive';
+import { adaptive } from '@adaptive-llm/adaptive-ai-provider';
 import { streamText } from 'ai';
 
 export async function POST(req) {
@@ -255,7 +255,7 @@ Advanced configuration options are available with the Adaptive provider for inte
 <CodeGroup>
 ```javascript Intelligent Routing
 import { generateText } from 'ai';
-import { adaptive } from '@adaptive-llm/adaptive';
+import { adaptive } from '@adaptive-llm/adaptive-ai-provider';
 
 await generateText({
   model: adaptive(),
@@ -415,7 +415,7 @@ await generateText({
 ```javascript Adaptive Provider
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
-import { adaptive } from '@adaptive-llm/adaptive';
+import { adaptive } from '@adaptive-llm/adaptive-ai-provider';
 
 const { text } = await generateText({
   model: adaptive(),
