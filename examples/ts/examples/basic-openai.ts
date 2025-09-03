@@ -177,14 +177,14 @@ async function main() {
     await nonStreamingExample();
     
     console.log();
-    console.log("=" .repeat(50));
+    console.log("=".repeat(50));
     console.log();
     
     // Run streaming example second
     await streamingExample();
     
     console.log();
-    console.log("=" .repeat(50));
+    console.log("=".repeat(50));
     console.log();
     console.log("🎉 All examples completed successfully!");
     console.log("💰 You're likely saving 60-80% compared to direct OpenAI usage.");
