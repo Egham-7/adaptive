@@ -380,9 +380,6 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *mod
 	if override.ComplexityThreshold != nil {
 		merged.ComplexityThreshold = override.ComplexityThreshold
 	}
-	if override.TokenThreshold != nil {
-		merged.TokenThreshold = override.TokenThreshold
-	}
 
 	// Merge semantic cache config - request override takes precedence
 	if override.SemanticCache.Enabled != c.ModelRouter.SemanticCache.Enabled ||

@@ -1,12 +1,11 @@
 package messages
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
+	"adaptive-backend/internal/services/stream_readers/stream"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
@@ -45,80 +44,17 @@ func (rs *ResponseService) HandleNonStreamingResponse(
 	return c.JSON(adaptiveResponse)
 }
 
-// HandleStreamingResponse processes a streaming Anthropic response
+// HandleStreamingResponse processes a streaming Anthropic response using the optimized stream handler
 func (rs *ResponseService) HandleStreamingResponse(
 	c *fiber.Ctx,
-	stream *ssestream.Stream[anthropic.MessageStreamEventUnion],
+	anthropicStream *ssestream.Stream[anthropic.MessageStreamEventUnion],
 	requestID string,
+	provider string,
 ) error {
-	ctx := c.Context()
+	fiberlog.Infof("[%s] Starting Anthropic streaming response handling", requestID)
 
-	// Set SSE headers
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
-	c.Set("Access-Control-Allow-Origin", "*")
-
-	// Use the stream handler for Anthropic streaming
-	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		defer func() {
-			if err := stream.Close(); err != nil {
-				fiberlog.Errorf("[%s] failed to close anthropic stream: %v", requestID, err)
-			}
-		}()
-
-		for stream.Next() {
-			// Check for context cancellation
-			select {
-			case <-ctx.Done():
-				fiberlog.Infof("[%s] stream cancelled by client", requestID)
-				return
-			default:
-			}
-
-			event := stream.Current()
-
-			// Convert to adaptive format to clean up empty fields before sending to client
-			adaptiveEvent, err := format_adapter.AnthropicToAdaptive.ConvertStreamingChunk(&event, "anthropic")
-			if err != nil {
-				fiberlog.Errorf("[%s] failed to convert anthropic streaming event: %v", requestID, err)
-				continue
-			}
-
-			// Marshal the clean adaptive format directly (no conversion back to SDK format)
-			eventJSON, err := json.Marshal(adaptiveEvent)
-			if err != nil {
-				fiberlog.Errorf("[%s] failed to marshal adaptive event: %v", requestID, err)
-				continue
-			}
-
-			// Write as proper SSE with event type
-			if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", adaptiveEvent.Type, eventJSON); err != nil {
-				fiberlog.Errorf("[%s] failed to write SSE event: %v", requestID, err)
-				break
-			}
-
-			if err := w.Flush(); err != nil {
-				fiberlog.Errorf("[%s] failed to flush chunk: %v", requestID, err)
-				break
-			}
-		}
-
-		// Check for stream errors
-		if err := stream.Err(); err != nil {
-			fiberlog.Errorf("[%s] anthropic stream error: %v", requestID, err)
-		}
-
-		// Write completion message
-		if _, err := fmt.Fprintf(w, "data: [DONE]\n\n"); err != nil {
-			fiberlog.Errorf("[%s] failed to write done message: %v", requestID, err)
-		}
-		if err := w.Flush(); err != nil {
-			fiberlog.Errorf("[%s] failed to flush buffer: %v", requestID, err)
-		}
-	})
-
-	return nil
+	// Use the optimized stream handler that properly handles native Anthropic streams
+	return stream.HandleAnthropicNativeStream(c, anthropicStream, requestID, provider)
 }
 
 // HandleError handles error responses for Anthropic Messages API

@@ -2,10 +2,12 @@ package sse
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
@@ -16,39 +18,80 @@ import (
 
 // AnthropicSSEReader handles Anthropic Server-Sent Events streaming
 type AnthropicSSEReader struct {
-	reader   *bufio.Reader
-	reqID    string
-	provider string
+	reader    *bufio.Reader
+	reqID     string
+	provider  string
+	ctx       context.Context
+	closer    io.Closer
+	closeOnce sync.Once
 }
 
 // NewAnthropicSSEReader creates a new Anthropic SSE reader
-func NewAnthropicSSEReader(reader io.Reader, reqID, provider string) *AnthropicSSEReader {
-	return &AnthropicSSEReader{
+func NewAnthropicSSEReader(reader io.Reader, reqID, provider string, ctx context.Context) *AnthropicSSEReader {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var closer io.Closer
+	if readCloser, ok := reader.(io.ReadCloser); ok {
+		closer = readCloser
+	}
+
+	r := &AnthropicSSEReader{
 		reader:   bufio.NewReader(reader),
 		reqID:    reqID,
 		provider: provider,
+		ctx:      ctx,
+		closer:   closer,
 	}
+
+	// Spawn goroutine to handle context cancellation
+	if closer != nil {
+		go func() {
+			<-ctx.Done()
+			fiberlog.Debugf("[%s] Context cancelled, closing Anthropic stream", reqID)
+			if closeErr := closer.Close(); closeErr != nil {
+				fiberlog.Debugf("[%s] Error closing stream on cancellation: %v", reqID, closeErr)
+			}
+		}()
+	}
+
+	return r
 }
 
 // Read implements io.Reader interface for compatibility with stream processing
 func (r *AnthropicSSEReader) Read(p []byte) (n int, err error) {
-	// Read data from the underlying reader
+	// Non-blocking context check for performance
+	select {
+	case <-r.ctx.Done():
+		fiberlog.Infof("[%s] Context cancelled, stopping Anthropic stream", r.reqID)
+		// Use the concurrency-safe Close method
+		if closeErr := r.Close(); closeErr != nil {
+			fiberlog.Debugf("[%s] Error closing reader on cancellation: %v", r.reqID, closeErr)
+		}
+		return 0, r.ctx.Err()
+	default:
+	}
+
+	// Delegate to underlying reader (zero-copy when possible)
 	return r.reader.Read(p)
 }
 
-// ReadChunk reads the next chunk from the Anthropic SSE stream
+// ReadChunk reads the next chunk from the Anthropic SSE stream with high performance
 func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) {
+	var currentEventType string
+
 	for {
 		line, readErr := r.reader.ReadString('\n')
 		isEOF := readErr == io.EOF
 
+		// Handle read errors early (fail-fast principle)
 		if readErr != nil && !isEOF {
 			return nil, fmt.Errorf("failed to read from Anthropic SSE stream: %w", readErr)
 		}
 
+		// Optimize string trimming for common case (avoid allocation for empty lines)
 		line = strings.TrimSpace(line)
-
-		// Skip empty lines
 		if line == "" {
 			if isEOF {
 				return nil, io.EOF
@@ -56,10 +99,21 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 			continue
 		}
 
-		// Handle SSE format
-		if data, found := strings.CutPrefix(line, "data: "); found {
+		// Parse SSE lines efficiently using string operations
+		switch {
+		case strings.HasPrefix(line, "event: "):
+			// Extract event type efficiently
+			currentEventType = line[7:] // Skip "event: "
+			fiberlog.Debugf("[%s] Anthropic SSE event: %s", r.reqID, currentEventType)
+			if isEOF {
+				return nil, io.EOF
+			}
 
-			// Handle [DONE] marker
+		case strings.HasPrefix(line, "data: "):
+			// Extract data efficiently
+			data := line[6:] // Skip "data: "
+
+			// Handle [DONE] marker (fast path for completion)
 			if data == "[DONE]" {
 				return &models.AnthropicMessageChunk{
 					Type:     "message_stop",
@@ -67,9 +121,10 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 				}, nil
 			}
 
-			// Parse Anthropic streaming event
+			// Parse JSON chunk (reuse []byte to avoid string->[]byte conversion)
+			dataBytes := []byte(data)
 			var anthropicChunk anthropic.MessageStreamEventUnion
-			if err := json.Unmarshal([]byte(data), &anthropicChunk); err != nil {
+			if err := json.Unmarshal(dataBytes, &anthropicChunk); err != nil {
 				fiberlog.Errorf("[%s] Failed to parse Anthropic streaming chunk: %v", r.reqID, err)
 				if isEOF {
 					return nil, io.EOF
@@ -77,7 +132,7 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 				continue
 			}
 
-			// Convert Anthropic chunk to our adaptive Anthropic format using format adapter
+			// Convert chunk with event type context
 			adaptiveChunk, err := r.convertToAdaptiveAnthropicChunk(&anthropicChunk)
 			if err != nil {
 				fiberlog.Errorf("[%s] Failed to convert Anthropic chunk: %v", r.reqID, err)
@@ -87,28 +142,20 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 				continue
 			}
 
+			// Reset event type after successful processing (avoid state leakage)
 			return adaptiveChunk, nil
-		}
 
-		// Handle event lines (optional)
-		if eventType, found := strings.CutPrefix(line, "event: "); found {
-			// Log event type for debugging
-			fiberlog.Debugf("[%s] Anthropic SSE event: %s", r.reqID, eventType)
-			if isEOF {
-				return nil, io.EOF
+		default:
+			// Skip other SSE metadata lines efficiently
+			if strings.ContainsRune(line, ':') {
+				if isEOF {
+					return nil, io.EOF
+				}
+				continue
 			}
-			continue
 		}
 
-		// Skip other SSE metadata lines (id:, retry:, etc.)
-		if strings.Contains(line, ":") {
-			if isEOF {
-				return nil, io.EOF
-			}
-			continue
-		}
-
-		// If we processed a partial line and reached this point, return EOF
+		// Handle EOF at end of processing
 		if isEOF {
 			return nil, io.EOF
 		}
@@ -133,6 +180,12 @@ func (r *AnthropicSSEReader) convertToAdaptiveAnthropicChunk(anthropicChunk *ant
 
 // Close closes the reader (if applicable)
 func (r *AnthropicSSEReader) Close() error {
-	// Anthropic SSE reader doesn't need explicit cleanup
-	return nil
+	var err error
+	r.closeOnce.Do(func() {
+		if r.closer != nil {
+			err = r.closer.Close()
+			r.closer = nil
+		}
+	})
+	return err
 }

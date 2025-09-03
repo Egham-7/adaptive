@@ -150,7 +150,7 @@ func (ms *MessagesService) HandleProviderRequest(
 	// Check provider's native format to determine if conversion is needed
 	if providerConfig.NativeFormat == "anthropic" || providerConfig.NativeFormat == "" || provider == "anthropic" {
 		// Native Anthropic format - use directly
-		return ms.handleAnthropicProvider(c, req, providerConfig, isStreaming, requestID, responseSvc)
+		return ms.handleAnthropicProvider(c, req, providerConfig, isStreaming, requestID, responseSvc, provider)
 	}
 
 	// Provider uses different native format (likely OpenAI) - convert via format adapters
@@ -165,6 +165,7 @@ func (ms *MessagesService) handleAnthropicProvider(
 	isStreaming bool,
 	requestID string,
 	responseSvc *ResponseService,
+	provider string,
 ) error {
 	fiberlog.Debugf("[%s] Using native Anthropic provider", requestID)
 	client := ms.CreateClient(providerConfig)
@@ -174,7 +175,7 @@ func (ms *MessagesService) handleAnthropicProvider(
 		if err != nil {
 			return responseSvc.HandleError(c, err, requestID)
 		}
-		return responseSvc.HandleStreamingResponse(c, stream, requestID)
+		return responseSvc.HandleStreamingResponse(c, stream, requestID, provider)
 	}
 
 	message, err := ms.SendMessage(c.Context(), client, req, requestID)

@@ -66,6 +66,66 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
   Default: Uses server configuration. Override to prioritize cost savings or performance for this specific selection.
 </ParamField>
 
+<ParamField body="tools" type="object[]">
+  Available tool definitions for function calling detection
+  
+  Tool definitions help Adaptive understand if your prompt requires function calling capabilities, influencing model selection towards models that support tools.
+  
+  <Expandable title="Tool Definition Properties">
+    <ParamField body="type" type="string" required>
+      Type of tool (always "function")
+    </ParamField>
+    
+    <ParamField body="function" type="object" required>
+      Function definition object
+      
+      <Expandable title="Function Properties">
+        <ParamField body="name" type="string" required>
+          Name of the function
+        </ParamField>
+        
+        <ParamField body="description" type="string">
+          Description of what the function does
+        </ParamField>
+        
+        <ParamField body="parameters" type="object">
+          JSON Schema object defining the function parameters
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="tool_call" type="object">
+  Current tool call being made (if any)
+  
+  If this request is part of a tool calling sequence, provide the current tool call context to help with model selection optimization.
+  
+  <Expandable title="Tool Call Properties">
+    <ParamField body="id" type="string" required>
+      Unique identifier for the tool call
+    </ParamField>
+    
+    <ParamField body="type" type="string" required>
+      Type of tool call (always "function")
+    </ParamField>
+    
+    <ParamField body="function" type="object" required>
+      Function call details
+      
+      <Expandable title="Function Call Properties">
+        <ParamField body="name" type="string" required>
+          Name of the function being called
+        </ParamField>
+        
+        <ParamField body="arguments" type="string" required>
+          JSON string containing the function arguments
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
 <ParamField body="model_router_cache" type="object">
   Semantic cache configuration for this request
   
@@ -110,27 +170,6 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
   </Expandable>
 </ResponseField>
 
-<ResponseField name="metadata" type="object">
-  **Additional selection information** (for logging/debugging)
-  
-  <Expandable title="Selection Metadata">
-    <ResponseField name="reasoning" type="string">
-      Why this model was selected (optional)
-    </ResponseField>
-    
-    <ResponseField name="cost_per_1m_tokens" type="number">
-      Cost per 1M input tokens for the selected model (optional)
-    </ResponseField>
-    
-    <ResponseField name="complexity" type="string">
-      Complexity classification of the prompt (optional)
-    </ResponseField>
-    
-    <ResponseField name="cache_source" type="string">
-      Cache hit information if applicable (optional)
-    </ResponseField>
-  </Expandable>
-</ResponseField>
 
 ## Quick Examples
 
@@ -162,11 +201,7 @@ fi
 # Success response:
 {
   "provider": "openai", 
-  "model": "gpt-4o-mini",
-  "metadata": {
-    "cost_per_1m_tokens": 0.15,
-    "complexity": "low"
-  }
+  "model": "gpt-4o-mini"
 }
 ```
 
@@ -200,10 +235,7 @@ fi
   "model": "claude-3-5-sonnet-20241022",
   "alternatives": [
     {"provider": "openai", "model": "gpt-4o"}
-  ],
-  "metadata": {
-    "complexity": "high"
-  }
+  ]
 }
 ```
 
@@ -281,6 +313,57 @@ if (!response.ok) {
 const result = await response.json();
 console.log(result);
 // Check if it picked the cheaper model despite complexity
+```
+
+### "Function calling optimization"
+
+```bash
+# Models with function calling will be prioritized when tools are provided
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
+  -H "X-Stainless-API-Key: $API_KEY" \
+  -d '{
+    "models": [
+      {"provider": "openai", "model_name": "gpt-4o-mini"},
+      {"provider": "anthropic", "model_name": "claude-3-haiku"},
+      {"provider": "openai", "model_name": "gpt-3.5-turbo"}
+    ],
+    "prompt": "What is the weather like in San Francisco?",
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get current weather for a location",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {"type": "string", "description": "City name"}
+            },
+            "required": ["location"]
+          }
+        }
+      }
+    ]
+  }')
+
+http_code=$(echo "$response" | tail -n1)
+response_body=$(echo "$response" | head -n -1)
+
+if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+  echo "Success: $response_body"
+else
+  echo "Error $http_code: $response_body" >&2
+  exit 1
+fi
+
+# Success response - will prefer models that support function calling:
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "alternatives": [
+    {"provider": "openai", "model": "gpt-3.5-turbo"}
+  ]
+}
 ```
 
 ### "Compare different configurations"
@@ -468,13 +551,16 @@ const completion = await client.create({
 ```javascript
 // Keep sensitive data local while getting smart routing
 const selection = await selectModel({
-  model: '',
-  messages: [{ role: "user", content: "NON_SENSITIVE_TASK_DESCRIPTION" }],
+  models: [
+    { provider: "local", model_name: "llama-3-70b" },
+    { provider: "local", model_name: "llama-3-8b" }
+  ],
+  prompt: "NON_SENSITIVE_TASK_DESCRIPTION",
   // Don't send actual sensitive data to Adaptive
 });
 
 // Run inference on your secure infrastructure
-if (selection.metadata.complexity === "high") {
+if (selection.model === "llama-3-70b") {
   // Use your high-end local model
   const result = await yourLocalGPU.infer(actualSensitiveData);
 } else {
@@ -493,21 +579,15 @@ if (selection.metadata.complexity === "high") {
   "model": "claude-3-5-sonnet-20241022",
   "alternatives": [
     { "provider": "openai", "model": "gpt-4o" }
-  ],
-  "metadata": {
-    "cost_per_1m_tokens": 3.0,
-    "complexity": "high",
-    "cache_source": "model_router_cache"
-  }
+  ]
 }
 ```
 
 ### Key Insights
 
-- **`request.model`** - This is what gets sent to the actual provider
-- **`metadata.provider`** - Which API service will be called
-- **`metadata.cost_per_1m_tokens`** - Calculate your costs upfront
-- **`metadata.complexity`** - How Adaptive classified your task
+- **`provider`** - Which API service should be called
+- **`model`** - The specific model identifier to use with that provider
+- **`alternatives`** - Fallback options if the primary selection is unavailable
 
 ## Common Patterns
 

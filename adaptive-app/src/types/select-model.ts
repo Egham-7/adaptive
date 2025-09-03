@@ -36,6 +36,26 @@ const modelRouterConfigSchema = z.object({
 	token_threshold: z.number().optional(),
 });
 
+// Tool definition schema
+const toolSchema = z.object({
+	type: z.literal("function"),
+	function: z.object({
+		name: z.string(),
+		description: z.string().optional(),
+		parameters: z.record(z.string(), z.any()).optional(),
+	}),
+});
+
+// Tool call schema
+const toolCallSchema = z.object({
+	id: z.string(),
+	type: z.literal("function"),
+	function: z.object({
+		name: z.string(),
+		arguments: z.string(),
+	}),
+});
+
 // Provider-agnostic select model request schema
 export const selectModelRequestSchema = z
 	.object({
@@ -47,6 +67,10 @@ export const selectModelRequestSchema = z
 		prompt: z.string().min(1, "Prompt cannot be empty"),
 		// Optional user identifier for tracking and personalization
 		user: z.string().optional(),
+		// Tool definitions for function calling detection
+		tools: z.array(toolSchema).optional(),
+		// Current tool call being made (if any)
+		tool_call: toolCallSchema.optional(),
 		// Model router configuration for routing decisions
 		model_router: modelRouterConfigSchema.optional(),
 	})
@@ -58,14 +82,6 @@ export const alternativeSchema = z.object({
 	model: z.string(),
 });
 
-// Zod schema for selection metadata
-export const selectionMetadataSchema = z.object({
-	reasoning: z.string().optional(),
-	cost_per_1m_tokens: z.number().optional(),
-	complexity: z.string().optional(),
-	cache_source: z.string().optional(),
-});
-
 // Zod schema for select model response
 export const selectModelResponseSchema = z.object({
 	// Selected provider
@@ -74,12 +90,11 @@ export const selectModelResponseSchema = z.object({
 	model: z.string(),
 	// Alternative provider/model combinations
 	alternatives: z.array(alternativeSchema).optional(),
-	// Additional metadata about the selection
-	metadata: selectionMetadataSchema,
 });
 
 // TypeScript types derived from Zod schemas
 export type SelectModelRequest = z.infer<typeof selectModelRequestSchema>;
 export type Alternative = z.infer<typeof alternativeSchema>;
-export type SelectionMetadata = z.infer<typeof selectionMetadataSchema>;
 export type SelectModelResponse = z.infer<typeof selectModelResponseSchema>;
+export type Tool = z.infer<typeof toolSchema>;
+export type ToolCall = z.infer<typeof toolCallSchema>;

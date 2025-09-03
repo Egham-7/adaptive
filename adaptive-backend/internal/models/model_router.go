@@ -30,6 +30,10 @@ type SelectModelRequest struct {
 	CostBias *float32 `json:"cost_bias,omitzero"`
 	// Model router cache configuration
 	ModelRouterCache *CacheConfig `json:"model_router_cache,omitzero"`
+
+	// Tool-related fields for function calling detection
+	ToolCall any `json:"tool_call,omitzero"` // Current tool call being made
+	Tools    any `json:"tools,omitzero"`     // Available tool definitions
 }
 
 // SelectModelResponse represents the response for model selection
@@ -40,16 +44,6 @@ type SelectModelResponse struct {
 	Model string `json:"model"`
 	// Alternative provider/model combinations
 	Alternatives []Alternative `json:"alternatives,omitzero"`
-	// Additional metadata about the selection
-	Metadata SelectionMetadata `json:"metadata"`
-}
-
-// SelectionMetadata provides additional information about the model selection
-type SelectionMetadata struct {
-	Reasoning   string  `json:"reasoning,omitzero"`
-	CostPer1M   float64 `json:"cost_per_1m_tokens,omitzero"`
-	Complexity  string  `json:"complexity,omitzero"`
-	CacheSource string  `json:"cache_source,omitzero"`
 }
 
 // ModelSelectionRequest represents a request for model selection.
@@ -67,7 +61,6 @@ type ModelSelectionRequest struct {
 	Models              []ModelCapability `json:"models,omitzero"`
 	CostBias            *float32          `json:"cost_bias,omitzero"`
 	ComplexityThreshold *float32          `json:"complexity_threshold,omitzero"`
-	TokenThreshold      *int              `json:"token_threshold,omitzero"`
 }
 
 // Alternative represents a provider+model fallback candidate.

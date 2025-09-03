@@ -106,7 +106,6 @@ func (pm *ModelRouter) SelectModelWithCache(
 		Models:              modelRouterConfig.Models,
 		CostBias:            &modelRouterConfig.CostBias,
 		ComplexityThreshold: modelRouterConfig.ComplexityThreshold,
-		TokenThreshold:      modelRouterConfig.TokenThreshold,
 	}
 	resp := pm.client.SelectModel(context.Background(), req)
 
