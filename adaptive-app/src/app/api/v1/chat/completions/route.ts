@@ -15,9 +15,13 @@ export async function POST(req: NextRequest) {
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
 
+		console.log("Auth Header: ", authHeader);
+
 		const bearerToken = authHeader?.startsWith("Bearer ")
 			? authHeader.slice(7).replace(/\s+/g, "") || null
 			: null;
+
+		console.log("Bearer Token: ", bearerToken);
 
 		const apiKey =
 			bearerToken ||
