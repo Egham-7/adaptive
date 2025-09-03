@@ -24,7 +24,7 @@ icon: "wrench"
        // Correct - no 'Bearer' prefix needed
        const openai = new OpenAI({
          apiKey: 'your-adaptive-api-key',
-         baseURL: 'https://llmadaptive.uk/api/v1'
+         baseURL: 'https://www.llmadaptive.uk/api/v1'
        });
        ```
 
@@ -37,7 +37,7 @@ icon: "wrench"
        ```bash
        curl -H "X-Stainless-API-Key: your-adaptive-api-key" \
             -H "Content-Type: application/json" \
-            https://llmadaptive.uk/api/v1/chat/completions \
+            https://www.llmadaptive.uk/api/v1/chat/completions \
             -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
        ```
   </Accordion>
@@ -83,7 +83,7 @@ icon: "wrench"
 
     **Correct base URL:**
     ```
-    https://llmadaptive.uk/api/v1
+    https://www.llmadaptive.uk/api/v1
     ```
 
     **Common mistakes:**
@@ -91,10 +91,10 @@ icon: "wrench"
     // ❌ Wrong
     baseURL: 'https://api.openai.com/v1'
     baseURL: 'https://adaptive.ai/api/v1'
-    baseURL: 'https://llmadaptive.uk/v1'
+    baseURL: 'https://www.llmadaptive.uk/v1'
     
     // ✅ Correct
-    baseURL: 'https://llmadaptive.uk/api/v1'
+    baseURL: 'https://www.llmadaptive.uk/api/v1'
     ```
   </Accordion>
 
@@ -327,7 +327,7 @@ icon: "wrench"
        
        llm = ChatOpenAI(
            api_key=os.getenv("ADAPTIVE_API_KEY"),
-           base_url="https://llmadaptive.uk/api/v1",
+           base_url="https://www.llmadaptive.uk/api/v1",
            model=""  # Important: empty string
        )
        ```
@@ -339,7 +339,7 @@ icon: "wrench"
        const llm = new ChatOpenAI({
          apiKey: process.env.ADAPTIVE_API_KEY,
          configuration: {
-           baseURL: "https://llmadaptive.uk/api/v1"
+           baseURL: "https://www.llmadaptive.uk/api/v1"
          },
          model: ""
        });
@@ -368,7 +368,7 @@ icon: "wrench"
        
        const adaptiveOpenAI = openai({
          apiKey: process.env.ADAPTIVE_API_KEY,
-         baseURL: 'https://llmadaptive.uk/api/v1',
+         baseURL: 'https://www.llmadaptive.uk/api/v1',
        });
        
        const { text } = await generateText({
@@ -444,7 +444,7 @@ icon: "wrench"
        ping llmadaptive.uk
        
        # Test TLS handshake
-       curl -w "@curl-format.txt" -o /dev/null https://llmadaptive.uk/api/v1/
+       curl -w "@curl-format.txt" -o /dev/null https://www.llmadaptive.uk/api/v1/
        ```
 
     2. **Implement timeout handling:**
@@ -479,7 +479,7 @@ icon: "wrench"
        
        const openai = new OpenAI({
          apiKey: process.env.ADAPTIVE_API_KEY,
-         baseURL: 'https://llmadaptive.uk/api/v1',
+         baseURL: 'https://www.llmadaptive.uk/api/v1',
          httpAgent: agent
        });
        ```
@@ -631,7 +631,7 @@ When reporting issues, please include:
   <Step title="Network Diagnostics">
     ```bash
     # Test connectivity
-    curl -I https://llmadaptive.uk/api/v1/
+    curl -I https://www.llmadaptive.uk/api/v1/
     
     # DNS resolution
     nslookup llmadaptive.uk
@@ -680,7 +680,7 @@ When reporting issues, please include:
   <Step title="Test with curl">
     Verify API access outside your application
     ```bash
-    curl -X POST https://llmadaptive.uk/api/v1/chat/completions \
+    curl -X POST https://www.llmadaptive.uk/api/v1/chat/completions \
       -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
@@ -705,7 +705,7 @@ class AdaptiveClient {
   constructor(apiKey) {
     this.openai = new OpenAI({
       apiKey: apiKey,
-      baseURL: 'https://llmadaptive.uk/api/v1'
+      baseURL: 'https://www.llmadaptive.uk/api/v1'
     });
   }
   

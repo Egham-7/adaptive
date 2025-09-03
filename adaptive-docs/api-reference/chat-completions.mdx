@@ -1,6 +1,6 @@
 ---
 title: 'Chat Completions'
-api: 'POST https://llmadaptive.uk/api/v1/chat/completions'
+api: 'POST https://www.llmadaptive.uk/api/v1/chat/completions'
 description: 'OpenAI-compatible completions with 60-80% cost savings'
 icon: "comments"
 ---
@@ -601,7 +601,7 @@ print(f"Cache tier: {completion.usage.cache_tier or 'none'}")
 ```
 
 ```bash cURL - Copy & Run
-curl https://llmadaptive.uk/api/v1/chat/completions \
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
   -d '{
@@ -1010,7 +1010,7 @@ The `usage.cache_tier` field shows which cache served your response:
    headers: { "X-API-Key": "your-key" }  // Wrong header name
    ```
 
-2. **Verify your key**: Copy-paste from [llmadaptive.uk](https://llmadaptive.uk) dashboard
+2. **Verify your key**: Copy-paste from [llmadaptive.uk](https://www.llmadaptive.uk) dashboard
 3. **Check environment variables**:
    ```bash
    echo $ADAPTIVE_API_KEY  # Should show your key
@@ -1020,7 +1020,7 @@ The `usage.cache_tier` field shows which cache served your response:
 ```javascript
 const openai = new OpenAI({
   apiKey: process.env.ADAPTIVE_API_KEY,  // ← Make sure this is set
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
 });
 ```
 </Accordion>
@@ -1094,7 +1094,7 @@ const openai = new OpenAI({
    }
    ```
 
-3. **Upgrade your plan** at [llmadaptive.uk](https://llmadaptive.uk) for higher limits
+3. **Upgrade your plan** at [llmadaptive.uk](https://www.llmadaptive.uk) for higher limits
 4. **Use caching** to reduce requests:
    ```javascript
    prompt_response_cache: { enabled: true }
