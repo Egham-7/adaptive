@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
 	try {
 		const body: ChatCompletionRequest = await req.json();
 
+		console.log("Headers: ", req.headers);
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
 
