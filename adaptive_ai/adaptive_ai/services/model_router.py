@@ -178,6 +178,13 @@ class ModelRouter:
             if model.is_partial:
                 # Partial model - use as filter criteria
                 matching_models = model_registry.find_models_matching_criteria(model)
+                # Validate that registry returned complete models
+                for resolved_model in matching_models:
+                    if resolved_model.is_partial:
+                        raise ValueError(
+                            f"Registry returned partial model after resolution: {resolved_model}. "
+                            "This indicates incomplete registry data or resolution logic failure."
+                        )
                 candidate_models.extend(matching_models)
             else:
                 # Full model - use directly (but verify it exists in registry)
