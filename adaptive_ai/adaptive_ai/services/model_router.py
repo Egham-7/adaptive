@@ -265,10 +265,64 @@ class ModelRouter:
 
         return (model.cost_per_1m_input_tokens or 0) / max_cost if max_cost > 0 else 0.5
 
-    def _apply_integrated_routing(
-        self, models: list[ModelCapability], task_complexity: float, cost_bias: float
+    def _apply_complexity_routing(
+        self, models: list[ModelCapability], task_complexity: float
     ) -> list[ModelCapability]:
-        """Apply integrated complexity and cost routing in a single step."""
+        """Apply complexity-based routing to rank models by task suitability.
+
+        This method ranks models based on how well they match the required task complexity,
+        without considering cost factors. Models that can handle the required complexity
+        receive higher scores.
+
+        Args:
+            models: List of available models to rank
+            task_complexity: Required task complexity (0.0-1.0)
+
+        Returns:
+            List of models ranked by complexity suitability (best first)
+        """
+        if not models:
+            return models
+
+        def calculate_complexity_score(model: ModelCapability) -> float:
+            # Calculate how well this model's complexity aligns with task requirements
+            model_complexity = self._calculate_complexity_score(model, models)
+            complexity_diff = abs(task_complexity - model_complexity)
+            alignment_score = 1.0 - complexity_diff
+
+            # Boost score if model can handle the required complexity
+            if model_complexity >= task_complexity:
+                capability_bonus = 0.2 * (1.0 - complexity_diff)
+                alignment_score += capability_bonus
+
+            return alignment_score
+
+        # Calculate complexity scores and sort
+        scored_models = [(calculate_complexity_score(model), model) for model in models]
+
+        # Sort by complexity score (highest first)
+        return [
+            model
+            for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)
+        ]
+
+    def _apply_cost_bias(
+        self, models: list[ModelCapability], cost_bias: float
+    ) -> list[ModelCapability]:
+        """Apply cost bias to rerank models based on cost vs capability preferences.
+
+        This method takes models that have already been ranked by complexity suitability
+        and reranks them based on cost optimization preferences.
+
+        Args:
+            models: List of models already ranked by complexity
+            cost_bias: Cost vs capability preference (0.0-1.0)
+                      0.0 = prefer cheapest models
+                      1.0 = prefer most capable models
+
+        Returns:
+            List of models reranked by cost bias (best first)
+        """
         if not models:
             return models
 
@@ -280,17 +334,7 @@ class ModelRouter:
         max_cost = max(total_costs) if total_costs else 0
         max_capability = max((m.max_context_tokens or 0) for m in models)
 
-        def calculate_integrated_score(model: ModelCapability) -> float:
-            # Complexity alignment score
-            model_complexity = self._calculate_complexity_score(model, models)
-            complexity_diff = abs(task_complexity - model_complexity)
-            alignment_score = 1.0 - complexity_diff
-
-            # Boost score if model can handle complexity
-            if model_complexity >= task_complexity:
-                capability_bonus = 0.2 * (1.0 - complexity_diff)
-                alignment_score += capability_bonus
-
+        def calculate_cost_bias_score(model: ModelCapability) -> float:
             # Cost and capability scores
             cost = (model.cost_per_1m_input_tokens or 0) + (
                 model.cost_per_1m_output_tokens or 0
@@ -303,39 +347,52 @@ class ModelRouter:
             # EXTREME COST BIAS OVERRIDE: For very low/high cost_bias, prioritize cost over complexity
             if cost_bias <= 0.1:
                 # Ultra-low cost bias: prioritize cheapest models
-                return cost_score * 0.9 + alignment_score * 0.1
+                return cost_score * 0.9 + capability_score * 0.1
             elif cost_bias >= 0.9:
                 # Ultra-high cost bias: prioritize most capable models
-                return capability_score * 0.9 + alignment_score * 0.1
+                return capability_score * 0.9 + cost_score * 0.1
             else:
                 # Standard balanced routing for moderate cost_bias values
                 cost_capability_score = (
                     1 - cost_bias
                 ) * cost_score + cost_bias * capability_score
 
-                # Dynamic weighting based on how far from neutral (0.5) the cost_bias is
-                cost_bias_strength = (
-                    abs(cost_bias - 0.5) * 2
-                )  # 0.0 at bias=0.5, 1.0 at bias=0.0/1.0
+                # For moderate cost_bias, we combine cost and capability in a balanced way
+                return cost_capability_score
 
-                # Adjust weights: more extreme cost_bias = more cost influence
-                complexity_weight = 0.6 * (1 - cost_bias_strength * 0.5)  # 0.6 to 0.3
-                cost_weight = 0.4 + (cost_bias_strength * 0.5)  # 0.4 to 0.9
+        # Calculate cost bias scores and sort
+        scored_models = [(calculate_cost_bias_score(model), model) for model in models]
 
-                # Normalize weights
-                total_weight = complexity_weight + cost_weight
-                final_score = (
-                    complexity_weight * alignment_score
-                    + cost_weight * cost_capability_score
-                ) / total_weight
-
-                return final_score
-
-        # Calculate scores and sort
-        scored_models = [(calculate_integrated_score(model), model) for model in models]
-
-        # Sort by final score (highest first)
+        # Sort by cost bias score (highest first)
         return [
             model
             for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)
         ]
+
+    def _apply_integrated_routing(
+        self, models: list[ModelCapability], task_complexity: float, cost_bias: float
+    ) -> list[ModelCapability]:
+        """Apply two-step routing: complexity-based, then cost-biased.
+
+        This method implements the two-stage routing approach:
+        1. First, rank models by complexity suitability
+        2. Then, apply cost bias to rerank based on cost vs capability preferences
+
+        Args:
+            models: List of available models to rank
+            task_complexity: Required task complexity (0.0-1.0)
+            cost_bias: Cost vs capability preference (0.0-1.0)
+
+        Returns:
+            List of models ranked by the integrated approach (best first)
+        """
+        if not models:
+            return models
+
+        # Step 1: Apply complexity-based routing
+        complexity_ranked = self._apply_complexity_routing(models, task_complexity)
+
+        # Step 2: Apply cost bias to rerank
+        final_ranked = self._apply_cost_bias(complexity_ranked, cost_bias)
+
+        return final_ranked
