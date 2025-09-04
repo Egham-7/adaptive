@@ -105,7 +105,7 @@ class ModelRegistry:
             # Context filtering (min requirement)
             if partial_model.max_context_tokens is not None:
                 if (
-                    not model.max_context_tokens
+                    model.max_context_tokens is None
                     or model.max_context_tokens < partial_model.max_context_tokens
                 ):
                     continue
@@ -113,7 +113,7 @@ class ModelRegistry:
             # Cost filtering (max budget for input)
             if partial_model.cost_per_1m_input_tokens is not None:
                 if (
-                    not model.cost_per_1m_input_tokens
+                    model.cost_per_1m_input_tokens is None
                     or model.cost_per_1m_input_tokens
                     > partial_model.cost_per_1m_input_tokens
                 ):
@@ -122,12 +122,11 @@ class ModelRegistry:
             # Cost filtering (max budget for output)
             if partial_model.cost_per_1m_output_tokens is not None:
                 if (
-                    not model.cost_per_1m_output_tokens
+                    model.cost_per_1m_output_tokens is None
                     or model.cost_per_1m_output_tokens
                     > partial_model.cost_per_1m_output_tokens
                 ):
                     continue
-
             # Function calling support
             if partial_model.supports_function_calling is True:
                 if model.supports_function_calling is not True:
