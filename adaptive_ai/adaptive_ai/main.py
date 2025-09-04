@@ -23,13 +23,11 @@ import time
 from typing import Any
 
 import litserve as ls
-import tiktoken
 
 from adaptive_ai.core.config import get_settings
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import (
     Alternative,
-    ModelCapability,
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
@@ -128,9 +126,6 @@ class ModelRouterAPI(ls.LitAPI):
         """
         self.settings = get_settings()
 
-        # Initialize tokenizer with fallback
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")
-
         # Initialize ML components
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
         self.model_router = ModelRouter(lit_logger=self)
@@ -192,7 +187,7 @@ class ModelRouterAPI(ls.LitAPI):
             classification.task_type_1[0] if classification.task_type_1 else None
         )
         task_type = self._convert_to_task_type(task_type_str)
-        models_input = self._extract_models_input(request)
+        models_input = request.models
         cost_bias = request.cost_bias
 
         # Select models
@@ -235,35 +230,6 @@ class ModelRouterAPI(ls.LitAPI):
             model=best_model.model_name,
             alternatives=alternatives,
         )
-
-    def _count_tokens(self, text: str) -> int:
-        """Count tokens in text with fallback.
-
-        Args:
-            text: Input text to count tokens for
-
-        Returns:
-            Estimated token count
-        """
-        try:
-            if self.tokenizer:
-                return len(self.tokenizer.encode(text))
-            else:
-                # Fallback approximation: 1 token ≈ 4 characters
-                return len(text) // 4
-        except Exception as e:
-            self.log("tokenizer_fallback", {"error": str(e)})
-            return len(text) // 4  # Rough approximation
-
-    def _extract_models_input(
-        self, request: ModelSelectionRequest
-    ) -> list[ModelCapability] | None:
-        """Extract models input from request."""
-        return request.models
-
-    def encode_response(self, output: ModelSelectionResponse) -> ModelSelectionResponse:
-        """Encode response for transmission."""
-        return output
 
 
 def create_app() -> ls.LitServer:

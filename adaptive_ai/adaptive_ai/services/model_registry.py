@@ -2,8 +2,6 @@
 Model registry service for validating model names across all providers.
 """
 
-from collections.abc import Callable
-
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
@@ -82,99 +80,79 @@ class ModelRegistry:
             models = registry.find_models_matching_criteria(criteria)
         """
         # Models are already loaded at startup
-        all_models: list[ModelCapability] = list(
-            yaml_model_db.get_all_models().values()
-        )
+        all_models = list(yaml_model_db.get_all_models().values())
 
-        # Create filter predicates based on partial model criteria
-        filters: list[Callable[[ModelCapability], bool]] = []
+        # Simple direct filtering without complex lambda predicates
+        matching_models = []
 
-        # Provider filtering
-        if partial_model.provider is not None and partial_model.provider.strip():
-            provider_norm = partial_model.provider.strip().lower()
-            filters.append(
-                lambda m: (getattr(m, "provider", "") or "").strip().lower()
-                == provider_norm
-            )
+        for model in all_models:
+            # Provider filtering (case-insensitive)
+            if partial_model.provider:
+                if (
+                    not model.provider
+                    or model.provider.lower() != partial_model.provider.lower()
+                ):
+                    continue
 
-        # Model name filtering
-        if partial_model.model_name is not None and partial_model.model_name.strip():
-            model_name_norm = partial_model.model_name.strip().lower()
-            filters.append(
-                lambda m: (getattr(m, "model_name", "") or "").strip().lower()
-                == model_name_norm
-            )
+            # Model name filtering
+            if partial_model.model_name:
+                if (
+                    not model.model_name
+                    or model.model_name.lower() != partial_model.model_name.lower()
+                ):
+                    continue
 
-        # Context filtering (min requirement)
-        if partial_model.max_context_tokens is not None:
-            min_tokens = partial_model.max_context_tokens
-            filters.append(
-                lambda m: (
-                    m.max_context_tokens is not None
-                    and m.max_context_tokens >= min_tokens
-                )
-            )
+            # Context filtering (min requirement)
+            if partial_model.max_context_tokens is not None:
+                if (
+                    model.max_context_tokens is None
+                    or model.max_context_tokens < partial_model.max_context_tokens
+                ):
+                    continue
 
-        # Cost filtering (max budget for input)
-        if partial_model.cost_per_1m_input_tokens is not None:
-            max_cost_input = partial_model.cost_per_1m_input_tokens
-            filters.append(
-                lambda m: (
-                    m.cost_per_1m_input_tokens is not None
-                    and m.cost_per_1m_input_tokens <= max_cost_input
-                )
-            )
+            # Cost filtering (max budget for input)
+            if partial_model.cost_per_1m_input_tokens is not None:
+                if (
+                    model.cost_per_1m_input_tokens is None
+                    or model.cost_per_1m_input_tokens
+                    > partial_model.cost_per_1m_input_tokens
+                ):
+                    continue
 
-        # Cost filtering (max budget for output)
-        if partial_model.cost_per_1m_output_tokens is not None:
-            max_cost_output = partial_model.cost_per_1m_output_tokens
-            filters.append(
-                lambda m: (
-                    m.cost_per_1m_output_tokens is not None
-                    and m.cost_per_1m_output_tokens <= max_cost_output
-                )
-            )
+            # Cost filtering (max budget for output)
+            if partial_model.cost_per_1m_output_tokens is not None:
+                if (
+                    model.cost_per_1m_output_tokens is None
+                    or model.cost_per_1m_output_tokens
+                    > partial_model.cost_per_1m_output_tokens
+                ):
+                    continue
+            # Function calling support
+            if partial_model.supports_function_calling is True:
+                if model.supports_function_calling is not True:
+                    continue
 
-        # Function calling support
-        if partial_model.supports_function_calling is True:
-            filters.append(lambda m: m.supports_function_calling is True)
+            # Task type filtering
+            if partial_model.task_type is not None:
+                if model.task_type is not None:
+                    model_task_str = str(model.task_type).strip().lower()
+                    partial_task_str = str(partial_model.task_type).strip().lower()
+                    if model_task_str != partial_task_str:
+                        continue
+                # If model has no task_type, it supports all tasks (continue)
 
-        # Task type filtering
-        if partial_model.task_type is not None:
-            task_type = partial_model.task_type
-            # Normalize task_type for comparison (case-insensitive, trimmed)
-            normalized_task_type = (
-                str(task_type).strip().lower() if task_type is not None else None
-            )
-            filters.append(
-                lambda m: (
-                    m.task_type is None  # No restriction means supports all
-                    or (
-                        normalized_task_type is not None
-                        and str(m.task_type).strip().lower() == normalized_task_type
-                        if m.task_type is not None
-                        else False
-                    )
-                )
-            )
+            # Complexity filtering
+            if partial_model.complexity is not None:
+                if (
+                    not model.complexity
+                    or model.complexity.lower() != partial_model.complexity.lower()
+                ):
+                    continue
 
-        # Complexity filtering
-        if partial_model.complexity is not None:
-            complexity_lower = partial_model.complexity.lower()
-            filters.append(
-                lambda m: (
-                    m.complexity is not None
-                    and m.complexity.lower() == complexity_lower
-                )
-            )
+            # If we get here, model matches all criteria
+            matching_models.append(model)
 
-        # Apply all filters with AND logic using list comprehension
-        if not filters:
-            # No criteria specified - return all models
-            return all_models
-
-        # Filter models by applying all predicates using comprehension
-        return [model for model in all_models if all(f(model) for f in filters)]
+        return matching_models
 
 
 # Global instance for use across the application

@@ -68,7 +68,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def compute_results(
         self, preds: torch.Tensor, target: str, decimal: int = 4
-    ) -> tuple[list[str], list[str], list[float]] | list[float]:
+    ) -> tuple[list[str], list[str], list[float]] | list[float] | list[int]:
         if target == "task_type":
             top2_indices = torch.topk(preds, k=2, dim=1).indices
             softmax_probs = torch.softmax(preds, dim=1)
@@ -96,14 +96,16 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
             scores = weighted_sum / self.divisor_map[target]
             scores = [round(value, decimal) for value in scores]
             if target == "number_of_few_shots":
-                scores = [x if x >= 0.05 else 0 for x in scores]
+                # Convert to integer count of examples needed
+                int_scores = [max(0, round(x)) for x in scores]
+                return cast(list[int], int_scores)
             return cast(list[float], scores)
 
     def _extract_classification_results(
         self, logits: list[torch.Tensor]
-    ) -> dict[str, list[str] | list[float] | float]:
+    ) -> dict[str, list[str] | list[float] | list[int] | float]:
         """Extract individual classification results from logits."""
-        result: dict[str, list[str] | list[float] | float] = {}
+        result: dict[str, list[str] | list[float] | list[int] | float] = {}
 
         # Task type classification
         task_type_logits = logits[0]
@@ -133,7 +135,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def _calculate_complexity_scores(
         self,
-        results: dict[str, list[str] | list[float] | float],
+        results: dict[str, list[str] | list[float] | list[int] | float],
         task_types: list[str],
     ) -> list[float]:
         """Calculate complexity scores using task-specific weights."""
@@ -180,12 +182,12 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def _extract_single_sample_results(
         self,
-        batch_results: dict[str, list[str] | list[float] | float],
+        batch_results: dict[str, list[str] | list[float] | list[int] | float],
         sample_idx: int,
-    ) -> dict[str, list[str] | list[float] | float]:
+    ) -> dict[str, list[str] | list[float] | list[int] | float]:
         """Extract results for a single sample from batch results."""
 
-        single_result: dict[str, list[str] | list[float] | float] = {}
+        single_result: dict[str, list[str] | list[float] | list[int] | float] = {}
 
         for key, value in batch_results.items():
             if isinstance(value, list | tuple) and len(value) > sample_idx:
@@ -194,8 +196,10 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
                 # Ensure proper typing based on the extracted value
                 if isinstance(extracted_value, str):
                     single_result[key] = [extracted_value]  # List[str]
-                elif isinstance(extracted_value, int | float):
-                    single_result[key] = [float(extracted_value)]  # List[float]
+                elif isinstance(extracted_value, int):
+                    single_result[key] = [extracted_value]  # List[int]
+                elif isinstance(extracted_value, float):
+                    single_result[key] = [extracted_value]  # List[float]
                 else:
                     single_result[key] = [extracted_value]
             elif isinstance(value, int | float):
@@ -209,7 +213,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def process_logits(
         self, logits: list[torch.Tensor]
-    ) -> list[dict[str, list[str] | list[float] | float]]:
+    ) -> list[dict[str, list[str] | list[float] | list[int] | float]]:
         """Main orchestration method for processing logits and calculating complexity scores for batched inputs."""
         batch_size = logits[0].shape[0]
 
@@ -234,7 +238,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
 
     def forward(
         self, batch: dict[str, torch.Tensor]
-    ) -> list[dict[str, list[str] | list[float] | float]]:
+    ) -> list[dict[str, list[str] | list[float] | list[int] | float]]:
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
