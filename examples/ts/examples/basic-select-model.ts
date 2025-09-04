@@ -78,7 +78,7 @@ async function main() {
     // A value of 0.9 heavily prioritizes cost savings, often selecting cheaper models
     // even for moderately complex tasks. This is perfect for budget-conscious applications.
     console.log("=== Example 2: Cost-Optimized Selection ===");
-    console.log("Using cost_bias=0.9 to prioritize cost savings...");
+    console.log("Using cost_bias=0.1 to prioritize cost savings...");
 
     const costOptimizedResponse = await fetch(`${baseURL}/select-model`, {
       method: "POST",
@@ -93,7 +93,7 @@ async function main() {
           { provider: "anthropic", model_name: "claude-3-5-sonnet-20241022" },
         ],
         prompt: "Write a simple Python function to calculate fibonacci numbers",
-        cost_bias: 0.9, // Prioritize cost savings
+        cost_bias: 0.1, // Prioritize cost savings
       }),
     });
 
@@ -116,7 +116,7 @@ async function main() {
     // such as detailed analysis, code generation, or creative writing.
     console.log("=== Example 3: Performance-Focused Selection ===");
     console.log(
-      "Using cost_bias=0.1 to prioritize performance for complex analysis...",
+      "Using cost_bias=0.9 to prioritize performance for complex analysis...",
     );
 
     const performanceResponse = await fetch(`${baseURL}/select-model`, {
@@ -133,7 +133,7 @@ async function main() {
         ],
         prompt:
           "Analyze this complex dataset and provide detailed insights on market trends, customer behavior patterns, and predictive analytics recommendations",
-        cost_bias: 0.1, // Prioritize performance
+        cost_bias: 0.9, // Prioritize performance
       }),
     });
 
@@ -275,7 +275,7 @@ async function main() {
           },
         ],
         prompt: "Hello, how are you?",
-        cost_bias: 0.9, // Should prefer the free local model
+        cost_bias: 0.1, // Should prefer the free local model
       }),
     });
 
@@ -299,7 +299,7 @@ async function main() {
     console.log();
     console.log("Key takeaways:");
     console.log(
-      "• Use cost_bias to balance cost vs performance (0.0 = best performance, 1.0 = cheapest)",
+      "• Use cost_bias to balance cost vs performance (0.0 = cheapest, 1.0 = performance)",
     );
     console.log(
       "• Include tool definitions to prioritize function calling models",
