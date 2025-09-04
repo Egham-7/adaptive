@@ -37,6 +37,8 @@ class ModelCapability(BaseModel):
         return any(
             field is None
             for field in [
+                self.provider,
+                self.model_name,
                 self.cost_per_1m_input_tokens,
                 self.cost_per_1m_output_tokens,
                 self.max_context_tokens,

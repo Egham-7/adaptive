@@ -10,7 +10,7 @@ Get started with Adaptive by changing one line of code. No complex setup require
 
 <Steps>
   <Step title="Sign Up">
-    Create a free account at [llmadaptive.uk](https://llmadaptive.uk)
+    Create a free account at [llmadaptive.uk](https://www.llmadaptive.uk)
   </Step>
   <Step title="Generate Key">
     Generate your API key from the dashboard
@@ -70,7 +70,7 @@ import OpenAI from 'openai';
 
 const client = new OpenAI({
   apiKey: 'your-adaptive-api-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
 });
 
 const response = await client.chat.completions.create({
@@ -86,7 +86,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-adaptive-api-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
 response = client.chat.completions.create(
@@ -98,7 +98,7 @@ print(response.choices[0].message.content)
 ```
 
 ```bash cURL
-curl https://llmadaptive.uk/api/v1/chat/completions \
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-adaptive-api-key" \
   -d '{
@@ -118,7 +118,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
   apiKey: 'your-adaptive-api-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
 });
 
 const response = await client.messages.create({
@@ -135,7 +135,7 @@ import anthropic
 
 client = anthropic.Anthropic(
     api_key="your-adaptive-api-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
 response = client.messages.create(
@@ -148,7 +148,7 @@ print(response.content[0].text)
 ```
 
 ```bash cURL
-curl https://llmadaptive.uk/api/v1/messages \
+curl https://www.llmadaptive.uk/api/v1/messages \
   -H "Content-Type: application/json" \
   -H "x-api-key: your-adaptive-api-key" \
   -H "anthropic-version: 2023-06-01" \
@@ -171,7 +171,7 @@ import { generateText } from 'ai';
 
 const { text } = await generateText({
   model: openai('', {
-    baseURL: 'https://llmadaptive.uk/api/v1',
+    baseURL: 'https://www.llmadaptive.uk/api/v1',
     apiKey: 'your-adaptive-api-key'
   }),
   prompt: 'Hello!'
@@ -186,7 +186,7 @@ import { streamText } from 'ai';
 
 const { textStream } = await streamText({
   model: openai('', {
-    baseURL: 'https://llmadaptive.uk/api/v1',
+    baseURL: 'https://www.llmadaptive.uk/api/v1',
     apiKey: 'your-adaptive-api-key'
   }),
   prompt: 'Write a story about AI'
@@ -233,7 +233,7 @@ import { ChatOpenAI } from '@langchain/openai';
 const model = new ChatOpenAI({
   openAIApiKey: 'your-adaptive-api-key',
   configuration: {
-    baseURL: 'https://llmadaptive.uk/api/v1'
+    baseURL: 'https://www.llmadaptive.uk/api/v1'
   },
   modelName: '' // Leave empty for intelligent routing
 });
@@ -247,7 +247,7 @@ from langchain_openai import ChatOpenAI
 
 model = ChatOpenAI(
     openai_api_key="your-adaptive-api-key",
-    openai_api_base="https://llmadaptive.uk/api/v1",
+    openai_api_base="https://www.llmadaptive.uk/api/v1",
     model_name="" # Leave empty for intelligent routing
 )
 
@@ -262,7 +262,7 @@ from langchain.prompts import PromptTemplate
 
 model = ChatOpenAI(
     openai_api_key="your-adaptive-api-key",
-    openai_api_base="https://llmadaptive.uk/api/v1",
+    openai_api_base="https://www.llmadaptive.uk/api/v1",
     model_name=""
 )
 
@@ -359,7 +359,7 @@ Adaptive returns standard OpenAI or Anthropic-compatible responses with addition
     Confirm you receive a response and check the `provider` field to see which model was selected
   </Step>
   <Step title="Monitor Dashboard">
-    View request logs and analytics in your [Adaptive dashboard](https://llmadaptive.uk/dashboard)
+    View request logs and analytics in your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard)
   </Step>
 </Steps>
 
@@ -386,7 +386,7 @@ Adaptive returns standard OpenAI or Anthropic-compatible responses with addition
   <Card title="Troubleshooting" href="/troubleshooting" icon="wrench">
     Common issues and their solutions
   </Card>
-  <Card title="Support" href="https://llmadaptive.uk/support" icon="life-ring">
+  <Card title="Support" href="https://www.llmadaptive.uk/support" icon="life-ring">
     Get help from our team
   </Card>
 </CardGroup>

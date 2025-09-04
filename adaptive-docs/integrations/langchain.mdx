@@ -26,7 +26,7 @@ from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
     api_key="your-adaptive-api-key",
-    base_url="https://llmadaptive.uk/api/v1",
+    base_url="https://www.llmadaptive.uk/api/v1",
     model="" # Empty string enables intelligent routing
 )
 
@@ -39,7 +39,7 @@ import { ChatOpenAI } from "@langchain/openai";
 
 const llm = new ChatOpenAI({
   apiKey: "your-adaptive-api-key",
-  baseURL: "https://llmadaptive.uk/api/v1", 
+  baseURL: "https://www.llmadaptive.uk/api/v1", 
   model: "" // Empty string enables intelligent routing
 });
 
@@ -161,7 +161,7 @@ from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(
     api_key=os.getenv("ADAPTIVE_API_KEY"),
-    base_url="https://llmadaptive.uk/api/v1",
+    base_url="https://www.llmadaptive.uk/api/v1",
     model=""
 )
 ```
@@ -171,7 +171,7 @@ import { ChatOpenAI } from "@langchain/openai";
 
 const llm = new ChatOpenAI({
   apiKey: process.env.ADAPTIVE_API_KEY,
-  baseURL: "https://llmadaptive.uk/api/v1",
+  baseURL: "https://www.llmadaptive.uk/api/v1",
   model: ""
 });
 ```
@@ -193,7 +193,7 @@ llm = ChatOpenAI(
 # After  
 llm = ChatOpenAI(
     api_key="your-adaptive-api-key",     # ← New API key
-    base_url="https://llmadaptive.uk/api/v1", # ← Add this line
+    base_url="https://www.llmadaptive.uk/api/v1", # ← Add this line
     model=""  # ← Empty for intelligent routing
 )
 ```
@@ -209,7 +209,7 @@ const llm = new ChatOpenAI({
 // After
 const llm = new ChatOpenAI({
   apiKey: "your-adaptive-api-key",        // ← New API key
-  baseURL: "https://llmadaptive.uk/api/v1", // ← Add this line  
+  baseURL: "https://www.llmadaptive.uk/api/v1", // ← Add this line  
   model: ""  // ← Empty for intelligent routing
 });
 ```
