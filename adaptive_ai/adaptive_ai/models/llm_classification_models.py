@@ -63,9 +63,9 @@ class ClassificationResult(BaseModel):
         description="Domain-specific knowledge requirement (0=general, 1=specialist)",
         examples=[[0.1, 0.9]],
     )
-    number_of_few_shots: list[UnitFloat] = Field(
-        description="Few-shot learning requirement (0=none, 1=many examples)",
-        examples=[[0.0, 0.3]],
+    number_of_few_shots: list[int] = Field(
+        description="Few-shot learning requirement (number of examples needed)",
+        examples=[[0, 3]],
     )
     no_label_reason: list[UnitFloat] = Field(
         description="Confidence in classification accuracy (0=low, 1=high)",

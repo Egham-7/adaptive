@@ -176,6 +176,13 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (requiring running service)",
+    "unit: marks tests as unit tests (no external dependencies)",
+]
+addopts = "-v --strict-markers"
+
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",
