@@ -7,7 +7,9 @@ import requests
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip integration tests in CI environment")
+@pytest.mark.skipif(
+    os.getenv("CI") == "true", reason="Skip integration tests in CI environment"
+)
 class TestErrorHandling:
     """Test error handling scenarios and edge cases."""
 
