@@ -1,10 +1,13 @@
 """Routing consistency tests for @adaptive_ai/ model selection."""
 
+import os
+
 import pytest
 import requests
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip integration tests in CI environment")
 class TestRoutingConsistency:
     """Test that routing is consistent and logical."""
 

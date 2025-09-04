@@ -1,10 +1,13 @@
 """Comprehensive tests for task type specialization and routing intelligence."""
 
+import os
+
 import pytest
 import requests
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip integration tests in CI environment")
 class TestTaskTypeSpecialization:
     """Test that all TaskType enum values route to appropriate models."""
 
@@ -199,6 +202,7 @@ class TestTaskTypeSpecialization:
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip integration tests in CI environment")
 class TestProviderConstraints:
     """Test provider-specific constraints and routing."""
 
@@ -349,6 +353,7 @@ class TestProviderConstraints:
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip integration tests in CI environment")
 class TestComplexRoutingScenarios:
     """Test complex routing scenarios with multiple constraints."""
 
@@ -500,6 +505,7 @@ class TestComplexRoutingScenarios:
 
 
 @pytest.mark.integration
+@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skip integration tests in CI environment")
 class TestTaskComplexityRouting:
     """Test that task complexity affects model routing appropriately."""
 
