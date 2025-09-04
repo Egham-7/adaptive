@@ -4,6 +4,7 @@ import pytest
 import requests
 
 
+@pytest.mark.integration
 class TestCustomModelsRouting:
     """Test custom model specification and routing logic."""
 

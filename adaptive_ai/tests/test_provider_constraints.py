@@ -4,6 +4,7 @@ import pytest
 import requests
 
 
+@pytest.mark.integration
 class TestProviderConstraints:
     """Test provider-specific routing and constraints."""
 

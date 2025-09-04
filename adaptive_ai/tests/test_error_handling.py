@@ -4,6 +4,7 @@ import pytest
 import requests
 
 
+@pytest.mark.integration
 class TestErrorHandling:
     """Test error handling scenarios and edge cases."""
 

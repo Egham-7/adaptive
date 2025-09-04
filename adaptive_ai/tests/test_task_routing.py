@@ -4,6 +4,7 @@ import pytest
 import requests
 
 
+@pytest.mark.integration
 class TestTaskSpecializationRouting:
     """Test task-based routing intelligence and specialization."""
 

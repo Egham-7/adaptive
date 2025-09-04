@@ -4,6 +4,7 @@ import pytest
 import requests
 
 
+@pytest.mark.integration
 class TestCostBiasValidation:
     """Test cost bias functionality and optimization logic across the full spectrum."""
 

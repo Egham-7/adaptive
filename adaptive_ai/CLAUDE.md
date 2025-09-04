@@ -155,7 +155,13 @@ uv run black . && uv run ruff check . && uv run mypy .
 
 ### Testing
 ```bash
-# Run tests
+# Run unit tests only (CI-safe, no external dependencies)
+uv run pytest -m "unit"
+
+# Run integration tests (requires running AI service on localhost:8000)
+uv run pytest -m "integration"
+
+# Run all tests
 uv run pytest
 
 # Run with coverage

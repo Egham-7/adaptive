@@ -4,6 +4,7 @@ import pytest
 import requests
 
 
+@pytest.mark.integration
 class TestTaskTypeSpecialization:
     """Test that all TaskType enum values route to appropriate models."""
 
@@ -197,6 +198,7 @@ class TestTaskTypeSpecialization:
         assert result["model"], "Extraction should select a valid model"
 
 
+@pytest.mark.integration
 class TestProviderConstraints:
     """Test provider-specific constraints and routing."""
 
@@ -346,6 +348,7 @@ class TestProviderConstraints:
             print("(i) Function calling constraint test failed")
 
 
+@pytest.mark.integration
 class TestComplexRoutingScenarios:
     """Test complex routing scenarios with multiple constraints."""
 
@@ -496,6 +499,7 @@ class TestComplexRoutingScenarios:
         assert analytical_model, "Analytical task should select valid model"
 
 
+@pytest.mark.integration
 class TestTaskComplexityRouting:
     """Test that task complexity affects model routing appropriately."""
 

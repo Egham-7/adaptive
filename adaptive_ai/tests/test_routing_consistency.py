@@ -4,6 +4,7 @@ import pytest
 import requests
 
 
+@pytest.mark.integration
 class TestRoutingConsistency:
     """Test that routing is consistent and logical."""
 

@@ -13,6 +13,7 @@ from adaptive_ai.models.llm_enums import TaskType
 from adaptive_ai.services.model_router import ModelRouter
 
 
+@pytest.mark.unit
 class TestModelSelectorCaching:
     """Test model selector caching and consistency behavior."""
 
@@ -118,6 +119,7 @@ class TestModelSelectorCaching:
         assert isinstance(simple_models, list)
 
 
+@pytest.mark.unit
 class TestModelRouterCaching:
     """Test model router caching behavior."""
 
@@ -170,6 +172,7 @@ class TestModelRouterCaching:
         assert hard_cap.complexity_score == 0.8
 
 
+@pytest.mark.unit
 class TestCachingPerformance:
     """Performance tests for current caching systems."""
 
@@ -232,6 +235,7 @@ class TestCachingPerformance:
         assert avg_time < 0.05, f"Selection too slow: {avg_time:.3f}s average"
 
 
+@pytest.mark.unit
 class TestCacheEdgeCases:
     """Test edge cases and error conditions."""
 
@@ -298,6 +302,7 @@ class TestCacheEdgeCases:
         print(f"Models with 100k+ context: {len(large_context_models)}/{len(models)}")
 
 
+@pytest.mark.unit
 class TestModelCapabilityValidation:
     """Test ModelCapability validation and edge cases."""
 
