@@ -29,6 +29,7 @@ class ModelCapability(BaseModel):
     # Metadata
     description: str | None = None
     languages_supported: list[str] = Field(default_factory=list)
+    experimental: bool | None = None
 
     @property
     def is_partial(self) -> bool:

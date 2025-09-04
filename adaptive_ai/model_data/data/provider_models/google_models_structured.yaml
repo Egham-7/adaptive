@@ -48,7 +48,7 @@ models:
     max_output_tokens: 50000
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: slow
     task_type: Text Generation
@@ -73,7 +73,7 @@ models:
     max_output_tokens: 2048
     supports_function_calling: true
     languages_supported:
-    - English
+    - en
     model_size_params: 7b
     latency_tier: medium
     task_type: Text Generation
@@ -98,7 +98,7 @@ models:
     max_output_tokens: 1024
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Code Generation
@@ -123,7 +123,7 @@ models:
     max_output_tokens: 1024
     supports_function_calling: true
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Other
@@ -148,7 +148,7 @@ models:
     max_output_tokens: 1024
     supports_function_calling: true
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Other
@@ -174,7 +174,7 @@ models:
     max_output_tokens: 2048
     supports_function_calling: true
     languages_supported:
-    - English
+    - en
     model_size_params: 8b
     latency_tier: fast
     task_type: Text Generation
@@ -199,7 +199,7 @@ models:
     max_output_tokens: 1024
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
@@ -224,7 +224,7 @@ models:
     max_output_tokens: 500000
     supports_function_calling: true
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: fast
     task_type: Other
@@ -249,7 +249,7 @@ models:
     max_output_tokens: 250
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: fast
     task_type: Text Generation
@@ -306,7 +306,7 @@ models:
     max_output_tokens: 128
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: fast
     task_type: Classification
@@ -331,7 +331,7 @@ models:
     max_output_tokens: 512
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: fast
     task_type: Text Generation
@@ -355,7 +355,7 @@ models:
     max_output_tokens: 250000
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
@@ -388,7 +388,7 @@ models:
     - zh
     model_size_params: Unknown
     latency_tier: high
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: hard
     additional_pricing:
       cache_read_per_1m: 0.31
@@ -412,11 +412,14 @@ models:
     max_output_tokens: 1024
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
     complexity: hard
+    release_date: null
+    training_data_cutoff: null
+    experimental: true
     metadata:
       matching_operator: equals
       available_in_playground: null
@@ -437,7 +440,7 @@ models:
     max_output_tokens: 1024
     supports_function_calling: true
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Open QA
@@ -462,7 +465,7 @@ models:
     max_output_tokens: 512
     supports_function_calling: false
     languages_supported:
-    - English
+    - en
     model_size_params: 8b
     latency_tier: medium
     task_type: Text Generation
@@ -487,7 +490,7 @@ models:
     max_output_tokens: 1024
     supports_function_calling: true
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Open QA
@@ -514,10 +517,10 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: Proprietary-Very-Small
     latency_tier: very low
-    task_type: general
+    task_type: Text Generation
     complexity: low
     release_date: null
     training_data_cutoff: null
@@ -545,16 +548,16 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
-    - Spanish
-    - French
-    - German
-    - Japanese
-    - Korean
-    - Chinese
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
     model_size_params: Proprietary-Medium
     latency_tier: medium
-    task_type: general
+    task_type: Text Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null
@@ -582,16 +585,16 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
-    - Spanish
-    - French
-    - German
-    - Japanese
-    - Korean
-    - Chinese
+    - en
+    - es
+    - fr
+    - de
+    - ja
+    - ko
+    - zh
     model_size_params: Proprietary-Large
     latency_tier: high
-    task_type: reasoning
+    task_type: Text Generation
     complexity: high
     release_date: null
     training_data_cutoff: null

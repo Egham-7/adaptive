@@ -22,7 +22,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: '1212'
     latency_tier: medium
     task_type: Text Generation
@@ -50,7 +50,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: '1212'
     latency_tier: slow
     task_type: Other
@@ -83,10 +83,10 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: hard
     release_date: null
     training_data_cutoff: null
@@ -111,8 +111,8 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
-    - Chinese
+    - en
+    - zh
     model_size_params: 3b
     latency_tier: fast
     task_type: Chatbot
@@ -146,10 +146,10 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 3b
     latency_tier: fast
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null
@@ -180,7 +180,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 3b
     latency_tier: fast
     task_type: Text Generation
@@ -208,7 +208,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Chatbot
@@ -241,7 +241,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
@@ -269,7 +269,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: slow
     task_type: Other

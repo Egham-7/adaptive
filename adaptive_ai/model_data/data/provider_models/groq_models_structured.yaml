@@ -23,7 +23,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
@@ -56,7 +56,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 7b
     latency_tier: medium
     task_type: Other
@@ -89,7 +89,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 9b
     latency_tier: medium
     task_type: Text Generation
@@ -122,7 +122,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 8b
     latency_tier: medium
     task_type: Chatbot
@@ -156,7 +156,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
@@ -189,7 +189,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 8b
     latency_tier: medium
     task_type: Classification
@@ -222,7 +222,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
@@ -255,7 +255,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
@@ -288,7 +288,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 8b
     latency_tier: medium
     task_type: Text Generation
@@ -321,7 +321,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 70b
     latency_tier: slow
     task_type: Text Generation
@@ -349,7 +349,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 8b
     latency_tier: medium
     task_type: Text Generation
@@ -377,7 +377,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 17b
     latency_tier: medium
     task_type: Text Generation
@@ -410,11 +410,11 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - Arabic
-    - English
-    - French
-    - German
-    - Hindi
+    - ar
+    - en
+    - fr
+    - de
+    - hi
     model_size_params: 17b
     latency_tier: medium
     task_type: Text Generation
@@ -447,7 +447,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 12b
     latency_tier: medium
     task_type: Text Generation
@@ -481,7 +481,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 24b
     latency_tier: medium
     task_type: Text Generation
@@ -514,7 +514,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 8x7b
     latency_tier: medium
     task_type: Text Generation
@@ -542,7 +542,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Brainstorming
@@ -575,7 +575,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 120b
     latency_tier: slow
     task_type: Text Generation
@@ -608,7 +608,7 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 20b
     latency_tier: medium
     task_type: Code Generation
@@ -636,8 +636,8 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
-    - Chinese
+    - en
+    - zh
     model_size_params: 32b
     latency_tier: medium
     task_type: Text Generation
@@ -663,10 +663,10 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
+    - en
     model_size_params: 70B
     latency_tier: very low
-    task_type: general
+    task_type: Text Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null

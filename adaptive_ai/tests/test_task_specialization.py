@@ -217,7 +217,7 @@ class TestProviderConstraints:
 
     def test_all_major_providers(self, base_url):
         """Test routing works for all major providers."""
-        providers = ["ANTHROPIC", "OPENAI", "GROQ", "DEEPSEEK", "GEMINI"]
+        providers = ["ANTHROPIC", "OPENAI", "GROQ", "DEEPSEEK", "GOOGLE"]
 
         for provider in providers:
             response = requests.post(

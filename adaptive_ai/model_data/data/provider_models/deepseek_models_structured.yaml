@@ -54,11 +54,11 @@ models:
     multimodal_capabilities:
     - text
     languages_supported:
-    - English
-    - Chinese
+    - en
+    - zh
     model_size_params: 685B (r1)
     latency_tier: medium
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: high
     release_date: null
     training_data_cutoff: null

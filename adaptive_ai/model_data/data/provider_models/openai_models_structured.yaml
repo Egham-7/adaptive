@@ -245,7 +245,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: slow
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: hard
     release_date: null
     training_data_cutoff: null
@@ -280,7 +280,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: slow
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: high
     release_date: null
     training_data_cutoff: null
@@ -315,7 +315,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null
@@ -350,7 +350,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null
@@ -384,7 +384,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: slow
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: high
     release_date: null
     training_data_cutoff: null
@@ -418,7 +418,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: slow
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: high
     release_date: null
     training_data_cutoff: null
@@ -452,7 +452,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: fast
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: medium
     release_date: null
     training_data_cutoff: null
@@ -486,7 +486,7 @@ models:
       - zh
     model_size_params: Unknown
     latency_tier: slow
-    task_type: Reasoning
+    task_type: Text Generation
     complexity: high
     release_date: null
     training_data_cutoff: null
@@ -512,10 +512,10 @@ models:
       - text
       - vision
     languages_supported:
-      - English
+      - en
     model_size_params: Unknown
     latency_tier: medium
-    task_type: Computer Use
+    task_type: Other
     complexity: high
     release_date: null
     training_data_cutoff: null
@@ -719,7 +719,7 @@ models:
     multimodal_capabilities:
       - text
     languages_supported:
-      - English
+      - en
     model_size_params: unknown
     latency_tier: medium
     task_type: Summarization
@@ -747,7 +747,7 @@ models:
     multimodal_capabilities:
       - text
     languages_supported:
-      - English
+      - en
     model_size_params: Unknown
     latency_tier: fast
     task_type: Extraction
@@ -775,7 +775,7 @@ models:
     multimodal_capabilities:
       - text
     languages_supported:
-      - English
+      - en
     model_size_params: Unknown
     latency_tier: medium
     task_type: Rewrite
