@@ -18,7 +18,7 @@ models:
     max_output_tokens: 32768
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
     - text
     languages_supported:
@@ -46,7 +46,7 @@ models:
     max_output_tokens: 32768
     supports_streaming: true
     supports_function_calling: false
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
     - text
     languages_supported:
@@ -79,7 +79,7 @@ models:
     max_output_tokens: 32750
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
     - text
     languages_supported:
@@ -107,7 +107,7 @@ models:
     max_output_tokens: 512
     supports_streaming: true
     supports_function_calling: false
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
     - text
     languages_supported:
@@ -142,7 +142,7 @@ models:
     max_output_tokens: 128
     supports_streaming: true
     supports_function_calling: false
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
     - text
     languages_supported:
@@ -176,7 +176,7 @@ models:
     max_output_tokens: 512
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
     - text
     languages_supported:
@@ -204,7 +204,7 @@ models:
     max_output_tokens: 1024
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
     - text
     languages_supported:
@@ -237,7 +237,7 @@ models:
     max_output_tokens: 1024
     supports_streaming: true
     supports_function_calling: true
-    supports_vision: null
+    supports_vision: false
     multimodal_capabilities:
     - text
     languages_supported:
@@ -265,7 +265,7 @@ models:
     max_output_tokens: 4096
     supports_streaming: true
     supports_function_calling: false
-    supports_vision: null
+    supports_vision: true
     multimodal_capabilities:
     - text
     languages_supported:
