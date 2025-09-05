@@ -81,12 +81,11 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 }
 
 // Lookup searches for a cached protocol response using exact match first, then semantic similarity
-func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ModelSelectionResponse, string, bool) {
+func (pmc *ModelRouterCache) Lookup(ctx context.Context, prompt, requestID string) (*models.ModelSelectionResponse, string, bool) {
 	fiberlog.Debugf("[%s] ModelRouterCache: Starting cache lookup", requestID)
 
 	// 1) First try exact key matching
 	fiberlog.Debugf("[%s] ModelRouterCache: Trying exact key match", requestID)
-	ctx := context.Background()
 	if hit, found, err := pmc.cache.Get(ctx, prompt); found && err == nil {
 		fiberlog.Infof("[%s] ModelRouterCache: Exact cache hit", requestID)
 		return &hit, "semantic_exact", true
@@ -111,9 +110,8 @@ func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ModelSele
 }
 
 // Store saves a protocol response to the cache
-func (pmc *ModelRouterCache) Store(prompt string, resp models.ModelSelectionResponse) error {
+func (pmc *ModelRouterCache) Store(ctx context.Context, prompt string, resp models.ModelSelectionResponse) error {
 	fiberlog.Debugf("ModelRouterCache: Storing model response (model: %s/%s)", resp.Provider, resp.Model)
-	ctx := context.Background()
 	err := pmc.cache.Set(ctx, prompt, prompt, resp)
 	if err != nil {
 		fiberlog.Errorf("ModelRouterCache: Failed to store in cache: %v", err)
@@ -132,14 +130,15 @@ func (pmc *ModelRouterCache) Close() error {
 }
 
 // Len returns the number of items in the cache
-func (pmc *ModelRouterCache) Len() int {
-	ctx := context.Background()
-	count, _ := pmc.cache.Len(ctx)
-	return count
+func (pmc *ModelRouterCache) Len(ctx context.Context) (int, error) {
+	count, err := pmc.cache.Len(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // Flush clears all entries from the cache
-func (pmc *ModelRouterCache) Flush() error {
-	ctx := context.Background()
+func (pmc *ModelRouterCache) Flush(ctx context.Context) error {
 	return pmc.cache.Flush(ctx)
 }

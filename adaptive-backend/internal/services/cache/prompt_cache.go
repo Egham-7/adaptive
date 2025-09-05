@@ -63,7 +63,7 @@ func NewPromptCache(redisClient *redis.Client, config models.CacheConfig) (*Prom
 }
 
 // Get retrieves a cached response for the given request using semantic similarity
-func (pc *PromptCache) Get(req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
+func (pc *PromptCache) Get(ctx context.Context, req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
 	if req.PromptCache == nil || !req.PromptCache.Enabled {
 		fiberlog.Debugf("[%s] PromptCache: Cache disabled for request", requestID)
 		return nil, "", false
@@ -74,11 +74,11 @@ func (pc *PromptCache) Get(req *models.ChatCompletionRequest, requestID string) 
 		return nil, "", false
 	}
 
-	return pc.getFromCache(req, requestID)
+	return pc.getFromCache(ctx, req, requestID)
 }
 
 // getFromCache retrieves from semantic cache with similarity matching
-func (pc *PromptCache) getFromCache(req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
+func (pc *PromptCache) getFromCache(ctx context.Context, req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
 	// Extract prompt from messages for semantic search
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
@@ -90,7 +90,6 @@ func (pc *PromptCache) getFromCache(req *models.ChatCompletionRequest, requestID
 
 	// Try exact match first
 	fiberlog.Debugf("[%s] PromptCache: Trying exact key match", requestID)
-	ctx := context.Background()
 	if hit, found, err := pc.semanticCache.Get(ctx, prompt); found && err == nil {
 		fiberlog.Infof("[%s] PromptCache: Exact cache hit", requestID)
 		return &hit, "semantic_exact", true
@@ -112,7 +111,7 @@ func (pc *PromptCache) getFromCache(req *models.ChatCompletionRequest, requestID
 }
 
 // Set stores a response in the cache with the configured TTL
-func (pc *PromptCache) Set(req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
+func (pc *PromptCache) Set(ctx context.Context, req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
 	if req.PromptCache == nil || !req.PromptCache.Enabled {
 		fiberlog.Debugf("[%s] PromptCache: Cache disabled, skipping storage", requestID)
 		return nil
@@ -123,11 +122,11 @@ func (pc *PromptCache) Set(req *models.ChatCompletionRequest, response *models.C
 		return nil
 	}
 
-	return pc.setInCache(req, response, requestID)
+	return pc.setInCache(ctx, req, response, requestID)
 }
 
 // setInCache stores in semantic cache
-func (pc *PromptCache) setInCache(req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
+func (pc *PromptCache) setInCache(ctx context.Context, req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
 	// Extract prompt from messages for semantic storage
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
@@ -136,7 +135,6 @@ func (pc *PromptCache) setInCache(req *models.ChatCompletionRequest, response *m
 	}
 
 	fiberlog.Debugf("[%s] PromptCache: Storing response in semantic cache", requestID)
-	ctx := context.Background()
 	err = pc.semanticCache.Set(ctx, prompt, prompt, *response)
 	if err != nil {
 		fiberlog.Errorf("[%s] PromptCache: Failed to store in semantic cache: %v", requestID, err)
@@ -148,13 +146,12 @@ func (pc *PromptCache) setInCache(req *models.ChatCompletionRequest, response *m
 }
 
 // Flush clears all prompt cache entries
-func (pc *PromptCache) Flush() error {
+func (pc *PromptCache) Flush(ctx context.Context) error {
 	if pc.semanticCache == nil {
 		fiberlog.Debug("PromptCache: Semantic cache not initialized, nothing to flush")
 		return nil
 	}
 
-	ctx := context.Background()
 	if err := pc.semanticCache.Flush(ctx); err != nil {
 		fiberlog.Errorf("PromptCache: Failed to flush semantic cache: %v", err)
 		return fmt.Errorf("failed to flush semantic cache: %w", err)
