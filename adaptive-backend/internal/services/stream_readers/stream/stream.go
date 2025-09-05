@@ -39,7 +39,7 @@ func createBridgeContext(fasthttpCtx *fasthttp.RequestCtx) context.Context {
 }
 
 // HandleOpenAIStream manages OpenAI streaming response to the client with optimized performance
-func HandleOpenAIStream(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatCompletionChunk], requestID string, provider string, cacheSource string) error {
+func HandleOpenAIStream(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatCompletionChunk], requestID, provider, cacheSource string) error {
 	fiberlog.Infof("[%s] Starting OpenAI stream handling", requestID)
 
 	// Get FastHTTP context once to avoid potential nil issues
@@ -76,7 +76,7 @@ func HandleOpenAIStream(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatC
 }
 
 // HandleAnthropicStream manages Anthropic streaming response to the client with optimized performance
-func HandleAnthropicStream(c *fiber.Ctx, responseBody io.Reader, requestID string, provider string) error {
+func HandleAnthropicStream(c *fiber.Ctx, responseBody io.Reader, requestID, provider string) error {
 	fiberlog.Infof("[%s] Starting Anthropic stream handling", requestID)
 
 	// Get FastHTTP context once to avoid potential nil issues
@@ -310,7 +310,7 @@ func writeChunk(w *bufio.Writer, data []byte, requestID string) error {
 }
 
 // HandleAnthropicNativeStream handles native Anthropic SDK streams with proper SSE formatting
-func HandleAnthropicNativeStream(c *fiber.Ctx, stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID string, provider string) error {
+func HandleAnthropicNativeStream(c *fiber.Ctx, stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID, provider string) error {
 	fiberlog.Infof("[%s] Starting native Anthropic stream handling", requestID)
 
 	ctx := c.Context()

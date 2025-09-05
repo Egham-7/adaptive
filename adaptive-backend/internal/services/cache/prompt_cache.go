@@ -1,15 +1,14 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/utils"
 
 	"github.com/botirk38/semanticcache"
-	"github.com/botirk38/semanticcache/backends"
-	"github.com/botirk38/semanticcache/providers/openai"
-	"github.com/botirk38/semanticcache/types"
+	"github.com/botirk38/semanticcache/options"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
 )
@@ -44,31 +43,15 @@ func NewPromptCache(redisClient *redis.Client, config models.CacheConfig) (*Prom
 
 		fiberlog.Debugf("PromptCache: Initializing semantic cache with threshold=%.2f", threshold)
 
-		// Create Redis backend configuration
-		backendConfig := types.BackendConfig{
-			ConnectionString: config.RedisURL,
+		// Create semantic cache with new interface
+		embedModel := config.EmbeddingModel
+		if embedModel == "" {
+			embedModel = "text-embedding-3-small"
 		}
-
-		// Create backend factory and Redis backend
-		factory := &backends.BackendFactory[string, models.ChatCompletion]{}
-		backend, err := factory.NewBackend(types.BackendRedis, backendConfig)
-		if err != nil {
-			fiberlog.Errorf("PromptCache: Failed to create Redis backend: %v", err)
-			return nil, fmt.Errorf("failed to create Redis backend: %w", err)
-		}
-
-		// Create OpenAI provider
-		provider, err := openai.NewOpenAIProvider(openai.OpenAIConfig{
-			APIKey: config.OpenAIAPIKey,
-			Model:  "text-embedding-3-small",
-		})
-		if err != nil {
-			fiberlog.Errorf("PromptCache: Failed to create OpenAI provider: %v", err)
-			return nil, fmt.Errorf("failed to create OpenAI provider: %w", err)
-		}
-
-		// Create semantic cache
-		semanticCache, err := semanticcache.NewSemanticCache(backend, provider, nil)
+		semanticCache, err := semanticcache.New(
+			options.WithOpenAIProvider[string, models.ChatCompletion](config.OpenAIAPIKey, embedModel),
+			options.WithRedisBackend[string, models.ChatCompletion](config.RedisURL, 0),
+		)
 		if err != nil {
 			fiberlog.Errorf("PromptCache: Failed to create semantic cache: %v", err)
 			return nil, fmt.Errorf("failed to create semantic cache: %w", err)
@@ -84,7 +67,7 @@ func NewPromptCache(redisClient *redis.Client, config models.CacheConfig) (*Prom
 }
 
 // Get retrieves a cached response for the given request using semantic similarity
-func (pc *PromptCache) Get(req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
+func (pc *PromptCache) Get(ctx context.Context, req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
 	if req.PromptCache == nil || !req.PromptCache.Enabled {
 		fiberlog.Debugf("[%s] PromptCache: Cache disabled for request", requestID)
 		return nil, "", false
@@ -95,11 +78,21 @@ func (pc *PromptCache) Get(req *models.ChatCompletionRequest, requestID string) 
 		return nil, "", false
 	}
 
-	return pc.getFromCache(req, requestID)
+	// Use threshold override if provided in request, otherwise use cache default
+	if req.PromptCache.SemanticThreshold > 0 {
+		fiberlog.Debugf("[%s] PromptCache: Using threshold override: %.2f", requestID, req.PromptCache.SemanticThreshold)
+		return pc.getFromCacheWithThreshold(ctx, req, requestID, float32(req.PromptCache.SemanticThreshold))
+	}
+	return pc.getFromCache(ctx, req, requestID)
 }
 
-// getFromCache retrieves from semantic cache with similarity matching
-func (pc *PromptCache) getFromCache(req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
+// getFromCache retrieves from semantic cache with similarity matching using default threshold
+func (pc *PromptCache) getFromCache(ctx context.Context, req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
+	return pc.getFromCacheWithThreshold(ctx, req, requestID, pc.semanticThreshold)
+}
+
+// getFromCacheWithThreshold retrieves from semantic cache with similarity matching using custom threshold
+func (pc *PromptCache) getFromCacheWithThreshold(ctx context.Context, req *models.ChatCompletionRequest, requestID string, threshold float32) (*models.ChatCompletion, string, bool) {
 	// Extract prompt from messages for semantic search
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
@@ -111,16 +104,18 @@ func (pc *PromptCache) getFromCache(req *models.ChatCompletionRequest, requestID
 
 	// Try exact match first
 	fiberlog.Debugf("[%s] PromptCache: Trying exact key match", requestID)
-	if hit, found := pc.semanticCache.Get(prompt); found {
+	if hit, found, err := pc.semanticCache.Get(ctx, prompt); found && err == nil {
 		fiberlog.Infof("[%s] PromptCache: Exact cache hit", requestID)
-		return &hit, "semantic_exact", true
+		return &hit, models.CacheTierSemanticExact, true
+	} else if err != nil {
+		fiberlog.Errorf("[%s] PromptCache: Error during exact lookup: %v", requestID, err)
 	}
 
-	// Try semantic similarity search
-	fiberlog.Debugf("[%s] PromptCache: Trying semantic similarity search (threshold: %.2f)", requestID, pc.semanticThreshold)
-	if hit, found, err := pc.semanticCache.Lookup(prompt, pc.semanticThreshold); err == nil && found {
+	// Try semantic similarity search with provided threshold
+	fiberlog.Debugf("[%s] PromptCache: Trying semantic similarity search (threshold: %.2f)", requestID, threshold)
+	if match, err := pc.semanticCache.Lookup(ctx, prompt, threshold); err == nil && match != nil {
 		fiberlog.Infof("[%s] PromptCache: Semantic cache hit", requestID)
-		return &hit, "semantic_similar", true
+		return &match.Value, models.CacheTierSemanticSimilar, true
 	} else if err != nil {
 		fiberlog.Errorf("[%s] PromptCache: Error during semantic lookup: %v", requestID, err)
 	}
@@ -130,7 +125,7 @@ func (pc *PromptCache) getFromCache(req *models.ChatCompletionRequest, requestID
 }
 
 // Set stores a response in the cache with the configured TTL
-func (pc *PromptCache) Set(req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
+func (pc *PromptCache) Set(ctx context.Context, req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
 	if req.PromptCache == nil || !req.PromptCache.Enabled {
 		fiberlog.Debugf("[%s] PromptCache: Cache disabled, skipping storage", requestID)
 		return nil
@@ -141,11 +136,11 @@ func (pc *PromptCache) Set(req *models.ChatCompletionRequest, response *models.C
 		return nil
 	}
 
-	return pc.setInCache(req, response, requestID)
+	return pc.setInCache(ctx, req, response, requestID)
 }
 
 // setInCache stores in semantic cache
-func (pc *PromptCache) setInCache(req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
+func (pc *PromptCache) setInCache(ctx context.Context, req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
 	// Extract prompt from messages for semantic storage
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
@@ -154,7 +149,7 @@ func (pc *PromptCache) setInCache(req *models.ChatCompletionRequest, response *m
 	}
 
 	fiberlog.Debugf("[%s] PromptCache: Storing response in semantic cache", requestID)
-	err = pc.semanticCache.Set(prompt, prompt, *response)
+	err = pc.semanticCache.Set(ctx, prompt, prompt, *response)
 	if err != nil {
 		fiberlog.Errorf("[%s] PromptCache: Failed to store in semantic cache: %v", requestID, err)
 		return fmt.Errorf("failed to store in semantic cache: %w", err)
@@ -165,13 +160,13 @@ func (pc *PromptCache) setInCache(req *models.ChatCompletionRequest, response *m
 }
 
 // Flush clears all prompt cache entries
-func (pc *PromptCache) Flush() error {
+func (pc *PromptCache) Flush(ctx context.Context) error {
 	if pc.semanticCache == nil {
 		fiberlog.Debug("PromptCache: Semantic cache not initialized, nothing to flush")
 		return nil
 	}
 
-	if err := pc.semanticCache.Flush(); err != nil {
+	if err := pc.semanticCache.Flush(ctx); err != nil {
 		fiberlog.Errorf("PromptCache: Failed to flush semantic cache: %v", err)
 		return fmt.Errorf("failed to flush semantic cache: %w", err)
 	}
@@ -182,7 +177,13 @@ func (pc *PromptCache) Flush() error {
 // Close closes the Redis connection and semantic cache
 func (pc *PromptCache) Close() error {
 	if pc.semanticCache != nil {
-		pc.semanticCache.Close()
+		if err := pc.semanticCache.Close(); err != nil {
+			// Return first error encountered
+			if pc.client != nil {
+				_ = pc.client.Close() // Still attempt to close client
+			}
+			return err
+		}
 	}
 	if pc.client != nil {
 		return pc.client.Close()

@@ -1,6 +1,7 @@
 package select_model
 
 import (
+	"context"
 	"fmt"
 
 	"adaptive-backend/internal/models"
@@ -24,6 +25,7 @@ func NewService(modelRouter *model_router.ModelRouter) *Service {
 
 // SelectModel performs model selection based on the request
 func (s *Service) SelectModel(
+	ctx context.Context,
 	req *models.SelectModelRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
@@ -40,6 +42,7 @@ func (s *Service) SelectModel(
 	// Perform model selection directly with prompt
 	// Pass through tool context for function-calling-aware routing
 	resp, cacheSource, err := s.modelRouter.SelectModelWithCache(
+		ctx,
 		req.Prompt, userID, requestID, mergedConfig, circuitBreakers,
 		req.Tools, req.ToolCall, // Pass tool context for intelligent routing
 	)

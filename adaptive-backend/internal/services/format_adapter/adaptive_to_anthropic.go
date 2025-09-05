@@ -134,12 +134,12 @@ func (c *AdaptiveToAnthropicConverter) convertUsage(usage *models.AdaptiveAnthro
 // SetCacheTier sets the cache tier on AdaptiveAnthropicUsage based on cache source type
 func (c *AdaptiveToAnthropicConverter) SetCacheTier(usage *models.AdaptiveAnthropicUsage, cacheSource string) {
 	switch cacheSource {
-	case "semantic_exact":
-		usage.CacheTier = "semantic_exact"
-	case "semantic_similar":
-		usage.CacheTier = "semantic_similar"
-	case "prompt_response":
-		usage.CacheTier = "prompt_response"
+	case models.CacheTierSemanticExact:
+		usage.CacheTier = models.CacheTierSemanticExact
+	case models.CacheTierSemanticSimilar:
+		usage.CacheTier = models.CacheTierSemanticSimilar
+	case models.CacheTierPromptResponse:
+		usage.CacheTier = models.CacheTierPromptResponse
 	default:
 		usage.CacheTier = ""
 	}

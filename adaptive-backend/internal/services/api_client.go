@@ -101,12 +101,12 @@ func (c *Client) Get(path string, result any, opts *RequestOptions) error {
 }
 
 // Post performs a POST request
-func (c *Client) Post(path string, body any, result any, opts *RequestOptions) error {
+func (c *Client) Post(path string, body, result any, opts *RequestOptions) error {
 	return c.doRequest(http.MethodPost, path, body, result, opts)
 }
 
 // Put performs a PUT request
-func (c *Client) Put(path string, body any, result any, opts *RequestOptions) error {
+func (c *Client) Put(path string, body, result any, opts *RequestOptions) error {
 	return c.doRequest(http.MethodPut, path, body, result, opts)
 }
 
@@ -116,12 +116,12 @@ func (c *Client) Delete(path string, result any, opts *RequestOptions) error {
 }
 
 // Patch performs a PATCH request
-func (c *Client) Patch(path string, body any, result any, opts *RequestOptions) error {
+func (c *Client) Patch(path string, body, result any, opts *RequestOptions) error {
 	return c.doRequest(http.MethodPatch, path, body, result, opts)
 }
 
 // doRequest performs an HTTP request with retries
-func (c *Client) doRequest(method, path string, body any, result any, opts *RequestOptions) error {
+func (c *Client) doRequest(method, path string, body, result any, opts *RequestOptions) error {
 	url := c.BaseURL + path
 
 	// Set default options
@@ -160,7 +160,7 @@ func (c *Client) doRequest(method, path string, body any, result any, opts *Requ
 }
 
 // executeRequest performs a single HTTP request
-func (c *Client) executeRequest(method, url string, body any, result any, opts *RequestOptions) error {
+func (c *Client) executeRequest(method, url string, body, result any, opts *RequestOptions) error {
 	// Create request context
 	ctx := context.Background()
 	if opts.Context != nil {

@@ -398,6 +398,6 @@ func (cs *CompletionService) HandleModel(
 	}
 
 	// Store successful response in semantic cache
-	cs.responseService.StoreSuccessfulSemanticCache(req, resp, requestID)
+	cs.responseService.StoreSuccessfulSemanticCache(c.UserContext(), req, resp, requestID)
 	return nil
 }

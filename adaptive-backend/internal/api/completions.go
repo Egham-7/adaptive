@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -84,7 +85,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 
 	// Check prompt cache first
-	if cachedResponse, cacheSource, found := h.checkPromptCache(req, &resolvedConfig.PromptCache, reqID); found {
+	if cachedResponse, cacheSource, found := h.checkPromptCache(c.UserContext(), req, &resolvedConfig.PromptCache, reqID); found {
 		fiberlog.Infof("[%s] prompt cache hit (%s) - returning cached response", reqID, cacheSource)
 		if isStream {
 			// Convert cached response to streaming format
@@ -94,7 +95,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 	}
 
 	resp, cacheSource, err := h.selectModel(
-		req, userID, reqID, h.circuitBreakers, resolvedConfig,
+		c.UserContext(), req, userID, reqID, h.circuitBreakers, resolvedConfig,
 	)
 	if err != nil {
 		// Check for invalid model specification error to return 400 instead of 500
@@ -108,7 +109,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 }
 
 // checkPromptCache checks if prompt cache is enabled and returns cached response if found
-func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, promptCacheConfig *models.CacheConfig, requestID string) (*models.ChatCompletion, string, bool) {
+func (h *CompletionHandler) checkPromptCache(ctx context.Context, req *models.ChatCompletionRequest, promptCacheConfig *models.CacheConfig, requestID string) (*models.ChatCompletion, string, bool) {
 	if !promptCacheConfig.Enabled {
 		fiberlog.Debugf("[%s] prompt cache disabled", requestID)
 		return nil, "", false
@@ -119,11 +120,12 @@ func (h *CompletionHandler) checkPromptCache(req *models.ChatCompletionRequest, 
 		return nil, "", false
 	}
 
-	return h.promptCache.Get(req, requestID)
+	return h.promptCache.Get(ctx, req, requestID)
 }
 
 // selectModel runs model selection and returns the chosen model response and cache source.
 func (h *CompletionHandler) selectModel(
+	ctx context.Context,
 	req *models.ChatCompletionRequest,
 	userID, requestID string,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
@@ -164,6 +166,7 @@ func (h *CompletionHandler) selectModel(
 	toolCall := utils.ExtractToolCallsFromLastMessage(openAIParams.Messages)
 
 	resp, cacheSource, err = h.modelRouter.SelectModelWithCache(
+		ctx,
 		prompt, userID, requestID, &resolvedConfig.ModelRouter, circuitBreakers,
 		req.Tools, toolCall,
 	)

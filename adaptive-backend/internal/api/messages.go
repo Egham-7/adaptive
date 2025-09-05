@@ -113,6 +113,7 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 		toolCall := utils.ExtractToolCallsFromAnthropicMessages(req.Messages)
 
 		modelResp, _, err := h.modelRouter.SelectModelWithCache(
+			c.UserContext(),
 			prompt, userID, requestID, &resolvedConfig.ModelRouter, h.circuitBreakers,
 			req.Tools, toolCall,
 		)
