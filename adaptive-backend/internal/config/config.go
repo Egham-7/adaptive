@@ -140,7 +140,7 @@ func substituteEnvVars(content string) string {
 }
 
 // GetProviderAPIKey returns the API key for a specific provider from the specified endpoint
-func (c *Config) GetProviderAPIKey(provider string, endpoint string) string {
+func (c *Config) GetProviderAPIKey(provider, endpoint string) string {
 	var providers map[string]models.ProviderConfig
 	switch endpoint {
 	case "chat_completions":
@@ -171,7 +171,7 @@ func (c *Config) GetProviders(endpoint string) map[string]models.ProviderConfig 
 }
 
 // GetProviderConfig returns the configuration for a specific provider from the specified endpoint
-func (c *Config) GetProviderConfig(provider string, endpoint string) (models.ProviderConfig, bool) {
+func (c *Config) GetProviderConfig(provider, endpoint string) (models.ProviderConfig, bool) {
 	var providers map[string]models.ProviderConfig
 	switch endpoint {
 	case "chat_completions":
