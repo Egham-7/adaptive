@@ -12,17 +12,12 @@ export async function POST(req: NextRequest) {
 	try {
 		const body: ChatCompletionRequest = await req.json();
 
-		console.log("Headers: ", req.headers);
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
-
-		console.log("Auth Header: ", authHeader);
 
 		const bearerToken = authHeader?.startsWith("Bearer ")
 			? authHeader.slice(7).replace(/\s+/g, "") || null
 			: null;
-
-		console.log("Bearer Token: ", bearerToken);
 
 		const apiKey =
 			bearerToken ||
@@ -166,6 +161,7 @@ export async function POST(req: NextRequest) {
 			// Record usage when stream completes
 			stream.on("finalChatCompletion", (completion) => {
 				const adaptiveCompletion = completion as ChatCompletion;
+				console.log("Adaptive Chat Completion: ", adaptiveCompletion);
 				if (adaptiveCompletion.usage) {
 					// Use queueMicrotask for zero-blocking tRPC call
 					queueMicrotask(async () => {
@@ -218,7 +214,7 @@ export async function POST(req: NextRequest) {
 
 			return new Response(stream.toReadableStream(), {
 				headers: {
-					"Content-Type": "text/plain; charset=utf-8",
+					"Content-Type": "text/event-stream",
 					"Cache-Control": "no-cache",
 					Connection: "keep-alive",
 					"Access-Control-Allow-Origin": "*",
