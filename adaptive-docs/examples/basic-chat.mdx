@@ -16,7 +16,7 @@ Replace your OpenAI base URL with Adaptive's endpoint:
 import openai
 
 client = openai.OpenAI(
-    base_url="https://www.llmadaptive.uk/api/v1",
+    base_url="https://llmadaptive.com/api/v1",
     api_key="your-adaptive-api-key"
 )
 
@@ -37,7 +37,7 @@ print(response.choices[0].message.content)
 import OpenAI from 'openai';
 
 const client = new OpenAI({
-  baseURL: 'https://www.llmadaptive.uk/api/v1',
+  baseURL: 'https://llmadaptive.com/api/v1',
   apiKey: 'your-adaptive-api-key',
 });
 
@@ -58,7 +58,7 @@ basicChat();
 ## cURL Example
 
 ```bash
-curl https://www.llmadaptive.uk/api/v1/chat/completions \
+curl https://llmadaptive.com/api/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-adaptive-api-key" \
   -d '{

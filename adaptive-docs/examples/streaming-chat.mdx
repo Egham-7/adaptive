@@ -14,7 +14,7 @@ This example demonstrates how to implement real-time streaming chat using Adapti
 import openai
 
 client = openai.OpenAI(
-    base_url="https://www.llmadaptive.uk/api/v1",
+    base_url="https://llmadaptive.com/api/v1",
     api_key="your-adaptive-api-key"
 )
 
@@ -41,7 +41,7 @@ stream_chat("Explain quantum computing in simple terms")
 import OpenAI from 'openai';
 
 const client = new OpenAI({
-  baseURL: 'https://www.llmadaptive.uk/api/v1',
+  baseURL: 'https://llmadaptive.com/api/v1',
   apiKey: 'your-adaptive-api-key',
 });
 
@@ -146,7 +146,7 @@ import { streamText } from 'ai';
 
 // Configure Vercel AI SDK with Adaptive
 const adaptiveOpenAI = openai({
-  baseURL: 'https://www.llmadaptive.uk/api/v1',
+  baseURL: 'https://llmadaptive.com/api/v1',
   apiKey: process.env.ADAPTIVE_API_KEY,
 });
 
@@ -170,7 +170,7 @@ export async function POST(req: Request) {
 class StreamingChatBot:
     def __init__(self, api_key):
         self.client = openai.OpenAI(
-            base_url="https://www.llmadaptive.uk/api/v1",
+            base_url="https://llmadaptive.com/api/v1",
             api_key=api_key
         )
         self.conversation = []

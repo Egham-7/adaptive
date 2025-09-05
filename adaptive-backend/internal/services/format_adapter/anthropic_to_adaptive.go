@@ -96,6 +96,12 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 		}
 		return adaptive, nil
 
+	case anthropic.MessageStopEvent:
+		return &models.AnthropicMessageChunk{
+			Type:     "message_stop",
+			Provider: provider,
+		}, nil
+
 	case anthropic.ContentBlockStartEvent:
 		return &models.AnthropicMessageChunk{
 			Type:         "content_block_start",

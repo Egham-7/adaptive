@@ -27,7 +27,7 @@ import { generateText, streamText } from "ai";
 // This gives you intelligent routing while using Vercel AI SDK patterns
 const adaptive = createAdaptive({
   apiKey: process.env.ADAPTIVE_API_KEY || "your-adaptive-api-key",
-  baseURL: "https://www.llmadaptive.uk/api/v1",
+  baseURL: "https://llmadaptive.com/api/v1",
 });
 
 // Non-streaming example using generateText

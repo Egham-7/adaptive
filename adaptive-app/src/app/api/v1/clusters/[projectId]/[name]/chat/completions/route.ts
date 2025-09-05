@@ -6,6 +6,7 @@ import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
+	ChatCompletionChunk,
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
 
@@ -278,74 +279,108 @@ export async function POST(
 		};
 
 		if (shouldStream) {
-			const stream = openai.chat.completions.stream(
-				{
-					...enhancedRequest,
-					stream: true,
-				},
-				{
-					body: {
-						...enhancedRequest,
-						provider_configs: providerConfigs,
-					},
-				},
-			);
+			const streamStartTime = Date.now();
+			const _encoder = new TextEncoder();
+			const abortController = new AbortController();
+			const timeoutMs = 300000; // 5 minutes timeout
 
-			const startTime = Date.now();
+			const _timeoutId = setTimeout(() => {
+				abortController.abort();
+			}, timeoutMs);
 
-			stream.on("finalChatCompletion", (completion) => {
-				const adaptiveCompletion = completion as ChatCompletion;
-				if (adaptiveCompletion.usage) {
-					queueMicrotask(async () => {
-						try {
-							await api.usage.recordApiUsage({
-								apiKey,
-								provider: adaptiveCompletion.provider ?? null,
-								model: adaptiveCompletion.model,
-								usage: {
-									promptTokens: adaptiveCompletion.usage?.prompt_tokens ?? 0,
-									completionTokens:
-										adaptiveCompletion.usage?.completion_tokens ?? 0,
-									totalTokens: adaptiveCompletion.usage?.total_tokens ?? 0,
-								},
-								duration: Date.now() - startTime,
-								timestamp: new Date(),
-								clusterId: cluster.id,
-							});
-						} catch (error) {
-							console.error("Failed to record usage:", error);
-						}
-					});
-				}
-			});
+			// Create custom ReadableStream that intercepts OpenAI SDK chunks
+			const customReadable = new ReadableStream({
+				async start(controller) {
+					let finalChunk: ChatCompletionChunk | null = null;
 
-			stream.on("error", (error) => {
-				queueMicrotask(async () => {
 					try {
-						await api.usage.recordApiUsage({
-							apiKey,
-							provider: null,
-							model: null,
-							usage: {
-								promptTokens: 0,
-								completionTokens: 0,
-								totalTokens: 0,
+						const stream = await openai.chat.completions.create(
+							{
+								...enhancedRequest,
+								stream: true,
 							},
-							duration: Date.now() - startTime,
-							timestamp: new Date(),
-							requestCount: 1,
-							error: error.message,
-							clusterId: cluster.id,
+							{
+								body: {
+									...enhancedRequest,
+									stream: true,
+									provider_configs: providerConfigs,
+								},
+							},
+						);
+
+						for await (const chunk of stream) {
+							// Store final completion data for usage tracking
+							if (chunk.usage || chunk.choices[0]?.finish_reason) {
+								finalChunk = chunk as ChatCompletionChunk;
+							}
+
+							// Convert chunk to SSE format and enqueue
+							const sseData = `data: ${JSON.stringify(chunk)}\n\n`;
+							controller.enqueue(new TextEncoder().encode(sseData));
+						}
+
+						// Send [DONE] message
+						controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+						controller.close();
+
+						// Record usage after stream completes
+						if (finalChunk?.usage) {
+							queueMicrotask(async () => {
+								try {
+									await api.usage.recordApiUsage({
+										apiKey,
+										provider: finalChunk?.provider ?? null,
+										model: finalChunk?.model ?? null,
+										usage: {
+											promptTokens: finalChunk?.usage?.prompt_tokens ?? 0,
+											completionTokens:
+												finalChunk?.usage?.completion_tokens ?? 0,
+											totalTokens: finalChunk?.usage?.total_tokens ?? 0,
+										},
+										duration: Date.now() - streamStartTime,
+										timestamp: new Date(),
+										clusterId: cluster.id,
+									});
+								} catch (error) {
+									console.error("Failed to record streaming usage:", error);
+								}
+							});
+						}
+					} catch (error) {
+						console.error("Streaming error:", error);
+						const errorData = `data: ${JSON.stringify({ error: "Stream failed" })}\n\n`;
+						controller.enqueue(new TextEncoder().encode(errorData));
+						controller.close();
+
+						// Record error usage
+						queueMicrotask(async () => {
+							try {
+								await api.usage.recordApiUsage({
+									apiKey,
+									provider: null,
+									model: null,
+									usage: {
+										promptTokens: 0,
+										completionTokens: 0,
+										totalTokens: 0,
+									},
+									duration: Date.now() - streamStartTime,
+									timestamp: new Date(),
+									requestCount: 1,
+									error: error instanceof Error ? error.message : String(error),
+									clusterId: cluster.id,
+								});
+							} catch (err) {
+								console.error("Failed to record error:", err);
+							}
 						});
-					} catch (err) {
-						console.error("Failed to record error:", err);
 					}
-				});
+				},
 			});
 
-			return new Response(stream.toReadableStream(), {
+			return new Response(customReadable, {
 				headers: {
-					"Content-Type": "text/plain; charset=utf-8",
+					"Content-Type": "text/event-stream; charset=utf-8",
 					"Cache-Control": "no-cache",
 					Connection: "keep-alive",
 					"Access-Control-Allow-Origin": "*",

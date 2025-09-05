@@ -366,9 +366,14 @@ func HandleAnthropicNativeStream(c *fiber.Ctx, stream *ssestream.Stream[anthropi
 			}
 		}
 
-		// Check for stream errors
+		// Check for stream errors after completion
 		if err := stream.Err(); err != nil {
-			fiberlog.Errorf("[%s] anthropic stream error: %v", requestID, err)
+			// Only log as error if it's not a context cancellation (which is expected on client disconnect)
+			if ctx.Err() != nil {
+				fiberlog.Infof("[%s] anthropic stream ended due to context cancellation", requestID)
+			} else {
+				fiberlog.Errorf("[%s] anthropic stream error: %v", requestID, err)
+			}
 		}
 
 		// Write completion message

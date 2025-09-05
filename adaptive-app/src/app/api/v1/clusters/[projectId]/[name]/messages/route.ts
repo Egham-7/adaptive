@@ -135,54 +135,70 @@ export async function POST(
 		const startTime = Date.now();
 
 		if (body.stream) {
-			// Handle streaming
-			const stream = anthropic.messages.stream({
-				model: body.model,
-				max_tokens: body.max_tokens,
-				messages: body.messages,
-				...(body.system && { system: body.system }),
-				...(body.temperature !== undefined && {
-					temperature: body.temperature,
-				}),
-				...(body.top_p !== undefined && { top_p: body.top_p }),
-				...(body.top_k !== undefined && { top_k: body.top_k }),
-				...(body.stop_sequences && { stop_sequences: body.stop_sequences }),
-				...(body.metadata && { metadata: body.metadata }),
-				...(body.tools && { tools: body.tools }),
-				...(body.tool_choice && { tool_choice: body.tool_choice }),
-				// Custom adaptive extensions (cast to bypass SDK type checking)
-				...(body.provider_configs && {
-					provider_configs: body.provider_configs,
-				}),
-				...(body.model_router && {
-					model_router: body.model_router,
-				}),
-				...(body.semantic_cache && { semantic_cache: body.semantic_cache }),
-				...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
-				...(body.fallback && { fallback: body.fallback }),
-			} as Anthropic.MessageStreamParams);
+			let finalUsage: Anthropic.MessageDeltaUsage | null = null;
+			let modelName: string | null = null;
+			let providerId: string | null = null;
 
-			// Create a ReadableStream that forwards the Anthropic stream
-			const readableStream = new ReadableStream({
+			// Create custom ReadableStream that intercepts Anthropic SDK chunks
+			const customReadable = new ReadableStream({
 				async start(controller) {
-					let finalMessage: Anthropic.Message | null = null;
-
 					try {
+						const stream = anthropic.messages.stream({
+							model: body.model,
+							max_tokens: body.max_tokens,
+							messages: body.messages,
+							...(body.system && { system: body.system }),
+							...(body.temperature !== undefined && {
+								temperature: body.temperature,
+							}),
+							...(body.top_p !== undefined && { top_p: body.top_p }),
+							...(body.top_k !== undefined && { top_k: body.top_k }),
+							...(body.stop_sequences && {
+								stop_sequences: body.stop_sequences,
+							}),
+							...(body.metadata && { metadata: body.metadata }),
+							...(body.tools && { tools: body.tools }),
+							...(body.tool_choice && { tool_choice: body.tool_choice }),
+							// Custom adaptive extensions (cast to bypass SDK type checking)
+							...(body.provider_configs && {
+								provider_configs: body.provider_configs,
+							}),
+							...(body.model_router && {
+								model_router: body.model_router,
+							}),
+							...(body.semantic_cache && {
+								semantic_cache: body.semantic_cache,
+							}),
+							...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
+							...(body.fallback && { fallback: body.fallback }),
+						} as Anthropic.MessageStreamParams);
+
 						for await (const chunk of stream) {
+							// Track usage data from message_delta chunks
+							if (chunk.type === "message_delta") {
+								const messageDelta = chunk as Anthropic.MessageDeltaEvent;
+								if (messageDelta.usage) {
+									finalUsage = messageDelta.usage;
+								}
+							}
+
+							// Track message_start for model and provider info
+							if (chunk.type === "message_start") {
+								const messageStart = chunk as Anthropic.MessageStartEvent;
+								modelName = messageStart.message.model || null;
+								// Provider info might be in extended response
+								providerId =
+									(
+										messageStart.message as Anthropic.Message & {
+											provider?: string;
+										}
+									).provider || null;
+							}
+
 							// Format as proper SSE with event type and data
 							const eventType = chunk.type;
 							const sseData = `event: ${eventType}\ndata: ${JSON.stringify(chunk)}\n\n`;
 							controller.enqueue(new TextEncoder().encode(sseData));
-						}
-
-						// Try to get final message for usage recording
-						try {
-							finalMessage = await stream.finalMessage();
-						} catch (finalError) {
-							console.warn(
-								"Could not get final message for usage recording:",
-								finalError,
-							);
 						}
 
 						// Send proper SSE termination event
@@ -191,20 +207,20 @@ export async function POST(
 						);
 						controller.close();
 
-						// Record usage if available
-						if (finalMessage?.usage) {
+						// Record usage if available from chunks
+						if (finalUsage) {
+							const usage = finalUsage; // Capture for closure
 							queueMicrotask(async () => {
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
-										provider: "anthropic", // Default since we're using Anthropic format
-										model: finalMessage?.model ?? null,
+										provider: (providerId as "anthropic") || "anthropic",
+										model: modelName,
 										usage: {
-											promptTokens: finalMessage?.usage?.input_tokens ?? 0,
-											completionTokens: finalMessage?.usage?.output_tokens ?? 0,
+											promptTokens: usage.input_tokens ?? 0,
+											completionTokens: usage.output_tokens ?? 0,
 											totalTokens:
-												(finalMessage?.usage?.input_tokens ?? 0) +
-												(finalMessage?.usage?.output_tokens ?? 0),
+												(usage.input_tokens ?? 0) + (usage.output_tokens ?? 0),
 										},
 										duration: Date.now() - startTime,
 										timestamp: new Date(),
@@ -271,7 +287,7 @@ export async function POST(
 				},
 			});
 
-			return new Response(readableStream, {
+			return new Response(customReadable, {
 				headers: {
 					"Content-Type": "text/event-stream",
 					"Cache-Control": "no-cache",

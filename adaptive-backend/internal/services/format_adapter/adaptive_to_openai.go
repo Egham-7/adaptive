@@ -6,6 +6,7 @@ import (
 	"adaptive-backend/internal/models"
 
 	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/shared/constant"
 )
 
 // AdaptiveToOpenAIConverter handles conversion from our adaptive types to standard OpenAI types
@@ -53,15 +54,32 @@ func (c *AdaptiveToOpenAIConverter) ConvertResponse(resp *models.ChatCompletion)
 		return nil, fmt.Errorf("adaptive chat completion cannot be nil")
 	}
 
+	// Convert adaptive choices back to OpenAI types
+	openAIChoices := make([]openai.ChatCompletionChoice, len(resp.Choices))
+	for i, choice := range resp.Choices {
+		openAIChoices[i] = openai.ChatCompletionChoice{
+			FinishReason: choice.FinishReason,
+			Index:        choice.Index,
+			Logprobs:     choice.Logprobs,
+			Message: openai.ChatCompletionMessage{
+				Content:     choice.Message.Content,
+				Refusal:     choice.Message.Refusal,
+				Role:        constant.Assistant(choice.Message.Role),
+				Annotations: choice.Message.Annotations,
+				Audio:       choice.Message.Audio,
+				ToolCalls:   choice.Message.ToolCalls,
+			},
+		}
+	}
+
 	return &openai.ChatCompletion{
-		ID:                resp.ID,
-		Choices:           resp.Choices,
-		Created:           resp.Created,
-		Model:             resp.Model,
-		Object:            "chat.completion",
-		ServiceTier:       resp.ServiceTier,
-		SystemFingerprint: resp.SystemFingerprint,
-		Usage:             c.convertUsage(resp.Usage),
+		ID:          resp.ID,
+		Choices:     openAIChoices,
+		Created:     resp.Created,
+		Model:       resp.Model,
+		Object:      "chat.completion",
+		ServiceTier: resp.ServiceTier,
+		Usage:       c.convertUsage(resp.Usage),
 	}, nil
 }
 
@@ -71,20 +89,32 @@ func (c *AdaptiveToOpenAIConverter) ConvertStreamingChunk(chunk *models.ChatComp
 		return nil, fmt.Errorf("adaptive chat completion chunk cannot be nil")
 	}
 
-	var usage openai.CompletionUsage
-	if chunk.Usage != nil {
-		usage = c.convertUsage(*chunk.Usage)
+	// Convert adaptive choices back to OpenAI types
+	openAIChoices := make([]openai.ChatCompletionChunkChoice, len(chunk.Choices))
+	for i, choice := range chunk.Choices {
+		openAIChoices[i] = openai.ChatCompletionChunkChoice{
+			Delta: openai.ChatCompletionChunkChoiceDelta{
+				Content:   choice.Delta.Content,
+				Refusal:   choice.Delta.Refusal,
+				Role:      choice.Delta.Role,
+				ToolCalls: choice.Delta.ToolCalls,
+			},
+			FinishReason: choice.FinishReason,
+			Index:        choice.Index,
+			Logprobs:     choice.Logprobs,
+		}
 	}
 
+	usage := c.convertUsage(chunk.Usage)
+
 	return &openai.ChatCompletionChunk{
-		ID:                chunk.ID,
-		Choices:           chunk.Choices,
-		Created:           chunk.Created,
-		Model:             chunk.Model,
-		Object:            "chat.completion.chunk",
-		ServiceTier:       chunk.ServiceTier,
-		SystemFingerprint: chunk.SystemFingerprint,
-		Usage:             usage,
+		ID:          chunk.ID,
+		Choices:     openAIChoices,
+		Created:     chunk.Created,
+		Model:       chunk.Model,
+		Object:      "chat.completion.chunk",
+		ServiceTier: chunk.ServiceTier,
+		Usage:       usage,
 	}, nil
 }
 

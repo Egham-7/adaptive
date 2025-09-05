@@ -26,7 +26,7 @@ import Anthropic from "@anthropic-ai/sdk";
 // This allows you to use Claude's Messages API while getting intelligent routing
 const client = new Anthropic({
   apiKey: process.env.ADAPTIVE_API_KEY || "your-adaptive-api-key",
-  baseURL: "https://www.llmadaptive.uk/api", // Adaptive's endpoint
+  baseURL: "https://llmadaptive.com/api", // Adaptive's endpoint
 });
 
 // Type definitions for better TypeScript support
@@ -118,7 +118,7 @@ async function streamingExample() {
       messages: [
         {
           role: "user",
-          content: "Write a short story about a robot learning to paint",
+          content: "Write a short poem about coding",
         },
       ],
     });
