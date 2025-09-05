@@ -8,10 +8,10 @@ import (
 	"adaptive-backend/internal/models"
 
 	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/openai/openai-go"
-	openaiParam "github.com/openai/openai-go/packages/param"
+	"github.com/openai/openai-go/v2"
+	openaiParam "github.com/openai/openai-go/v2/packages/param"
 
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // AnthropicToOpenAIConverter handles conversion from Anthropic format to OpenAI format
@@ -183,9 +183,9 @@ func (c *AnthropicToOpenAIConverter) convertUserContent(content []anthropic.Cont
 }
 
 // convertAssistantContent converts Anthropic assistant content to OpenAI format
-func (c *AnthropicToOpenAIConverter) convertAssistantContent(content []anthropic.ContentBlockParamUnion) (string, []openai.ChatCompletionMessageToolCallParam, error) {
+func (c *AnthropicToOpenAIConverter) convertAssistantContent(content []anthropic.ContentBlockParamUnion) (string, []openai.ChatCompletionMessageToolCallUnionParam, error) {
 	var textContent strings.Builder
-	var toolCalls []openai.ChatCompletionMessageToolCallParam
+	var toolCalls []openai.ChatCompletionMessageToolCallUnionParam
 
 	for _, block := range content {
 		switch {
@@ -201,12 +201,14 @@ func (c *AnthropicToOpenAIConverter) convertAssistantContent(content []anthropic
 				return "", nil, fmt.Errorf("failed to marshal tool input: %w", err)
 			}
 
-			toolCalls = append(toolCalls, openai.ChatCompletionMessageToolCallParam{
-				ID:   block.OfToolUse.ID,
-				Type: "function",
-				Function: openai.ChatCompletionMessageToolCallFunctionParam{
-					Name:      block.OfToolUse.Name,
-					Arguments: string(inputBytes),
+			toolCalls = append(toolCalls, openai.ChatCompletionMessageToolCallUnionParam{
+				OfFunction: &openai.ChatCompletionMessageFunctionToolCallParam{
+					ID:   block.OfToolUse.ID,
+					Type: "function",
+					Function: openai.ChatCompletionMessageFunctionToolCallFunctionParam{
+						Name:      block.OfToolUse.Name,
+						Arguments: string(inputBytes),
+					},
 				},
 			})
 		}
@@ -267,27 +269,28 @@ func (c *AnthropicToOpenAIConverter) convertParameters(anthropicReq *models.Anth
 }
 
 // convertTools converts Anthropic tools to OpenAI format
-func (c *AnthropicToOpenAIConverter) convertTools(tools []anthropic.ToolUnionParam) ([]openai.ChatCompletionToolParam, error) {
-	var openaiTools []openai.ChatCompletionToolParam
+func (c *AnthropicToOpenAIConverter) convertTools(tools []anthropic.ToolUnionParam) ([]openai.ChatCompletionToolUnionParam, error) {
+	var openaiTools []openai.ChatCompletionToolUnionParam
 
 	for _, tool := range tools {
 		if tool.OfTool != nil {
-			openaiTool := openai.ChatCompletionToolParam{
-				Type: "function",
-				Function: openai.FunctionDefinitionParam{
-					Name: tool.OfTool.Name,
+			openaiTool := openai.ChatCompletionToolUnionParam{
+				OfFunction: &openai.ChatCompletionFunctionToolParam{
+					Function: openai.FunctionDefinitionParam{
+						Name: tool.OfTool.Name,
+					},
 				},
 			}
 
 			if tool.OfTool.Description.Valid() {
-				openaiTool.Function.Description = openaiParam.Opt[string]{Value: tool.OfTool.Description.Value}
+				openaiTool.OfFunction.Function.Description = openaiParam.Opt[string]{Value: tool.OfTool.Description.Value}
 			}
 
 			// Convert input schema to function parameters
 			if tool.OfTool.InputSchema.Properties != nil {
 				// Type assertion needed since Properties is any
 				if properties, ok := tool.OfTool.InputSchema.Properties.(map[string]any); ok {
-					openaiTool.Function.Parameters = properties
+					openaiTool.OfFunction.Function.Parameters = properties
 				}
 			}
 
@@ -368,9 +371,9 @@ func (c *AnthropicToOpenAIConverter) convertUsage(usage anthropic.Usage) openai.
 }
 
 // convertResponseContent converts Anthropic content blocks to OpenAI message content
-func (c *AnthropicToOpenAIConverter) convertResponseContent(content []anthropic.ContentBlockUnion) (string, []openai.ChatCompletionMessageToolCall, error) {
+func (c *AnthropicToOpenAIConverter) convertResponseContent(content []anthropic.ContentBlockUnion) (string, []openai.ChatCompletionMessageToolCallUnion, error) {
 	var textContent strings.Builder
-	var toolCalls []openai.ChatCompletionMessageToolCall
+	var toolCalls []openai.ChatCompletionMessageToolCallUnion
 
 	for _, block := range content {
 		switch block.Type {
@@ -386,10 +389,10 @@ func (c *AnthropicToOpenAIConverter) convertResponseContent(content []anthropic.
 				return "", nil, fmt.Errorf("failed to marshal tool input: %w", err)
 			}
 
-			toolCalls = append(toolCalls, openai.ChatCompletionMessageToolCall{
+			toolCalls = append(toolCalls, openai.ChatCompletionMessageToolCallUnion{
 				ID:   block.ID,
 				Type: "function",
-				Function: openai.ChatCompletionMessageToolCallFunction{
+				Function: openai.ChatCompletionMessageFunctionToolCallFunction{
 					Name:      block.Name,
 					Arguments: string(inputBytes),
 				},

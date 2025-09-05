@@ -11,7 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/v2"
 	"github.com/valyala/fasthttp"
 )
 

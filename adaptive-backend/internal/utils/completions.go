@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/v2"
 )
 
 // FindLastUserMessage safely finds the last user message in a conversation.
@@ -125,7 +125,7 @@ func extractContentFromAssistant(msg *openai.ChatCompletionAssistantMessageParam
 	if len(msg.ToolCalls) > 0 {
 		var toolCallSummaries []string
 		for _, toolCall := range msg.ToolCalls {
-			toolCallSummaries = append(toolCallSummaries, fmt.Sprintf("tool_call:%s", toolCall.Function.Name))
+			toolCallSummaries = append(toolCallSummaries, fmt.Sprintf("tool_call:%s, args: %s", toolCall.OfFunction.Function.Name, toolCall.OfFunction.Function.Arguments))
 		}
 		return strings.Join(toolCallSummaries, ",")
 	}

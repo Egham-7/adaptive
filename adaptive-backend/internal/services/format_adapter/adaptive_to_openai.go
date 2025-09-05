@@ -5,7 +5,7 @@ import (
 
 	"adaptive-backend/internal/models"
 
-	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/v2"
 )
 
 // AdaptiveToOpenAIConverter handles conversion from our adaptive types to standard OpenAI types

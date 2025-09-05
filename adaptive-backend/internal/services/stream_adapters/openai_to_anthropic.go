@@ -9,8 +9,8 @@ import (
 	"adaptive-backend/internal/services/format_adapter"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/ssestream"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/ssestream"
 )
 
 // OpenAIToAnthropicStreamAdapter converts OpenAI streaming response to Anthropic SSE format

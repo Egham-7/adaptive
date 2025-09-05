@@ -5,7 +5,7 @@ import (
 
 	"adaptive-backend/internal/models"
 
-	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/v2"
 )
 
 // OpenAIToAdaptiveConverter handles conversion from standard OpenAI types to our adaptive types
@@ -59,15 +59,14 @@ func (c *OpenAIToAdaptiveConverter) ConvertResponse(resp *openai.ChatCompletion,
 	}
 
 	return &models.ChatCompletion{
-		ID:                resp.ID,
-		Choices:           resp.Choices,
-		Created:           resp.Created,
-		Model:             resp.Model,
-		Object:            string(resp.Object),
-		ServiceTier:       resp.ServiceTier,
-		SystemFingerprint: resp.SystemFingerprint,
-		Usage:             c.convertUsage(resp.Usage),
-		Provider:          provider,
+		ID:          resp.ID,
+		Choices:     resp.Choices,
+		Created:     resp.Created,
+		Model:       resp.Model,
+		Object:      string(resp.Object),
+		ServiceTier: resp.ServiceTier,
+		Usage:       c.convertUsage(resp.Usage),
+		Provider:    provider,
 	}, nil
 }
 
@@ -85,15 +84,14 @@ func (c *OpenAIToAdaptiveConverter) ConvertStreamingChunk(chunk *openai.ChatComp
 	}
 
 	return &models.ChatCompletionChunk{
-		ID:                chunk.ID,
-		Choices:           chunk.Choices,
-		Created:           chunk.Created,
-		Model:             chunk.Model,
-		Object:            string(chunk.Object),
-		ServiceTier:       chunk.ServiceTier,
-		SystemFingerprint: chunk.SystemFingerprint,
-		Usage:             usage,
-		Provider:          provider,
+		ID:          chunk.ID,
+		Choices:     chunk.Choices,
+		Created:     chunk.Created,
+		Model:       chunk.Model,
+		Object:      string(chunk.Object),
+		ServiceTier: chunk.ServiceTier,
+		Usage:       usage,
+		Provider:    provider,
 	}, nil
 }
 
