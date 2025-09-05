@@ -1,15 +1,14 @@
 package model_router
 
 import (
+	"context"
 	"fmt"
 
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 
 	"github.com/botirk38/semanticcache"
-	"github.com/botirk38/semanticcache/backends"
-	"github.com/botirk38/semanticcache/providers/openai"
-	"github.com/botirk38/semanticcache/types"
+	"github.com/botirk38/semanticcache/options"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
@@ -63,36 +62,16 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	}
 	fiberlog.Debug("ModelRouterCache: Redis URL configured")
 
-	// Create Redis backend configuration
-	config := types.BackendConfig{
-		ConnectionString: redisURL,
-	}
-
-	// Create backend factory and Redis backend
-	fiberlog.Debug("ModelRouterCache: Creating Redis backend")
-	factory := &backends.BackendFactory[string, models.ModelSelectionResponse]{}
-	backend, err := factory.NewBackend(types.BackendRedis, config)
-	if err != nil {
-		fiberlog.Errorf("ModelRouterCache: Failed to create Redis backend: %v", err)
-		return nil, fmt.Errorf("failed to create Redis backend: %w", err)
-	}
-	fiberlog.Info("ModelRouterCache: Redis backend created successfully")
-
-	// Create OpenAI provider
-	fiberlog.Debug("ModelRouterCache: Creating OpenAI provider")
-	provider, err := openai.NewOpenAIProvider(openai.OpenAIConfig{
-		APIKey: apiKey,
-		Model:  "text-embedding-3-small",
-	})
-	if err != nil {
-		fiberlog.Errorf("ModelRouterCache: Failed to create OpenAI provider: %v", err)
-		return nil, fmt.Errorf("failed to create OpenAI provider: %w", err)
-	}
-	fiberlog.Info("ModelRouterCache: OpenAI provider created successfully")
-
-	// Create semantic cache
+	// Create semantic cache with new interface
 	fiberlog.Debug("ModelRouterCache: Creating semantic cache")
-	cache, err := semanticcache.NewSemanticCache(backend, provider, nil)
+	embedModel := semanticCacheConfig.EmbeddingModel
+	if embedModel == "" {
+		embedModel = "text-embedding-3-small"
+	}
+	cache, err := semanticcache.New(
+		options.WithOpenAIProvider[string, models.ModelSelectionResponse](apiKey, embedModel),
+		options.WithRedisBackend[string, models.ModelSelectionResponse](redisURL, 0),
+	)
 	if err != nil {
 		fiberlog.Errorf("ModelRouterCache: Failed to create semantic cache: %v", err)
 		return nil, fmt.Errorf("failed to create semantic cache: %w", err)
@@ -105,23 +84,30 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	}, nil
 }
 
-// Lookup searches for a cached protocol response using exact match first, then semantic similarity
-func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ModelSelectionResponse, string, bool) {
+// Lookup searches for a cached protocol response using exact match first, then semantic similarity with default threshold
+func (pmc *ModelRouterCache) Lookup(ctx context.Context, prompt, requestID string) (*models.ModelSelectionResponse, string, bool) {
+	return pmc.LookupWithThreshold(ctx, prompt, requestID, pmc.semanticThreshold)
+}
+
+// LookupWithThreshold searches for a cached protocol response using exact match first, then semantic similarity with custom threshold
+func (pmc *ModelRouterCache) LookupWithThreshold(ctx context.Context, prompt, requestID string, threshold float32) (*models.ModelSelectionResponse, string, bool) {
 	fiberlog.Debugf("[%s] ModelRouterCache: Starting cache lookup", requestID)
 
 	// 1) First try exact key matching
 	fiberlog.Debugf("[%s] ModelRouterCache: Trying exact key match", requestID)
-	if hit, found := pmc.cache.Get(prompt); found {
+	if hit, found, err := pmc.cache.Get(ctx, prompt); found && err == nil {
 		fiberlog.Infof("[%s] ModelRouterCache: Exact cache hit", requestID)
-		return &hit, "semantic_exact", true
+		return &hit, models.CacheTierSemanticExact, true
+	} else if err != nil {
+		fiberlog.Errorf("[%s] ModelRouterCache: Error during exact lookup: %v", requestID, err)
 	}
 	fiberlog.Debugf("[%s] ModelRouterCache: No exact match found", requestID)
 
-	// 2) If no exact match, try semantic similarity search
-	fiberlog.Debugf("[%s] ModelRouterCache: Trying semantic similarity search (threshold: %.2f)", requestID, pmc.semanticThreshold)
-	if hit, found, err := pmc.cache.Lookup(prompt, pmc.semanticThreshold); err == nil && found {
+	// 2) If no exact match, try semantic similarity search with provided threshold
+	fiberlog.Debugf("[%s] ModelRouterCache: Trying semantic similarity search (threshold: %.2f)", requestID, threshold)
+	if match, err := pmc.cache.Lookup(ctx, prompt, threshold); err == nil && match != nil {
 		fiberlog.Infof("[%s] ModelRouterCache: Semantic cache hit", requestID)
-		return &hit, "semantic_similar", true
+		return &match.Value, models.CacheTierSemanticSimilar, true
 	} else if err != nil {
 		fiberlog.Errorf("[%s] ModelRouterCache: Error during semantic lookup: %v", requestID, err)
 	} else {
@@ -133,9 +119,9 @@ func (pmc *ModelRouterCache) Lookup(prompt, requestID string) (*models.ModelSele
 }
 
 // Store saves a protocol response to the cache
-func (pmc *ModelRouterCache) Store(prompt string, resp models.ModelSelectionResponse) error {
+func (pmc *ModelRouterCache) Store(ctx context.Context, prompt string, resp models.ModelSelectionResponse) error {
 	fiberlog.Debugf("ModelRouterCache: Storing model response (model: %s/%s)", resp.Provider, resp.Model)
-	err := pmc.cache.Set(prompt, prompt, resp)
+	err := pmc.cache.Set(ctx, prompt, prompt, resp)
 	if err != nil {
 		fiberlog.Errorf("ModelRouterCache: Failed to store in cache: %v", err)
 	} else {
@@ -145,18 +131,23 @@ func (pmc *ModelRouterCache) Store(prompt string, resp models.ModelSelectionResp
 }
 
 // Close properly closes the cache and releases resources
-func (pmc *ModelRouterCache) Close() {
+func (pmc *ModelRouterCache) Close() error {
 	if pmc.cache != nil {
-		pmc.cache.Close()
+		return pmc.cache.Close()
 	}
+	return nil
 }
 
 // Len returns the number of items in the cache
-func (pmc *ModelRouterCache) Len() int {
-	return pmc.cache.Len()
+func (pmc *ModelRouterCache) Len(ctx context.Context) (int, error) {
+	count, err := pmc.cache.Len(ctx)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 // Flush clears all entries from the cache
-func (pmc *ModelRouterCache) Flush() error {
-	return pmc.cache.Flush()
+func (pmc *ModelRouterCache) Flush(ctx context.Context) error {
+	return pmc.cache.Flush(ctx)
 }

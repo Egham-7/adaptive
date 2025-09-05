@@ -78,7 +78,7 @@ func (h *SelectModelHandler) SelectModel(c *fiber.Ctx) error {
 	mergedConfig := h.cfg.MergeModelRouterConfig(requestConfig)
 
 	// Perform model selection using the service
-	resp, err := h.selectModelSvc.SelectModel(selectReq, userID, reqID, h.circuitBreakers, mergedConfig)
+	resp, err := h.selectModelSvc.SelectModel(c.UserContext(), selectReq, userID, reqID, h.circuitBreakers, mergedConfig)
 	if err != nil {
 		return h.responseSvc.InternalError(c, fmt.Sprintf("Model selection failed: %s", err.Error()))
 	}

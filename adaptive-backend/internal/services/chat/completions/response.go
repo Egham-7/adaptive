@@ -1,6 +1,8 @@
 package completions
 
 import (
+	"context"
+
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/model_router"
@@ -100,6 +102,7 @@ func (rs *ResponseService) SetStreamHeaders(c *fiber.Ctx) {
 
 // StoreSuccessfulSemanticCache stores the model response in semantic cache after successful completion
 func (rs *ResponseService) StoreSuccessfulSemanticCache(
+	ctx context.Context,
 	req *models.ChatCompletionRequest,
 	resp *models.ModelSelectionResponse,
 	requestID string,
@@ -124,7 +127,7 @@ func (rs *ResponseService) StoreSuccessfulSemanticCache(
 	}
 
 	// Store in semantic cache
-	if err := rs.modelRouter.StoreSuccessfulModel(prompt, *resp, requestID, req.ModelRouterConfig); err != nil {
+	if err := rs.modelRouter.StoreSuccessfulModel(ctx, prompt, *resp, requestID, req.ModelRouterConfig); err != nil {
 		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
 	}
 }

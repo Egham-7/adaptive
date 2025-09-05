@@ -56,6 +56,7 @@ func NewModelRouter(cfg *config.Config, redisClient *redis.Client) (*ModelRouter
 // It returns the model selection response, the source (cache or service), and any error encountered.
 // If cacheConfigOverride is provided, it will temporarily override the cache behavior for this request.
 func (pm *ModelRouter) SelectModelWithCache(
+	ctx context.Context,
 	prompt string,
 	userID, requestID string,
 	modelRouterConfig *models.ModelRouterConfig,
@@ -77,7 +78,17 @@ func (pm *ModelRouter) SelectModelWithCache(
 
 	if useCache && pm.cache != nil {
 		fiberlog.Debugf("[%s] Checking cache for existing model response", requestID)
-		if hit, source, found := pm.cache.Lookup(prompt, requestID); found {
+		// Use threshold override if provided, otherwise use cache default
+		var hit *models.ModelSelectionResponse
+		var source string
+		var found bool
+		if cacheConfigOverride.SemanticThreshold > 0 {
+			fiberlog.Debugf("[%s] Using threshold override: %.2f", requestID, cacheConfigOverride.SemanticThreshold)
+			hit, source, found = pm.cache.LookupWithThreshold(ctx, prompt, requestID, float32(cacheConfigOverride.SemanticThreshold))
+		} else {
+			hit, source, found = pm.cache.Lookup(ctx, prompt, requestID)
+		}
+		if found {
 			fiberlog.Infof("[%s] Cache hit (%s) - returning cached model: %s/%s", requestID, source, hit.Provider, hit.Model)
 			return hit, source, nil
 		}
@@ -106,7 +117,7 @@ func (pm *ModelRouter) SelectModelWithCache(
 		Models:   modelRouterConfig.Models,
 		CostBias: &modelRouterConfig.CostBias,
 	}
-	resp := pm.client.SelectModel(context.Background(), req)
+	resp := pm.client.SelectModel(ctx, req)
 
 	fiberlog.Infof("[%s] Model selected: %s/%s",
 		requestID, resp.Provider, resp.Model)
@@ -116,6 +127,7 @@ func (pm *ModelRouter) SelectModelWithCache(
 
 // StoreSuccessfulModel stores a model response in the semantic cache after successful completion
 func (pm *ModelRouter) StoreSuccessfulModel(
+	ctx context.Context,
 	prompt string,
 	resp models.ModelSelectionResponse,
 	requestID string,
@@ -135,7 +147,7 @@ func (pm *ModelRouter) StoreSuccessfulModel(
 	}
 
 	fiberlog.Debugf("[%s] Storing successful model response in semantic cache", requestID)
-	if err := pm.cache.Store(prompt, resp); err != nil {
+	if err := pm.cache.Store(ctx, prompt, resp); err != nil {
 		fiberlog.Errorf("[%s] Failed to store model response in semantic cache: %v", requestID, err)
 		return err
 	}
@@ -197,7 +209,10 @@ func (pm *ModelRouter) Close() error {
 
 	if pm.cache != nil {
 		fiberlog.Info("ModelRouter: Closing cache connection")
-		pm.cache.Close()
+		if err := pm.cache.Close(); err != nil {
+			fiberlog.Errorf("ModelRouter: Failed to close cache: %v", err)
+			return err
+		}
 		fiberlog.Info("ModelRouter: Cache closed successfully")
 	} else {
 		fiberlog.Debug("ModelRouter: No cache to close (cache disabled)")
