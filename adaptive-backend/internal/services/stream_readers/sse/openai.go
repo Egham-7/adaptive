@@ -13,8 +13,8 @@ import (
 	"adaptive-backend/internal/services/stream_readers"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
-	ssestream "github.com/openai/openai-go/packages/ssestream"
+	"github.com/openai/openai-go/v2"
+	ssestream "github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/valyala/bytebufferpool"
 )
 

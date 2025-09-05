@@ -15,7 +15,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // Sentinel errors for proper HTTP status code mapping

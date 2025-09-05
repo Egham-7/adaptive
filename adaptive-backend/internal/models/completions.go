@@ -1,9 +1,9 @@
 package models
 
 import (
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/param"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/param"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // ProviderConfig is now defined in internal/config package to avoid duplication
@@ -188,7 +188,7 @@ type ChatCompletionRequest struct {
 	// A list of tools the model may call. Currently, only functions are supported as a
 	// tool. Use this to provide a list of functions the model may generate JSON inputs
 	// for. A max of 128 functions are supported.
-	Tools []openai.ChatCompletionToolParam `json:"tools,omitzero"`
+	Tools []openai.ChatCompletionToolUnionParam `json:"tools,omitzero"`
 	// This tool searches the web for relevant results to use in a response. Learn more
 	// about the
 	// [web search tool](https://platform.openai.com/docs/guides/tools-web-search?api-mode=chat).
