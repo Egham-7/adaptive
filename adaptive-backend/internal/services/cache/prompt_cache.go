@@ -44,8 +44,12 @@ func NewPromptCache(redisClient *redis.Client, config models.CacheConfig) (*Prom
 		fiberlog.Debugf("PromptCache: Initializing semantic cache with threshold=%.2f", threshold)
 
 		// Create semantic cache with new interface
+		embedModel := config.EmbeddingModel
+		if embedModel == "" {
+			embedModel = "text-embedding-3-small"
+		}
 		semanticCache, err := semanticcache.New(
-			options.WithOpenAIProvider[string, models.ChatCompletion](config.OpenAIAPIKey, "text-embedding-3-small"),
+			options.WithOpenAIProvider[string, models.ChatCompletion](config.OpenAIAPIKey, embedModel),
 			options.WithRedisBackend[string, models.ChatCompletion](config.RedisURL, 0),
 		)
 		if err != nil {
@@ -74,11 +78,21 @@ func (pc *PromptCache) Get(ctx context.Context, req *models.ChatCompletionReques
 		return nil, "", false
 	}
 
+	// Use threshold override if provided in request, otherwise use cache default
+	if req.PromptCache.SemanticThreshold > 0 {
+		fiberlog.Debugf("[%s] PromptCache: Using threshold override: %.2f", requestID, req.PromptCache.SemanticThreshold)
+		return pc.getFromCacheWithThreshold(ctx, req, requestID, float32(req.PromptCache.SemanticThreshold))
+	}
 	return pc.getFromCache(ctx, req, requestID)
 }
 
-// getFromCache retrieves from semantic cache with similarity matching
+// getFromCache retrieves from semantic cache with similarity matching using default threshold
 func (pc *PromptCache) getFromCache(ctx context.Context, req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
+	return pc.getFromCacheWithThreshold(ctx, req, requestID, pc.semanticThreshold)
+}
+
+// getFromCacheWithThreshold retrieves from semantic cache with similarity matching using custom threshold
+func (pc *PromptCache) getFromCacheWithThreshold(ctx context.Context, req *models.ChatCompletionRequest, requestID string, threshold float32) (*models.ChatCompletion, string, bool) {
 	// Extract prompt from messages for semantic search
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
@@ -92,16 +106,16 @@ func (pc *PromptCache) getFromCache(ctx context.Context, req *models.ChatComplet
 	fiberlog.Debugf("[%s] PromptCache: Trying exact key match", requestID)
 	if hit, found, err := pc.semanticCache.Get(ctx, prompt); found && err == nil {
 		fiberlog.Infof("[%s] PromptCache: Exact cache hit", requestID)
-		return &hit, "semantic_exact", true
+		return &hit, models.CacheTierSemanticExact, true
 	} else if err != nil {
 		fiberlog.Errorf("[%s] PromptCache: Error during exact lookup: %v", requestID, err)
 	}
 
-	// Try semantic similarity search
-	fiberlog.Debugf("[%s] PromptCache: Trying semantic similarity search (threshold: %.2f)", requestID, pc.semanticThreshold)
-	if match, err := pc.semanticCache.Lookup(ctx, prompt, pc.semanticThreshold); err == nil && match != nil {
+	// Try semantic similarity search with provided threshold
+	fiberlog.Debugf("[%s] PromptCache: Trying semantic similarity search (threshold: %.2f)", requestID, threshold)
+	if match, err := pc.semanticCache.Lookup(ctx, prompt, threshold); err == nil && match != nil {
 		fiberlog.Infof("[%s] PromptCache: Semantic cache hit", requestID)
-		return &match.Value, "semantic_similar", true
+		return &match.Value, models.CacheTierSemanticSimilar, true
 	} else if err != nil {
 		fiberlog.Errorf("[%s] PromptCache: Error during semantic lookup: %v", requestID, err)
 	}

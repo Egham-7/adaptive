@@ -64,8 +64,12 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 
 	// Create semantic cache with new interface
 	fiberlog.Debug("ModelRouterCache: Creating semantic cache")
+	embedModel := semanticCacheConfig.EmbeddingModel
+	if embedModel == "" {
+		embedModel = "text-embedding-3-small"
+	}
 	cache, err := semanticcache.New(
-		options.WithOpenAIProvider[string, models.ModelSelectionResponse](apiKey, "text-embedding-3-small"),
+		options.WithOpenAIProvider[string, models.ModelSelectionResponse](apiKey, embedModel),
 		options.WithRedisBackend[string, models.ModelSelectionResponse](redisURL, 0),
 	)
 	if err != nil {
@@ -80,25 +84,30 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	}, nil
 }
 
-// Lookup searches for a cached protocol response using exact match first, then semantic similarity
+// Lookup searches for a cached protocol response using exact match first, then semantic similarity with default threshold
 func (pmc *ModelRouterCache) Lookup(ctx context.Context, prompt, requestID string) (*models.ModelSelectionResponse, string, bool) {
+	return pmc.LookupWithThreshold(ctx, prompt, requestID, pmc.semanticThreshold)
+}
+
+// LookupWithThreshold searches for a cached protocol response using exact match first, then semantic similarity with custom threshold
+func (pmc *ModelRouterCache) LookupWithThreshold(ctx context.Context, prompt, requestID string, threshold float32) (*models.ModelSelectionResponse, string, bool) {
 	fiberlog.Debugf("[%s] ModelRouterCache: Starting cache lookup", requestID)
 
 	// 1) First try exact key matching
 	fiberlog.Debugf("[%s] ModelRouterCache: Trying exact key match", requestID)
 	if hit, found, err := pmc.cache.Get(ctx, prompt); found && err == nil {
 		fiberlog.Infof("[%s] ModelRouterCache: Exact cache hit", requestID)
-		return &hit, "semantic_exact", true
+		return &hit, models.CacheTierSemanticExact, true
 	} else if err != nil {
 		fiberlog.Errorf("[%s] ModelRouterCache: Error during exact lookup: %v", requestID, err)
 	}
 	fiberlog.Debugf("[%s] ModelRouterCache: No exact match found", requestID)
 
-	// 2) If no exact match, try semantic similarity search
-	fiberlog.Debugf("[%s] ModelRouterCache: Trying semantic similarity search (threshold: %.2f)", requestID, pmc.semanticThreshold)
-	if match, err := pmc.cache.Lookup(ctx, prompt, pmc.semanticThreshold); err == nil && match != nil {
+	// 2) If no exact match, try semantic similarity search with provided threshold
+	fiberlog.Debugf("[%s] ModelRouterCache: Trying semantic similarity search (threshold: %.2f)", requestID, threshold)
+	if match, err := pmc.cache.Lookup(ctx, prompt, threshold); err == nil && match != nil {
 		fiberlog.Infof("[%s] ModelRouterCache: Semantic cache hit", requestID)
-		return &match.Value, "semantic_similar", true
+		return &match.Value, models.CacheTierSemanticSimilar, true
 	} else if err != nil {
 		fiberlog.Errorf("[%s] ModelRouterCache: Error during semantic lookup: %v", requestID, err)
 	} else {

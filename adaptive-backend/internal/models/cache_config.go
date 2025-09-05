@@ -7,6 +7,7 @@ type CacheConfig struct {
 	RedisURL          string  `json:"redis_url,omitzero" yaml:"redis_url"`
 	SemanticThreshold float64 `json:"semantic_threshold,omitzero" yaml:"semantic_threshold"`
 	OpenAIAPIKey      string  `json:"openai_api_key,omitzero" yaml:"openai_api_key"`
+	EmbeddingModel    string  `json:"embedding_model,omitzero" yaml:"embedding_model"`
 }
 
 // ModelRouterConfig holds configuration for the model router

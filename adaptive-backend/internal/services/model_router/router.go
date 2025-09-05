@@ -78,7 +78,17 @@ func (pm *ModelRouter) SelectModelWithCache(
 
 	if useCache && pm.cache != nil {
 		fiberlog.Debugf("[%s] Checking cache for existing model response", requestID)
-		if hit, source, found := pm.cache.Lookup(ctx, prompt, requestID); found {
+		// Use threshold override if provided, otherwise use cache default
+		var hit *models.ModelSelectionResponse
+		var source string
+		var found bool
+		if cacheConfigOverride.SemanticThreshold > 0 {
+			fiberlog.Debugf("[%s] Using threshold override: %.2f", requestID, cacheConfigOverride.SemanticThreshold)
+			hit, source, found = pm.cache.LookupWithThreshold(ctx, prompt, requestID, float32(cacheConfigOverride.SemanticThreshold))
+		} else {
+			hit, source, found = pm.cache.Lookup(ctx, prompt, requestID)
+		}
+		if found {
 			fiberlog.Infof("[%s] Cache hit (%s) - returning cached model: %s/%s", requestID, source, hit.Provider, hit.Model)
 			return hit, source, nil
 		}
