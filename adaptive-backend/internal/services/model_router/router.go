@@ -197,7 +197,10 @@ func (pm *ModelRouter) Close() error {
 
 	if pm.cache != nil {
 		fiberlog.Info("ModelRouter: Closing cache connection")
-		pm.cache.Close()
+		if err := pm.cache.Close(); err != nil {
+			fiberlog.Errorf("ModelRouter: Failed to close cache: %v", err)
+			return err
+		}
 		fiberlog.Info("ModelRouter: Cache closed successfully")
 	} else {
 		fiberlog.Debug("ModelRouter: No cache to close (cache disabled)")
