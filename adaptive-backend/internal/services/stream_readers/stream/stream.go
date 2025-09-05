@@ -16,8 +16,8 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
-	openai_ssestream "github.com/openai/openai-go/packages/ssestream"
+	"github.com/openai/openai-go/v2"
+	openai_ssestream "github.com/openai/openai-go/v2/packages/ssestream"
 	"github.com/valyala/fasthttp"
 )
 

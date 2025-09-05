@@ -7,7 +7,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropicparam "github.com/anthropics/anthropic-sdk-go/packages/param"
-	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/v2"
 )
 
 // OpenAIToAnthropicConverter handles conversion from OpenAI format to Anthropic format
@@ -204,7 +204,7 @@ func (c *OpenAIToAnthropicConverter) convertUserContent(content openai.ChatCompl
 }
 
 // convertAssistantContent converts OpenAI assistant content to Anthropic format
-func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.ChatCompletionAssistantMessageParamContentUnion, toolCalls []openai.ChatCompletionMessageToolCallParam) ([]anthropic.ContentBlockParamUnion, error) {
+func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.ChatCompletionAssistantMessageParamContentUnion, toolCalls []openai.ChatCompletionMessageToolCallUnionParam) ([]anthropic.ContentBlockParamUnion, error) {
 	var contentParts []anthropic.ContentBlockParamUnion
 
 	// Add text content if present (based on Context7 docs, assistant content can be string or null)
@@ -219,20 +219,20 @@ func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.Chat
 
 	// Convert tool calls to Anthropic tool_use blocks
 	for _, toolCall := range toolCalls {
-		// Based on Context7 docs, tool calls are ChatCompletionMessageToolCallParam
-		if toolCall.Function.Arguments != "" {
+		// Based on Context7 docs, tool calls are ChatCompletionMessageToolCallUnionParam
+		if toolCall.OfFunction != nil && toolCall.OfFunction.Function.Arguments != "" {
 			// Parse function arguments
 			var args map[string]any
-			if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
+			if err := json.Unmarshal([]byte(toolCall.OfFunction.Function.Arguments), &args); err != nil {
 				// If JSON parsing fails, use the raw string in a simple map
-				args = map[string]any{"arguments": toolCall.Function.Arguments}
+				args = map[string]any{"arguments": toolCall.OfFunction.Function.Arguments}
 			}
 
 			contentParts = append(contentParts, anthropic.ContentBlockParamUnion{
 				OfToolUse: &anthropic.ToolUseBlockParam{
 					Type:  "tool_use",
-					ID:    toolCall.ID,
-					Name:  toolCall.Function.Name,
+					ID:    toolCall.OfFunction.ID,
+					Name:  toolCall.OfFunction.Function.Name,
 					Input: args,
 				},
 			})
@@ -334,20 +334,23 @@ func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *openai.ChatCom
 }
 
 // convertTools converts OpenAI tools to Anthropic format
-func (c *OpenAIToAnthropicConverter) convertTools(tools []openai.ChatCompletionToolParam) ([]anthropic.ToolParam, error) {
+func (c *OpenAIToAnthropicConverter) convertTools(tools []openai.ChatCompletionToolUnionParam) ([]anthropic.ToolParam, error) {
 	var anthropicTools []anthropic.ToolParam
 
 	for _, tool := range tools {
 		// Only function tools are supported in this conversion
+		if tool.OfFunction == nil {
+			continue
+		}
 		anthropicTool := anthropic.ToolParam{
-			Name:        tool.Function.Name,
-			Description: anthropicparam.Opt[string]{Value: tool.Function.Description.Value},
+			Name:        tool.OfFunction.Function.Name,
+			Description: anthropicparam.Opt[string]{Value: tool.OfFunction.Function.Description.Value},
 		}
 
 		// Convert function parameters (OpenAI JSON Schema) to Anthropic input_schema
-		if tool.Function.Parameters != nil {
+		if tool.OfFunction.Function.Parameters != nil {
 			// FunctionParameters is already map[string]any, so cast directly
-			m := map[string]any(tool.Function.Parameters)
+			m := map[string]any(tool.OfFunction.Function.Parameters)
 			// Extract properties (fallback to the whole map if no explicit "properties")
 			var props map[string]any
 			if p, ok := m["properties"].(map[string]any); ok {
@@ -440,7 +443,7 @@ func (c *OpenAIToAnthropicConverter) convertUsage(usage openai.CompletionUsage) 
 }
 
 // convertResponseContent converts OpenAI message content to Anthropic content blocks
-func (c *OpenAIToAnthropicConverter) convertResponseContent(content string, toolCalls []openai.ChatCompletionMessageToolCall) ([]anthropic.ContentBlockUnion, error) {
+func (c *OpenAIToAnthropicConverter) convertResponseContent(content string, toolCalls []openai.ChatCompletionMessageToolCallUnion) ([]anthropic.ContentBlockUnion, error) {
 	var contentBlocks []anthropic.ContentBlockUnion
 
 	// Add text content if present
@@ -453,6 +456,7 @@ func (c *OpenAIToAnthropicConverter) convertResponseContent(content string, tool
 
 	// Add tool calls if present
 	for _, toolCall := range toolCalls {
+
 		// Parse function arguments as raw JSON
 		var input json.RawMessage
 		if toolCall.Function.Arguments != "" {

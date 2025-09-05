@@ -3,9 +3,9 @@ package models
 import (
 	"time"
 
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/param"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/param"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // PromptCacheKey represents the structure used to generate cache keys
@@ -15,7 +15,7 @@ type PromptCacheKey struct {
 	Temperature param.Opt[float64]                              `json:"temperature"`
 	MaxTokens   param.Opt[int64]                                `json:"max_tokens"`
 	TopP        param.Opt[float64]                              `json:"top_p"`
-	Tools       []openai.ChatCompletionToolParam                `json:"tools,omitzero"`
+	Tools       []openai.ChatCompletionToolMessageParam         `json:"tools,omitzero"`
 	ToolChoice  openai.ChatCompletionToolChoiceOptionUnionParam `json:"tool_choice"`
 }
 

@@ -15,8 +15,8 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
-	openaiOption "github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/v2"
+	openaiOption "github.com/openai/openai-go/v2/option"
 )
 
 // MessagesService handles Anthropic Messages API calls using the Anthropic SDK

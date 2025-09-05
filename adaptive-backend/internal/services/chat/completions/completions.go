@@ -17,9 +17,9 @@ import (
 	anthropicOption "github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
-	"github.com/openai/openai-go"
-	openaiOption "github.com/openai/openai-go/option"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2"
+	openaiOption "github.com/openai/openai-go/v2/option"
+	"github.com/openai/openai-go/v2/shared"
 )
 
 // CompletionService handles completion requests with fallback logic.
