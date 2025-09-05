@@ -1,0 +1,288 @@
+---
+title: "Performance"
+description: "Ultra-fast routing with multi-tier caching and optimized Go architecture"
+icon: "gauge-high"
+---
+
+Adaptive delivers industry-leading performance through optimized Go architecture, intelligent caching, and purpose-built ML algorithms designed for speed.
+
+## Performance Highlights
+
+<CardGroup cols={4}>
+  <Card title="Model Selection" icon="zap">
+    **&lt;1ms**  
+    Instant routing decisions
+  </Card>
+  <Card title="Throughput" icon="chart-line">
+    **10,000+**  
+    Requests per second
+  </Card>
+  <Card title="Cache Hit Rate" icon="database">
+    **60-80%**  
+    Multi-tier efficiency
+  </Card>
+  <Card title="Overhead" icon="clock">
+    **&lt;3ms**  
+    Total added latency
+  </Card>
+</CardGroup>
+
+## Architecture Advantages
+
+### Lightning-Fast ML Pipeline
+
+<Steps>
+  <Step title="No LLMs in Routing">
+    Pure ML classifiers make decisions instantly without large model inference
+  </Step>
+  <Step title="Pre-computed Embeddings">
+    Classification happens without real-time embedding generation
+  </Step>
+  <Step title="Optimized Algorithms">
+    Purpose-built for speed over complexity with zero unnecessary overhead
+  </Step>
+</Steps>
+
+### Multi-Tier Caching System
+
+<Accordion title="Caching Layers">
+
+**L1: Prompt-Response Cache**
+- **Speed**: Microsecond responses
+- **Use case**: Identical requests
+- **Hit rate**: 40-60%
+
+**L2: Semantic Cache**  
+- **Speed**: 1-2ms responses
+- **Use case**: Similar meaning requests
+- **Hit rate**: 20-30%
+
+**L3: Router Cache**
+- **Speed**: 5-10ms responses  
+- **Use case**: Provider health and routing decisions
+- **Hit rate**: Nearly 100%
+
+</Accordion>
+
+### Go-Powered Backend
+
+<CardGroup cols={2}>
+  <Card title="Native Performance" icon="rocket">
+    Compiled binary with no runtime overhead or interpretation layers
+  </Card>
+  <Card title="Massive Concurrency" icon="users">
+    Handle thousands of simultaneous requests with goroutines
+  </Card>
+  <Card title="Memory Efficient" icon="cpu">
+    Minimal garbage collection impact and optimized memory usage
+  </Card>
+  <Card title="Fast Startup" icon="play">
+    Sub-second cold start times for instant scaling
+  </Card>
+</CardGroup>
+
+## Real-World Metrics
+
+### Latency Breakdown
+
+```text
+┌─────────────────┬──────────────┐
+│ Component       │ Time         │
+├─────────────────┼──────────────┤
+│ Model Selection │ &lt;1ms         │
+│ Cache Lookup    │ &lt;1ms         │
+│ Provider Route  │ &lt;1ms         │
+├─────────────────┼──────────────┤
+│ Total Overhead  │ &lt;3ms         │
+└─────────────────┴──────────────┘
+```
+
+### Throughput Characteristics
+
+<CardGroup cols={3}>
+  <Card title="Sustained Load" icon="server">
+    **10,000+ req/s**  
+    Continuous high throughput
+  </Card>
+  <Card title="Burst Capacity" icon="trending-up">
+    **50,000+ req/s**  
+    Short-term peak handling
+  </Card>
+  <Card title="Linear Scaling" icon="expand">
+    **2x instances = 2x capacity**  
+    Predictable performance scaling
+  </Card>
+</CardGroup>
+
+## Performance Optimizations
+
+### Smart Request Processing
+
+<Steps>
+  <Step title="Parallel Classification">
+    Request analysis happens concurrently with provider health checks
+  </Step>
+  <Step title="Pre-computed Routes">
+    Common routing decisions are cached and reused across requests
+  </Step>
+  <Step title="Async Health Checks">
+    Provider status updates happen in background without blocking requests
+  </Step>
+</Steps>
+
+### Efficient Data Handling
+
+<CardGroup cols={2}>
+  <Card title="Zero-Copy Operations" icon="copy">
+    Minimal memory allocation and copying during request processing
+  </Card>
+  <Card title="Connection Pooling" icon="network-wired">
+    Persistent connections to all providers reduce connection overhead
+  </Card>
+  <Card title="Optimized JSON" icon="code">
+    Fast parsing and serialization with minimal allocations
+  </Card>
+  <Card title="Resource Management" icon="gauge">
+    Graceful degradation under extreme load conditions
+  </Card>
+</CardGroup>
+
+## Performance Comparison
+
+<Note>
+Benchmarks run on identical hardware (4 CPU cores, 8GB RAM) with 1000 concurrent requests.
+</Note>
+
+| Solution | Model Selection | Memory Usage | Cold Start | Throughput |
+|----------|----------------|--------------|------------|------------|
+| **Adaptive** | &lt;1ms | 50MB | &lt;1s | 10,000+ req/s |
+| Python-based | 50-200ms | 500MB+ | 10-30s | 500 req/s |
+| LLM-based routing | 1-5s | 2GB+ | 60s+ | 10 req/s |
+
+## Cache Performance
+
+### Hit Rate Optimization
+
+Different request patterns achieve different cache performance:
+
+<CardGroup cols={3}>
+  <Card title="Repeated Queries" icon="repeat">
+    **90%+ hit rate**  
+    FAQ-style applications
+  </Card>
+  <Card title="Similar Content" icon="clone">
+    **60-70% hit rate**  
+    Content generation tasks
+  </Card>
+  <Card title="Unique Requests" icon="snowflake">
+    **20-30% hit rate**  
+    Highly varied applications
+  </Card>
+</CardGroup>
+
+### Cache Warming Strategies
+
+<Tabs>
+<Tab title="Automatic Warming">
+Adaptive automatically pre-loads cache with common patterns:
+- Popular request types
+- Frequently used prompts  
+- High-traffic user patterns
+</Tab>
+
+<Tab title="Manual Pre-loading">
+You can warm caches by sending representative requests:
+```javascript
+// Pre-warm cache with common patterns
+const patterns = [
+  "Hello, how are you?",
+  "Explain this concept:",
+  "Write a summary of:"
+];
+
+for (const pattern of patterns) {
+  await openai.chat.completions.create({
+    model: "",
+    messages: [{ role: "user", content: pattern }]
+  });
+}
+```
+</Tab>
+</Tabs>
+
+## Monitoring and Observability
+
+### Built-in Metrics
+
+<CardGroup cols={2}>
+  <Card title="Latency Percentiles" icon="chart-bar">
+    Track P50, P95, P99 response times across all endpoints
+  </Card>
+  <Card title="Cache Analytics" icon="pie-chart">
+    Monitor hit rates, cache efficiency, and performance gains
+  </Card>
+  <Card title="Provider Health" icon="heart-pulse">
+    Real-time status and response time monitoring for all providers
+  </Card>
+  <Card title="Error Tracking" icon="exclamation-triangle">
+    Detailed error rates, types, and recovery statistics
+  </Card>
+</CardGroup>
+
+### Dashboard Insights
+
+Access real-time performance data in your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard):
+
+- Request latency trends and percentiles
+- Cache hit rates across all tiers
+- Provider performance comparisons
+- Cost savings from cache hits
+- Throughput and scaling metrics
+
+<Warning>
+**Performance Tip**: Enable semantic caching for applications with similar but not identical requests to maximize cache efficiency.
+</Warning>
+
+## Scaling Considerations
+
+### Horizontal Scaling
+
+<Steps>
+  <Step title="Load Balancing">
+    Multiple Adaptive instances can be load-balanced for higher throughput
+  </Step>
+  <Step title="Cache Sharing">
+    Distributed cache layers maintain efficiency across instances  
+  </Step>
+  <Step title="Auto-scaling">
+    Automatic instance scaling based on request volume and latency
+  </Step>
+</Steps>
+
+### Performance Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Enable All Caches" icon="toggle-on">
+    Use both semantic and prompt-response caching for maximum performance
+  </Card>
+  <Card title="Connection Reuse" icon="recycle">
+    Use persistent connections and connection pooling in your clients
+  </Card>
+  <Card title="Batch Requests" icon="layer-group">
+    Group similar requests together when possible for better cache efficiency
+  </Card>
+  <Card title="Monitor Metrics" icon="chart-mixed">
+    Watch performance dashboards to identify optimization opportunities
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Semantic Caching" href="/features/semantic-cache" icon="database">
+    Learn about intelligent content-aware caching
+  </Card>
+  <Card title="Prompt-Response Cache" href="/features/prompt-response-cache" icon="clock">
+    Understand ultra-fast identical request caching
+  </Card>
+</CardGroup>

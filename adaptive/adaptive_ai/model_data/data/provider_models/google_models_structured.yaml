@@ -1,0 +1,100 @@
+provider_info:
+  name: GEMINI
+  total_models: 3
+  data_source: https://helicone.ai/api/llm-costs?provider=google
+  last_updated: "2025-08-06"
+  currency: USD
+  pricing_unit: per 1 million tokens
+models:
+  gemini_2.5_flash:
+    description:
+      Gemini 2.5 Flash is Google's fast and versatile model for diverse
+      tasks.
+    provider: GEMINI
+    model_name: gemini-2.5-flash
+    cost_per_1m_input_tokens: 0.3
+    cost_per_1m_output_tokens: 2.5
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_function_calling: true
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    additional_pricing:
+      cache_read_per_1m: 0.075
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.85
+      enriched_at: 1754574063.39629
+  gemini_2.5_flash_lite:
+    description:
+      Gemini 2.5 Flash Lite is a lightweight model designed for efficient
+      performance, likely optimized for quick inference and basic text generation
+      tasks.
+    provider: GEMINI
+    model_name: gemini-2.5-flash-lite
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 512
+    max_output_tokens: 128
+    supports_function_calling: false
+    languages_supported:
+      - English
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Text Generation
+    complexity: easy
+    metadata:
+      matching_operator: includes
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.7
+      enriched_at: 1754572747.0134084
+  gemini_2.5_pro:
+    description:
+      Gemini 2.5 Pro is Google's most capable model for complex reasoning
+      tasks.
+    provider: GEMINI
+    model_name: gemini-2.5-pro
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10.0
+    max_context_tokens: 1000000
+    max_output_tokens: 8192
+    supports_function_calling: true
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: high
+    task_type: Text Generation
+    complexity: high
+    additional_pricing:
+      cache_read_per_1m: 0.31
+    metadata:
+      matching_operator: equals
+      available_in_playground: null
+    _enrichment:
+      enriched: true
+      method: langgraph_workflow
+      confidence_score: 0.75
+      enriched_at: 1754572757.7659461

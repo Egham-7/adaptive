@@ -1,0 +1,130 @@
+---
+title: 'OpenAI SDK'
+description: 'Drop-in replacement for OpenAI with intelligent routing'
+icon: "code"
+---
+
+## Quick Setup
+
+1. **Install the OpenAI SDK** (if you haven't already):
+
+<CodeGroup>
+```bash npm
+npm install openai
+```
+
+```bash yarn  
+yarn add openai
+```
+
+```bash pnpm
+pnpm add openai
+```
+</CodeGroup>
+
+2. **Change two lines** in your existing code:
+
+<CodeGroup>
+```javascript JavaScript/Node.js
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: 'your-adaptive-api-key',        // ← Your Adaptive API key
+  baseURL: 'https://www.llmadaptive.uk/api/v1' // ← Only change needed
+});
+
+// Everything else works exactly the same
+const completion = await openai.chat.completions.create({
+  model: '', // Leave empty for intelligent routing
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+```
+
+```python Python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-adaptive-api-key",        # ← Your Adaptive API key  
+    base_url="https://www.llmadaptive.uk/api/v1" # ← Only change needed
+)
+
+# Everything else works exactly the same
+completion = client.chat.completions.create(
+    model="", # Leave empty for intelligent routing
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+</CodeGroup>
+
+That's it! Your existing OpenAI code now uses intelligent routing.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Same API" icon="check">
+    All OpenAI methods, parameters, and responses work identically
+  </Card>
+  <Card title="Intelligent Routing" icon="brain">
+    Leave model empty ("") to automatically select the best provider
+  </Card>
+  <Card title="Streaming" icon="zap">
+    Streaming responses work exactly like OpenAI
+  </Card>
+  <Card title="Function Calling" icon="function">
+    Function calling and tools work without changes
+  </Card>
+</CardGroup>
+
+## Streaming Example
+
+<CodeGroup>
+```javascript JavaScript
+const stream = await openai.chat.completions.create({
+  model: '',
+  messages: [{ role: 'user', content: 'Tell me a story' }],
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}
+```
+
+```python Python
+stream = client.chat.completions.create(
+    model="",
+    messages=[{"role": "user", "content": "Tell me a story"}],
+    stream=True
+)
+
+for chunk in stream:
+    if chunk.choices[0].delta.content is not None:
+        print(chunk.choices[0].delta.content, end="")
+```
+</CodeGroup>
+
+## Response Format
+
+Adaptive returns standard OpenAI responses with one extra field:
+
+```json
+{
+  "id": "chatcmpl-123",
+  "choices": [{
+    "message": {"content": "Hello! How can I help you?"}
+  }],
+  "usage": {"total_tokens": 21},
+  "provider": "gemini"  // ← Shows which provider was used
+}
+```
+
+## Need More Control?
+
+<CardGroup cols={2}>
+  <Card title="API Reference" href="/api-reference/chat-completions" icon="book">
+    See all available parameters and options
+  </Card>
+  <Card title="Examples" href="/examples/basic-chat" icon="code">
+    Working code examples and use cases
+  </Card>
+</CardGroup>

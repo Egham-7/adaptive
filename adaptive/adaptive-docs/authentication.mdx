@@ -1,0 +1,465 @@
+---
+title: "Authentication"
+description: "How to authenticate with the Adaptive API and manage your API keys"
+icon: "key"
+---
+
+Adaptive uses API keys for authentication. Get your API key from the dashboard and use it with any OpenAI-compatible client or HTTP library.
+
+## Getting Your API Key
+
+<Steps>
+  <Step title="Create Account">
+    Sign up for free at [llmadaptive.uk](https://www.llmadaptive.uk) - no credit card required
+  </Step>
+  <Step title="Create Project">
+    Create a new project or select an existing one from your dashboard
+  </Step>
+  <Step title="Generate API Key">
+    Click "Generate API Key" and copy your key - you'll need it for requests
+  </Step>
+  <Step title="Secure Storage">
+    Store your API key securely using environment variables or your preferred secrets manager
+  </Step>
+</Steps>
+
+<Warning>
+**Security**: Never expose your API key in client-side code, version control, or public repositories. Always use environment variables or secure secret management systems.
+</Warning>
+
+## Using Your API Key
+
+### HTTP Headers
+
+Adaptive accepts standard OpenAI-compatible authentication headers:
+
+<Tabs>
+<Tab title="Bearer Token (Recommended)">
+```bash
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+</Tab>
+
+<Tab title="X-Stainless-API-Key">
+```bash
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
+  -H "X-Stainless-API-Key: your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+</Tab>
+
+<Tab title="Anthropic Style">
+```bash
+curl https://www.llmadaptive.uk/api/v1/messages \
+  -H "x-api-key: your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{"model": "", "max_tokens": 1000, "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+</Tab>
+</Tabs>
+
+### SDK Integration
+
+<CodeGroup>
+```javascript JavaScript/Node.js
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  baseURL: "https://www.llmadaptive.uk/api/v1"
+});
+
+const completion = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Hello!" }]
+});
+```
+
+```python Python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.getenv("ADAPTIVE_API_KEY"),
+    base_url="https://www.llmadaptive.uk/api/v1"
+)
+
+completion = client.chat.completions.create(
+    model="",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    "github.com/openai/openai-go"
+    "github.com/openai/openai-go/option"
+)
+
+func main() {
+    client := openai.NewClient(
+        option.WithAPIKey(os.Getenv("ADAPTIVE_API_KEY")),
+        option.WithBaseURL("https://www.llmadaptive.uk/api/v1"),
+    )
+
+    completion, err := client.Chat.Completions.New(context.Background(), openai.ChatCompletionNewParams{
+        Messages: []openai.ChatCompletionMessageParamUnion{
+            openai.UserMessage("Hello!"),
+        },
+        Model: openai.String(""), // Empty for intelligent routing
+    })
+    
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+        return
+    }
+    
+    fmt.Println(completion.Choices[0].Message.Content)
+}
+```
+
+```php PHP
+<?php
+require_once 'vendor/autoload.php';
+
+$client = new GuzzleHttp\Client();
+
+$response = $client->post('https://www.llmadaptive.uk/api/v1/chat/completions', [
+    'headers' => [
+        'Authorization' => 'Bearer ' . getenv('ADAPTIVE_API_KEY'),
+        'Content-Type' => 'application/json',
+    ],
+    'json' => [
+        'model' => '',
+        'messages' => [
+            ['role' => 'user', 'content' => 'Hello!']
+        ]
+    ]
+]);
+
+$data = json_decode($response->getBody(), true);
+echo $data['choices'][0]['message']['content'];
+?>
+```
+</CodeGroup>
+
+## Environment Variables
+
+### Recommended Setup
+
+<Tabs>
+<Tab title=".env File">
+```bash
+# .env
+ADAPTIVE_API_KEY=your-adaptive-api-key-here
+
+# Optional: For development vs production
+ADAPTIVE_BASE_URL=https://www.llmadaptive.uk/api/v1
+```
+</Tab>
+
+<Tab title="Docker">
+```dockerfile
+# Dockerfile
+ENV ADAPTIVE_API_KEY=your-adaptive-api-key-here
+
+# Or use docker-compose.yml:
+# environment:
+#   - ADAPTIVE_API_KEY=your-adaptive-api-key-here
+```
+</Tab>
+
+<Tab title="Kubernetes">
+```yaml
+# k8s-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: adaptive-api-key
+type: Opaque
+data:
+  api-key: eW91ci1hZGFwdGl2ZS1hcGkta2V5LWhlcmU= # base64 encoded
+
+---
+# deployment.yaml
+env:
+- name: ADAPTIVE_API_KEY
+  valueFrom:
+    secretKeyRef:
+      name: adaptive-api-key
+      key: api-key
+```
+</Tab>
+
+<Tab title="Cloud Platforms">
+**Vercel**: Add to Environment Variables in dashboard
+**Netlify**: Add to Site Settings > Environment Variables  
+**Heroku**: `heroku config:set ADAPTIVE_API_KEY=your-key`
+**AWS Lambda**: Add to Lambda function environment variables
+</Tab>
+</Tabs>
+
+## Rate Limits
+
+### Current Limits
+
+<CardGroup cols={3}>
+  <Card title="Free Tier" icon="gift">
+    **100 requests/minute**  
+    Perfect for getting started and small projects
+  </Card>
+  <Card title="Pro Tier" icon="rocket">
+    **1,000 requests/minute**  
+    For production applications and growing businesses
+  </Card>
+  <Card title="Enterprise" icon="building">
+    **Custom limits**  
+    Contact us for high-volume requirements
+  </Card>
+</CardGroup>
+
+### Rate Limit Headers
+
+Every response includes rate limit information:
+
+```json
+{
+  "x-ratelimit-limit": "1000",
+  "x-ratelimit-remaining": "999",
+  "x-ratelimit-reset": "1640995200"
+}
+```
+
+### Handling Rate Limits
+
+<CodeGroup>
+```javascript JavaScript Retry Logic
+async function makeRequestWithRetry(requestData, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const completion = await openai.chat.completions.create(requestData);
+      return completion;
+    } catch (error) {
+      if (error.status === 429) {
+        // Rate limited - wait and retry
+        const retryAfter = error.headers?.['retry-after'] || Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        continue;
+      }
+      throw error; // Re-throw non-rate-limit errors
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+```
+
+```python Python Retry Logic
+import time
+import random
+from openai import OpenAI
+
+def make_request_with_retry(client, request_data, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            return client.chat.completions.create(**request_data)
+        except Exception as e:
+            if hasattr(e, 'status_code') and e.status_code == 429:
+                # Rate limited - exponential backoff with jitter
+                wait_time = (2 ** attempt) + random.uniform(0, 1)
+                time.sleep(wait_time)
+                continue
+            raise e  # Re-raise non-rate-limit errors
+    
+    raise Exception("Max retries exceeded")
+```
+</CodeGroup>
+
+## Authentication Errors
+
+### Common Error Codes
+
+<CardGroup cols={2}>
+  <Card title="401 Unauthorized" icon="x-circle">
+    **Cause**: Invalid or missing API key  
+    **Solution**: Check your API key and ensure it's correctly set in headers
+  </Card>
+  <Card title="429 Too Many Requests" icon="clock">
+    **Cause**: Rate limit exceeded  
+    **Solution**: Implement retry logic with exponential backoff
+  </Card>
+  <Card title="403 Forbidden" icon="ban">
+    **Cause**: API key doesn't have required permissions  
+    **Solution**: Check your subscription plan and key permissions
+  </Card>
+  <Card title="500 Server Error" icon="server">
+    **Cause**: Temporary server issue  
+    **Solution**: Retry the request after a brief delay
+  </Card>
+</CardGroup>
+
+### Error Response Format
+
+```json
+{
+  "error": {
+    "message": "Invalid API key provided",
+    "type": "invalid_request_error",
+    "code": "invalid_api_key"
+  }
+}
+```
+
+## Security Best Practices
+
+### API Key Management
+
+<Steps>
+  <Step title="Use Environment Variables">
+    Never hardcode API keys in your source code - always use environment variables
+  </Step>
+  <Step title="Rotate Keys Regularly">
+    Generate new API keys periodically and update your applications
+  </Step>
+  <Step title="Limit Key Scope">
+    Use separate API keys for development, staging, and production environments
+  </Step>
+  <Step title="Monitor Usage">
+    Regularly check your API usage and set up alerts for unusual activity
+  </Step>
+</Steps>
+
+### Security Checklist
+
+<CardGroup cols={2}>
+  <Card title="✅ Do This" icon="check-circle">
+    **Store keys in environment variables**  
+    **Use HTTPS for all requests**  
+    **Rotate keys regularly**  
+    **Monitor API usage patterns**  
+    **Set up usage alerts**
+  </Card>
+  <Card title="❌ Avoid This" icon="x-circle">
+    **Hardcode keys in source code**  
+    **Commit keys to version control**  
+    **Share keys in chat/email**  
+    **Use production keys in development**  
+    **Ignore unusual usage patterns**
+  </Card>
+</CardGroup>
+
+## Multiple API Keys
+
+### Managing Multiple Keys
+
+<CodeGroup>
+```javascript Environment-based Keys
+// Use different keys for different environments
+const getApiKey = () => {
+  const env = process.env.NODE_ENV || 'development';
+  return {
+    development: process.env.ADAPTIVE_API_KEY_DEV,
+    staging: process.env.ADAPTIVE_API_KEY_STAGING,
+    production: process.env.ADAPTIVE_API_KEY_PROD
+  }[env];
+};
+
+const openai = new OpenAI({
+  apiKey: getApiKey(),
+  baseURL: "https://www.llmadaptive.uk/api/v1"
+});
+```
+
+```python Environment-based Keys
+import os
+
+def get_api_key():
+    env = os.getenv('ENVIRONMENT', 'development')
+    keys = {
+        'development': os.getenv('ADAPTIVE_API_KEY_DEV'),
+        'staging': os.getenv('ADAPTIVE_API_KEY_STAGING'),
+        'production': os.getenv('ADAPTIVE_API_KEY_PROD')
+    }
+    return keys.get(env)
+
+client = OpenAI(
+    api_key=get_api_key(),
+    base_url="https://www.llmadaptive.uk/api/v1"
+)
+```
+</CodeGroup>
+
+## Troubleshooting
+
+### Common Authentication Issues
+
+<Accordion title="API Key Not Working">
+
+**Symptoms**: Getting 401 Unauthorized errors
+
+**Possible Causes**:
+- API key is incorrect or malformed
+- API key has expired or been revoked
+- Wrong authentication header format
+
+**Solutions**:
+- Double-check your API key in the dashboard
+- Ensure you're using the correct header format
+- Generate a new API key if needed
+- Verify environment variable names match your code
+
+</Accordion>
+
+<Accordion title="Rate Limits Hit Quickly">
+
+**Symptoms**: Frequent 429 errors
+
+**Possible Causes**:
+- Making requests too quickly
+- Multiple instances using the same key
+- Inefficient request patterns
+
+**Solutions**:
+- Implement request queuing and rate limiting
+- Use different API keys for different services
+- Enable caching to reduce duplicate requests
+- Consider upgrading your plan for higher limits
+
+</Accordion>
+
+<Accordion title="Environment Variables Not Loading">
+
+**Symptoms**: API key is undefined or null
+
+**Possible Causes**:
+- .env file not in correct location
+- Environment variable name mismatch
+- .env file not loaded by framework
+
+**Solutions**:
+- Verify .env file is in project root
+- Check environment variable names match exactly
+- Ensure your framework loads .env files (use dotenv if needed)
+- Test with `console.log(process.env.ADAPTIVE_API_KEY)`
+
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" href="/quickstart" icon="rocket">
+    Get up and running with your first API request in minutes
+  </Card>
+  <Card title="API Reference" href="/api-reference/introduction" icon="book">
+    Explore all available endpoints and parameters
+  </Card>
+</CardGroup>

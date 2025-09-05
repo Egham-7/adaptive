@@ -1,0 +1,861 @@
+provider_info:
+  name: OPENAI
+  total_models: 25
+  data_source: https://platform.openai.com/docs/models
+  last_updated: "2025-09-01"
+  currency: USD
+  pricing_unit: per 1 million tokens
+  note: Chat completion models only - excludes embedding, TTS, transcription, image generation, moderation, and realtime models
+models:
+  gpt-5:
+    description: The best model for coding and agentic tasks across domains
+    provider: OPENAI
+    model_name: gpt-5
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: frontier
+  gpt-5-mini:
+    description: A faster, cost-efficient version of GPT-5 for well-defined tasks
+    provider: OPENAI
+    model_name: gpt-5-mini
+    cost_per_1m_input_tokens: 0.25
+    cost_per_1m_output_tokens: 2
+    max_context_tokens: 128000
+    max_output_tokens: 32000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
+    model_size_params: Unknown
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: frontier
+  gpt-5-nano:
+    description: Fastest, most cost-efficient version of GPT-5
+    provider: OPENAI
+    model_name: gpt-5-nano
+    cost_per_1m_input_tokens: 0.05
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 64000
+    max_output_tokens: 16000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: very_low
+    task_type: Text Generation
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: frontier
+  gpt-4.1:
+    description: Smartest non-reasoning model
+    provider: OPENAI
+    model_name: gpt-4.1
+    cost_per_1m_input_tokens: 2
+    cost_per_1m_output_tokens: 8
+    max_context_tokens: 128000
+    max_output_tokens: 32000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: frontier
+  gpt-4.1-mini:
+    description: Smaller, faster version of GPT-4.1
+    provider: OPENAI
+    model_name: gpt-4.1-mini
+    cost_per_1m_input_tokens: 0.4
+    cost_per_1m_output_tokens: 1.6
+    max_context_tokens: 128000
+    max_output_tokens: 16384
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-4.1-nano:
+    description: Fastest, most cost-efficient version of GPT-4.1
+    provider: OPENAI
+    model_name: gpt-4.1-nano
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: very_low
+    task_type: Text Generation
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o3:
+    description: Reasoning model for complex tasks, succeeded by GPT-5
+    provider: OPENAI
+    model_name: o3
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o3-pro:
+    description: Version of o3 with more compute for better responses
+    provider: OPENAI
+    model_name: o3-pro
+    cost_per_1m_input_tokens: 150
+    cost_per_1m_output_tokens: 600
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o3-mini:
+    description: A small model alternative to o3
+    provider: OPENAI
+    model_name: o3-mini
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: 128000
+    max_output_tokens: 65000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Reasoning
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o4-mini:
+    description: Fast, cost-efficient reasoning model, succeeded by GPT-5 mini
+    provider: OPENAI
+    model_name: o4-mini
+    cost_per_1m_input_tokens: 1.1
+    cost_per_1m_output_tokens: 4.4
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Reasoning
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o1:
+    description: Previous full o-series reasoning model
+    provider: OPENAI
+    model_name: o1
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o1-pro:
+    description: Version of o1 with more compute for better responses
+    provider: OPENAI
+    model_name: o1-pro
+    cost_per_1m_input_tokens: 150
+    cost_per_1m_output_tokens: 600
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  o1-mini:
+    description: A small model alternative to o1 (Deprecated)
+    provider: OPENAI
+    model_name: o1-mini
+    cost_per_1m_input_tokens: 3
+    cost_per_1m_output_tokens: 12
+    max_context_tokens: 128000
+    max_output_tokens: 65000
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Reasoning
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: deprecated
+      category: all_models
+  o1-preview:
+    description: Preview of our first o-series reasoning model (Deprecated)
+    provider: OPENAI
+    model_name: o1-preview
+    cost_per_1m_input_tokens: 15
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 128000
+    max_output_tokens: 32000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: slow
+    task_type: Reasoning
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: deprecated
+      category: all_models
+  computer-use-preview:
+    description: Specialized model for computer use tool
+    provider: OPENAI
+    model_name: computer-use-preview
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 8192
+    max_output_tokens: 2048
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Computer Use
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: preview
+      category: specialized
+  gpt-4o:
+    description: Fast, intelligent, flexible GPT model
+    provider: OPENAI
+    model_name: gpt-4o
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-4o-mini:
+    description: Fast, affordable small model for focused tasks
+    provider: OPENAI
+    model_name: gpt-4o-mini
+    cost_per_1m_input_tokens: 0.15
+    cost_per_1m_output_tokens: 0.6
+    max_context_tokens: 128000
+    max_output_tokens: 16384
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
+    model_size_params: Unknown
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-4-turbo:
+    description: An older high-intelligence GPT model
+    provider: OPENAI
+    model_name: gpt-4-turbo
+    cost_per_1m_input_tokens: 10
+    cost_per_1m_output_tokens: 30
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-4:
+    description: An older high-intelligence GPT model
+    provider: OPENAI
+    model_name: gpt-4
+    cost_per_1m_input_tokens: 30
+    cost_per_1m_output_tokens: 60
+    max_context_tokens: 8192
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: 175b
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-4-turbo-preview:
+    description: An older fast GPT model
+    provider: OPENAI
+    model_name: gpt-4-turbo-preview
+    cost_per_1m_input_tokens: 10
+    cost_per_1m_output_tokens: 30
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-3.5-turbo:
+    description: Legacy GPT model for cheaper chat and non-chat tasks
+    provider: OPENAI
+    model_name: gpt-3.5-turbo
+    cost_per_1m_input_tokens: 1.5
+    cost_per_1m_output_tokens: 2
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - English
+    model_size_params: unknown
+    latency_tier: medium
+    task_type: Chatbot
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  babbage-002:
+    description: Replacement for the GPT-3 ada and babbage base models
+    provider: OPENAI
+    model_name: babbage-002
+    cost_per_1m_input_tokens: 0.4
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 2048
+    max_output_tokens: 512
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - English
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Text Generation
+    complexity: low
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  davinci-002:
+    description: Replacement for the GPT-3 curie and davinci base models
+    provider: OPENAI
+    model_name: davinci-002
+    cost_per_1m_input_tokens: 2
+    cost_per_1m_output_tokens: 2
+    max_context_tokens: 4096
+    max_output_tokens: 1024
+    supports_streaming: true
+    supports_function_calling: false
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - English
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: all_models
+  gpt-5-chat-latest:
+    description: GPT-5 model used in ChatGPT (not recommended for API use)
+    provider: OPENAI
+    model_name: gpt-5-chat-latest
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: chatgpt_models
+  chatgpt-4o-latest:
+    description: GPT-4o model used in ChatGPT (not recommended for API use)
+    provider: OPENAI
+    model_name: chatgpt-4o-latest
+    cost_per_1m_input_tokens: 5
+    cost_per_1m_output_tokens: 15
+    max_context_tokens: 8000
+    max_output_tokens: 2000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: true
+    multimodal_capabilities:
+      - text
+      - vision
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Text Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: platform_openai_docs
+      last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: chatgpt_models
