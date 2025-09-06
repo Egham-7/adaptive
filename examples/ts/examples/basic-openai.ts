@@ -26,7 +26,7 @@ import OpenAI from "openai";
 // This is the only change needed to use Adaptive instead of OpenAI directly
 const client = new OpenAI({
   apiKey: process.env.ADAPTIVE_API_KEY || "your-adaptive-api-key",
-  baseURL: "https://llmadaptive.com/api/v1", // Adaptive's endpoint
+  baseURL: "https://www.llmadaptive.uk/api/v1", // Adaptive's endpoint
 });
 
 // Non-streaming example - get complete response at once
