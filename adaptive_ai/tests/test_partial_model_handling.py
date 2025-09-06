@@ -192,6 +192,7 @@ class TestPartialModelHandling:
             err = payload.get("error") or {}
             message = (err.get("message") or "").lower()
             assert any(k in message for k in ["model", "empty", "invalid"])
+
     def test_nonexistent_provider_handling(self, base_url):
         """Test handling of non-existent provider."""
         request_data = {
@@ -211,6 +212,7 @@ class TestPartialModelHandling:
         payload = response.json()
         err = payload.get("error") or {}
         assert "provider" in (err.get("message") or "").lower()
+
     def test_case_sensitivity_in_provider_names(self, base_url):
         """Test case-insensitive handling of provider names."""
         # Test different case variations with a model that supports Open QA task type
