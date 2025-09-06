@@ -57,6 +57,70 @@ cd adaptive_ai && uv run adaptive-ai
 cd adaptive-app && bun dev
 ```
 
+## Examples
+
+### TypeScript Examples
+
+Complete TypeScript examples demonstrating various integration patterns:
+
+#### 🚀 [OpenAI SDK Example](./examples/ts/examples/basic-openai.ts)
+- Drop-in OpenAI SDK replacement with intelligent routing
+- Streaming and non-streaming responses
+- 60-80% cost reduction with zero code changes
+
+```bash
+cd examples/ts && bun basic-openai.ts
+```
+
+#### 🏛️ [Anthropic SDK Example](./examples/ts/examples/basic-anthropic.ts) 
+- Native Claude Messages API format preserved
+- Streaming and non-streaming with intelligent routing
+- Type-safe Anthropic SDK patterns
+
+```bash
+cd examples/ts && bun basic-anthropic.ts
+```
+
+#### ⚡ [Vercel AI SDK Example](./examples/ts/examples/basic-vercel-ai-sdk.ts)
+- Modern AI patterns with `generateText`, `streamText`, and tools
+- Perfect for React apps with `ai/react` hooks
+- Seamless Vercel AI SDK integration
+
+```bash
+cd examples/ts && bun basic-vercel-ai-sdk.ts
+```
+
+#### 🎯 [Model Selection Example](./examples/ts/examples/basic-select-model.ts)
+- Test routing decisions without inference
+- Cost vs performance optimization with `cost_bias`
+- Function calling model prioritization
+- Custom model specifications for enterprise/local models
+
+```bash
+cd examples/ts && bun basic-select-model.ts
+```
+
+#### 🦜 [LangChain Example](./examples/ts/examples/basic-langchain.ts)
+- LangChain ChatOpenAI integration with intelligent routing
+- Chain composition and streaming support
+- Batch processing and agent compatibility
+- Perfect for complex AI workflows with cost optimization
+
+```bash
+cd examples/ts && bun basic-langchain.ts
+```
+
+### Development Setup
+
+```bash
+cd examples/ts
+bun install          # Install dependencies
+bun run typecheck    # Check TypeScript types
+bun run check        # Check formatting and linting
+bun run check:write  # Auto-fix issues
+bun run format       # Format code only
+```
+
 ## Documentation
 
 See [adaptive-docs/](./adaptive-docs/) for complete documentation and API reference.
