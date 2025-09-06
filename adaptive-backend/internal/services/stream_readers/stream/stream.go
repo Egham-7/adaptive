@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -65,9 +66,13 @@ func HandleOpenAIStream(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatC
 		}()
 
 		if err := pumpStreamData(fasthttpCtx, w, streamReader, requestID, startTime, &totalBytes); err != nil {
-			if fasthttpCtx != nil && fasthttpCtx.Err() != nil {
-				fiberlog.Infof("[%s] Client disconnected during stream", requestID)
-				return
+			if fasthttpCtx != nil {
+				select {
+				case <-fasthttpCtx.Done():
+					fiberlog.Infof("[%s] Client disconnected during stream", requestID)
+					return
+				default:
+				}
 			}
 			sendErrorEvent(w, requestID, "Stream error", err)
 		}
@@ -204,7 +209,7 @@ func pumpStreamData(fasthttpCtx *fasthttp.RequestCtx, w *bufio.Writer, streamRea
 		select {
 		case <-fasthttpCtx.Done():
 			fiberlog.Infof("[%s] Client disconnected, stopping stream", requestID)
-			return fasthttpCtx.Err()
+			return context.Canceled
 		default:
 		}
 
@@ -218,7 +223,7 @@ func pumpStreamData(fasthttpCtx *fasthttp.RequestCtx, w *bufio.Writer, streamRea
 				select {
 				case <-fasthttpCtx.Done():
 					fiberlog.Infof("[%s] Context cancelled during zero-byte reads", requestID)
-					return fasthttpCtx.Err()
+					return context.Canceled
 				default:
 				}
 			}
@@ -366,9 +371,14 @@ func HandleAnthropicNativeStream(c *fiber.Ctx, stream *ssestream.Stream[anthropi
 			}
 		}
 
-		// Check for stream errors
+		// Check for stream errors after completion
 		if err := stream.Err(); err != nil {
-			fiberlog.Errorf("[%s] anthropic stream error: %v", requestID, err)
+			// Classify the error to distinguish expected cancellations from real errors
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				fiberlog.Infof("[%s] anthropic stream ended due to context cancellation/timeout", requestID)
+			} else {
+				fiberlog.Errorf("[%s] anthropic stream error: %v", requestID, err)
+			}
 		}
 
 		// Write completion message

@@ -110,9 +110,18 @@ export const anthropicMessagesRequestSchema = baseAnthropicMessageSchema.extend(
 	},
 );
 
-// Enhanced response type that extends Anthropic's Message with provider info
-export interface AnthropicResponse extends Message {
-	provider: Provider;
+// Enhanced response types that extend Anthropic's Message and Usage with provider info
+export interface AdaptiveAnthropicMessage extends Message {
+	provider?: Provider;
+}
+
+export interface AdaptiveAnthropicUsage extends AnthropicSDKUsage {
+	cache_tier?: "semantic_exact" | "semantic_similar" | "prompt_response";
+}
+
+export interface AdaptiveAnthropicResponse extends Omit<Message, "usage"> {
+	provider?: Provider;
+	usage?: AdaptiveAnthropicUsage;
 }
 
 // Base request type that matches Anthropic SDK exactly
@@ -126,7 +135,10 @@ export type AnthropicMessagesRequest = z.infer<
 >;
 
 // Ensure type compatibility with Anthropic SDK
-export type AdaptiveMessageCreateParams = AnthropicMessageCreateParams & {
+export type AdaptiveMessageCreateParams = Omit<
+	AnthropicMessageCreateParams,
+	"stream"
+> & {
 	// Adaptive extensions
 	provider_configs?: Record<string, ProviderConfig>;
 	model_router?: {
@@ -147,4 +159,5 @@ export type AdaptiveMessageCreateParams = AnthropicMessageCreateParams & {
 		enabled?: boolean;
 		mode?: "sequential" | "race";
 	};
+	stream?: boolean; // Make stream optional
 };
