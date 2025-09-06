@@ -162,8 +162,8 @@ class ModelRouter:
         self, models_input: list[ModelCapability] | None, task_type: TaskType
     ) -> list[ModelCapability]:
         """Get candidate models from input, handling full vs partial specs."""
-        if models_input is None:
-            # No models specified - use all available models
+        if models_input is None or len(models_input) == 0:
+            # No models specified or empty array - use all available models
             all_models = list(self._model_registry.values())
             return self._filter_by_task_type(all_models, task_type)
 
