@@ -249,15 +249,6 @@ class ModelRouterAPI(ls.LitAPI):
             alternatives=alternatives,
         )
 
-    def encode_response(
-        self, output: ModelSelectionResponse | dict[str, Any]
-    ) -> dict[str, Any]:
-        """Encode response to JSON format."""
-        if isinstance(output, dict):
-            # Already a dict (error response)
-            return output
-        return output.model_dump()
-
 
 def create_app() -> ls.LitServer:
     """Create and configure LitServer application."""
