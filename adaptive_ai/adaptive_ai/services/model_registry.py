@@ -152,6 +152,13 @@ class ModelRegistry:
             # If we get here, model matches all criteria
             matching_models.append(model)
 
+        # If no models match the criteria, raise specific error with details
+        if not matching_models:
+            # Extract only non-None fields from the partial model
+            criteria = partial_model.model_dump(exclude_none=True)
+            criteria_str = ", ".join(f"{k}={v}" for k, v in criteria.items())
+            raise ValueError(f"No models found matching criteria: {criteria_str}")
+
         return matching_models
 
 

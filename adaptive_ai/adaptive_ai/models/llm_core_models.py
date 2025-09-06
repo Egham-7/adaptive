@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from .llm_enums import TaskType
 
@@ -73,34 +73,6 @@ class ModelCapability(BaseModel):
         }
 
         return complexity_mapping.get(complexity_lower, 0.5)
-
-    @model_validator(mode="after")
-    def validate_at_least_one_field(self) -> "ModelCapability":
-        """Ensure at least one field is present in the model capability."""
-        fields_to_check = [
-            self.provider,
-            self.model_name,
-            self.cost_per_1m_input_tokens,
-            self.cost_per_1m_output_tokens,
-            self.max_context_tokens,
-            self.supports_function_calling,
-            self.task_type,
-            self.complexity,
-            self.description,
-        ]
-
-        # Check if languages_supported has any items
-        has_languages = bool(self.languages_supported)
-
-        # Check if any field has a non-None value
-        has_non_none_field = any(field is not None for field in fields_to_check)
-
-        if not has_non_none_field and not has_languages:
-            raise ValueError(
-                "ModelCapability must have at least one non-None field specified"
-            )
-
-        return self
 
 
 class ModelSelectionRequest(BaseModel):
