@@ -153,12 +153,6 @@ class ModelRouterAPI(ls.LitAPI):
         responses: list[ModelSelectionResponse | dict[str, Any]] = []
         for req, classification in zip(requests, classification_results, strict=False):
             try:
-                # Validate models array
-                if req.models is not None and len(req.models) == 0:
-                    raise ValueError(
-                        "Empty model array provided. Please specify at least one model or use null to select from all available models."
-                    )
-
                 response = self._process_request(req, classification)
                 responses.append(response)
             except ValueError as e:
@@ -219,16 +213,12 @@ class ModelRouterAPI(ls.LitAPI):
             else 0.5
         )
 
-        try:
-            selected_models = self.model_router.select_models(
-                task_complexity=task_complexity,
-                task_type=task_type,
-                models_input=models_input,
-                cost_bias=cost_bias or 0.5,  # Handle None case
-            )
-        except ValueError as e:
-            # Re-raise with original message for better error context
-            raise e
+        selected_models = self.model_router.select_models(
+            task_complexity=task_complexity,
+            task_type=task_type,
+            models_input=models_input,
+            cost_bias=cost_bias or 0.5,  # Handle None case
+        )
 
         elapsed = time.perf_counter() - start_time
         self.log("model_selection_time", elapsed)
