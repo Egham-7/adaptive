@@ -35,6 +35,8 @@ from adaptive_ai.models.llm_enums import TaskType
 from adaptive_ai.services.model_router import ModelRouter
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 
+# No custom exceptions needed - using built-in ValueError
+
 
 def setup_logging() -> None:
     """Configure logging for the application."""
@@ -132,11 +134,12 @@ class ModelRouterAPI(ls.LitAPI):
 
     def decode_request(self, request: ModelSelectionRequest) -> ModelSelectionRequest:
         """Decode and normalize incoming request."""
+        # Don't validate here - handle in predict where we can return proper errors
         return request
 
     def predict(
         self, requests: list[ModelSelectionRequest]
-    ) -> list[ModelSelectionResponse]:
+    ) -> list[ModelSelectionResponse | dict[str, Any]]:
         """Process batch of model selection requests."""
         if not requests:
             return []
@@ -147,10 +150,28 @@ class ModelRouterAPI(ls.LitAPI):
         classification_results = self._classify_prompts(prompts)
 
         # Process each request
-        responses = []
+        responses: list[ModelSelectionResponse | dict[str, Any]] = []
         for req, classification in zip(requests, classification_results, strict=False):
-            response = self._process_request(req, classification)
-            responses.append(response)
+            try:
+                # Validate models array
+                if req.models is not None and len(req.models) == 0:
+                    raise ValueError(
+                        "Empty model array provided. Please specify at least one model or use null to select from all available models."
+                    )
+
+                response = self._process_request(req, classification)
+                responses.append(response)
+            except ValueError as e:
+                # LitServe limitation: Cannot return custom HTTP status codes
+                # Workaround: Include error details in the response body
+                error_response: dict[str, Any] = {
+                    "error": type(e).__name__,
+                    "message": str(e),
+                    "provider": None,
+                    "model": None,
+                    "alternatives": [],
+                }
+                responses.append(error_response)
 
         self.log("predict_completed", {"batch_size": len(responses)})
         return responses
@@ -197,16 +218,23 @@ class ModelRouterAPI(ls.LitAPI):
             if classification.prompt_complexity_score
             else 0.5
         )
-        selected_models = self.model_router.select_models(
-            task_complexity=task_complexity,
-            task_type=task_type,
-            models_input=models_input,
-            cost_bias=cost_bias or 0.5,  # Handle None case
-        )
+
+        try:
+            selected_models = self.model_router.select_models(
+                task_complexity=task_complexity,
+                task_type=task_type,
+                models_input=models_input,
+                cost_bias=cost_bias or 0.5,  # Handle None case
+            )
+        except ValueError as e:
+            # Re-raise with original message for better error context
+            raise e
+
         elapsed = time.perf_counter() - start_time
         self.log("model_selection_time", elapsed)
 
         if not selected_models:
+            # This should not happen with proper error handling above, but keep as fallback
             raise ValueError("No eligible models found")
 
         # Build response
@@ -230,6 +258,15 @@ class ModelRouterAPI(ls.LitAPI):
             model=best_model.model_name,
             alternatives=alternatives,
         )
+
+    def encode_response(
+        self, output: ModelSelectionResponse | dict[str, Any]
+    ) -> dict[str, Any]:
+        """Encode response to JSON format."""
+        if isinstance(output, dict):
+            # Already a dict (error response)
+            return output
+        return output.model_dump()
 
 
 def create_app() -> ls.LitServer:
