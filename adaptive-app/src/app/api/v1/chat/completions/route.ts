@@ -5,8 +5,11 @@ import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
+	ChatCompletionChunk,
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -143,81 +146,120 @@ export async function POST(req: NextRequest) {
 		});
 
 		if (shouldStream) {
-			const stream = openai.chat.completions.stream(
-				{
-					...body,
-					stream: true,
-				},
-				{
-					body: {
-						...body,
-						provider_configs: providerConfigs,
-					},
-				},
-			);
+			const streamStartTime = Date.now();
+			const encoder = new TextEncoder(); // Reuse encoder
+			const abortController = new AbortController();
+			const timeoutMs = 300000; // 5 minutes timeout
 
-			const startTime = Date.now();
+			// Set up stream timeout
+			const timeoutId = setTimeout(() => {
+				abortController.abort();
+			}, timeoutMs);
 
-			// Record usage when stream completes
-			stream.on("finalChatCompletion", (completion) => {
-				const adaptiveCompletion = completion as ChatCompletion;
-				console.log("Adaptive Chat Completion: ", adaptiveCompletion);
-				if (adaptiveCompletion.usage) {
-					// Use queueMicrotask for zero-blocking tRPC call
-					queueMicrotask(async () => {
-						try {
-							await api.usage.recordApiUsage({
-								apiKey,
-								provider: adaptiveCompletion.provider ?? null,
-								model: adaptiveCompletion.model,
-								usage: {
-									promptTokens: adaptiveCompletion.usage?.prompt_tokens ?? 0,
-									completionTokens:
-										adaptiveCompletion.usage?.completion_tokens ?? 0,
-									totalTokens: adaptiveCompletion.usage?.total_tokens ?? 0,
-								},
-								duration: Date.now() - startTime,
-								timestamp: new Date(),
-								cacheTier: adaptiveCompletion.cache_tier,
-							});
-						} catch (error) {
-							console.error("Failed to record usage:", error);
-							// Silent failure - never affect client stream
-						}
-					});
-				}
-			});
+			// Create custom ReadableStream that intercepts OpenAI SDK chunks
+			const customReadable = new ReadableStream({
+				async start(controller) {
+					let finalCompletion: ChatCompletionChunk | null = null; // Minimize scope
 
-			// Handle stream errors
-			stream.on("error", (error) => {
-				queueMicrotask(async () => {
 					try {
-						await api.usage.recordApiUsage({
-							apiKey,
-							provider: null,
-							model: null,
-							usage: {
-								promptTokens: 0,
-								completionTokens: 0,
-								totalTokens: 0,
+						const stream = await openai.chat.completions.create(
+							{
+								...body,
+								stream: true,
 							},
-							duration: Date.now() - startTime,
-							timestamp: new Date(),
-							requestCount: 1,
-							error: error.message,
+							{
+								body: {
+									...body,
+									stream: true,
+									provider_configs: providerConfigs,
+								},
+								signal: abortController.signal,
+							},
+						);
+
+						for await (const chunk of stream) {
+							// Store final completion data for usage tracking
+							if (chunk.usage || chunk.choices[0]?.finish_reason) {
+								finalCompletion = chunk as ChatCompletionChunk;
+							}
+
+							// Convert chunk to SSE format and enqueue
+							const sseData = `data: ${JSON.stringify(chunk)}\n\n`;
+							controller.enqueue(encoder.encode(sseData));
+						}
+
+						// Send [DONE] message
+						controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+						controller.close();
+
+						// Clear timeout on successful completion
+						clearTimeout(timeoutId);
+
+						// Record usage after stream completes
+						if (finalCompletion?.usage) {
+							const completion = finalCompletion; // Capture for closure
+							queueMicrotask(async () => {
+								try {
+									await api.usage.recordApiUsage({
+										apiKey,
+										provider: completion.provider ?? null,
+										model: completion.model ?? null,
+										usage: {
+											promptTokens: completion.usage?.prompt_tokens ?? 0,
+											completionTokens:
+												completion.usage?.completion_tokens ?? 0,
+											totalTokens: completion.usage?.total_tokens ?? 0,
+										},
+										duration: Date.now() - streamStartTime,
+										timestamp: new Date(),
+										cacheTier: completion.usage?.cache_tier,
+									});
+								} catch (error) {
+									console.error("Failed to record streaming usage:", error);
+								}
+							});
+						}
+					} catch (error) {
+						console.error("Streaming error:", error);
+						clearTimeout(timeoutId); // Clear timeout on error
+
+						const isAborted = abortController.signal.aborted;
+						const errorMessage = isAborted ? "Stream timeout" : "Stream failed";
+						const errorData = `data: ${JSON.stringify({ error: errorMessage })}\n\n`;
+						controller.enqueue(encoder.encode(errorData));
+						controller.close();
+
+						// Record error usage
+						queueMicrotask(async () => {
+							try {
+								await api.usage.recordApiUsage({
+									apiKey,
+									provider: null,
+									model: null,
+									usage: {
+										promptTokens: 0,
+										completionTokens: 0,
+										totalTokens: 0,
+									},
+									duration: Date.now() - streamStartTime,
+									timestamp: new Date(),
+									requestCount: 1,
+									error: error instanceof Error ? error.message : String(error),
+								});
+							} catch (usageError) {
+								console.error("Failed to record streaming error:", usageError);
+							}
 						});
-					} catch (err) {
-						console.error("Failed to record error:", err);
 					}
-				});
+				},
 			});
 
-			return new Response(stream.toReadableStream(), {
+			return new Response(customReadable, {
 				headers: {
-					"Content-Type": "text/event-stream",
-					"Cache-Control": "no-cache",
 					Connection: "keep-alive",
-					"Access-Control-Allow-Origin": "*",
+					"Content-Encoding": "none",
+					"Cache-Control": "no-cache, no-transform",
+					"Content-Type": "text/event-stream; charset=utf-8",
 				},
 			});
 		}

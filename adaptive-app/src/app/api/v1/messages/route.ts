@@ -3,9 +3,12 @@ import type { NextRequest } from "next/server";
 import { env } from "@/env";
 import { createBackendJWT } from "@/lib/jwt";
 import { api } from "@/trpc/server";
-import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
+import {
+	type AdaptiveAnthropicResponse,
+	anthropicMessagesRequestSchema,
+} from "@/types/anthropic-messages";
 
-export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -92,77 +95,129 @@ export async function POST(req: NextRequest) {
 		console.log("Stream:", body.stream);
 
 		if (body.stream) {
-			// Handle streaming with Anthropic SDK using .toReadableStream()
-			try {
-				const stream = anthropic.messages.stream({
-					model: body.model,
-					max_tokens: body.max_tokens,
-					messages: body.messages,
-					...(body.system && { system: body.system }),
-					...(body.temperature !== undefined && {
-						temperature: body.temperature,
-					}),
-					...(body.top_p !== undefined && { top_p: body.top_p }),
-					...(body.top_k !== undefined && { top_k: body.top_k }),
-					...(body.stop_sequences && { stop_sequences: body.stop_sequences }),
-					...(body.metadata && { metadata: body.metadata }),
-					...(body.tools && { tools: body.tools }),
-					...(body.tool_choice && { tool_choice: body.tool_choice }),
-					// Custom adaptive extensions (cast to bypass SDK type checking)
-					...(body.provider_configs && {
-						provider_configs: body.provider_configs,
-					}),
-					...(body.model_router && {
-						model_router: body.model_router,
-					}),
-					...(body.semantic_cache && {
-						prompt_response_cache: {
-							enabled: body.semantic_cache.enabled,
-							semantic_threshold: body.semantic_cache.semantic_threshold,
-						},
-					}),
-					...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
-					...(body.fallback && { fallback: body.fallback }),
-				} as Anthropic.MessageStreamParams);
+			const encoder = new TextEncoder(); // Reuse encoder
 
-				// Use the SDK's toReadableStream() method
-				const readableStream = stream.toReadableStream();
+			// Create custom ReadableStream that intercepts Anthropic SDK chunks
+			const customReadable = new ReadableStream({
+				async start(controller) {
+					let finalUsage: Anthropic.MessageDeltaUsage | null = null; // Minimize scope
+					let modelName: string | null = null;
+					let _providerId: string | null = null;
 
-				// Set up usage tracking when stream completes
-				stream
-					.finalMessage()
-					.then((message) => {
-						if (message.usage) {
+					try {
+						// Build validated stream parameters - use base Anthropic types to avoid conflicts
+						const baseParams = {
+							model: body.model,
+							max_tokens: body.max_tokens,
+							messages: body.messages,
+							...(body.system && { system: body.system }),
+							...(body.temperature !== undefined && {
+								temperature: body.temperature,
+							}),
+							...(body.top_p !== undefined && { top_p: body.top_p }),
+							...(body.top_k !== undefined && { top_k: body.top_k }),
+							...(body.stop_sequences && {
+								stop_sequences: body.stop_sequences,
+							}),
+							...(body.metadata && { metadata: body.metadata }),
+							...(body.tools && { tools: body.tools }),
+							...(body.tool_choice && { tool_choice: body.tool_choice }),
+						};
+
+						// Add custom extensions separately to avoid type conflicts
+						const streamParams = {
+							...baseParams,
+							// Custom adaptive extensions
+							...(body.provider_configs && {
+								provider_configs: body.provider_configs,
+							}),
+							...(body.model_router && {
+								model_router: body.model_router,
+							}),
+							...(body.semantic_cache && {
+								prompt_response_cache: {
+									enabled: body.semantic_cache.enabled,
+									semantic_threshold: body.semantic_cache.semantic_threshold,
+								},
+							}),
+							...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
+							...(body.fallback && { fallback: body.fallback }),
+						};
+
+						const stream = anthropic.messages.stream(
+							streamParams as Anthropic.MessageStreamParams,
+						);
+
+						for await (const chunk of stream) {
+							// Track usage data from message_delta chunks
+							if (chunk.type === "message_delta") {
+								const messageDelta = chunk as Anthropic.MessageDeltaEvent;
+								if (messageDelta.usage) {
+									finalUsage = messageDelta.usage;
+								}
+							}
+
+							// Track message_start for model and provider info
+							if (chunk.type === "message_start") {
+								const messageStart = chunk as Anthropic.MessageStartEvent;
+								modelName = messageStart.message.model || null;
+								// Provider info might be in extended response
+								_providerId =
+									(
+										messageStart.message as Anthropic.Message & {
+											provider?: string;
+										}
+									).provider || null;
+							}
+
+							// Format as proper SSE with event type and data
+							const eventType = chunk.type;
+							const sseData = `event: ${eventType}\ndata: ${JSON.stringify(chunk)}\n\n`;
+							controller.enqueue(encoder.encode(sseData));
+						}
+
+						// Send proper SSE termination event
+						controller.enqueue(encoder.encode("event: done\ndata: [DONE]\n\n"));
+						controller.close();
+
+						// Record usage if available from chunks
+						if (finalUsage) {
+							const usage = finalUsage; // Capture for closure
 							queueMicrotask(async () => {
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
 										provider: "anthropic",
-										model: message.model ?? null,
+										model: modelName,
 										usage: {
-											promptTokens: message.usage.input_tokens ?? 0,
-											completionTokens: message.usage.output_tokens ?? 0,
+											promptTokens: usage.input_tokens ?? 0,
+											completionTokens: usage.output_tokens ?? 0,
 											totalTokens:
-												(message.usage.input_tokens ?? 0) +
-												(message.usage.output_tokens ?? 0),
+												(usage.input_tokens ?? 0) + (usage.output_tokens ?? 0),
 										},
 										duration: Date.now() - startTime,
 										timestamp: new Date(),
 									});
 								} catch (error) {
-									console.error("Failed to record usage:", error);
+									console.error("Failed to record streaming usage:", error);
 								}
 							});
 						}
-					})
-					.catch((error) => {
-						console.error("Stream completion error:", error);
+					} catch (error) {
+						console.error("Streaming error:", error);
+						const errorData = `event: error\ndata: ${JSON.stringify({
+							type: "error",
+							error: { message: "Stream failed", type: "stream_error" },
+						})}\n\n`;
+						controller.enqueue(encoder.encode(errorData));
+						controller.close();
+
 						// Record error usage
 						queueMicrotask(async () => {
 							try {
 								await api.usage.recordApiUsage({
 									apiKey,
-									provider: "anthropic",
+									provider: "anthropic" as const,
 									model: null,
 									usage: {
 										promptTokens: 0,
@@ -171,51 +226,29 @@ export async function POST(req: NextRequest) {
 									},
 									duration: Date.now() - startTime,
 									timestamp: new Date(),
+									requestCount: 1,
+									error: error instanceof Error ? error.message : String(error),
 								});
 							} catch (usageError) {
-								console.error("Failed to record error usage:", usageError);
+								console.error("Failed to record streaming error:", usageError);
 							}
 						});
-					});
+					}
+				},
+			});
 
-				return new Response(readableStream, {
-					headers: {
-						"Content-Type": "text/event-stream",
-						"Cache-Control": "no-cache",
-						Connection: "keep-alive",
-					},
-				});
-			} catch (error) {
-				console.error("Streaming error:", error);
-
-				const errorMessage =
-					error instanceof Error ? error.message : "Stream failed";
-				const errorData = `event: error\ndata: ${JSON.stringify({
-					type: "error",
-					error: {
-						message: errorMessage,
-						type: "stream_error",
-					},
-				})}\n\n`;
-
-				const errorStream = new ReadableStream({
-					start(controller) {
-						controller.enqueue(new TextEncoder().encode(errorData));
-						controller.close();
-					},
-				});
-
-				return new Response(errorStream, {
-					headers: {
-						"Content-Type": "text/event-stream",
-						"Cache-Control": "no-cache",
-						Connection: "keep-alive",
-					},
-				});
-			}
+			return new Response(customReadable, {
+				headers: {
+					"Content-Type": "text/event-stream; charset=utf-8",
+					"Cache-Control": "no-cache, no-transform",
+					Pragma: "no-cache",
+					"X-Accel-Buffering": "no",
+					Connection: "keep-alive",
+				},
+			});
 		}
-		// Handle non-streaming with Anthropic SDK
-		const message = (await anthropic.messages.create({
+		// Handle non-streaming with Anthropic SDK - use same safe approach
+		const baseParams = {
 			model: body.model,
 			max_tokens: body.max_tokens,
 			messages: body.messages,
@@ -229,7 +262,11 @@ export async function POST(req: NextRequest) {
 			...(body.metadata && { metadata: body.metadata }),
 			...(body.tools && { tools: body.tools }),
 			...(body.tool_choice && { tool_choice: body.tool_choice }),
-			// Custom adaptive extensions (cast to bypass SDK type checking)
+		};
+
+		const createParams = {
+			...baseParams,
+			// Custom adaptive extensions
 			...(body.provider_configs && {
 				provider_configs: body.provider_configs,
 			}),
@@ -244,21 +281,25 @@ export async function POST(req: NextRequest) {
 			}),
 			...(body.prompt_cache && { prompt_cache: body.prompt_cache }),
 			...(body.fallback && { fallback: body.fallback }),
-		} as Anthropic.MessageCreateParams)) as Anthropic.Message;
+		};
+
+		const message = (await anthropic.messages.create(
+			createParams as Anthropic.MessageCreateParams,
+		)) as AdaptiveAnthropicResponse;
 
 		// Record usage
 		if (message.usage) {
+			const usage = message.usage; // Capture for closure
 			queueMicrotask(async () => {
 				try {
 					await api.usage.recordApiUsage({
 						apiKey,
-						provider: "anthropic", // Default since we're using Anthropic format
+						provider: "anthropic" as const,
 						model: message.model,
 						usage: {
-							promptTokens: message.usage.input_tokens,
-							completionTokens: message.usage.output_tokens,
-							totalTokens:
-								message.usage.input_tokens + message.usage.output_tokens,
+							promptTokens: usage.input_tokens,
+							completionTokens: usage.output_tokens,
+							totalTokens: usage.input_tokens + usage.output_tokens,
 						},
 						duration: Date.now() - startTime,
 						timestamp: new Date(),

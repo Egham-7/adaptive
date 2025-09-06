@@ -311,12 +311,11 @@ func (cs *CompletionService) executeAnthropicCompletion(
 		return fmt.Errorf("failed to convert Anthropic response to OpenAI format: %w", err)
 	}
 
-	// Convert OpenAI response to Adaptive format
-	adaptiveResp, err := format_adapter.OpenAIToAdaptive.ConvertResponse(openaiResp, providerName)
+	// Convert OpenAI response to Adaptive format with cache source
+	adaptiveResp, err := format_adapter.OpenAIToAdaptive.ConvertResponse(openaiResp, providerName, cacheSource)
 	if err != nil {
 		return fmt.Errorf("failed to convert response to adaptive format: %w", err)
 	}
-	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
 
 	// Return JSON response
 	return c.JSON(adaptiveResp)
@@ -369,12 +368,11 @@ func (cs *CompletionService) executeOpenAICompletion(
 		return models.NewProviderError(providerName, "completion request failed", err)
 	}
 
-	// Convert response using format adapter
-	adaptiveResp, err := format_adapter.OpenAIToAdaptive.ConvertResponse(resp, providerName)
+	// Convert response using format adapter with cache source
+	adaptiveResp, err := format_adapter.OpenAIToAdaptive.ConvertResponse(resp, providerName, cacheSource)
 	if err != nil {
 		return fmt.Errorf("failed to convert response to adaptive format: %w", err)
 	}
-	models.SetCacheTier(&adaptiveResp.Usage, cacheSource)
 
 	return c.JSON(adaptiveResp)
 }

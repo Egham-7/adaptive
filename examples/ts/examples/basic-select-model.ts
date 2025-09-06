@@ -32,7 +32,7 @@ interface SelectModelResponse {
 
 async function main() {
   const apiKey = process.env.ADAPTIVE_API_KEY || "your-adaptive-api-key";
-  const baseURL = "https://www.llmadaptive.uk/api/v1";
+  const baseURL = "https://llmadaptive.com/api/v1";
 
   try {
     // Example 1: Simple model selection with known providers
@@ -75,10 +75,10 @@ async function main() {
 
     // Example 2: Cost-optimized selection
     // The cost_bias parameter controls the balance between cost and performance.
-    // A value of 0.9 heavily prioritizes cost savings, often selecting cheaper models
-    // even for moderately complex tasks. This is perfect for budget-conscious applications.
-    console.log("=== Example 2: Cost-Optimized Selection ===");
-    console.log("Using cost_bias=0.9 to prioritize cost savings...");
+    // A value of 0.9 heavily prioritizes performance, often selecting more expensive models
+    // for better quality. Use lower values (0.1-0.3) for budget-conscious applications.
+    console.log("=== Example 2: Performance-Focused Selection ===");
+    console.log("Using cost_bias=0.9 to prioritize performance over cost...");
 
     const costOptimizedResponse = await fetch(`${baseURL}/select-model`, {
       method: "POST",
@@ -93,7 +93,7 @@ async function main() {
           { provider: "anthropic", model_name: "claude-3-5-sonnet-20241022" },
         ],
         prompt: "Write a simple Python function to calculate fibonacci numbers",
-        cost_bias: 0.9, // Prioritize cost savings
+        cost_bias: 0.9, // Prioritize performance over cost
       }),
     });
 
@@ -106,17 +106,17 @@ async function main() {
     const costOptimizedResult =
       (await costOptimizedResponse.json()) as SelectModelResponse;
     console.log(
-      `Cost-optimized: ${costOptimizedResult.provider}/${costOptimizedResult.model}`,
+      `Performance-focused: ${costOptimizedResult.provider}/${costOptimizedResult.model}`,
     );
     console.log();
 
-    // Example 3: Performance-focused selection
-    // Setting cost_bias=0.1 prioritizes performance and quality over cost.
-    // This is ideal for complex tasks requiring higher reasoning capabilities,
-    // such as detailed analysis, code generation, or creative writing.
-    console.log("=== Example 3: Performance-Focused Selection ===");
+    // Example 3: Cost-focused selection
+    // Setting cost_bias=0.1 prioritizes cost savings over performance.
+    // This is ideal for simple tasks or budget-conscious applications where
+    // you want to minimize costs while still getting adequate quality.
+    console.log("=== Example 3: Cost-Focused Selection ===");
     console.log(
-      "Using cost_bias=0.1 to prioritize performance for complex analysis...",
+      "Using cost_bias=0.1 to prioritize cost savings for simple tasks...",
     );
 
     const performanceResponse = await fetch(`${baseURL}/select-model`, {
@@ -132,8 +132,8 @@ async function main() {
           { model_name: "claude-3-5-sonnet-20241022" },
         ],
         prompt:
-          "Analyze this complex dataset and provide detailed insights on market trends, customer behavior patterns, and predictive analytics recommendations",
-        cost_bias: 0.1, // Prioritize performance
+          "Hello, how are you? This is a simple greeting that doesn't require complex reasoning.",
+        cost_bias: 0.1, // Prioritize cost savings for simple tasks
       }),
     });
 
@@ -146,7 +146,7 @@ async function main() {
     const performanceResult =
       (await performanceResponse.json()) as SelectModelResponse;
     console.log(
-      `Performance-focused: ${performanceResult.provider}/${performanceResult.model}`,
+      `Cost-focused: ${performanceResult.provider}/${performanceResult.model}`,
     );
     console.log();
 
@@ -299,7 +299,7 @@ async function main() {
     console.log();
     console.log("Key takeaways:");
     console.log(
-      "• Use cost_bias to balance cost vs performance (0.0 = best performance, 1.0 = cheapest)",
+      "• Use cost_bias to balance cost vs performance (0.0 = cheapest, 1.0 = best performance)",
     );
     console.log(
       "• Include tool definitions to prioritize function calling models",

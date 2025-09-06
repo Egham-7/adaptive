@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/stream_readers"
 
@@ -264,15 +263,10 @@ func (r *OpenAIStreamReader) processChunk(chunk *openai.ChatCompletionChunk) err
 	startTime := time.Now()
 
 	// Convert OpenAI chunk to our adaptive chunk with cost savings
-	adaptiveChunk, err := format_adapter.OpenAIToAdaptive.ConvertStreamingChunk(chunk, r.provider)
+	adaptiveChunk, err := format_adapter.OpenAIToAdaptive.ConvertStreamingChunk(chunk, r.provider, r.cacheSource)
 	if err != nil {
 		fiberlog.Errorf("Failed to convert streaming chunk: %v", err)
 		return err
-	}
-
-	// Set cache tier if usage is present and cache source is available
-	if adaptiveChunk.Usage != nil && r.cacheSource != "" {
-		models.SetCacheTier(adaptiveChunk.Usage, r.cacheSource)
 	}
 	conversionTime := time.Since(startTime)
 
