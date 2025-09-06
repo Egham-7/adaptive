@@ -206,15 +206,11 @@ class TestPartialModelHandling:
 
         response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
-        # Should return error or empty results
-        if response.status_code == 200:
-            # Might return error in response body
-            response.json()
-            # Should have no valid selection
-        else:
-            # Should be 4xx or 5xx error
-            assert response.status_code >= 400
-
+        # Should return 4xx with a precise error
+        assert response.status_code in [400, 404, 422]
+        payload = response.json()
+        err = payload.get("error") or {}
+        assert "provider" in (err.get("message") or "").lower()
     def test_case_sensitivity_in_provider_names(self, base_url):
         """Test case-insensitive handling of provider names."""
         # Test different case variations with a model that supports Open QA task type
