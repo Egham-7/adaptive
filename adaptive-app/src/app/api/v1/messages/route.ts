@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
 				async start(controller) {
 					let finalUsage: Anthropic.MessageDeltaUsage | null = null; // Minimize scope
 					let modelName: string | null = null;
-					let providerId: string | null = null;
+					let _providerId: string | null = null;
 
 					try {
 						// Build validated stream parameters - use base Anthropic types to avoid conflicts
@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
 								const messageStart = chunk as Anthropic.MessageStartEvent;
 								modelName = messageStart.message.model || null;
 								// Provider info might be in extended response
-								providerId =
+								_providerId =
 									(
 										messageStart.message as Anthropic.Message & {
 											provider?: string;
@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
-										provider: (providerId as "anthropic") || "anthropic",
+										provider: "anthropic",
 										model: modelName,
 										usage: {
 											promptTokens: usage.input_tokens ?? 0,
@@ -239,8 +239,10 @@ export async function POST(req: NextRequest) {
 
 			return new Response(customReadable, {
 				headers: {
-					"Content-Type": "text/event-stream",
-					"Cache-Control": "no-cache",
+					"Content-Type": "text/event-stream; charset=utf-8",
+					"Cache-Control": "no-cache, no-transform",
+					Pragma: "no-cache",
+					"X-Accel-Buffering": "no",
 					Connection: "keep-alive",
 				},
 			});

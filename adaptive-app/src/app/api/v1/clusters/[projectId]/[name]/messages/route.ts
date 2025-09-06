@@ -2,6 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
 import { createBackendJWT } from "@/lib/jwt";
+import {
+	type ProviderType,
+	providerEnum,
+} from "@/server/api/routers/usage/shared-utils";
 import { api } from "@/trpc/server";
 import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
 
@@ -137,7 +141,7 @@ export async function POST(
 		if (body.stream) {
 			let finalUsage: Anthropic.MessageDeltaUsage | null = null;
 			let modelName: string | null = null;
-			let providerId: string | null = null;
+			let providerId: ProviderType | null = null;
 
 			// Create custom ReadableStream that intercepts Anthropic SDK chunks
 			const customReadable = new ReadableStream({
@@ -187,12 +191,16 @@ export async function POST(
 								const messageStart = chunk as Anthropic.MessageStartEvent;
 								modelName = messageStart.message.model || null;
 								// Provider info might be in extended response
+								const rawProviderId = (
+									messageStart.message as Anthropic.Message & {
+										provider?: string;
+									}
+								).provider;
 								providerId =
-									(
-										messageStart.message as Anthropic.Message & {
-											provider?: string;
-										}
-									).provider || null;
+									rawProviderId &&
+									providerEnum.includes(rawProviderId as ProviderType)
+										? (rawProviderId as ProviderType)
+										: null;
 							}
 
 							// Format as proper SSE with event type and data
@@ -214,7 +222,7 @@ export async function POST(
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
-										provider: (providerId as "anthropic") || "anthropic",
+										provider: providerId,
 										model: modelName,
 										usage: {
 											promptTokens: usage.input_tokens ?? 0,

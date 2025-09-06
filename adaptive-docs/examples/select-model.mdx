@@ -19,7 +19,7 @@ The select-model endpoint helps you choose the best model from your available op
 <RequestExample>
 
 ```typescript Basic Selection
-const response = await fetch("https://llmadaptive.com/api/v1/select-model", {
+const response = await fetch("https://llmadaptive.uk/api/v1/select-model", {
   method: "POST",
   headers: {
     "X-Stainless-API-Key": "your-adaptive-api-key",
@@ -43,7 +43,7 @@ console.log(`Selected: ${result.provider}/${result.model}`);
 import requests
 
 response = requests.post(
-    "https://llmadaptive.com/api/v1/select-model",
+    "https://llmadaptive.uk/api/v1/select-model",
     headers={
         "X-Stainless-API-Key": "your-adaptive-api-key",
         "Content-Type": "application/json"
@@ -63,7 +63,7 @@ print(f"Selected: {result['provider']}/{result['model']}")
 ```
 
 ```bash cURL
-curl -X POST "https://llmadaptive.com/api/v1/select-model" \
+curl -X POST "https://llmadaptive.uk/api/v1/select-model" \
   -H "X-Stainless-API-Key: your-adaptive-api-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -106,7 +106,7 @@ Control the balance between cost and performance using the `cost_bias` parameter
 <RequestExample>
 
 ```typescript Performance-Focused (cost_bias=0.9)
-const performanceResponse = await fetch("https://llmadaptive.com/api/v1/select-model", {
+const performanceResponse = await fetch("https://llmadaptive.uk/api/v1/select-model", {
   method: "POST",
   headers: {
     "X-Stainless-API-Key": "your-adaptive-api-key",
@@ -125,7 +125,7 @@ const performanceResponse = await fetch("https://llmadaptive.com/api/v1/select-m
 ```
 
 ```typescript Cost-Focused (cost_bias=0.1)
-const costResponse = await fetch("https://llmadaptive.com/api/v1/select-model", {
+const costResponse = await fetch("https://llmadaptive.uk/api/v1/select-model", {
   method: "POST",
   headers: {
     "X-Stainless-API-Key": "your-adaptive-api-key",
@@ -170,7 +170,7 @@ When tools are provided, Adaptive automatically prioritizes models that support 
 <RequestExample>
 
 ```typescript Function Calling
-const functionResponse = await fetch("https://llmadaptive.com/api/v1/select-model", {
+const functionResponse = await fetch("https://llmadaptive.uk/api/v1/select-model", {
   method: "POST",
   headers: {
     "X-Stainless-API-Key": "your-adaptive-api-key",
@@ -226,7 +226,7 @@ Mix known cloud models with your custom local or fine-tuned models for hybrid de
 <RequestExample>
 
 ```typescript Custom Model
-const customResponse = await fetch("https://llmadaptive.com/api/v1/select-model", {
+const customResponse = await fetch("https://llmadaptive.uk/api/v1/select-model", {
   method: "POST",
   headers: {
     "X-Stainless-API-Key": "your-adaptive-api-key",
@@ -248,7 +248,7 @@ const customResponse = await fetch("https://llmadaptive.com/api/v1/select-model"
       },
     ],
     prompt: "Hello, how are you?",
-    cost_bias: 0.9, // Should prefer the free local model
+    cost_bias: 0.1, // Prioritize cost savings to select the free local model
   }),
 });
 ```
@@ -259,8 +259,8 @@ const customResponse = await fetch("https://llmadaptive.com/api/v1/select-model"
 
 ```json Custom Model Result
 {
-  "provider": "openai",
-  "model": "gpt-4o-mini"
+  "provider": "local",
+  "model": "my-custom-llama-fine-tune"
 }
 ```
 
@@ -292,7 +292,7 @@ Here's a full example that demonstrates all features:
 ```typescript Complete Example
 async function demonstrateModelSelection() {
   const apiKey = process.env.ADAPTIVE_API_KEY;
-  const baseURL = "https://llmadaptive.com/api/v1";
+  const baseURL = "https://llmadaptive.uk/api/v1";
 
   // Example 1: Basic selection
   const basicResponse = await fetch(`${baseURL}/select-model`, {

@@ -1,6 +1,6 @@
 ---
 title: 'Chat Completions'
-api: 'POST https://llmadaptive.com/api/v1/chat/completions'
+api: 'POST https://llmadaptive.uk/api/v1/chat/completions'
 description: 'OpenAI-compatible completions with 60-80% cost savings'
 icon: "comments"
 ---
@@ -335,7 +335,7 @@ Authorization: Bearer your-adaptive-api-key
           Maximum output tokens the model can generate. **Required for custom models**
         </ParamField>
         
-        <ParamField body="supports_function_calling" type="boolean">
+        <ParamField body="supports_tool_calling" type="boolean">
           Whether the model supports function/tool calling. **Required for custom models**
         </ParamField>
         
@@ -701,7 +701,7 @@ const completion = await openai.chat.completions.create({
         cost_per_1m_output_tokens: 6.0,
         max_context_tokens: 16000,
         max_output_tokens: 4000,
-        supports_function_calling: true,
+        supports_tool_calling: true,
         task_type: "Text Generation",
         complexity: "medium"
       }
@@ -915,7 +915,7 @@ const completion = await openai.chat.completions.create({
         cost_per_1m_output_tokens: 10.0,
         max_context_tokens: 32000,
         max_output_tokens: 2048,
-        supports_function_calling: false,
+        supports_tool_calling: false,
         task_type: "Text Generation",
         complexity: "medium"
       }
@@ -1064,7 +1064,7 @@ const openai = new OpenAI({
        cost_per_1m_output_tokens: 6.0,
        max_context_tokens: 16000,
        max_output_tokens: 4000,
-       supports_function_calling: true,
+       supports_tool_calling: true,
        task_type: "Text Generation",
        complexity: "medium"
      }]
@@ -1126,7 +1126,7 @@ const openai = new OpenAI({
      cost_per_1m_output_tokens: 6.0,             // ✅ Required
      max_context_tokens: 16000,                  // ✅ Required
      max_output_tokens: 4000,                    // ✅ Required
-     supports_function_calling: false,           // ✅ Required
+     supports_tool_calling: false,           // ✅ Required
      task_type: "Text Generation",               // ✅ Required
      complexity: "medium"                        // ✅ Required
    }]
