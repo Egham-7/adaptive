@@ -100,11 +100,22 @@ cd examples/ts && bun basic-vercel-ai-sdk.ts
 cd examples/ts && bun basic-select-model.ts
 ```
 
+#### 🦜 [LangChain Example](./examples/ts/examples/basic-langchain.ts)
+- LangChain ChatOpenAI integration with intelligent routing
+- Chain composition and streaming support
+- Batch processing and agent compatibility
+- Perfect for complex AI workflows with cost optimization
+
+```bash
+cd examples/ts && bun basic-langchain.ts
+```
+
 ### Development Setup
 
 ```bash
 cd examples/ts
 bun install          # Install dependencies
+bun run typecheck    # Check TypeScript types
 bun run check        # Check formatting and linting
 bun run check:write  # Auto-fix issues
 bun run format       # Format code only
