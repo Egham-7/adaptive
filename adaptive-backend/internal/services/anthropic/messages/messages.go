@@ -104,12 +104,6 @@ func (ms *MessagesService) SendStreamingMessage(
 	req *models.AnthropicMessageRequest,
 	requestID string,
 ) (*ssestream.Stream[anthropic.MessageStreamEventUnion], error) {
-	// Set timeout if not already set - use a reasonable default for streaming
-	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, 10*time.Minute)
-		defer cancel()
-	}
 	fiberlog.Infof("[%s] Making streaming Anthropic API request - model: %s, max_tokens: %d",
 		requestID, req.Model, req.MaxTokens)
 

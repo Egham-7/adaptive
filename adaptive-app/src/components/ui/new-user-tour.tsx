@@ -9,6 +9,30 @@ import {
 } from "@/components/ui/tour";
 import { useTourCompletion } from "@/hooks/use-tour-completion";
 
+// Utility function to handle smooth scrolling to tour elements
+const scrollToElement = (selectorId: string, fallbackSelector?: string) => {
+  try {
+    let element = document.getElementById(selectorId);
+    
+    if (!element && fallbackSelector) {
+      element = document.querySelector(fallbackSelector) as HTMLElement;
+    }
+    
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: "smooth", 
+        block: "center",
+        inline: "nearest"
+      });
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    return false;
+  }
+};
+
 const apiPlatformTourSteps: TourStep[] = [
   {
     selectorId: "team-switcher",
@@ -21,6 +45,7 @@ const apiPlatformTourSteps: TourStep[] = [
         </p>
       </div>
     ),
+    onBeforeShow: () => scrollToElement("team-switcher"),
   },
   {
     selectorId: "dashboard-header",
@@ -33,6 +58,7 @@ const apiPlatformTourSteps: TourStep[] = [
         </p>
       </div>
     ),
+    onBeforeShow: () => scrollToElement("dashboard-header"),
   },
   {
     selectorId: "dashboard-metrics",
@@ -45,6 +71,7 @@ const apiPlatformTourSteps: TourStep[] = [
         </p>
       </div>
     ),
+    onBeforeShow: () => scrollToElement("dashboard-metrics"),
   },
   {
     selectorId: "dashboard-cost-comparison",
@@ -58,45 +85,20 @@ const apiPlatformTourSteps: TourStep[] = [
       </div>
     ),
     position: "top",
+    onBeforeShow: () => scrollToElement("dashboard-cost-comparison"),
   },
   {
-    selectorId: "sidebar-docs",
+    selectorId: "api-keys-nav",
     content: (
       <div>
-        <h3 className="font-semibold mb-2">Documentation</h3>
+        <h3 className="font-semibold mb-2">API Keys</h3>
         <p className="text-sm text-muted-foreground">
-          Access comprehensive guides, API references, and integration examples
-          to help you get the most out of Adaptive.
+          Create your first Adaptive API key
         </p>
       </div>
     ),
-    position: "left",
-  },
-  {
-    selectorId: "sidebar-support",
-    content: (
-      <div>
-        <h3 className="font-semibold mb-2">Get Support</h3>
-        <p className="text-sm text-muted-foreground">
-          Need help? Contact our support team for assistance with setup,
-          troubleshooting, or questions about your account.
-        </p>
-      </div>
-    ),
-    position: "left",
-  },
-  {
-    selectorId: "sidebar-legal",
-    content: (
-      <div>
-        <h3 className="font-semibold mb-2">Legal Information</h3>
-        <p className="text-sm text-muted-foreground">
-          Review our terms of service, privacy policy, and other legal documents
-          to understand how we protect your data.
-        </p>
-      </div>
-    ),
-    position: "left",
+    position: "right",
+    onBeforeShow: () => scrollToElement("api-keys-nav", '[href*="/api-keys"]'),
   },
 ];
 
@@ -117,7 +119,7 @@ export function NewUserTour() {
       const timer = setTimeout(() => {
         setShowTour(true);
       }, 1000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [isLoading, isTourCompleted]);

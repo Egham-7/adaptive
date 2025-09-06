@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -20,17 +21,6 @@ import { cn } from "@/lib/utils";
 
 import { Torus } from "lucide-react";
 
-// Constants
-export const TOUR_STEP_IDS = {
-  TEAM_SWITCHER: "team-switcher",
-  WRITING_AREA: "writing-area",
-  ASK_AI: "ask-ai",
-  FAVORITES: "favorites",
-  SIDEBAR_DOCS: "sidebar-docs",
-  SIDEBAR_SUPPORT: "sidebar-support",
-  SIDEBAR_LEGAL: "sidebar-legal",
-} as const;
-
 export interface TourStep {
   content: React.ReactNode;
   selectorId: string;
@@ -38,6 +28,7 @@ export interface TourStep {
   height?: number;
   onClickWithinArea?: () => void;
   position?: "top" | "bottom" | "left" | "right";
+  onBeforeShow?: () => void;
 }
 
 interface TourContextType {
@@ -64,8 +55,8 @@ interface TourProviderProps {
 const TourContext = createContext<TourContextType | null>(null);
 
 const PADDING = 16;
-const CONTENT_WIDTH = 300;
-const CONTENT_HEIGHT = 174;
+const MIN_CONTENT_WIDTH = 280;
+const MAX_CONTENT_WIDTH = 420;
 
 function getElementPosition(id: string) {
   const element = document.getElementById(id);
@@ -82,55 +73,74 @@ function getElementPosition(id: string) {
 function calculateContentPosition(
   elementPos: { top: number; left: number; width: number; height: number },
   position: "top" | "bottom" | "left" | "right" = "bottom",
+  contentWidth: number = 320,
+  contentHeight: number = 200,
 ) {
-  let left = elementPos.left;
-  let top = elementPos.top;
-
-  switch (position) {
-    case "top":
-      top = elementPos.top - CONTENT_HEIGHT - PADDING;
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
-      break;
-    case "bottom":
-      top = elementPos.top + elementPos.height + PADDING;
-      left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
-      break;
-    case "left":
-      left = elementPos.left - CONTENT_WIDTH - PADDING;
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
-      break;
-    case "right":
-      left = elementPos.left + elementPos.width + PADDING;
-      top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
-      break;
-  }
-
-  // Ensure the dialog stays within viewport bounds
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const scrollX = window.scrollX;
   const scrollY = window.scrollY;
+  
+  // Ensure content fits within viewport with padding
+  const maxAllowedWidth = viewportWidth - PADDING * 4;
+  const maxAllowedHeight = viewportHeight - PADDING * 4;
+  
+  const CONTENT_WIDTH = Math.min(
+    Math.max(contentWidth, MIN_CONTENT_WIDTH),
+    Math.min(MAX_CONTENT_WIDTH, maxAllowedWidth)
+  );
+  const CONTENT_HEIGHT = Math.min(contentHeight, maxAllowedHeight);
 
-  // Adjust horizontal position
-  if (left < scrollX + PADDING) {
-    left = scrollX + PADDING;
-  } else if (left + CONTENT_WIDTH > scrollX + viewportWidth - PADDING) {
-    left = scrollX + viewportWidth - CONTENT_WIDTH - PADDING;
+  // Smart positioning: try positions in order of preference
+  const positions = [
+    position, // User preference first
+    ...(["bottom", "top", "right", "left"] as const).filter(p => p !== position)
+  ];
+
+  for (const pos of positions) {
+    let left = elementPos.left;
+    let top = elementPos.top;
+
+    switch (pos) {
+      case "top":
+        top = elementPos.top - CONTENT_HEIGHT - PADDING;
+        left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
+        break;
+      case "bottom":
+        top = elementPos.top + elementPos.height + PADDING;
+        left = elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2;
+        break;
+      case "left":
+        left = elementPos.left - CONTENT_WIDTH - PADDING;
+        top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
+        break;
+      case "right":
+        left = elementPos.left + elementPos.width + PADDING;
+        top = elementPos.top + elementPos.height / 2 - CONTENT_HEIGHT / 2;
+        break;
+    }
+
+    // Check if this position fits in viewport
+    const fitsHorizontally = left >= scrollX + PADDING && left + CONTENT_WIDTH <= scrollX + viewportWidth - PADDING;
+    const fitsVertically = top >= scrollY + PADDING && top + CONTENT_HEIGHT <= scrollY + viewportHeight - PADDING;
+
+    if (fitsHorizontally && fitsVertically) {
+      return { top, left, width: CONTENT_WIDTH, height: CONTENT_HEIGHT };
+    }
   }
 
-  // Adjust vertical position
-  if (top < scrollY + PADDING) {
-    top = scrollY + PADDING;
-  } else if (top + CONTENT_HEIGHT > scrollY + viewportHeight - PADDING) {
-    top = scrollY + viewportHeight - CONTENT_HEIGHT - PADDING;
-  }
+  // Fallback: position with viewport constraints
+  let left = Math.max(scrollX + PADDING, Math.min(
+    elementPos.left + elementPos.width / 2 - CONTENT_WIDTH / 2,
+    scrollX + viewportWidth - CONTENT_WIDTH - PADDING
+  ));
+  
+  let top = Math.max(scrollY + PADDING, Math.min(
+    elementPos.top + elementPos.height + PADDING,
+    scrollY + viewportHeight - CONTENT_HEIGHT - PADDING
+  ));
 
-  return {
-    top,
-    left,
-    width: CONTENT_WIDTH,
-    height: CONTENT_HEIGHT,
-  };
+  return { top, left, width: CONTENT_WIDTH, height: CONTENT_HEIGHT };
 }
 
 export function TourProvider({
@@ -147,13 +157,15 @@ export function TourProvider({
     width: number;
     height: number;
   } | null>(null);
+  const [contentDimensions, setContentDimensions] = useState({ width: 320, height: 200 });
   const [isCompleted, setIsCompleted] = useState(isTourCompleted);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const updateElementPosition = useCallback(() => {
     if (currentStep >= 0 && currentStep < steps.length) {
       const step = steps[currentStep];
       if (!step) return;
-      
+
       const position = getElementPosition(step.selectorId ?? "");
       if (position) {
         setElementPosition(position);
@@ -171,6 +183,35 @@ export function TourProvider({
       window.removeEventListener("scroll", updateElementPosition);
     };
   }, [updateElementPosition]);
+
+  // Separate effect to handle step changes and call onBeforeShow
+  useEffect(() => {
+    if (currentStep >= 0 && currentStep < steps.length) {
+      const step = steps[currentStep];
+      if (step?.onBeforeShow) {
+        step.onBeforeShow();
+      }
+    }
+  }, [currentStep, steps]);
+
+  // Measure content dimensions when step changes
+  useEffect(() => {
+    if (contentRef.current && currentStep >= 0) {
+      const measureContent = () => {
+        if (contentRef.current) {
+          const rect = contentRef.current.getBoundingClientRect();
+          setContentDimensions({
+            width: Math.max(rect.width, MIN_CONTENT_WIDTH),
+            height: Math.max(rect.height, 150)
+          });
+        }
+      };
+
+      // Measure after content has rendered
+      const timer = setTimeout(measureContent, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, steps]);
 
   const setIsTourCompleted = useCallback((completed: boolean) => {
     setIsCompleted(completed);
@@ -243,6 +284,32 @@ export function TourProvider({
     };
   }, [handleClick]);
 
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (currentStep < 0) return;
+      
+      switch (e.key) {
+        case "Escape":
+          e.preventDefault();
+          endTour();
+          break;
+        case "ArrowRight":
+        case " ":
+          e.preventDefault();
+          nextStep();
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          if (currentStep > 0) previousStep();
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentStep, nextStep, previousStep, endTour]);
+
   return (
     <TourContext.Provider
       value={{
@@ -299,6 +366,7 @@ export function TourProvider({
             />
 
             <motion.div
+              ref={contentRef}
               initial={{ opacity: 0, y: 10 }}
               animate={{
                 opacity: 1,
@@ -306,6 +374,8 @@ export function TourProvider({
                 ...calculateContentPosition(
                   elementPosition,
                   steps[currentStep]?.position,
+                  contentDimensions.width,
+                  contentDimensions.height,
                 ),
               }}
               transition={{
@@ -316,51 +386,89 @@ export function TourProvider({
               style={{
                 position: "fixed",
                 zIndex: 1000,
-                width: CONTENT_WIDTH,
               }}
-              className="bg-background relative rounded-lg border p-4 shadow-lg min-h-[120px]"
+              className="bg-background relative rounded-xl border shadow-xl w-auto"
             >
-              <div className="text-muted-foreground absolute right-4 top-2 text-xs">
-                {currentStep + 1} / {steps.length}
+              {/* Header with progress and close */}
+              <div className="flex items-center justify-between p-4 pb-2">
+                <div className="flex items-center gap-2">
+                  {/* Progress dots */}
+                  <div className="flex gap-1">
+                    {Array.from({ length: steps.length }, (_, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "h-1.5 w-1.5 rounded-full transition-colors",
+                          i === currentStep
+                            ? "bg-primary"
+                            : i < currentStep
+                            ? "bg-primary/60"
+                            : "bg-muted"
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-muted-foreground text-xs ml-1">
+                    {currentStep + 1} of {steps.length}
+                  </span>
+                </div>
+                <Button
+                  onClick={endTour}
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
               </div>
-              <AnimatePresence mode="wait">
-                <div>
+
+              {/* Content */}
+              <div className="px-4 pb-4">
+                <AnimatePresence mode="wait">
                   <motion.div
                     key={`tour-content-${currentStep}`}
-                    initial={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
-                    animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, scale: 0.95, filter: "blur(4px)" }}
-                    className="overflow-hidden pt-4"
-                    transition={{
-                      duration: 0.2,
-                      height: {
-                        duration: 0.4,
-                      },
-                    }}
+                    initial={{ opacity: 0, x: 10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.2 }}
                   >
                     {steps[currentStep]?.content}
                   </motion.div>
-                  <div className="mt-4 flex justify-between">
+                </AnimatePresence>
+
+                {/* Actions */}
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <div className="flex gap-2">
                     {currentStep > 0 && (
                       <Button
                         onClick={previousStep}
-                        variant="ghost"
-                        disabled={currentStep === 0}
-                        className="text-sm"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8 px-3"
                       >
-                        Previous
+                        Back
                       </Button>
                     )}
                     <Button
-                      onClick={nextStep}
+                      onClick={endTour}
                       variant="ghost"
-                      className={cn("text-sm", !currentStep && "ml-auto")}
+                      size="sm"
+                      className="text-xs h-8 px-3 text-muted-foreground"
                     >
-                      {currentStep === steps.length - 1 ? "Finish" : "Next"}
+                      Skip Tour
                     </Button>
                   </div>
+                  <Button
+                    onClick={nextStep}
+                    size="sm"
+                    className="text-xs h-8 px-4 font-medium"
+                  >
+                    {currentStep === steps.length - 1 ? "Finish" : "Next"}
+                  </Button>
                 </div>
-              </AnimatePresence>
+              </div>
             </motion.div>
           </>
         )}
@@ -445,4 +553,3 @@ export function TourAlertDialog({
     </AlertDialog>
   );
 }
-
