@@ -183,18 +183,15 @@ class TestPartialModelHandling:
 
         response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
-        # Should either return error or use all available models
-        assert response.status_code in [200, 400, 422, 500]
+        # Should either return error or use all available models (never 5xx)
+        assert response.status_code in [200, 400, 422]
 
         if response.status_code != 200:
-            # Should have meaningful error message
-            error_text = response.text.lower()
-            assert (
-                "model" in error_text
-                or "empty" in error_text
-                or "invalid" in error_text
-            )
-
+            # Prefer structured error payload
+            payload = response.json()
+            err = payload.get("error") or {}
+            message = (err.get("message") or "").lower()
+            assert any(k in message for k in ["model", "empty", "invalid"])
     def test_nonexistent_provider_handling(self, base_url):
         """Test handling of non-existent provider."""
         request_data = {
