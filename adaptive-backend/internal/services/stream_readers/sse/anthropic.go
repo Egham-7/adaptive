@@ -142,6 +142,11 @@ func (r *AnthropicSSEReader) ReadChunk() (*models.AnthropicMessageChunk, error) 
 				continue
 			}
 
+			// Preserve event type if available
+			if currentEventType != "" {
+				adaptiveChunk.Type = currentEventType
+			}
+
 			// Reset event type after successful processing (avoid state leakage)
 			return adaptiveChunk, nil
 

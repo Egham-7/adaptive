@@ -2,7 +2,7 @@
 title: 'Select Model'
 api: 'POST https://www.llmadaptive.uk/api/v1/select-model'
 description: 'Get intelligent model selection for any provider or infrastructure'
-icon: "brain"
+icon: "route"
 ---
 
 Get Adaptive's intelligent model selection without using our inference. **Provider-agnostic design** - works with any models, any providers, any infrastructure.
@@ -45,7 +45,7 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
     - **cost_per_1m_input_tokens** (number): Cost per 1M input tokens (auto-filled for known models)
     - **cost_per_1m_output_tokens** (number): Cost per 1M output tokens (auto-filled for known models)
     - **max_context_tokens** (number): Maximum context window size (auto-filled for known models)
-    - **supports_function_calling** (boolean): Whether the model supports function/tool calling (auto-filled for known models)
+    - **supports_tool_calling** (boolean): Whether the model supports tool/function calling (auto-filled for known models)
     - **max_output_tokens** (number): Maximum output tokens (optional)
     - **complexity** (string): Model complexity tier: "low", "medium", "high" (optional)
     - **task_type** (string): Optimized task type (optional)
@@ -177,7 +177,7 @@ Get Adaptive's intelligent model selection without using our inference. **Provid
 
 ```bash
 # Mix and match specification styles
-response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -209,7 +209,7 @@ fi
 
 ```bash
 # Even simpler - just say what providers you have access to
-response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -243,7 +243,7 @@ fi
 
 ```bash
 # Only specify details for custom/unknown models
-response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -254,7 +254,7 @@ response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-
         "cost_per_1m_input_tokens": 0.0,
         "cost_per_1m_output_tokens": 0.0,
         "max_context_tokens": 4096,
-        "supports_function_calling": false,
+        "supports_tool_calling": false,
         "complexity": "medium"
       }
     ],
@@ -289,7 +289,7 @@ const response = await fetch('/api/v1/select-model', {
         cost_per_1m_input_tokens: 0.15,
         cost_per_1m_output_tokens: 0.6,
         max_context_tokens: 128000,
-        supports_function_calling: true
+        supports_tool_calling: true
       },
       {
         provider: "openai",
@@ -297,7 +297,7 @@ const response = await fetch('/api/v1/select-model', {
         cost_per_1m_input_tokens: 2.5,
         cost_per_1m_output_tokens: 10.0,
         max_context_tokens: 128000,
-        supports_function_calling: true
+        supports_tool_calling: true
       }
     ],
     prompt: "Analyze this complex dataset and provide insights...",
@@ -319,7 +319,7 @@ console.log(result);
 
 ```bash
 # Models with function calling will be prioritized when tools are provided
-response=$(curl -s -w "\n%{http_code}" https://www.llmadaptive.uk/api/v1/select-model \
+response=$(curl -s -w "\n%{http_code}" https://llmadaptive.uk/api/v1/select-model \
   -H "X-Stainless-API-Key: $API_KEY" \
   -d '{
     "models": [
@@ -385,7 +385,7 @@ models = [
         "cost_per_1m_input_tokens": 0.15,
         "cost_per_1m_output_tokens": 0.6,
         "max_context_tokens": 128000,
-        "supports_function_calling": True,
+        "supports_tool_calling": True,
         "complexity": "low"
     },
     {
@@ -394,7 +394,7 @@ models = [
         "cost_per_1m_input_tokens": 2.5,
         "cost_per_1m_output_tokens": 10.0,
         "max_context_tokens": 128000,
-        "supports_function_calling": True,
+        "supports_tool_calling": True,
         "complexity": "high"
     }
 ]
@@ -457,7 +457,7 @@ const availableModels = [
     cost_per_1m_input_tokens: 0.15,
     cost_per_1m_output_tokens: 0.6,
     max_context_tokens: 128000,
-    supports_function_calling: true
+    supports_tool_calling: true
   },
   {
     provider: "anthropic",
@@ -465,7 +465,7 @@ const availableModels = [
     cost_per_1m_input_tokens: 3.0,
     cost_per_1m_output_tokens: 15.0,
     max_context_tokens: 200000,
-    supports_function_calling: true
+    supports_tool_calling: true
   }
 ];
 
@@ -499,7 +499,7 @@ if (result.provider === "openai") {
 ### 2. On-Premise Model Routing
 ```javascript
 // Tell Adaptive about your local models (plus a cloud fallback)
-const res = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
+const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -524,7 +524,7 @@ if (selection.provider === "local" && selection.model === "llama-3-8b") {
 ### 3. Enterprise Contract Optimization
 ```javascript
 // Maximize usage of your enterprise contracts
-const res = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
+const res = await fetch('https://llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -607,7 +607,7 @@ console.log(`Cost-optimized: ${withConstraints.model}`);
 ### Validate Your Setup
 ```javascript
 // Make sure your routing rules work
-const shouldUseCheap = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
+const shouldUseCheap = await fetch('https://llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -616,7 +616,7 @@ const shouldUseCheap = await fetch('https://www.llmadaptive.uk/api/v1/select-mod
   })
 }).then(r => r.json());
 
-const shouldUseExpensive = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
+const shouldUseExpensive = await fetch('https://llmadaptive.uk/api/v1/select-model', {
   method: 'POST',
   headers: { 'X-Stainless-API-Key': adaptiveKey, 'Content-Type': 'application/json' },
   body: JSON.stringify({

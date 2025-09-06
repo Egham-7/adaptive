@@ -114,17 +114,17 @@ func convertToStreamingChunks(completion *models.ChatCompletion, requestID strin
 		Object:  "chat.completion.chunk",
 		Created: completion.Created,
 		Model:   completion.Model,
-		Choices: []openai.ChatCompletionChunkChoice{
+		Choices: []models.AdaptiveChatCompletionChunkChoice{
 			{
 				Index: choice.Index,
-				Delta: openai.ChatCompletionChunkChoiceDelta{
+				Delta: models.AdaptiveChatCompletionChunkChoiceDelta{
 					Role: string(choice.Message.Role),
 				},
 				Logprobs:     openai.ChatCompletionChunkChoiceLogprobs{},
 				FinishReason: "",
 			},
 		},
-		Usage:    &completion.Usage,
+		Usage:    completion.Usage,
 		Provider: completion.Provider,
 	}
 	chunks = append(chunks, firstChunk)
@@ -145,10 +145,10 @@ func convertToStreamingChunks(completion *models.ChatCompletion, requestID strin
 			Object:  "chat.completion.chunk",
 			Created: completion.Created,
 			Model:   completion.Model,
-			Choices: []openai.ChatCompletionChunkChoice{
+			Choices: []models.AdaptiveChatCompletionChunkChoice{
 				{
 					Index: choice.Index,
-					Delta: openai.ChatCompletionChunkChoiceDelta{
+					Delta: models.AdaptiveChatCompletionChunkChoiceDelta{
 						Content: chunkContent,
 					},
 					Logprobs:     openai.ChatCompletionChunkChoiceLogprobs{},
@@ -166,17 +166,17 @@ func convertToStreamingChunks(completion *models.ChatCompletion, requestID strin
 		Created: completion.Created,
 		Model:   completion.Model,
 		Object:  "chat.completion.chunk",
-		Choices: []openai.ChatCompletionChunkChoice{
+		Choices: []models.AdaptiveChatCompletionChunkChoice{
 			{
 				Index: choice.Index,
-				Delta: openai.ChatCompletionChunkChoiceDelta{
+				Delta: models.AdaptiveChatCompletionChunkChoiceDelta{
 					Content: "",
 				},
 				Logprobs:     openai.ChatCompletionChunkChoiceLogprobs{},
 				FinishReason: choice.FinishReason,
 			},
 		},
-		Usage:    &completion.Usage,
+		Usage:    completion.Usage,
 		Provider: completion.Provider,
 	}
 	chunks = append(chunks, finalChunk)
