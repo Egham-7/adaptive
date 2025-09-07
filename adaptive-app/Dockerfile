@@ -49,8 +49,10 @@ COPY --from=builder /app/node_modules/@prisma/client \
   ./node_modules/@prisma/client
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-# Copy prisma folder (including migrations and schema)
+# Copy prisma folder (including migrations, schema, and generated client)
 COPY --from=builder /app/prisma ./prisma
+# Explicitly copy the custom generated Prisma client
+COPY --from=builder /app/prisma/generated ./prisma/generated
 # drop to non-root user
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs

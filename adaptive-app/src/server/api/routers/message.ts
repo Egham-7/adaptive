@@ -1,6 +1,10 @@
-import type { PrismaClient } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import type { Conversation, Message } from "prisma/generated";
+import type {
+	Conversation,
+	Message,
+	Prisma,
+	PrismaClient,
+} from "prisma/generated";
 import { z } from "zod";
 import {
 	getRemainingMessages,
@@ -13,7 +17,9 @@ type CreateMessageInput = z.infer<typeof createMessageSchema>;
 type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
 
 // Validation functions
-const validateConversationAccess = (conversation: Conversation | null) => {
+const validateConversationAccess = (
+	conversation: Conversation | null,
+): Conversation => {
 	if (!conversation) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
@@ -23,7 +29,7 @@ const validateConversationAccess = (conversation: Conversation | null) => {
 	return conversation;
 };
 
-const validateMessageAccess = (message: Message | null) => {
+const validateMessageAccess = (message: Message | null): Message => {
 	if (!message) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
@@ -40,17 +46,17 @@ const createMessageData = (
 ) => ({
 	id: input.id,
 	role: input.role,
-	metadata: input.metadata || undefined,
-	annotations: input.annotations || undefined,
-	parts: input.parts || undefined,
+	metadata: input.metadata as Prisma.InputJsonValue | undefined,
+	annotations: input.annotations as Prisma.InputJsonValue | undefined,
+	parts: input.parts as Prisma.InputJsonValue,
 	conversation: { connect: { id: conversationId } },
 	...(input.createdAt && { createdAt: new Date(input.createdAt) }),
 });
 
 const updateMessageData = (input: Omit<UpdateMessageInput, "id">) => ({
-	metadata: input.metadata || undefined,
-	annotations: input.annotations || undefined,
-	parts: input.parts || undefined,
+	metadata: input.metadata as Prisma.InputJsonValue | undefined,
+	annotations: input.annotations as Prisma.InputJsonValue | undefined,
+	parts: input.parts as Prisma.InputJsonValue | undefined,
 	updatedAt: new Date(),
 });
 
@@ -83,7 +89,7 @@ const createMessageWithTimestampUpdate = async (
 	messageData: ReturnType<typeof createMessageData>,
 	conversationId: number,
 ) => {
-	return db.$transaction(async (tx: PrismaClient) => {
+	return db.$transaction(async (tx) => {
 		const newMessage = await tx.message.create({ data: messageData });
 		await tx.conversation.update({
 			where: { id: conversationId },
@@ -99,7 +105,7 @@ const updateMessageWithTimestampUpdate = async (
 	updateData: ReturnType<typeof updateMessageData>,
 	conversationId: number,
 ) => {
-	return db.$transaction(async (tx: PrismaClient) => {
+	return db.$transaction(async (tx) => {
 		const updatedMessage = await tx.message.update({
 			where: { id: messageId },
 			data: updateData,
@@ -117,7 +123,7 @@ const deleteMessageWithTimestampUpdate = async (
 	messageId: string,
 	conversationId: number,
 ) => {
-	return db.$transaction(async (tx: PrismaClient) => {
+	return db.$transaction(async (tx) => {
 		const deletedMessage = await tx.message.update({
 			where: { id: messageId },
 			data: { deletedAt: new Date() },
@@ -214,12 +220,12 @@ export const messageRouter = createTRPCRouter({
 			const userId = ctx.clerkAuth.userId;
 			const { id, ...dataToUpdate } = input;
 
-			const message = await findMessageWithConversationAccess(
+			const messageResult = await findMessageWithConversationAccess(
 				ctx.db,
 				id,
 				userId,
 			);
-			validateMessageAccess(message);
+			const message = validateMessageAccess(messageResult);
 
 			const updateData = updateMessageData(dataToUpdate);
 			return updateMessageWithTimestampUpdate(
@@ -235,12 +241,12 @@ export const messageRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.clerkAuth.userId;
 
-			const message = await findMessageWithConversationAccess(
+			const messageResult = await findMessageWithConversationAccess(
 				ctx.db,
 				input.id,
 				userId,
 			);
-			validateMessageAccess(message);
+			const message = validateMessageAccess(messageResult);
 
 			return deleteMessageWithTimestampUpdate(
 				ctx.db,

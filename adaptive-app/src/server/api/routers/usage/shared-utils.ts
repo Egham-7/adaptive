@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient } from "prisma/generated";
 
 // Helper function to ensure we always return valid numbers
 export const ensureNumber = (value: number | null | undefined): number => {
