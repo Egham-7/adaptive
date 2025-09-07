@@ -1,14 +1,15 @@
-# Stage 0: build with oven/bun
-FROM oven/bun:latest AS builder
+# Stage 0: build with Node.js and pnpm
+FROM node:latest AS builder
 WORKDIR /app
 # install OpenSSL and CA certificates
 RUN apt-get update -y \
   && apt-get install -y openssl ca-certificates 
-# install deps & generate Prisma client
-COPY package.json bun.lock ./
+# install pnpm and deps & generate Prisma client
+RUN npm install -g pnpm
+COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 ENV PRISMA_GENERATE_ONLY_ENGINE=true
-RUN bun install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Add ALL the build-time environment variables
@@ -32,11 +33,10 @@ ENV JWT_SECRET=${JWT_SECRET}
 ENV ADAPTIVE_API_BASE_URL=${ADAPTIVE_API_BASE_URL}
 
 # now that openssl is available, generate and build
-RUN bunx prisma generate \
-  && bun run build
+RUN pnpm run build
 
-# Stage 1: production runner on Debian slim
-FROM oven/bun:latest AS runner
+# Stage 1: production runner on Node.js
+FROM node:latest AS runner
 WORKDIR /app
 # install runtime deps (openssl + CA bundle)
 RUN apt-get update -y \
@@ -49,12 +49,16 @@ COPY --from=builder /app/node_modules/@prisma/client \
   ./node_modules/@prisma/client
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-# Copy prisma folder (including migrations and schema)
+# Copy prisma folder (including migrations, schema, and generated client)
 COPY --from=builder /app/prisma ./prisma
+# Explicitly copy the custom generated Prisma client
+COPY --from=builder /app/prisma/generated ./prisma/generated
 # drop to non-root user
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME="0.0.0.0"
-CMD ["sh", "-c", "bunx prisma migrate deploy && bun run start"]
+# Install pnpm in runner stage
+RUN npm install -g pnpm
+CMD ["pnpm", "run", "start"]

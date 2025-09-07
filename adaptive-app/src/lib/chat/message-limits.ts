@@ -1,5 +1,5 @@
-import type { PrismaClient } from "@prisma/client";
 import { endOfDay, startOfDay } from "date-fns";
+import type { PrismaClient } from "prisma/generated";
 
 export const DAILY_MESSAGE_LIMIT = 7;
 

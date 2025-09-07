@@ -35,15 +35,17 @@ export const useDeleteMessage = () => {
 				conversationId: messageToDelete.conversationId,
 			};
 		},
-		onSuccess: (deletedMessage, variables) => {
-			// Remove from conversation messages cache
-			utils.messages.listByConversation.setData(
-				{ conversationId: deletedMessage.conversationId },
-				(oldData) => {
-					if (!oldData) return oldData;
-					return oldData.filter((msg) => msg.id !== variables.id);
-				},
-			);
+		onSuccess: (_deletedMessage, variables, context) => {
+			// Remove from conversation messages cache using context if available
+			if (context?.conversationId) {
+				utils.messages.listByConversation.setData(
+					{ conversationId: context.conversationId },
+					(oldData) => {
+						if (!oldData) return oldData;
+						return oldData.filter((msg) => msg.id !== variables.id);
+					},
+				);
+			}
 
 			// Invalidate the specific message query
 			utils.messages.getById.invalidate({ id: variables.id });
@@ -57,11 +59,11 @@ export const useDeleteMessage = () => {
 				);
 			}
 		},
-		onSettled: (data, _error, _variables) => {
+		onSettled: (_data, _error, _variables, context) => {
 			// Always refetch after error or success to ensure consistency
-			if (data?.conversationId) {
+			if (context?.conversationId) {
 				utils.messages.listByConversation.invalidate({
-					conversationId: data.conversationId,
+					conversationId: context.conversationId,
 				});
 			}
 		},
