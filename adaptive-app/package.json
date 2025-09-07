@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "prisma generate --no-engine && bun run check && next build",
+		"build": "bunx prisma generate && bun run check && next build",
 		"check": "biome check .",
 		"check:unsafe": "biome check --write --unsafe .",
 		"check:write": "biome check --write .",
@@ -13,8 +13,8 @@
 		"db:push": "prisma db push",
 		"db:studio": "prisma studio",
 		"db:seed-providers": "bun scripts/seed-providers.ts",
-		"dev": "bun prisma generate && next dev --turbo",
-		"preview": "bun prisma generate --no-engine && next build && next start",
+		"dev": "bunx prisma generate && next dev --turbo",
+		"preview": "bunx prisma generate && next build && next start",
 		"start": "bun run db:migrate && bunx next start",
 		"typecheck": "tsc --noEmit",
 		"stripe": "stripe listen --forward-to localhost:3000/api/stripe-checkout"
@@ -27,7 +27,6 @@
 		"@clerk/nextjs": "^6.31.8",
 		"@hookform/resolvers": "^5.2.1",
 		"@prisma/client": "^6.15.0",
-		"@prisma/extension-accelerate": "^2.0.2",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
 		"@radix-ui/react-avatar": "^1.1.10",
 		"@radix-ui/react-collapsible": "^1.1.12",
