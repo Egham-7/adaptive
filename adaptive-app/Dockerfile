@@ -41,18 +41,13 @@ WORKDIR /app
 # install runtime deps (openssl + CA bundle)
 RUN apt-get update -y \
   && apt-get install -y openssl ca-certificates 
-# copy Next.js standalone build & Prisma engines
+# copy Next.js standalone build
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma/client \
-  ./node_modules/@prisma/client
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-# Copy prisma folder (including migrations, schema, and generated client)
+# Copy prisma folder (including migrations, schema, and custom generated client)
 COPY --from=builder /app/prisma ./prisma
-# Explicitly copy the custom generated Prisma client
-COPY --from=builder /app/prisma/generated ./prisma/generated
 # drop to non-root user
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
