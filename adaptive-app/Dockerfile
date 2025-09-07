@@ -41,6 +41,8 @@ WORKDIR /app
 # install runtime deps (openssl + CA bundle)
 RUN apt-get update -y \
   && apt-get install -y openssl ca-certificates 
+# Install pnpm in runner stage (before switching to non-root user)
+RUN npm install -g pnpm
 # copy Next.js standalone build
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
@@ -54,6 +56,4 @@ RUN addgroup --system --gid 1001 nodejs \
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME="0.0.0.0"
-# Install pnpm in runner stage
-RUN npm install -g pnpm
 CMD ["pnpm", "run", "start"]
