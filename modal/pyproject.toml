@@ -1,0 +1,30 @@
+# Modal deployment dependencies
+# This directory contains deployment scripts, not a package to install
+
+[project]
+name = "modal-deployment"
+version = "1.0.0"
+description = "Modal deployment scripts"
+requires-python = ">=3.11"
+dependencies = [
+    # Core dependencies needed for Modal deployment (installed locally)
+    "modal>=0.63.0",
+    "fastapi>=0.100.0",
+    "python-jose[cryptography]>=3.3.0,<4.0",
+    "pydantic>=2.11.5,<3",
+    "httpx>=0.25.0,<1.0",
+]
+
+[dependency-groups]
+
+ml = [
+    # ML dependencies (installed automatically in Modal container)
+    "torch>=2.2.0,<2.5.0",
+    "transformers>=4.52.4,<5",
+    "huggingface-hub>=0.32.0,<0.35", 
+    "numpy>=1.24.0,<3.0",
+    "accelerate>=1.8.1,<2",
+]
+
+[tool.uv]
+dev-dependencies = []
