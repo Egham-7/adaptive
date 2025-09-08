@@ -3,7 +3,7 @@
 # Environment variables can be referenced using ${VAR} or ${VAR:-default} syntax (defaults apply when a variable is unset or empty)
 
 server:
-  addr: "${ADDR:-:8080}"
+  addr: "${ADDR:-[::]:8080}"
   allowed_origins: "${ALLOWED_ORIGINS:-http://localhost:3000}"
   environment: "${ENV:-development}"
   log_level: "${LOG_LEVEL:-info}"
