@@ -119,6 +119,10 @@ export default function OnboardingPage() {
 		);
 	};
 
+	const handleSkipApiKey = () => {
+		setCurrentStep("complete");
+	};
+
 	const getStepNumber = (step: OnboardingStep): number => {
 		switch (step) {
 			case "welcome":
@@ -165,6 +169,15 @@ export default function OnboardingPage() {
 				break;
 			case "quickstart":
 				setCurrentStep("api-key");
+				break;
+			case "complete":
+				// If user skipped API key, go back to api-key step
+				// If user created API key, go back to quickstart step
+				if (createdApiKey) {
+					setCurrentStep("quickstart");
+				} else {
+					setCurrentStep("api-key");
+				}
 				break;
 			default:
 				break;
@@ -220,6 +233,7 @@ export default function OnboardingPage() {
 				{currentStep === "api-key" && (
 					<ApiKeyStep
 						onCreateApiKey={handleCreateApiKey}
+						onSkip={handleSkipApiKey}
 						onBack={handleBack}
 						isLoading={createApiKey.isPending}
 					/>

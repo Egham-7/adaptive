@@ -10,12 +10,14 @@ import {
 
 interface ApiKeyStepProps {
 	onCreateApiKey: () => void;
+	onSkip: () => void;
 	onBack: () => void;
 	isLoading: boolean;
 }
 
 export function ApiKeyStep({
 	onCreateApiKey,
+	onSkip,
 	onBack,
 	isLoading,
 }: ApiKeyStepProps) {
@@ -30,7 +32,9 @@ export function ApiKeyStep({
 						<Key className="h-5 w-5 text-primary" />
 					</div>
 				</div>
-				<CardTitle className="text-xl">Generate your API key</CardTitle>
+				<CardTitle className="text-xl">
+					Generate your API key (Optional)
+				</CardTitle>
 				<CardDescription>
 					Create your first API key to start making requests to the Adaptive AI
 					Platform.
@@ -47,18 +51,23 @@ export function ApiKeyStep({
 							<li>• Cost monitoring and optimization</li>
 						</ul>
 					</div>
-					<div className="flex justify-end gap-3">
+					<div className="flex justify-between">
 						<Button type="button" variant="outline" onClick={onBack}>
 							Back
 						</Button>
-						<Button
-							onClick={onCreateApiKey}
-							disabled={isLoading}
-							className="min-w-32"
-						>
-							{isLoading ? "Creating..." : "Generate API Key"}
-							<ChevronRight className="ml-2 h-4 w-4" />
-						</Button>
+						<div className="flex gap-3">
+							<Button type="button" variant="ghost" onClick={onSkip}>
+								Skip for now
+							</Button>
+							<Button
+								onClick={onCreateApiKey}
+								disabled={isLoading}
+								className="min-w-32"
+							>
+								{isLoading ? "Creating..." : "Generate API Key"}
+								<ChevronRight className="ml-2 h-4 w-4" />
+							</Button>
+						</div>
 					</div>
 				</div>
 			</CardContent>
