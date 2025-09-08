@@ -177,7 +177,7 @@ export default function OnboardingPage() {
 				{/* Header */}
 				<div className="mb-8 text-center">
 					<h1 className="mb-2 font-bold text-3xl text-foreground">
-						Welcome to Adaptive AI Platform
+						Welcome to Adaptive API Platform
 					</h1>
 					<p className="text-muted-foreground">
 						Let's get you set up with your first organization and project
