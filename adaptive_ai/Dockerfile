@@ -5,7 +5,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONDONTWRITEBYTECODE=1 \
   PATH="/root/.local/bin:$PATH" \
   HF_HOME=/app/cache/huggingface \
-  TRANSFORMERS_CACHE=/app/cache/huggingface \
   HF_HUB_CACHE=/app/cache/huggingface
 
 WORKDIR /app
