@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ServerConfig(BaseModel):
     """Server configuration."""
 
-    host: str = "0.0.0.0"  # noqa: S104
+    host: str = "::"
     port: int = 8000
 
 
