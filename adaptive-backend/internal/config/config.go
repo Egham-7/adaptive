@@ -200,8 +200,8 @@ func (c *Config) IsProduction() bool {
 func (c *Config) Validate() error {
 	var missing []string
 
-	if c.Server.Addr == "" {
-		missing = append(missing, "server.addr")
+	if c.Server.Port == "" {
+		missing = append(missing, "server.port")
 	}
 	if c.Server.AllowedOrigins == "" {
 		missing = append(missing, "server.allowed_origins")
