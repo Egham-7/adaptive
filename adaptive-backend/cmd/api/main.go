@@ -119,6 +119,7 @@ func main() {
 		Prefork:              false,
 		CaseSensitive:        true,
 		StrictRouting:        false,
+		Network:              "tcp",
 		ServerHeader:         "Adaptive",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			// Sanitize error for external consumption
