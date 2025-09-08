@@ -49,8 +49,8 @@ func (s *StreamOrchestrator) Handle(ctx context.Context, writer contracts.Stream
 		}
 	}()
 
-	// Buffer for reading chunks
-	buffer := make([]byte, 8192) // 8KB buffer
+	// Buffer for reading chunks - increased size to handle large JSON frames
+	buffer := make([]byte, 32768) // 32KB buffer to accommodate complete JSON frames
 
 	for {
 		// Check for context cancellation first

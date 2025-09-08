@@ -37,14 +37,19 @@ func (w *HTTPStreamWriter) Write(data []byte) error {
 	}
 
 	// Write data
-	if _, err := w.writer.Write(data); err != nil {
+	n, err := w.writer.Write(data)
+	if n > 0 {
+		// Account for actual bytes written, even on partial write or error
+		w.totalBytes += int64(n)
+	}
+
+	if err != nil {
 		if contracts.IsConnectionClosed(err) {
 			return contracts.NewClientDisconnectError(w.requestID)
 		}
 		return contracts.NewInternalError(w.requestID, "write failed", err)
 	}
 
-	w.totalBytes += int64(len(data))
 	return nil
 }
 
@@ -69,9 +74,16 @@ func (w *HTTPStreamWriter) Flush() error {
 func (w *HTTPStreamWriter) Close() error {
 	// Write completion message
 	if w.connState.IsConnected() {
-		if _, err := w.writer.WriteString("data: [DONE]\n\n"); err == nil {
-			_ = w.writer.Flush() // Best effort
+		n, writeErr := w.writer.WriteString("data: [DONE]\n\n")
+		if writeErr == nil {
+			// Add written bytes to total if write succeeded
+			w.totalBytes += int64(n)
+
+			// Flush and capture any error
+			flushErr := w.writer.Flush()
+			return flushErr
 		}
+		return writeErr
 	}
 	return nil
 }

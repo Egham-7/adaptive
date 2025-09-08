@@ -46,6 +46,10 @@ func (p *AnthropicChunkProcessor) Process(ctx context.Context, data []byte) ([]b
 	}
 
 	// Use existing format adapter to convert to adaptive format
+	if format_adapter.AnthropicToAdaptive == nil {
+		return nil, fmt.Errorf("AnthropicToAdaptive converter is not initialized")
+	}
+
 	adaptiveChunk, err := format_adapter.AnthropicToAdaptive.ConvertStreamingChunk(&anthropicChunk, p.provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert Anthropic chunk: %w", err)
