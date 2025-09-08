@@ -224,7 +224,7 @@ uv run pytest
 uv run pytest --cov
 
 # Run specific test file
-uv run pytest tests/unit/core/test_config.py
+uv run pytest adaptive_ai/tests/unit/core/test_config.py
 
 # Run with verbose output
 uv run pytest -v

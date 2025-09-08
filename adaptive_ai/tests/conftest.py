@@ -8,41 +8,25 @@ import pytest
 from adaptive_ai.core.config import get_settings
 
 # Import fixtures to make them available
-from tests.fixtures.config_fixtures import *  # noqa: F403
+from .fixtures.config_fixtures import *  # noqa: F403
 
 
 @pytest.fixture(autouse=True)
 def clean_environment():
-    """Clean up environment variables before each test."""
+    """Clean up environment variables before each test.
+    
+    Removes all environment variables with ADAPTIVE_AI_*, TEST_*, and PROD_* prefixes.
+    """
     # Store original env vars
     original_env = dict(os.environ)
 
-    # Clear test-related env vars
-    test_vars = [
-        "ADAPTIVE_AI_CONFIG_FILE",
-        "ADAPTIVE_AI_SERVER_HOST",
-        "ADAPTIVE_AI_SERVER_PORT",
-        "ADAPTIVE_AI_LITSERVE_ACCELERATOR",
-        "ADAPTIVE_AI_LITSERVE_DEVICES",
-        "ADAPTIVE_AI_LITSERVE_MAX_BATCH_SIZE",
-        "ADAPTIVE_AI_LITSERVE_BATCH_TIMEOUT",
-        "ADAPTIVE_AI_LOGGING_LEVEL",
-        "TEST_HOST",
-        "TEST_PORT",
-        "TEST_ACCELERATOR",
-        "TEST_BATCH_SIZE",
-        "TEST_LOG_LEVEL",
-        "PROD_HOST",
-        "PROD_PORT",
-        "PROD_ACCELERATOR",
-        "PROD_DEVICES",
-        "PROD_BATCH_SIZE",
-        "PROD_BATCH_TIMEOUT",
-        "PROD_LOG_LEVEL",
-    ]
-
-    for var in test_vars:
-        os.environ.pop(var, None)
+    # Clear test-related env vars by prefix
+    prefixes = ["ADAPTIVE_AI_", "TEST_", "PROD_"]
+    env_keys = list(os.environ.keys())  # Create snapshot to avoid mutation during iteration
+    
+    for var in env_keys:
+        if any(var.startswith(prefix) for prefix in prefixes):
+            os.environ.pop(var, None)
 
     yield
 

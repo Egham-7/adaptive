@@ -1,6 +1,6 @@
 # Makefile for adaptive_ai development
 
-.PHONY: help install dev clean test test-unit test-integration test-cov test-cov-html test-fast test-config test-services test-models test-routing lint lint-fix format format-check typecheck quality quality-fix
+.PHONY: help install dev clean test test-unit test-integration test-cov test-cov-html test-fast test-config test-services test-models test-routing all-tests lint lint-fix format format-check typecheck quality quality-fix
 
 # Default target
 help:
@@ -22,6 +22,7 @@ help:
 	@echo "  test-services Run service tests only"
 	@echo "  test-models   Run model tests only"
 	@echo "  test-routing  Run routing integration tests"
+	@echo "  all-tests     Run both unit and integration tests"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  lint          Check code with ruff"
@@ -69,7 +70,22 @@ test-cov-html:
 	uv run pytest --cov=adaptive_ai --cov-report=html
 	@echo "Coverage report generated in htmlcov/index.html"
 
+test-fast:
+	uv run pytest -x
 
+test-config:
+	uv run pytest adaptive_ai/tests/unit/core/
+
+test-services:
+	uv run pytest adaptive_ai/tests/unit/services/
+
+test-models:
+	uv run pytest adaptive_ai/tests/unit/models/
+
+test-routing:
+	uv run pytest adaptive_ai/tests/integration/
+
+all-tests: test-unit test-integration
 
 # Code quality commands
 lint:

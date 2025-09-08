@@ -1,6 +1,6 @@
 """Unit tests for main.py ModelRouterAPI class."""
 
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 
@@ -12,7 +12,10 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionResponse,
 )
 from adaptive_ai.models.llm_enums import TaskType
-from tests.unit.models.test_classification_models import create_classification_result
+
+from .models.test_classification_models import create_classification_result
+
+pytestmark = pytest.mark.unit
 
 
 class TestModelRouterAPI:
@@ -189,18 +192,8 @@ class TestModelRouterAPI:
 
         requests = [ModelSelectionRequest(prompt="Test prompt")]
 
-        responses = api_instance.predict(requests)
-
-        assert len(responses) == 1
-        response = responses[0]
-
-        # Should return error response dict
-        assert isinstance(response, dict)
-        assert "error" in response
-        assert response["error"] == "ValueError"
-        assert "Classification failed" in response["message"]
-        assert response["provider"] is None
-        assert response["model"] is None
+        with pytest.raises(ValueError, match="Classification failed"):
+            api_instance.predict(requests)
 
     def test_convert_to_task_type(self, api_instance):
         """Test task type conversion."""
@@ -309,9 +302,7 @@ class TestModelRouterAPI:
         assert len(result) == 1
 
         # Verify timing was logged
-        api_instance.log.assert_called()
-        log_calls = [call[0] for call in api_instance.log.call_args_list]
-        assert any("classification_time" in call[0] for call in log_calls)
+        api_instance.log.assert_any_call("classification_time", ANY)
 
 
 class TestCreateApp:

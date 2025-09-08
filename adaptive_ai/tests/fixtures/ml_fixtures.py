@@ -41,8 +41,8 @@ def mock_prompt_classifier():
     classifier = Mock()
     classifier.classify_prompts.return_value = [
         ClassificationResult(
-            task_type_1=["code", "analysis"],
-            task_type_2=["generation", "problem_solving"],
+            task_type_1=["code"],
+            task_type_2=["generation"],
             task_type_prob=[0.85],
             creativity_scope=[0.4],
             reasoning=[0.8],
@@ -52,6 +52,19 @@ def mock_prompt_classifier():
             number_of_few_shots=[0],
             no_label_reason=[0.9],
             constraint_ct=[0.3],
+        ),
+        ClassificationResult(
+            task_type_1=["analysis"],
+            task_type_2=["problem_solving"],
+            task_type_prob=[0.72],
+            creativity_scope=[0.6],
+            reasoning=[0.9],
+            contextual_knowledge=[0.7],
+            prompt_complexity_score=[0.65],
+            domain_knowledge=[0.4],
+            number_of_few_shots=[0],
+            no_label_reason=[0.8],
+            constraint_ct=[0.2],
         )
     ]
     return classifier
