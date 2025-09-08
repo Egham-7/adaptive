@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "pnpm exec prisma generate && pnpm run check && next build",
+		"build": "next build",
 		"check": "biome check .",
 		"check:unsafe": "biome check --write --unsafe .",
 		"check:write": "biome check --write .",
@@ -15,7 +15,7 @@
 		"db:seed-providers": "pnpm exec tsx scripts/seed-providers.ts",
 		"dev": "pnpm exec prisma generate && next dev --turbo",
 		"preview": "pnpm exec prisma generate && next build && next start",
-		"start": "pnpm run db:migrate && pnpm exec next start",
+		"start": "pnpm exec next start",
 		"typecheck": "tsc --noEmit",
 		"stripe": "stripe listen --forward-to localhost:3000/api/stripe-checkout"
 	},
