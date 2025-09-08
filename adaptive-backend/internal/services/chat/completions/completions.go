@@ -10,8 +10,8 @@ import (
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/services/stream_adapters"
-	"adaptive-backend/internal/services/stream_readers/stream"
+	"adaptive-backend/internal/stream/adapters"
+	"adaptive-backend/internal/stream/handlers"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropicOption "github.com/anthropics/anthropic-sdk-go/option"
@@ -267,10 +267,10 @@ func (cs *CompletionService) executeAnthropicCompletion(
 		anthropicStream := anthropicClient.Messages.NewStreaming(c.Context(), params)
 
 		// Convert Anthropic stream to io.Reader using stream adapter
-		streamReader := stream_adapters.NewAnthropicToOpenAIStreamAdapter(anthropicStream, providerName, requestID)
+		streamReader := adapters.NewAnthropicToOpenAIStreamAdapter(anthropicStream, providerName, requestID)
 
 		// Handle stream using the stream handler
-		return stream.HandleAnthropicStream(c, streamReader, requestID, providerName)
+		return handlers.HandleAnthropic(c, streamReader, requestID, providerName)
 	}
 
 	fiberlog.Infof("[%s] generating Anthropic completion from %s (will convert to OpenAI format)", requestID, providerName)
@@ -342,7 +342,7 @@ func (cs *CompletionService) executeOpenAICompletion(
 		}
 
 		streamResp := client.Chat.Completions.NewStreaming(c.UserContext(), *openAIParams)
-		return stream.HandleOpenAIStream(c, streamResp, requestID, providerName, cacheSource)
+		return handlers.HandleOpenAI(c, streamResp, requestID, providerName, cacheSource)
 	}
 
 	fiberlog.Infof("[%s] generating completion from %s", requestID, providerName)
