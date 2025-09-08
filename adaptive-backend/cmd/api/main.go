@@ -103,7 +103,11 @@ func main() {
 	// Set log level based on configuration
 	setupLogLevel(cfg)
 
-	port := cfg.Server.Addr
+	port := cfg.Server.Port
+	if port == "" {
+		port = "8080" // Default port
+	}
+	listenAddr := ":" + port // Dual-stack IPv4/IPv6 binding
 	allowedOrigins := cfg.Server.AllowedOrigins
 	isProd := cfg.IsProduction()
 
@@ -193,13 +197,13 @@ func main() {
 		})
 	})
 
-	fmt.Printf("Server starting on %s with allowed origins: %s\n", port, allowedOrigins)
+	fmt.Printf("Server starting on %s (dual-stack IPv4/IPv6) with allowed origins: %s\n", listenAddr, allowedOrigins)
 	fmt.Printf("Environment: %s\n", cfg.Server.Environment)
 	fmt.Printf("Go version: %s\n", runtime.Version())
 	fmt.Printf("GOMAXPROCS: %d\n", runtime.GOMAXPROCS(0))
 
 	go func() {
-		if err := app.Listen(port); err != nil {
+		if err := app.Listen(listenAddr); err != nil {
 			fiberlog.Errorf("Server startup error: %v", err)
 			cancel()
 		}
