@@ -300,7 +300,8 @@ class TestProviderConstraints:
             f"{base_url}/predict",
             json={
                 "prompt": "Process this very long document that requires 150,000 tokens of context",
-                "models": [{"max_context_tokens": 150000}],  # High context requirement
+                # High context requirement
+                "models": [{"max_context_tokens": 150000}],
                 "cost_bias": 0.5,
             },
             timeout=30,
@@ -355,7 +356,6 @@ class TestProviderConstraints:
             print("(i) Function calling constraint test failed")
 
 
-@pytest.mark.integration
 @pytest.mark.integration
 class TestComplexRoutingScenarios:
     """Test complex routing scenarios with multiple constraints."""
