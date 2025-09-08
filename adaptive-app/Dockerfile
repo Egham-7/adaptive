@@ -14,9 +14,6 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 
-# Install dependencies with frozen lockfile for reproducible builds
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-  pnpm install --frozen-lockfile --production=false
 
 # Rebuild the source code only when needed
 FROM base AS builder
