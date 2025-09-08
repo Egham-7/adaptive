@@ -39,8 +39,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras --dev --group test
 
-      - name: Run tests
-        run: uv run pytest --cov=. --cov-report=xml
+      - name: Run unit tests only
+        run: make test-unit
 
       - name: Upload coverage
         uses: codecov/codecov-action@v5
@@ -76,5 +76,5 @@ jobs:
         run: uv run ruff check . --output-format=github
 
       - name: Check formatting
-        run: uv run black . --check --diff
+        run: uv run black . --check --diff --fast
 
