@@ -25,7 +25,7 @@ ARG ADAPTIVE_API_BASE_URL
 # Set them as environment variables for the build
 ENV DATABASE_URL=${DATABASE_URL}
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}}
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 ENV STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
 ENV REDIS_URL=${REDIS_URL}
 ENV RESEND_API_KEY=${RESEND_API_KEY}
@@ -41,24 +41,19 @@ WORKDIR /app
 # install runtime deps (openssl + CA bundle)
 RUN apt-get update -y \
   && apt-get install -y openssl ca-certificates 
-# copy Next.js standalone build & Prisma engines
+# Install pnpm in runner stage (before switching to non-root user)
+RUN npm install -g pnpm
+# copy Next.js standalone build
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma/client \
-  ./node_modules/@prisma/client
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
-# Copy prisma folder (including migrations, schema, and generated client)
+# Copy prisma folder (including migrations, schema, and custom generated client)
 COPY --from=builder /app/prisma ./prisma
-# Explicitly copy the custom generated Prisma client
-COPY --from=builder /app/prisma/generated ./prisma/generated
 # drop to non-root user
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME="0.0.0.0"
-# Install pnpm in runner stage
-RUN npm install -g pnpm
 CMD ["pnpm", "run", "start"]
