@@ -78,8 +78,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 # Switch to nextjs user
 USER nextjs
 
-# Install only Prisma CLI as the nextjs user to avoid permission issues
-RUN pnpm add prisma
 
 # Expose port
 EXPOSE 3000
@@ -95,4 +93,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
 # Start the application
-CMD ["pnpm", "exec", "next", "start"]
+CMD ["node", "server.js"]
