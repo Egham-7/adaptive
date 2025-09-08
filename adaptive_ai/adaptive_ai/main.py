@@ -17,6 +17,7 @@ Architecture Flow:
 4. Return ModelSelectionResponse with selected model and alternatives
 """
 
+import asyncio
 import logging
 import sys
 import time
@@ -77,25 +78,24 @@ class ModelRouterAPI(ls.LitAPI):
     """LitServe API for intelligent model selection and routing.
 
     This class implements the main API interface for the adaptive_ai service.
-    It processes batches of model selection requests using ML-driven prompt
+    It processes individual model selection requests using async Modal-based prompt
     classification and intelligent routing algorithms.
 
     Request Processing Flow:
     1. decode_request: Parse and validate incoming JSON requests
-    2. predict: Batch process requests with ML classification and routing
+    2. predict: Async process single request with Modal classification and routing
     3. encode_response: Serialize responses back to JSON
 
     Key Features:
-    - Batch processing for optimal GPU utilization
-    - ML-based prompt classification (task type, complexity)
+    - Async processing optimized for Modal integration
+    - Modal-based ML prompt classification (task type, complexity)
     - Intelligent model selection with cost optimization
     - Comprehensive logging and metrics
     - Error handling with graceful fallbacks
 
     Attributes:
         settings: Application configuration from environment
-        tokenizer: Tiktoken tokenizer for token counting
-        prompt_classifier: ML model for prompt analysis
+        prompt_classifier: Modal API client for prompt analysis
         model_router: Intelligent routing engine
 
     Example Request:
@@ -137,46 +137,65 @@ class ModelRouterAPI(ls.LitAPI):
         # Don't validate here - handle in predict where we can return proper errors
         return request
 
-    def predict(
-        self, requests: list[ModelSelectionRequest]
-    ) -> list[ModelSelectionResponse | dict[str, Any]]:
-        """Process batch of model selection requests."""
-        if not requests:
-            return []
+    async def predict(self, request: ModelSelectionRequest) -> ModelSelectionResponse | dict[str, Any]:
+        """Process single model selection request asynchronously."""
+        try:
+            # Classify prompt using Modal API
+            classification_result = await self._classify_prompt_async(request)
 
-        prompts = [req.prompt for req in requests]
+            # Process the request with classification results
+            response = await self._process_request_async(request, classification_result)
 
-        # Run classifications
-        classification_results = self._classify_prompts(prompts)
+            self.log("predict_completed", {"request_processed": True})
+            return response
 
-        # Process each request
-        responses: list[ModelSelectionResponse | dict[str, Any]] = []
-        for req, classification in zip(requests, classification_results, strict=False):
-            try:
-                response = self._process_request(req, classification)
-                responses.append(response)
-            except ValueError as e:
-                # LitServe limitation: Cannot return custom HTTP status codes
-                # Workaround: Include error details in the response body
-                error_response: dict[str, Any] = {
-                    "error": type(e).__name__,
-                    "message": str(e),
-                    "provider": None,
-                    "model": None,
-                    "alternatives": [],
-                }
-                responses.append(error_response)
+        except ValueError as e:
+            # LitServe limitation: Cannot return custom HTTP status codes
+            # Workaround: Include error details in the response body
+            error_response: dict[str, Any] = {
+                "error": type(e).__name__,
+                "message": str(e),
+                "provider": None,
+                "model": None,
+                "alternatives": [],
+            }
+            self.log("predict_error", {"error": str(e)})
+            return error_response
 
-        self.log("predict_completed", {"batch_size": len(responses)})
-        return responses
-
-    def _classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
-        """Classify prompts for task types."""
+    async def _classify_prompt_async(self, request: ModelSelectionRequest) -> ClassificationResult:
+        """Classify single prompt for task type asynchronously."""
         start_time = time.perf_counter()
-        results = self.prompt_classifier.classify_prompts(prompts)
+        
+        # Extract prompt from request
+        if hasattr(request, 'chat_completion_request') and request.chat_completion_request:
+            messages = request.chat_completion_request.messages
+            prompt = messages[-1].content if messages else ""
+        else:
+            prompt = getattr(request, 'prompt', '')
+        
+        # Use the async Modal classification method directly
+        results = await self.prompt_classifier.classify_prompts_async([prompt])
+        
         elapsed = time.perf_counter() - start_time
-        self.log("task_classification_time", elapsed)
-        return results
+        self.log("modal_classification_time", elapsed)
+        
+        return results[0] if results else self._get_default_classification()
+
+    def _get_default_classification(self) -> ClassificationResult:
+        """Get default classification when Modal fails."""
+        return ClassificationResult(
+            task_type_1=["Other"],
+            task_type_2=["Unknown"],
+            task_type_prob=[0.5],
+            creativity_scope=[0.5],
+            reasoning=[0.5],
+            contextual_knowledge=[0.5],
+            prompt_complexity_score=[0.5],
+            domain_knowledge=[0.5],
+            number_of_few_shots=[0],
+            no_label_reason=[0.5],
+            constraint_ct=[0.5]
+        )
 
     def _convert_to_task_type(self, task_type_str: str | None) -> TaskType:
         """Convert string task type to TaskType enum."""
@@ -191,7 +210,7 @@ class ModelRouterAPI(ls.LitAPI):
         # Fallback to OTHER if no match found
         return TaskType.OTHER
 
-    def _process_request(
+    async def _process_request_async(
         self,
         request: ModelSelectionRequest,
         classification: ClassificationResult,
@@ -213,11 +232,15 @@ class ModelRouterAPI(ls.LitAPI):
             else 0.5
         )
 
-        selected_models = self.model_router.select_models(
-            task_complexity=task_complexity,
-            task_type=task_type,
-            models_input=models_input,
-            cost_bias=cost_bias or 0.5,  # Handle None case
+        # Run model selection in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        selected_models = await loop.run_in_executor(
+            None,
+            self.model_router.select_models,
+            task_complexity,
+            task_type,
+            models_input,
+            cost_bias or 0.5,  # Handle None case
         )
 
         elapsed = time.perf_counter() - start_time
@@ -254,15 +277,16 @@ def create_app() -> ls.LitServer:
     """Create and configure LitServer application."""
     settings = get_settings()
 
-    api = ModelRouterAPI(
-        max_batch_size=settings.litserve.max_batch_size,
-        batch_timeout=settings.litserve.batch_timeout,
-    )
+    api = ModelRouterAPI()
 
     return ls.LitServer(
         api,
         accelerator=settings.litserve.accelerator,
         devices=settings.litserve.devices,
+        workers_per_device=1,  # Single worker for async processing
+        timeout=30,  # 30 second timeout for Modal requests
+        max_batch_size=1,  # Process one request at a time
+        batch_timeout=0.0,  # No batching
         loggers=[ConsoleLogger()],
     )
 

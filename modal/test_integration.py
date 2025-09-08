@@ -56,8 +56,8 @@ def test_health_check(modal_url: str) -> Dict[str, Any]:
 
 
 def test_classification(modal_url: str, jwt_token: str) -> Dict[str, Any]:
-    """Test prompt classification."""
-    print("🧠 Testing prompt classification...")
+    """Test prompt classification - raw logits endpoint."""
+    print("🧠 Testing raw logits classification...")
     
     test_prompts = [
         "Write a Python function to sort a list",
@@ -74,24 +74,28 @@ def test_classification(modal_url: str, jwt_token: str) -> Dict[str, Any]:
     
     request_data = {"prompts": test_prompts}
     
-    print(f"📤 Sending {len(test_prompts)} prompts for classification...")
+    print(f"📤 Sending {len(test_prompts)} prompts for raw logits...")
     
     with httpx.Client(timeout=120) as client:  # Longer timeout for ML inference and cold start
         response = client.post(
-            f"{modal_url}/classify",
+            f"{modal_url}/classify_raw",
             headers=headers,
             json=request_data
         )
         response.raise_for_status()
         
         classification_data = response.json()
-        print(f"✅ Classification completed successfully")
+        print(f"✅ Raw logits generation completed successfully")
         
-        # Print sample results
-        if classification_data.get("task_type_1"):
-            print(f"📊 Sample task types: {classification_data['task_type_1']}")
-        if classification_data.get("prompt_complexity_score"):
-            print(f"📈 Complexity scores: {classification_data['prompt_complexity_score']}")
+        # Print logits structure info
+        logits = classification_data.get("logits", [])
+        if logits:
+            print(f"📊 Logits structure: {len(logits)} classification heads")
+            print(f"📊 Batch size: {len(logits[0]) if logits else 0} prompts")
+            print(f"📊 Example head dimensions: {len(logits[0][0]) if logits and logits[0] else 0} classes")
+            print("ℹ️  Raw logits ready for adaptive_ai processing")
+        else:
+            print("⚠️  No logits received in response")
             
         return classification_data
 
@@ -109,7 +113,7 @@ def test_authentication_error(modal_url: str) -> None:
     
     with httpx.Client(timeout=10) as client:
         response = client.post(
-            f"{modal_url}/classify",
+            f"{modal_url}/classify_raw",
             headers=headers,
             json=request_data
         )
@@ -167,7 +171,9 @@ def main():
         print("\n📋 Test Summary:")
         print(f"   • Health check: ✅ {health_data.get('status', 'N/A')}")
         print(f"   • Authentication: ✅ JWT working")
-        print(f"   • Classification: ✅ {len(classification_data.get('task_type_1', []))} prompts classified")
+        logits = classification_data.get('logits', [])
+        batch_size = len(logits[0]) if logits else 0
+        print(f"   • Raw logits: ✅ {batch_size} prompts processed")
         print(f"   • Error handling: ✅ 401 errors handled")
         
     except httpx.HTTPStatusError as e:

@@ -2,20 +2,69 @@
 Model registry service for validating model names across all providers.
 """
 
+from typing import Dict, List
 from adaptive_ai.models.llm_core_models import ModelCapability
-from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
 
 class ModelRegistry:
     """Service for validating and managing model availability across providers.
 
-    This class focuses on core model lookup and filtering functionality.
-    Simple operations are delegated directly to yaml_model_db.
+    This class provides core model lookup and filtering functionality.
+    Since yaml_model_loader was removed with Modal migration, this now contains
+    basic model definitions.
     """
 
     def __init__(self) -> None:
-        """Initialize the model registry with YAML models only."""
-        pass
+        """Initialize the model registry with basic model definitions."""
+        self._models: Dict[str, ModelCapability] = self._load_basic_models()
+
+    def _load_basic_models(self) -> Dict[str, ModelCapability]:
+        """Load basic model definitions."""
+        models = {}
+        
+        # OpenAI models
+        models["openai:gpt-4"] = ModelCapability(
+            provider="openai",
+            model_name="gpt-4",
+            cost_per_1m_input_tokens=30.0,
+            cost_per_1m_output_tokens=60.0,
+            max_context_tokens=128000,
+            supports_function_calling=True,
+            complexity="high"
+        )
+        
+        models["openai:gpt-3.5-turbo"] = ModelCapability(
+            provider="openai",
+            model_name="gpt-3.5-turbo",
+            cost_per_1m_input_tokens=3.0,
+            cost_per_1m_output_tokens=6.0,
+            max_context_tokens=16385,
+            supports_function_calling=True,
+            complexity="medium"
+        )
+        
+        # Anthropic models
+        models["anthropic:claude-3-5-sonnet-20241022"] = ModelCapability(
+            provider="anthropic",
+            model_name="claude-3-5-sonnet-20241022",
+            cost_per_1m_input_tokens=15.0,
+            cost_per_1m_output_tokens=75.0,
+            max_context_tokens=200000,
+            supports_function_calling=True,
+            complexity="high"
+        )
+        
+        models["anthropic:claude-3-haiku-20240307"] = ModelCapability(
+            provider="anthropic",
+            model_name="claude-3-haiku-20240307",
+            cost_per_1m_input_tokens=0.25,
+            cost_per_1m_output_tokens=1.25,
+            max_context_tokens=200000,
+            supports_function_calling=True,
+            complexity="low"
+        )
+        
+        return models
 
     # Core model lookup methods
     def get_model_capability(self, unique_id: str) -> ModelCapability | None:
@@ -28,7 +77,7 @@ class ModelRegistry:
         Returns:
             ModelCapability object if model exists, None otherwise
         """
-        return yaml_model_db.get_model(unique_id)
+        return self._models.get(unique_id)
 
     def get_models_by_name(self, model_name: str) -> list[ModelCapability]:
         """
@@ -40,12 +89,12 @@ class ModelRegistry:
         Returns:
             List of ModelCapability objects from all providers that serve this model
         """
-        return yaml_model_db.get_models_by_name(model_name)
+        return [model for model in self._models.values() if model.model_name == model_name]
 
-    # Simple validation methods (delegate to yaml_model_db)
+    # Simple validation methods
     def is_valid_model(self, unique_id: str) -> bool:
         """Check if a model unique_id is valid (exists in any provider's capabilities)."""
-        return yaml_model_db.has_model(unique_id)
+        return unique_id in self._models
 
     def is_valid_model_name(self, model_name: str) -> bool:
         """Check if a model name is valid (exists in any provider's capabilities)."""
@@ -55,6 +104,10 @@ class ModelRegistry:
         """Get all providers that support a given model name."""
         models = self.get_models_by_name(model_name)
         return {model.provider for model in models if model.provider is not None}
+    
+    def get_all_model_names(self) -> List[str]:
+        """Get all unique_ids of models in the registry."""
+        return list(self._models.keys())
 
     # Core filtering functionality - this is the main value-add
     def find_models_matching_criteria(
@@ -79,8 +132,8 @@ class ModelRegistry:
             )
             models = registry.find_models_matching_criteria(criteria)
         """
-        # Models are already loaded at startup
-        all_models = list(yaml_model_db.get_all_models().values())
+        # Use the basic models from our registry
+        all_models = list(self._models.values())
 
         # Simple direct filtering without complex lambda predicates
         matching_models = []

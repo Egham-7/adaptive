@@ -8,13 +8,18 @@ The NVIDIA `prompt-task-and-complexity-classifier` model has been moved from loc
 
 ### Architecture
 ```
-adaptive_ai (local) --JWT--> Modal (GPU) --NVIDIA DeBERTa-v3--> Classification Results
+adaptive_ai (local) --JWT--> Modal (GPU) --NVIDIA DeBERTa-v3--> Raw Logits
+                         |
+                         v  
+               Local Processing (numpy) --> Classification Results
 ```
 
 ### Benefits
 - **GPU Acceleration**: NVIDIA T4 GPU for fast DeBERTa-v3-base inference
+- **Hybrid Architecture**: Modal handles GPU inference, adaptive_ai handles result processing
+- **Fast Development**: Classification logic changes don't require Modal redeployment
+- **Cost Optimization**: Pay only for GPU compute time, not result processing
 - **Auto-scaling**: Scales to zero when not in use, scales up on demand
-- **Cost Optimization**: Pay only for GPU compute time used
 - **Security**: JWT authentication between services
 - **Performance**: Modal's optimized GPU infrastructure
 
@@ -126,8 +131,8 @@ print(token)
 
 TOKEN=$(cat token.txt)
 
-# Test classification
-curl -X POST "$MODAL_URL/classify" \
+# Test raw logits generation
+curl -X POST "$MODAL_URL/classify_raw" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -147,8 +152,8 @@ curl -X POST "$MODAL_URL/classify" \
 - **Authentication**: None required
 - **Response**: Service status and model information
 
-#### `POST /classify`
-- **Purpose**: Classify prompts using NVIDIA model
+#### `POST /classify_raw`
+- **Purpose**: Generate raw logits using NVIDIA model  
 - **Authentication**: JWT Bearer token required
 - **Request Body**:
   ```json
@@ -156,7 +161,7 @@ curl -X POST "$MODAL_URL/classify" \
     "prompts": ["prompt1", "prompt2", ...]
   }
   ```
-- **Response**: Classification results with task types, complexity scores, etc.
+- **Response**: Raw model logits array (processed by adaptive_ai into classification results)
 
 ### Authentication
 
@@ -293,12 +298,20 @@ modal secret create jwt-auth JWT_SECRET="new-secret-key" --overwrite
 
 ## Integration with adaptive_ai
 
-The adaptive_ai service automatically uses the Modal API client when:
+The adaptive_ai service uses a hybrid architecture:
+1. **Modal API Client**: Sends prompts to Modal for GPU inference 
+2. **Raw Logits**: Modal returns raw model outputs via `/classify_raw` endpoint
+3. **Local Processing**: adaptive_ai processes logits into classification results locally
+
+### Configuration Required:
 1. `MODAL_CLASSIFIER_URL` environment variable is set
-2. `JWT_SECRET` matches the Modal secret
+2. `JWT_SECRET` matches the Modal secret  
 3. Modal service is healthy and accessible
 
-The interface remains the same - existing code works without changes.
+### Benefits:
+- **Same Interface**: Existing adaptive_ai consumers work without changes
+- **Fast Development**: Classification logic updates don't require Modal redeployment
+- **Cost Efficient**: Modal usage limited to GPU inference only
 
 ## Next Steps
 

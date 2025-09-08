@@ -9,7 +9,7 @@ from adaptive_ai.models.llm_core_models import (
 )
 from adaptive_ai.models.llm_enums import TaskType
 from adaptive_ai.services.model_registry import model_registry
-from adaptive_ai.services.yaml_model_loader import yaml_model_db
+# yaml_model_loader removed - using model_registry directly
 
 
 class LitLoggerProtocol:
@@ -74,8 +74,8 @@ class ModelRouter:
 
     def _load_registry_models(self) -> None:
         """Load models from the registry into simplified structure."""
-        # Models are automatically loaded at startup in yaml_model_db
-        all_models = yaml_model_db.get_all_models().keys()
+        # Get all models directly from model_registry
+        all_models = model_registry.get_all_model_names()
 
         if not all_models:
             self._log("registry_warning", {"message": "No valid models loaded"})
