@@ -39,7 +39,7 @@ func (s *StreamOrchestrator) Handle(ctx context.Context, writer contracts.Stream
 		duration := time.Since(startTime)
 		fiberlog.Infof("[%s] Stream completed: %d chunks, %d bytes in %v (%.2f KB/s)",
 			s.requestID, totalChunks, totalBytes, duration, float64(totalBytes)/duration.Seconds()/1024)
-		
+
 		// Close resources
 		if err := s.reader.Close(); err != nil {
 			fiberlog.Errorf("[%s] Error closing reader: %v", s.requestID, err)

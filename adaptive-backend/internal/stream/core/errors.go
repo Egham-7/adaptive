@@ -13,7 +13,7 @@ const (
 	// Expected errors - not logged as errors
 	ClientDisconnect StreamErrorType = iota
 	StreamComplete
-	
+
 	// Unexpected errors - logged as errors
 	ProviderError
 	InternalError

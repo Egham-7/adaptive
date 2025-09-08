@@ -66,4 +66,3 @@ func (p *AnthropicChunkProcessor) Process(ctx context.Context, data []byte) ([]b
 func (p *AnthropicChunkProcessor) Provider() string {
 	return p.provider
 }
-

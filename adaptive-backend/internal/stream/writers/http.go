@@ -10,10 +10,10 @@ import (
 
 // HTTPStreamWriter handles HTTP streaming output with connection management
 type HTTPStreamWriter struct {
-	writer      *bufio.Writer
-	connState   contracts.ConnectionState
-	requestID   string
-	totalBytes  int64
+	writer     *bufio.Writer
+	connState  contracts.ConnectionState
+	requestID  string
+	totalBytes int64
 }
 
 // NewHTTPStreamWriter creates a new HTTP stream writer

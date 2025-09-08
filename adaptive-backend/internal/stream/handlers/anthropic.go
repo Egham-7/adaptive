@@ -27,14 +27,14 @@ func HandleAnthropic(c *fiber.Ctx, responseBody io.Reader, requestID, provider s
 	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
-		
+
 		// Create HTTP writer
 		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID)
-		
+
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
 		handler := factory.CreateAnthropicPipeline(responseBody, requestID, provider)
-		
+
 		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {
 			if !contracts.IsExpectedError(err) {
@@ -61,14 +61,14 @@ func HandleAnthropicNative(c *fiber.Ctx, stream *ssestream.Stream[anthropic.Mess
 	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
-		
+
 		// Create HTTP writer
 		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID)
-		
+
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
 		handler := factory.CreateAnthropicNativePipeline(stream, requestID, provider)
-		
+
 		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {
 			if !contracts.IsExpectedError(err) {

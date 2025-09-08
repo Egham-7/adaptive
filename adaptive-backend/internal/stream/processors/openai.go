@@ -67,4 +67,3 @@ func (p *OpenAIChunkProcessor) Process(ctx context.Context, data []byte) ([]byte
 func (p *OpenAIChunkProcessor) Provider() string {
 	return p.provider
 }
-

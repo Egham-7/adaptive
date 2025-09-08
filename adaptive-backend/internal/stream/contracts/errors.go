@@ -13,8 +13,8 @@ const (
 	// Expected errors - not logged as errors
 	ClientDisconnect StreamErrorType = iota
 	StreamComplete
-	
-	// Unexpected errors - logged as errors  
+
+	// Unexpected errors - logged as errors
 	ProviderError
 	InternalError
 )
@@ -55,7 +55,7 @@ func NewClientDisconnectError(requestID string) *StreamError {
 func NewStreamCompleteError(requestID string) *StreamError {
 	return &StreamError{
 		Type:      StreamComplete,
-		Message:   "Stream completed normally", 
+		Message:   "Stream completed normally",
 		RequestID: requestID,
 	}
 }

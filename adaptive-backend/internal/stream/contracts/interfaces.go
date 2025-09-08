@@ -11,7 +11,7 @@ type StreamReader interface {
 	io.Closer
 }
 
-// ChunkProcessor handles format conversion and business logic  
+// ChunkProcessor handles format conversion and business logic
 type ChunkProcessor interface {
 	Process(ctx context.Context, data []byte) ([]byte, error)
 	Provider() string

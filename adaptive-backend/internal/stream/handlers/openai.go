@@ -26,14 +26,14 @@ func HandleOpenAI(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatComplet
 	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
-		
+
 		// Create HTTP writer
 		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID)
-		
+
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
 		handler := factory.CreateOpenAIPipeline(resp, requestID, provider, cacheSource)
-		
+
 		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {
 			if !contracts.IsExpectedError(err) {

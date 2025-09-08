@@ -67,7 +67,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 
 	// Get current chunk and serialize to JSON for processor
 	chunk := r.stream.Current()
-	
+
 	// Serialize complete chunk for processor layer
 	chunkData, err := json.Marshal(&chunk)
 	if err != nil {

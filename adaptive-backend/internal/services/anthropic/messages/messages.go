@@ -56,7 +56,6 @@ func (ms *MessagesService) SendMessage(
 	req *models.AnthropicMessageRequest,
 	requestID string,
 ) (*anthropic.Message, error) {
-
 	fiberlog.Infof("[%s] Making non-streaming Anthropic API request - model: %s, max_tokens: %d",
 		requestID, req.Model, req.MaxTokens)
 

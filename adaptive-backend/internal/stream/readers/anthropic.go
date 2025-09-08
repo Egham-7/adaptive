@@ -108,4 +108,3 @@ func (r *AnthropicNativeStreamReader) Close() error {
 	})
 	return err
 }
-
