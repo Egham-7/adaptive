@@ -1,17 +1,35 @@
-# Stage 0: build with Node.js and pnpm
-FROM node:latest AS builder
+FROM node:alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
 WORKDIR /app
-# install OpenSSL and CA certificates
-RUN apt-get update -y \
-  && apt-get install -y openssl ca-certificates 
-# install pnpm and deps & generate Prisma client
-RUN npm install -g pnpm
+
+# Install dependencies needed for building native modules
+RUN apk add --no-cache libc6-compat openssl
+
+# Install pnpm globally
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Copy package manager files
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
-ENV PRISMA_GENERATE_ONLY_ENGINE=true
-RUN pnpm install --frozen-lockfile
+
+# Install dependencies with frozen lockfile for reproducible builds
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+  pnpm install --frozen-lockfile --production=false
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+
+# Copy node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Add ALL the build-time environment variables
+
+# Install pnpm in builder
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Set build-time environment variables
 ARG DATABASE_URL
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -20,7 +38,7 @@ ARG REDIS_URL
 ARG RESEND_API_KEY
 ARG JWT_SECRET
 ARG ADAPTIVE_API_BASE_URL
-# Set them as environment variables for the build
+
 ENV DATABASE_URL=${DATABASE_URL}
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
 ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
@@ -29,32 +47,52 @@ ENV REDIS_URL=${REDIS_URL}
 ENV RESEND_API_KEY=${RESEND_API_KEY}
 ENV JWT_SECRET=${JWT_SECRET}
 ENV ADAPTIVE_API_BASE_URL=${ADAPTIVE_API_BASE_URL}
-# now that openssl is available, generate and build
+
+# Generate Prisma client and build Next.js app
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
 RUN pnpm run build
 
-# Stage 1: production runner on Node.js
-FROM node:latest AS runner
+# Production image, copy all the files and run next
+FROM base AS runner
 WORKDIR /app
-# install runtime deps (openssl + CA bundle)
-RUN apt-get update -y \
-  && apt-get install -y openssl ca-certificates 
-# Install pnpm in runner stage (before switching to non-root user)
-RUN npm install -g pnpm
-# copy Next.js standalone build
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-# Copy prisma folder (including migrations, schema, and custom generated client)
-COPY --from=builder /app/prisma ./prisma
 
-# Explicitly install Prisma CLI in production for migrations
+# Install runtime dependencies
+RUN apk add --no-cache openssl curl && \
+  corepack enable && corepack prepare pnpm@latest --activate
+
+# Create nextjs user and group
+RUN addgroup --system --gid 1001 nodejs && \
+  adduser --system --uid 1001 nextjs
+
+# Set correct permissions for precompiled standalone
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy Prisma files with correct ownership
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Switch to nextjs user
+USER nextjs
+
+# Install only Prisma CLI as the nextjs user to avoid permission issues
 RUN pnpm add prisma
 
-# drop to non-root user
-RUN addgroup --system --gid 1001 nodejs \
-  && adduser --system --uid 1001 nextjs
-USER nextjs
+# Expose port
 EXPOSE 3000
-ENV PORT=3000 HOSTNAME="0.0.0.0"
+
+# Set runtime environment variables
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Start the application
 CMD ["pnpm", "run", "start"]
