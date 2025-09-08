@@ -10,6 +10,7 @@ Test Categories:
 - Performance characteristics
 """
 
+import concurrent.futures
 import time
 from unittest.mock import patch
 
@@ -132,7 +133,6 @@ class TestAPIEndpoints:
 
     def test_predict_endpoint_multiple_requests(self, base_url, headers):
         """Test multiple concurrent requests to predict endpoint."""
-        import concurrent.futures
 
         def make_request():
             request_data = {"prompt": "Hello world", "cost_bias": 0.5}

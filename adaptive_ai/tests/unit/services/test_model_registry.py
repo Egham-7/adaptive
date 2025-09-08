@@ -241,8 +241,6 @@ class TestModelRegistryPerformance:
     @patch("adaptive_ai.services.model_registry.yaml_model_db")
     def test_caching_behavior(self, mock_yaml_db):
         """Test that model registry delegates to yaml_model_db appropriately."""
-        from adaptive_ai.models.llm_core_models import ModelCapability
-
         mock_capability = ModelCapability(provider="openai", model_name="gpt-4")
         mock_yaml_db.get_model.return_value = mock_capability
 
@@ -258,8 +256,6 @@ class TestModelRegistryPerformance:
     @patch("adaptive_ai.services.model_registry.yaml_model_db")
     def test_large_model_set_performance(self, mock_yaml_db):
         """Test performance with model registry operations."""
-        from adaptive_ai.models.llm_core_models import ModelCapability
-
         # Create mock models
         mock_models = [
             ModelCapability(provider=f"provider-{i % 3}", model_name=f"model-{i}")

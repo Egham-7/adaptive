@@ -10,6 +10,7 @@ import logging
 import config
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
 
 from .state import ModelExtractionState
 from .tools import (
@@ -96,8 +97,6 @@ def ai_analysis_node(state: ModelExtractionState) -> ModelExtractionState:
 
     try:
         # Initialize GPT-4o-mini
-        from pydantic import SecretStr
-
         llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0.1,

@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
+from adaptive_ai.core.config import get_settings
+
 # Import fixtures to make them available
 from tests.fixtures.config_fixtures import *  # noqa: F403
 
@@ -52,8 +54,6 @@ def clean_environment():
 @pytest.fixture
 def isolated_cache():
     """Clear LRU caches before test."""
-    from adaptive_ai.core.config import get_settings
-
     # Clear cache before test
     get_settings.cache_clear()
 

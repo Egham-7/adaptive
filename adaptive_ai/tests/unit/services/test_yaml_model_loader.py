@@ -1,5 +1,7 @@
 """Unit tests for YAML Model Loader service."""
 
+import logging
+
 import pytest
 
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
@@ -11,6 +13,7 @@ class TestYAMLModelLoader:
 
     def test_yaml_model_db_singleton(self):
         """Test that yaml_model_db is a singleton instance."""
+        # Import alias for singleton test
         from adaptive_ai.services.yaml_model_loader import yaml_model_db as db2
 
         assert yaml_model_db is db2
@@ -61,8 +64,6 @@ class TestYAMLModelLoader:
         except Exception as e:
             # If it fails, that's also acceptable behavior
             # Log the exception for debugging purposes
-            import logging
-
             logging.getLogger(__name__).debug(f"Expected error in test: {e}")
             pass
 

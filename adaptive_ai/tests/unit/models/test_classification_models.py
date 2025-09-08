@@ -1,5 +1,7 @@
 """Tests for classification models."""
 
+import json
+
 import pytest
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
@@ -196,8 +198,6 @@ class TestClassificationResult:
         json_data = result.model_dump()
 
         # All values should be JSON-serializable
-        import json
-
         json_string = json.dumps(json_data)
 
         # Should be able to round-trip

@@ -79,10 +79,10 @@ lint-fix:
 	uv run ruff check --fix .
 
 format:
-	uv run black .
+	uv run black . --fast
 
 format-check:
-	uv run black --check .
+	uv run black --check . --fast
 
 typecheck:
 	uv run mypy adaptive_ai/

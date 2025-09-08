@@ -1,8 +1,12 @@
 """Tests for enums and constants."""
 
+import json
+
 import pytest
 
+from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import TaskType
+from tests.unit.models.test_classification_models import create_classification_result
 
 
 class TestTaskType:
@@ -105,8 +109,6 @@ class TestTaskType:
         task_type = TaskType.CODE_GENERATION
 
         # Value should be JSON serializable
-        import json
-
         json_string = json.dumps(task_type.value)
         restored_value = json.loads(json_string)
 
@@ -189,8 +191,6 @@ class TestTaskTypeIntegration:
 
     def test_task_type_with_model_capability(self):
         """Test TaskType usage with ModelCapability."""
-        from adaptive_ai.models.llm_core_models import ModelCapability
-
         # Test that TaskType can be used in ModelCapability
         model = ModelCapability(
             provider="openai", model_name="gpt-4", task_type=TaskType.CODE_GENERATION
@@ -201,10 +201,6 @@ class TestTaskTypeIntegration:
 
     def test_task_type_with_classification_result(self):
         """Test TaskType usage with classification results."""
-        from tests.unit.models.test_classification_models import (
-            create_classification_result,
-        )
-
         # Test that TaskType values work with classification
         result = create_classification_result(
             task_type_1=["Code Generation", "Open QA"], size=2

@@ -76,5 +76,5 @@ jobs:
         run: uv run ruff check . --output-format=github
 
       - name: Check formatting
-        run: uv run black . --check --diff
+        run: uv run black . --check --diff --fast
 

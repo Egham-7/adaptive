@@ -12,6 +12,7 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionResponse,
 )
 from adaptive_ai.models.llm_enums import TaskType
+from tests.unit.models.test_classification_models import create_classification_result
 
 
 class TestModelRouterAPI:
@@ -408,10 +409,6 @@ class TestModelRouterAPIEdgeCases:
 
             # Mock classifier to return malformed results
             api.prompt_classifier = Mock()
-            from tests.unit.models.test_classification_models import (
-                create_classification_result,
-            )
-
             api.prompt_classifier.classify_prompts.return_value = [
                 create_classification_result(task_type_1=[], prompt_complexity_score=[])
             ]
