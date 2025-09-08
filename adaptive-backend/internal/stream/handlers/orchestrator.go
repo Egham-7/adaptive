@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"io"
 	"time"
 
@@ -80,7 +81,7 @@ func (s *StreamOrchestrator) Handle(ctx context.Context, writer contracts.Stream
 		// Process the chunk data
 		processedData, err := s.processor.Process(ctx, buffer[:n])
 		if err != nil {
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				return contracts.NewClientDisconnectError(s.requestID)
 			}
 			return contracts.NewInternalError(s.requestID, "chunk processing failed", err)
