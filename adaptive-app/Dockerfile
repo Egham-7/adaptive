@@ -78,8 +78,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 # Switch to nextjs user
 USER nextjs
 
-# Install only Prisma CLI as the nextjs user to avoid permission issues
-RUN pnpm add prisma
 
 # Expose port
 EXPOSE 3000
