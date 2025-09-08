@@ -65,7 +65,7 @@ def mock_prompt_classifier():
             number_of_few_shots=[0],
             no_label_reason=[0.8],
             constraint_ct=[0.2],
-        )
+        ),
     ]
     return classifier
 

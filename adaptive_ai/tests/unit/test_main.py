@@ -198,7 +198,7 @@ class TestModelRouterAPI:
     def test_convert_to_task_type(self, api_instance):
         """Test task type conversion."""
         # Test valid task type
-        task_type = api_instance._convert_to_task_type("code")
+        task_type = api_instance._convert_to_task_type(TaskType.CODE_GENERATION.value)
         assert task_type == TaskType.CODE_GENERATION
 
         # Test invalid task type
@@ -302,7 +302,7 @@ class TestModelRouterAPI:
         assert len(result) == 1
 
         # Verify timing was logged
-        api_instance.log.assert_any_call("classification_time", ANY)
+        api_instance.log.assert_any_call("task_classification_time", ANY)
 
 
 class TestCreateApp:
@@ -364,7 +364,9 @@ class TestSetupLogging:
         mock_settings.logging.level = "INVALID_LEVEL"
         mock_get_settings.return_value = mock_settings
 
-        # Should default to INFO for invalid levels
+        # Configure mock to not have the invalid attribute, so getattr returns default
+        del mock_logging.INVALID_LEVEL
+
         setup_logging()
 
         mock_logging.basicConfig.assert_called_once()

@@ -14,7 +14,7 @@ from .fixtures.config_fixtures import *  # noqa: F403
 @pytest.fixture(autouse=True)
 def clean_environment():
     """Clean up environment variables before each test.
-    
+
     Removes all environment variables with ADAPTIVE_AI_*, TEST_*, and PROD_* prefixes.
     """
     # Store original env vars
@@ -22,8 +22,10 @@ def clean_environment():
 
     # Clear test-related env vars by prefix
     prefixes = ["ADAPTIVE_AI_", "TEST_", "PROD_"]
-    env_keys = list(os.environ.keys())  # Create snapshot to avoid mutation during iteration
-    
+    env_keys = list(
+        os.environ.keys()
+    )  # Create snapshot to avoid mutation during iteration
+
     for var in env_keys:
         if any(var.startswith(prefix) for prefix in prefixes):
             os.environ.pop(var, None)
