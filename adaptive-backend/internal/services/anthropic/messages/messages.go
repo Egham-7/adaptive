@@ -7,8 +7,8 @@ import (
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/services/stream_adapters"
-	"adaptive-backend/internal/services/stream_readers/stream"
+	"adaptive-backend/internal/stream/adapters"
+	"adaptive-backend/internal/stream/handlers"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -56,12 +56,6 @@ func (ms *MessagesService) SendMessage(
 	req *models.AnthropicMessageRequest,
 	requestID string,
 ) (*anthropic.Message, error) {
-	// Set timeout if not already set - use a reasonable default for non-streaming
-	if _, hasDeadline := ctx.Deadline(); !hasDeadline {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
-		defer cancel()
-	}
 
 	fiberlog.Infof("[%s] Making non-streaming Anthropic API request - model: %s, max_tokens: %d",
 		requestID, req.Model, req.MaxTokens)
@@ -288,9 +282,9 @@ func (ms *MessagesService) handleOpenAIStreamingRequest(
 	})
 
 	// Convert OpenAI stream to Anthropic format using stream adapter
-	streamReader := stream_adapters.NewOpenAIToAnthropicStreamAdapter(openaiStream, provider, requestID)
+	streamReader := adapters.NewOpenAIToAnthropicStreamAdapter(openaiStream, provider, requestID)
 
 	// Handle stream using the stream handler
 	fiberlog.Infof("[%s] Streaming completion started for provider %s", requestID, provider)
-	return stream.HandleAnthropicStream(c, streamReader, requestID, provider)
+	return handlers.HandleAnthropic(c, streamReader, requestID, provider)
 }
