@@ -137,17 +137,39 @@ class ModelRouterAPI(ls.LitAPI):
         # Don't validate here - handle in predict where we can return proper errors
         return request
 
-    async def predict(self, request: ModelSelectionRequest) -> ModelSelectionResponse | dict[str, Any]:
-        """Process single model selection request asynchronously."""
+    def predict(self, request: ModelSelectionRequest) -> ModelSelectionResponse | dict[str, Any]:
+        """Process single model selection request.
+        
+        Note: This method is synchronous as required by LitServe, but runs async operations
+        internally using asyncio.run() to maintain compatibility with Modal API calls.
+        """
         try:
-            # Classify prompt using Modal API
-            classification_result = await self._classify_prompt_async(request)
+            # Run async operations synchronously to work with LitServe
+            # Use asyncio.run() for cleaner event loop management
+            async def async_predict():
+                # Classify prompt using Modal API
+                classification_result = await self._classify_prompt_async(request)
 
-            # Process the request with classification results
-            response = await self._process_request_async(request, classification_result)
+                # Process the request with classification results
+                response = await self._process_request_async(request, classification_result)
 
-            self.log("predict_completed", {"request_processed": True})
-            return response
+                self.log("predict_completed", {"request_processed": True})
+                return response
+            
+            # Try to run with asyncio.run() first, fallback to manual loop management
+            try:
+                return asyncio.run(async_predict())
+            except RuntimeError as e:
+                if "asyncio.run() cannot be called from a running event loop" in str(e):
+                    # Fallback for when we're already in an event loop
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        return loop.run_until_complete(async_predict())
+                    finally:
+                        loop.close()
+                else:
+                    raise
 
         except ValueError as e:
             # LitServe limitation: Cannot return custom HTTP status codes
@@ -173,13 +195,21 @@ class ModelRouterAPI(ls.LitAPI):
         else:
             prompt = getattr(request, 'prompt', '')
         
-        # Use the async Modal classification method directly
-        results = await self.prompt_classifier.classify_prompts_async([prompt])
+        try:
+            # Use the async Modal classification method directly
+            results = await self.prompt_classifier.classify_prompts_async([prompt])
+            
+            elapsed = time.perf_counter() - start_time
+            self.log("modal_classification_time", elapsed)
+            
+            return results[0] if results else self._get_default_classification()
         
-        elapsed = time.perf_counter() - start_time
-        self.log("modal_classification_time", elapsed)
-        
-        return results[0] if results else self._get_default_classification()
+        except Exception as e:
+            # Log the error and use default classification as fallback
+            elapsed = time.perf_counter() - start_time
+            self.log("modal_classification_failed", {"error": str(e), "elapsed": elapsed})
+            logger.warning(f"Modal classification failed, using default: {e}")
+            return self._get_default_classification()
 
     def _get_default_classification(self) -> ClassificationResult:
         """Get default classification when Modal fails."""
@@ -232,11 +262,8 @@ class ModelRouterAPI(ls.LitAPI):
             else 0.5
         )
 
-        # Run model selection in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
-        selected_models = await loop.run_in_executor(
-            None,
-            self.model_router.select_models,
+        # Run model selection synchronously since we're already in a controlled async context
+        selected_models = self.model_router.select_models(
             task_complexity,
             task_type,
             models_input,

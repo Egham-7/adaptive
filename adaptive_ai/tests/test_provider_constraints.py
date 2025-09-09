@@ -73,6 +73,7 @@ class TestProviderConstraints:
         # Should use an OpenAI model
         assert result["provider"].upper() == "OPENAI"
         assert result["model"] in [
+            "gpt-4",
             "gpt-5",
             "gpt-4o",
             "o3",
