@@ -207,6 +207,17 @@ class ModalPromptClassifier:
                             [value] if not isinstance(value, list) else value
                         )
 
+                # Ensure required fields exist for our schema
+                single_result.setdefault(
+                    "task_type",
+                    [single_result.get("task_type_1", ["Other"])[0]],
+                )
+                single_result.setdefault(
+                    "complexity_score",
+                    [single_result.get("prompt_complexity_score", [0.5])[0]],
+                )
+                single_result.setdefault("domain", ["General"])
+
                 results.append(ClassificationResult(**single_result))
 
             if self.lit_logger:
@@ -297,6 +308,17 @@ class ModalPromptClassifier:
                         single_result[key] = (
                             [value] if not isinstance(value, list) else value
                         )
+
+                # Ensure required fields exist for our schema
+                single_result.setdefault(
+                    "task_type",
+                    [single_result.get("task_type_1", ["Other"])[0]],
+                )
+                single_result.setdefault(
+                    "complexity_score",
+                    [single_result.get("prompt_complexity_score", [0.5])[0]],
+                )
+                single_result.setdefault("domain", ["General"])
 
                 results.append(ClassificationResult(**single_result))
 

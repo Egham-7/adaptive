@@ -172,12 +172,21 @@ async def classify_prompt_async(request: ModelSelectionRequest) -> Classificatio
     """Classify single prompt for task type asynchronously."""
     start_time = time.perf_counter()
 
-    # Extract prompt from request
-    if hasattr(request, "chat_completion_request") and request.chat_completion_request:
+    # Extract prompt from request - prefer direct prompt, fall back to chat messages
+    prompt = getattr(request, "prompt", "")
+
+    # Only fall back to chat completion request if prompt is empty or missing
+    if (
+        not prompt
+        and hasattr(request, "chat_completion_request")
+        and request.chat_completion_request
+    ):
         messages = request.chat_completion_request.messages
         prompt = messages[-1].content if messages else ""
-    else:
-        prompt = getattr(request, "prompt", "")
+
+    # Ensure prompt is always defined (empty string if nothing found)
+    if not prompt:
+        prompt = ""
 
     try:
         # Use the async Modal classification method directly
@@ -188,7 +197,14 @@ async def classify_prompt_async(request: ModelSelectionRequest) -> Classificatio
         elapsed = time.perf_counter() - start_time
         logger.info(f"Modal classification completed in {elapsed:.3f}s")
 
-        return results[0] if results else get_default_classification()
+        # Validate results and return first classification or fallback
+        if results and len(results) > 0 and results[0]:
+            return results[0]
+        else:
+            logger.warning(
+                "Modal returned empty or invalid results, using default classification"
+            )
+            return get_default_classification()
 
     except Exception as e:
         # Log the error and use default classification as fallback
