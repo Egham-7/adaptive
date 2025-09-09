@@ -5,7 +5,7 @@ import (
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/services/stream_readers/stream"
+	"adaptive-backend/internal/stream/handlers"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
@@ -54,7 +54,7 @@ func (rs *ResponseService) HandleStreamingResponse(
 	fiberlog.Infof("[%s] Starting Anthropic streaming response handling", requestID)
 
 	// Use the optimized stream handler that properly handles native Anthropic streams
-	return stream.HandleAnthropicNativeStream(c, anthropicStream, requestID, provider)
+	return handlers.HandleAnthropicNative(c, anthropicStream, requestID, provider)
 }
 
 // HandleError handles error responses for Anthropic Messages API

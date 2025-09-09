@@ -1,6 +1,5 @@
 import "../styles/globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -38,7 +37,6 @@ export default function RootLayout({
 							</HydrateClient>
 						</TRPCReactProvider>
 					</ThemeProvider>
-					<Analytics />
 					<Toaster />
 				</body>
 			</html>

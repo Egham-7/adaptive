@@ -30,7 +30,7 @@ import (
 )
 
 // SetupRoutes configures all the application routes for the Fiber app.
-func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHandler, redisClient *redis.Client) error {
+func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) error {
 	// Create shared services once
 	reqSvc := completions.NewRequestService()
 
@@ -69,9 +69,6 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, circuitBreakers)
 
-	// Health endpoint (no auth required)
-	app.Get(healthEndpoint, healthHandler.Health)
-
 	// Apply JWT authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
@@ -84,7 +81,6 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, healthHandler *api.HealthHa
 const (
 	defaultAppName      = "Adaptive v1.0"
 	defaultVersion      = "1.0.0"
-	healthEndpoint      = "/health"
 	chatEndpoint        = "/v1/chat/completions"
 	messagesEndpoint    = "/v1/messages"
 	selectModelEndpoint = "/v1/select-model"
@@ -107,7 +103,11 @@ func main() {
 	// Set log level based on configuration
 	setupLogLevel(cfg)
 
-	port := cfg.Server.Addr
+	port := cfg.Server.Port
+	if port == "" {
+		port = "8080" // Default port
+	}
+	listenAddr := ":" + port // Dual-stack IPv4/IPv6 binding
 	allowedOrigins := cfg.Server.AllowedOrigins
 	isProd := cfg.IsProduction()
 
@@ -123,6 +123,7 @@ func main() {
 		Prefork:              false,
 		CaseSensitive:        true,
 		StrictRouting:        false,
+		Network:              "tcp",
 		ServerHeader:         "Adaptive",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			// Sanitize error for external consumption
@@ -178,14 +179,7 @@ func main() {
 	}()
 	fiberlog.Info("Redis client initialized successfully")
 
-	// Wait for services to become healthy before starting server
-	healthHandler := api.NewHealthHandler(redisClient)
-	if err := healthHandler.WaitForServices(ctx, 10*time.Minute); err != nil {
-		fiberlog.Errorf("Failed to wait for services: %v", err)
-		return
-	}
-
-	if err := SetupRoutes(app, cfg, healthHandler, redisClient); err != nil {
+	if err := SetupRoutes(app, cfg, redisClient); err != nil {
 		fiberlog.Fatalf("Failed to setup routes: %v", err)
 	}
 
@@ -203,13 +197,13 @@ func main() {
 		})
 	})
 
-	fmt.Printf("Server starting on %s with allowed origins: %s\n", port, allowedOrigins)
+	fmt.Printf("Server starting on %s (dual-stack IPv4/IPv6) with allowed origins: %s\n", listenAddr, allowedOrigins)
 	fmt.Printf("Environment: %s\n", cfg.Server.Environment)
 	fmt.Printf("Go version: %s\n", runtime.Version())
 	fmt.Printf("GOMAXPROCS: %d\n", runtime.GOMAXPROCS(0))
 
 	go func() {
-		if err := app.Listen(port); err != nil {
+		if err := app.Listen(listenAddr); err != nil {
 			fiberlog.Errorf("Server startup error: %v", err)
 			cancel()
 		}

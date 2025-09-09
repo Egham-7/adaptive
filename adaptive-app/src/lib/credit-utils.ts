@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import type { CreditTransactionType } from "prisma/generated";
+import type { InputJsonValue } from "prisma/generated/runtime/library";
 import { CREDIT_LIMITS, TOKEN_PRICING } from "@/lib/pricing-config";
 import {
 	getPromotionalCreditStats,
@@ -171,7 +172,7 @@ export async function addCredits(params: {
 	amount: number;
 	type: CreditTransactionType;
 	description?: string;
-	metadata?: Record<string, unknown>;
+	metadata?: InputJsonValue;
 	stripePaymentIntentId?: string;
 	stripeSessionId?: string;
 }) {
@@ -256,7 +257,7 @@ export async function deductCredits(params: {
 	userId: string; // User who made the API request
 	amount: number;
 	description?: string;
-	metadata?: Record<string, unknown>;
+	metadata?: InputJsonValue;
 	apiKeyId?: string;
 	apiUsageId?: string;
 }) {
@@ -393,16 +394,12 @@ export async function getOrganizationCreditStats(organizationId: string) {
 	const orgCredit = await getOrCreateOrganizationCredit(organizationId);
 
 	// Get transaction counts by type
-	const transactionStats = (await db.creditTransaction.groupBy({
+	const transactionStats = await db.creditTransaction.groupBy({
 		by: ["type"],
 		where: { organizationId },
 		_count: { type: true },
 		_sum: { amount: true },
-	})) as Array<{
-		type: CreditTransactionType;
-		_count: { type: number };
-		_sum: { amount: number | null };
-	}>;
+	});
 
 	// Calculate statistics
 	const transactionCounts: Record<

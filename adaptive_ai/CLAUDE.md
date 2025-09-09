@@ -149,6 +149,62 @@ uv run black . && uv run ruff check . && uv run mypy .
 ```
 
 ### Testing
+
+We provide multiple convenient ways to run tests:
+
+#### Using Make Commands (Recommended)
+```bash
+# Show all available commands
+make help
+
+# Run all tests
+make test
+
+# Run unit tests only
+make test-unit
+
+# Run integration tests only
+make test-integration
+
+# Run with coverage report
+make test-cov
+
+# Run with HTML coverage report
+make test-cov-html
+
+# Run specific test categories
+make test-config      # Configuration tests
+make test-services    # Service tests
+make test-models      # Model tests
+make test-routing     # Routing integration tests
+
+# Code quality
+make lint            # Check with ruff
+make lint-fix        # Fix issues
+make format          # Format with black
+make typecheck       # Type checking
+make quality         # All quality checks
+```
+
+#### Using Shell Script
+```bash
+# Run all tests
+./scripts/test.sh
+
+# Run unit tests only  
+./scripts/test.sh unit
+
+# Run integration tests only
+./scripts/test.sh integration
+
+# Run with coverage
+./scripts/test.sh coverage
+
+# Clean test artifacts
+./scripts/test.sh clean
+```
+
+#### Using uv run directly
 ```bash
 # Run unit tests only (CI-safe, no external dependencies)
 uv run pytest -m "unit"
@@ -163,7 +219,7 @@ uv run pytest
 uv run pytest --cov
 
 # Run specific test file
-uv run pytest tests/test_model_selector.py
+uv run pytest adaptive_ai/tests/unit/core/test_config.py
 
 # Run with verbose output
 uv run pytest -v

@@ -75,7 +75,7 @@ Required environment variables:
 
 ```bash
 # Server Configuration
-ADDR=:8080                              # Server listen address
+PORT=8080                               # Server listen port (binds to dual-stack IPv4/IPv6)
 ENV=development                         # Environment (development/production)
 LOG_LEVEL=info                         # Log level (trace, debug, info, warn, error)
 ALLOWED_ORIGINS=http://localhost:3000   # CORS allowed origins
@@ -103,7 +103,7 @@ CACHE_TTL=3600                         # Cache TTL in seconds
 # Environment variables can be referenced using ${VAR} or ${VAR:-default} syntax
 
 server:
-  addr: "${ADDR:-:8080}"
+  port: "${PORT:-8080}"
   allowed_origins: "${ALLOWED_ORIGINS:-http://localhost:3000}"
   environment: "${ENV:-development}"
   log_level: "${LOG_LEVEL:-info}"
@@ -390,7 +390,7 @@ The service is included in the root `docker-compose.yml` with proper networking 
 ### Common Issues
 
 **Server won't start**
-- Check required environment variables (ADDR, ALLOWED_ORIGINS)
+- Check required environment variables (PORT, ALLOWED_ORIGINS)
 - Verify port is not already in use
 - Check log level configuration
 

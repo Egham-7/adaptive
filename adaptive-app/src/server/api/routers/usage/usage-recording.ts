@@ -177,7 +177,12 @@ async function getProviderModel(
 	if (!provider || !model) return null;
 
 	try {
-		return await findModelBySimilarity(db, model, provider);
+		const result = await findModelBySimilarity(db, model, provider);
+		if (!result) return null;
+		return {
+			inputTokenCost: result.inputTokenCost,
+			outputTokenCost: result.outputTokenCost,
+		};
 	} catch (error) {
 		console.error("Error fetching provider model:", error);
 		return null;

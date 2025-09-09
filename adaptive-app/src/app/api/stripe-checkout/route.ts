@@ -92,7 +92,10 @@ export async function POST(request: NextRequest) {
 								description: `Credit purchase via Stripe - $${creditAmount}`,
 								metadata: {
 									stripeSessionId: session.id,
-									stripePaymentIntentId: session.payment_intent,
+									stripePaymentIntentId:
+										typeof session.payment_intent === "string"
+											? session.payment_intent
+											: session.payment_intent?.id || null,
 									purchaseTimestamp: new Date().toISOString(),
 								},
 								stripeSessionId: session.id,
