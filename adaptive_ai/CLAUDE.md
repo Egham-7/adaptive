@@ -32,6 +32,7 @@ The adaptive_ai service is a Python-based ML microservice that provides intellig
 ## Technology Stack
 
 - **Framework**: FastAPI 0.104+ for high-performance API serving
+- **ASGI Server**: Hypercorn 0.17+ with HTTP/1.1, HTTP/2, and WebSocket support
 - **HTTP Client**: httpx for async API calls to Modal service
 - **Authentication**: python-jose for JWT token handling
 - **Model Registry**: Static model metadata (no local ML models)
@@ -85,14 +86,14 @@ adaptive_ai/
 
 ```bash
 # Server Configuration
-HOST=0.0.0.0                     # FastAPI host
-PORT=8000                        # FastAPI port
+HOST=0.0.0.0                     # Hypercorn host
+PORT=8000                        # Hypercorn port
 
 # FastAPI Configuration
-FASTAPI_WORKERS=1                # Number of uvicorn workers
-FASTAPI_RELOAD=false             # Auto-reload on code changes (dev only)
+FASTAPI_WORKERS=1                # Number of workers (ignored in programmatic mode)
+FASTAPI_RELOAD=false             # Auto-reload on code changes (dev only - not supported)
 FASTAPI_ACCESS_LOG=true          # Enable access logging
-FASTAPI_LOG_LEVEL=info           # Uvicorn log level
+FASTAPI_LOG_LEVEL=info           # Hypercorn log level
 
 # Modal API Configuration
 MODAL_CLASSIFIER_URL=https://...  # Modal classifier service URL
@@ -111,6 +112,11 @@ LOG_LEVEL=INFO                  # Logging level
 
 # Additional Modal Configuration
 MODAL_HEALTH_CHECK_INTERVAL=60   # Health check interval in seconds
+
+# Hypercorn-Specific Configuration (Optional)
+# For HTTP/2 support (requires SSL/TLS):
+# HYPERCORN_CERTFILE=cert.pem     # SSL certificate file
+# HYPERCORN_KEYFILE=key.pem       # SSL private key file
 ```
 
 ## Development Commands
@@ -128,6 +134,9 @@ DEBUG=true uv run adaptive-ai
 
 # Start on custom port
 PORT=8001 uv run adaptive-ai
+
+# Note: Hypercorn workers setting is ignored in programmatic mode
+# For multi-process deployment, use a process manager like gunicorn or supervisord
 ```
 
 ### Code Quality
@@ -435,16 +444,16 @@ TASK_MODEL_MAPPINGS = {
 
 ### Docker
 ```dockerfile
-FROM python:3.11-slim
+FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
 
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN pip install uv && uv install --frozen
+RUN pip install uv && uv sync --all-extras --no-dev
 
-COPY adaptive_ai/ ./adaptive_ai/
+COPY . .
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "adaptive_ai.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "adaptive-ai"]
 ```
 
 ### Docker Compose
@@ -456,6 +465,12 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - **Storage**: 1GB for application and logs
 - **Network**: Reliable internet connection for Modal API calls
 
+### Hypercorn Benefits
+- **Protocol Support**: HTTP/1.1, HTTP/2, WebSockets out of the box
+- **Future-Ready**: HTTP/3 support available with `hypercorn[h3]` extra
+- **Graceful Shutdown**: Built-in signal handling and graceful shutdown support
+- **Sans-IO Architecture**: Modern implementation using sans-io hyper libraries
+
 ## Troubleshooting
 
 ### Common Issues
@@ -465,6 +480,7 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - Verify all dependencies installed: `uv install`
 - Check port availability (default: 8000)
 - Review environment variable configuration
+- Verify Hypercorn is correctly installed: `uv run hypercorn --version`
 
 **Modal API connection failures**
 - Verify MODAL_CLASSIFIER_URL is correct and accessible

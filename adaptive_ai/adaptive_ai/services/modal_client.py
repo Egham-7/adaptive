@@ -25,10 +25,7 @@ class ModalConfig:
     """Configuration for Modal API client."""
 
     def __init__(self) -> None:
-        self.modal_url = os.environ.get(
-            "MODAL_CLASSIFIER_URL",
-            "url"
-        )
+        self.modal_url = os.environ.get("MODAL_CLASSIFIER_URL", "url")
         self.jwt_secret = os.environ.get("JWT_SECRET")
         if not self.jwt_secret:
             logger.warning("JWT_SECRET not set, Modal authentication will fail")
@@ -40,6 +37,7 @@ class ModalConfig:
 
 class ClassifyRequest(BaseModel):
     """Request model for Modal classification API."""
+
     prompts: list[str]
 
 
@@ -81,13 +79,13 @@ class ModalPromptClassifier:
 
         payload = {
             "sub": "adaptive_ai_service",  # Subject (service identifier)
-            "user": "adaptive_ai",         # User field for compatibility
-            "iat": datetime.utcnow(),      # Issued at
-            "exp": expires_at,             # Expires at
-            "service": "prompt_classification"
+            "user": "adaptive_ai",  # User field for compatibility
+            "iat": datetime.utcnow(),  # Issued at
+            "exp": expires_at,  # Expires at
+            "service": "prompt_classification",
         }
 
-        token = jwt.encode(payload, self.config.jwt_secret, algorithm="HS256")
+        token: str = jwt.encode(payload, self.config.jwt_secret, algorithm="HS256")
 
         # Cache token and expiration
         self._token_cache = token
@@ -108,14 +106,11 @@ class ModalPromptClassifier:
 
         return {
             "Authorization": f"Bearer {self._token_cache}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
     def _make_request_with_retry(
-        self,
-        method: str,
-        url: str,
-        **kwargs: Any
+        self, method: str, url: str, **kwargs: Any
     ) -> httpx.Response:
         """Make HTTP request with retry logic."""
         last_exception = None
@@ -146,7 +141,7 @@ class ModalPromptClassifier:
 
                 if attempt < self.config.max_retries - 1:
                     # Exponential backoff
-                    delay = self.config.retry_delay * (2 ** attempt)
+                    delay = self.config.retry_delay * (2**attempt)
                     logger.info(f"Retrying in {delay} seconds...")
                     time.sleep(delay)
                 else:
@@ -189,7 +184,7 @@ class ModalPromptClassifier:
                 method="POST",
                 url=f"{self.config.modal_url}/classify",
                 headers=headers,
-                json=request_data.dict()
+                json=request_data.dict(),
             )
 
             # Parse response - Modal returns complete results as flat lists
@@ -208,7 +203,9 @@ class ModalPromptClassifier:
                         single_result[key] = [value[i]]
                     else:
                         # Handle non-list values or insufficient data
-                        single_result[key] = [value] if not isinstance(value, list) else value
+                        single_result[key] = (
+                            [value] if not isinstance(value, list) else value
+                        )
 
                 results.append(ClassificationResult(**single_result))
 
@@ -228,7 +225,6 @@ class ModalPromptClassifier:
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
 
-
     def health_check(self) -> dict[str, Any]:
         """Check Modal service health.
 
@@ -237,15 +233,16 @@ class ModalPromptClassifier:
         """
         try:
             response = self._make_request_with_retry(
-                method="GET",
-                url=f"{self.config.modal_url}/health"
+                method="GET", url=f"{self.config.modal_url}/health"
             )
             return response.json()  # type: ignore[no-any-return]
         except Exception as e:
             logger.error(f"Modal health check failed: {e}")
             return {"status": "unhealthy", "error": str(e)}
 
-    async def classify_prompts_async(self, prompts: list[str]) -> list[ClassificationResult]:
+    async def classify_prompts_async(
+        self, prompts: list[str]
+    ) -> list[ClassificationResult]:
         """Classify multiple prompts using Modal API asynchronously.
 
         Args:
@@ -278,7 +275,7 @@ class ModalPromptClassifier:
                 method="POST",
                 url=f"{self.config.modal_url}/classify",
                 headers=headers,
-                json=request_data.dict()
+                json=request_data.dict(),
             )
 
             # Parse response - Modal returns complete results as flat lists
@@ -297,7 +294,9 @@ class ModalPromptClassifier:
                         single_result[key] = [value[i]]
                     else:
                         # Handle non-list values or insufficient data
-                        single_result[key] = [value] if not isinstance(value, list) else value
+                        single_result[key] = (
+                            [value] if not isinstance(value, list) else value
+                        )
 
                 results.append(ClassificationResult(**single_result))
 
@@ -317,12 +316,8 @@ class ModalPromptClassifier:
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
 
-
     async def _make_request_with_retry_async(
-        self,
-        method: str,
-        url: str,
-        **kwargs: Any
+        self, method: str, url: str, **kwargs: Any
     ) -> httpx.Response:
         """Make HTTP request with retry logic asynchronously."""
         last_exception = None
@@ -353,7 +348,7 @@ class ModalPromptClassifier:
 
                 if attempt < self.config.max_retries - 1:
                     # Exponential backoff
-                    delay = self.config.retry_delay * (2 ** attempt)
+                    delay = self.config.retry_delay * (2**attempt)
                     logger.info(f"Retrying in {delay} seconds...")
                     await asyncio.sleep(delay)
                 else:
@@ -371,8 +366,7 @@ class ModalPromptClassifier:
         """
         try:
             response = await self._make_request_with_retry_async(
-                method="GET",
-                url=f"{self.config.modal_url}/health"
+                method="GET", url=f"{self.config.modal_url}/health"
             )
             return response.json()  # type: ignore[no-any-return]
         except Exception as e:
@@ -381,22 +375,23 @@ class ModalPromptClassifier:
 
     def close(self) -> None:
         """Explicitly close HTTP clients."""
-        if hasattr(self, 'client'):
+        if hasattr(self, "client"):
             self.client.close()
 
     async def aclose(self) -> None:
         """Explicitly close async HTTP clients."""
-        if hasattr(self, 'async_client'):
+        if hasattr(self, "async_client"):
             await self.async_client.aclose()
 
     def __del__(self) -> None:
         """Clean up HTTP clients on destruction."""
-        if hasattr(self, 'client'):
+        if hasattr(self, "client"):
             try:
                 self.client.close()
             except Exception as e:
                 # Log cleanup errors but don't raise during destruction
                 import logging
+
                 logging.getLogger(__name__).debug(f"Client cleanup failed: {e}")
 
 

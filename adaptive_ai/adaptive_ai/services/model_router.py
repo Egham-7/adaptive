@@ -183,9 +183,9 @@ class ModelRouter:
                 candidate_models.extend(matching_models)
             else:
                 # Full model - use directly (but verify it exists in registry)
-                full_model = self._model_registry.get(model.unique_id)
-                if full_model:
-                    candidate_models.append(full_model)
+                registry_model = self._model_registry.get(model.unique_id)
+                if registry_model:
+                    candidate_models.append(registry_model)
                 else:
                     # Model not in registry, use the provided model as-is
                     candidate_models.append(model)

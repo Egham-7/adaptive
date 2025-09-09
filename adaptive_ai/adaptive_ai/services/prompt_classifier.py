@@ -58,7 +58,6 @@ class PromptClassifier:
         except Exception as e:
             logger.error(f"Modal service health check error: {e}")
 
-
     def classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
         """Classify multiple prompts using Modal-deployed NVIDIA model.
 
@@ -91,7 +90,9 @@ class PromptClassifier:
             # Re-raise the exception
             raise
 
-    async def classify_prompts_async(self, prompts: list[str]) -> list[ClassificationResult]:
+    async def classify_prompts_async(
+        self, prompts: list[str]
+    ) -> list[ClassificationResult]:
         """Classify multiple prompts using Modal-deployed NVIDIA model asynchronously.
 
         Args:

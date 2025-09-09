@@ -41,6 +41,11 @@ def mock_prompt_classifier():
     classifier = Mock()
     classifier.classify_prompts.return_value = [
         ClassificationResult(
+            # Required fields
+            task_type=["code"],
+            complexity_score=[0.75],
+            domain=["Programming"],
+            # Optional fields
             task_type_1=["code"],
             task_type_2=["generation"],
             task_type_prob=[0.85],
@@ -54,6 +59,11 @@ def mock_prompt_classifier():
             constraint_ct=[0.3],
         ),
         ClassificationResult(
+            # Required fields
+            task_type=["analysis"],
+            complexity_score=[0.65],
+            domain=["Analytics"],
+            # Optional fields
             task_type_1=["analysis"],
             task_type_2=["problem_solving"],
             task_type_prob=[0.72],

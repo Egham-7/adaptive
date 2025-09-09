@@ -88,8 +88,12 @@ class TestModelSelectorCaching:
         )
 
         # Verify we got models for both task types
-        assert code_models is not None and len(code_models) > 0, "No models returned for code generation"
-        assert chat_models is not None and len(chat_models) > 0, "No models returned for chatbot"
+        assert (
+            code_models is not None and len(code_models) > 0
+        ), "No models returned for code generation"
+        assert (
+            chat_models is not None and len(chat_models) > 0
+        ), "No models returned for chatbot"
 
         # Models might overlap since many support multiple task types
         # Just verify we got reasonable results

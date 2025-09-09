@@ -217,7 +217,10 @@ class TestPartialModelHandling:
 
         # Should contain error information in FastAPI format
         assert "detail" in payload
-        assert "provider" in payload["detail"].lower() or "models" in payload["detail"].lower()
+        assert (
+            "provider" in payload["detail"].lower()
+            or "models" in payload["detail"].lower()
+        )
 
     def test_case_sensitivity_in_provider_names(self, base_url):
         """Test case-insensitive handling of provider names."""
@@ -245,7 +248,9 @@ class TestPartialModelHandling:
             # FastAPI should handle case sensitivity correctly - all should succeed
             # No need to check for errors as case sensitivity is now properly supported
 
-            assert result.get("provider") is not None, f"Provider is None for {model_spec}"
+            assert (
+                result.get("provider") is not None
+            ), f"Provider is None for {model_spec}"
             assert result["provider"].lower() == "openai"
 
     def test_case_sensitivity_in_model_names(self, base_url):

@@ -33,6 +33,11 @@ class TestPromptClassifier:
         classifier = Mock(spec=PromptClassifier)
         classifier.classify_prompts.return_value = [
             ClassificationResult(
+                # Required fields
+                task_type=["Code Generation"],
+                complexity_score=[0.65],
+                domain=["Programming"],
+                # Optional fields
                 task_type_1=["Code Generation"],
                 task_type_2=["Other"],
                 task_type_prob=[0.8],
@@ -66,6 +71,11 @@ class TestPromptClassifier:
         classifier = Mock(spec=PromptClassifier)
         classifier.classify_prompts.return_value = [
             ClassificationResult(
+                # Required fields
+                task_type=["Code Generation"],
+                complexity_score=[0.65],
+                domain=["Programming"],
+                # Optional fields
                 task_type_1=["Code Generation"],
                 task_type_2=["Other"],
                 task_type_prob=[0.8],
@@ -79,6 +89,11 @@ class TestPromptClassifier:
                 constraint_ct=[0.1],
             ),
             ClassificationResult(
+                # Required fields
+                task_type=["Chatbot"],
+                complexity_score=[0.35],
+                domain=["General"],
+                # Optional fields
                 task_type_1=["Chatbot"],
                 task_type_2=["Other"],
                 task_type_prob=[0.9],
@@ -174,6 +189,11 @@ class TestPromptClassifierEdgeCases:
         """Test that classification results have expected structure."""
         # Test with a real ClassificationResult
         result = ClassificationResult(
+            # Required fields
+            task_type=["Code Generation"],
+            complexity_score=[0.65],
+            domain=["Programming"],
+            # Optional fields
             task_type_1=["Code Generation"],
             task_type_2=["Other"],
             task_type_prob=[0.8],

@@ -19,6 +19,9 @@ class ClassificationResult(BaseModel):
     corresponds to a single prompt in the batch.
 
     Attributes:
+        task_type: Primary task type classifications for each prompt (required)
+        complexity_score: Overall complexity scores (0.0-1.0) (required)
+        domain: Domain classifications for each prompt (required)
         task_type_1: Primary task type classifications for each prompt
         task_type_2: Secondary task type classifications for each prompt
         task_type_prob: Confidence scores for primary task types
@@ -32,46 +35,73 @@ class ClassificationResult(BaseModel):
         constraint_ct: Number of constraints detected in prompts (0.0-1.0)
     """
 
-    task_type_1: list[str] = Field(
+    # Required fields for compatibility with tests
+    task_type: list[str] = Field(
+        description="Primary task type for each prompt in batch (required)",
+        examples=[["Text Generation", "Code Generation"]],
+    )
+    complexity_score: list[UnitFloat] = Field(
+        description="Overall complexity scores (0=simple, 1=complex) (required)",
+        examples=[[0.45, 0.72]],
+    )
+    domain: list[str] = Field(
+        description="Domain classifications for each prompt (required)",
+        examples=[["General", "Technical"]],
+    )
+
+    # Optional detailed fields
+    task_type_1: list[str] | None = Field(
+        default=None,
         description="Primary task type for each prompt in batch",
         examples=[["Text Generation", "Code Generation"]],
     )
-    task_type_2: list[str] = Field(
+    task_type_2: list[str] | None = Field(
+        default=None,
         description="Secondary task type for each prompt in batch",
         examples=[["Summarization", "Classification"]],
     )
-    task_type_prob: list[UnitFloat] = Field(
-        description="Confidence scores for primary task types", examples=[[0.89, 0.76]]
+    task_type_prob: list[UnitFloat] | None = Field(
+        default=None,
+        description="Confidence scores for primary task types",
+        examples=[[0.89, 0.76]],
     )
-    creativity_scope: list[UnitFloat] = Field(
+    creativity_scope: list[UnitFloat] | None = Field(
+        default=None,
         description="Creativity level required for each task (0=analytical, 1=creative)",
         examples=[[0.2, 0.8]],
     )
-    reasoning: list[UnitFloat] = Field(
+    reasoning: list[UnitFloat] | None = Field(
+        default=None,
         description="Reasoning complexity required (0=simple, 1=complex)",
         examples=[[0.7, 0.4]],
     )
-    contextual_knowledge: list[UnitFloat] = Field(
+    contextual_knowledge: list[UnitFloat] | None = Field(
+        default=None,
         description="Context knowledge requirement (0=none, 1=extensive)",
         examples=[[0.3, 0.6]],
     )
-    prompt_complexity_score: list[UnitFloat] = Field(
+    prompt_complexity_score: list[UnitFloat] | None = Field(
+        default=None,
         description="Overall prompt complexity (0=simple, 1=complex)",
         examples=[[0.45, 0.72]],
     )
-    domain_knowledge: list[UnitFloat] = Field(
+    domain_knowledge: list[UnitFloat] | None = Field(
+        default=None,
         description="Domain-specific knowledge requirement (0=general, 1=specialist)",
         examples=[[0.1, 0.9]],
     )
-    number_of_few_shots: list[int] = Field(
+    number_of_few_shots: list[int] | None = Field(
+        default=None,
         description="Few-shot learning requirement (number of examples needed)",
         examples=[[0, 3]],
     )
-    no_label_reason: list[UnitFloat] = Field(
+    no_label_reason: list[UnitFloat] | None = Field(
+        default=None,
         description="Confidence in classification accuracy (0=low, 1=high)",
         examples=[[0.9, 0.85]],
     )
-    constraint_ct: list[UnitFloat] = Field(
+    constraint_ct: list[UnitFloat] | None = Field(
+        default=None,
         description="Constraint complexity detected (0=none, 1=many constraints)",
         examples=[[0.2, 0.5]],
     )

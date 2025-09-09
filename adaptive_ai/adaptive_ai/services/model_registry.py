@@ -2,8 +2,8 @@
 Model registry service for validating model names across all providers.
 """
 
-
 from adaptive_ai.models.llm_core_models import ModelCapability
+from adaptive_ai.services.yaml_model_loader import yaml_model_db
 
 
 class ModelRegistry:
@@ -15,11 +15,32 @@ class ModelRegistry:
     """
 
     def __init__(self) -> None:
-        """Initialize the model registry with basic model definitions."""
-        self._models: dict[str, ModelCapability] = self._load_basic_models()
+        """Initialize the model registry with model definitions from YAML and hardcoded fallbacks."""
+        self._models: dict[str, ModelCapability] = {}
+        self._load_models()
 
-    def _load_basic_models(self) -> dict[str, ModelCapability]:
-        """Load basic model definitions."""
+    def _load_models(self) -> None:
+        """Load model definitions from YAML files with hardcoded fallbacks."""
+        # Try to load from YAML files first
+        try:
+            yaml_models = yaml_model_db.get_all_models()
+            for unique_id, model_data in yaml_models.items():
+                # Skip duplicate entries (models are stored both by unique_id and model_name)
+                if ":" in unique_id:
+                    # model_data is already a ModelCapability object from YAML loader
+                    self._models[unique_id] = model_data
+        except Exception as e:
+            # If YAML loading fails, log but continue with fallbacks
+            print(f"Warning: Could not load YAML models, using fallbacks: {e}")
+
+        # Add hardcoded fallback models if not already loaded from YAML
+        fallback_models = self._get_fallback_models()
+        for unique_id, model_capability in fallback_models.items():
+            if unique_id not in self._models:
+                self._models[unique_id] = model_capability
+
+    def _get_fallback_models(self) -> dict[str, ModelCapability]:
+        """Get hardcoded fallback model definitions."""
         models = {}
 
         # OpenAI models
@@ -30,7 +51,7 @@ class ModelRegistry:
             cost_per_1m_output_tokens=60.0,
             max_context_tokens=128000,
             supports_function_calling=True,
-            complexity="high"
+            complexity="high",
         )
 
         models["openai:gpt-3.5-turbo"] = ModelCapability(
@@ -40,7 +61,7 @@ class ModelRegistry:
             cost_per_1m_output_tokens=6.0,
             max_context_tokens=16385,
             supports_function_calling=True,
-            complexity="medium"
+            complexity="medium",
         )
 
         # Anthropic models
@@ -51,7 +72,7 @@ class ModelRegistry:
             cost_per_1m_output_tokens=75.0,
             max_context_tokens=200000,
             supports_function_calling=True,
-            complexity="high"
+            complexity="high",
         )
 
         models["anthropic:claude-3-haiku-20240307"] = ModelCapability(
@@ -61,7 +82,7 @@ class ModelRegistry:
             cost_per_1m_output_tokens=1.25,
             max_context_tokens=200000,
             supports_function_calling=True,
-            complexity="low"
+            complexity="low",
         )
 
         return models
@@ -89,7 +110,9 @@ class ModelRegistry:
         Returns:
             List of ModelCapability objects from all providers that serve this model
         """
-        return [model for model in self._models.values() if model.model_name == model_name]
+        return [
+            model for model in self._models.values() if model.model_name == model_name
+        ]
 
     # Simple validation methods
     def is_valid_model(self, unique_id: str) -> bool:
