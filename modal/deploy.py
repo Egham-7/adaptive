@@ -178,7 +178,7 @@ def serve():
 
     class ClassifyRequest(BaseModel):
         """Request model for prompt classification."""
-        prompts: List[str] = Field(description="List of prompts to classify", min_items=1)
+        prompts: List[str] = Field(description="List of prompts to classify", min_length=1)
 
     def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
         """Verify JWT token from Authorization header with enhanced security."""
@@ -211,7 +211,7 @@ def serve():
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Invalid token: {str(e)}"
             )
-        except Exception as e:
+        except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication failed"

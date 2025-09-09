@@ -24,10 +24,10 @@ logger = logging.getLogger(__name__)
 class ModalConfig:
     """Configuration for Modal API client."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.modal_url = os.environ.get(
             "MODAL_CLASSIFIER_URL",
-            "https://egham-7--nvidia-prompt-classifier-serve.modal.run"
+            "url"
         )
         self.jwt_secret = os.environ.get("JWT_SECRET")
         if not self.jwt_secret:
@@ -115,7 +115,7 @@ class ModalPromptClassifier:
         self,
         method: str,
         url: str,
-        **kwargs
+        **kwargs: Any
     ) -> httpx.Response:
         """Make HTTP request with retry logic."""
         last_exception = None
@@ -240,7 +240,7 @@ class ModalPromptClassifier:
                 method="GET",
                 url=f"{self.config.modal_url}/health"
             )
-            return response.json()
+            return response.json()  # type: ignore[no-any-return]
         except Exception as e:
             logger.error(f"Modal health check failed: {e}")
             return {"status": "unhealthy", "error": str(e)}
@@ -322,7 +322,7 @@ class ModalPromptClassifier:
         self,
         method: str,
         url: str,
-        **kwargs
+        **kwargs: Any
     ) -> httpx.Response:
         """Make HTTP request with retry logic asynchronously."""
         last_exception = None
@@ -374,28 +374,30 @@ class ModalPromptClassifier:
                 method="GET",
                 url=f"{self.config.modal_url}/health"
             )
-            return response.json()
+            return response.json()  # type: ignore[no-any-return]
         except Exception as e:
             logger.error(f"Modal health check failed (async): {e}")
             return {"status": "unhealthy", "error": str(e)}
 
-    def close(self):
+    def close(self) -> None:
         """Explicitly close HTTP clients."""
         if hasattr(self, 'client'):
             self.client.close()
 
-    async def aclose(self):
+    async def aclose(self) -> None:
         """Explicitly close async HTTP clients."""
         if hasattr(self, 'async_client'):
             await self.async_client.aclose()
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Clean up HTTP clients on destruction."""
         if hasattr(self, 'client'):
             try:
                 self.client.close()
-            except Exception:
-                pass  # Best effort cleanup
+            except Exception as e:
+                # Log cleanup errors but don't raise during destruction
+                import logging
+                logging.getLogger(__name__).debug(f"Client cleanup failed: {e}")
 
 
 def get_modal_prompt_classifier(lit_logger: Any = None) -> ModalPromptClassifier:

@@ -2,7 +2,7 @@
 Model registry service for validating model names across all providers.
 """
 
-from typing import Dict, List
+
 from adaptive_ai.models.llm_core_models import ModelCapability
 
 
@@ -16,12 +16,12 @@ class ModelRegistry:
 
     def __init__(self) -> None:
         """Initialize the model registry with basic model definitions."""
-        self._models: Dict[str, ModelCapability] = self._load_basic_models()
+        self._models: dict[str, ModelCapability] = self._load_basic_models()
 
-    def _load_basic_models(self) -> Dict[str, ModelCapability]:
+    def _load_basic_models(self) -> dict[str, ModelCapability]:
         """Load basic model definitions."""
         models = {}
-        
+
         # OpenAI models
         models["openai:gpt-4"] = ModelCapability(
             provider="openai",
@@ -32,7 +32,7 @@ class ModelRegistry:
             supports_function_calling=True,
             complexity="high"
         )
-        
+
         models["openai:gpt-3.5-turbo"] = ModelCapability(
             provider="openai",
             model_name="gpt-3.5-turbo",
@@ -42,7 +42,7 @@ class ModelRegistry:
             supports_function_calling=True,
             complexity="medium"
         )
-        
+
         # Anthropic models
         models["anthropic:claude-3-5-sonnet-20241022"] = ModelCapability(
             provider="anthropic",
@@ -53,7 +53,7 @@ class ModelRegistry:
             supports_function_calling=True,
             complexity="high"
         )
-        
+
         models["anthropic:claude-3-haiku-20240307"] = ModelCapability(
             provider="anthropic",
             model_name="claude-3-haiku-20240307",
@@ -63,7 +63,7 @@ class ModelRegistry:
             supports_function_calling=True,
             complexity="low"
         )
-        
+
         return models
 
     # Core model lookup methods
@@ -104,8 +104,8 @@ class ModelRegistry:
         """Get all providers that support a given model name."""
         models = self.get_models_by_name(model_name)
         return {model.provider for model in models if model.provider is not None}
-    
-    def get_all_model_names(self) -> List[str]:
+
+    def get_all_model_names(self) -> list[str]:
         """Get all unique_ids of models in the registry."""
         return list(self._models.keys())
 

@@ -24,7 +24,7 @@ class TestCostBiasValidation:
         return {
             "ultra_cheap": [
                 "deepseek-chat",
-                "gpt-4o-mini",
+                "gpt-3.5-turbo",
                 "claude-3-haiku",
                 "gpt-5-nano",
                 "babbage-002",
@@ -49,13 +49,13 @@ class TestCostBiasValidation:
             response = requests.post(
                 f"{base_url}/predict",
                 json={
-                    "prompt": prompt, 
+                    "prompt": prompt,
                     "cost_bias": bias,
                     "models": [
-                        {"provider": "openai", "model_name": "gpt-4o-mini"},
+                        {"provider": "openai", "model_name": "gpt-3.5-turbo"},
                         {"provider": "openai", "model_name": "gpt-4"},
                         {"provider": "anthropic", "model_name": "claude-3-haiku-20240307"},
-                        {"provider": "anthropic", "model_name": "claude-3-opus-20240229"},
+                        {"provider": "anthropic", "model_name": "claude-3-5-sonnet-20241022"},
                     ]
                 },
                 timeout=30,
@@ -128,13 +128,13 @@ class TestCostBiasValidation:
             response = requests.post(
                 f"{base_url}/predict",
                 json={
-                    "prompt": prompt, 
+                    "prompt": prompt,
                     "cost_bias": bias,
                     "models": [
-                        {"provider": "openai", "model_name": "gpt-4o-mini"},
+                        {"provider": "openai", "model_name": "gpt-3.5-turbo"},
                         {"provider": "openai", "model_name": "gpt-4"},
                         {"provider": "anthropic", "model_name": "claude-3-haiku-20240307"},
-                        {"provider": "anthropic", "model_name": "claude-3-opus-20240229"},
+                        {"provider": "anthropic", "model_name": "claude-3-5-sonnet-20241022"},
                     ]
                 },
                 timeout=30,
@@ -168,10 +168,10 @@ class TestCostBiasValidation:
         # If task constraints are strong, we might get the same model
         # Just ensure we're getting valid responses
         if len(unique_models) == 1:
-            print(f"\nWARNING: Only one model '{list(unique_models)[0]}' selected across boundaries.")
+            print(f"\nWARNING: Only one model '{next(iter(unique_models))}' selected across boundaries.")
             print("This may indicate strong task constraints overriding cost bias.")
             # Just verify it's a reasonable model
-            single_model = list(unique_models)[0]
+            single_model = next(iter(unique_models))
             # If we got None, there was likely an error
             if single_model is None:
                 print("ERROR: Got None model, likely due to model lookup failures")
@@ -180,7 +180,7 @@ class TestCostBiasValidation:
                     print("All requests resulted in errors - model definitions may be incorrect")
             else:
                 assert single_model in [
-                    "gpt-4o-mini", "gpt-4", "gpt-3.5-turbo",
+                    "gpt-3.5-turbo", "gpt-4", "gpt-3.5-turbo",
                     "claude-3-haiku-20240307", "claude-3-opus-20240229",
                     "claude-3-5-sonnet-20241022"
                 ], f"Unexpected model selected: {single_model}"

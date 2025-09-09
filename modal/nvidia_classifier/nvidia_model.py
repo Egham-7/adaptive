@@ -6,7 +6,7 @@ classification logic, and complexity scoring - extracted from the original
 working implementation.
 """
 
-from typing import Any, Dict, List
+from typing import Dict, List
 import numpy as np
 
 

@@ -11,13 +11,13 @@ class ServerConfig(BaseModel):
     port: int = 8000
 
 
-class LitServeConfig(BaseModel):
-    """LitServe configuration."""
+class FastAPIConfig(BaseModel):
+    """FastAPI server configuration."""
 
-    accelerator: str = "auto"
-    devices: str = "auto"
-    max_batch_size: int = 8
-    batch_timeout: float = 0.05
+    workers: int = 1
+    reload: bool = False
+    access_log: bool = True
+    log_level: str = "info"
 
 
 class LoggingConfig(BaseModel):
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     """Main application settings."""
 
     server: ServerConfig = ServerConfig()
-    litserve: LitServeConfig = LitServeConfig()
+    fastapi: FastAPIConfig = FastAPIConfig()
     logging: LoggingConfig = LoggingConfig()
 
     model_config = SettingsConfigDict(

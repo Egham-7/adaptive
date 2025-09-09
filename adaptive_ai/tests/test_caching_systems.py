@@ -6,7 +6,7 @@ Tests model selection consistency, performance, and current architecture.
 import threading
 import time
 
-import pytest  # type: ignore
+import pytest
 
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import TaskType
@@ -90,16 +90,16 @@ class TestModelSelectorCaching:
         # Verify we got models for both task types
         assert code_models is not None and len(code_models) > 0, "No models returned for code generation"
         assert chat_models is not None and len(chat_models) > 0, "No models returned for chatbot"
-        
+
         # Models might overlap since many support multiple task types
         # Just verify we got reasonable results
         code_names = {m.model_name for m in code_models}
         chat_names = {m.model_name for m in chat_models}
-        
+
         # Log the results for debugging
         print(f"Code models: {code_names}")
         print(f"Chat models: {chat_names}")
-        
+
         # Many models support both code and chat, so overlap is expected
         # Just verify we got some models
         assert len(code_names) > 0

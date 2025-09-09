@@ -211,23 +211,21 @@ class TestPartialModelHandling:
 
         response = requests.post(f"{base_url}/predict", json=request_data, timeout=30)
 
-        # Should return 200 with error details (LitServe limitation)
-        assert response.status_code == 200
+        # Should return 400 for invalid model specification (FastAPI proper error handling)
+        assert response.status_code == 400
         payload = response.json()
 
-        # Should contain error information
-        assert "error" in payload
-        assert payload.get("provider") is None
-        assert payload.get("model") is None
-        assert "provider" in (payload.get("message") or "").lower()
+        # Should contain error information in FastAPI format
+        assert "detail" in payload
+        assert "provider" in payload["detail"].lower() or "models" in payload["detail"].lower()
 
     def test_case_sensitivity_in_provider_names(self, base_url):
         """Test case-insensitive handling of provider names."""
         # Test different case variations with a model that supports Open QA task type
         test_cases = [
-            {"provider": "OPENAI", "model_name": "gpt-4o"},
-            {"provider": "OpenAI", "model_name": "gpt-4o"},
-            {"provider": "openai", "model_name": "gpt-4o"},
+            {"provider": "OPENAI", "model_name": "gpt-4"},
+            {"provider": "OpenAI", "model_name": "gpt-4"},
+            {"provider": "openai", "model_name": "gpt-4"},
         ]
 
         for model_spec in test_cases:
@@ -243,14 +241,10 @@ class TestPartialModelHandling:
             # All variations should work
             assert response.status_code == 200, f"Failed for {model_spec}"
             result = response.json()
-            
-            # Check if it's an error response indicating case sensitivity issue
-            if result.get("error") and "No models found" in result.get("message", ""):
-                print(f"\nCase sensitivity not supported for: {model_spec}")
-                print(f"Error: {result.get('message')}")
-                # For now, accept this as expected behavior
-                continue
-                
+
+            # FastAPI should handle case sensitivity correctly - all should succeed
+            # No need to check for errors as case sensitivity is now properly supported
+
             assert result.get("provider") is not None, f"Provider is None for {model_spec}"
             assert result["provider"].lower() == "openai"
 
@@ -259,7 +253,7 @@ class TestPartialModelHandling:
         request_data = {
             "prompt": "What is 2 + 2?",  # Simple Q&A that should classify as Open QA
             "models": [
-                {"provider": "openai", "model_name": "GPT-4O"},  # Uppercase
+                {"provider": "openai", "model_name": "GPT-4"},  # Uppercase
             ],
         }
 
@@ -268,16 +262,12 @@ class TestPartialModelHandling:
         # Should handle case variations
         assert response.status_code == 200
         result = response.json()
-        
-        # Check if it's an error response indicating case sensitivity issue
-        if result.get("error") and "No models found" in result.get("message", ""):
-            print(f"\nCase sensitivity not supported for model names")
-            print(f"Error: {result.get('message')}")
-            # For now, accept this as expected behavior
-            return
-            
+
+        # FastAPI should handle case sensitivity correctly - all should succeed
+        # No need to check for errors as case sensitivity is now properly supported
+
         assert result.get("model") is not None, "Model is None"
-        assert "gpt-4o" in result["model"].lower()
+        assert "gpt-4" in result["model"].lower()
 
     # ===== MIXED SCENARIO TESTS =====
 

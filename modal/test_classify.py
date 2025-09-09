@@ -38,7 +38,7 @@ headers = {
 
 data = {"prompts": test_prompts}
 
-print(f"\n🚀 Testing /classify endpoint...")
+print("\n🚀 Testing /classify endpoint...")
 print(f"📍 URL: {MODAL_URL}/classify")
 print(f"📝 Sending {len(test_prompts)} prompts for classification\n")
 

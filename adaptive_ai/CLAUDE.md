@@ -18,24 +18,24 @@ For documentation needs, use Ref MCP tools:
 
 ## Overview
 
-The adaptive_ai service is a Python-based ML microservice that provides intelligent model selection for the Adaptive LLM infrastructure. Built with LitServe ML serving framework, it analyzes prompts using machine learning classifiers to select the optimal provider and model for each request, enabling significant cost savings and performance optimization.
+The adaptive_ai service is a Python-based ML microservice that provides intelligent model selection for the Adaptive LLM infrastructure. Built with FastAPI web framework, it analyzes prompts using Modal-deployed machine learning classifiers to select the optimal provider and model for each request, enabling significant cost savings and performance optimization.
 
 ## Key Features
 
-- **ML-Powered Model Selection**: Uses PyTorch and scikit-learn classifiers for intelligent routing
-- **Task Classification**: Categorizes prompts by complexity and task type (code, math, creative, etc.)
+- **ML-Powered Model Selection**: Uses Modal-deployed NVIDIA classifiers for intelligent routing
+- **Task Classification**: Categorizes prompts by complexity and task type (code, math, creative, etc.) via Modal API
 - **Domain Classification**: Identifies specialized domains for targeted model selection
 - **Cost Optimization**: Balances performance vs. cost based on user preferences and prompt analysis
 - **Protocol Management**: Decides between standard LLM calls vs. specialized "minion" protocols
-- **High-Performance Serving**: LitServe framework for sub-100ms inference with batch processing
+- **High-Performance API**: FastAPI framework with OpenAPI documentation and async endpoints
 
 ## Technology Stack
 
-- **Framework**: LitServe 0.2.10+ for ML model serving
-- **ML Libraries**: PyTorch 2.2+, scikit-learn 1.7+, HuggingFace Transformers
-- **NLP**: Sentence Transformers for embeddings, Tiktoken for tokenization
+- **Framework**: FastAPI 0.104+ for high-performance API serving
+- **HTTP Client**: httpx for async API calls to Modal service
+- **Authentication**: python-jose for JWT token handling
+- **Model Registry**: Static model metadata (no local ML models)
 - **LLM Integration**: LangChain for orchestration and provider abstraction
-- **Caching**: In-memory caching with cachetools for classification results
 - **Configuration**: Pydantic Settings for type-safe configuration management
 
 ## Project Structure
@@ -44,7 +44,7 @@ The adaptive_ai service is a Python-based ML microservice that provides intellig
 adaptive_ai/
 ├── adaptive_ai/
 │   ├── __init__.py
-│   ├── main.py                    # LitServe application entry point
+│   ├── main.py                    # FastAPI application entry point
 │   ├── core/
 │   │   ├── __init__.py
 │   │   └── config.py             # Pydantic settings and configuration
@@ -85,24 +85,21 @@ adaptive_ai/
 
 ```bash
 # Server Configuration
-HOST=0.0.0.0                     # LitServe host
-PORT=8000                        # LitServe port
+HOST=0.0.0.0                     # FastAPI host
+PORT=8000                        # FastAPI port
 
-# LitServe Configuration
-LITSERVE_MAX_BATCH_SIZE=32       # Maximum batch size for inference
-LITSERVE_BATCH_TIMEOUT=0.01      # Batch timeout in seconds
-LITSERVE_ACCELERATOR=auto        # Hardware accelerator (auto/cpu/gpu)
-LITSERVE_DEVICES=auto           # Device configuration
+# FastAPI Configuration
+FASTAPI_WORKERS=1                # Number of uvicorn workers
+FASTAPI_RELOAD=false             # Auto-reload on code changes (dev only)
+FASTAPI_ACCESS_LOG=true          # Enable access logging
+FASTAPI_LOG_LEVEL=info           # Uvicorn log level
 
-# ML Model Configuration
-MODEL_CACHE_DIR=/tmp/models      # Directory for cached models
-ENABLE_MODEL_CACHING=true        # Enable model caching
-CLASSIFICATION_THRESHOLD=0.7     # Confidence threshold for classification
-
-# Performance Configuration
-ENABLE_EMBEDDINGS_CACHE=true     # Enable embedding caching
-CACHE_TTL=3600                   # Cache TTL in seconds
-MAX_CACHE_SIZE=10000            # Maximum cache entries
+# Modal API Configuration
+MODAL_CLASSIFIER_URL=https://...  # Modal classifier service URL
+JWT_SECRET=your_jwt_secret        # JWT secret for Modal authentication
+MODAL_REQUEST_TIMEOUT=30          # Request timeout in seconds
+MODAL_MAX_RETRIES=3              # Maximum retry attempts
+MODAL_RETRY_DELAY=1.0            # Base retry delay in seconds
 ```
 
 ### Optional Configuration
@@ -112,10 +109,8 @@ MAX_CACHE_SIZE=10000            # Maximum cache entries
 DEBUG=false                      # Enable debug logging
 LOG_LEVEL=INFO                  # Logging level
 
-# Model Paths (will download from HuggingFace if not specified)
-TASK_CLASSIFIER_PATH=/path/to/task/model
-DOMAIN_CLASSIFIER_PATH=/path/to/domain/model
-EMBEDDINGS_MODEL_PATH=/path/to/embeddings/model
+# Additional Modal Configuration
+MODAL_HEALTH_CHECK_INTERVAL=60   # Health check interval in seconds
 ```
 
 ## Development Commands
@@ -179,7 +174,7 @@ uv run pytest --cov --cov-report=html
 
 ## API Interface
 
-The service exposes a LitServe API that accepts model selection requests and returns orchestration responses.
+The service exposes a FastAPI REST API that accepts model selection requests and returns orchestration responses. The API includes automatic OpenAPI documentation available at `/docs`.
 
 ### Request Format
 ```python
@@ -280,20 +275,20 @@ The service exposes a LitServe API that accepts model selection requests and ret
 - Provides cost savings metrics and recommendations
 
 
-## ML Models and Classification
+## ML Models and Classification (via Modal)
 
 ### Task Classification
-- **Model Type**: Transformer-based text classifier
+- **Model Type**: NVIDIA transformer model deployed on Modal GPU infrastructure
 - **Input**: Last message content from chat completion request
 - **Output**: Task categories (code, math, creative, analysis, etc.) with confidence scores
-- **Training**: Fine-tuned on diverse prompt datasets
-- **Performance**: Sub-50ms inference time
+- **Deployment**: Modal T4 GPU with JWT authentication
+- **Performance**: Sub-100ms inference time including network latency
 
 ### Domain Classification
-- **Model Type**: Sentence transformer with cosine similarity
+- **Model Type**: NVIDIA model with contextual understanding
 - **Input**: Full conversation context and prompt content
 - **Output**: Domain categories (software, science, business, etc.) with confidence
-- **Features**: Contextual understanding of specialized domains
+- **Features**: GPU-accelerated inference on Modal infrastructure
 - **Accuracy**: >90% on domain-specific benchmarks
 
 ### Cost-Performance Modeling
@@ -304,23 +299,23 @@ The service exposes a LitServe API that accepts model selection requests and ret
 
 ## Caching and Performance
 
-### Classification Caching
-- **Cache Key**: Hash of prompt content and configuration
-- **TTL**: Configurable (default: 1 hour)
-- **Storage**: In-memory with LRU eviction
-- **Hit Rate**: Typically 60-80% for production workloads
+### API Performance
+- **Framework**: FastAPI with async/await for optimal performance
+- **HTTP Client**: httpx with connection pooling for Modal API calls
+- **Authentication**: JWT token caching to minimize overhead
+- **Retry Logic**: Exponential backoff for resilient Modal communication
 
-### Model Caching
-- **Strategy**: Lazy loading with persistent storage
-- **Location**: Local filesystem or shared storage
-- **Models**: HuggingFace models cached after first download
-- **Size**: ~2-5GB total for all classification models
+### Modal Integration
+- **Connection**: HTTP/HTTPS with JWT authentication
+- **Timeout**: Configurable request timeout (default: 30s)
+- **Retries**: Configurable retry attempts with exponential backoff
+- **Health Checks**: Regular Modal service health monitoring
 
-### Batch Processing
-- **Batch Size**: Configurable (default: 32 requests)
-- **Timeout**: Configurable (default: 10ms)
-- **Benefits**: 5-10x throughput improvement for batch workloads
-- **Latency**: <100ms end-to-end including ML inference
+### Request Processing
+- **Async Processing**: Native FastAPI async for concurrent requests
+- **Error Handling**: Graceful fallbacks when Modal API is unavailable
+- **Response Time**: <100ms end-to-end including Modal API latency
+- **Throughput**: Limited by Modal service capacity, not local processing
 
 ## Configuration
 
@@ -393,17 +388,17 @@ RUN pip install uv && uv install --frozen
 COPY adaptive_ai/ ./adaptive_ai/
 EXPOSE 8000
 
-CMD ["uv", "run", "adaptive-ai"]
+CMD ["uv", "run", "uvicorn", "adaptive_ai.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ### Docker Compose
 The service is included in the root `docker-compose.yml` with proper networking and resource allocation.
 
 ### Resource Requirements
-- **CPU**: 2-4 cores recommended for production
-- **Memory**: 4-8GB RAM (includes ML model storage)
-- **Storage**: 10GB for model caching and logs
-- **GPU**: Optional, can accelerate inference by 2-3x
+- **CPU**: 1-2 cores sufficient (no local ML inference)
+- **Memory**: 512MB-1GB RAM (minimal local processing)
+- **Storage**: 1GB for application and logs
+- **Network**: Reliable internet connection for Modal API calls
 
 ## Troubleshooting
 
@@ -415,31 +410,31 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - Check port availability (default: 8000)
 - Review environment variable configuration
 
-**Model loading failures**
-- Verify internet connection for HuggingFace downloads
-- Check available disk space (models require ~5GB)
-- Review cache directory permissions
-- Ensure sufficient memory (8GB+ recommended)
+**Modal API connection failures**
+- Verify MODAL_CLASSIFIER_URL is correct and accessible
+- Check JWT_SECRET environment variable is set
+- Verify network connectivity to Modal service
+- Check Modal service health status
 
 **Classification errors**
 - Verify input format matches expected schema
-- Check tokenization errors with tiktoken
-- Review model file integrity
-- Monitor memory usage during inference
+- Check Modal API response format
+- Review JWT token generation and validation
+- Monitor network latency to Modal service
 
 **Performance issues**
-- Enable model caching: `ENABLE_MODEL_CACHING=true`
-- Adjust batch size: `LITSERVE_MAX_BATCH_SIZE=16`
-- Monitor cache hit rates
-- Consider GPU acceleration
+- Check Modal API response times
+- Verify JWT token caching is working
+- Monitor httpx connection pool usage
+- Consider adjusting request timeout settings
 
 ### Debug Commands
 ```bash
 # Enable debug logging
 DEBUG=true uv run adaptive-ai
 
-# Check model loading
-python -c "from adaptive_ai.services.prompt_classifier import get_prompt_classifier; print('Models loaded successfully')"
+# Check Modal API health
+curl -X GET http://localhost:8000/health
 
 # Test classification endpoint
 curl -X POST http://localhost:8000/predict \
