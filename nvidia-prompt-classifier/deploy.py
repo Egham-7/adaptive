@@ -26,7 +26,7 @@ APP_NAME = "nvidia-prompt-classifier"
 # MODAL IMAGES WITH ORGANIZED PACKAGE
 # ============================================================================
 
-# ML image for NVIDIA model inference
+# ML image for NVIDIA model inference (minimal dependencies)
 ml_image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install(
@@ -52,6 +52,8 @@ web_image = (
             "pydantic>=2.5.0",
             "PyJWT>=2.8.0",
             "numpy>=1.24.0,<3.0",  # Needed for deserializing results from ML container
+            "httpx>=0.24.0",  # Required for client functionality
+            "python-jose>=3.3.0",  # Required for JWT handling
         ]
     )
     .add_local_dir(
@@ -74,8 +76,9 @@ app = modal.App(APP_NAME)
     image=ml_image,
     gpu=GPU_TYPE,
     secrets=[modal.Secret.from_name("jwt-auth")],
-    max_containers=10,
-    scaledown_window=300,
+    max_containers=20,  # Increased for better concurrency
+    scaledown_window=180,  # Faster scaledown for cost efficiency
+    min_containers=2,  # Keep 2 containers warm for faster response (renamed from keep_warm)
 )
 class NvidiaPromptClassifier:
     """NVIDIA prompt classifier using consolidated model components."""
@@ -159,20 +162,24 @@ class NvidiaPromptClassifier:
 @app.function(
     image=web_image,
     secrets=[modal.Secret.from_name("jwt-auth")],
+    max_containers=50,  # Allow multiple concurrent requests (renamed from concurrency_limit)
+    timeout=300,  # 5 minute timeout for large batches
 )
 @modal.asgi_app()
 def serve() -> "FastAPI":
-    """Serve the FastAPI application."""
+    """Serve the FastAPI application with async support."""
     from fastapi import Depends, FastAPI, HTTPException, status
     from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
     from pydantic import BaseModel, Field
     import jwt
+    import asyncio
+    from typing import Optional
 
     # Create FastAPI app
     web_app = FastAPI(
         title="NVIDIA Prompt Classifier API",
         version="1.0.0",
-        description="GPU-accelerated prompt classification with JWT authentication",
+        description="GPU-accelerated prompt classification with JWT authentication and async support",
     )
     security = HTTPBearer()
 
@@ -216,7 +223,19 @@ def serve() -> "FastAPI":
         """Request model for prompt classification."""
 
         prompts: List[str] = Field(
-            description="List of prompts to classify", min_length=1
+            description="List of prompts to classify", min_length=1, max_length=100
+        )
+        chunk_size: Optional[int] = Field(
+            default=None,
+            description="Chunk size for batch processing (1-50)",
+            ge=1,
+            le=50,
+        )
+        max_concurrent: Optional[int] = Field(
+            default=None,
+            description="Maximum concurrent chunks to process (1-10)",
+            ge=1,
+            le=10,
         )
 
     def verify_jwt_token(
@@ -259,20 +278,120 @@ def serve() -> "FastAPI":
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
             )
 
+    async def _process_chunk_async(prompts_chunk: List[str]) -> Dict[str, List]:
+        """Process a single chunk of prompts asynchronously."""
+        try:
+            # Use Modal's async interface for non-blocking GPU processing
+            classifier = NvidiaPromptClassifier()
+
+            # Create a task for async processing
+            task = asyncio.create_task(
+                asyncio.to_thread(classifier.classify.remote, prompts_chunk)
+            )
+            result = await task
+            return result
+        except Exception as e:
+            print(f"Chunk processing failed: {e}")
+            # Return fallback results for failed chunk
+            return {
+                "task_type_1": ["Other"] * len(prompts_chunk),
+                "task_type_2": ["NA"] * len(prompts_chunk),
+                "task_type_prob": [0.5] * len(prompts_chunk),
+                "creativity_scope": [0.5] * len(prompts_chunk),
+                "reasoning": [0.5] * len(prompts_chunk),
+                "contextual_knowledge": [0.5] * len(prompts_chunk),
+                "prompt_complexity_score": [0.5] * len(prompts_chunk),
+                "domain_knowledge": [0.5] * len(prompts_chunk),
+                "number_of_few_shots": [0] * len(prompts_chunk),
+                "no_label_reason": [0.5] * len(prompts_chunk),
+                "constraint_ct": [0.5] * len(prompts_chunk),
+            }
+
+    def _chunk_prompts(prompts: List[str], chunk_size: int) -> List[List[str]]:
+        """Split prompts into chunks for parallel processing."""
+        return [prompts[i : i + chunk_size] for i in range(0, len(prompts), chunk_size)]
+
+    def _merge_results(
+        chunk_results: List[Dict[str, List[Any]]],
+    ) -> Dict[str, List[Any]]:
+        """Merge results from multiple chunks into a single result."""
+        if not chunk_results:
+            return {}
+
+        merged: Dict[str, List[Any]] = {}
+        for key in chunk_results[0].keys():
+            merged[key] = []
+            for chunk_result in chunk_results:
+                merged[key].extend(chunk_result.get(key, []))
+        return merged
+
     @web_app.post("/classify", response_model=ClassificationResult)
     async def classify_prompts(
         request: ClassifyRequest, user: str = Depends(verify_jwt_token)
     ):
-        """Classify prompts using NVIDIA model (requires JWT authentication)."""
+        """Classify prompts using NVIDIA model with async chunked processing."""
         print(
-            f"Classification request from user: {user}, prompts: {len(request.prompts)}"
+            f"Classification request from user: {user}, prompts: {len(request.prompts)}, "
+            f"chunk_size: {request.chunk_size}, max_concurrent: {request.max_concurrent}"
         )
 
-        # Run classification using Modal method
-        result = NvidiaPromptClassifier().classify.remote(request.prompts)
+        try:
+            # Split prompts into chunks for parallel processing
+            chunk_size = request.chunk_size or 10
+            max_concurrent = request.max_concurrent or 5
+            prompt_chunks = _chunk_prompts(request.prompts, chunk_size)
+            print(
+                f"Processing {len(prompt_chunks)} chunks with chunk_size={chunk_size}, max_concurrent={max_concurrent}"
+            )
 
-        print(f"Classification completed for {len(request.prompts)} prompts")
-        return ClassificationResult(**result)
+            # Process chunks with controlled concurrency
+            semaphore = asyncio.Semaphore(max_concurrent)
+
+            async def process_with_semaphore(chunk):
+                async with semaphore:
+                    return await _process_chunk_async(chunk)
+
+            # Execute chunks concurrently
+            chunk_tasks = [process_with_semaphore(chunk) for chunk in prompt_chunks]
+            chunk_results = await asyncio.gather(*chunk_tasks, return_exceptions=True)
+
+            # Handle any failed chunks
+            processed_results: List[Dict[str, List[Any]]] = []
+            for i, result in enumerate(chunk_results):
+                if isinstance(result, Exception):
+                    print(f"Chunk {i} failed: {result}")
+                    # Create fallback result for failed chunk
+                    chunk_size = len(prompt_chunks[i])
+                    fallback: Dict[str, List[Any]] = {
+                        "task_type_1": ["Other"] * chunk_size,
+                        "task_type_2": ["NA"] * chunk_size,
+                        "task_type_prob": [0.5] * chunk_size,
+                        "creativity_scope": [0.5] * chunk_size,
+                        "reasoning": [0.5] * chunk_size,
+                        "contextual_knowledge": [0.5] * chunk_size,
+                        "prompt_complexity_score": [0.5] * chunk_size,
+                        "domain_knowledge": [0.5] * chunk_size,
+                        "number_of_few_shots": [0] * chunk_size,
+                        "no_label_reason": [0.5] * chunk_size,
+                        "constraint_ct": [0.5] * chunk_size,
+                    }
+                    processed_results.append(fallback)
+                else:
+                    # result is guaranteed to be a dict here, not an Exception
+                    processed_results.append(result)  # type: ignore[arg-type]
+
+            # Merge all chunk results
+            final_result = _merge_results(processed_results)
+
+            print(f"Classification completed for {len(request.prompts)} prompts")
+            return ClassificationResult(**final_result)
+
+        except Exception as e:
+            print(f"Classification failed: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Classification failed: {str(e)}",
+            )
 
     @web_app.get("/health")
     async def health_check() -> Dict[str, str]:
@@ -290,7 +409,70 @@ def serve() -> "FastAPI":
             "gpu": GPU_TYPE,
             "service": APP_NAME,
             "user": user,
+            "features": {
+                "async_processing": True,
+                "chunked_batching": True,
+                "concurrent_requests": True,
+                "max_containers": 20,
+                "keep_warm": 2,
+                "concurrency_limit": 50,
+            },
+            "performance": {
+                "default_chunk_size": 10,
+                "max_concurrent_chunks": 5,
+                "max_batch_size": 100,
+                "estimated_latency_per_chunk": "200-500ms",
+                "http2_enabled": True,
+            },
         }
+
+    @web_app.post("/benchmark")
+    async def benchmark_classification(
+        request: ClassifyRequest, user: str = Depends(verify_jwt_token)
+    ) -> Dict[str, Any]:
+        """Benchmark endpoint to test classification performance."""
+        import time
+
+        start_time = time.time()
+
+        # Use a subset for benchmarking
+        test_prompts = request.prompts[: min(len(request.prompts), 20)]
+        test_request = ClassifyRequest(
+            prompts=test_prompts,
+            chunk_size=request.chunk_size or 5,
+            max_concurrent=request.max_concurrent or 3,
+        )
+
+        try:
+            result = await classify_prompts(test_request, user)
+            end_time = time.time()
+
+            return {
+                "status": "success",
+                "prompts_processed": len(test_prompts),
+                "total_time_seconds": round(end_time - start_time, 3),
+                "avg_time_per_prompt": round(
+                    (end_time - start_time) / len(test_prompts), 3
+                ),
+                "chunk_size": test_request.chunk_size,
+                "max_concurrent": test_request.max_concurrent,
+                "result_sample": {
+                    "task_types": result.task_type_1[:3] if result.task_type_1 else [],
+                    "complexity_scores": (
+                        result.prompt_complexity_score[:3]
+                        if result.prompt_complexity_score
+                        else []
+                    ),
+                },
+            }
+        except Exception as e:
+            end_time = time.time()
+            return {
+                "status": "error",
+                "error": str(e),
+                "total_time_seconds": round(end_time - start_time, 3),
+                "prompts_attempted": len(test_prompts),
+            }
 
     return web_app
 

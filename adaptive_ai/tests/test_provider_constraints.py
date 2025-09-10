@@ -81,6 +81,8 @@ class TestProviderConstraints:
             "o4-mini",
             "gpt-4.1",
             "gpt-3.5-turbo",
+            "davinci-002",
+            "babbage-002",
         ]
 
         # Log for debugging

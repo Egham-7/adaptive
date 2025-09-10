@@ -2,10 +2,10 @@
 # This directory contains deployment scripts, not a package to install
 
 [project]
-name = "modal-deployment"
+name = "nvidia-prompt-classifier"
 version = "1.0.0"
-description = "Modal deployment scripts"
-requires-python = ">=3.11"
+description = "NVIDIA prompt classifier with Modal deployment and client"
+requires-python = ">=3.10,<4.0"
 dependencies = [
     # Core dependencies needed for Modal deployment (installed locally)
     "modal>=0.63.0",
@@ -14,6 +14,7 @@ dependencies = [
     "pydantic>=2.11.5,<3",
     "httpx>=0.25.0,<1.0",
     "pyjwt>=2.10.1",
+    "black>=25.1.0",
 ]
 
 [dependency-groups]

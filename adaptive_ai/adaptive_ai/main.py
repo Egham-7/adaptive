@@ -275,6 +275,12 @@ async def process_request_async(
     # Run model selection
     if model_router is None:
         raise RuntimeError("Model router not initialized")
+
+    # Debug logging
+    logger.info(
+        f"Model selection inputs: task_complexity={task_complexity}, task_type={task_type}, models_input={len(models_input) if models_input else 0}, cost_bias={cost_bias}"
+    )
+
     selected_models = model_router.select_models(
         task_complexity,
         task_type,
@@ -283,9 +289,14 @@ async def process_request_async(
     )
 
     elapsed = time.perf_counter() - start_time
-    logger.info(f"Model selection completed in {elapsed:.3f}s")
+    logger.info(
+        f"Model selection completed in {elapsed:.3f}s, selected {len(selected_models)} models"
+    )
 
     if not selected_models:
+        logger.error(
+            f"No models selected with inputs: task_complexity={task_complexity}, task_type={task_type}, models_input={models_input}, cost_bias={cost_bias}"
+        )
         raise ValueError("No eligible models found")
 
     # Build response
@@ -350,7 +361,7 @@ async def serve_with_graceful_shutdown() -> None:
 
     try:
         # Serve the application
-        await serve(app, config, shutdown_trigger=shutdown_event.wait)  # type: ignore[arg-type]
+        await serve(app, config, shutdown_trigger=shutdown_event.wait)
     except Exception as e:
         logger.exception("Server error: %s", e)
         raise

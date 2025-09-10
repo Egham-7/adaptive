@@ -70,31 +70,6 @@ class ModelRouter:
     def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
         """Initialize router with optional logger."""
         self._lit_logger = lit_logger
-        self._model_registry: dict[str, ModelCapability] = {}
-        self._load_registry_models()
-
-    def _load_registry_models(self) -> None:
-        """Load models from the registry into simplified structure."""
-        # Get all models directly from model_registry
-        all_models = model_registry.get_all_model_names()
-
-        if not all_models:
-            self._log("registry_warning", {"message": "No valid models loaded"})
-            return
-
-        for model_name in all_models:
-            self._load_single_model(model_name)
-
-        self._log("registry_loaded", {"model_count": len(self._model_registry)})
-
-    def _load_single_model(self, model_name: str) -> None:
-        """Load a single model with error handling."""
-        try:
-            capability = model_registry.get_model_capability(model_name)
-            if capability:
-                self._model_registry[capability.unique_id] = capability
-        except Exception as e:
-            self._log("model_load_error", {"model": model_name, "error": str(e)})
 
     def _log(self, key: str, value: Any) -> None:
         """Internal logging method."""
@@ -152,6 +127,9 @@ class ModelRouter:
         # Get candidate models based on input
         candidate_models = self._get_candidate_models(models_input, task_type)
 
+        # Log registry usage for metrics
+        self._log("registry_lookup", {"models_found": len(candidate_models)})
+
         # Apply integrated complexity and cost routing
         final_models = self._apply_integrated_routing(
             candidate_models, task_complexity, cost_bias
@@ -164,8 +142,13 @@ class ModelRouter:
     ) -> list[ModelCapability]:
         """Get candidate models from input, handling full vs partial specs."""
         if models_input is None or len(models_input) == 0:
-            # No models specified or empty array - use all available models
-            all_models = list(self._model_registry.values())
+            # No models specified or empty array - use all available models from global registry
+            all_model_names = model_registry.get_all_model_names()
+            all_models = []
+            for model_name in all_model_names:
+                model_capability = model_registry.get_model_capability(model_name)
+                if model_capability:
+                    all_models.append(model_capability)
             return self._filter_by_task_type(all_models, task_type)
 
         candidate_models = []
@@ -182,8 +165,8 @@ class ModelRouter:
                         )
                 candidate_models.extend(matching_models)
             else:
-                # Full model - use directly (but verify it exists in registry)
-                registry_model = self._model_registry.get(model.unique_id)
+                # Full model - use directly (but verify it exists in global registry)
+                registry_model = model_registry.get_model_capability(model.unique_id)
                 if registry_model:
                     candidate_models.append(registry_model)
                 else:
@@ -254,6 +237,14 @@ class ModelRouter:
         # Handle special cases for task type matching
         # TaskType.OTHER should match all models (it's a generic/fallback category)
         if task_type_str == "other":
+            return True
+
+        # TEXT_GENERATION models can handle ALL specific task types (it's the most general category)
+        if model_task_str == "text generation":
+            return True
+
+        # CODE_GENERATION models can handle TEXT_GENERATION tasks
+        if model_task_str == "code generation" and task_type_str == "text generation":
             return True
 
         # Compare normalized strings for exact matches
@@ -338,10 +329,12 @@ class ModelRouter:
             (calculate_complexity_score(model), model) for model in filtered_models
         ]
 
-        # Sort by complexity score (highest first)
+        # Sort by complexity score (highest first), then by model name for stability
         return [
             model
-            for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)
+            for _, model in sorted(
+                scored_models, key=lambda x: (x[0], x[1].model_name), reverse=True
+            )
         ]
 
     def _apply_cost_bias(
@@ -387,8 +380,10 @@ class ModelRouter:
                 # Ultra-low cost bias: prioritize cheapest models (100% cost, 0% capability)
                 return cost_score
             elif cost_bias >= 0.9:
-                # Ultra-high cost bias: prioritize most capable models (100% capability, 0% cost)
-                return capability_score
+                # Ultra-high cost bias: prioritize most expensive models
+                # For cost_bias >= 0.9, directly use the normalized cost as the score
+                # Higher cost = higher score
+                return cost / max_cost if max_cost > 0 else 0.5
             else:
                 # Standard balanced routing for moderate cost_bias values
                 cost_capability_score = (
@@ -401,10 +396,12 @@ class ModelRouter:
         # Calculate cost bias scores and sort
         scored_models = [(calculate_cost_bias_score(model), model) for model in models]
 
-        # Sort by cost bias score (highest first)
+        # Sort by cost bias score (highest first), then by model name for stability
         return [
             model
-            for _, model in sorted(scored_models, key=lambda x: x[0], reverse=True)
+            for _, model in sorted(
+                scored_models, key=lambda x: (x[0], x[1].model_name), reverse=True
+            )
         ]
 
     def _apply_integrated_routing(
