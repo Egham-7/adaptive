@@ -251,7 +251,12 @@ class ModelRouter:
             else:
                 task_type_str = str(task_type).lower().strip()
 
-        # Compare normalized strings
+        # Handle special cases for task type matching
+        # TaskType.OTHER should match all models (it's a generic/fallback category)
+        if task_type_str == "other":
+            return True
+
+        # Compare normalized strings for exact matches
         return model_task_str == task_type_str
 
     def _calculate_complexity_score(
@@ -380,11 +385,10 @@ class ModelRouter:
     def _apply_integrated_routing(
         self, models: list[ModelCapability], task_complexity: float, cost_bias: float
     ) -> list[ModelCapability]:
-        """Apply two-step routing: complexity-based, then cost-biased.
+        """Apply intelligent routing that adapts based on cost bias extremes.
 
-        This method implements the two-stage routing approach:
-        1. First, rank models by complexity suitability
-        2. Then, apply cost bias to rerank based on cost vs capability preferences
+        For extreme cost bias values (≤0.1 or ≥0.9), cost preference dominates.
+        For moderate cost bias values, complexity analysis is primary with cost as secondary.
 
         Args:
             models: List of available models to rank
@@ -397,10 +401,21 @@ class ModelRouter:
         if not models:
             return models
 
-        # Step 1: Apply complexity-based routing
-        complexity_ranked = self._apply_complexity_routing(models, task_complexity)
+        # For extreme cost bias, prioritize cost over complexity
+        if cost_bias <= 0.1 or cost_bias >= 0.9:
+            # Step 1: Apply cost bias first (dominant factor)
+            cost_ranked = self._apply_cost_bias(models, cost_bias)
 
-        # Step 2: Apply cost bias to rerank
-        final_ranked = self._apply_cost_bias(complexity_ranked, cost_bias)
+            # Step 2: Apply light complexity filtering as secondary
+            final_ranked = self._apply_complexity_routing(cost_ranked, task_complexity)
 
-        return final_ranked
+            return final_ranked
+        else:
+            # For moderate cost bias, use traditional complexity-first approach
+            # Step 1: Apply complexity-based routing
+            complexity_ranked = self._apply_complexity_routing(models, task_complexity)
+
+            # Step 2: Apply cost bias to rerank
+            final_ranked = self._apply_cost_bias(complexity_ranked, cost_bias)
+
+            return final_ranked

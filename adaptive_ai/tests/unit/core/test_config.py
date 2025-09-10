@@ -76,7 +76,7 @@ class TestSettings:
 
     def test_env_var_override(self, mock_env_vars):
         """Test environment variable override using nested delimiter format."""
-        with mock_env_vars(ADAPTIVE_AI_SERVER__PORT="9999"):
+        with mock_env_vars(PORT="9999"):
             settings = Settings()
             assert settings.server.port == 9999
 

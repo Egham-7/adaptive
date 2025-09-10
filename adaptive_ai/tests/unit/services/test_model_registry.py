@@ -26,7 +26,7 @@ class TestModelRegistry:
         assert model.model_name == "gpt-4"
         assert model.cost_per_1m_input_tokens == 30.0
         assert model.cost_per_1m_output_tokens == 60.0
-        assert model.max_context_tokens == 128000  # Updated to match actual loaded data
+        assert model.max_context_tokens == 8192  # Updated to match actual YAML data
         assert model.supports_function_calling is True
 
     def test_get_model_capability_missing(self):

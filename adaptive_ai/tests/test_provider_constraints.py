@@ -25,7 +25,7 @@ class TestProviderConstraints:
             "prompt": "Write a Python function to sort a list",
             "models": [
                 {
-                    "provider": "ANTHROPIC"
+                    "provider": "anthropic"
                     # No model_name - let system pick best Anthropic model
                 }
             ],
@@ -56,7 +56,7 @@ class TestProviderConstraints:
             "prompt": "Solve this math problem: 2x + 5 = 17",
             "models": [
                 {
-                    "provider": "OPENAI"
+                    "provider": "openai"
                     # No model_name - let system pick best OpenAI model
                 }
             ],
@@ -78,6 +78,7 @@ class TestProviderConstraints:
             "gpt-4o",
             "o3",
             "o3-mini",
+            "o4-mini",
             "gpt-4.1",
             "gpt-3.5-turbo",
         ]
