@@ -11,7 +11,7 @@ type Props = {
 // Safe sessionStorage access
 const getSessionStorage = (key: string): string | null => {
 	try {
-		if (typeof window !== "undefined" && window.sessionStorage) {
+		if (window?.sessionStorage) {
 			return sessionStorage.getItem(key);
 		}
 		return null;
@@ -22,7 +22,7 @@ const getSessionStorage = (key: string): string | null => {
 
 const setSessionStorage = (key: string, value: string): void => {
 	try {
-		if (typeof window !== "undefined" && window.sessionStorage) {
+		if (window?.sessionStorage) {
 			sessionStorage.setItem(key, value);
 		}
 	} catch {
