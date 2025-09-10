@@ -301,19 +301,19 @@ class ModelRouter:
         filtered_models = []
         for model in models:
             model_complexity = self._calculate_complexity_score(model, models)
-            
+
             # For complex tasks (complexity > 0.7), exclude very basic models
             if task_complexity > 0.7:
                 # Exclude models with very low context or very low complexity
                 if (model.max_context_tokens or 0) < 8000 or model_complexity < 0.2:
                     continue
-                    
+
             # For moderate tasks (complexity > 0.5), exclude extremely basic models
             elif task_complexity > 0.5:
                 # Exclude models with very low context
                 if (model.max_context_tokens or 0) < 4000:
                     continue
-            
+
             filtered_models.append(model)
 
         # If filtering removed all models, use original list
@@ -334,7 +334,9 @@ class ModelRouter:
             return alignment_score
 
         # Calculate complexity scores and sort
-        scored_models = [(calculate_complexity_score(model), model) for model in filtered_models]
+        scored_models = [
+            (calculate_complexity_score(model), model) for model in filtered_models
+        ]
 
         # Sort by complexity score (highest first)
         return [
