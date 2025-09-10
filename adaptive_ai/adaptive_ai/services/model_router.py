@@ -285,7 +285,7 @@ class ModelRouter:
 
         This method ranks models based on how well they match the required task complexity,
         without considering cost factors. Models that can handle the required complexity
-        receive higher scores.
+        receive higher scores. Basic models are filtered out for complex tasks.
 
         Args:
             models: List of available models to rank
@@ -297,9 +297,32 @@ class ModelRouter:
         if not models:
             return models
 
+        # Filter out basic models for complex tasks
+        filtered_models = []
+        for model in models:
+            model_complexity = self._calculate_complexity_score(model, models)
+            
+            # For complex tasks (complexity > 0.7), exclude very basic models
+            if task_complexity > 0.7:
+                # Exclude models with very low context or very low complexity
+                if (model.max_context_tokens or 0) < 8000 or model_complexity < 0.2:
+                    continue
+                    
+            # For moderate tasks (complexity > 0.5), exclude extremely basic models
+            elif task_complexity > 0.5:
+                # Exclude models with very low context
+                if (model.max_context_tokens or 0) < 4000:
+                    continue
+            
+            filtered_models.append(model)
+
+        # If filtering removed all models, use original list
+        if not filtered_models:
+            filtered_models = models
+
         def calculate_complexity_score(model: ModelCapability) -> float:
             # Calculate how well this model's complexity aligns with task requirements
-            model_complexity = self._calculate_complexity_score(model, models)
+            model_complexity = self._calculate_complexity_score(model, filtered_models)
             complexity_diff = abs(task_complexity - model_complexity)
             alignment_score = 1.0 - complexity_diff
 
@@ -311,7 +334,7 @@ class ModelRouter:
             return alignment_score
 
         # Calculate complexity scores and sort
-        scored_models = [(calculate_complexity_score(model), model) for model in models]
+        scored_models = [(calculate_complexity_score(model), model) for model in filtered_models]
 
         # Sort by complexity score (highest first)
         return [
@@ -359,11 +382,11 @@ class ModelRouter:
 
             # EXTREME COST BIAS OVERRIDE: For very low/high cost_bias, prioritize cost over complexity
             if cost_bias <= 0.1:
-                # Ultra-low cost bias: prioritize cheapest models
-                return cost_score * 0.9 + capability_score * 0.1
+                # Ultra-low cost bias: prioritize cheapest models (100% cost, 0% capability)
+                return cost_score
             elif cost_bias >= 0.9:
-                # Ultra-high cost bias: prioritize most capable models
-                return capability_score * 0.9 + cost_score * 0.1
+                # Ultra-high cost bias: prioritize most capable models (100% capability, 0% cost)
+                return capability_score
             else:
                 # Standard balanced routing for moderate cost_bias values
                 cost_capability_score = (
@@ -403,13 +426,9 @@ class ModelRouter:
 
         # For extreme cost bias, prioritize cost over complexity
         if cost_bias <= 0.1 or cost_bias >= 0.9:
-            # Step 1: Apply cost bias first (dominant factor)
-            cost_ranked = self._apply_cost_bias(models, cost_bias)
-
-            # Step 2: Apply light complexity filtering as secondary
-            final_ranked = self._apply_complexity_routing(cost_ranked, task_complexity)
-
-            return final_ranked
+            # For extreme cost bias, only apply cost bias ranking without complexity filtering
+            # This ensures the cost preference is respected
+            return self._apply_cost_bias(models, cost_bias)
         else:
             # For moderate cost bias, use traditional complexity-first approach
             # Step 1: Apply complexity-based routing
