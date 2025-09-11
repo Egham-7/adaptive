@@ -79,7 +79,7 @@ class PromptClassifier:
             logger.error(f"Prompt classification failed: {e}")
 
             # Log classification error details
-            logger.error(f"Prompt classification error details: {str(e)}")
+            logger.error(f"Prompt classification error details: {e!s}")
 
             # Re-raise the exception
             raise
@@ -111,8 +111,8 @@ class PromptClassifier:
         except Exception as e:
             logger.error(f"Prompt classification failed (async): {e}")
 
-            # Log async classification error details  
-            logger.error(f"Async prompt classification error details: {str(e)}")
+            # Log async classification error details
+            logger.error(f"Async prompt classification error details: {e!s}")
 
             # Re-raise the exception
             raise

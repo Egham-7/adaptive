@@ -217,7 +217,7 @@ class ModalPromptClassifier:
 
         except Exception as e:
             logger.error(f"Modal classification failed: {e}")
-            logger.error(f"Modal classification error details: {str(e)}")
+            logger.error(f"Modal classification error details: {e!s}")
 
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
@@ -310,7 +310,7 @@ class ModalPromptClassifier:
 
         except Exception as e:
             logger.error(f"Modal classification failed (async): {e}")
-            logger.error(f"Modal async classification error details: {str(e)}")
+            logger.error(f"Modal async classification error details: {e!s}")
 
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
