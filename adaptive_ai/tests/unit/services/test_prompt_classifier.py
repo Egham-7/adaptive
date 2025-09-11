@@ -34,17 +34,15 @@ class TestPromptClassifier:
         classifier.classify_prompts.return_value = [
             ClassificationResult(
                 # Required fields
-                task_type=["Code Generation"],
-                complexity_score=[0.65],
+                task_type_1=["Code Generation"],
+                prompt_complexity_score=[0.65],
                 domain=["Programming"],
                 # Optional fields
-                task_type_1=["Code Generation"],
                 task_type_2=["Other"],
                 task_type_prob=[0.8],
                 creativity_scope=[0.2],
                 reasoning=[0.7],
                 contextual_knowledge=[0.3],
-                prompt_complexity_score=[0.65],
                 domain_knowledge=[0.4],
                 number_of_few_shots=[0],
                 no_label_reason=[0.9],
@@ -72,17 +70,15 @@ class TestPromptClassifier:
         classifier.classify_prompts.return_value = [
             ClassificationResult(
                 # Required fields
-                task_type=["Code Generation"],
-                complexity_score=[0.65],
+                task_type_1=["Code Generation"],
+                prompt_complexity_score=[0.65],
                 domain=["Programming"],
                 # Optional fields
-                task_type_1=["Code Generation"],
                 task_type_2=["Other"],
                 task_type_prob=[0.8],
                 creativity_scope=[0.2],
                 reasoning=[0.7],
                 contextual_knowledge=[0.3],
-                prompt_complexity_score=[0.65],
                 domain_knowledge=[0.4],
                 number_of_few_shots=[0],
                 no_label_reason=[0.9],
@@ -90,17 +86,15 @@ class TestPromptClassifier:
             ),
             ClassificationResult(
                 # Required fields
-                task_type=["Chatbot"],
-                complexity_score=[0.35],
+                task_type_1=["Chatbot"],
+                prompt_complexity_score=[0.35],
                 domain=["General"],
                 # Optional fields
-                task_type_1=["Chatbot"],
                 task_type_2=["Other"],
                 task_type_prob=[0.9],
                 creativity_scope=[0.1],
                 reasoning=[0.3],
                 contextual_knowledge=[0.2],
-                prompt_complexity_score=[0.35],
                 domain_knowledge=[0.2],
                 number_of_few_shots=[0],
                 no_label_reason=[0.95],
@@ -158,12 +152,13 @@ class TestPromptClassifierEdgeCases:
             else [
                 ClassificationResult(
                     task_type_1=["Other"],
+                    prompt_complexity_score=[0.5],
+                    domain=["General"],
                     task_type_2=["Other"],
                     task_type_prob=[0.5],
                     creativity_scope=[0.5],
                     reasoning=[0.5],
                     contextual_knowledge=[0.5],
-                    prompt_complexity_score=[0.5],
                     domain_knowledge=[0.5],
                     number_of_few_shots=[0],
                     no_label_reason=[0.5],
@@ -188,17 +183,15 @@ class TestPromptClassifierEdgeCases:
         # Test with a real ClassificationResult
         result = ClassificationResult(
             # Required fields
-            task_type=["Code Generation"],
-            complexity_score=[0.65],
+            task_type_1=["Code Generation"],
+            prompt_complexity_score=[0.65],
             domain=["Programming"],
             # Optional fields
-            task_type_1=["Code Generation"],
             task_type_2=["Other"],
             task_type_prob=[0.8],
             creativity_scope=[0.2],
             reasoning=[0.7],
             contextual_knowledge=[0.3],
-            prompt_complexity_score=[0.65],
             domain_knowledge=[0.4],
             number_of_few_shots=[0],
             no_label_reason=[0.9],

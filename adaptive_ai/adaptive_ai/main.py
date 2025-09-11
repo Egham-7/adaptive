@@ -38,6 +38,7 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionResponse,
 )
 from adaptive_ai.models.llm_enums import TaskType
+from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.model_router import ModelRouter
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 
@@ -84,7 +85,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Initialize services
     prompt_classifier = get_prompt_classifier()
-    model_router = ModelRouter()
+    model_router = ModelRouter(model_registry)
 
     logger.info("Adaptive AI services initialized successfully")
 
@@ -219,17 +220,15 @@ def get_default_classification() -> ClassificationResult:
     """Get default classification when Modal fails."""
     return ClassificationResult(
         # Required fields
-        task_type=["Other"],
-        complexity_score=[0.5],
+        task_type_1=["Other"],
+        prompt_complexity_score=[0.5],
         domain=["General"],
         # Optional fields
-        task_type_1=["Other"],
         task_type_2=["Unknown"],
         task_type_prob=[0.5],
         creativity_scope=[0.5],
         reasoning=[0.5],
         contextual_knowledge=[0.5],
-        prompt_complexity_score=[0.5],
         domain_knowledge=[0.5],
         number_of_few_shots=[0],
         no_label_reason=[0.5],

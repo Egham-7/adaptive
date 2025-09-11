@@ -8,7 +8,7 @@ from adaptive_ai.models.llm_core_models import (
     ModelCapability,
 )
 from adaptive_ai.models.llm_enums import TaskType
-from adaptive_ai.services.model_registry import model_registry
+from adaptive_ai.services.model_registry import ModelRegistry
 
 # yaml_model_loader removed - using model_registry directly
 
@@ -58,9 +58,9 @@ class ModelRouter:
     # Constants for scoring and thresholds
     _DEFAULT_COST = 1.0  # Default cost for normalization
 
-    def __init__(self) -> None:
-        """Initialize router."""
-        pass
+    def __init__(self, model_registry: ModelRegistry) -> None:
+        """Initialize router with model registry."""
+        self.model_registry = model_registry
 
     def select_models(
         self,
@@ -129,10 +129,10 @@ class ModelRouter:
         """Get candidate models from input, handling full vs partial specs."""
         if models_input is None or len(models_input) == 0:
             # No models specified or empty array - use all available models from global registry
-            all_model_names = model_registry.get_all_model_names()
+            all_model_names = self.model_registry.get_all_model_names()
             all_models = []
             for model_name in all_model_names:
-                model_capability = model_registry.get_model_capability(model_name)
+                model_capability = self.model_registry.get_model_capability(model_name)
                 if model_capability:
                     all_models.append(model_capability)
             return self._filter_by_task_type(all_models, task_type)
@@ -141,7 +141,9 @@ class ModelRouter:
         for model in models_input:
             if model.is_partial:
                 # Partial model - use as filter criteria
-                matching_models = model_registry.find_models_matching_criteria(model)
+                matching_models = self.model_registry.find_models_matching_criteria(
+                    model
+                )
                 # Validate that registry returned complete models
                 for resolved_model in matching_models:
                     if resolved_model.is_partial:
@@ -152,7 +154,9 @@ class ModelRouter:
                 candidate_models.extend(matching_models)
             else:
                 # Full model - use directly (but verify it exists in global registry)
-                registry_model = model_registry.get_model_capability(model.unique_id)
+                registry_model = self.model_registry.get_model_capability(
+                    model.unique_id
+                )
                 if registry_model:
                     candidate_models.append(registry_model)
                 else:

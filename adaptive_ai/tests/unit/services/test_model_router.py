@@ -4,6 +4,7 @@ import pytest
 
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.models.llm_enums import TaskType
+from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.model_router import ModelRouter
 
 
@@ -44,14 +45,14 @@ class TestModelRouter:
 
     def test_initialization(self):
         """Test router initialization."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         assert hasattr(router, "_calculate_complexity_score")
         assert hasattr(router, "select_models")
 
     def test_select_models_with_full_models(self, sample_models):
         """Test model selection when full models are provided."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         # Test selecting models with cost bias favoring capable options
         selected = router.select_models(
@@ -72,7 +73,7 @@ class TestModelRouter:
 
     def test_select_models_cost_bias_low(self, sample_models):
         """Test that low cost bias prefers higher quality models."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         selected = router.select_models(
             task_complexity=0.8,  # High complexity
@@ -87,7 +88,7 @@ class TestModelRouter:
 
     def test_select_models_empty_input(self):
         """Test selecting models when no models are provided."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         # When no models are provided, router should use models from registry
         selected = router.select_models(
@@ -103,7 +104,7 @@ class TestModelRouter:
 
     def test_partial_model_filtering(self):
         """Test filtering with partial ModelCapability."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         # Create a partial model as filter criteria
         partial_models = [
@@ -130,7 +131,7 @@ class TestModelRouter:
 
     def test_model_selection_basic(self, sample_models):
         """Test basic model selection functionality."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         selected = router.select_models(
             task_complexity=0.5,
@@ -149,7 +150,7 @@ class TestModelRouterEdgeCases:
 
     def test_invalid_cost_bias(self):
         """Test handling of invalid cost bias values."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         # Cost bias should be clamped to [0, 1]
         models = [
@@ -195,7 +196,7 @@ class TestModelRouterEdgeCases:
 
     def test_zero_complexity(self):
         """Test handling of zero complexity."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         models = [
             ModelCapability(
@@ -220,7 +221,7 @@ class TestModelRouterEdgeCases:
 
     def test_max_complexity(self):
         """Test handling of maximum complexity."""
-        router = ModelRouter()
+        router = ModelRouter(model_registry)
 
         models = [
             ModelCapability(

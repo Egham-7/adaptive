@@ -209,14 +209,8 @@ class ModalPromptClassifier:
                         )
 
                 # Ensure required fields exist for our schema
-                single_result.setdefault(
-                    "task_type",
-                    [single_result.get("task_type_1", ["Other"])[0]],
-                )
-                single_result.setdefault(
-                    "complexity_score",
-                    [single_result.get("prompt_complexity_score", [0.5])[0]],
-                )
+                single_result.setdefault("task_type_1", ["Other"])
+                single_result.setdefault("prompt_complexity_score", [0.5])
                 single_result.setdefault("domain", ["General"])
 
                 results.append(ClassificationResult(**single_result))
@@ -306,14 +300,8 @@ class ModalPromptClassifier:
                         )
 
                 # Ensure required fields exist for our schema
-                single_result.setdefault(
-                    "task_type",
-                    [single_result.get("task_type_1", ["Other"])[0]],
-                )
-                single_result.setdefault(
-                    "complexity_score",
-                    [single_result.get("prompt_complexity_score", [0.5])[0]],
-                )
+                single_result.setdefault("task_type_1", ["Other"])
+                single_result.setdefault("prompt_complexity_score", [0.5])
                 single_result.setdefault("domain", ["General"])
 
                 results.append(ClassificationResult(**single_result))

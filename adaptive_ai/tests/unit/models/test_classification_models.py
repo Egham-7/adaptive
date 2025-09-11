@@ -18,17 +18,15 @@ def create_classification_result(
 
     defaults = {
         # Required fields
-        "task_type": ["Code Generation"] * size,
-        "complexity_score": [0.65] * size,
+        "task_type_1": task_type_1,
+        "prompt_complexity_score": [0.65] * size,
         "domain": ["Programming"] * size,
         # Optional fields
-        "task_type_1": task_type_1,
         "task_type_2": task_type_2,
         "task_type_prob": [0.8] * size,
         "creativity_scope": [0.2] * size,
         "reasoning": [0.7] * size,
         "contextual_knowledge": [0.3] * size,
-        "prompt_complexity_score": [0.65] * size,
         "domain_knowledge": [0.4] * size,
         "number_of_few_shots": [0] * size,
         "no_label_reason": [0.9] * size,
@@ -45,26 +43,22 @@ class TestClassificationResult:
         """Test creating ClassificationResult with minimal fields."""
         result = ClassificationResult(
             # Required fields
-            task_type=["Code Generation"],
-            complexity_score=[0.65],
+            task_type_1=["Code Generation"],
+            prompt_complexity_score=[0.65],
             domain=["Programming"],
             # Optional fields
-            task_type_1=["Code Generation"],
             task_type_2=["Other"],
             task_type_prob=[0.8],
             creativity_scope=[0.2],
             reasoning=[0.7],
             contextual_knowledge=[0.3],
-            prompt_complexity_score=[0.65],
             domain_knowledge=[0.4],
             number_of_few_shots=[0],
             no_label_reason=[0.9],
             constraint_ct=[0.1],
         )
 
-        assert result.task_type == ["Code Generation"]
         assert result.task_type_1 == ["Code Generation"]
-        assert result.complexity_score == [0.65]
         assert result.domain == ["Programming"]
         assert result.prompt_complexity_score == [0.65]
         assert result.domain_knowledge == [0.4]
@@ -73,26 +67,22 @@ class TestClassificationResult:
         """Test creating ClassificationResult with all fields."""
         result = ClassificationResult(
             # Required fields
-            task_type=["Code Generation", "Open QA"],
-            complexity_score=[0.75, 0.65],
+            task_type_1=["Code Generation", "Open QA"],
+            prompt_complexity_score=[0.75, 0.65],
             domain=["Programming", "General"],
             # Optional fields
-            task_type_1=["Code Generation", "Open QA"],
             task_type_2=["Summarization", "Classification"],
             task_type_prob=[0.89, 0.76],
             creativity_scope=[0.2, 0.8],
             reasoning=[0.7, 0.4],
             contextual_knowledge=[0.3, 0.6],
-            prompt_complexity_score=[0.75, 0.65],
             domain_knowledge=[0.1, 0.9],
             number_of_few_shots=[0, 3],
             no_label_reason=[0.9, 0.85],
             constraint_ct=[0.2, 0.5],
         )
 
-        assert result.task_type == ["Code Generation", "Open QA"]
         assert result.task_type_1 == ["Code Generation", "Open QA"]
-        assert result.complexity_score == [0.75, 0.65]
         assert result.domain == ["Programming", "General"]
         assert result.prompt_complexity_score == [0.75, 0.65]
         assert result.domain_knowledge == [0.1, 0.9]
@@ -101,79 +91,67 @@ class TestClassificationResult:
         """Test task type list validation."""
         # Valid task types
         result = ClassificationResult(
-            task_type=["code", "chat", "analysis"],
-            complexity_score=[0.5, 0.6, 0.7],
-            domain=["Programming", "General", "Analytics"],
             task_type_1=["code", "chat", "analysis"],
+            prompt_complexity_score=[0.5, 0.6, 0.7],
+            domain=["Programming", "General", "Analytics"],
         )
-        assert len(result.task_type) == 3
         assert len(result.task_type_1) == 3
 
         # Empty list should be allowed for optional fields
         result = ClassificationResult(
-            task_type=["code"],
-            complexity_score=[0.5],
+            task_type_1=["code"],
+            prompt_complexity_score=[0.5],
             domain=["Programming"],
-            task_type_1=[],
+            task_type_2=[],
         )
-        assert result.task_type_1 == []
-        assert result.task_type == ["code"]
+        assert result.task_type_2 == []
+        assert result.task_type_1 == ["code"]
 
         # Single item list
         result = ClassificationResult(
-            task_type=["code"],
-            complexity_score=[0.5],
-            domain=["Programming"],
             task_type_1=["code"],
+            prompt_complexity_score=[0.5],
+            domain=["Programming"],
         )
         assert result.task_type_1 == ["code"]
-        assert result.task_type == ["code"]
 
     def test_complexity_score_validation(self):
         """Test complexity score validation."""
         # Valid complexity scores
         result = ClassificationResult(
-            task_type=["Test"],
-            complexity_score=[0.0],
-            domain=["General"],
+            task_type_1=["Test"],
             prompt_complexity_score=[0.0],
+            domain=["General"],
         )
-        assert result.complexity_score == [0.0]
         assert result.prompt_complexity_score == [0.0]
 
         result = ClassificationResult(
-            task_type=["Test"],
-            complexity_score=[0.5],
-            domain=["General"],
+            task_type_1=["Test"],
             prompt_complexity_score=[0.5],
+            domain=["General"],
         )
-        assert result.complexity_score == [0.5]
         assert result.prompt_complexity_score == [0.5]
 
         result = ClassificationResult(
-            task_type=["Test"],
-            complexity_score=[1.0],
-            domain=["General"],
+            task_type_1=["Test"],
             prompt_complexity_score=[1.0],
+            domain=["General"],
         )
-        assert result.complexity_score == [1.0]
         assert result.prompt_complexity_score == [1.0]
 
         # Multiple scores (if supported)
         result = ClassificationResult(
-            task_type=["Test", "Test2", "Test3"],
-            complexity_score=[0.3, 0.7, 0.9],
-            domain=["General", "Tech", "Analytics"],
+            task_type_1=["Test", "Test2", "Test3"],
             prompt_complexity_score=[0.3, 0.7, 0.9],
+            domain=["General", "Tech", "Analytics"],
         )
-        assert len(result.complexity_score) == 3
         assert len(result.prompt_complexity_score) == 3
 
     def test_domain_classification(self):
         """Test domain classification fields."""
         result = ClassificationResult(
-            task_type=["Test", "Test2", "Test3"],
-            complexity_score=[0.5, 0.6, 0.7],
+            task_type_1=["Test", "Test2", "Test3"],
+            prompt_complexity_score=[0.5, 0.6, 0.7],
             domain=["technology", "science", "business"],
         )
 
@@ -184,20 +162,17 @@ class TestClassificationResult:
         """Test realistic classification scenario."""
         result = ClassificationResult(
             # Required fields
-            task_type=["code", "technical_writing"],
-            complexity_score=[0.82, 0.75],
-            domain=["software_engineering", "documentation"],
-            # Optional fields
             task_type_1=["code", "technical_writing"],
             prompt_complexity_score=[0.82, 0.75],
+            domain=["software_engineering", "documentation"],
         )
 
         # Verify all fields are set correctly
-        assert "code" in result.task_type
-        assert "technical_writing" in result.task_type
         assert "code" in result.task_type_1
         assert "technical_writing" in result.task_type_1
-        assert result.complexity_score[0] == 0.82
+        assert "code" in result.task_type_1
+        assert "technical_writing" in result.task_type_1
+        assert result.prompt_complexity_score[0] == 0.82
         assert result.prompt_complexity_score[0] == 0.82
         assert "software_engineering" in result.domain
         assert "documentation" in result.domain
@@ -206,19 +181,16 @@ class TestClassificationResult:
         """Test ClassificationResult serialization."""
         original = ClassificationResult(
             # Required fields
-            task_type=["code", "analysis"],
-            complexity_score=[0.65, 0.75],
-            domain=["technology", "analytics"],
-            # Optional fields
             task_type_1=["code", "analysis"],
             prompt_complexity_score=[0.65, 0.75],
+            domain=["technology", "analytics"],
         )
 
         # Serialize to dict
         data = original.model_dump()
 
-        assert data["task_type"] == ["code", "analysis"]
-        assert data["complexity_score"] == [0.65, 0.75]
+        assert data["task_type_1"] == ["code", "analysis"]
+        assert data["prompt_complexity_score"] == [0.65, 0.75]
         assert data["domain"] == ["technology", "analytics"]
         assert data["task_type_1"] == ["code", "analysis"]
         assert data["prompt_complexity_score"] == [0.65, 0.75]
@@ -226,8 +198,8 @@ class TestClassificationResult:
         # Deserialize from dict
         restored = ClassificationResult(**data)
 
-        assert restored.task_type == original.task_type
-        assert restored.complexity_score == original.complexity_score
+        assert restored.task_type_1 == original.task_type_1
+        assert restored.prompt_complexity_score == original.prompt_complexity_score
         assert restored.domain == original.domain
         assert restored.task_type_1 == original.task_type_1
         assert restored.prompt_complexity_score == original.prompt_complexity_score
@@ -236,63 +208,57 @@ class TestClassificationResult:
         """Test handling of None values."""
         result = ClassificationResult(
             # Required fields cannot be None
-            task_type=["Test"],
-            complexity_score=[0.5],
+            task_type_1=["Test"],
+            prompt_complexity_score=[0.5],
             domain=["General"],
             # Optional fields can be None
-            task_type_1=None,
-            prompt_complexity_score=None,
+            task_type_2=None,
+            task_type_prob=None,
         )
 
-        assert result.task_type == ["Test"]
-        assert result.complexity_score == [0.5]
+        assert result.task_type_1 == ["Test"]
+        assert result.prompt_complexity_score == [0.5]
         assert result.domain == ["General"]
-        assert result.task_type_1 is None
-        assert result.prompt_complexity_score is None
+        assert result.task_type_2 is None
+        assert result.task_type_prob is None
 
     def test_empty_lists_vs_none(self):
         """Test distinction between empty lists and None."""
         result1 = ClassificationResult(
-            task_type=["Test"],
-            complexity_score=[0.5],
+            task_type_1=["Test"],
+            prompt_complexity_score=[0.5],
             domain=["General"],
-            task_type_1=[],
+            task_type_2=[],
         )
         result2 = ClassificationResult(
-            task_type=["Test"],
-            complexity_score=[0.5],
+            task_type_1=["Test"],
+            prompt_complexity_score=[0.5],
             domain=["General"],
-            task_type_1=None,
+            task_type_2=None,
         )
 
-        assert result1.task_type_1 == []
-        assert result2.task_type_1 is None
-        assert result1.task_type_1 != result2.task_type_1
+        assert result1.task_type_2 == []
+        assert result2.task_type_2 is None
+        assert result1.task_type_2 != result2.task_type_2
 
     def test_model_equality(self):
         """Test equality comparison between ClassificationResult instances."""
         result1 = ClassificationResult(
-            task_type=["code"],
-            complexity_score=[0.5],
-            domain=["Programming"],
             task_type_1=["code"],
             prompt_complexity_score=[0.5],
+            domain=["Programming"],
         )
 
         result2 = ClassificationResult(
-            task_type=["code"],
-            complexity_score=[0.5],
-            domain=["Programming"],
             task_type_1=["code"],
             prompt_complexity_score=[0.5],
+            domain=["Programming"],
         )
 
         result3 = ClassificationResult(
-            task_type=["chat"],
-            complexity_score=[0.5],
-            domain=["General"],
             task_type_1=["chat"],
             prompt_complexity_score=[0.5],
+            domain=["General"],
         )
 
         assert result1 == result2
@@ -301,11 +267,9 @@ class TestClassificationResult:
     def test_json_serialization(self):
         """Test JSON serialization compatibility."""
         result = ClassificationResult(
-            task_type=["code", "analysis"],
-            complexity_score=[0.75, 0.65],
-            domain=["technology", "analytics"],
             task_type_1=["code", "analysis"],
             prompt_complexity_score=[0.75, 0.65],
+            domain=["technology", "analytics"],
         )
 
         # Test that it can be converted to JSON-compatible format
@@ -328,7 +292,6 @@ class TestClassificationResultEdgeCases:
     def test_very_large_lists(self):
         """Test with very large classification lists."""
         size = 100
-        large_task_list = [f"task_{i}" for i in range(size)]
         large_task_list_1 = [f"task_{i}" for i in range(size)]
         large_task_list_2 = [f"secondary_task_{i}" for i in range(size)]
         large_domain_list = [f"domain_{i}" for i in range(size)]
@@ -337,30 +300,28 @@ class TestClassificationResultEdgeCases:
 
         result = ClassificationResult(
             # Required fields
-            task_type=large_task_list,
-            complexity_score=large_score_list,
+            task_type_1=large_task_list_1,
+            prompt_complexity_score=large_score_list,
             domain=large_domain_list,
             # Optional fields
-            task_type_1=large_task_list_1,
             task_type_2=large_task_list_2,
             task_type_prob=large_score_list,
             creativity_scope=large_score_list,
             reasoning=large_score_list,
             contextual_knowledge=large_score_list,
-            prompt_complexity_score=large_score_list,
             domain_knowledge=large_score_list,
             number_of_few_shots=large_int_list,
             no_label_reason=large_score_list,
             constraint_ct=large_score_list,
         )
 
-        assert len(result.task_type) == 100
         assert len(result.task_type_1) == 100
-        assert len(result.complexity_score) == 100
+        assert len(result.task_type_1) == 100
         assert len(result.prompt_complexity_score) == 100
-        assert result.task_type[0] == "task_0"
+        assert len(result.prompt_complexity_score) == 100
         assert result.task_type_1[0] == "task_0"
-        assert result.complexity_score[0] == 0.0
+        assert result.task_type_1[0] == "task_0"
+        assert result.prompt_complexity_score[0] == 0.0
         assert result.prompt_complexity_score[0] == 0.0
 
     def test_unicode_task_types(self):

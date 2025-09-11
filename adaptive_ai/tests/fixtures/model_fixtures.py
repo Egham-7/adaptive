@@ -78,17 +78,15 @@ def sample_classification_result():
     """Sample ClassificationResult for testing."""
     return ClassificationResult(
         # Required fields
-        task_type=["Code Generation", "Analysis"],
-        complexity_score=[0.75, 0.65],
+        task_type_1=["code", "analysis"],
+        prompt_complexity_score=[0.75, 0.65],
         domain=["Programming", "Analytics"],
         # Optional fields
-        task_type_1=["code", "analysis"],
         task_type_2=["generation", "problem_solving"],
         task_type_prob=[0.75, 0.70],
         creativity_scope=[0.4, 0.3],
         reasoning=[0.8, 0.7],
         contextual_knowledge=[0.6, 0.5],
-        prompt_complexity_score=[0.75, 0.65],
         domain_knowledge=[0.5, 0.6],
         number_of_few_shots=[0, 1],
         no_label_reason=[0.9, 0.85],
@@ -101,17 +99,15 @@ def empty_classification_result():
     """Empty ClassificationResult for testing edge cases."""
     return ClassificationResult(
         # Required fields cannot be empty, use minimal valid values
-        task_type=["Other"],
-        complexity_score=[0.0],
+        task_type_1=["Other"],
+        prompt_complexity_score=[0.0],
         domain=["General"],
         # Optional fields can be empty
-        task_type_1=[],
         task_type_2=[],
         task_type_prob=[],
         creativity_scope=[],
         reasoning=[],
         contextual_knowledge=[],
-        prompt_complexity_score=[],
         domain_knowledge=[],
         number_of_few_shots=[],
         no_label_reason=[],
