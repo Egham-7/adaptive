@@ -361,7 +361,7 @@ async def serve_with_graceful_shutdown() -> None:
 
     try:
         # Serve the application
-        await serve(app, config, shutdown_trigger=shutdown_event.wait)
+        await serve(app, config, shutdown_trigger=shutdown_event.wait)  # type: ignore[arg-type]
     except Exception as e:
         logger.exception("Server error: %s", e)
         raise
