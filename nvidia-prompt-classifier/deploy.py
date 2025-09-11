@@ -75,7 +75,7 @@ app = modal.App(APP_NAME)
 @app.cls(
     image=ml_image,
     gpu=GPU_TYPE,
-    secrets=[modal.Secret.from_name("jwt-auth")],
+    secrets=[modal.Secret.from_name("jwt")],
     max_containers=20,  # Increased for better concurrency
     scaledown_window=180,  # Faster scaledown for cost efficiency
     min_containers=2,  # Keep 2 containers warm for faster response (renamed from keep_warm)
@@ -161,7 +161,7 @@ class NvidiaPromptClassifier:
 
 @app.function(
     image=web_image,
-    secrets=[modal.Secret.from_name("jwt-auth")],
+    secrets=[modal.Secret.from_name("jwt")],
     max_containers=50,  # Allow multiple concurrent requests (renamed from concurrency_limit)
     timeout=300,  # 5 minute timeout for large batches
 )
@@ -244,7 +244,7 @@ def serve() -> "FastAPI":
         """Verify JWT token from Authorization header with enhanced security."""
         try:
             token = credentials.credentials
-            secret = os.environ.get("JWT_SECRET")
+            secret = os.environ.get("jwt_auth")
             if not secret:
                 raise Exception("JWT secret not configured")
 

@@ -74,11 +74,11 @@ class TestSettings:
         assert settings.fastapi.workers == 1
         assert settings.logging.level == "INFO"
 
-    def test_env_var_override(self, mock_env_vars):
+    def test_env_var_override(self, monkeypatch):
         """Test environment variable override using nested delimiter format."""
-        with mock_env_vars(PORT="9999"):
-            settings = Settings()
-            assert settings.server.port == 9999
+        monkeypatch.setenv("SERVER__PORT", "9999")
+        settings = Settings()
+        assert settings.server.port == 9999
 
     # TODO: Re-enable these tests when YAML support is added to Settings class
     # The following tests are commented out because Settings.from_yaml() is not implemented
@@ -236,8 +236,11 @@ class TestGetSettings:
     #     finally:
     #         Path(temp_path).unlink()
 
-    def test_get_settings_caching(self, isolated_cache):
+    def test_get_settings_caching(self):
         """Test that get_settings returns cached instance."""
+        # Clear the cache first
+        get_settings.cache_clear()
+
         settings1 = get_settings()
         settings2 = get_settings()
 

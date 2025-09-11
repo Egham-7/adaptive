@@ -173,21 +173,8 @@ async def classify_prompt_async(request: ModelSelectionRequest) -> Classificatio
     """Classify single prompt for task type asynchronously."""
     start_time = time.perf_counter()
 
-    # Extract prompt from request - prefer direct prompt, fall back to chat messages
-    prompt = getattr(request, "prompt", "")
-
-    # Only fall back to chat completion request if prompt is empty or missing
-    if (
-        not prompt
-        and hasattr(request, "chat_completion_request")
-        and request.chat_completion_request
-    ):
-        messages = request.chat_completion_request.messages
-        prompt = messages[-1].content if messages else ""
-
-    # Ensure prompt is always defined (empty string if nothing found)
-    if not prompt:
-        prompt = ""
+    # Extract prompt from request - it's a required field
+    prompt = request.prompt
 
     try:
         # Use the async Modal classification method directly
