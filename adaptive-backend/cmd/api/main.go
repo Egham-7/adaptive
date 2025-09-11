@@ -40,10 +40,15 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 		return fmt.Errorf("protocol manager initialization failed: %w", err)
 	}
 
-	// Create prompt cache (shared service using Redis client)
-	promptCache, err := cache.NewPromptCache(redisClient, cfg.PromptCache)
+	// Create prompt caches (shared services using Redis client)
+	openaiPromptCache, err := cache.NewOpenAIPromptCache(redisClient, cfg.PromptCache)
 	if err != nil {
-		return fmt.Errorf("prompt cache initialization failed: %w", err)
+		return fmt.Errorf("openAI prompt cache initialization failed: %w", err)
+	}
+
+	anthropicPromptCache, err := cache.NewAnthropicPromptCache(redisClient, cfg.PromptCache)
+	if err != nil {
+		return fmt.Errorf("anthropic prompt cache initialization failed: %w", err)
 	}
 
 	// Create response service (depends on model router)
@@ -65,9 +70,9 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	selectModelRespSvc := select_model.NewResponseService()
 
 	// Initialize handlers with shared dependencies
-	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, modelRouter, promptCache, circuitBreakers)
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, modelRouter, openaiPromptCache, circuitBreakers)
 	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
-	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, circuitBreakers)
+	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, anthropicPromptCache, circuitBreakers)
 
 	// Apply JWT authentication to all v1 routes
 	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))

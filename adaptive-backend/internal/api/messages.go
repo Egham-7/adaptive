@@ -1,14 +1,17 @@
 package api
 
 import (
+	"context"
 	"fmt"
 
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/anthropic/messages"
+	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/model_router"
+	"adaptive-backend/internal/stream/stream_simulator"
 	"adaptive-backend/internal/utils"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -23,6 +26,7 @@ type MessagesHandler struct {
 	messagesSvc     *messages.MessagesService
 	responseSvc     *messages.ResponseService
 	modelRouter     *model_router.ModelRouter
+	promptCache     *cache.AnthropicPromptCache
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 	fallbackService *fallback.FallbackService
 }
@@ -31,6 +35,7 @@ type MessagesHandler struct {
 func NewMessagesHandler(
 	cfg *config.Config,
 	modelRouter *model_router.ModelRouter,
+	promptCache *cache.AnthropicPromptCache,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) *MessagesHandler {
 	return &MessagesHandler{
@@ -39,6 +44,7 @@ func NewMessagesHandler(
 		messagesSvc:     messages.NewMessagesService(),
 		responseSvc:     messages.NewResponseService(),
 		modelRouter:     modelRouter,
+		promptCache:     promptCache,
 		circuitBreakers: circuitBreakers,
 		fallbackService: fallback.NewFallbackService(cfg),
 	}
@@ -68,6 +74,16 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 	// Check if streaming is requested
 	isStreaming := req.Stream != nil && *req.Stream
 	fiberlog.Debugf("[%s] Request type: streaming=%t", requestID, isStreaming)
+
+	// Check prompt cache first
+	if cachedResponse, cacheSource, found := h.checkPromptCache(c.UserContext(), req, &resolvedConfig.PromptCache, requestID); found {
+		fiberlog.Infof("[%s] prompt cache hit (%s) - returning cached response", requestID, cacheSource)
+		if isStreaming {
+			// Convert cached response to streaming format
+			return stream_simulator.StreamAnthropicCachedResponse(c, cachedResponse, requestID)
+		}
+		return c.JSON(cachedResponse)
+	}
 
 	// If a model is specified, directly route to the appropriate provider without model router
 	if req.Model != "" {
@@ -189,4 +205,19 @@ func (h *MessagesHandler) createExecuteFunc(
 
 		return nil
 	}
+}
+
+// checkPromptCache checks if prompt cache is enabled and returns cached response if found
+func (h *MessagesHandler) checkPromptCache(ctx context.Context, req *models.AnthropicMessageRequest, promptCacheConfig *models.CacheConfig, requestID string) (*models.AnthropicMessage, string, bool) {
+	if !promptCacheConfig.Enabled {
+		fiberlog.Debugf("[%s] prompt cache disabled", requestID)
+		return nil, "", false
+	}
+
+	if h.promptCache == nil {
+		fiberlog.Debugf("[%s] prompt cache service not available", requestID)
+		return nil, "", false
+	}
+
+	return h.promptCache.Get(ctx, req, requestID)
 }
