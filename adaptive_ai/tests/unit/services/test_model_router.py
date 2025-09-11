@@ -1,7 +1,5 @@
 """Unit tests for ModelRouter service."""
 
-from unittest.mock import Mock
-
 import pytest
 
 from adaptive_ai.models.llm_core_models import ModelCapability
@@ -12,12 +10,7 @@ from adaptive_ai.services.model_router import ModelRouter
 class TestModelRouter:
     """Test ModelRouter class logic without external dependencies."""
 
-    @pytest.fixture
-    def mock_logger(self):
-        """Mock LitServe logger."""
-        logger = Mock()
-        logger.log = Mock()
-        return logger
+    # Removed mock_logger fixture as we no longer use LitServe logging
 
     @pytest.fixture
     def sample_models(self):
@@ -49,17 +42,16 @@ class TestModelRouter:
             ),
         ]
 
-    def test_initialization(self, mock_logger):
+    def test_initialization(self):
         """Test router initialization."""
-        router = ModelRouter(lit_logger=mock_logger)
+        router = ModelRouter()
 
-        assert router._lit_logger == mock_logger
         assert hasattr(router, "_calculate_complexity_score")
         assert hasattr(router, "select_models")
 
-    def test_select_models_with_full_models(self, sample_models, mock_logger):
+    def test_select_models_with_full_models(self, sample_models):
         """Test model selection when full models are provided."""
-        router = ModelRouter(lit_logger=mock_logger)
+        router = ModelRouter()
 
         # Test selecting models with cost bias favoring expensive/capable options
         selected = router.select_models(
@@ -79,9 +71,9 @@ class TestModelRouter:
                 > selected[1].cost_per_1m_input_tokens
             )
 
-    def test_select_models_cost_bias_low(self, sample_models, mock_logger):
+    def test_select_models_cost_bias_low(self, sample_models):
         """Test that low cost bias prefers higher quality models."""
-        router = ModelRouter(lit_logger=mock_logger)
+        router = ModelRouter()
 
         selected = router.select_models(
             task_complexity=0.8,  # High complexity
@@ -94,9 +86,9 @@ class TestModelRouter:
         # With low cost bias and high complexity, more expensive models should be prioritized
         # gpt-4 should be preferred for complex code generation tasks
 
-    def test_select_models_empty_input(self, mock_logger):
+    def test_select_models_empty_input(self):
         """Test selecting models when no models are provided."""
-        router = ModelRouter(lit_logger=mock_logger)
+        router = ModelRouter()
 
         # When no models are provided, router should use models from registry
         selected = router.select_models(
@@ -110,9 +102,9 @@ class TestModelRouter:
         assert len(selected) > 0
         assert all(isinstance(model, ModelCapability) for model in selected)
 
-    def test_partial_model_filtering(self, mock_logger):
+    def test_partial_model_filtering(self):
         """Test filtering with partial ModelCapability."""
-        router = ModelRouter(lit_logger=mock_logger)
+        router = ModelRouter()
 
         # Create a partial model as filter criteria
         partial_models = [
@@ -137,26 +129,20 @@ class TestModelRouter:
         assert len(selected) > 0
         assert all(model.provider == "openai" for model in selected if model.provider)
 
-    def test_logging_integration(self, sample_models, mock_logger):
-        """Test that router logs metrics correctly."""
-        router = ModelRouter(lit_logger=mock_logger)
+    def test_model_selection_basic(self, sample_models):
+        """Test basic model selection functionality."""
+        router = ModelRouter()
 
-        router.select_models(
+        selected = router.select_models(
             task_complexity=0.5,
             task_type=TaskType.CODE_GENERATION,
             models_input=sample_models,
             cost_bias=0.5,
         )
 
-        # Verify logging was called
-        assert mock_logger.log.called
-        # Check that relevant metrics were logged
-        call_args = [call[0] for call in mock_logger.log.call_args_list]
-        logged_keys = [args[0] for args in call_args]
-
-        # Should log registry and task filtering
-        assert any("registry" in key for key in logged_keys)
-        assert any("task_type" in key for key in logged_keys)
+        # Verify models were selected
+        assert len(selected) > 0
+        assert all(isinstance(model, ModelCapability) for model in selected)
 
 
 class TestModelRouterEdgeCases:

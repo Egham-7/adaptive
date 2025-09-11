@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from adaptive_ai.models.llm_core_models import (
@@ -12,13 +13,7 @@ from adaptive_ai.services.model_registry import model_registry
 
 # yaml_model_loader removed - using model_registry directly
 
-
-class LitLoggerProtocol:
-    """Protocol for LitServe compatible logging."""
-
-    def log(self, key: str, value: Any) -> None:
-        """Log a key-value pair."""
-        ...
+logger = logging.getLogger(__name__)
 
 
 class ModelRouter:
@@ -43,9 +38,6 @@ class ModelRouter:
     3. Apply cost bias to balance price vs. performance
     4. Return ranked list of suitable models
 
-    Args:
-        lit_logger: Optional LitServe compatible logger for metrics and debugging
-
     Example:
         >>> router = ModelRouter()
 
@@ -67,14 +59,9 @@ class ModelRouter:
     # Constants for scoring and thresholds
     _DEFAULT_COST = 1.0  # Default cost for normalization
 
-    def __init__(self, lit_logger: LitLoggerProtocol | None = None) -> None:
-        """Initialize router with optional logger."""
-        self._lit_logger = lit_logger
-
-    def _log(self, key: str, value: Any) -> None:
-        """Internal logging method."""
-        if self._lit_logger:
-            self._lit_logger.log(key, value)
+    def __init__(self) -> None:
+        """Initialize router."""
+        pass
 
     def select_models(
         self,
@@ -128,7 +115,7 @@ class ModelRouter:
         candidate_models = self._get_candidate_models(models_input, task_type)
 
         # Log registry usage for metrics
-        self._log("registry_lookup", {"models_found": len(candidate_models)})
+        logger.debug(f"Registry lookup found {len(candidate_models)} candidate models")
 
         # Apply integrated complexity and cost routing
         final_models = self._apply_integrated_routing(
@@ -194,14 +181,7 @@ class ModelRouter:
             if self._model_supports_task_type(model, task_type)
         ]
 
-        self._log(
-            "task_type_filtering",
-            {
-                "task_type": task_type,
-                "total_models": len(models),
-                "filtered_models": len(filtered_models),
-            },
-        )
+        logger.debug(f"Task type filtering: {task_type.value} - {len(models)} total models, {len(filtered_models)} filtered models")
 
         return filtered_models
 

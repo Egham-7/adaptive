@@ -37,14 +37,9 @@ class PromptClassifier:
     - Simple architecture: Direct use of Modal's processed results
     """
 
-    def __init__(self, lit_logger: Any = None) -> None:
-        """Initialize prompt classifier with Modal API client.
-
-        Args:
-            lit_logger: Optional LitServe logger for compatibility and metrics
-        """
-        self.lit_logger = lit_logger
-        self._modal_client = ModalPromptClassifier(lit_logger=lit_logger)
+    def __init__(self) -> None:
+        """Initialize prompt classifier with Modal API client."""
+        self._modal_client = ModalPromptClassifier()
 
         logger.info("Initialized PromptClassifier with Modal API client")
 
@@ -83,9 +78,8 @@ class PromptClassifier:
         except Exception as e:
             logger.error(f"Prompt classification failed: {e}")
 
-            # Log to LitServe if available
-            if self.lit_logger:
-                self.lit_logger.log("prompt_classification_error", {"error": str(e)})
+            # Log classification error details
+            logger.error(f"Prompt classification error details: {str(e)}")
 
             # Re-raise the exception
             raise
@@ -117,9 +111,8 @@ class PromptClassifier:
         except Exception as e:
             logger.error(f"Prompt classification failed (async): {e}")
 
-            # Log to LitServe if available
-            if self.lit_logger:
-                self.lit_logger.log("prompt_classification_error", {"error": str(e)})
+            # Log async classification error details  
+            logger.error(f"Async prompt classification error details: {str(e)}")
 
             # Re-raise the exception
             raise
@@ -133,16 +126,13 @@ class PromptClassifier:
         return self._modal_client.health_check()
 
 
-def get_prompt_classifier(lit_logger: Any = None) -> PromptClassifier:
+def get_prompt_classifier() -> PromptClassifier:
     """Get prompt classifier instance.
 
-    This function maintains the same interface as before but now returns
-    a Modal API client-based classifier instead of the local GPU model.
-
-    Args:
-        lit_logger: Optional LitServe logger
+    This function returns a Modal API client-based classifier for GPU-accelerated
+    prompt classification.
 
     Returns:
         PromptClassifier instance using Modal API
     """
-    return PromptClassifier(lit_logger=lit_logger)
+    return PromptClassifier()

@@ -54,14 +54,9 @@ class ModalPromptClassifier:
     - Health check functionality
     """
 
-    def __init__(self, lit_logger: Any = None):
-        """Initialize Modal API client.
-
-        Args:
-            lit_logger: Optional LitServe logger (maintained for compatibility)
-        """
+    def __init__(self) -> None:
+        """Initialize Modal API client."""
         self.config = ModalConfig()
-        self.lit_logger = lit_logger
         self.client = httpx.Client(timeout=self.config.request_timeout)
         self.async_client = httpx.AsyncClient(timeout=self.config.request_timeout)
         self._token_cache: str | None = None
@@ -167,11 +162,7 @@ class ModalPromptClassifier:
         if not prompts:
             raise ValueError("Prompts list cannot be empty")
 
-        if self.lit_logger:
-            self.lit_logger.log(
-                "modal_classification_batch_start", {"batch_size": len(prompts)}
-            )
-
+        logger.info(f"Starting Modal classification batch with {len(prompts)} prompts")
         logger.info(f"Classifying {len(prompts)} prompts via Modal API")
 
         try:
@@ -220,18 +211,13 @@ class ModalPromptClassifier:
 
                 results.append(ClassificationResult(**single_result))
 
-            if self.lit_logger:
-                self.lit_logger.log(
-                    "modal_classification_batch_complete", {"batch_size": len(results)}
-                )
-
+            logger.info(f"Completed Modal classification batch with {len(results)} results")
             logger.info(f"Successfully classified {len(results)} prompts")
             return results
 
         except Exception as e:
             logger.error(f"Modal classification failed: {e}")
-            if self.lit_logger:
-                self.lit_logger.log("modal_classification_error", {"error": str(e)})
+            logger.error(f"Modal classification error details: {str(e)}")
 
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
@@ -269,11 +255,7 @@ class ModalPromptClassifier:
         if not prompts:
             raise ValueError("Prompts list cannot be empty")
 
-        if self.lit_logger:
-            self.lit_logger.log(
-                "modal_classification_batch_start", {"batch_size": len(prompts)}
-            )
-
+        logger.info(f"Starting Modal async classification batch with {len(prompts)} prompts")
         logger.info(f"Classifying {len(prompts)} prompts via Modal API (async)")
 
         try:
@@ -322,18 +304,13 @@ class ModalPromptClassifier:
 
                 results.append(ClassificationResult(**single_result))
 
-            if self.lit_logger:
-                self.lit_logger.log(
-                    "modal_classification_batch_complete", {"batch_size": len(results)}
-                )
-
+            logger.info(f"Completed Modal async classification batch with {len(results)} results")
             logger.info(f"Successfully classified {len(results)} prompts (async)")
             return results
 
         except Exception as e:
             logger.error(f"Modal classification failed (async): {e}")
-            if self.lit_logger:
-                self.lit_logger.log("modal_classification_error", {"error": str(e)})
+            logger.error(f"Modal async classification error details: {str(e)}")
 
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
@@ -417,13 +394,10 @@ class ModalPromptClassifier:
                 logging.getLogger(__name__).debug(f"Client cleanup failed: {e}")
 
 
-def get_modal_prompt_classifier(lit_logger: Any = None) -> ModalPromptClassifier:
+def get_modal_prompt_classifier() -> ModalPromptClassifier:
     """Get Modal prompt classifier instance.
-
-    Args:
-        lit_logger: Optional LitServe logger
 
     Returns:
         ModalPromptClassifier instance
     """
-    return ModalPromptClassifier(lit_logger=lit_logger)
+    return ModalPromptClassifier()

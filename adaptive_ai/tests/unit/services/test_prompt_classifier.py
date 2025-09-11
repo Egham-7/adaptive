@@ -133,12 +133,10 @@ class TestGetPromptClassifier:
             # Model loading might fail, that's ok for unit test
             assert True
 
-    def test_get_prompt_classifier_with_logger(self):
-        """Test get_prompt_classifier with logger parameter."""
-        mock_logger = Mock()
-
+    def test_get_prompt_classifier_basic(self):
+        """Test get_prompt_classifier basic functionality."""
         try:
-            classifier = get_prompt_classifier(lit_logger=mock_logger)
+            classifier = get_prompt_classifier()
             assert isinstance(classifier, PromptClassifier)
         except Exception:
             # Model loading might fail, that's ok for unit test

@@ -13,7 +13,7 @@ Use ByteRover MCP for persistent memory across sessions:
 
 ### Documentation
 For documentation needs, use Ref MCP tools:
-- **Search docs**: Use `mcp__Ref__ref_search_documentation` for Python, LitServe, PyTorch, HuggingFace, scikit-learn documentation
+- **Search docs**: Use `mcp__Ref__ref_search_documentation` for Python, FastAPI, PyTorch, HuggingFace, scikit-learn documentation
 - **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
 
 ## Overview
@@ -27,7 +27,7 @@ The adaptive_ai service is a Python-based ML microservice that provides intellig
 - **Domain Classification**: Identifies specialized domains for targeted model selection
 - **Cost Optimization**: Balances performance vs. cost based on user preferences and prompt analysis
 - **Protocol Management**: Decides between standard LLM calls vs. specialized "minion" protocols
-- **High-Performance API**: FastAPI framework with OpenAPI documentation and async endpoints
+- **High-Performance API**: FastAPI framework with OpenAPI documentation, async endpoints, and standard Python logging
 
 ## Technology Stack
 
@@ -38,6 +38,7 @@ The adaptive_ai service is a Python-based ML microservice that provides intellig
 - **Model Registry**: Static model metadata (no local ML models)
 - **LLM Integration**: LangChain for orchestration and provider abstraction
 - **Configuration**: Pydantic Settings for type-safe configuration management
+- **Logging**: Standard Python logging with structured output for FastAPI integration
 
 ## Project Structure
 
