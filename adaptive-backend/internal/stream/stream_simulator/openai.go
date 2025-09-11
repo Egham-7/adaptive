@@ -1,4 +1,4 @@
-package cache
+package stream_simulator
 
 import (
 	"bufio"
@@ -15,9 +15,9 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// StreamCachedResponse converts a cached ChatCompletion response to Server-Sent Events (SSE) format
-func StreamCachedResponse(c *fiber.Ctx, cachedResp *models.ChatCompletion, requestID string) error {
-	fiberlog.Infof("[%s] Streaming cached response as SSE", requestID)
+// StreamOpenAICachedResponse converts a cached ChatCompletion response to Server-Sent Events (SSE) format
+func StreamOpenAICachedResponse(c *fiber.Ctx, cachedResp *models.ChatCompletion, requestID string) error {
+	fiberlog.Infof("[%s] Streaming cached OpenAI response as SSE", requestID)
 
 	// Get FastHTTP context
 	fasthttpCtx := c.Context()
@@ -31,7 +31,7 @@ func StreamCachedResponse(c *fiber.Ctx, cachedResp *models.ChatCompletion, reque
 		startTime := time.Now()
 
 		// Create streaming chunks from the cached response
-		chunks := convertToStreamingChunks(cachedResp, requestID)
+		chunks := convertToOpenAIStreamingChunks(cachedResp, requestID)
 
 		fiberlog.Debugf("[%s] Generated %d streaming chunks from cached response", requestID, len(chunks))
 
@@ -90,8 +90,8 @@ func StreamCachedResponse(c *fiber.Ctx, cachedResp *models.ChatCompletion, reque
 	return nil
 }
 
-// convertToStreamingChunks converts a ChatCompletion to streaming chunks
-func convertToStreamingChunks(completion *models.ChatCompletion, requestID string) []models.ChatCompletionChunk {
+// convertToOpenAIStreamingChunks converts a ChatCompletion to streaming chunks
+func convertToOpenAIStreamingChunks(completion *models.ChatCompletion, requestID string) []models.ChatCompletionChunk {
 	if len(completion.Choices) == 0 {
 		fiberlog.Warnf("[%s] No choices in cached completion", requestID)
 		return []models.ChatCompletionChunk{}

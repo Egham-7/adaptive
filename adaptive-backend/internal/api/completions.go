@@ -12,6 +12,7 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/model_router"
+	"adaptive-backend/internal/stream/stream_simulator"
 	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,7 +34,7 @@ type CompletionHandler struct {
 	respSvc         *completions.ResponseService
 	completionSvc   *completions.CompletionService
 	modelRouter     *model_router.ModelRouter
-	promptCache     *cache.PromptCache
+	promptCache     *cache.OpenAIPromptCache
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 }
 
@@ -44,7 +45,7 @@ func NewCompletionHandler(
 	respSvc *completions.ResponseService,
 	completionSvc *completions.CompletionService,
 	modelRouter *model_router.ModelRouter,
-	promptCache *cache.PromptCache,
+	promptCache *cache.OpenAIPromptCache,
 	circuitBreakers map[string]*circuitbreaker.CircuitBreaker,
 ) *CompletionHandler {
 	return &CompletionHandler{
@@ -89,7 +90,7 @@ func (h *CompletionHandler) ChatCompletion(c *fiber.Ctx) error {
 		fiberlog.Infof("[%s] prompt cache hit (%s) - returning cached response", reqID, cacheSource)
 		if isStream {
 			// Convert cached response to streaming format
-			return cache.StreamCachedResponse(c, cachedResponse, reqID)
+			return stream_simulator.StreamOpenAICachedResponse(c, cachedResponse, reqID)
 		}
 		return c.JSON(cachedResponse)
 	}
