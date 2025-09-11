@@ -53,22 +53,21 @@ class TestModelRouter:
         """Test model selection when full models are provided."""
         router = ModelRouter()
 
-        # Test selecting models with cost bias favoring expensive/capable options
+        # Test selecting models with cost bias favoring capable options
         selected = router.select_models(
             task_complexity=0.5,
             task_type=TaskType.TEXT_GENERATION,  # Use task type that models support
             models_input=sample_models,
-            cost_bias=0.9,  # High cost bias = prefer expensive/capable models
+            cost_bias=0.9,  # High cost bias = prefer capable models
         )
 
         assert len(selected) > 0
         assert all(isinstance(model, ModelCapability) for model in selected)
-        # With high cost bias, more expensive models should be prioritized
-        # gpt-4 should be ranked higher than cheaper models
+        # With high cost bias, more capable models should be prioritized
+        # Models with higher context tokens should be ranked higher
         if len(selected) >= 2:
-            assert (
-                selected[0].cost_per_1m_input_tokens
-                > selected[1].cost_per_1m_input_tokens
+            assert (selected[0].max_context_tokens or 0) >= (
+                selected[1].max_context_tokens or 0
             )
 
     def test_select_models_cost_bias_low(self, sample_models):

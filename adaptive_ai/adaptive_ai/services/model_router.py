@@ -356,23 +356,14 @@ class ModelRouter:
             cost_score = 1 - (cost / max_cost if max_cost > 0 else 0)
             capability_score = capability / max_capability if max_capability > 0 else 0
 
-            # EXTREME COST BIAS OVERRIDE: For very low/high cost_bias, prioritize cost over complexity
-            if cost_bias <= 0.1:
-                # Ultra-low cost bias: prioritize cheapest models (100% cost, 0% capability)
-                return cost_score
-            elif cost_bias >= 0.9:
-                # Ultra-high cost bias: prioritize most expensive models
-                # For cost_bias >= 0.9, directly use the normalized cost as the score
-                # Higher cost = higher score
-                return cost / max_cost if max_cost > 0 else 0.5
-            else:
-                # Standard balanced routing for moderate cost_bias values
-                cost_capability_score = (
-                    1 - cost_bias
-                ) * cost_score + cost_bias * capability_score
+            # Balanced routing: combine cost and capability based on cost_bias
+            # cost_bias = 0.0 -> 100% cost preference, 0% capability
+            # cost_bias = 1.0 -> 0% cost preference, 100% capability
+            cost_capability_score = (
+                1 - cost_bias
+            ) * cost_score + cost_bias * capability_score
 
-                # For moderate cost_bias, we combine cost and capability in a balanced way
-                return cost_capability_score
+            return cost_capability_score
 
         # Calculate cost bias scores and sort
         scored_models = [(calculate_cost_bias_score(model), model) for model in models]
@@ -388,10 +379,9 @@ class ModelRouter:
     def _apply_integrated_routing(
         self, models: list[ModelCapability], task_complexity: float, cost_bias: float
     ) -> list[ModelCapability]:
-        """Apply intelligent routing that adapts based on cost bias extremes.
+        """Apply intelligent routing with complexity analysis and cost bias balancing.
 
-        For extreme cost bias values (≤0.1 or ≥0.9), cost preference dominates.
-        For moderate cost bias values, complexity analysis is primary with cost as secondary.
+        Uses complexity analysis as primary ranking with cost bias as secondary reranking.
 
         Args:
             models: List of available models to rank
@@ -404,17 +394,10 @@ class ModelRouter:
         if not models:
             return models
 
-        # For extreme cost bias, prioritize cost over complexity
-        if cost_bias <= 0.1 or cost_bias >= 0.9:
-            # For extreme cost bias, only apply cost bias ranking without complexity filtering
-            # This ensures the cost preference is respected
-            return self._apply_cost_bias(models, cost_bias)
-        else:
-            # For moderate cost bias, use traditional complexity-first approach
-            # Step 1: Apply complexity-based routing
-            complexity_ranked = self._apply_complexity_routing(models, task_complexity)
+        # Step 1: Apply complexity-based routing
+        complexity_ranked = self._apply_complexity_routing(models, task_complexity)
 
-            # Step 2: Apply cost bias to rerank
-            final_ranked = self._apply_cost_bias(complexity_ranked, cost_bias)
+        # Step 2: Apply cost bias to rerank
+        final_ranked = self._apply_cost_bias(complexity_ranked, cost_bias)
 
-            return final_ranked
+        return final_ranked
