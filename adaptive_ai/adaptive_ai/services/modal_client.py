@@ -211,7 +211,9 @@ class ModalPromptClassifier:
 
                 results.append(ClassificationResult(**single_result))
 
-            logger.info(f"Completed Modal classification batch with {len(results)} results")
+            logger.info(
+                f"Completed Modal classification batch with {len(results)} results"
+            )
             logger.info(f"Successfully classified {len(results)} prompts")
             return results
 
@@ -255,7 +257,9 @@ class ModalPromptClassifier:
         if not prompts:
             raise ValueError("Prompts list cannot be empty")
 
-        logger.info(f"Starting Modal async classification batch with {len(prompts)} prompts")
+        logger.info(
+            f"Starting Modal async classification batch with {len(prompts)} prompts"
+        )
         logger.info(f"Classifying {len(prompts)} prompts via Modal API (async)")
 
         try:
@@ -304,7 +308,9 @@ class ModalPromptClassifier:
 
                 results.append(ClassificationResult(**single_result))
 
-            logger.info(f"Completed Modal async classification batch with {len(results)} results")
+            logger.info(
+                f"Completed Modal async classification batch with {len(results)} results"
+            )
             logger.info(f"Successfully classified {len(results)} prompts (async)")
             return results
 

@@ -180,7 +180,9 @@ class ModelRouter:
             if self._model_supports_task_type(model, task_type)
         ]
 
-        logger.debug(f"Task type filtering: {task_type.value} - {len(models)} total models, {len(filtered_models)} filtered models")
+        logger.debug(
+            f"Task type filtering: {task_type.value} - {len(models)} total models, {len(filtered_models)} filtered models"
+        )
 
         return filtered_models
 

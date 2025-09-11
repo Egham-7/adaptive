@@ -170,7 +170,6 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = [
-  "litserve.*",
   "torch.*",
   "transformers.*",
   "huggingface_hub.*",

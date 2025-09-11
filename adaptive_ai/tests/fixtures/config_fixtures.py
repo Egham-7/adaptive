@@ -17,11 +17,10 @@ server:
   host: "test-host"
   port: 8888
 
-litserve:
-  accelerator: "cpu"
-  devices: "auto"
-  max_batch_size: 16
-  batch_timeout: 0.1
+fastapi:
+  workers: 1
+  access_log: true
+  log_level: "info"
 
 logging:
   level: "DEBUG"
@@ -44,9 +43,10 @@ server:
   host: "${TEST_HOST:localhost}"
   port: ${TEST_PORT:9000}
 
-litserve:
-  accelerator: "${TEST_ACCELERATOR:auto}"
-  max_batch_size: ${TEST_BATCH_SIZE:8}
+fastapi:
+  workers: ${TEST_WORKERS:1}
+  access_log: ${TEST_ACCESS_LOG:true}
+  log_level: "${TEST_FASTAPI_LOG_LEVEL:info}"
 
 logging:
   level: "${TEST_LOG_LEVEL:INFO}"
@@ -83,7 +83,7 @@ def test_settings() -> Settings:
     """Provide test settings instance."""
     return Settings(
         server={"host": "test-server", "port": 8999},
-        litserve={"max_batch_size": 32, "batch_timeout": 0.01},
+        fastapi={"workers": 2, "access_log": False, "log_level": "warning"},
         logging={"level": "WARNING"},
     )
 
@@ -96,11 +96,10 @@ server:
   host: "${PROD_HOST:0.0.0.0}"
   port: ${PROD_PORT:8000}
 
-litserve:
-  accelerator: "${PROD_ACCELERATOR:gpu}"
-  devices: "${PROD_DEVICES:0,1,2,3}"
-  max_batch_size: ${PROD_BATCH_SIZE:64}
-  batch_timeout: ${PROD_BATCH_TIMEOUT:0.005}
+fastapi:
+  workers: ${PROD_WORKERS:4}
+  access_log: ${PROD_ACCESS_LOG:true}
+  log_level: "${PROD_FASTAPI_LOG_LEVEL:info}"
 
 logging:
   level: "${PROD_LOG_LEVEL:INFO}"
