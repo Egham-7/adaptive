@@ -10,31 +10,31 @@ const globalPricing = {
 		models: {
 			"gpt-3.5-turbo": {
 				displayName: "GPT-3.5 Turbo",
-				type: "chat",
+
 				inputTokenCost: 0.5,
 				outputTokenCost: 1.5,
 			},
 			"gpt-4o": {
 				displayName: "GPT-4o",
-				type: "chat",
+
 				inputTokenCost: 3.0,
 				outputTokenCost: 10.0,
 			},
 			"gpt-4o-mini": {
 				displayName: "GPT-4o Mini",
-				type: "chat",
+
 				inputTokenCost: 0.15,
 				outputTokenCost: 0.6,
 			},
 			"gpt-4": {
 				displayName: "GPT-4",
-				type: "chat",
+
 				inputTokenCost: 30.0,
 				outputTokenCost: 60.0,
 			},
 			"gpt-4-turbo": {
 				displayName: "GPT-4 Turbo",
-				type: "chat",
+
 				inputTokenCost: 10.0,
 				outputTokenCost: 30.0,
 			},
@@ -46,25 +46,25 @@ const globalPricing = {
 		models: {
 			"claude-3.5-sonnet": {
 				displayName: "Claude 3.5 Sonnet",
-				type: "chat",
+
 				inputTokenCost: 3.0,
 				outputTokenCost: 15.0,
 			},
 			"claude-3.5-haiku": {
 				displayName: "Claude 3.5 Haiku",
-				type: "chat",
+
 				inputTokenCost: 0.8,
 				outputTokenCost: 4.0,
 			},
 			"claude-3-opus": {
 				displayName: "Claude 3 Opus",
-				type: "chat",
+
 				inputTokenCost: 15.0,
 				outputTokenCost: 75.0,
 			},
 			"claude-4-sonnet": {
 				displayName: "Claude 4 Sonnet",
-				type: "chat",
+
 				inputTokenCost: 3.0,
 				outputTokenCost: 15.0,
 			},
@@ -76,31 +76,31 @@ const globalPricing = {
 		models: {
 			"gemini-2.5-pro": {
 				displayName: "Gemini 2.5 Pro",
-				type: "chat",
+
 				inputTokenCost: 1.25,
 				outputTokenCost: 10.0,
 			},
 			"gemini-2.5-pro-large": {
 				displayName: "Gemini 2.5 Pro Large",
-				type: "chat",
+
 				inputTokenCost: 2.5,
 				outputTokenCost: 15.0,
 			},
 			"gemini-1.5-flash": {
 				displayName: "Gemini 1.5 Flash",
-				type: "chat",
+
 				inputTokenCost: 1.25,
 				outputTokenCost: 5.0,
 			},
 			"gemini-2.0-flash": {
 				displayName: "Gemini 2.0 Flash",
-				type: "chat",
+
 				inputTokenCost: 0.1,
 				outputTokenCost: 0.4,
 			},
 			"gemini-pro": {
 				displayName: "Gemini Pro",
-				type: "chat",
+
 				inputTokenCost: 1.25,
 				outputTokenCost: 5.0,
 			},
@@ -112,13 +112,13 @@ const globalPricing = {
 		models: {
 			"deepseek-chat": {
 				displayName: "DeepSeek Chat",
-				type: "chat",
+
 				inputTokenCost: 0.27,
 				outputTokenCost: 1.1,
 			},
 			"deepseek-reasoner": {
 				displayName: "DeepSeek Reasoner",
-				type: "chat",
+
 				inputTokenCost: 0.55,
 				outputTokenCost: 2.19,
 			},
@@ -130,79 +130,79 @@ const globalPricing = {
 		models: {
 			"llama-4-scout-17b-16e-instruct": {
 				displayName: "Llama 4 Scout 17B",
-				type: "chat",
+
 				inputTokenCost: 0.11,
 				outputTokenCost: 0.34,
 			},
 			"llama-4-maverick-17b-128e-instruct": {
 				displayName: "Llama 4 Maverick 17B",
-				type: "chat",
+
 				inputTokenCost: 0.2,
 				outputTokenCost: 0.6,
 			},
 			"llama-guard-4-12b": {
 				displayName: "Llama Guard 4 12B",
-				type: "chat",
+
 				inputTokenCost: 0.2,
 				outputTokenCost: 0.2,
 			},
 			"deepseek-r1-distill-llama-70b": {
 				displayName: "DeepSeek R1 Distill Llama 70B",
-				type: "chat",
+
 				inputTokenCost: 0.75,
 				outputTokenCost: 0.99,
 			},
 			"qwen-qwq-32b": {
 				displayName: "Qwen QwQ 32B",
-				type: "chat",
+
 				inputTokenCost: 0.29,
 				outputTokenCost: 0.39,
 			},
 			"mistral-saba-24b": {
 				displayName: "Mistral Saba 24B",
-				type: "chat",
+
 				inputTokenCost: 0.79,
 				outputTokenCost: 0.79,
 			},
 			"llama-3.3-70b-versatile": {
 				displayName: "Llama 3.3 70B Versatile",
-				type: "chat",
+
 				inputTokenCost: 0.59,
 				outputTokenCost: 0.79,
 			},
 			"llama-3.1-8b-instant": {
 				displayName: "Llama 3.1 8B Instant",
-				type: "chat",
+
 				inputTokenCost: 0.05,
 				outputTokenCost: 0.08,
 			},
 			"llama3-70b-8192": {
 				displayName: "Llama 3 70B",
-				type: "chat",
+
 				inputTokenCost: 0.59,
 				outputTokenCost: 0.79,
 			},
 			"llama3-8b-8192": {
 				displayName: "Llama 3 8B",
-				type: "chat",
+
 				inputTokenCost: 0.05,
 				outputTokenCost: 0.08,
 			},
 			"mixtral-8x7b-32768": {
 				displayName: "Mixtral 8x7B",
-				type: "chat",
+
 				inputTokenCost: 0.27,
 				outputTokenCost: 0.27,
 			},
 			"gemma-7b-it": {
 				displayName: "Gemma 7B IT",
-				type: "chat",
+
 				inputTokenCost: 0.1,
 				outputTokenCost: 0.1,
 			},
 			"gemma2-9b-it": {
 				displayName: "Gemma 2 9B IT",
-				type: "chat",
+
 				inputTokenCost: 0.1,
 				outputTokenCost: 0.1,
 			},
@@ -214,27 +214,57 @@ const globalPricing = {
 		models: {
 			"grok-3": {
 				displayName: "Grok 3",
-				type: "chat",
+
 				inputTokenCost: 3.0,
 				outputTokenCost: 15.0,
 			},
 			"grok-3-mini": {
 				displayName: "Grok 3 Mini",
-				type: "chat",
+
 				inputTokenCost: 0.3,
 				outputTokenCost: 0.5,
 			},
 			"grok-3-fast": {
 				displayName: "Grok 3 Fast",
-				type: "chat",
+
 				inputTokenCost: 5.0,
 				outputTokenCost: 25.0,
 			},
 			"grok-beta": {
 				displayName: "Grok Beta",
-				type: "chat",
+
 				inputTokenCost: 38.15,
 				outputTokenCost: 114.44,
+			},
+		},
+	},
+	huggingface: {
+		displayName: "Hugging Face",
+		description: "Open-source models hosted on Hugging Face",
+		models: {
+			"meta-llama/Llama-3.1-8B-Instruct": {
+				displayName: "Llama 3.1 8B Instruct",
+
+				inputTokenCost: 0.01,
+				outputTokenCost: 0.02,
+			},
+			"deepseek-ai/DeepSeek-R1-Distill-Qwen-14B": {
+				displayName: "DeepSeek R1 Distill Qwen 14B",
+
+				inputTokenCost: 0.01,
+				outputTokenCost: 0.02,
+			},
+			"mistralai/Mistral-7B-Instruct-v0.3": {
+				displayName: "Mistral 7B Instruct v0.3",
+
+				inputTokenCost: 0.01,
+				outputTokenCost: 0.02,
+			},
+			"deepseek-ai/DeepSeek-R1-Distill-Llama-8B": {
+				displayName: "DeepSeek R1 Distill Llama 8B",
+
+				inputTokenCost: 0.01,
+				outputTokenCost: 0.02,
 			},
 		},
 	},
@@ -258,7 +288,7 @@ async function seedProviders() {
 					name: providerName,
 					displayName: providerData.displayName,
 					description: providerData.description,
-					isActive: true,
+					visibility: "system", // System providers are globally visible
 				},
 			});
 
@@ -275,10 +305,8 @@ async function seedProviders() {
 						providerId: provider.id,
 						name: modelName,
 						displayName: modelData.displayName,
-						type: modelData.type,
 						inputTokenCost: modelData.inputTokenCost,
 						outputTokenCost: modelData.outputTokenCost,
-						isActive: true,
 					},
 				});
 

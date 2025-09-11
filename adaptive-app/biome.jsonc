@@ -1,5 +1,5 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.1.1/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
 	"vcs": {
 		"enabled": true,
 		"clientKind": "git",
@@ -9,10 +9,10 @@
 		"ignoreUnknown": false,
 		"includes": [
 			"**",
-			"!**/prisma/**",
-			"!**/node_modules/**",
-			"!**/.next/**",
-			"!**/src/components/ui/**"
+			"!**/prisma",
+			"!**/node_modules",
+			"!**/.next",
+			"!**/src/components/ui"
 		]
 	},
 	"formatter": { "enabled": true },
@@ -41,6 +41,13 @@
 				"useNumberNamespace": "error",
 				"noInferrableTypes": "error",
 				"noUselessElse": "error"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off",
+				"noUnknownAtRules": "warn"
+			},
+			"correctness": {
+				"useUniqueElementIds": "off"
 			}
 		}
 	}

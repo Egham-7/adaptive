@@ -1,57 +1,84 @@
 ---
-title: 'Quick Start'
-description: 'Get up and running with Adaptive in 5 minutes'
+title: 'Quickstart'
+description: 'Get started with Adaptive in under 5 minutes'
+icon: "rocket"
 ---
 
-## Overview
-
-Adaptive is a drop-in replacement for OpenAI that automatically routes your requests to the best AI model for each task. Simply change your base URL and start saving up to 80% on AI costs.
-
-<Note>
-**Zero code changes required** - Works with any OpenAI-compatible client by just changing the base URL.
-</Note>
+Get started with Adaptive by changing one line of code. No complex setup required.
 
 ## Step 1: Get Your API Key
 
 <Steps>
   <Step title="Sign Up">
-    Create a free account at [llmadaptive.uk](https://llmadaptive.uk)
+    Create a free account at [llmadaptive.uk](https://www.llmadaptive.uk)
   </Step>
-  <Step title="Create Project">
-    Set up a new project in your dashboard
-  </Step>
-  <Step title="Generate API Key">
-    Generate your API key from the API Keys section
+  <Step title="Generate Key">
+    Generate your API key from the dashboard
   </Step>
 </Steps>
 
-<Warning>
-Keep your API key secure. Never expose it in client-side code or public repositories.
-</Warning>
+## Step 2: Install SDK (Optional)
 
-## Step 2: Update Your Code
+<Tabs>
+<Tab title="JavaScript/Node.js">
+<CodeGroup>
+```bash npm
+npm install openai
+```
 
-The only change needed is updating your base URL:
+```bash yarn
+yarn add openai
+```
+
+```bash pnpm
+pnpm add openai
+```
+</CodeGroup>
+</Tab>
+
+<Tab title="Python">
+<CodeGroup>
+```bash pip
+pip install openai
+```
+
+```bash poetry
+poetry add openai
+```
+
+```bash conda
+conda install openai
+```
+</CodeGroup>
+</Tab>
+
+<Tab title="cURL">
+No installation required - cURL is available on most systems.
+</Tab>
+</Tabs>
+
+## Step 3: Make Your First Request
+
+Choose your preferred language and framework:
+
+<Tabs>
+<Tab title="OpenAI SDK">
 
 <CodeGroup>
-
-```javascript JavaScript/TypeScript
+```javascript JavaScript/Node.js
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
+const client = new OpenAI({
   apiKey: 'your-adaptive-api-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
 });
 
-// Use exactly like OpenAI
-const completion = await openai.chat.completions.create({
+const response = await client.chat.completions.create({
   model: '', // Leave empty for intelligent routing
-  messages: [
-    { role: 'user', content: 'Explain quantum computing simply' }
-  ],
+  messages: [{ role: 'user', content: 'Hello!' }]
 });
 
-console.log(completion.choices[0].message.content);
+console.log(response.choices[0].message.content);
 ```
 
 ```python Python
@@ -59,271 +86,307 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key="your-adaptive-api-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
-completion = client.chat.completions.create(
-    model="",  # Leave empty for intelligent routing
-    messages=[
-        {"role": "user", "content": "Explain quantum computing simply"}
-    ]
+response = client.chat.completions.create(
+    model="", # Leave empty for intelligent routing
+    messages=[{"role": "user", "content": "Hello!"}]
 )
 
-print(completion.choices[0].message.content)
+print(response.choices[0].message.content)
 ```
 
 ```bash cURL
-curl https://llmadaptive.uk/api/v1/chat/completions \
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "X-Stainless-API-Key: your-adaptive-api-key" \
+  -H "Authorization: Bearer your-adaptive-api-key" \
   -d '{
     "model": "",
-    "messages": [
-      {
-        "role": "user",
-        "content": "Explain quantum computing simply"
-      }
-    ]
+    "messages": [{"role": "user", "content": "Hello!"}]
   }'
 ```
+</CodeGroup>
 
-```go Go
-package main
+</Tab>
 
-import (
-    "context"
-    "fmt"
-    "github.com/sashabaranov/go-openai"
+<Tab title="Anthropic SDK">
+
+<CodeGroup>
+```javascript JavaScript/Node.js
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({
+  apiKey: 'your-adaptive-api-key',
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
+});
+
+const response = await client.messages.create({
+  model: '', // Leave empty for intelligent routing
+  max_tokens: 1000,
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+
+console.log(response.content[0].text);
+```
+
+```python Python
+import anthropic
+
+client = anthropic.Anthropic(
+    api_key="your-adaptive-api-key",
+    base_url="https://www.llmadaptive.uk/api/v1"
 )
 
-func main() {
-    config := openai.DefaultConfig("your-adaptive-api-key")
-    config.BaseURL = "https://llmadaptive.uk/api/v1"
-    client := openai.NewClientWithConfig(config)
+response = client.messages.create(
+    model="", # Leave empty for intelligent routing
+    max_tokens=1000,
+    messages=[{"role": "user", "content": "Hello!"}]
+)
 
-    resp, err := client.CreateChatCompletion(
-        context.Background(),
-        openai.ChatCompletionRequest{
-            Model: "", // Leave empty for intelligent routing
-            Messages: []openai.ChatCompletionMessage{
-                {
-                    Role:    openai.ChatMessageRoleUser,
-                    Content: "Explain quantum computing simply",
-                },
-            },
-        },
-    )
+print(response.content[0].text)
+```
 
-    if err != nil {
-        fmt.Printf("Error: %v\n", err)
-        return
-    }
+```bash cURL
+curl https://www.llmadaptive.uk/api/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-adaptive-api-key" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "",
+    "max_tokens": 1000,
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+</CodeGroup>
 
-    fmt.Println(resp.Choices[0].Message.Content)
+</Tab>
+
+<Tab title="Vercel AI SDK">
+
+<CodeGroup>
+```javascript Basic Text Generation
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: openai('', {
+    baseURL: 'https://www.llmadaptive.uk/api/v1',
+    apiKey: 'your-adaptive-api-key'
+  }),
+  prompt: 'Hello!'
+});
+
+console.log(text);
+```
+
+```javascript Streaming
+import { openai } from '@ai-sdk/openai';
+import { streamText } from 'ai';
+
+const { textStream } = await streamText({
+  model: openai('', {
+    baseURL: 'https://www.llmadaptive.uk/api/v1',
+    apiKey: 'your-adaptive-api-key'
+  }),
+  prompt: 'Write a story about AI'
+});
+
+for await (const delta of textStream) {
+  process.stdout.write(delta);
 }
 ```
 
+```javascript React Components
+import { useChat } from 'ai/react';
+
+export default function Chat() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    api: '/api/chat', // Your API route
+    initialMessages: [{ role: 'system', content: 'Hello!' }]
+  });
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>
+          {m.role}: {m.content}
+        </div>
+      ))}
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
 </CodeGroup>
 
-## Step 3: Test Your Integration
+</Tab>
 
-Run your code to see Adaptive in action:
+<Tab title="LangChain">
 
-<Accordion title="Expected Response Format">
+<CodeGroup>
+```javascript JavaScript/Node.js
+import { ChatOpenAI } from '@langchain/openai';
 
-```json
+const model = new ChatOpenAI({
+  openAIApiKey: 'your-adaptive-api-key',
+  configuration: {
+    baseURL: 'https://www.llmadaptive.uk/api/v1'
+  },
+  modelName: '' // Leave empty for intelligent routing
+});
+
+const response = await model.invoke('Hello!');
+console.log(response.content);
+```
+
+```python Python
+from langchain_openai import ChatOpenAI
+
+model = ChatOpenAI(
+    openai_api_key="your-adaptive-api-key",
+    openai_api_base="https://www.llmadaptive.uk/api/v1",
+    model_name="" # Leave empty for intelligent routing
+)
+
+response = model.invoke("Hello!")
+print(response.content)
+```
+
+```python Chains
+from langchain_openai import ChatOpenAI
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+
+model = ChatOpenAI(
+    openai_api_key="your-adaptive-api-key",
+    openai_api_base="https://www.llmadaptive.uk/api/v1",
+    model_name=""
+)
+
+prompt = PromptTemplate(
+    input_variables=["topic"],
+    template="Write a brief summary about {topic}"
+)
+
+chain = LLMChain(llm=model, prompt=prompt)
+result = chain.run(topic="artificial intelligence")
+print(result)
+```
+</CodeGroup>
+
+</Tab>
+</Tabs>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Intelligent Routing" icon="brain">
+    Leave `model` empty and let our AI choose the optimal provider for your request
+  </Card>
+  <Card title="Cost Savings" icon="dollar-sign">
+    Save 60-80% on AI costs with automatic model selection
+  </Card>
+  <Card title="6+ Providers" icon="network-wired">
+    Access OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok
+  </Card>
+  <Card title="Drop-in Replacement" icon="plug">
+    Works with existing OpenAI and Anthropic SDK code
+  </Card>
+</CardGroup>
+
+## Example Response
+
+<CodeGroup>
+```json OpenAI Format
 {
   "id": "chatcmpl-abc123",
   "object": "chat.completion",
   "created": 1677652288,
-  "model": "gemini-2.0-flash",
-  "provider": "gemini",  // ← Shows which provider was selected
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Quantum computing is like having a super powerful calculator..."
-      },
-      "finish_reason": "stop"
-    }
-  ],
+  "model": "gpt-3.5-turbo",
+  "choices": [{
+    "index": 0,
+    "message": {
+      "role": "assistant",
+      "content": "Hello! I'm ready to help you."
+    },
+    "finish_reason": "stop"
+  }],
   "usage": {
-    "prompt_tokens": 12,
-    "completion_tokens": 45,
-    "total_tokens": 57
-  }
+    "prompt_tokens": 5,
+    "completion_tokens": 10,
+    "total_tokens": 15
+  },
+  "provider": "gemini",
+  "cache_tier": "none"
 }
 ```
 
-The `provider` field shows which AI provider Adaptive selected for optimal cost and performance.
-
-</Accordion>
-
-## Key Differences from OpenAI
-
-<CardGroup cols={2}>
-  <Card title="Base URL" icon="link">
-    **OpenAI:** `https://api.openai.com/v1`  
-    **Adaptive:** `https://llmadaptive.uk/api/v1`
-  </Card>
-  <Card title="Model Selection" icon="brain">
-    **OpenAI:** Specify exact model  
-    **Adaptive:** Use `""` for intelligent routing
-  </Card>
-  <Card title="Providers" icon="building">
-    **OpenAI:** OpenAI only  
-    **Adaptive:** 6+ providers (OpenAI, Anthropic, Google, etc.)
-  </Card>
-  <Card title="Cost" icon="dollar-sign">
-    **OpenAI:** Fixed pricing  
-    **Adaptive:** Up to 80% savings
-  </Card>
-</CardGroup>
-
-## Advanced Configuration
-
-### Control Provider Selection
-
-Limit which providers Adaptive can choose from:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'Hello!' }],
-  provider_constraints: ['openai', 'anthropic'], // Only use these
-});
-```
-
-### Cost vs Performance Balance
-
-Control the cost/performance trade-off:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'Hello!' }],
-  cost_bias: 0.2, // 0 = cheapest, 1 = best performance
-});
-```
-
-### Streaming Support
-
-Streaming works exactly like OpenAI:
-
-```javascript
-const stream = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'Tell me a story' }],
-  stream: true,
-});
-
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+```json Anthropic Format
+{
+  "id": "msg_abc123",
+  "type": "message",
+  "role": "assistant",
+  "content": [{
+    "type": "text",
+    "text": "Hello! I'm ready to help you."
+  }],
+  "model": "claude-3-haiku",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 5,
+    "output_tokens": 10
+  },
+  "provider": "anthropic",
+  "cache_tier": "none"
 }
 ```
+</CodeGroup>
 
-## Environment Setup
+<Note>
+Adaptive returns standard OpenAI or Anthropic-compatible responses with additional metadata like `provider` and `cache_tier` to show which model was selected and performance information.
+</Note>
 
-For production deployments:
+## Testing Your Integration
 
-```bash
-# .env file
-ADAPTIVE_API_KEY=your-adaptive-api-key
-ADAPTIVE_BASE_URL=https://llmadaptive.uk/api/v1
-```
-
-```javascript
-const openai = new OpenAI({
-  apiKey: process.env.ADAPTIVE_API_KEY,
-  baseURL: process.env.ADAPTIVE_BASE_URL
-});
-```
-
-## Error Handling
-
-Handle errors the same way as OpenAI:
-
-```javascript
-try {
-  const completion = await openai.chat.completions.create({
-    model: '',
-    messages: [{ role: 'user', content: 'Hello!' }],
-  });
-} catch (error) {
-  if (error.status === 401) {
-    console.error('Invalid API key');
-  } else if (error.status === 429) {
-    console.error('Rate limit exceeded');
-  } else {
-    console.error('Request failed:', error.message);
-  }
-}
-```
-
-## Verification Checklist
-
-<AccordionGroup>
-  <Accordion title="✅ Basic Integration">
-    - [ ] Updated base URL to `https://llmadaptive.uk/api/v1`
-    - [ ] Set model parameter to empty string `""`
-    - [ ] API key is correctly configured
-    - [ ] First request returns a response with `provider` field
-  </Accordion>
-
-  <Accordion title="✅ Streaming">
-    - [ ] Streaming requests work with `stream: true`
-    - [ ] Chunks contain delta content
-    - [ ] Stream ends with `[DONE]` message
-  </Accordion>
-
-  <Accordion title="✅ Error Handling">
-    - [ ] Invalid API key returns 401 error
-    - [ ] Malformed requests return 400 error
-    - [ ] Rate limits return 429 error
-  </Accordion>
-</AccordionGroup>
+<Steps>
+  <Step title="Send Test Request">
+    Run your code with a simple message like "Hello!" to verify the connection
+  </Step>
+  <Step title="Check Response">
+    Confirm you receive a response and check the `provider` field to see which model was selected
+  </Step>
+  <Step title="Monitor Dashboard">
+    View request logs and analytics in your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard)
+  </Step>
+</Steps>
 
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card
-    title="Integration Guides"
-    icon="book"
-    href="/guides/openai-sdk"
-  >
-    Framework-specific guides for OpenAI SDK, Vercel AI, LangChain
+  <Card title="Advanced Features" href="/features/intelligent-routing" icon="lightbulb">
+    Learn about intelligent routing and semantic caching
   </Card>
-  <Card
-    title="Features"
-    icon="star"
-    href="/features/intelligent-routing"
-  >
-    Learn about intelligent routing and cost optimization
+  <Card title="Integration Guides" href="/integrations/openai-sdk" icon="book">
+    Detailed guides for each SDK and framework
   </Card>
-  <Card
-    title="API Reference"
-    icon="gear"
-    href="/api-reference/chat-completions"
-  >
-    Complete API documentation and all parameters
+  <Card title="API Reference" href="/api-reference/chat-completions" icon="terminal">
+    Complete API documentation with all parameters
   </Card>
-  <Card
-    title="Examples"
-    icon="lightbulb"
-    href="/examples/basic-chat"
-  >
-    Working code examples for common use cases
+  <Card title="Code Examples" href="/examples/basic-chat" icon="code">
+    Working examples for common use cases
   </Card>
 </CardGroup>
 
 ## Need Help?
 
 <CardGroup cols={2}>
-  <Card title="Support" icon="life-ring">
-    Email us at [support@adaptive.com](mailto:support@adaptive.com)
+  <Card title="Troubleshooting" href="/troubleshooting" icon="wrench">
+    Common issues and their solutions
   </Card>
-  <Card title="Migration Guide" icon="arrow-right">
-    See our [migration guide](/help/migration-guide) for detailed steps
+  <Card title="Support" href="https://www.llmadaptive.uk/support" icon="life-ring">
+    Get help from our team
   </Card>
 </CardGroup>

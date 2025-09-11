@@ -1,6 +1,10 @@
 // src/components/chat/chat-sidebar/SidebarNavFooter.tsx
 
+"use client";
+
 import { useUser } from "@clerk/nextjs";
+import { DocsButton } from "@/components/ui/docs-button";
+import { LegalButton } from "@/components/ui/legal-button";
 import {
 	SidebarFooter,
 	SidebarMenu,
@@ -8,6 +12,7 @@ import {
 	SidebarMenuItem,
 	SidebarSeparator,
 } from "@/components/ui/sidebar";
+import { SupportButton } from "@/components/ui/support-button";
 import { ModeToggle } from "../../mode-toggle";
 import { NavUser } from "./nav-user";
 
@@ -21,7 +26,7 @@ export function SidebarNavFooter() {
 	return (
 		<SidebarFooter>
 			<SidebarSeparator />
-			<SidebarMenu className="flex-row items-center justify-between p-2">
+			<SidebarMenu className="space-y-2 p-2">
 				<SidebarMenuItem>
 					<SidebarMenuButton asChild>
 						<NavUser
@@ -33,11 +38,28 @@ export function SidebarNavFooter() {
 						/>
 					</SidebarMenuButton>
 				</SidebarMenuItem>
-				<SidebarMenuItem>
-					<SidebarMenuButton asChild>
-						<ModeToggle />
-					</SidebarMenuButton>
-				</SidebarMenuItem>
+				<div className="flex flex-wrap items-center justify-center gap-1">
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<DocsButton variant="ghost" size="icon" showText={false} />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<SupportButton variant="ghost" size="icon" showText={false} />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<LegalButton variant="ghost" size="icon" showText={false} />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+					<SidebarMenuItem>
+						<SidebarMenuButton asChild>
+							<ModeToggle />
+						</SidebarMenuButton>
+					</SidebarMenuItem>
+				</div>
 			</SidebarMenu>
 		</SidebarFooter>
 	);

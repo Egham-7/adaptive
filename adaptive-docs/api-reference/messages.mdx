@@ -1,0 +1,436 @@
+---
+title: "Messages"
+api: "POST https://www.llmadaptive.uk/api/v1/messages"
+description: "Create messages using Anthropic's API format with intelligent routing"
+icon: "message"
+---
+
+## Overview
+
+The Messages endpoint provides an Anthropic Claude-compatible API with intelligent routing across multiple providers. Use this endpoint when you prefer Anthropic's message format or are migrating from Claude.
+
+## Endpoint
+
+```
+POST https://www.llmadaptive.uk/api/v1/messages
+```
+
+## Authentication
+
+<CodeGroup>
+```bash Bearer Token
+curl https://www.llmadaptive.uk/api/v1/messages \
+  -H "Authorization: Bearer your-adaptive-key" \
+  -H "Content-Type: application/json"
+```
+
+```bash Anthropic Style
+curl https://www.llmadaptive.uk/api/v1/messages \
+  -H "x-api-key: your-adaptive-key" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01"
+```
+</CodeGroup>
+
+## Basic Request
+
+<CodeGroup>
+```javascript JavaScript/Node.js
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic({
+  apiKey: 'your-adaptive-key',
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
+});
+
+const message = await anthropic.messages.create({
+  model: '', // Empty for intelligent routing
+  max_tokens: 1000,
+  messages: [
+    { role: 'user', content: 'Hello! How are you?' }
+  ]
+});
+
+console.log(message.content[0].text);
+```
+
+```python Python
+import anthropic
+
+client = anthropic.Anthropic(
+    api_key="your-adaptive-key",
+    base_url="https://www.llmadaptive.uk/api/v1"
+)
+
+message = client.messages.create(
+    model="", # Empty for intelligent routing
+    max_tokens=1000,
+    messages=[
+        {"role": "user", "content": "Hello! How are you?"}
+    ]
+)
+
+print(message.content[0].text)
+```
+
+```bash cURL
+curl https://www.llmadaptive.uk/api/v1/messages \
+  -H "x-api-key: your-adaptive-key" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "",
+    "max_tokens": 1000,
+    "messages": [
+      {"role": "user", "content": "Hello! How are you?"}
+    ]
+  }'
+```
+</CodeGroup>
+
+## Request Parameters
+
+### Required Parameters
+
+<ParamField body="model" type="string" required>
+  Model identifier. Use `""` (empty string) for intelligent routing.
+</ParamField>
+
+<ParamField body="messages" type="array" required>
+  Array of message objects representing the conversation history.
+</ParamField>
+
+<ParamField body="max_tokens" type="integer" required>
+  Maximum number of tokens to generate in the response.
+</ParamField>
+
+### Message Object
+
+<ParamField body="role" type="string" required>
+  The role of the message sender. Must be either `"user"` or `"assistant"`.
+</ParamField>
+
+<ParamField body="content" type="string or array" required>
+  The content of the message. Can be a string or array of content blocks for multimodal inputs.
+</ParamField>
+
+### Optional Parameters
+
+<ParamField body="system" type="string">
+  System prompt to guide the model's behavior.
+</ParamField>
+
+<ParamField body="temperature" type="number">
+  Sampling temperature between 0 and 1. Higher values make output more random.
+</ParamField>
+
+<ParamField body="top_p" type="number">
+  Nucleus sampling parameter. Controls diversity of generated text.
+</ParamField>
+
+<ParamField body="top_k" type="integer">
+  Top-k sampling parameter. Limits vocabulary to top k tokens.
+</ParamField>
+
+<ParamField body="stop_sequences" type="array">
+  Array of strings where the model should stop generating.
+</ParamField>
+
+## Intelligent Routing Parameters
+
+These additional parameters control Adaptive's intelligent routing:
+
+<ParamField body="model_router" type="object">
+  Configuration for intelligent model selection.
+  
+  <Expandable title="Properties">
+    <ParamField body="cost_bias" type="number">
+      Balance between cost and performance (0-1). 0 = cheapest, 1 = best performance.
+    </ParamField>
+    
+    <ParamField body="models" type="array">
+      Array of allowed providers/models for this request.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="fallback" type="object">
+  Fallback configuration for provider failures.
+  
+  <Expandable title="Properties">
+    <ParamField body="enabled" type="boolean">
+      Enable/disable fallback (default: true).
+    </ParamField>
+    
+    <ParamField body="mode" type="string">
+      Fallback strategy: "sequential" or "race".
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Example with Intelligent Routing
+
+<CodeGroup>
+```javascript Advanced Configuration
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic({
+  apiKey: 'your-adaptive-key',
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
+});
+
+const message = await anthropic.messages.create({
+  model: '',
+  max_tokens: 1000,
+  system: 'You are a helpful AI assistant focused on clear, concise answers.',
+  messages: [
+    { 
+      role: 'user', 
+      content: 'Explain machine learning in simple terms' 
+    }
+  ],
+  temperature: 0.7,
+  
+  // Adaptive intelligent routing
+  model_router: {
+    cost_bias: 0.3, // Favor cost savings
+    models: [
+      { provider: 'anthropic' },
+      { provider: 'openai' },
+      { provider: 'deepseek' }
+    ]
+  },
+  
+  // Fallback configuration
+  fallback: {
+    enabled: true,
+    mode: 'race'
+  }
+});
+
+console.log(message.content[0].text);
+```
+
+```python Advanced Configuration  
+import anthropic
+
+client = anthropic.Anthropic(
+    api_key="your-adaptive-key",
+    base_url="https://www.llmadaptive.uk/api/v1"
+)
+
+message = client.messages.create(
+    model="",
+    max_tokens=1000,
+    system="You are a helpful AI assistant focused on clear, concise answers.",
+    messages=[
+        {
+            "role": "user",
+            "content": "Explain machine learning in simple terms"
+        }
+    ],
+    temperature=0.7,
+    
+    # Adaptive intelligent routing
+    model_router={
+        "cost_bias": 0.3,  # Favor cost savings
+        "models": [
+            {"provider": "anthropic"},
+            {"provider": "openai"},
+            {"provider": "deepseek"}
+        ]
+    },
+    
+    # Fallback configuration
+    fallback={
+        "enabled": True,
+        "mode": "race"
+    }
+)
+
+print(message.content[0].text)
+```
+</CodeGroup>
+
+## Response Format
+
+```json
+{
+  "id": "msg_abc123",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "Machine learning is a method of teaching computers to learn patterns from data..."
+    }
+  ],
+  "model": "claude-3-haiku",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 25,
+    "output_tokens": 150
+  },
+  "provider": "anthropic",      // Which provider was used
+  "cache_tier": "none"          // Cache performance info
+}
+```
+
+## Response Fields
+
+<ResponseField name="id" type="string">
+  Unique identifier for the message.
+</ResponseField>
+
+<ResponseField name="type" type="string">
+  Always "message" for this endpoint.
+</ResponseField>
+
+<ResponseField name="role" type="string">
+  Always "assistant" for responses.
+</ResponseField>
+
+<ResponseField name="content" type="array">
+  Array of content blocks containing the generated response.
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  The specific model that generated the response.
+</ResponseField>
+
+<ResponseField name="stop_reason" type="string">
+  Reason the model stopped generating: "end_turn", "max_tokens", or "stop_sequence".
+</ResponseField>
+
+<ResponseField name="usage" type="object">
+  Token usage information.
+  
+  <Expandable title="Properties">
+    <ResponseField name="input_tokens" type="integer">
+      Number of tokens in the input.
+    </ResponseField>
+    
+    <ResponseField name="output_tokens" type="integer">
+      Number of tokens in the output.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="provider" type="string">
+  **Adaptive Extension**: Which AI provider was selected for this request.
+</ResponseField>
+
+<ResponseField name="cache_tier" type="string">
+  **Adaptive Extension**: Cache performance information.
+</ResponseField>
+
+## Streaming
+
+<CodeGroup>
+```javascript Streaming Example
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic({
+  apiKey: 'your-adaptive-key',
+  baseURL: 'https://www.llmadaptive.uk/api/v1'
+});
+
+const stream = await anthropic.messages.create({
+  model: '',
+  max_tokens: 1000,
+  messages: [
+    { role: 'user', content: 'Tell me a story about AI' }
+  ],
+  stream: true
+});
+
+for await (const messageStreamEvent of stream) {
+  if (messageStreamEvent.type === 'content_block_delta') {
+    process.stdout.write(messageStreamEvent.delta.text);
+  }
+}
+```
+
+```python Streaming Example
+import anthropic
+
+client = anthropic.Anthropic(
+    api_key="your-adaptive-key",
+    base_url="https://www.llmadaptive.uk/api/v1"
+)
+
+stream = client.messages.create(
+    model="",
+    max_tokens=1000,
+    messages=[
+        {"role": "user", "content": "Tell me a story about AI"}
+    ],
+    stream=True
+)
+
+for event in stream:
+    if event.type == 'content_block_delta':
+        print(event.delta.text, end="", flush=True)
+```
+</CodeGroup>
+
+## Migration from Claude
+
+Simply change the base URL - everything else works the same:
+
+<CodeGroup>
+```python Before (Direct Claude)
+import anthropic
+
+client = anthropic.Anthropic(api_key="sk-ant-your-key")
+
+message = client.messages.create(
+    model="claude-3-sonnet-20240229",
+    max_tokens=1000,
+    messages=[{"role": "user", "content": "Hello"}]
+)
+```
+
+```python After (Adaptive)
+import requests
+
+response = requests.post(
+    'https://www.llmadaptive.uk/api/v1/messages',  # ← Changed URL
+    headers={
+        'Authorization': 'Bearer your-adaptive-key',  # ← Adaptive key
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+    },
+    json={
+        'model': '',  # ← Empty for intelligent routing
+        'max_tokens': 1000,
+        'messages': [{'role': 'user', 'content': 'Hello'}]
+    }
+)
+```
+</CodeGroup>
+
+## Error Handling
+
+The endpoint returns standard Anthropic-compatible error responses:
+
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "max_tokens is required"
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Chat Completions" href="/api-reference/chat-completions" icon="comments">
+    Use OpenAI-compatible format for chat completions
+  </Card>
+  <Card title="Intelligent Routing" href="/features/intelligent-routing" icon="route">
+    Learn more about model selection and optimization
+  </Card>
+</CardGroup>

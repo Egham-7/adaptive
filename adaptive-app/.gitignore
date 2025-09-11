@@ -48,3 +48,4 @@ yarn-error.log*
 /.clerk/
 
 prisma/generated/*
+

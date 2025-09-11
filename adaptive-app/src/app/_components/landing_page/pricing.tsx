@@ -1,7 +1,8 @@
 "use client";
 
-import { SignUpButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut, SignUpButton } from "@clerk/nextjs";
 import { Check, Zap } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,14 +12,17 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { useSmartRedirect } from "@/hooks/use-smart-redirect";
 
 export default function Pricing() {
 	const [isAnnual, setIsAnnual] = useState(true);
+	const redirectPath = useSmartRedirect();
+
 	return (
 		<section id="pricing" className="overflow-hidden py-16 md:py-32">
 			<div className="mx-auto max-w-6xl px-6">
-				<div className="mx-auto max-w-2xl space-y-6 text-center">
-					<h2 className="text-balance text-center font-display font-semibold text-4xl lg:text-5xl">
+				<header className="mx-auto max-w-2xl space-y-6 text-center">
+					<h2 className="text-balance font-display font-semibold text-4xl lg:text-5xl">
 						API Pricing
 					</h2>
 					<p className="text-muted-foreground">
@@ -26,8 +30,8 @@ export default function Pricing() {
 						available in the chat app.
 					</p>
 
-					{/* Billing Toggle */}
-					<div className="mt-8 flex items-center justify-center gap-4">
+					<fieldset className="mt-8 flex items-center justify-center gap-4 border-0 p-0">
+						<legend className="sr-only">Billing frequency</legend>
 						<span
 							className={`text-sm ${!isAnnual ? "text-foreground" : "text-muted-foreground"}`}
 						>
@@ -36,6 +40,8 @@ export default function Pricing() {
 						<button
 							type="button"
 							onClick={() => setIsAnnual(!isAnnual)}
+							aria-label={`Switch to ${isAnnual ? "monthly" : "annual"} billing`}
+							aria-pressed={isAnnual}
 							className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
 								isAnnual ? "bg-primary" : "bg-muted"
 							}`}
@@ -56,8 +62,8 @@ export default function Pricing() {
 								Save 20%
 							</span>
 						)}
-					</div>
-				</div>
+					</fieldset>
+				</header>
 
 				<div className="mx-auto mt-8 grid max-w-6xl gap-6 md:mt-20 md:grid-cols-3">
 					<Card>
@@ -76,11 +82,27 @@ export default function Pricing() {
 							</div>
 							<CardDescription className="text-sm">
 								Simple markup pricing - pay original model cost + $0.10 per
-								million tokens
+								million tokens. Semantic cache hits: +$0.05/1M tokens. Prompt
+								response cache hits: Free!
 							</CardDescription>
-							<Button asChild variant="outline" className="mt-4 w-full">
-								<SignUpButton />
-							</Button>
+							<SignedOut>
+								<SignUpButton signInForceRedirectUrl="/api-platform/organizations">
+									<Button variant="outline" className="mt-4 w-full">
+										Get Started
+									</Button>
+								</SignUpButton>
+							</SignedOut>
+							<SignedIn>
+								{redirectPath ? (
+									<Button variant="outline" className="mt-4 w-full" asChild>
+										<Link href={redirectPath}>Get Started</Link>
+									</Button>
+								) : (
+									<Button variant="outline" className="mt-4 w-full" disabled>
+										Get Started
+									</Button>
+								)}
+							</SignedIn>
 						</CardHeader>
 						<CardContent className="space-y-4">
 							<hr className="border-dashed" />
@@ -122,17 +144,35 @@ export default function Pricing() {
 								{isAnnual ? "Annual" : "Monthly"} licensing fee per team member
 								{isAnnual && " (20% savings vs monthly)"}
 							</CardDescription>
-							<Button
-								asChild
-								className="mt-4 w-full bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
-							>
-								<SignUpButton>
-									<Button>
+							<SignedOut>
+								<SignUpButton signInForceRedirectUrl="/api-platform/organizations">
+									<Button className="mt-4 w-full bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90">
 										<Zap className="relative mr-2 size-4" />
 										<span>Get Started</span>
 									</Button>
 								</SignUpButton>
-							</Button>
+							</SignedOut>
+							<SignedIn>
+								{redirectPath ? (
+									<Button
+										className="mt-4 w-full bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
+										asChild
+									>
+										<Link href={redirectPath}>
+											<Zap className="relative mr-2 size-4" />
+											<span>Get Started</span>
+										</Link>
+									</Button>
+								) : (
+									<Button
+										className="mt-4 w-full bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
+										disabled
+									>
+										<Zap className="relative mr-2 size-4" />
+										<span>Get Started</span>
+									</Button>
+								)}
+							</SignedIn>
 						</CardHeader>
 						<CardContent className="space-y-4">
 							<hr className="border-dashed" />

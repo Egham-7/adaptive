@@ -1,226 +1,300 @@
+"""Main LitServe API for intelligent model selection and routing.
+
+This module provides the main entry point for the adaptive_ai service, implementing
+a LitServe-based API that handles model selection requests with ML-driven classification
+and intelligent routing.
+
+Key Components:
+- ModelRouterAPI: Main LitServe API class for handling requests
+- ConsoleLogger: Simple console logging for LitServe operations
+- Model classification and complexity analysis
+- Intelligent model selection with cost optimization
+
+Architecture Flow:
+1. Receive ModelSelectionRequest with prompt and preferences
+2. Classify prompt using ML models (task type, complexity, etc.)
+3. Route to optimal model based on classification and cost bias
+4. Return ModelSelectionResponse with selected model and alternatives
+"""
+
+import logging
+import sys
+import time
 from typing import Any
 
-# Removed HuggingFaceEmbeddings import to avoid model downloads
 import litserve as ls
-import tiktoken
 
 from adaptive_ai.core.config import get_settings
-from adaptive_ai.models.llm_classification_models import (
-    ClassificationResult,
-    DomainClassificationResult,
-)
+from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import (
-    ModelCapability,
+    Alternative,
     ModelSelectionRequest,
+    ModelSelectionResponse,
 )
-from adaptive_ai.models.llm_orchestration_models import OrchestratorResponse
-
-# Removed: from adaptive_ai.services.classification_result_embedding_cache import EmbeddingCache
-from adaptive_ai.services.domain_classifier import get_domain_classifier
-from adaptive_ai.services.model_selector import (
-    ModelSelectionService,
-)
+from adaptive_ai.models.llm_enums import TaskType
+from adaptive_ai.services.model_router import ModelRouter
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
-from adaptive_ai.services.protocol_manager import ProtocolManager
+
+# No custom exceptions needed - using built-in ValueError
 
 
-# LitServe Console Logger
+def setup_logging() -> None:
+    """Configure logging for the application."""
+    settings = get_settings()
+
+    # Configure root logger
+    logging.basicConfig(
+        level=getattr(logging, settings.logging.level.upper(), logging.INFO),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+        ],
+    )
+
+    # Set specific loggers
+    logger = logging.getLogger(__name__)
+    logger.info(
+        "Adaptive AI service starting with log level: %s", settings.logging.level
+    )
+
+    # Suppress noisy third-party loggers
+    logging.getLogger("transformers").setLevel(logging.WARNING)
+    logging.getLogger("torch").setLevel(logging.WARNING)
+    logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+
+
+logger = logging.getLogger(__name__)
+
+
 class ConsoleLogger(ls.Logger):
+    """Simple console logger for LitServe."""
+
     def process(self, key: str, value: Any) -> None:
-        print(f"[LitServe] Received {key} with value {value}", flush=True)
+        print(f"[LitServe] {key}: {value}", flush=True)
 
 
-class ProtocolManagerAPI(ls.LitAPI):
+class ModelRouterAPI(ls.LitAPI):
+    """LitServe API for intelligent model selection and routing.
+
+    This class implements the main API interface for the adaptive_ai service.
+    It processes batches of model selection requests using ML-driven prompt
+    classification and intelligent routing algorithms.
+
+    Request Processing Flow:
+    1. decode_request: Parse and validate incoming JSON requests
+    2. predict: Batch process requests with ML classification and routing
+    3. encode_response: Serialize responses back to JSON
+
+    Key Features:
+    - Batch processing for optimal GPU utilization
+    - ML-based prompt classification (task type, complexity)
+    - Intelligent model selection with cost optimization
+    - Comprehensive logging and metrics
+    - Error handling with graceful fallbacks
+
+    Attributes:
+        settings: Application configuration from environment
+        tokenizer: Tiktoken tokenizer for token counting
+        prompt_classifier: ML model for prompt analysis
+        model_router: Intelligent routing engine
+
+    Example Request:
+    ```json
+    {
+        "prompt": "Write a Python function to sort a list",
+        "user_id": "user123",
+        "cost_bias": 0.7,
+        "complexity_threshold": 0.6
+    }
+    ```
+
+    Example Response:
+    ```json
+    {
+        "provider": "openai",
+        "model": "gpt-4",
+        "alternatives": [
+            {"provider": "anthropic", "model": "claude-3-haiku"}
+        ]
+    }
+    ```
+    """
+
     def setup(self, device: str) -> None:
+        """Initialize classifiers and router components.
+
+        Args:
+            device: Device to run models on (auto-detected by LitServe)
+        """
         self.settings = get_settings()
+
+        # Initialize ML components
         self.prompt_classifier = get_prompt_classifier(lit_logger=self)
-        self.domain_classifier = get_domain_classifier(lit_logger=self)
-
-        # Cache removed: rule-based routing is fast enough without caching
-        # No need for embedding models or cache infrastructure
-
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")
-
-        self.model_selection_service = ModelSelectionService(lit_logger=self)
-        self.protocol_manager = ProtocolManager(lit_logger=self, device=device)
+        self.model_router = ModelRouter(lit_logger=self)
 
     def decode_request(self, request: ModelSelectionRequest) -> ModelSelectionRequest:
+        """Decode and normalize incoming request."""
+        # Don't validate here - handle in predict where we can return proper errors
         return request
 
     def predict(
         self, requests: list[ModelSelectionRequest]
-    ) -> list[OrchestratorResponse]:
-        import time
+    ) -> list[ModelSelectionResponse | dict[str, Any]]:
+        """Process batch of model selection requests."""
+        if not requests:
+            return []
 
-        outputs: list[OrchestratorResponse] = []
+        prompts = [req.prompt for req in requests]
 
-        prompts: list[str] = [req.prompt for req in requests]
+        # Run classifications
+        classification_results = self._classify_prompts(prompts)
 
-        # Run both task and domain classification in parallel
-        t0 = time.perf_counter()
-        all_classification_results: list[ClassificationResult] = (
-            self.prompt_classifier.classify_prompts(prompts)
-        )
-        t1 = time.perf_counter()
-        self.log("task_classification_time", t1 - t0)
-
-        # Domain classification
-        t2 = time.perf_counter()
-        try:
-            all_domain_results: list[DomainClassificationResult] = (
-                self.domain_classifier.classify_domains(prompts)
-            )
-            t3 = time.perf_counter()
-            self.log("domain_classification_time", t3 - t2)
-            self.log(
-                "domain_classification_success",
-                {
-                    "batch_size": len(all_domain_results),
-                    "sample_domain": (
-                        all_domain_results[0].domain.value
-                        if all_domain_results
-                        else None
-                    ),
-                    "sample_confidence": (
-                        all_domain_results[0].confidence if all_domain_results else None
-                    ),
-                },
-            )
-        except Exception as e:
-            t3 = time.perf_counter()
-            self.log(
-                "domain_classification_failed",
-                {
-                    "error": str(e),
-                    "time_taken": t3 - t2,
-                    "batch_size": len(prompts),
-                },
-            )
-            # Re-raise the exception instead of creating fallback results
-            raise RuntimeError(f"Domain classification failed: {e!s}") from e
-
-        self.log("predict_called", {"batch_size": len(requests)})
-
-        if len(all_classification_results) != len(requests):
-            raise ValueError(
-                f"Task classification results count ({len(all_classification_results)}) "
-                f"doesn't match requests count ({len(requests)})"
-            )
-
-        if len(all_domain_results) != len(requests):
-            raise ValueError(
-                f"Domain classification results count ({len(all_domain_results)}) "
-                f"doesn't match requests count ({len(requests)})"
-            )
-
-        for i, req in enumerate(requests):
-            current_classification_result: ClassificationResult = (
-                all_classification_results[i]
-            )
-            current_domain_result: DomainClassificationResult = all_domain_results[i]
-
-            # Log both classifications for this request
-            self.log(
-                "combined_classification_results",
-                {
-                    "task_type": (
-                        current_classification_result.task_type_1[0]
-                        if current_classification_result.task_type_1
-                        else "Other"
-                    ),
-                    "domain": current_domain_result.domain.value,
-                    "domain_confidence": current_domain_result.confidence,
-                },
-            )
-
-            # Rule-based routing is fast enough - no caching needed
-            self.log("cache_disabled", "rule_based_routing_is_fast")
-
-            # Direct routing without cache
+        # Process each request
+        responses: list[ModelSelectionResponse | dict[str, Any]] = []
+        for req, classification in zip(requests, classification_results, strict=False):
             try:
-                prompt_token_count = len(self.tokenizer.encode(req.prompt))
-            except Exception as e:
-                prompt_token_count = len(req.prompt) // 4  # Rough approximation
-                self.log(
-                    "prompt_token_count_fallback",
-                    {"prompt": req.prompt, "error": str(e)},
-                )
+                response = self._process_request(req, classification)
+                responses.append(response)
+            except ValueError as e:
+                # LitServe limitation: Cannot return custom HTTP status codes
+                # Workaround: Include error details in the response body
+                error_response: dict[str, Any] = {
+                    "error": type(e).__name__,
+                    "message": str(e),
+                    "provider": None,
+                    "model": None,
+                    "alternatives": [],
+                }
+                responses.append(error_response)
 
-            select_t0 = time.perf_counter()
-            candidate_models: list[ModelCapability] = (
-                self.model_selection_service.select_candidate_models(
-                    request=req,
-                    classification_result=current_classification_result,
-                    prompt_token_count=prompt_token_count,
-                    domain_classification=current_domain_result,
-                )
-            )
-            select_t1 = time.perf_counter()
-            self.log("model_selection_time", select_t1 - select_t0)
+        self.log("predict_completed", {"batch_size": len(responses)})
+        return responses
 
-            # Get designated minion and alternatives with domain awareness
-            minion_model = self.model_selection_service.get_designated_minion(
-                classification_result=current_classification_result,
-                domain_classification=current_domain_result,
-            )
-            minion_alternatives = self.model_selection_service.get_minion_alternatives(
-                primary_minion=minion_model
-            )
+    def _classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
+        """Classify prompts for task types."""
+        start_time = time.perf_counter()
+        results = self.prompt_classifier.classify_prompts(prompts)
+        elapsed = time.perf_counter() - start_time
+        self.log("task_classification_time", elapsed)
+        return results
 
-            if not candidate_models:
-                self.log("no_eligible_models", {"prompt": req.prompt})
-                raise ValueError(
-                    "No eligible models found after applying provider and task constraints"
-                )
-            protocol_t0 = time.perf_counter()
-            orchestrator_response: OrchestratorResponse = (
-                self.protocol_manager.select_protocol(
-                    candidate_models=candidate_models,
-                    minion_model=minion_model,
-                    minion_alternatives=minion_alternatives,
-                    classification_result=current_classification_result,
-                    token_count=prompt_token_count,
-                    request=req,
-                )
-            )
-            protocol_t1 = time.perf_counter()
-            self.log("protocol_selection_time", protocol_t1 - protocol_t0)
+    def _convert_to_task_type(self, task_type_str: str | None) -> TaskType:
+        """Convert string task type to TaskType enum."""
+        if not task_type_str:
+            return TaskType.OTHER
 
-            # No caching needed for fast rule-based routing
-            outputs.append(orchestrator_response)
+        # Try to find matching TaskType enum value
+        for task_type in TaskType:
+            if task_type.value == task_type_str:
+                return task_type
 
-        self.log("predict_completed", {"output_count": len(outputs)})
-        return outputs
+        # Fallback to OTHER if no match found
+        return TaskType.OTHER
 
-    def encode_response(self, output: OrchestratorResponse) -> dict[str, Any]:
-        return output.model_dump()
+    def _process_request(
+        self,
+        request: ModelSelectionRequest,
+        classification: ClassificationResult,
+    ) -> ModelSelectionResponse:
+        """Process a single model selection request."""
+        # Extract parameters
+        task_type_str = (
+            classification.task_type_1[0] if classification.task_type_1 else None
+        )
+        task_type = self._convert_to_task_type(task_type_str)
+        models_input = request.models
+        cost_bias = request.cost_bias
+
+        # Select models
+        start_time = time.perf_counter()
+        task_complexity = (
+            classification.prompt_complexity_score[0]
+            if classification.prompt_complexity_score
+            else 0.5
+        )
+
+        selected_models = self.model_router.select_models(
+            task_complexity=task_complexity,
+            task_type=task_type,
+            models_input=models_input,
+            cost_bias=cost_bias or 0.5,  # Handle None case
+        )
+
+        elapsed = time.perf_counter() - start_time
+        self.log("model_selection_time", elapsed)
+
+        if not selected_models:
+            # This should not happen with proper error handling above, but keep as fallback
+            raise ValueError("No eligible models found")
+
+        # Build response
+        best_model = selected_models[0]
+
+        # Ensure we have valid provider and model names
+        if not best_model.provider:
+            raise ValueError("Selected model missing provider")
+        if not best_model.model_name:
+            raise ValueError("Selected model missing model_name")
+
+        alternatives = [
+            Alternative(provider=alt.provider, model=alt.model_name)
+            for alt in selected_models[1:]
+            if alt.provider
+            and alt.model_name  # Skip alternatives with missing provider/model
+        ]
+
+        return ModelSelectionResponse(
+            provider=best_model.provider,
+            model=best_model.model_name,
+            alternatives=alternatives,
+        )
 
 
 def create_app() -> ls.LitServer:
+    """Create and configure LitServer application."""
     settings = get_settings()
-    api = ProtocolManagerAPI(
+
+    api = ModelRouterAPI(
         max_batch_size=settings.litserve.max_batch_size,
         batch_timeout=settings.litserve.batch_timeout,
     )
-
-    loggers: list[ConsoleLogger] = [ConsoleLogger()]
-    callbacks: list[object] = []
 
     return ls.LitServer(
         api,
         accelerator=settings.litserve.accelerator,
         devices=settings.litserve.devices,
-        loggers=loggers,
-        callbacks=callbacks,
+        loggers=[ConsoleLogger()],
     )
 
 
 def main() -> None:
-    settings = get_settings()
-    app = create_app()
-    app.run(
-        generate_client_file=False, host=settings.server.host, port=settings.server.port
-    )
+    """Run the LitServe application with proper logging setup."""
+    # Setup logging first
+    setup_logging()
+
+    logger = logging.getLogger(__name__)
+    logger.info("Starting Adaptive AI Service")
+
+    try:
+        settings = get_settings()
+        app = create_app()
+
+        logger.info(
+            "Starting server on %s:%d with %s accelerator",
+            settings.server.host,
+            settings.server.port,
+            settings.litserve.accelerator,
+        )
+
+        app.run(
+            generate_client_file=False,
+            host=settings.server.host,
+            port=settings.server.port,
+        )
+
+    except Exception as e:
+        logger.exception("Failed to start Adaptive AI Service: %s", e)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

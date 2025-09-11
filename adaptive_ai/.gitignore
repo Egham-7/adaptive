@@ -37,7 +37,9 @@ env/
 .pytest_cache/
 .nox/
 .coverage
+coverage.xml
 htmlcov/
+coverage/
 
 # Type checking / linters
 .mypy_cache/
@@ -62,6 +64,5 @@ Thumbs.db
 *.pt
 *.pth
 *.ckpt
-data/
 hf_cache/
 .ipynb_checkpoints/

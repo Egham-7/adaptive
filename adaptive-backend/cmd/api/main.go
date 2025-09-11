@@ -1,8 +1,6 @@
 package main
 
 import (
-	"adaptive-backend/internal/api"
-	"adaptive-backend/internal/middleware"
 	"context"
 	"fmt"
 	"os"
@@ -10,7 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
+	"adaptive-backend/internal/api"
+	"adaptive-backend/internal/config"
+	"adaptive-backend/internal/middleware"
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/cache"
+	"adaptive-backend/internal/services/chat/completions"
+	"adaptive-backend/internal/services/circuitbreaker"
+	"adaptive-backend/internal/services/model_router"
+	"adaptive-backend/internal/services/select_model"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -20,48 +26,95 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/pprof"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/redis/go-redis/v9"
 )
 
 // SetupRoutes configures all the application routes for the Fiber app.
-func SetupRoutes(app *fiber.App, healthHandler *api.HealthHandler) {
-	chatCompletionHandler := api.NewCompletionHandler()
+func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) error {
+	// Create shared services once
+	reqSvc := completions.NewRequestService()
 
-	// Health endpoint (no auth required)
-	app.Get("/health", healthHandler.Health)
+	// Create protocol manager (shared between handlers)
+	modelRouter, err := model_router.NewModelRouter(cfg, redisClient)
+	if err != nil {
+		return fmt.Errorf("protocol manager initialization failed: %w", err)
+	}
 
-	// Apply API key authentication to all v1 routes
-	v1Group := app.Group("/v1", middleware.APIKeyAuth())
+	// Create prompt caches (shared services using Redis client)
+	openaiPromptCache, err := cache.NewOpenAIPromptCache(redisClient, cfg.PromptCache)
+	if err != nil {
+		return fmt.Errorf("openAI prompt cache initialization failed: %w", err)
+	}
+
+	anthropicPromptCache, err := cache.NewAnthropicPromptCache(redisClient, cfg.PromptCache)
+	if err != nil {
+		return fmt.Errorf("anthropic prompt cache initialization failed: %w", err)
+	}
+
+	// Create response service (depends on model router)
+	respSvc := completions.NewResponseService(modelRouter)
+
+	// Create completion service (depends on response service)
+	completionSvc := completions.NewCompletionService(cfg, respSvc)
+
+	// Create shared circuit breakers for all providers
+	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
+	// Initialize circuit breakers for each provider
+	for providerName := range cfg.GetProviders("chat_completions") {
+		circuitBreakers[providerName] = circuitbreaker.New(redisClient)
+	}
+
+	// Create select model services
+	selectModelReqSvc := select_model.NewRequestService()
+	selectModelSvc := select_model.NewService(modelRouter)
+	selectModelRespSvc := select_model.NewResponseService()
+
+	// Initialize handlers with shared dependencies
+	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, modelRouter, openaiPromptCache, circuitBreakers)
+	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
+	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, anthropicPromptCache, circuitBreakers)
+
+	// Apply JWT authentication to all v1 routes
+	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
+	v1Group.Post("/messages", messagesHandler.Messages)
+	v1Group.Post("/select-model", selectModelHandler.SelectModel)
+
+	return nil
 }
 
 const (
-	defaultAppName    = "Adaptive v1.0"
-	defaultVersion    = "1.0.0"
-	healthEndpoint    = "/health"
-	chatEndpoint      = "/v1/chat/completions"
-	allowedMethods    = "GET, POST, PUT, DELETE, OPTIONS"
-	allowedHeadersKey = "ALLOWED_ORIGINS"
-	addrKey           = "ADDR"
-	envKey            = "ENV"
+	defaultAppName      = "Adaptive v1.0"
+	defaultVersion      = "1.0.0"
+	chatEndpoint        = "/v1/chat/completions"
+	messagesEndpoint    = "/v1/messages"
+	selectModelEndpoint = "/v1/select-model"
+	allowedMethods      = "GET, POST, PUT, DELETE, OPTIONS"
 )
 
 // main is the entry point for the Adaptive backend server.
 func main() {
-	if err := godotenv.Load(".env.local"); err != nil {
-		fiberlog.Info("No .env.local file found, proceeding with environment variables")
+	// Load configuration
+	cfg, err := config.New()
+	if err != nil {
+		fiberlog.Fatal("Failed to load configuration: " + err.Error())
 	}
 
-	port := os.Getenv(addrKey)
+	// Validate required configuration
+	if err := cfg.Validate(); err != nil {
+		fiberlog.Fatal(err.Error())
+	}
+
+	// Set log level based on configuration
+	setupLogLevel(cfg)
+
+	port := cfg.Server.Port
 	if port == "" {
-		fiberlog.Fatal("ADDR environment variable is required but not set")
+		port = "8080" // Default port
 	}
-
-	allowedOrigins := os.Getenv(allowedHeadersKey)
-	if allowedOrigins == "" {
-		fiberlog.Fatal("ALLOWED_ORIGINS environment variable is required but not set")
-	}
-
-	isProd := os.Getenv(envKey) == "production"
+	listenAddr := ":" + port // Dual-stack IPv4/IPv6 binding
+	allowedOrigins := cfg.Server.AllowedOrigins
+	isProd := cfg.IsProduction()
 
 	app := fiber.New(fiber.Config{
 		AppName:              defaultAppName,
@@ -75,33 +128,65 @@ func main() {
 		Prefork:              false,
 		CaseSensitive:        true,
 		StrictRouting:        false,
+		Network:              "tcp",
 		ServerHeader:         "Adaptive",
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			code := fiber.StatusInternalServerError
-			if e, ok := err.(*fiber.Error); ok {
-				code = e.Code
+			// Sanitize error for external consumption
+			sanitized := models.SanitizeError(err)
+			statusCode := sanitized.GetStatusCode()
+
+			// Log internal error details (but don't expose them)
+			if isProd {
+				fiberlog.Errorf("Request error: path=%s, type=%s, retryable=%v",
+					c.Path(), sanitized.Type, sanitized.Retryable)
+			} else {
+				fiberlog.Errorf("Request error: %v (status: %d, path: %s)", err, statusCode, c.Path())
 			}
-			fiberlog.Errorf("Request error: %v (status: %d, path: %s)", err, code, c.Path())
-			return c.Status(code).JSON(fiber.Map{
-				"error": err.Error(),
-				"code":  code,
-			})
+
+			// Return sanitized error response
+			response := fiber.Map{
+				"error": sanitized.Message,
+				"type":  sanitized.Type,
+				"code":  statusCode,
+			}
+
+			// Add retry info for retryable errors
+			if sanitized.Retryable {
+				response["retryable"] = true
+				if sanitized.Type == models.ErrorTypeRateLimit {
+					response["retry_after"] = "60s"
+				}
+			}
+
+			// Add error code if available
+			if sanitized.Code != "" {
+				response["error_code"] = sanitized.Code
+			}
+
+			return c.Status(statusCode).JSON(response)
 		},
 	})
 
-	setupMiddleware(app, allowedOrigins)
+	setupMiddleware(app, cfg, allowedOrigins)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Wait for services to become healthy before starting server
-	healthHandler := api.NewHealthHandler()
-	if err := healthHandler.WaitForServices(ctx, 10*time.Minute); err != nil {
-		fiberlog.Errorf("Failed to wait for services: %v", err)
-		return
+	// Create shared Redis client for distributed services
+	redisClient, err := createRedisClient(cfg)
+	if err != nil {
+		fiberlog.Fatalf("Failed to create Redis client: %v", err)
 	}
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			fiberlog.Errorf("Failed to close Redis client: %v", err)
+		}
+	}()
+	fiberlog.Info("Redis client initialized successfully")
 
-	SetupRoutes(app, healthHandler)
+	if err := SetupRoutes(app, cfg, redisClient); err != nil {
+		fiberlog.Fatalf("Failed to setup routes: %v", err)
+	}
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
@@ -110,18 +195,20 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"chat": chatEndpoint,
+				"chat":         chatEndpoint,
+				"messages":     messagesEndpoint,
+				"select-model": selectModelEndpoint,
 			},
 		})
 	})
 
-	fmt.Printf("Server starting on %s with allowed origins: %s\n", port, allowedOrigins)
-	fmt.Printf("Environment: %s\n", os.Getenv(envKey))
+	fmt.Printf("Server starting on %s (dual-stack IPv4/IPv6) with allowed origins: %s\n", listenAddr, allowedOrigins)
+	fmt.Printf("Environment: %s\n", cfg.Server.Environment)
 	fmt.Printf("Go version: %s\n", runtime.Version())
 	fmt.Printf("GOMAXPROCS: %d\n", runtime.GOMAXPROCS(0))
 
 	go func() {
-		if err := app.Listen(port); err != nil {
+		if err := app.Listen(listenAddr); err != nil {
 			fiberlog.Errorf("Server startup error: %v", err)
 			cancel()
 		}
@@ -135,8 +222,8 @@ func main() {
 }
 
 // setupMiddleware configures all the application middleware for the Fiber app.
-func setupMiddleware(app *fiber.App, allowedOrigins string) {
-	isProd := os.Getenv(envKey) == "production"
+func setupMiddleware(app *fiber.App, cfg *config.Config, allowedOrigins string) {
+	isProd := cfg.IsProduction()
 
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: !isProd,
@@ -158,10 +245,8 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 			return c.IP()
 		},
 		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error":       "Rate limit exceeded",
-				"retry_after": "60 seconds",
-			})
+			err := models.NewRateLimitError("1000 requests per minute")
+			return err
 		},
 	}))
 
@@ -212,4 +297,59 @@ func setupMiddleware(app *fiber.App, allowedOrigins string) {
 	if !isProd {
 		app.Use(pprof.New())
 	}
+}
+
+// setupLogLevel configures the Fiber log level based on configuration
+func setupLogLevel(cfg *config.Config) {
+	logLevel := cfg.GetNormalizedLogLevel()
+
+	switch logLevel {
+	case "trace":
+		fiberlog.SetLevel(fiberlog.LevelTrace)
+	case "debug":
+		fiberlog.SetLevel(fiberlog.LevelDebug)
+	case "info":
+		fiberlog.SetLevel(fiberlog.LevelInfo)
+	case "warn", "warning":
+		fiberlog.SetLevel(fiberlog.LevelWarn)
+	case "error":
+		fiberlog.SetLevel(fiberlog.LevelError)
+	case "fatal":
+		fiberlog.SetLevel(fiberlog.LevelFatal)
+	case "panic":
+		fiberlog.SetLevel(fiberlog.LevelPanic)
+	default:
+		fiberlog.SetLevel(fiberlog.LevelInfo)
+		fiberlog.Warnf("Unknown log level '%s', defaulting to 'info'", logLevel)
+	}
+
+	fiberlog.Infof("Log level set to: %s", logLevel)
+}
+
+// createRedisClient creates a shared Redis client for distributed services
+func createRedisClient(cfg *config.Config) (*redis.Client, error) {
+	// Get Redis connection configuration
+	redisURL := cfg.Services.Redis.URL
+	if redisURL == "" {
+		return nil, fmt.Errorf("redis URL not set in configuration (services.redis.url)")
+	}
+
+	// Parse Redis URL
+	opt, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
+	}
+
+	// Create Redis client
+	client := redis.NewClient(opt)
+
+	// Test connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	return client, nil
 }

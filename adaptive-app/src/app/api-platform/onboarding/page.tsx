@@ -1,56 +1,32 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-	ArrowLeft,
-	Building2,
-	CheckCircle,
-	ChevronRight,
-	FolderPlus,
-} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-import {
-	Form,
-	FormControl,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
-	FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { ApiKeyStep } from "@/app/_components/api-platform/onboarding/api-key-step";
+import { CompleteStep } from "@/app/_components/api-platform/onboarding/complete-step";
+import { OrganizationStep } from "@/app/_components/api-platform/onboarding/organization-step";
+import { ProjectStep } from "@/app/_components/api-platform/onboarding/project-step";
+import { QuickstartStep } from "@/app/_components/api-platform/onboarding/quickstart-step";
+import { WelcomeStep } from "@/app/_components/api-platform/onboarding/welcome-step";
 import { Progress } from "@/components/ui/progress";
-import { Textarea } from "@/components/ui/textarea";
+import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
 import { useCreateOrganization } from "@/hooks/organizations/use-create-organization";
 import { useCreateProject } from "@/hooks/projects/use-create-project";
+import { setLastProject } from "@/hooks/use-smart-redirect";
+import { api } from "@/trpc/react";
 import type {
 	OrganizationCreateResponse,
 	ProjectCreateResponse,
 } from "@/types";
 
-const organizationSchema = z.object({
-	name: z.string().min(1, "Organization name is required"),
-	description: z.string().optional(),
-});
-
-const projectSchema = z.object({
-	name: z.string().min(1, "Project name is required"),
-	description: z.string().optional(),
-});
-
-type OnboardingStep = "welcome" | "organization" | "project" | "complete";
+type OnboardingStep =
+	| "welcome"
+	| "organization"
+	| "project"
+	| "api-key"
+	| "quickstart"
+	| "complete";
 
 export default function OnboardingPage() {
 	const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
@@ -59,28 +35,18 @@ export default function OnboardingPage() {
 
 	const [createdProject, setCreatedProject] =
 		useState<ProjectCreateResponse | null>(null);
+	const [createdApiKey, setCreatedApiKey] = useState<string | null>(null);
 	const router = useRouter();
 
 	const createOrganization = useCreateOrganization();
 	const createProject = useCreateProject();
+	const createApiKey = useCreateProjectApiKey();
+	const revealApiKey = api.api_keys.revealApiKey.useMutation();
 
-	const organizationForm = useForm<z.infer<typeof organizationSchema>>({
-		resolver: zodResolver(organizationSchema),
-		defaultValues: {
-			name: "",
-			description: "",
-		},
-	});
-
-	const projectForm = useForm<z.infer<typeof projectSchema>>({
-		resolver: zodResolver(projectSchema),
-		defaultValues: {
-			name: "",
-			description: "",
-		},
-	});
-
-	const onOrganizationSubmit = (values: z.infer<typeof organizationSchema>) => {
+	const onOrganizationSubmit = (values: {
+		name: string;
+		description?: string;
+	}) => {
 		createOrganization.mutate(values, {
 			onSuccess: (data) => {
 				setCreatedOrganization(data);
@@ -93,7 +59,7 @@ export default function OnboardingPage() {
 		});
 	};
 
-	const onProjectSubmit = (values: z.infer<typeof projectSchema>) => {
+	const onProjectSubmit = (values: { name: string; description?: string }) => {
 		if (!createdOrganization) return;
 
 		createProject.mutate(
@@ -104,12 +70,50 @@ export default function OnboardingPage() {
 			{
 				onSuccess: (data) => {
 					setCreatedProject(data);
-					setCurrentStep("complete");
+					// Update localStorage with the created organization and project
+					if (createdOrganization) {
+						setLastProject(createdOrganization.id, data.id);
+					}
+					setCurrentStep("api-key");
 				},
 
 				onError: (error) => {
 					console.error("Failed to create project: ", error);
 					toast.error(`Failed to create project: ${error.message}`);
+				},
+			},
+		);
+	};
+
+	const handleCreateApiKey = () => {
+		if (!createdProject) return;
+
+		createApiKey.mutate(
+			{
+				name: "Default API Key",
+				projectId: createdProject.id,
+				status: "active",
+			},
+			{
+				onSuccess: (data) => {
+					// Use the reveal token to get the full API key
+					revealApiKey.mutate(
+						{ token: data.reveal_token },
+						{
+							onSuccess: (revealData) => {
+								setCreatedApiKey(revealData.full_api_key);
+								setCurrentStep("quickstart");
+							},
+							onError: (error) => {
+								console.error("Failed to reveal API key:", error);
+								toast.error("Failed to reveal API key");
+							},
+						},
+					);
+				},
+				onError: (error) => {
+					console.error("Failed to create API key:", error);
+					toast.error(`Failed to create API key: ${error.message}`);
 				},
 			},
 		);
@@ -123,15 +127,19 @@ export default function OnboardingPage() {
 				return 2;
 			case "project":
 				return 3;
-			case "complete":
+			case "api-key":
 				return 4;
+			case "quickstart":
+				return 5;
+			case "complete":
+				return 6;
 			default:
 				return 1;
 		}
 	};
 
 	const getProgress = (): number => {
-		return ((getStepNumber(currentStep) - 1) / 3) * 100;
+		return ((getStepNumber(currentStep) - 1) / 5) * 100;
 	};
 
 	const handleComplete = () => {
@@ -151,6 +159,12 @@ export default function OnboardingPage() {
 				break;
 			case "project":
 				setCurrentStep("organization");
+				break;
+			case "api-key":
+				setCurrentStep("project");
+				break;
+			case "quickstart":
+				setCurrentStep("api-key");
 				break;
 			default:
 				break;
@@ -174,280 +188,55 @@ export default function OnboardingPage() {
 				<div className="mb-8">
 					<Progress value={getProgress()} className="h-2" />
 					<div className="mt-2 flex justify-between text-muted-foreground text-sm">
-						<span>Step {getStepNumber(currentStep)} of 4</span>
+						<span>Step {getStepNumber(currentStep)} of 6</span>
 						<span>{Math.round(getProgress())}% complete</span>
 					</div>
 				</div>
 
 				{/* Welcome Step */}
 				{currentStep === "welcome" && (
-					<Card className="border-2">
-						<CardHeader className="text-center">
-							<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-primary/10">
-								<Building2 className="h-8 w-8 text-primary" />
-							</div>
-							<CardTitle className="text-2xl">Let's start building</CardTitle>
-							<CardDescription className="text-base">
-								Organizations help you manage your AI projects and collaborate
-								with your team. You can always create more organizations later.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="space-y-4">
-								<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-									<div className="flex items-start gap-3 rounded-lg bg-muted/50 p-4">
-										<Building2 className="mt-1 h-6 w-6 text-primary" />
-										<div>
-											<h4 className="font-medium">Organization</h4>
-											<p className="text-muted-foreground text-sm">
-												Your workspace for managing projects and teams
-											</p>
-										</div>
-									</div>
-									<div className="flex items-start gap-3 rounded-lg bg-muted/50 p-4">
-										<FolderPlus className="mt-1 h-6 w-6 text-primary" />
-										<div>
-											<h4 className="font-medium">Project</h4>
-											<p className="text-muted-foreground text-sm">
-												Individual AI projects with their own API keys and
-												analytics
-											</p>
-										</div>
-									</div>
-								</div>
-								<Button
-									onClick={() => setCurrentStep("organization")}
-									className="w-full"
-									size="lg"
-								>
-									Get Started
-									<ChevronRight className="ml-2 h-4 w-4" />
-								</Button>
-							</div>
-						</CardContent>
-					</Card>
+					<WelcomeStep onContinue={() => setCurrentStep("organization")} />
 				)}
 
 				{/* Organization Step */}
 				{currentStep === "organization" && (
-					<Card className="border-2">
-						<CardHeader>
-							<div className="mb-4 flex items-center gap-2">
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={handleBack}
-									className="p-2"
-								>
-									<ArrowLeft className="h-4 w-4" />
-								</Button>
-								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-									<Building2 className="h-5 w-5 text-primary" />
-								</div>
-							</div>
-							<CardTitle className="text-xl">
-								Create your organization
-							</CardTitle>
-							<CardDescription>
-								This will be your main workspace for managing AI projects and
-								team collaboration.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Form {...organizationForm}>
-								<form
-									onSubmit={organizationForm.handleSubmit(onOrganizationSubmit)}
-									className="space-y-6"
-								>
-									<FormField
-										control={organizationForm.control}
-										name="name"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Organization Name</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="e.g., Acme AI Solutions"
-														{...field}
-													/>
-												</FormControl>
-												<FormDescription>
-													Choose a name that represents your company or team
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={organizationForm.control}
-										name="description"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Description (optional)</FormLabel>
-												<FormControl>
-													<Textarea
-														placeholder="What does your organization do?"
-														rows={3}
-														{...field}
-													/>
-												</FormControl>
-												<FormDescription>
-													Help your team understand the purpose of this
-													organization
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<div className="flex justify-end gap-3">
-										<Button
-											type="button"
-											variant="outline"
-											onClick={handleBack}
-										>
-											Back
-										</Button>
-										<Button
-											type="submit"
-											disabled={createOrganization.isPending}
-											className="min-w-32"
-										>
-											{createOrganization.isPending
-												? "Creating..."
-												: "Continue"}
-											<ChevronRight className="ml-2 h-4 w-4" />
-										</Button>
-									</div>
-								</form>
-							</Form>
-						</CardContent>
-					</Card>
+					<OrganizationStep
+						onSubmit={onOrganizationSubmit}
+						onBack={handleBack}
+						isLoading={createOrganization.isPending}
+					/>
 				)}
 
 				{/* Project Step */}
 				{currentStep === "project" && (
-					<Card className="border-2">
-						<CardHeader>
-							<div className="mb-4 flex items-center gap-2">
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={handleBack}
-									className="p-2"
-								>
-									<ArrowLeft className="h-4 w-4" />
-								</Button>
-								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-									<FolderPlus className="h-5 w-5 text-primary" />
-								</div>
-							</div>
-							<CardTitle className="text-xl">
-								Create your first project
-							</CardTitle>
-							<CardDescription>
-								Projects help you organize your AI work with dedicated API keys,
-								usage tracking, and analytics.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<Form {...projectForm}>
-								<form
-									onSubmit={projectForm.handleSubmit(onProjectSubmit)}
-									className="space-y-6"
-								>
-									<FormField
-										control={projectForm.control}
-										name="name"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Project Name</FormLabel>
-												<FormControl>
-													<Input
-														placeholder="e.g., Customer Support AI"
-														{...field}
-													/>
-												</FormControl>
-												<FormDescription>
-													Choose a descriptive name for your AI project
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<FormField
-										control={projectForm.control}
-										name="description"
-										render={({ field }) => (
-											<FormItem>
-												<FormLabel>Description (optional)</FormLabel>
-												<FormControl>
-													<Textarea
-														placeholder="What will this project be used for?"
-														rows={3}
-														{...field}
-													/>
-												</FormControl>
-												<FormDescription>
-													Describe the purpose and goals of this project
-												</FormDescription>
-												<FormMessage />
-											</FormItem>
-										)}
-									/>
-									<div className="flex justify-end gap-3">
-										<Button
-											type="button"
-											variant="outline"
-											onClick={handleBack}
-										>
-											Back
-										</Button>
-										<Button
-											type="submit"
-											disabled={createProject.isPending}
-											className="min-w-32"
-										>
-											{createProject.isPending ? "Creating..." : "Continue"}
-											<ChevronRight className="ml-2 h-4 w-4" />
-										</Button>
-									</div>
-								</form>
-							</Form>
-						</CardContent>
-					</Card>
+					<ProjectStep
+						onSubmit={onProjectSubmit}
+						onBack={handleBack}
+						isLoading={createProject.isPending}
+					/>
+				)}
+
+				{/* API Key Step */}
+				{currentStep === "api-key" && (
+					<ApiKeyStep
+						onCreateApiKey={handleCreateApiKey}
+						onBack={handleBack}
+						isLoading={createApiKey.isPending}
+					/>
+				)}
+
+				{/* Quickstart Step */}
+				{currentStep === "quickstart" && createdApiKey && (
+					<QuickstartStep
+						apiKey={createdApiKey}
+						onContinue={() => setCurrentStep("complete")}
+						onBack={handleBack}
+					/>
 				)}
 
 				{/* Complete Step */}
 				{currentStep === "complete" && (
-					<Card className="border-2">
-						<CardHeader className="text-center">
-							<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-success/10">
-								<CheckCircle className="h-8 w-8 text-success" />
-							</div>
-							<CardTitle className="text-2xl">You're all set!</CardTitle>
-							<CardDescription className="text-base">
-								Your organization and project have been created successfully.
-								You can now start using the Adaptive AI Platform.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="space-y-4">
-								<div className="space-y-2 rounded-lg bg-muted/50 p-4">
-									<h4 className="font-medium">What's next?</h4>
-									<ul className="space-y-1 text-muted-foreground text-sm">
-										<li>• Generate API keys for your project</li>
-										<li>• Invite team members to your organization</li>
-										<li>• Start making API calls and track usage</li>
-										<li>• Monitor your project's analytics and costs</li>
-									</ul>
-								</div>
-								<Button onClick={handleComplete} className="w-full" size="lg">
-									Go to Dashboard
-									<ChevronRight className="ml-2 h-4 w-4" />
-								</Button>
-							</div>
-						</CardContent>
-					</Card>
+					<CompleteStep onComplete={handleComplete} />
 				)}
 			</div>
 		</div>

@@ -2,189 +2,71 @@ package utils
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/openai/openai-go"
+	"github.com/anthropics/anthropic-sdk-go"
 )
 
-// FindLastUserMessage safely finds the last user message in a conversation.
-func FindLastUserMessage(messages []openai.ChatCompletionMessageParamUnion) (string, error) {
+// ExtractPromptFromAnthropicMessages extracts the prompt text from Anthropic MessageParam array for routing decisions
+// Gets the last user message with text content
+func ExtractPromptFromAnthropicMessages(messages []anthropic.MessageParam) (string, error) {
 	if len(messages) == 0 {
-		return "", fmt.Errorf("no messages provided")
+		return "", fmt.Errorf("no messages found in request")
 	}
 
+	// Iterate backwards to find the last user message
 	for i := len(messages) - 1; i >= 0; i-- {
-		msg := messages[i]
-		if msg.OfUser == nil {
-			continue
-		}
+		message := messages[i]
 
-		// Handle string content
-		if msg.OfUser.Content.OfString.Value != "" {
-			content := msg.OfUser.Content.OfString.Value
-			if content != "" {
-				return content, nil
-			}
-		}
-
-		// Handle multi-modal content (text + images)
-		if msg.OfUser.Content.OfArrayOfContentParts != nil {
-			text := extractTextFromParts(msg.OfUser.Content.OfArrayOfContentParts)
-			if text != "" {
-				return text, nil
+		if message.Role == anthropic.MessageParamRoleUser {
+			// Extract text content from the message content blocks
+			for _, contentBlock := range message.Content {
+				// Check all possible content block types
+				if contentBlock.OfText != nil && contentBlock.OfText.Text != "" {
+					return contentBlock.OfText.Text, nil
+				}
+				if contentBlock.OfImage != nil {
+					// For image blocks, we could return a description or skip
+					continue
+				}
+				if contentBlock.OfDocument != nil {
+					// For document blocks, we could extract text or skip
+					continue
+				}
+				if contentBlock.OfToolResult != nil && len(contentBlock.OfToolResult.Content) > 0 {
+					// Tool result content is an array, extract text from first block
+					for _, resultContent := range contentBlock.OfToolResult.Content {
+						if resultContent.OfText != nil && resultContent.OfText.Text != "" {
+							return resultContent.OfText.Text, nil
+						}
+					}
+				}
+				if contentBlock.OfToolUse != nil {
+					// Tool use blocks don't typically contain routing text
+					continue
+				}
 			}
 		}
 	}
 
-	return "", fmt.Errorf("no user message found")
+	return "", fmt.Errorf("no user message with text content found for routing")
 }
 
-// extractTextFromParts extracts text content from multi-modal message parts.
-func extractTextFromParts(parts []openai.ChatCompletionContentPartUnionParam) string {
-	var texts []string
-	for _, part := range parts {
-		texts = append(texts, part.OfText.Text)
-	}
-	return strings.Join(texts, " ")
-}
-
-// ExtractLastMessage extracts content from the last message for cache key generation.
-// This supports all message roles (user, assistant, system, developer, tool).
-func ExtractLastMessage(messages []openai.ChatCompletionMessageParamUnion) (string, error) {
+// ExtractToolCallsFromAnthropicMessages extracts tool calls from the last message if it's an assistant message.
+func ExtractToolCallsFromAnthropicMessages(messages []anthropic.MessageParam) any {
 	if len(messages) == 0 {
-		return "", fmt.Errorf("no messages provided")
+		return nil
 	}
 
-	// Get the last message
 	lastMsg := messages[len(messages)-1]
 
-	var role string
-	var content string
-
-	// Handle different message types based on the union structure
-	if lastMsg.OfUser != nil {
-		role = "user"
-		content = extractContentFromUser(lastMsg.OfUser)
-	} else if lastMsg.OfAssistant != nil {
-		role = "assistant"
-		content = extractContentFromAssistant(lastMsg.OfAssistant)
-	} else if lastMsg.OfSystem != nil {
-		role = "system"
-		content = extractContentFromSystem(lastMsg.OfSystem)
-	} else if lastMsg.OfDeveloper != nil {
-		role = "developer"
-		content = extractContentFromDeveloper(lastMsg.OfDeveloper)
-	} else if lastMsg.OfTool != nil {
-		role = "tool"
-		content = extractContentFromTool(lastMsg.OfTool)
-	}
-	if content == "" {
-		return "", fmt.Errorf("no valid content found in last message")
-	}
-
-	return fmt.Sprintf("[%s]: %s", role, content), nil
-}
-
-// extractContentFromUser extracts content from a user message
-func extractContentFromUser(msg *openai.ChatCompletionUserMessageParam) string {
-	if msg.Content.OfString.Valid() && msg.Content.OfString.Value != "" {
-		return msg.Content.OfString.Value
-	}
-	if msg.Content.OfArrayOfContentParts != nil {
-		return extractTextFromUserContentParts(msg.Content.OfArrayOfContentParts)
-	}
-	return ""
-}
-
-// extractContentFromAssistant extracts content from an assistant message
-func extractContentFromAssistant(msg *openai.ChatCompletionAssistantMessageParam) string {
-	if msg.Content.OfString.Valid() && msg.Content.OfString.Value != "" {
-		return msg.Content.OfString.Value
-	}
-	if msg.Content.OfArrayOfContentParts != nil {
-		return extractTextFromAssistantContentParts(msg.Content.OfArrayOfContentParts)
-	}
-	return ""
-}
-
-// extractContentFromSystem extracts content from a system message
-func extractContentFromSystem(msg *openai.ChatCompletionSystemMessageParam) string {
-	if msg.Content.OfString.Valid() && msg.Content.OfString.Value != "" {
-		return msg.Content.OfString.Value
-	}
-	if msg.Content.OfArrayOfContentParts != nil {
-		return extractTextFromSystemContentParts(msg.Content.OfArrayOfContentParts)
-	}
-	return ""
-}
-
-// extractContentFromDeveloper extracts content from a developer message
-func extractContentFromDeveloper(msg *openai.ChatCompletionDeveloperMessageParam) string {
-	if msg.Content.OfString.Valid() && msg.Content.OfString.Value != "" {
-		return msg.Content.OfString.Value
-	}
-	if msg.Content.OfArrayOfContentParts != nil {
-		return extractTextFromDeveloperContentParts(msg.Content.OfArrayOfContentParts)
-	}
-	return ""
-}
-
-// extractContentFromTool extracts content from a tool message
-func extractContentFromTool(msg *openai.ChatCompletionToolMessageParam) string {
-	if msg.Content.OfString.Valid() && msg.Content.OfString.Value != "" {
-		return msg.Content.OfString.Value
-	}
-	if msg.Content.OfArrayOfContentParts != nil {
-		return extractTextFromToolContentParts(msg.Content.OfArrayOfContentParts)
-	}
-	return ""
-}
-
-// extractTextFromUserContentParts extracts text from user content parts
-func extractTextFromUserContentParts(parts []openai.ChatCompletionContentPartUnionParam) string {
-	var texts []string
-	for _, part := range parts {
-		if part.OfText != nil {
-			texts = append(texts, part.OfText.Text)
+	// Only assistant messages can have tool use blocks
+	if lastMsg.Role == anthropic.MessageParamRoleAssistant {
+		for _, block := range lastMsg.Content {
+			if block.OfToolUse != nil {
+				return block.OfToolUse
+			}
 		}
 	}
-	return strings.Join(texts, " ")
-}
 
-// extractTextFromAssistantContentParts extracts text from assistant content parts
-func extractTextFromAssistantContentParts(parts []openai.ChatCompletionAssistantMessageParamContentArrayOfContentPartUnion) string {
-	var texts []string
-	for _, part := range parts {
-		if part.OfText != nil {
-			texts = append(texts, part.OfText.Text)
-		}
-	}
-	return strings.Join(texts, " ")
-}
-
-// extractTextFromSystemContentParts extracts text from system content parts
-func extractTextFromSystemContentParts(parts []openai.ChatCompletionContentPartTextParam) string {
-	var texts []string
-	for _, part := range parts {
-		texts = append(texts, part.Text)
-	}
-	return strings.Join(texts, " ")
-}
-
-// extractTextFromDeveloperContentParts extracts text from developer content parts
-func extractTextFromDeveloperContentParts(parts []openai.ChatCompletionContentPartTextParam) string {
-	var texts []string
-	for _, part := range parts {
-		texts = append(texts, part.Text)
-	}
-	return strings.Join(texts, " ")
-}
-
-// extractTextFromToolContentParts extracts text from tool content parts
-func extractTextFromToolContentParts(parts []openai.ChatCompletionContentPartTextParam) string {
-	var texts []string
-	for _, part := range parts {
-		texts = append(texts, part.Text)
-	}
-	return strings.Join(texts, " ")
+	return nil
 }

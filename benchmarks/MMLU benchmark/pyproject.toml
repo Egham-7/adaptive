@@ -1,7 +1,7 @@
 [project]
 name = "benchmarking"
 version = "0.1.0"
-description = "Benchmarking and testing suite for adaptive AI protocol analysis"
+description = "Benchmarking and testing suite for adaptive AI model selection analysis"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

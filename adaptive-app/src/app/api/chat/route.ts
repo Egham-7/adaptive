@@ -1,23 +1,58 @@
-import { adaptive } from "@adaptive-llm/adaptive-ai-provider";
+import { createAdaptive } from "@adaptive-llm/adaptive-ai-provider";
 import { auth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import {
 	convertToModelMessages,
 	generateText,
+	stepCountIs,
 	streamText,
 	tool,
 	type UIMessage,
+	wrapLanguageModel,
 } from "ai";
+import { Exa } from "exa-js";
 import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
 import type { messageRoleSchema } from "@/lib/chat/schema";
+import { createBackendJWT } from "@/lib/jwt";
+import { multiTagReasoningMiddleware } from "@/lib/multi-tag-reasoning-middleware";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
-import { Exa } from "exa-js";
+if (!process.env.ADAPTIVE_API_BASE_URL) {
+	throw new Error(
+		"ADAPTIVE_API_BASE_URL environment variable is required but not defined",
+	);
+}
+
+// Function to create adaptive client with JWT authentication
+async function createAuthenticatedAdaptive(userId?: string) {
+	// Create JWT token for backend authentication
+	const jwtToken = await createBackendJWT("chat-platform", userId);
+
+	return createAdaptive({
+		baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
+		apiKey: jwtToken,
+	});
+}
+
+// Function to create authenticated model with reasoning
+async function createAuthenticatedModel(userId?: string) {
+	const adaptive = await createAuthenticatedAdaptive(userId);
+	const baseModel = adaptive.chat();
+
+	return wrapLanguageModel({
+		model: baseModel,
+		middleware: multiTagReasoningMiddleware({
+			// Common reasoning tags used by different models
+			tagPatterns: ["think", "reasoning", "analysis", "thought", "internal"],
+			startWithReasoning: false,
+		}),
+	});
+}
 
 // Web search function using Exa API
 async function webSearch(query: string): Promise<
@@ -66,8 +101,7 @@ export async function POST(req: Request) {
 		}
 
 		const body = await req.json();
-		console.log("Received body:", body);
-		const { messages, id: conversationId, searchEnabled = false } = body;
+		const { messages, id: conversationId } = body;
 
 		const numericConversationId = Number(conversationId);
 
@@ -142,36 +176,37 @@ export async function POST(req: Request) {
 		const isFirstMessage = previousMessages.length === 0;
 		const shouldGenerateTitle = isFirstMessage && message.content;
 
-		const tools = searchEnabled
-			? {
-					webSearch: tool({
-						description:
-							"Search the web for current information, news, facts, or any topic that requires up-to-date information",
-						parameters: zodSchema.object({
-							query: zodSchema
-								.string()
-								.describe("The search query to look up on the web"),
-						}),
-						execute: async ({ query }) => {
-							const searchResults = await webSearch(query);
-							return {
-								query,
-								results: searchResults,
-							};
-						},
-					}),
-				}
-			: undefined;
-
-		console.log("Tools: ", tools);
+		const tools = {
+			webSearch: tool({
+				description:
+					"Search the web for current information, news, facts, or any topic that requires up-to-date information",
+				inputSchema: zodSchema.object({
+					query: zodSchema
+						.string()
+						.describe(
+							"The search query to look up on the web this must be a non empty search term",
+						),
+				}),
+				execute: async ({ query }) => {
+					const searchResults = await webSearch(query);
+					return {
+						query,
+						results: searchResults,
+					};
+				},
+			}),
+		};
 
 		let provider: string | undefined;
 		let modelId: string | undefined;
 
+		// Create authenticated model for this user
+		const adaptiveModelWithReasoning = await createAuthenticatedModel(userId);
+
 		const result = streamText({
-			model: adaptive.chat(),
-			messages: coreMessages,
+			model: adaptiveModelWithReasoning,
 			tools,
+			messages: coreMessages,
 			async onFinish({ text, providerMetadata, response, usage }) {
 				// Create the assistant response message
 				const assistantMessage = {
@@ -193,8 +228,11 @@ export async function POST(req: Request) {
 				// Generate title for the first message
 				if (shouldGenerateTitle) {
 					try {
+						const titleAdaptive = await createAuthenticatedAdaptive(userId);
+						const titleModel = titleAdaptive.chat();
+
 						const titleResult = await generateText({
-							model: adaptive.chat(),
+							model: titleModel, // Use base model for title generation (no reasoning needed)
 							messages: [
 								{
 									role: "system",
@@ -233,14 +271,12 @@ export async function POST(req: Request) {
 				provider = providerMetadata?.adaptive?.provider as string | undefined;
 				modelId = response.modelId || undefined;
 			},
-			maxSteps: 10,
+			stopWhen: stepCountIs(5),
 		});
 
 		const data = result.toUIMessageStreamResponse({
 			sendReasoning: true,
 			sendSources: true,
-			experimental_sendFinish: true,
-			experimental_sendStart: true,
 			messageMetadata: ({ part }) => {
 				return {
 					...part,

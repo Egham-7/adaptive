@@ -5,12 +5,8 @@ import { ZodError, z } from "zod";
 import { db } from "@/server/db";
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-	const clerkAuthResult = await getClerkAuth();
-
 	return {
 		db,
-		clerkAuth: clerkAuthResult,
-		userId: clerkAuthResult.userId,
 		...opts,
 	};
 };
@@ -51,14 +47,18 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 	return result;
 });
 
-const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
-	if (!ctx.clerkAuth.userId) {
+const enforceUserIsAuthed = t.middleware(async ({ ctx, next }) => {
+	const clerkAuthResult = await getClerkAuth();
+
+	if (!clerkAuthResult.userId) {
 		throw new TRPCError({ code: "UNAUTHORIZED", message: "Not authenticated" });
 	}
+
 	return next({
 		ctx: {
 			...ctx,
-			clerkAuth: ctx.clerkAuth,
+			clerkAuth: clerkAuthResult,
+			userId: clerkAuthResult.userId,
 		},
 	});
 });

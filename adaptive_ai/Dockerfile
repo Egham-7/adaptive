@@ -3,11 +3,15 @@ FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONUNBUFFERED=1 \
   PYTHONDONTWRITEBYTECODE=1 \
-  PATH="/root/.local/bin:$PATH"
+  PATH="/root/.local/bin:$PATH" \
+  HF_HOME=/app/cache/huggingface \
+  HF_HUB_CACHE=/app/cache/huggingface
 
 WORKDIR /app
-
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Create cache directory
+RUN mkdir -p /app/cache/huggingface
 
 # Install system dependencies
 RUN apt-get update && \
@@ -32,5 +36,4 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
-
 ENTRYPOINT ["/entrypoint.sh"]

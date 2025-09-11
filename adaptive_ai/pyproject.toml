@@ -25,11 +25,11 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "numpy>=1.24.0,<2.0",
+    "numpy>=1.24.0,<3.0",
     "scikit-learn>=1.7.0,<2",
-    "huggingface-hub>=0.32.0,<0.34",
+    "huggingface-hub>=0.32.0,<0.35",
     "transformers>=4.52.4,<5",
-    "torch>=2.2.0,<2.3.0",
+    "torch>=2.2.0,<2.9.0",
     "litserve>=0.2.10,<0.3",
     "pydantic>=2.11.5,<3",
     "pydantic-settings>=2.9.1,<3",
@@ -38,9 +38,7 @@ dependencies = [
     "tqdm>=4.67.1,<5",
     "matplotlib>=3.7.0,<4",
     "pyyaml>=6.0.2,<7",
-    "tiktoken>=0.9.0,<0.10",
-    "pytest>=8.4.1,<9",
-    "pytest-cov>=6.2.1,<7",
+    "tiktoken>=0.9.0,<0.12",
     "langchain>=0.3.26,<0.4",
     "langchain-huggingface>=0.3.0,<0.4",
     "sentence-transformers>=4.1.0,<6",
@@ -48,7 +46,18 @@ dependencies = [
     "protobuf>=6.31.1,<7",
     "sentencepiece>=0.2.0,<0.3",
     "accelerate>=1.8.1,<2",
-    "cachetools>=5.3.0,<6",
+    "cachetools>=5.3.0,<7",
+    "openai>=1.97.1",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "beautifulsoup4>=4.13.4",
+    "lxml>=6.0.0",
+    "langgraph>=0.2.68,<0.7",
+    "langchain-openai>=0.3.0,<0.4",
+    "langchain-anthropic>=0.3.0,<0.4",
+    "httpx>=0.25.0,<1.0",
+    "aiohttp>=3.8.0,<4.0",
+    "langchain-community>=0.3.27",
 ]
 
 [project.urls]
@@ -65,12 +74,16 @@ adaptive-ai = "adaptive_ai.main:main"
 dev = [
     "mypy>=1.15.0,<2",
     "black>=25.1.0,<26",
-    "ruff>=0.11.11,<0.12",
+    "ruff>=0.11.11,<0.13",
     "types-requests>=2.32.0.20250611,<3",
     "pandas-stubs>=2.0.0,<3",
     "types-tqdm>=4.67.0.20250516,<5",
     "types-pyyaml>=6.0.12.20250516,<7",
-    "types-cachetools>=5.3.0,<6",
+    "types-cachetools>=5.3.0,<7",
+]
+test = [
+    "pytest>=8.4.1,<9",
+    "pytest-cov>=6.2.1,<7",
 ]
 docs = [
     "mkdocs>=1.5.0,<2",
@@ -78,10 +91,7 @@ docs = [
 ]
 
 [tool.uv]
-default-groups = [
-    "dev",
-    "docs",
-]
+default-groups = []
 
 [tool.hatch.build.targets.sdist]
 include = ["adaptive_ai"]
@@ -139,6 +149,15 @@ warn_return_any = true
 strict_equality = true
 show_error_codes = true
 follow_imports = "silent"
+exclude = [
+    "benchmarks",
+    "analysis",
+    "adaptive-app",
+    "adaptive-backend", 
+    "adaptive-docs",
+    "model_data/agent",
+    "model_data/update_from_helicone.py"
+]
 
 [[tool.mypy.overrides]]
 module = [
@@ -147,8 +166,22 @@ module = [
   "transformers.*",
   "huggingface_hub.*",
   "sklearn.*",
+  "pydantic.*",
+  "pydantic_settings.*",
+  "numpy.*",
+  "langchain_core.*",
+  "tiktoken.*",
+  "sentence_transformers.*",
+  "accelerate.*",
 ]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration tests (requiring running service)",
+    "unit: marks tests as unit tests (no external dependencies)",
+]
+addopts = "-v --strict-markers"
 
 [tool.coverage.report]
 exclude_lines = [

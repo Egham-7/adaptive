@@ -1,0 +1,28 @@
+package models
+
+// PromptCacheConfig holds configuration for prompt caching
+type CacheConfig struct {
+	// YAML config fields (not overridable in requests)
+	Enabled           bool    `json:"enabled,omitzero" yaml:"enabled"`
+	RedisURL          string  `json:"redis_url,omitzero" yaml:"redis_url"`
+	SemanticThreshold float64 `json:"semantic_threshold,omitzero" yaml:"semantic_threshold"`
+	OpenAIAPIKey      string  `json:"openai_api_key,omitzero" yaml:"openai_api_key"`
+	EmbeddingModel    string  `json:"embedding_model,omitzero" yaml:"embedding_model"`
+}
+
+// ModelRouterConfig holds configuration for the model router
+type ModelRouterConfig struct {
+	// YAML config fields
+	SemanticCache CacheConfig             `json:"semantic_cache" yaml:"semantic_cache"`
+	Client        ModelRouterClientConfig `json:"client" yaml:"client"`
+	// Request-level config fields
+	Models   []ModelCapability `json:"models,omitzero"`
+	CostBias float32           `json:"cost_bias,omitzero"`
+}
+
+// ModelRouterClientConfig holds client configuration for model router
+type ModelRouterClientConfig struct {
+	BaseURL        string               `json:"base_url,omitzero" yaml:"base_url"`
+	TimeoutMs      int                  `json:"timeout_ms,omitzero" yaml:"timeout_ms"`
+	CircuitBreaker CircuitBreakerConfig `json:"circuit_breaker" yaml:"circuit_breaker"`
+}

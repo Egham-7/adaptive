@@ -1,6 +1,7 @@
 ---
 title: 'Troubleshooting'
 description: 'Common issues and solutions when using Adaptive API'
+icon: "wrench"
 ---
 
 ## Common Issues
@@ -23,7 +24,7 @@ description: 'Common issues and solutions when using Adaptive API'
        // Correct - no 'Bearer' prefix needed
        const openai = new OpenAI({
          apiKey: 'your-adaptive-api-key',
-         baseURL: 'https://llmadaptive.uk/api/v1'
+         baseURL: 'https://www.llmadaptive.uk/api/v1'
        });
        ```
 
@@ -36,7 +37,7 @@ description: 'Common issues and solutions when using Adaptive API'
        ```bash
        curl -H "X-Stainless-API-Key: your-adaptive-api-key" \
             -H "Content-Type: application/json" \
-            https://llmadaptive.uk/api/v1/chat/completions \
+            https://www.llmadaptive.uk/api/v1/chat/completions \
             -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
        ```
   </Accordion>
@@ -82,7 +83,7 @@ description: 'Common issues and solutions when using Adaptive API'
 
     **Correct base URL:**
     ```
-    https://llmadaptive.uk/api/v1
+    https://www.llmadaptive.uk/api/v1
     ```
 
     **Common mistakes:**
@@ -90,10 +91,10 @@ description: 'Common issues and solutions when using Adaptive API'
     // ❌ Wrong
     baseURL: 'https://api.openai.com/v1'
     baseURL: 'https://adaptive.ai/api/v1'
-    baseURL: 'https://llmadaptive.uk/v1'
+    baseURL: 'https://www.llmadaptive.uk/v1'
     
     // ✅ Correct
-    baseURL: 'https://llmadaptive.uk/api/v1'
+    baseURL: 'https://www.llmadaptive.uk/api/v1'
     ```
   </Accordion>
 
@@ -107,9 +108,9 @@ description: 'Common issues and solutions when using Adaptive API'
        model: ""
        
        // ❌ Wrong - tries to use specific model
-       model: "gpt-3.5-turbo"
-       model: null
-       model: undefined
+       model: ""
+       model: ""
+       model: ""
        ```
 
     2. **TypeScript type issues:**
@@ -263,9 +264,9 @@ description: 'Common issues and solutions when using Adaptive API'
        ```
 
     2. **Check your rate limits:**
-       - Free tier: 100 requests/minute
-       - Pro tier: 1,000 requests/minute
-       - Enterprise: Custom limits
+       - **Free tier**: 100 requests/minute, 10,000 tokens/minute
+       - **Pro tier**: 1,000 requests/minute, 100,000 tokens/minute
+       - **Enterprise**: Custom limits
 
     3. **Implement request queuing:**
        ```javascript
@@ -326,7 +327,7 @@ description: 'Common issues and solutions when using Adaptive API'
        
        llm = ChatOpenAI(
            api_key=os.getenv("ADAPTIVE_API_KEY"),
-           base_url="https://llmadaptive.uk/api/v1",
+           base_url="https://www.llmadaptive.uk/api/v1",
            model=""  # Important: empty string
        )
        ```
@@ -338,7 +339,7 @@ description: 'Common issues and solutions when using Adaptive API'
        const llm = new ChatOpenAI({
          apiKey: process.env.ADAPTIVE_API_KEY,
          configuration: {
-           baseURL: "https://llmadaptive.uk/api/v1"
+           baseURL: "https://www.llmadaptive.uk/api/v1"
          },
          model: ""
        });
@@ -367,7 +368,7 @@ description: 'Common issues and solutions when using Adaptive API'
        
        const adaptiveOpenAI = openai({
          apiKey: process.env.ADAPTIVE_API_KEY,
-         baseURL: 'https://llmadaptive.uk/api/v1',
+         baseURL: 'https://www.llmadaptive.uk/api/v1',
        });
        
        const { text } = await generateText({
@@ -443,7 +444,7 @@ description: 'Common issues and solutions when using Adaptive API'
        ping llmadaptive.uk
        
        # Test TLS handshake
-       curl -w "@curl-format.txt" -o /dev/null https://llmadaptive.uk/api/v1/
+       curl -w "@curl-format.txt" -o /dev/null https://www.llmadaptive.uk/api/v1/
        ```
 
     2. **Implement timeout handling:**
@@ -478,7 +479,7 @@ description: 'Common issues and solutions when using Adaptive API'
        
        const openai = new OpenAI({
          apiKey: process.env.ADAPTIVE_API_KEY,
-         baseURL: 'https://llmadaptive.uk/api/v1',
+         baseURL: 'https://www.llmadaptive.uk/api/v1',
          httpAgent: agent
        });
        ```
@@ -594,43 +595,49 @@ description: 'Common issues and solutions when using Adaptive API'
 
 When reporting issues, please include:
 
-1. **Environment details:**
-   ```bash
-   # System info
-   node --version
-   npm --version
-   
-   # Package versions
-   npm list openai
-   npm list @langchain/openai
-   ```
-
-2. **Request details:**
-   ```javascript
-   // Sanitized request (remove API key)
-   {
-     "model": "",
-     "messages": [...],
-     "provider_constraint": [...],
-     "cost_bias": 0.5
-   }
-   ```
-
-3. **Error information:**
-   ```javascript
-   console.log("Error status:", error.status);
-   console.log("Error message:", error.message);
-   console.log("Error stack:", error.stack);
-   ```
-
-4. **Network diagnostics:**
-   ```bash
-   # Test connectivity
-   curl -I https://llmadaptive.uk/api/v1/
-   
-   # DNS resolution
-   nslookup llmadaptive.uk
-   ```
+<Steps>
+  <Step title="Environment Details">
+    ```bash
+    # System info
+    node --version
+    npm --version
+    
+    # Package versions
+    npm list openai
+    npm list @langchain/openai
+    ```
+  </Step>
+  
+  <Step title="Request Details">
+    ```javascript
+    // Sanitized request (remove API key)
+    {
+      "model": "",
+      "messages": [...],
+      "provider_constraint": [...],
+      "cost_bias": 0.5
+    }
+    ```
+  </Step>
+  
+  <Step title="Error Information">
+    ```javascript
+    console.log("Error status:", error.status);
+    console.log("Error message:", error.message);
+    console.log("Error stack:", error.stack);
+    ```
+  </Step>
+  
+  <Step title="Network Diagnostics">
+    ```bash
+    # Test connectivity
+    curl -I https://www.llmadaptive.uk/api/v1/
+    
+    # DNS resolution
+    nslookup llmadaptive.uk
+    ```
+  </Step>
+</Steps>
 
 ### Support Channels
 
@@ -651,56 +658,162 @@ When reporting issues, please include:
 
 ### Best Practices for Debugging
 
-1. **Start with simple requests:**
-   ```javascript
-   // Test basic functionality first
-   const simple = await openai.chat.completions.create({
-     model: "",
-     messages: [{ role: "user", content: "Hello" }]
-   });
-   ```
+<Steps>
+  <Step title="Start with Simple Requests">
+    Test basic functionality first
+    ```javascript
+    const simple = await openai.chat.completions.create({
+      model: "",
+      messages: [{ role: "user", content: "Hello" }]
+    });
+    ```
+  </Step>
+  
+  <Step title="Enable Verbose Logging">
+    Add detailed logging to understand what's happening
+    ```javascript
+    console.log("Request:", JSON.stringify(requestData, null, 2));
+    console.log("Response:", JSON.stringify(response, null, 2));
+    ```
+  </Step>
+  
+  <Step title="Test with curl">
+    Verify API access outside your application
+    ```bash
+    curl -X POST https://www.llmadaptive.uk/api/v1/chat/completions \
+      -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
+    ```
+  </Step>
+  
+  <Step title="Isolate the Problem">
+    Systematically narrow down the issue:
+    - Test different messages
+    - Try different parameters  
+    - Test in different environments
+    - Compare with working examples
+  </Step>
+</Steps>
 
-2. **Enable verbose logging:**
-   ```javascript
-   // Add detailed logging
-   console.log("Request:", JSON.stringify(requestData, null, 2));
-   console.log("Response:", JSON.stringify(response, null, 2));
-   ```
+## Complete Error Handling Example
 
-3. **Test with curl:**
-   ```bash
-   # Verify API access outside your application
-   curl -X POST https://llmadaptive.uk/api/v1/chat/completions \
-     -H "X-Stainless-API-Key: $ADAPTIVE_API_KEY" \
-     -H "Content-Type: application/json" \
-     -d '{"model":"","messages":[{"role":"user","content":"test"}]}'
-   ```
+Here's a production-ready error handling implementation:
 
-4. **Isolate the problem:**
-   - Test different messages
-   - Try different parameters
-   - Test in different environments
-   - Compare with working examples
+```javascript
+class AdaptiveClient {
+  constructor(apiKey) {
+    this.openai = new OpenAI({
+      apiKey: apiKey,
+      baseURL: 'https://www.llmadaptive.uk/api/v1'
+    });
+  }
+  
+  async createCompletion(params, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const completion = await this.openai.chat.completions.create({
+          model: "",
+          ...params
+        });
+        
+        // Log success metrics
+        console.log(`✅ Success: ${completion.provider} | ${completion.usage.total_tokens} tokens`);
+        return completion;
+        
+      } catch (error) {
+        // Handle specific errors
+        if (error.status === 401) {
+          throw new Error('Invalid API key - check your credentials');
+        }
+        
+        if (error.status === 429) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+          console.log(`⚠️  Rate limited, retrying in ${delay}ms (attempt ${attempt}/${retries})`);
+          
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new Error('Rate limit exceeded - reduce request frequency');
+        }
+        
+        if (error.status === 400) {
+          throw new Error(`Invalid request: ${error.message}`);
+        }
+        
+        if (error.status >= 500) {
+          const delay = 1000 * attempt;
+          console.log(`🔄 Server error, retrying in ${delay}ms (attempt ${attempt}/${retries})`);
+          
+          if (attempt < retries) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new Error('Server error - try again later');
+        }
+        
+        // Unexpected error
+        throw new Error(`Unexpected error: ${error.message}`);
+      }
+    }
+  }
+}
+
+// Usage example
+const client = new AdaptiveClient(process.env.ADAPTIVE_API_KEY);
+
+try {
+  const response = await client.createCompletion({
+    messages: [{ role: "user", content: "Hello!" }],
+    model_router: {
+      cost_bias: 0.3,
+      models: [{ provider: "openai" }, { provider: "anthropic" }]
+    }
+  });
+  
+  console.log("Response:", response.choices[0].message.content);
+} catch (error) {
+  console.error("Failed to get completion:", error.message);
+}
+```
 
 ## FAQ
 
 <AccordionGroup>
   <Accordion title="Why am I not getting responses from certain providers?">
-    This could be due to provider constraints, cost bias settings, or the specific requirements of your request. Check your `provider_constraint` parameter and try adjusting your `cost_bias` setting.
+    Check your `model_router.models` configuration. Ensure the providers you want are included and your `cost_bias` setting allows for the provider selection you expect.
   </Accordion>
 
   <Accordion title="How do I know which provider was selected?">
     Check the `provider` field in the response:
     ```javascript
     console.log("Selected provider:", completion.provider);
+    console.log("Model used:", completion.model);
     ```
   </Accordion>
 
   <Accordion title="Can I force a specific model?">
-    While you can use `provider_constraint` to limit options, we recommend letting intelligent routing optimize for you. Manual model selection typically results in higher costs and lower performance.
+    Use the `model_router.models` array with specific model names:
+    ```javascript
+    model_router: {
+      models: [
+        { provider: "openai", model_name: "gpt-4" }
+      ]
+    }
+    ```
   </Accordion>
 
   <Accordion title="Why are my costs higher than expected?">
-    Check your `cost_bias` setting. A higher value (closer to 1) prioritizes quality over cost. Lower values (closer to 0) prioritize cost savings.
+    Check your `cost_bias` setting. A higher value (closer to 1) prioritizes quality over cost. Set it to 0.0-0.3 for maximum cost savings.
+  </Accordion>
+
+  <Accordion title="How do I disable semantic caching?">
+    Set semantic cache to disabled in your request:
+    ```javascript
+    prompt_response_cache: {
+      enabled: false
+    }
+    ```
   </Accordion>
 </AccordionGroup>

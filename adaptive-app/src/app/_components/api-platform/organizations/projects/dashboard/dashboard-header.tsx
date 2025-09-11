@@ -1,78 +1,30 @@
 import { Download } from "lucide-react";
-import Image from "next/image";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
-import type { Provider, ProviderFilter } from "@/types/api-platform/dashboard";
 
 interface DashboardHeaderProps {
 	dateRange: DateRange;
 	onDateRangeChange: (range: DateRange) => void;
-	selectedProvider: ProviderFilter;
-	onProviderChange: (provider: ProviderFilter) => void;
-	providers: Provider[];
 	onExport: () => void;
 }
 
 export function DashboardHeader({
 	dateRange,
 	onDateRangeChange,
-	selectedProvider,
-	onProviderChange,
-	providers,
 	onExport,
 }: DashboardHeaderProps) {
 	return (
-		<div className="flex items-center justify-between">
-			<h1 className="font-bold text-2xl text-foreground">Usage Dashboard</h1>
-			<div className="flex items-center gap-3">
-				<Select value={selectedProvider} onValueChange={onProviderChange}>
-					<SelectTrigger className="w-56">
-						<SelectValue>
-							{(() => {
-								const selected = providers.find(
-									(p) => p.id === selectedProvider,
-								);
-								return selected ? (
-									<div className="flex items-center gap-2">
-										<Image
-											width={20}
-											height={20}
-											src={selected.icon}
-											alt={selected.name}
-										/>
-										<span>{selected.name}</span>
-									</div>
-								) : (
-									<span>All Providers</span>
-								);
-							})()}
-						</SelectValue>
-					</SelectTrigger>
-					<SelectContent>
-						{providers.map((provider) => (
-							<SelectItem key={provider.id} value={provider.id}>
-								<div className="flex items-center gap-2">
-									<Image
-										width={20}
-										height={20}
-										src={provider.icon}
-										alt={provider.name}
-									/>
-									<span>{provider.name}</span>
-								</div>
-							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-
+		<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+			<div className="flex-1">
+				<h1 className="font-bold text-2xl text-foreground sm:text-3xl">
+					Usage Dashboard
+				</h1>
+				<p className="mt-1 text-muted-foreground text-sm sm:text-base">
+					Monitor your API usage and optimize costs
+				</p>
+			</div>
+			<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
 				<DateRangePicker
 					dateRange={dateRange}
 					onDateRangeChange={onDateRangeChange}
@@ -196,10 +148,10 @@ export function DashboardHeader({
 					variant="outline"
 					size="sm"
 					onClick={onExport}
-					className="flex items-center gap-2 bg-transparent"
+					className="flex w-full items-center justify-center gap-2 bg-transparent sm:w-auto"
 				>
 					<Download className="h-4 w-4" />
-					Export
+					<span className="sm:inline">Export</span>
 				</Button>
 			</div>
 		</div>

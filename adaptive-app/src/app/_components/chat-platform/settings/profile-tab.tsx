@@ -3,6 +3,7 @@
 import type { UserResource } from "@clerk/types";
 import { User } from "lucide-react";
 import type React from "react";
+import { useId } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
 	Card,
@@ -29,6 +30,12 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
 	const preferredName = preferences?.preferredName || user?.firstName || "";
 	const jobRole = preferences?.jobRole || "";
 	const personalPreferences = preferences?.personalPreferences || "";
+
+	const fullNameId = useId();
+	const preferredNameId = useId();
+	const jobRoleId = useId();
+	const emailId = useId();
+	const personalPreferencesId = useId();
 
 	const utils = api.useUtils();
 	const updateMetadataMutation = api.user.updateMetadata.useMutation({
@@ -103,18 +110,18 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
 
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-2">
-							<Label htmlFor="fullName">Full Name</Label>
+							<Label htmlFor={fullNameId}>Full Name</Label>
 							<Input
-								id="fullName"
+								id={fullNameId}
 								value={fullName as string}
 								onChange={(e) => updateMetadata({ fullName: e.target.value })}
 								placeholder="Enter your full name"
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="preferredName">What should we call you?</Label>
+							<Label htmlFor={preferredNameId}>What should we call you?</Label>
 							<Input
-								id="preferredName"
+								id={preferredNameId}
 								value={preferredName as string}
 								onChange={(e) =>
 									updateMetadata({ preferredName: e.target.value })
@@ -126,18 +133,18 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
 
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-2">
-							<Label htmlFor="jobRole">Job Role</Label>
+							<Label htmlFor={jobRoleId}>Job Role</Label>
 							<Input
-								id="jobRole"
+								id={jobRoleId}
 								value={jobRole as string}
 								onChange={(e) => updateMetadata({ jobRole: e.target.value })}
 								placeholder="e.g., Software Engineer, Designer, Manager"
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="email">Email (Read-only)</Label>
+							<Label htmlFor={emailId}>Email (Read-only)</Label>
 							<Input
-								id="email"
+								id={emailId}
 								type="email"
 								value={user?.primaryEmailAddress?.emailAddress || ""}
 								disabled
@@ -150,11 +157,11 @@ export const ProfileTab: React.FC<ProfileTabProps> = ({ user }) => {
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="personalPreferences">
+						<Label htmlFor={personalPreferencesId}>
 							Personal Preferences for Adaptive
 						</Label>
 						<Textarea
-							id="personalPreferences"
+							id={personalPreferencesId}
 							value={personalPreferences as string}
 							onChange={(e) =>
 								updateMetadata({ personalPreferences: e.target.value })

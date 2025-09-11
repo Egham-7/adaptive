@@ -1,0 +1,278 @@
+---
+title: 'LangChain Integration'
+description: 'Use Adaptive with LangChain for intelligent routing in complex AI workflows'
+---
+
+## Overview
+
+LangChain is a powerful framework for building applications with language models. By integrating Adaptive with LangChain's `ChatOpenAI`, you get intelligent model routing while keeping all your familiar LangChain patterns.
+
+## Key Benefits
+
+- **Keep existing workflows** - No changes to your LangChain code structure
+- **Intelligent routing** - Automatic model selection based on prompt complexity
+- **Cost optimization** - 30-70% cost reduction with zero code changes  
+- **Chain compatibility** - Works with all LangChain chains, agents, and tools
+- **Streaming support** - Real-time responses with LangChain streaming
+
+## Installation
+
+Install the required dependencies:
+
+```bash
+npm install @langchain/core @langchain/openai langchain
+```
+
+## Basic Usage
+
+### Initialize ChatOpenAI with Adaptive
+
+The only change needed is to point LangChain's `ChatOpenAI` to Adaptive's endpoint:
+
+```typescript
+import { ChatOpenAI } from "@langchain/openai";
+
+const model = new ChatOpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  configuration: {
+    baseURL: "https://llmadaptive.uk/api/v1", // Adaptive's endpoint
+  },
+  modelName: "", // Empty string enables intelligent routing
+  temperature: 0.7,
+});
+```
+
+### Simple Chat Example
+
+```typescript
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
+
+const messages = [
+  new SystemMessage("You are a helpful assistant."),
+  new HumanMessage("Explain quantum computing simply"),
+];
+
+const response = await model.invoke(messages);
+console.log(response.content);
+
+// Check which model Adaptive selected
+if (response.response_metadata) {
+  const modelName = response.response_metadata.model_name || 
+                   response.response_metadata.model || 
+                   "unknown";
+  console.log(`Adaptive selected: ${modelName}`);
+}
+```
+
+### Streaming Responses
+
+```typescript
+const stream = await model.stream([
+  new HumanMessage("Write a poem about AI")
+]);
+
+for await (const chunk of stream) {
+  if (chunk.content && typeof chunk.content === "string") {
+    process.stdout.write(chunk.content);
+  }
+}
+```
+
+## Advanced Examples
+
+### Chain Composition
+
+Build complex chains with prompt templates and output parsers:
+
+```typescript
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { RunnableSequence } from "@langchain/core/runnables";
+
+const promptTemplate = ChatPromptTemplate.fromTemplate(
+  "You are an expert {field} specialist. Explain {topic} simply."
+);
+
+const parser = new StringOutputParser();
+
+const chain = RunnableSequence.from([
+  promptTemplate,
+  model,
+  parser,
+]);
+
+const result = await chain.invoke({
+  field: "computer science",
+  topic: "machine learning algorithms",
+});
+```
+
+### Batch Processing
+
+Process multiple requests efficiently:
+
+```typescript
+const messageBatches = [
+  [new HumanMessage("What is TypeScript?")],
+  [new HumanMessage("What is Python?")],
+  [new HumanMessage("What is JavaScript?")],
+];
+
+const results = await model.batch(messageBatches);
+```
+
+### With Tools/Agents
+
+Adaptive automatically selects models that support function calling when tools are detected:
+
+```typescript
+import { DynamicTool } from "@langchain/core/tools";
+import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
+
+const tools = [
+  new DynamicTool({
+    name: "weather",
+    description: "Get weather for a location",
+    func: async (location: string) => {
+      // Weather API call
+      return `Weather in ${location}: 72°F, sunny`;
+    },
+  }),
+];
+
+const agent = await createOpenAIFunctionsAgent({
+  llm: model,
+  tools,
+  prompt: prompt,
+});
+
+const agentExecutor = new AgentExecutor({
+  agent,
+  tools,
+});
+```
+
+## Integration Patterns
+
+### With Vector Stores
+
+```typescript
+import { MemoryVectorStore } from "langchain/vectorstores/memory";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+const vectorStore = new MemoryVectorStore(
+  new OpenAIEmbeddings({
+    apiKey: process.env.ADAPTIVE_API_KEY,
+    configuration: {
+      baseURL: "https://llmadaptive.uk/api/v1",
+    },
+  })
+);
+
+const retriever = vectorStore.asRetriever();
+// Use with RAG chains...
+```
+
+### Memory and Conversation
+
+```typescript
+import { BufferMemory } from "langchain/memory";
+import { ConversationChain } from "langchain/chains";
+
+const memory = new BufferMemory();
+const chain = new ConversationChain({
+  llm: model,
+  memory,
+});
+
+const response = await chain.call({
+  input: "Hello! Remember my name is Alice.",
+});
+```
+
+## Configuration Options
+
+### Model Selection
+
+- **Empty string**: Intelligent routing (recommended)
+- **Specific model**: Force a particular model
+- **Provider only**: Let Adaptive choose best model from provider
+
+```typescript
+// Intelligent routing (recommended)
+modelName: ""
+
+// Specific model
+modelName: "gpt-4o"
+
+// Provider selection (Adaptive chooses best model)
+modelName: "openai"
+```
+
+### Temperature and Parameters
+
+All standard ChatOpenAI parameters work:
+
+```typescript
+const model = new ChatOpenAI({
+  apiKey: process.env.ADAPTIVE_API_KEY,
+  configuration: {
+    baseURL: "https://llmadaptive.uk/api/v1",
+  },
+  modelName: "",
+  temperature: 0.7,
+  maxTokens: 1000,
+  topP: 1,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
+});
+```
+
+## Best Practices
+
+1. **Use empty model string** for intelligent routing
+2. **Set appropriate temperature** for your use case
+3. **Handle streaming gracefully** with type checks
+4. **Leverage LangSmith** for tracing and debugging
+5. **Use tools effectively** - Adaptive prioritizes function-calling models
+
+## Error Handling
+
+```typescript
+try {
+  const response = await model.invoke(messages);
+  console.log(response.content);
+  
+  // Access model information from Adaptive
+  if (response.response_metadata) {
+    const modelName = response.response_metadata.model_name || 
+                     response.response_metadata.model || 
+                     "unknown";
+    console.log(`Selected model: ${modelName}`);
+  }
+} catch (error) {
+  if (error.status === 429) {
+    // Rate limit - Adaptive handles retries
+    console.log("Rate limited, retrying...");
+  } else {
+    console.error("Error:", error.message);
+  }
+}
+```
+
+## Complete Example
+
+See the [complete LangChain example](https://github.com/your-org/adaptive/blob/main/examples/ts/examples/basic-langchain.ts) for a full working implementation including:
+
+- Non-streaming chat
+- Streaming responses  
+- Chain composition
+- Batch processing
+- Error handling
+
+## Next Steps
+
+- Explore [LangChain agents](https://js.langchain.com/docs/modules/agents/) with Adaptive
+- Build [RAG applications](https://js.langchain.com/docs/use_cases/question_answering/) with intelligent routing
+- Use [LangSmith](https://smith.langchain.com/) for debugging and optimization
+- Try [multi-modal chains](https://js.langchain.com/docs/integrations/chat/openai/#multimodal) with cost optimization

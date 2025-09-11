@@ -71,12 +71,12 @@ export const useUpdateMessage = () => {
 				);
 			}
 		},
-		onSettled: (data, _error, variables) => {
+		onSettled: (_data, _error, variables, context) => {
 			// Always refetch after error or success to ensure consistency
 			utils.messages.getById.invalidate({ id: variables.id });
-			if (data?.conversationId) {
+			if (context?.conversationId) {
 				utils.messages.listByConversation.invalidate({
-					conversationId: data.conversationId,
+					conversationId: context.conversationId,
 				});
 			}
 		},

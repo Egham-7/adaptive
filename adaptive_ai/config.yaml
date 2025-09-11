@@ -1,0 +1,19 @@
+# Adaptive AI Configuration
+# Environment variables: ${VAR_NAME:default_value}
+
+# Server settings
+server:
+  host: "${HOST:::}"
+  port: ${PORT:8000}
+
+# LitServe ML serving settings
+litserve:
+  accelerator: ${ACCELERATOR:auto}
+  devices: ${DEVICES:auto}
+  max_batch_size: ${MAX_BATCH_SIZE:8}
+  batch_timeout: ${BATCH_TIMEOUT:0.05}
+
+# Logging settings
+logging:
+  level: ${LOG_LEVEL:INFO}
+

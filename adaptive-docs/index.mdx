@@ -1,161 +1,177 @@
 ---
-title: "Welcome to Adaptive"
-description: "The intelligent LLM gateway that saves you money while maintaining performance"
+title: "Introduction"
+description: "Welcome to Adaptive - the most intelligent LLM inference platform designed for modern developers."
+icon: "sparkles"
 ---
 
-## What is Adaptive?
+# The Most Intelligent LLM Inference Platform
 
-Adaptive is an **intelligent LLM gateway** that automatically routes your requests to the best AI model for each task. Simply swap your OpenAI base URL and start saving up to **80% on AI costs** without changing a single line of code.
+Adaptive automatically routes your AI requests to the optimal model across multiple providers, delivering exceptional performance while dramatically reducing costs.
 
 <Note>
-  **Perfect for developers who:** Want to reduce AI costs, need reliable
-  fallbacks, or want access to multiple AI providers without managing separate
-  APIs.
+✨ **Drop-in OpenAI replacement** with zero code changes required
 </Note>
 
 ## Why Choose Adaptive?
 
 <CardGroup cols={2}>
-  <Card title="Drop-in Replacement" href="/quickstart">
-    **5-minute setup:** Just change your base URL. Works with OpenAI SDK, Vercel
-    AI SDK, LangChain, and any HTTP client.
+  <Card title="Intelligent Routing" icon="brain">
+    Our AI analyzes each request and automatically selects the optimal model based on complexity, performance requirements, and cost efficiency.
   </Card>
-  <Card title="Smart Model Selection" href="/features/intelligent-routing">
-    **AI-powered routing:** Automatically chooses the best model for each
-    request based on content, cost, and performance.
+  <Card title="Seamless Integration" icon="plug">
+    Drop-in replacement for OpenAI API. Simply change your base URL and everything works immediately.
   </Card>
-  <Card title="Massive Cost Savings" href="/features/cost-optimization">
-    **Up to 80% cheaper:** Route simple tasks to efficient models, complex tasks
-    to premium models.
+  <Card title="Multi-Provider Access" icon="network-wired">
+    Access leading AI providers including OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok through one unified interface.
   </Card>
-  <Card title="Multi-Provider Access" href="/features/provider-constraints">
-    **6+ AI providers:** OpenAI, Anthropic, Google, Groq, DeepSeek, and Grok
-    through one unified API.
+  <Card title="Enterprise Ready" icon="shield-check">
+    Built for scale with advanced caching, fallback mechanisms, and comprehensive monitoring and analytics.
   </Card>
 </CardGroup>
 
-## How It Works
+## How Adaptive Works
 
 <Steps>
-  <Step title="Send Request">
-    Your app sends an OpenAI-compatible request to Adaptive
+  <Step title="Intelligent Analysis">
+    Every request is analyzed in real-time to understand complexity, context, and requirements
   </Step>
-  <Step title="AI Analyzes">
-    Our routing AI analyzes your prompt and selects the optimal model/provider
+  <Step title="Optimal Routing">
+    Our AI selects the best model across multiple providers for performance, cost, and quality
   </Step>
-  <Step title="Get Response">
-    Receive OpenAI-format responses regardless of the underlying provider
+  <Step title="Seamless Response">
+    Receive consistent OpenAI-compatible responses regardless of the underlying provider
   </Step>
-  <Step title="Save Money">Monitor usage and savings in your dashboard</Step>
+  <Step title="Continuous Learning">
+    The system learns from each interaction to improve routing decisions over time
+  </Step>
 </Steps>
 
-## Quick Example
+## Platform Capabilities
 
-**Before (OpenAI only):**
+<CardGroup cols={3}>
+  <Card title="Smart Routing" icon="route">
+    Advanced AI algorithms analyze each request to determine the optimal model and provider combination.
+  </Card>
+  <Card title="Cost Optimization" icon="trending-down">
+    Achieve significant cost reductions through intelligent model selection and efficient request routing.
+  </Card>
+  <Card title="Performance" icon="zap">
+    Lightning-fast response times with built-in caching and optimized provider connections.
+  </Card>
+</CardGroup>
 
-```javascript
-const openai = new OpenAI({
-  apiKey: "sk-...",
-  baseURL: "https://api.openai.com/v1",
-});
-```
+## Advanced Features
 
-**After (Adaptive with 6+ providers):**
+<CardGroup cols={3}>
+  <Card title="Semantic Caching" icon="database">
+    Intelligent caching system that understands context and meaning to deliver faster responses.
+  </Card>
+  <Card title="Provider Resiliency" icon="shield">
+    Automatic failover and circuit breaker patterns ensure high availability and reliability.
+  </Card>
+  <Card title="Real-time Analytics" icon="chart-line">
+    Comprehensive monitoring and insights into usage patterns, performance metrics, and optimization opportunities.
+  </Card>
+</CardGroup>
 
-```javascript
-const openai = new OpenAI({
-  apiKey: "your-adaptive-key",
-  baseURL: "https://llmadaptive.uk/api/v1", // Only change!
-});
+## Supported AI Providers
 
-// Everything else stays exactly the same
-const response = await openai.chat.completions.create({
-  model: "", // Leave empty for intelligent routing
-  messages: [{ role: "user", content: "Hello!" }],
-});
-```
-
-<Tip>
-  **That's it!** Your existing code works immediately with intelligent routing
-  and cost savings.
-</Tip>
-
-## Supported Models & Providers
+<CardGroup cols={2}>
+  <Card title="Leading AI Models" icon="stars">
+    Access the latest models from OpenAI, Anthropic, Google Gemini, Groq, DeepSeek, and Grok through one unified interface.
+  </Card>
+  <Card title="Always Up-to-Date" icon="refresh">
+    Automatically gain access to new models as they're released, without code changes or integration work.
+  </Card>
+</CardGroup>
 
 <Accordion title="View All Supported Models">
 
-### OpenAI
+**OpenAI**
+- GPT-4o, GPT-4o Mini, GPT-4 Turbo, GPT-3.5 Turbo
 
-- **GPT-4o** • **GPT-4o Mini** • **GPT-4 Turbo** • **GPT-3.5 Turbo**
+**Anthropic**  
+- Claude 4 Sonnet, Claude 3.5 Sonnet, Claude 3.5 Haiku, Claude 3 Opus
 
-### Anthropic
+**Google Gemini**
+- Gemini 2.5 Pro, Gemini 2.5 Pro Large, Gemini 2.0 Flash, Gemini 1.5 Flash
 
-- **Claude 4 Sonnet** • **Claude 3.5 Sonnet** • **Claude 3.5 Haiku** • **Claude 3 Opus**
+**Groq (Ultra-fast)**
+- Llama 4 Scout 17B, Llama 4 Maverick 17B, Llama 3.3 70B, DeepSeek R1 Distill
 
-### Google Gemini
+**DeepSeek (Advanced reasoning)**
+- DeepSeek Reasoner, DeepSeek Chat
 
-- **Gemini 2.5 Pro** • **Gemini 2.5 Pro Large** • **Gemini 2.0 Flash** • **Gemini 1.5 Flash**
-
-### Groq (Ultra-fast inference)
-
-- **Llama 4 Scout 17B** • **Llama 4 Maverick 17B** • **Llama 3.3 70B** • **DeepSeek R1 Distill** • **Qwen QwQ 32B** • **Mixtral 8x7B**
-
-### DeepSeek (Advanced reasoning)
-
-- **DeepSeek Reasoner** • **DeepSeek Chat**
-
-### Grok (xAI)
-
-- **Grok 3** • **Grok 3 Fast** • **Grok 3 Mini** • **Grok Beta**
+**Grok (xAI)**
+- Grok 3, Grok 3 Fast, Grok 3 Mini, Grok Beta
 
 </Accordion>
 
-## Real Cost Savings Examples
-
-<CardGroup cols={3}>
-  <Card title="Simple Chat">
-    **90-95% savings** "Hello, how are you?" → Routes to Gemini 2.0 Flash
-    **$0.10** vs **$3.00** per 1M tokens
-  </Card>
-  <Card title="Math Problems">
-    **60-80% savings** Complex reasoning → Routes to DeepSeek Reasoner **$2.19**
-    vs **$15.00** per 1M tokens
-  </Card>
-  <Card title="Code Generation">
-    **70-85% savings** Programming tasks → Routes to Llama 4 or DeepSeek
-    **$0.34** vs **$10.00** per 1M tokens
-  </Card>
-</CardGroup>
-
-## Get Started in 2 Minutes
-
-<Steps>
-  <Step title="Get Your API Key">
-    [Sign up for free](https://llmadaptive.uk) and generate your API key
-  </Step>
-  <Step title="Update Your Code">
-    Change `baseURL` to `https://llmadaptive.uk/api/v1`
-  </Step>
-  <Step title="Start Saving">
-    Use `model: ""` to enable intelligent routing
-  </Step>
-</Steps>
+## Get Started in Minutes
 
 <CardGroup cols={2}>
   <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
-    Get up and running in 5 minutes with code examples
+    Follow our step-by-step guide to integrate Adaptive into your application in under 5 minutes.
   </Card>
-  <Card title="Integration Guides" icon="book" href="/guides/openai-sdk">
-    Detailed guides for OpenAI SDK, Vercel AI, LangChain
-  </Card>
-  <Card
-    title="API Reference"
-    icon="gear"
-    href="/api-reference/chat-completions"
-  >
-    Complete API documentation and parameters
-  </Card>
-  <Card title="Examples" icon="lightbulb" href="/examples/basic-chat">
-    Working code examples and use cases
+  <Card title="API Reference" icon="book" href="/api-reference/chat-completions">
+    Explore our comprehensive API documentation with interactive examples and detailed specifications.
   </Card>
 </CardGroup>
+
+## Popular Integrations
+
+<CardGroup cols={2}>
+  <Card title="OpenAI SDK" href="/integrations/openai-sdk" icon="code">
+    Use with official OpenAI SDK for JavaScript, Python, and other languages
+  </Card>
+  <Card title="Vercel AI SDK" href="/integrations/vercel-ai-sdk" icon="nextjs">
+    Stream responses and build AI chat applications with Vercel AI SDK
+  </Card>
+  <Card title="LangChain" href="/integrations/langchain" icon="link">
+    Integrate with LangChain workflows and chains for complex AI applications
+  </Card>
+  <Card title="Direct API" href="/api-reference/chat-completions" icon="terminal">
+    Use REST API directly with any HTTP client or programming language
+  </Card>
+</CardGroup>
+
+## What Makes Adaptive Different
+
+<CardGroup cols={3}>
+  <Card title="Transparent Routing" icon="eye">
+    Every response includes metadata showing which provider and model was selected, giving you full visibility into the routing decisions.
+  </Card>
+  <Card title="OpenAI Compatible" icon="check">
+    All responses follow OpenAI format standards, ensuring seamless compatibility with existing tools and workflows.
+  </Card>
+  <Card title="Enhanced Metadata" icon="info">
+    Additional insights including cache status, performance metrics, and routing rationale help you optimize your AI usage.
+  </Card>
+</CardGroup>
+
+## Explore the Platform
+
+<CardGroup cols={2}>
+  <Card title="Intelligent Routing" icon="brain" href="/features/intelligent-routing">
+    Discover how our AI-powered routing engine selects the optimal model for each request
+  </Card>
+  <Card title="Performance & Caching" icon="zap" href="/features/performance">
+    Learn about our advanced caching strategies and performance optimizations
+  </Card>
+  <Card title="Provider Resiliency" icon="shield" href="/features/provider-resiliency">
+    Understand our failover mechanisms and reliability features
+  </Card>
+  <Card title="Integration Examples" icon="code" href="/examples/basic-chat">
+    See real-world examples and implementation patterns
+  </Card>
+</CardGroup>
+
+---
+
+## Ready to optimize your AI infrastructure?
+
+Join thousands of developers who have already upgraded to intelligent LLM routing.
+
+<Card title="Get Started Free" icon="rocket" href="https://www.llmadaptive.uk/signup">
+  Start using Adaptive today with your free tier - no credit card required
+</Card>

@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { addCredits } from "@/lib/credit-utils";
 import { stripe } from "@/lib/stripe/stripe";
 import { db } from "@/server/db";
 
@@ -42,69 +43,125 @@ export async function POST(request: NextRequest) {
 	const eventType = event.type;
 
 	try {
+		console.log("🔄 Processing webhook event:");
+
 		switch (eventType) {
 			case "checkout.session.completed": {
 				const session = data.object as Stripe.Checkout.Session;
 				console.log("🔔 Payment received!");
 
 				if (session.payment_status === "paid") {
-					// Skip if missing required fields
-					if (
-						!session.metadata?.userId ||
-						!session.subscription ||
-						!session.customer
-					) {
+					// Check if this is a credit purchase or subscription
+					const isSubscription = !!session.subscription;
+					const isCreditPurchase = session.metadata?.type === "credit_purchase";
+
+					if (!session.metadata?.userId || !session.customer) {
 						console.log("⚠️ Missing required session data, skipping...");
 						break;
 					}
 
-					// Get the subscription details from Stripe API
-					const subscription = await stripe.subscriptions.retrieve(
-						session.subscription as string,
-					);
-					const currentPeriodEnd = new Date(
-						// @ts-ignore - current_period_end exists in Stripe API but not in TS types
-						subscription.current_period_end * 1000,
-					);
-					const priceId = subscription.items.data[0]?.price.id;
+					if (isCreditPurchase) {
+						// Handle credit purchase
+						console.log("💳 Processing credit purchase");
 
-					if (!priceId) {
-						throw new Error("Subscription price ID is missing");
+						if (!session.metadata?.organizationId) {
+							console.error("❌ Missing organizationId for credit purchase");
+							break;
+						}
+
+						const creditAmount = Number.parseFloat(
+							session.metadata.creditAmount || "0",
+						);
+						if (creditAmount <= 0) {
+							console.error(
+								"❌ Invalid credit amount:",
+								session.metadata.creditAmount,
+							);
+							break;
+						}
+
+						try {
+							console.log("💳 Adding credits to organization.");
+
+							// Add credits to organization's account
+							const _result = await addCredits({
+								organizationId: session.metadata.organizationId,
+								userId: session.metadata.userId,
+								amount: creditAmount,
+								type: "purchase",
+								description: `Credit purchase via Stripe - $${creditAmount}`,
+								metadata: {
+									stripeSessionId: session.id,
+									stripePaymentIntentId:
+										typeof session.payment_intent === "string"
+											? session.payment_intent
+											: session.payment_intent?.id || null,
+									purchaseTimestamp: new Date().toISOString(),
+								},
+								stripeSessionId: session.id,
+								stripePaymentIntentId: session.payment_intent as string,
+							});
+
+							console.log("✅ Credits added successfully.");
+						} catch (_error) {
+							console.error("❌ Failed to add credits.");
+						}
+					} else if (isSubscription) {
+						// Handle subscription (existing logic)
+						if (!session.subscription) {
+							console.log("⚠️ Missing subscription data, skipping...");
+							break;
+						}
+
+						// Get the subscription details from Stripe API
+						const subscription = await stripe.subscriptions.retrieve(
+							session.subscription as string,
+						);
+
+						const subscriptionItem = subscription.items.data[0];
+						if (!subscriptionItem) {
+							throw new Error("No subscription items found");
+						}
+
+						const currentPeriodEnd = new Date(
+							subscriptionItem.current_period_end * 1000,
+						);
+						const priceId = subscriptionItem.price.id;
+
+						// Ensure customer ID is a string
+						const customerId =
+							typeof session.customer === "string"
+								? session.customer
+								: session.customer.id;
+
+						// Update or create subscription in database
+						await db.subscription.upsert({
+							where: {
+								userId: session.metadata.userId,
+							},
+							create: {
+								userId: session.metadata.userId,
+								stripeCustomerId: customerId,
+								stripePriceId: priceId,
+								stripeSubscriptionId: subscription.id,
+								status: subscription.status,
+								currentPeriodEnd,
+							},
+							update: {
+								stripeCustomerId: customerId,
+								stripePriceId: priceId,
+								stripeSubscriptionId: subscription.id,
+								status: subscription.status,
+								currentPeriodEnd,
+							},
+						});
+
+						console.log("✅ Subscription created/updated:", {
+							userId: session.metadata.userId,
+							subscriptionId: subscription.id,
+							status: subscription.status,
+						});
 					}
-
-					// Ensure customer ID is a string
-					const customerId =
-						typeof session.customer === "string"
-							? session.customer
-							: session.customer.id;
-
-					// Update or create subscription in database
-					await db.subscription.upsert({
-						where: {
-							userId: session.metadata.userId,
-						},
-						create: {
-							userId: session.metadata.userId,
-							stripeCustomerId: customerId,
-							stripePriceId: priceId,
-							stripeSubscriptionId: subscription.id,
-							status: subscription.status,
-							currentPeriodEnd,
-						},
-						update: {
-							stripeCustomerId: customerId,
-							stripePriceId: priceId,
-							stripeSubscriptionId: subscription.id,
-							status: subscription.status,
-							currentPeriodEnd,
-						},
-					});
-
-					console.log("✅ Subscription created/updated:", {
-						userId: session.metadata.userId,
-						subscriptionId: subscription.id,
-						status: subscription.status,
-					});
 				}
 				break;
 			}
@@ -123,18 +180,21 @@ export async function POST(request: NextRequest) {
 						subscription.id,
 					);
 
+					const subscriptionItem = fullSubscription.items.data[0];
+					if (!subscriptionItem) {
+						throw new Error(
+							"No subscription items found in updated subscription",
+						);
+					}
+
 					await db.subscription.update({
 						where: { stripeSubscriptionId: subscription.id },
 						data: {
 							status: subscription.status,
 							currentPeriodEnd: new Date(
-								// @ts-ignore - current_period_end exists in Stripe API but not in TS types
-
-								fullSubscription.current_period_end * 1000,
+								subscriptionItem.current_period_end * 1000,
 							),
-							stripePriceId:
-								subscription.items.data[0]?.price.id ||
-								existingSub.stripePriceId,
+							stripePriceId: subscriptionItem.price.id,
 						},
 					});
 
@@ -171,7 +231,7 @@ export async function POST(request: NextRequest) {
 									? line.subscription
 									: line.subscription.id;
 
-							await db.subscription.update({
+							await db.subscription.updateMany({
 								where: { stripeSubscriptionId: subscriptionId },
 								data: {
 									status: "active",
@@ -200,7 +260,7 @@ export async function POST(request: NextRequest) {
 									? line.subscription
 									: line.subscription.id;
 
-							await db.subscription.update({
+							await db.subscription.updateMany({
 								where: { stripeSubscriptionId: subscriptionId },
 								data: {
 									status: "past_due",

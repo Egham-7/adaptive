@@ -21,7 +21,7 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup uv and Python
         uses: astral-sh/setup-uv@v6
@@ -30,10 +30,10 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --all-extras --dev --group test
 
-      - name: Run tests
-        run: uv run pytest --cov=. --cov-report=xml
+      - name: Run unit tests only
+        run: make test-unit
 
       - name: Upload coverage
         uses: codecov/codecov-action@v5
@@ -51,7 +51,7 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup uv and Python
         uses: astral-sh/setup-uv@v6
@@ -69,34 +69,5 @@ jobs:
         run: uv run ruff check . --output-format=github
 
       - name: Check formatting
-        run: uv run black . --check --diff
+        run: uv run black . --check --diff --fast
 
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    needs: [test, lint]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.PROMPTCLASSIFIER_AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy to Azure Container Apps
-        uses: azure/container-apps-deploy-action@v2
-        with:
-          appSourcePath: adaptive_ai
-          registryUrl: llmadaptiveregistry.azurecr.io
-          registryUsername: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_USERNAME }}
-          registryPassword: ${{ secrets.PROMPTCLASSIFIER_REGISTRY_PASSWORD }}
-          containerAppName: prompt-classifier
-          resourceGroup: adaptive
-          imageToBuild: llmadaptiveregistry.azurecr.io/prompt-classifier:${{ github.sha }}

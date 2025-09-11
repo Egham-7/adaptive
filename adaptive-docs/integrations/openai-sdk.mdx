@@ -1,121 +1,83 @@
 ---
 title: 'OpenAI SDK'
 description: 'Drop-in replacement for OpenAI with intelligent routing'
+icon: "code"
 ---
 
-## Installation
+## Quick Setup
 
-Adaptive works with the official OpenAI SDK - no additional packages needed!
-
-<Tabs>
-<Tab title="npm">
-```bash
-npm install openai
-```
-</Tab>
-<Tab title="yarn">
-```bash
-yarn add openai
-```
-</Tab>
-<Tab title="pnpm">
-```bash
-pnpm add openai
-```
-</Tab>
-<Tab title="bun">
-```bash
-bun add openai
-```
-</Tab>
-</Tabs>
-
-## Basic Setup
-
-Simply change the `baseURL` in your existing OpenAI configuration:
+1. **Install the OpenAI SDK** (if you haven't already):
 
 <CodeGroup>
+```bash npm
+npm install openai
+```
 
+```bash yarn  
+yarn add openai
+```
+
+```bash pnpm
+pnpm add openai
+```
+</CodeGroup>
+
+2. **Change two lines** in your existing code:
+
+<CodeGroup>
 ```javascript JavaScript/Node.js
 import OpenAI from 'openai';
 
 const openai = new OpenAI({
-  apiKey: 'your-adaptive-api-key',
-  baseURL: 'https://llmadaptive.uk/api/v1'
+  apiKey: 'your-adaptive-api-key',        // ← Your Adaptive API key
+  baseURL: 'https://www.llmadaptive.uk/api/v1' // ← Only change needed
 });
 
+// Everything else works exactly the same
 const completion = await openai.chat.completions.create({
   model: '', // Leave empty for intelligent routing
-  messages: [
-    { role: 'user', content: 'Hello, world!' }
-  ],
+  messages: [{ role: 'user', content: 'Hello!' }]
 });
-
-console.log(completion.choices[0].message.content);
 ```
 
 ```python Python
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="your-adaptive-api-key",
-    base_url="https://llmadaptive.uk/api/v1"
+    api_key="your-adaptive-api-key",        # ← Your Adaptive API key  
+    base_url="https://www.llmadaptive.uk/api/v1" # ← Only change needed
 )
 
+# Everything else works exactly the same
 completion = client.chat.completions.create(
-    model="",  # Leave empty for intelligent routing
-    messages=[
-        {"role": "user", "content": "Hello, world!"}
-    ]
+    model="", # Leave empty for intelligent routing
+    messages=[{"role": "user", "content": "Hello!"}]
 )
-
-print(completion.choices[0].message.content)
 ```
-
-```go Go
-package main
-
-import (
-    "context"
-    "fmt"
-    "github.com/sashabaranov/go-openai"
-)
-
-func main() {
-    config := openai.DefaultConfig("your-adaptive-api-key")
-    config.BaseURL = "https://llmadaptive.uk/api/v1"
-    client := openai.NewClientWithConfig(config)
-
-    resp, err := client.CreateChatCompletion(
-        context.Background(),
-        openai.ChatCompletionRequest{
-            Model: "", // Leave empty for intelligent routing
-            Messages: []openai.ChatCompletionMessage{
-                {
-                    Role:    openai.ChatMessageRoleUser,
-                    Content: "Hello, world!",
-                },
-            },
-        },
-    )
-
-    if err != nil {
-        fmt.Printf("Error: %v\n", err)
-        return
-    }
-
-    fmt.Println(resp.Choices[0].Message.Content)
-}
-```
-
 </CodeGroup>
 
-## Streaming Responses
+That's it! Your existing OpenAI code now uses intelligent routing.
 
-Adaptive fully supports streaming responses:
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Same API" icon="check">
+    All OpenAI methods, parameters, and responses work identically
+  </Card>
+  <Card title="Intelligent Routing" icon="brain">
+    Leave model empty ("") to automatically select the best provider
+  </Card>
+  <Card title="Streaming" icon="zap">
+    Streaming responses work exactly like OpenAI
+  </Card>
+  <Card title="Function Calling" icon="function">
+    Function calling and tools work without changes
+  </Card>
+</CardGroup>
+
+## Streaming Example
 
 <CodeGroup>
-
 ```javascript JavaScript
 const stream = await openai.chat.completions.create({
   model: '',
@@ -139,156 +101,30 @@ for chunk in stream:
     if chunk.choices[0].delta.content is not None:
         print(chunk.choices[0].delta.content, end="")
 ```
-
 </CodeGroup>
-
-## Advanced Parameters
-
-Adaptive supports all OpenAI parameters plus additional routing controls:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [{ role: 'user', content: 'Explain quantum computing' }],
-  // Standard OpenAI parameters
-  temperature: 0.7,
-  max_tokens: 1000,
-  top_p: 1,
-  frequency_penalty: 0,
-  presence_penalty: 0,
-  
-  // Adaptive-specific parameters
-  provider_constraint: ['openai', 'anthropic'], // Limit providers
-  cost_bias: 0.3, // 0 = cheapest, 1 = best performance
-});
-```
-
-## Function Calling
-
-Function calling works exactly like OpenAI:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [
-    { role: 'user', content: 'What\'s the weather like in Boston?' }
-  ],
-  tools: [
-    {
-      type: 'function',
-      function: {
-        name: 'get_current_weather',
-        description: 'Get the current weather in a given location',
-        parameters: {
-          type: 'object',
-          properties: {
-            location: {
-              type: 'string',
-              description: 'The city and state, e.g. San Francisco, CA',
-            },
-            unit: {
-              type: 'string',
-              enum: ['celsius', 'fahrenheit'],
-            },
-          },
-          required: ['location'],
-        },
-      },
-    },
-  ],
-});
-```
-
-## Vision Models
-
-Vision capabilities work when available in the selected model:
-
-```javascript
-const completion = await openai.chat.completions.create({
-  model: '',
-  messages: [
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: 'What\'s in this image?' },
-        {
-          type: 'image_url',
-          image_url: {
-            url: 'https://example.com/image.jpg',
-          },
-        },
-      ],
-    },
-  ],
-});
-```
-
-## Error Handling
-
-Adaptive uses the same error format as OpenAI:
-
-```javascript
-try {
-  const completion = await openai.chat.completions.create({
-    model: '',
-    messages: [{ role: 'user', content: 'Hello!' }],
-  });
-} catch (error) {
-  if (error instanceof OpenAI.APIError) {
-    console.error('API Error:', error.status, error.message);
-  } else {
-    console.error('Unexpected error:', error);
-  }
-}
-```
-
-## Migrating from OpenAI
-
-Migration is simple - just update two lines:
-
-```javascript
-// Before
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  // baseURL: 'https://api.openai.com/v1' // default
-});
-
-// After
-const openai = new OpenAI({
-  apiKey: process.env.ADAPTIVE_API_KEY, // New API key
-  baseURL: 'https://llmadaptive.uk/api/v1' // New base URL
-});
-
-// Everything else stays the same!
-```
 
 ## Response Format
 
-Adaptive returns OpenAI-compatible responses with additional metadata:
+Adaptive returns standard OpenAI responses with one extra field:
 
 ```json
 {
   "id": "chatcmpl-123",
-  "object": "chat.completion",
-  "created": 1677652288,
-  "model": "gpt-3.5-turbo",
-  "provider": "openai",  // ← Additional field
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": "Hello! How can I help you today?"
-      },
-      "finish_reason": "stop"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 9,
-    "completion_tokens": 12,
-    "total_tokens": 21
-  }
+  "choices": [{
+    "message": {"content": "Hello! How can I help you?"}
+  }],
+  "usage": {"total_tokens": 21},
+  "provider": "gemini"  // ← Shows which provider was used
 }
 ```
 
-The `provider` field tells you which underlying provider was selected for your request.
+## Need More Control?
+
+<CardGroup cols={2}>
+  <Card title="API Reference" href="/api-reference/chat-completions" icon="book">
+    See all available parameters and options
+  </Card>
+  <Card title="Examples" href="/examples/basic-chat" icon="code">
+    Working code examples and use cases
+  </Card>
+</CardGroup>

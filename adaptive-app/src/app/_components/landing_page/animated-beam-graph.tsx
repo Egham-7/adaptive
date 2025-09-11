@@ -1,10 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MessageSquare, Zap } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import Image from "next/image";
 import { forwardRef, useCallback, useRef, useState } from "react";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
+import { PixelTrail } from "@/components/ui/pixel-trail";
+import { SocialLogo } from "@/components/ui/social-logo";
 import { cn } from "@/lib/utils";
 
 interface CircleProps {
@@ -22,7 +24,8 @@ interface CircleState {
 }
 
 const Circle = forwardRef<HTMLDivElement, CircleProps>(
-	({ className, children }, ref) => {
+	({ className, children }, forwardedRef) => {
+		const ref = forwardedRef;
 		return (
 			<div
 				ref={ref}
@@ -40,33 +43,39 @@ const Circle = forwardRef<HTMLDivElement, CircleProps>(
 Circle.displayName = "Circle";
 
 const PromptCircle = forwardRef<HTMLDivElement, { className?: string }>(
-	({ className }, ref) => (
-		<div
-			ref={ref}
-			className={cn(
-				"z-10 flex size-20 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
-				className,
-			)}
-		>
-			<MessageSquare className="h-8 w-8 text-primary-foreground" />
-		</div>
-	),
+	({ className }, forwardedRef) => {
+		const ref = forwardedRef;
+		return (
+			<div
+				ref={ref}
+				className={cn(
+					"z-10 flex size-20 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+					className,
+				)}
+			>
+				<MessageSquare className="h-8 w-8 text-primary-foreground" />
+			</div>
+		);
+	},
 );
 
 PromptCircle.displayName = "PromptCircle";
 
 const AdaptiveCircle = forwardRef<HTMLDivElement, { className?: string }>(
-	({ className }, ref) => (
-		<div
-			ref={ref}
-			className={cn(
-				"z-10 flex size-24 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
-				className,
-			)}
-		>
-			<Zap className="h-10 w-10 text-white" />
-		</div>
-	),
+	({ className }, forwardedRef) => {
+		const ref = forwardedRef;
+		return (
+			<div
+				ref={ref}
+				className={cn(
+					"z-10 flex size-24 items-center justify-center rounded-full bg-gradient-to-r from-primary to-primary/80 shadow-[0_0_20px_-12px_rgba(0,0,0,0.8)]",
+					className,
+				)}
+			>
+				<SocialLogo width={48} height={48} className="h-12 w-12" />
+			</div>
+		);
+	},
 );
 
 AdaptiveCircle.displayName = "AdaptiveCircle";
@@ -106,7 +115,14 @@ export default function AnimatedBeamGraph() {
 			role="img"
 			aria-label="Adaptive AI infrastructure connecting user prompts to various AI providers"
 		>
-			<div className="flex w-full items-center justify-between px-4 sm:px-0">
+			<PixelTrail
+				pixelSize={16}
+				fadeDuration={800}
+				delay={100}
+				className="absolute inset-0"
+				pixelClassName="bg-primary/30"
+			/>
+			<div className="flex w-full items-center justify-between px-4 md:px-0">
 				{/* Prompt Input */}
 				<motion.div
 					layout

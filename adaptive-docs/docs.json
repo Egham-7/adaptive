@@ -9,83 +9,71 @@
     "light": "#f0e68c",
     "dark": "#b8860b"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.ico",
   "navigation": {
-    "dropdowns": [
+    "groups": [
       {
-        "dropdown": "Documentation",
-        "icon": "book",
-        "description": "How to use Adaptive effectively",
-        "groups": [
-          {
-            "group": "Getting Started",
-            "pages": ["index", "quickstart", "authentication"]
-          },
-          {
-            "group": "Integration Guides",
-            "pages": [
-              "integrations/openai-sdk",
-              "integrations/vercel-ai-sdk",
-              "integrations/langchain"
-            ]
-          },
-          {
-            "group": "Key Features",
-            "pages": ["features/intelligent-routing"]
-          }
+        "group": "Getting Started",
+        "pages": ["index", "quickstart", "authentication"]
+      },
+      {
+        "group": "Integration Guides",
+        "pages": [
+          "integrations/openai-sdk",
+          "integrations/vercel-ai-sdk",
+          "integrations/langchain"
         ]
       },
       {
-        "dropdown": "API Reference",
-        "icon": "terminal",
-        "description": "Explore the Adaptive API",
-        "groups": [
-          {
-            "group": "Overview",
-            "pages": ["api-reference/chat-completions"]
-          },
-          {
-            "group": "OpenAPI",
-            "openapi": {
-              "source": "api-reference/openapi.json"
-            }
-          }
+        "group": "Key Features",
+        "pages": [
+          "features/intelligent-routing",
+          "features/zero-completion-insurance",
+          "features/data-privacy-retention",
+          "features/prompt-response-cache",
+          "features/semantic-cache",
+          "features/provider-resiliency",
+          "features/performance"
         ]
       },
       {
-        "dropdown": "Examples & Use Cases",
-        "icon": "lightbulb",
-        "description": "Real-world applications and starter templates",
-        "pages": ["examples/basic-chat", "examples/streaming-chat"]
+        "group": "API Reference",
+        "pages": [
+          "api-reference/chat-completions",
+          "api-reference/messages",
+          "api-reference/select-model"
+        ]
       },
       {
-        "dropdown": "Support",
-        "icon": "life-ring",
-        "description": "Help and troubleshooting resources",
-        "pages": ["troubleshooting"]
+        "group": "Examples & Use Cases",
+        "pages": ["examples/basic-chat", "examples/streaming-chat", "examples/select-model"]
+      },
+      {
+        "group": "Support",
+        "pages": ["troubleshooting", "terms-of-service", "privacy-policy"]
       }
     ]
   },
   "logo": {
-    "light": "/logo/logo.png",
-    "dark": "/logo/logo-dark.png",
-    "href": "https://llmadaptive.uk"
+    "light": "/logo/logo.svg",
+    "dark": "/logo/logo-dark.svg",
+    "href": "https://llmadaptive.com"
   },
   "navbar": {
     "links": [
       {
         "label": "Pricing",
-        "href": "https://llmadaptive.uk/pricing"
+        "href": "https://llmadaptive.com/pricing"
       },
       {
         "label": "Support",
-        "href": "mailto:support@adaptive.com"
+        "href": "https://llmadaptive.com/support"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://llmadaptive.uk/signup"
+      "href": "https://llmadaptive.com/signup"
     }
   },
   "footer": {
@@ -100,11 +88,11 @@
         "items": [
           {
             "label": "Dashboard",
-            "href": "https://llmadaptive.uk"
+            "href": "https://llmadaptive.com"
           },
           {
             "label": "Documentation",
-            "href": "https://docs.llmadaptive.uk"
+            "href": "https://docs.llmadaptive.com"
           }
         ]
       },
@@ -113,18 +101,31 @@
         "items": [
           {
             "label": "Careers",
-            "href": "https://llmadaptive.uk/careers"
+            "href": "https://llmadaptive.com/careers"
           },
           {
             "label": "Blog",
-            "href": "https://llmadaptive.uk/blog"
+            "href": "https://llmadaptive.com/blog"
+          }
+        ]
+      },
+      {
+        "header": "Legal",
+        "items": [
+          {
+            "label": "Terms of Service",
+            "href": "https://docs.llmadaptive.com/terms-of-service"
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "https://docs.llmadaptive.com/privacy-policy"
           }
         ]
       }
     ]
   },
   "api": {
-    "baseUrl": "https://llmadaptive.uk/api/v1",
+    "baseUrl": "https://llmadaptive.com/api/v1",
     "auth": {
       "method": "bearer"
     },
@@ -135,6 +136,7 @@
       "languages": ["curl", "python", "javascript"]
     }
   },
+  "openapi": "api-reference/openapi.json",
   "contextual": {
     "options": ["copy", "view", "chatgpt"]
   },
@@ -144,3 +146,4 @@
     }
   }
 }
+

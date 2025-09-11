@@ -1,19 +1,12 @@
 package models
 
 import (
-	"adaptive-backend/internal/services/providers/provider_interfaces"
-	"time"
-
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/packages/param"
-	"github.com/openai/openai-go/shared"
+	"github.com/openai/openai-go/v2"
+	"github.com/openai/openai-go/v2/packages/param"
+	"github.com/openai/openai-go/v2/shared"
 )
 
-// SelectModelRequest represents a request to select a model for a given prompt and provider.
-type SelectModelRequest struct {
-	Prompt   string `json:"prompt"`
-	Provider string `json:"provider,omitempty"`
-}
+// ProviderConfig is now defined in internal/config package to avoid duplication
 
 // ChatCompletionRequest represents a request for a chat completion, including all OpenAI parameters and extensions.
 type ChatCompletionRequest struct {
@@ -165,8 +158,6 @@ type ChatCompletionRequest struct {
 	// to call that function.
 	//
 	// `none` is the default when no functions are present. `auto` is the default if
-	// functions are present.
-	FunctionCall openai.ChatCompletionNewParamsFunctionCallUnion `json:"function_call,omitzero"`
 	// Deprecated in favor of `tools`.
 	// Static predicted output content, such as the content of a text file that is
 	// being regenerated.
@@ -195,177 +186,81 @@ type ChatCompletionRequest struct {
 	// A list of tools the model may call. Currently, only functions are supported as a
 	// tool. Use this to provide a list of functions the model may generate JSON inputs
 	// for. A max of 128 functions are supported.
-	Tools []openai.ChatCompletionToolParam `json:"tools,omitzero"`
+	Tools []openai.ChatCompletionToolUnionParam `json:"tools,omitzero"`
 	// This tool searches the web for relevant results to use in a response. Learn more
 	// about the
 	// [web search tool](https://platform.openai.com/docs/guides/tools-web-search?api-mode=chat).
-	WebSearchOptions openai.ChatCompletionNewParamsWebSearchOptions `json:"web_search_options,omitzero"`
-
-	Stream bool `json:"stream,omitzero"` // Whether to stream the response or not
-
-	ProviderConstraint []string `json:"provider_constraint,omitempty"`
-	CostBias           float32  `json:"cost_bias,omitempty"` // Bias towards cheaper providers
+	WebSearchOptions  openai.ChatCompletionNewParamsWebSearchOptions `json:"web_search_options,omitzero"`
+	Stream            bool                                           `json:"stream,omitzero"` // Whether to stream the response or not
+	ModelRouterConfig *ModelRouterConfig                             `json:"model_router,omitzero"`
+	PromptCache       *CacheConfig                                   `json:"prompt_cache,omitzero"`     // Optional prompt response cache configuration
+	Fallback          *FallbackConfig                                `json:"fallback,omitzero"`         // Fallback configuration with enabled toggle
+	ProviderConfigs   map[string]*ProviderConfig                     `json:"provider_configs,omitzero"` // Custom provider configurations by provider name
 }
 
-// ToOpenAIParams converts a ChatCompletionRequest to OpenAI's ChatCompletionNewParams.
-func (r *ChatCompletionRequest) ToOpenAIParams() *openai.ChatCompletionNewParams {
-	return &openai.ChatCompletionNewParams{
-		Messages:            r.Messages,
-		Model:               r.Model,
-		FrequencyPenalty:    r.FrequencyPenalty,
-		Logprobs:            r.Logprobs,
-		MaxCompletionTokens: r.MaxCompletionTokens,
-		MaxTokens:           r.MaxTokens,
-		N:                   r.N,
-		PresencePenalty:     r.PresencePenalty,
-		Seed:                r.Seed,
-		Store:               r.Store,
-		Temperature:         r.Temperature,
-		TopLogprobs:         r.TopLogprobs,
-		TopP:                r.TopP,
-		ParallelToolCalls:   r.ParallelToolCalls,
-		User:                r.User,
-		Audio:               r.Audio,
-		LogitBias:           r.LogitBias,
-		Metadata:            r.Metadata,
-		Modalities:          r.Modalities,
-		ReasoningEffort:     r.ReasoningEffort,
-		ServiceTier:         r.ServiceTier,
-		Stop:                r.Stop,
-		StreamOptions:       r.StreamOptions,
-		FunctionCall:        r.FunctionCall,
-		Prediction:          r.Prediction,
-		ResponseFormat:      r.ResponseFormat,
-		ToolChoice:          r.ToolChoice,
-		Tools:               r.Tools,
-		WebSearchOptions:    r.WebSearchOptions,
-	}
-}
-
-// CompletionUsage extends OpenAI's CompletionUsage with cost savings
-type CompletionUsage struct {
-	CostSaved float32 `json:"cost_saved,omitempty"`
-
-	// Number of tokens in the generated completion.
+// AdaptiveUsage extends OpenAI's CompletionUsage with cache tier information
+type AdaptiveUsage struct {
+	PromptTokens     int64 `json:"prompt_tokens"`
 	CompletionTokens int64 `json:"completion_tokens"`
-	// Number of tokens in the prompt.
-	PromptTokens int64 `json:"prompt_tokens"`
-	// Total number of tokens used in the request (prompt + completion).
-	TotalTokens int64 `json:"total_tokens"`
-	// Breakdown of tokens used in a completion.
-	CompletionTokensDetails openai.CompletionUsageCompletionTokensDetails `json:"completion_tokens_details"`
-	// Breakdown of tokens used in the prompt.
-	PromptTokensDetails openai.CompletionUsagePromptTokensDetails `json:"prompt_tokens_details"`
+	TotalTokens      int64 `json:"total_tokens"`
+	// Cache tier information for adaptive system
+	CacheTier string `json:"cache_tier,omitzero"` // e.g., "semantic_exact", "semantic_similar", "prompt_response"
+}
+
+// AdaptiveChatCompletionChoice represents a chat completion choice with proper omitzero tags
+type AdaptiveChatCompletionChoice struct {
+	FinishReason string                              `json:"finish_reason"`
+	Index        int64                               `json:"index"`
+	Logprobs     openai.ChatCompletionChoiceLogprobs `json:"logprobs,omitzero"`
+	Message      AdaptiveChatCompletionMessage       `json:"message"`
+}
+
+// AdaptiveChatCompletionMessage represents a chat completion message with proper omitzero tags
+type AdaptiveChatCompletionMessage struct {
+	Content     string                                      `json:"content"`
+	Refusal     string                                      `json:"refusal,omitzero"`
+	Role        string                                      `json:"role"`
+	Annotations []openai.ChatCompletionMessageAnnotation    `json:"annotations,omitzero"`
+	Audio       openai.ChatCompletionAudio                  `json:"audio,omitzero"`
+	ToolCalls   []openai.ChatCompletionMessageToolCallUnion `json:"tool_calls,omitzero"`
+}
+
+// AdaptiveChatCompletionChunkChoice represents a streaming chunk choice with proper omitzero tags
+type AdaptiveChatCompletionChunkChoice struct {
+	Delta        AdaptiveChatCompletionChunkChoiceDelta   `json:"delta"`
+	FinishReason string                                   `json:"finish_reason"`
+	Index        int64                                    `json:"index"`
+	Logprobs     openai.ChatCompletionChunkChoiceLogprobs `json:"logprobs,omitzero"`
+}
+
+// AdaptiveChatCompletionChunkChoiceDelta represents a streaming delta with proper omitzero tags
+type AdaptiveChatCompletionChunkChoiceDelta struct {
+	Content   string                                          `json:"content,omitzero"`
+	Refusal   string                                          `json:"refusal,omitzero"`
+	Role      string                                          `json:"role,omitzero"`
+	ToolCalls []openai.ChatCompletionChunkChoiceDeltaToolCall `json:"tool_calls,omitzero"`
 }
 
 // ChatCompletion extends OpenAI's ChatCompletion with enhanced usage
 type ChatCompletion struct {
-	ID                string                           `json:"id"`
-	Choices           []openai.ChatCompletionChoice    `json:"choices"`
-	Created           int64                            `json:"created"`
-	Model             string                           `json:"model"`
-	Object            string                           `json:"object"`
-	ServiceTier       openai.ChatCompletionServiceTier `json:"service_tier,omitempty"`
-	SystemFingerprint string                           `json:"system_fingerprint,omitempty"`
-	Usage             CompletionUsage                  `json:"usage"`
-	Provider          string                           `json:"provider,omitempty"`
-}
-
-// ChatCompletionChunkChoiceDelta represents the delta of a chat completion chunk choice with proper JSON handling
-type ChatCompletionChunkChoiceDelta struct {
-	Content   string                                          `json:"content,omitempty"`
-	Refusal   string                                          `json:"refusal,omitempty"`
-	Role      string                                          `json:"role,omitempty"`
-	ToolCalls []openai.ChatCompletionChunkChoiceDeltaToolCall `json:"tool_calls,omitempty"`
-}
-
-// ChatCompletionChunkChoice represents a chat completion chunk choice with proper JSON handling
-type ChatCompletionChunkChoice struct {
-	Delta        ChatCompletionChunkChoiceDelta           `json:"delta"`
-	FinishReason string                                   `json:"finish_reason,omitempty"`
-	Index        int64                                    `json:"index"`
-	Logprobs     openai.ChatCompletionChunkChoiceLogprobs `json:"logprobs"`
+	ID          string                           `json:"id"`
+	Choices     []AdaptiveChatCompletionChoice   `json:"choices"`
+	Created     int64                            `json:"created"`
+	Model       string                           `json:"model"`
+	Object      string                           `json:"object"`
+	ServiceTier openai.ChatCompletionServiceTier `json:"service_tier,omitzero"`
+	Usage       AdaptiveUsage                    `json:"usage"`
+	Provider    string                           `json:"provider,omitzero"`
 }
 
 // ChatCompletionChunk extends OpenAI's ChatCompletionChunk with enhanced usage
 type ChatCompletionChunk struct {
-	ID                string                                `json:"id"`
-	Choices           []ChatCompletionChunkChoice           `json:"choices"`
-	Created           int64                                 `json:"created"`
-	Model             string                                `json:"model"`
-	Object            string                                `json:"object"`
-	ServiceTier       openai.ChatCompletionChunkServiceTier `json:"service_tier,omitempty"`
-	SystemFingerprint string                                `json:"system_fingerprint,omitempty"`
-	Usage             *CompletionUsage                      `json:"usage,omitempty"`
-	Provider          string                                `json:"provider,omitempty"`
-}
-
-// ConvertToAdaptive converts OpenAI ChatCompletion to our ChatCompletion
-func ConvertToAdaptive(completion *openai.ChatCompletion, provider string) *ChatCompletion {
-	return &ChatCompletion{
-		ID:                completion.ID,
-		Choices:           completion.Choices,
-		Created:           completion.Created,
-		Model:             completion.Model,
-		Object:            string(completion.Object),
-		ServiceTier:       completion.ServiceTier,
-		SystemFingerprint: completion.SystemFingerprint,
-		Usage: CompletionUsage{
-			CompletionTokens: completion.Usage.CompletionTokens,
-			PromptTokens:     completion.Usage.PromptTokens,
-			TotalTokens:      completion.Usage.TotalTokens,
-		},
-		Provider: provider,
-	}
-}
-
-// ConvertChunkToAdaptive converts OpenAI ChatCompletionChunk to our ChatCompletionChunk
-func ConvertChunkToAdaptive(chunk *openai.ChatCompletionChunk, provider string) *ChatCompletionChunk {
-	// Convert choices with proper role handling
-	adaptiveChoices := make([]ChatCompletionChunkChoice, len(chunk.Choices))
-	for i, choice := range chunk.Choices {
-		adaptiveChoices[i] = ChatCompletionChunkChoice{
-			Delta: ChatCompletionChunkChoiceDelta{
-				Content:   choice.Delta.Content,
-				Refusal:   choice.Delta.Refusal,
-				Role:      choice.Delta.Role, // This will be omitted if empty due to omitempty
-				ToolCalls: choice.Delta.ToolCalls,
-			},
-			FinishReason: choice.FinishReason,
-			Index:        choice.Index,
-			Logprobs:     choice.Logprobs,
-		}
-	}
-
-	adaptive := &ChatCompletionChunk{
-		ID:                chunk.ID,
-		Choices:           adaptiveChoices,
-		Created:           chunk.Created,
-		Model:             chunk.Model,
-		Object:            string(chunk.Object),
-		ServiceTier:       chunk.ServiceTier,
-		SystemFingerprint: chunk.SystemFingerprint,
-		Provider:          provider,
-	}
-
-	// Only add usage if it exists in the original chunk
-	if chunk.Usage.CompletionTokens > 0 || chunk.Usage.PromptTokens > 0 || chunk.Usage.TotalTokens > 0 {
-		adaptive.Usage = &CompletionUsage{
-			CompletionTokens: chunk.Usage.CompletionTokens,
-			PromptTokens:     chunk.Usage.PromptTokens,
-			TotalTokens:      chunk.Usage.TotalTokens,
-		}
-	}
-
-	return adaptive
-}
-
-// RaceResult represents a parallel provider race outcome.
-type RaceResult struct {
-	Provider     provider_interfaces.LLMProvider
-	ProviderName string
-	ModelName    string
-	TaskType     string
-	Duration     time.Duration
-	Error        error
+	ID          string                                `json:"id"`
+	Choices     []AdaptiveChatCompletionChunkChoice   `json:"choices"`
+	Created     int64                                 `json:"created"`
+	Model       string                                `json:"model"`
+	Object      string                                `json:"object"`
+	ServiceTier openai.ChatCompletionChunkServiceTier `json:"service_tier,omitzero"`
+	Usage       AdaptiveUsage                         `json:"usage,omitzero"`
+	Provider    string                                `json:"provider,omitzero"`
 }

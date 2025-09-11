@@ -7,8 +7,11 @@ export const env = createEnv({
 	 * isn't built with invalid env vars.
 	 */
 	server: {
-		DATABASE_URL: z.string().url(),
-		REDIS_URL: z.string().url(),
+		DATABASE_URL: z.url(),
+		REDIS_URL: z.url(),
+		RESEND_API_KEY: z.string().min(1),
+		ADAPTIVE_API_BASE_URL: z.url().default("http://localhost:8080/v1"),
+		JWT_SECRET: z.string().min(32),
 		NODE_ENV: z
 			.enum(["development", "test", "production"])
 			.default("development"),
@@ -30,6 +33,9 @@ export const env = createEnv({
 	runtimeEnv: {
 		DATABASE_URL: process.env.DATABASE_URL,
 		REDIS_URL: process.env.REDIS_URL,
+		RESEND_API_KEY: process.env.RESEND_API_KEY,
+		ADAPTIVE_API_BASE_URL: process.env.ADAPTIVE_API_BASE_URL,
+		JWT_SECRET: process.env.JWT_SECRET,
 		NODE_ENV: process.env.NODE_ENV,
 		// NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 	},

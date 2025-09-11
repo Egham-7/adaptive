@@ -1,110 +1,320 @@
 ---
 title: "Intelligent Routing"
-description: "How Adaptive automatically selects the best AI model for each request"
+description: "Automatic model selection for optimal cost and performance"
+icon: "route"
 ---
 
-## Overview
-
-Adaptive's intelligent routing system analyzes every request and automatically selects the optimal AI model and provider based on content, complexity, cost, and performance requirements. This happens transparently - you send requests and get back the best possible responses at the lowest cost.
+Adaptive's AI-powered routing engine analyzes every request and automatically selects the optimal model from multiple providers based on complexity, cost, and performance requirements.
 
 ## How It Works
 
 <Steps>
-  <Step title="Classification">
-    Neural classifiers analyze your prompt for task type (11 types), domain (25 domains), complexity, and reasoning requirements
+  <Step title="Request Analysis">
+    Our ML models analyze your prompt's complexity, length, task type, and function calling requirements in real-time
   </Step>
-  <Step title="Route Selection">
-    Routes to **premium models** for complex tasks or **specialist models** for simple domain-specific tasks
+  <Step title="Provider Selection">
+    The routing engine considers available providers, costs, performance metrics, and function calling support
   </Step>
-  <Step title="Model Selection">
-    Selects optimal model using task rankings for premium models or domain-task matrix for specialist models
+  <Step title="Optimal Match">
+    The best model is selected and your request is routed automatically
+  </Step>
+  <Step title="Response Delivery">
+    You receive a standard response with provider information showing which model was used
   </Step>
 </Steps>
 
-## Active Providers
+## Quick Start
 
-| Provider     | Models                     | Strengths                          | Best For                               |
-| ------------ | -------------------------- | ---------------------------------- | -------------------------------------- |
-| **OpenAI**   | gpt-4o, gpt-4o-mini, o1, o3 | General purpose, function calling  | Balanced tasks, production workloads   |
-| **DeepSeek** | deepseek-chat, reasoner    | Code generation, math reasoning    | Programming, technical analysis        |
-| **Grok**     | grok-3, grok-3-mini        | Ultra-fast inference, creativity   | Real-time apps, creative writing       |
-| **Groq**     | Fast inference models      | Extremely low latency              | High-throughput applications           |
+Simply leave the model field empty to enable intelligent routing:
 
-## Routing Examples
+<CodeGroup>
+```javascript JavaScript/Node.js
+const completion = await openai.chat.completions.create({
+  model: "", // Empty enables intelligent routing
+  messages: [{ role: "user", content: "Hello!" }]
+});
 
-### Simple Q&A → gpt-4o-mini
-*"What's the capital of France?"* → **92% cost savings**
+console.log(`Used provider: ${completion.provider}`);
+```
 
-### Code Generation → deepseek-chat  
-*"Write a Python binary search function"* → **78% cost savings**
+```python Python
+completion = client.chat.completions.create(
+    model="", # Empty enables intelligent routing
+    messages=[{"role": "user", "content": "Hello!"}]
+)
 
-### Creative Writing → grok-3
-*"Write a marketing story about sustainable tech"* → **65% cost savings**
+print(f"Used provider: {completion.provider}")
+```
 
-## Controlling Routing
+```bash cURL
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+</CodeGroup>
 
-### Cost Bias Parameter
+## Real Examples
 
-Control the cost vs performance trade-off:
+<CardGroup cols={2}>
+  <Card title="Simple Greeting" icon="message">
+    **"Hello, how are you?"**
+    
+    Routes to: Gemini Flash  
+    Cost: **$0.10** per 1M tokens  
+    Savings: **97%** vs GPT-4
+  </Card>
+  <Card title="Code Generation" icon="code">
+    **"Write a React component..."**
+    
+    Routes to: DeepSeek Coder  
+    Cost: **$0.34** per 1M tokens  
+    Savings: **87%** vs GPT-4
+  </Card>
+  <Card title="Complex Analysis" icon="brain">
+    **"Analyze this dataset..."**
+    
+    Routes to: Claude Sonnet  
+    Cost: **$2.19** per 1M tokens  
+    Savings: **72%** vs GPT-4
+  </Card>
+  <Card title="Function Calling" icon="tools">
+    **"What's the weather?" + tools**
+    
+    Routes to: GPT-4o Mini  
+    Prioritizes function calling support  
+    Smart tool-capable model selection
+  </Card>
+</CardGroup>
 
-```javascript
+## Configuration Options
+
+### Function Calling Support
+
+When tools are provided, Adaptive automatically prioritizes models with function calling capabilities:
+
+<CodeGroup>
+```javascript JavaScript/Node.js
 const completion = await openai.chat.completions.create({
   model: "",
-  messages: [{ role: "user", content: "Explain machine learning" }],
-  cost_bias: 0.2, // 0 = cheapest, 1 = best performance
+  messages: [{ role: "user", content: "What's the weather in San Francisco?" }],
+  tools: [{
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "Get current weather for a location",
+      parameters: {
+        type: "object",
+        properties: {
+          location: { type: "string", description: "City name" }
+        },
+        required: ["location"]
+      }
+    }
+  }]
+});
+
+// Automatically routes to models that support function calling
+```
+
+```python Python
+completion = client.chat.completions.create(
+    model="",
+    messages=[{"role": "user", "content": "What's the weather in San Francisco?"}],
+    tools=[{
+        "type": "function",
+        "function": {
+            "name": "get_weather",
+            "description": "Get current weather for a location",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "location": {"type": "string", "description": "City name"}
+                },
+                "required": ["location"]
+            }
+        }
+    }]
+)
+
+# Automatically routes to models that support function calling
+```
+</CodeGroup>
+
+### Control Cost vs Performance
+
+Balance between cost savings and response quality:
+
+<CodeGroup>
+```javascript JavaScript/Node.js
+const completion = await openai.chat.completions.create({
+  model: "",
+  messages: [{ role: "user", content: "Explain quantum physics" }],
+  cost_bias: 0.3 // 0 = cheapest, 0.5 = balanced, 1 = best performance
 });
 ```
 
-- `0.0-0.3`: Maximum savings (cheapest models)
-- `0.4-0.6`: Balanced (default)
-- `0.7-1.0`: Maximum quality (best models)
+```python Python
+completion = client.chat.completions.create(
+    model="",
+    messages=[{"role": "user", "content": "Explain quantum physics"}],
+    cost_bias=0.3  # 0 = cheapest, 0.5 = balanced, 1 = best performance
+)
+```
+</CodeGroup>
 
-### Provider Constraints
+### Limit Available Providers
 
-Limit which providers can be selected:
+Restrict routing to specific providers or models:
 
-```javascript
+<CodeGroup>
+```javascript JavaScript/Node.js
 const completion = await openai.chat.completions.create({
   model: "",
-  messages: [{ role: "user", content: "Write code to sort an array" }],
-  provider_constraints: ["deepseek", "anthropic"],
+  messages: [{ role: "user", content: "Write a story" }],
+  models: [
+    { provider: "openai" }, // All OpenAI models
+    { provider: "anthropic", model_name: "claude-3-sonnet" } // Specific model
+  ]
 });
 ```
 
-## Performance
+```python Python
+completion = client.chat.completions.create(
+    model="",
+    messages=[{"role": "user", "content": "Write a story"}],
+    models=[
+        {"provider": "openai"},  # All OpenAI models
+        {"provider": "anthropic", "model_name": "claude-3-sonnet"}  # Specific model
+    ]
+)
+```
+</CodeGroup>
 
-- **94% accuracy** in optimal model selection
-- **97% user satisfaction** with routing decisions
-- **2ms latency** for routing decisions
-- **99.9% uptime** across all providers
+## Routing Performance
 
-## Transparency
+<CardGroup cols={3}>
+  <Card title="Accuracy" icon="target">
+    **94%** accurate model selection based on prompt analysis
+  </Card>
+  <Card title="Speed" icon="zap">
+    **&lt;1ms** routing decision time with zero added latency
+  </Card>
+  <Card title="Reliability" icon="shield-check">
+    **99.9%** uptime with automatic failover mechanisms
+  </Card>
+</CardGroup>
 
-Every response includes the selected provider:
+## Preview Routing Decisions
+
+Want to see which model would be selected before making the request? Use our model selection preview:
+
+<CodeGroup>
+```javascript JavaScript/Node.js
+// Preview which model would be selected
+const response = await fetch('https://www.llmadaptive.uk/api/v1/select-model', {
+  method: 'POST',
+  headers: { 
+    'Authorization': 'Bearer your-adaptive-key',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    prompt: 'Complex data analysis task',
+    models: [
+      { provider: 'openai' },
+      { provider: 'anthropic' },
+      { provider: 'deepseek' }
+    ],
+    cost_bias: 0.5
+  })
+});
+
+const result = await response.json();
+console.log(`Would select: ${result.provider}/${result.model}`);
+console.log(`Alternatives: ${JSON.stringify(result.alternatives)}`);
+```
+
+```python Python
+import requests
+
+# Preview which model would be selected
+response = requests.post(
+    'https://www.llmadaptive.uk/api/v1/select-model',
+    headers={'Authorization': 'Bearer your-adaptive-key'},
+    json={
+        'prompt': 'Complex data analysis task',
+        'models': [
+            {'provider': 'openai'},
+            {'provider': 'anthropic'},
+            {'provider': 'deepseek'}
+        ],
+        'cost_bias': 0.5
+    }
+)
+
+result = response.json()
+print(f"Would select: {result['provider']}/{result['model']}")
+print(f"Alternatives: {result.get('alternatives', [])}")
+```
+</CodeGroup>
+
+## Response Information
+
+Every response includes provider information:
 
 ```json
 {
-  "id": "chatcmpl-123",
-  "model": "gemini-2.0-flash",
-  "provider": "gemini",
-  "choices": [...],
-  "usage": {...}
+  "id": "chatcmpl-abc123",
+  "choices": [{
+    "message": {"content": "Hello! How can I help you today?"}
+  }],
+  "usage": {
+    "prompt_tokens": 9,
+    "completion_tokens": 12,
+    "total_tokens": 21
+  },
+  "provider": "gemini",     // Which provider was selected
+  "model": "gemini-flash"   // Specific model used
 }
 ```
 
-Monitor routing decisions in your dashboard with provider distribution, cost savings, and performance analytics.
+## Advanced Use Cases
 
-## FAQ
+<CardGroup cols={2}>
+  <Card title="Enterprise Optimization" icon="building">
+    **Custom provider contracts**: Use intelligent routing with your own API keys and enterprise pricing
+  </Card>
+  <Card title="Local Deployment" icon="server">
+    **On-premise inference**: Get cloud-quality routing decisions for local model deployments
+  </Card>
+  <Card title="A/B Testing" icon="flask">
+    **Model comparison**: Preview different routing strategies before implementing them
+  </Card>
+  <Card title="Cost Monitoring" icon="chart-line">
+    **Budget control**: Set cost thresholds and optimize spending automatically
+  </Card>
+</CardGroup>
 
-<AccordionGroup>
-  <Accordion title="How fast is routing?">
-    Under 50ms on average. Total latency is determined by the selected model's inference time.
-  </Accordion>
-  <Accordion title="Can I see which model was selected?">
-    Yes! Every response includes a `provider` field and detailed analytics are available in your dashboard.
-  </Accordion>
-  <Accordion title="What if my preferred provider is down?">
-    Routing automatically handles outages by selecting alternative providers.
-  </Accordion>
-</AccordionGroup>
+## Best Practices
 
+<Note>
+**Tip**: Start with `cost_bias: 0.3` for most applications. This provides excellent cost savings while maintaining high quality responses.
+</Note>
+
+<Warning>
+**Important**: Always handle the case where no suitable model is found. The API will return an error with suggested alternatives.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Performance Features" href="/features/performance" icon="zap">
+    Learn about caching and performance optimizations
+  </Card>
+  <Card title="Provider Resiliency" href="/features/provider-resiliency" icon="shield">
+    Understand our failover and reliability features
+  </Card>
+</CardGroup>

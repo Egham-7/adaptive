@@ -19,62 +19,16 @@ export type UserAnalytics = RouterOutputs["usage"]["getUserAnalytics"];
 export type DailyTrendDataPoint = ProjectAnalytics["dailyTrends"][number];
 
 /**
- * Provider breakdown data point
+ * Model-provider breakdown data point
  */
-export type ProviderBreakdown = ProjectAnalytics["providerBreakdown"][number];
+export type ModelProviderBreakdown =
+	ProjectAnalytics["modelProviderBreakdown"][number];
 
 /**
  * Request type breakdown data point
  */
 export type RequestTypeBreakdown =
 	ProjectAnalytics["requestTypeBreakdown"][number];
-
-// ---- Chart Data Types (UI-formatted from tRPC types) ----
-
-/**
- * Data point for usage comparison charts
- * Note: date is formatted as string for UI display
- */
-export interface UsageDataPoint {
-	date: string;
-	adaptive: number;
-	singleProvider: number;
-	requests: number;
-	spend: number;
-	tokens: number;
-}
-
-/**
- * Data point for token usage charts
- * Note: date is formatted as string for UI display
- */
-export interface TokenDataPoint {
-	date: string;
-	tokens: number;
-	spend: number;
-	requests: number;
-}
-
-/**
- * Data point for request count charts
- * Note: date is formatted as string for UI display
- */
-export interface RequestDataPoint {
-	date: string;
-	requests: number;
-	spend: number;
-	tokens: number;
-}
-
-/**
- * Data point for error rate charts
- * Note: date is formatted as string for UI display
- */
-export interface ErrorRateDataPoint {
-	date: string;
-	errorRate: number;
-	errorCount: number;
-}
 
 // ---- UI-specific Types ----
 
@@ -90,53 +44,17 @@ export type ProviderType =
 export type ProviderFilter = "all" | NonNullable<ProviderType>;
 
 /**
- * Complete dashboard data structure for UI components
+ * Dashboard filters
  */
-export interface DashboardData {
-	totalSpend: number;
-	totalSavings: number;
-	savingsPercentage: number;
-	totalTokens: number;
-	totalRequests: number;
-	errorRate: number;
-	errorCount: number;
-	usageData: UsageDataPoint[];
-	tokenData: TokenDataPoint[];
-	requestData: RequestDataPoint[];
-	errorRateData: ErrorRateDataPoint[];
-	taskBreakdown: TaskBreakdownItem[];
-	providers: Provider[];
-}
-
-export interface TaskBreakdownItem {
-	id: string;
-	name: string;
-	icon: string;
-	requests: string;
-	inputTokens: string;
-	outputTokens: string;
-	cost: string;
-	comparisonCost: string;
-	savings: string;
-	percentage: number;
-}
-
-export interface Provider {
-	id: string;
-	name: string;
-	icon: string;
-	comparisonCosts: {
-		adaptive: number;
-		single: number;
-	};
-}
-
 export interface DashboardFilters {
 	dateRange: DateRange | undefined;
 	provider: ProviderFilter;
 	refreshInterval?: number;
 }
 
+/**
+ * Metric card data for UI components
+ */
 export interface MetricCardData {
 	title: string;
 	value: string;
@@ -144,4 +62,42 @@ export interface MetricCardData {
 	changeType?: "positive" | "negative" | "neutral";
 	icon?: React.ReactNode;
 	description?: string;
+}
+
+// ---- Chart Data Types ----
+
+/**
+ * Chart data point types for backwards compatibility
+ * These derive from the tRPC response structure
+ */
+export type DashboardData = ProjectAnalytics;
+export type Provider = ProviderType;
+
+export interface UsageDataPoint {
+	date: string;
+	totalCost: number;
+	totalTokens: number;
+	requestCount: number;
+	savings?: number;
+}
+
+export interface RequestDataPoint {
+	date: string;
+	requests: number;
+	successfulRequests: number;
+	failedRequests: number;
+}
+
+export interface TokenDataPoint {
+	date: string;
+	inputTokens: number;
+	outputTokens: number;
+	totalTokens: number;
+}
+
+export interface ErrorRateDataPoint {
+	date: string;
+	errorRate: number;
+	totalRequests: number;
+	errorCount: number;
 }

@@ -1,8 +1,12 @@
 package circuitbreaker
 
 import (
-	"sync"
+	"context"
+	"strconv"
 	"time"
+
+	fiberlog "github.com/gofiber/fiber/v2/log"
+	"github.com/redis/go-redis/v9"
 )
 
 type State int
@@ -20,16 +24,21 @@ type Config struct {
 	ResetAfter       time.Duration
 }
 
+const (
+	circuitBreakerKeyPrefix = "circuit_breaker:"
+	stateKey                = "state"
+	failureCountKey         = "failure_count"
+	successCountKey         = "success_count"
+	lastFailureTimeKey      = "last_failure_time"
+	lastStateChangeKey      = "last_state_change"
+	lockTTL                 = 5 * time.Second
+)
+
 type CircuitBreaker struct {
-	mu              sync.RWMutex
-	state           State
-	failureCount    int
-	successCount    int
-	lastFailureTime time.Time
-	lastStateChange time.Time
-	config          Config
-	localMetrics    LocalMetrics
-	serviceName     string
+	redisClient *redis.Client
+	serviceName string
+	config      Config
+	keyPrefix   string
 }
 
 type LocalMetrics struct {
@@ -40,38 +49,81 @@ type LocalMetrics struct {
 	CircuitCloses      int64
 }
 
-func New() *CircuitBreaker {
+func New(redisClient *redis.Client) *CircuitBreaker {
 	config := Config{
 		FailureThreshold: 5,
 		SuccessThreshold: 3,
 		Timeout:          30 * time.Second,
 		ResetAfter:       2 * time.Minute,
 	}
-	return NewWithConfig(config)
+	return NewWithConfig(redisClient, config)
 }
 
-func NewWithConfig(config Config) *CircuitBreaker {
-	return &CircuitBreaker{
-		state:           Closed,
-		config:          config,
-		serviceName:     "ai_service",
-		lastStateChange: time.Now(),
+func NewWithConfig(redisClient *redis.Client, config Config) *CircuitBreaker {
+	serviceName := "ai_service"
+	keyPrefix := circuitBreakerKeyPrefix + serviceName + ":"
+
+	cb := &CircuitBreaker{
+		redisClient: redisClient,
+		serviceName: serviceName,
+		config:      config,
+		keyPrefix:   keyPrefix,
+	}
+
+	cb.initializeState()
+	return cb
+}
+
+func (cb *CircuitBreaker) initializeState() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	exists, err := cb.redisClient.Exists(ctx, cb.keyPrefix+stateKey).Result()
+	if err != nil {
+		fiberlog.Errorf("CircuitBreaker: Failed to check state existence: %v", err)
+		return
+	}
+
+	if exists == 0 {
+		pipe := cb.redisClient.Pipeline()
+		pipe.Set(ctx, cb.keyPrefix+stateKey, int(Closed), 0)
+		pipe.Set(ctx, cb.keyPrefix+failureCountKey, 0, 0)
+		pipe.Set(ctx, cb.keyPrefix+successCountKey, 0, 0)
+		pipe.Set(ctx, cb.keyPrefix+lastStateChangeKey, time.Now().Unix(), 0)
+
+		_, err := pipe.Exec(ctx)
+		if err != nil {
+			fiberlog.Errorf("CircuitBreaker: Failed to initialize state: %v", err)
+		} else {
+			fiberlog.Debugf("CircuitBreaker: Initialized state for service %s", cb.serviceName)
+		}
 	}
 }
 
 func (cb *CircuitBreaker) CanExecute() bool {
-	cb.mu.Lock()
-	defer cb.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
-	cb.localMetrics.TotalRequests++
+	state, err := cb.getState(ctx)
+	if err != nil {
+		fiberlog.Errorf("CircuitBreaker: Failed to get state, allowing execution: %v", err)
+		return true
+	}
 
-	switch cb.state {
+	switch state {
 	case Closed:
 		return true
 	case Open:
-		if time.Since(cb.lastFailureTime) > cb.config.Timeout {
-			cb.transitionToState(HalfOpen)
-			return true
+		lastFailureTime, err := cb.redisClient.Get(ctx, cb.keyPrefix+lastFailureTimeKey).Int64()
+		if err != nil {
+			fiberlog.Errorf("CircuitBreaker: Failed to get last failure time: %v", err)
+			return false
+		}
+
+		if time.Since(time.Unix(lastFailureTime, 0)) > cb.config.Timeout {
+			if cb.transitionToState(HalfOpen) {
+				return true
+			}
 		}
 		return false
 	case HalfOpen:
@@ -82,81 +134,145 @@ func (cb *CircuitBreaker) CanExecute() bool {
 }
 
 func (cb *CircuitBreaker) RecordSuccess() {
-	cb.mu.Lock()
-	defer cb.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
-	cb.localMetrics.SuccessfulRequests++
-	cb.failureCount = 0
+	lockKey := cb.keyPrefix + "lock"
+	locked, err := cb.redisClient.SetNX(ctx, lockKey, "1", lockTTL).Result()
+	if err != nil || !locked {
+		fiberlog.Debugf("CircuitBreaker: Could not acquire lock for success recording")
+		return
+	}
+	defer cb.redisClient.Del(ctx, lockKey)
 
-	if cb.state == HalfOpen {
-		cb.successCount++
-		if cb.successCount >= cb.config.SuccessThreshold {
+	cb.redisClient.Set(ctx, cb.keyPrefix+failureCountKey, 0, 0)
+
+	state, err := cb.getState(ctx)
+	if err != nil {
+		return
+	}
+
+	if state == HalfOpen {
+		successCount, err := cb.redisClient.Incr(ctx, cb.keyPrefix+successCountKey).Result()
+		if err != nil {
+			fiberlog.Errorf("CircuitBreaker: Failed to increment success count: %v", err)
+			return
+		}
+
+		if successCount >= int64(cb.config.SuccessThreshold) {
 			cb.transitionToState(Closed)
-			cb.localMetrics.CircuitCloses++
 		}
 	}
 }
 
 func (cb *CircuitBreaker) RecordFailure() {
-	cb.mu.Lock()
-	defer cb.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
-	cb.localMetrics.FailedRequests++
-	cb.failureCount++
-	cb.lastFailureTime = time.Now()
+	lockKey := cb.keyPrefix + "lock"
+	locked, err := cb.redisClient.SetNX(ctx, lockKey, "1", lockTTL).Result()
+	if err != nil || !locked {
+		fiberlog.Debugf("CircuitBreaker: Could not acquire lock for failure recording")
+		return
+	}
+	defer cb.redisClient.Del(ctx, lockKey)
 
-	if cb.state == Closed && cb.failureCount >= cb.config.FailureThreshold {
+	failureCount, err := cb.redisClient.Incr(ctx, cb.keyPrefix+failureCountKey).Result()
+	if err != nil {
+		fiberlog.Errorf("CircuitBreaker: Failed to increment failure count: %v", err)
+		return
+	}
+
+	cb.redisClient.Set(ctx, cb.keyPrefix+lastFailureTimeKey, time.Now().Unix(), 0)
+
+	state, err := cb.getState(ctx)
+	if err != nil {
+		return
+	}
+
+	if (state == Closed && failureCount >= int64(cb.config.FailureThreshold)) || state == HalfOpen {
 		cb.transitionToState(Open)
-		cb.localMetrics.CircuitOpens++
-	} else if cb.state == HalfOpen {
-		cb.transitionToState(Open)
-		cb.localMetrics.CircuitOpens++
 	}
 }
 
 func (cb *CircuitBreaker) GetState() State {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
-	return cb.state
-}
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 
-func (cb *CircuitBreaker) GetMetrics() LocalMetrics {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
-	return cb.localMetrics
-}
-
-func (cb *CircuitBreaker) GetSuccessRate() float64 {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
-
-	if cb.localMetrics.TotalRequests == 0 {
-		return 0.0
+	state, err := cb.getState(ctx)
+	if err != nil {
+		fiberlog.Errorf("CircuitBreaker: Failed to get state, returning Closed: %v", err)
+		return Closed
 	}
-	rate := float64(cb.localMetrics.SuccessfulRequests) / float64(cb.localMetrics.TotalRequests)
-
-	return rate * 100.0
+	return state
 }
 
 func (cb *CircuitBreaker) Reset() {
-	cb.mu.Lock()
-	defer cb.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 
-	cb.state = Closed
-	cb.failureCount = 0
-	cb.successCount = 0
-	cb.localMetrics = LocalMetrics{}
+	pipe := cb.redisClient.Pipeline()
+	pipe.Set(ctx, cb.keyPrefix+stateKey, int(Closed), 0)
+	pipe.Set(ctx, cb.keyPrefix+failureCountKey, 0, 0)
+	pipe.Set(ctx, cb.keyPrefix+successCountKey, 0, 0)
+	pipe.Set(ctx, cb.keyPrefix+lastStateChangeKey, time.Now().Unix(), 0)
+
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		fiberlog.Errorf("CircuitBreaker: Failed to reset state: %v", err)
+	} else {
+		fiberlog.Infof("CircuitBreaker: Reset circuit breaker for service %s", cb.serviceName)
+	}
 }
 
 func (cb *CircuitBreaker) RecordRequestDuration(duration time.Duration, success bool) {
-	// Duration recording functionality removed with metrics
+	// Duration recording functionality can be added here if needed
 }
 
-func (cb *CircuitBreaker) transitionToState(newState State) {
-	if cb.state == newState {
-		return
+func (cb *CircuitBreaker) getState(ctx context.Context) (State, error) {
+	stateStr, err := cb.redisClient.Get(ctx, cb.keyPrefix+stateKey).Result()
+	if err != nil {
+		return Closed, err
 	}
 
-	cb.state = newState
-	cb.lastStateChange = time.Now()
+	stateInt, err := strconv.Atoi(stateStr)
+	if err != nil {
+		return Closed, err
+	}
+
+	return State(stateInt), nil
+}
+
+func (cb *CircuitBreaker) transitionToState(newState State) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	currentState, err := cb.getState(ctx)
+	if err != nil {
+		return false
+	}
+
+	if currentState == newState {
+		return true
+	}
+
+	err = cb.redisClient.Watch(ctx, func(tx *redis.Tx) error {
+		pipe := tx.Pipeline()
+		pipe.Set(ctx, cb.keyPrefix+stateKey, int(newState), 0)
+		pipe.Set(ctx, cb.keyPrefix+lastStateChangeKey, time.Now().Unix(), 0)
+
+		if newState != HalfOpen {
+			pipe.Set(ctx, cb.keyPrefix+successCountKey, 0, 0)
+		}
+
+		_, err := pipe.Exec(ctx)
+		return err
+	}, cb.keyPrefix+stateKey)
+	if err != nil {
+		fiberlog.Errorf("CircuitBreaker: Failed to transition to state %v: %v", newState, err)
+		return false
+	}
+
+	fiberlog.Debugf("CircuitBreaker: Transitioned from %v to %v for service %s", currentState, newState, cb.serviceName)
+	return true
 }

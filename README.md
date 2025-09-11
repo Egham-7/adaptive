@@ -1,188 +1,126 @@
-# Adaptive - Intelligent LLM Infrastructure
+# Adaptive
 
-AI-powered model selection and cost optimization with OpenAI-compatible API. Automatically routes requests to the optimal LLM for each task.
+Intelligent LLM infrastructure that automatically selects the optimal model for each request. Drop-in OpenAI replacement with 30-70% cost savings.
 
-## Key Features
+## Features
 
-- 🧠 **Smart Model Selection** - AI analyzes prompts and selects optimal models
-- 💰 **Cost Optimization** - Automatically routes to cheaper models when appropriate
-- ⚡ **OpenAI Compatible** - Drop-in replacement, just change the base URL
-- 🔄 **Multi-Provider** - OpenAI, Anthropic, Groq, DeepSeek, Google AI
-- 📊 **Usage Analytics** - Track spending and optimization opportunities
-
-## Architecture
-
-- **Backend** (Go) - OpenAI-compatible API server
-- **AI Service** (Python) - Intelligent model selection
-- **Frontend** (Next.js) - Web interface and analytics
-- **Monitoring** - Prometheus & Grafana dashboards
+- 🧠 **Smart routing** - AI selects optimal models automatically
+- 💰 **Cost optimization** - 30-70% savings vs direct provider usage  
+- ⚡ **Fast caching** - Dual-layer cache for instant responses
+- 🔄 **Multi-provider** - OpenAI, Anthropic, Groq, DeepSeek, Google AI
+- 📊 **Analytics** - Usage tracking and cost insights
 
 ## Quick Start
 
-### 1. Deploy with Docker
+### 1. Deploy
 
 ```bash
 git clone https://github.com/your-org/adaptive.git
 cd adaptive
-cp .env.example .env  # Configure API keys
+cp .env.example .env  # Add your API keys
 docker-compose up -d
 ```
 
-### 2. Use with OpenAI SDK
+### 2. Use with any OpenAI SDK
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="your-adaptive-api-key",
-    base_url="https://api.adaptive.ai/v1"
+    api_key="your-adaptive-key",
+    base_url="https://your-deployment-url/v1"
 )
 
 response = client.chat.completions.create(
-    model="adaptive",  # Auto-routing, or use 'gpt-4o', 'claude-3-5-sonnet', etc.
-    messages=[{"role": "user", "content": "Explain quantum computing"}]
+    model="",  # Empty string enables intelligent routing
+    messages=[{"role": "user", "content": "Hello world"}]
 )
 ```
 
-### 3. Use with JavaScript
+## Architecture
 
-```javascript
-import OpenAI from 'openai';
-
-const client = new OpenAI({
-  apiKey: 'your-adaptive-api-key',
-  baseURL: 'https://api.adaptive.ai/v1'
-});
-
-const response = await client.chat.completions.create({
-  model: 'adaptive',  // Auto-routing, or use 'gpt-4o', 'claude-3-5-sonnet', etc.
-  messages: [{ role: 'user', content: 'Write a Python function' }]
-});
-```
-
-### 4. Use with Vercel AI SDK
-
-```typescript
-import { adaptive } from '@ai-sdk/adaptive';
-import { generateText } from 'ai';
-
-const { text } = await generateText({
-  model: adaptive(),  // Auto-routing, or adaptive('gpt-4o'), etc.
-  prompt: 'Write a Python function to sort a list'
-});
-```
-
-## Configuration
-
-Configure environment variables in `.env`:
-
-```bash
-# Provider API Keys (at least one required)
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-GROQ_API_KEY=gsk_...
-DEEPSEEK_API_KEY=sk-...
-GOOGLE_AI_API_KEY=...
-
-# Database & Services
-DB_SERVER=localhost
-DB_NAME=adaptive
-AI_SERVICE_URL=http://localhost:8000
-ADDR=:8080
-```
-
-## API Reference
-
-### Main Endpoint
-
-`POST /v1/chat/completions` - OpenAI-compatible chat completions with intelligent model selection
-
-```json
-{
-  "model": "adaptive",
-  "messages": [{"role": "user", "content": "Explain quantum computing"}],
-  "provider_constraints": ["openai", "anthropic"],  // Optional
-  "cost_bias": 0.3  // 0.0 = cost-optimized, 1.0 = performance-optimized
-}
-```
-
-### Response includes selection metadata
-
-```json
-{
-  "choices": [...],
-  "usage": {
-    "prompt_tokens": 42,
-    "completion_tokens": 150,
-    "total_tokens": 192,
-    "cost_saved": 0.35
-  },
-  "provider": "openai",
-  "model": "gpt-4o"
-}
-```
-
-## How It Works
-
-1. **Prompt Analysis** - AI analyzes complexity, domain, and context requirements
-2. **Model Selection** - Selects optimal model based on task requirements and cost considerations
-3. **Provider Routing** - Routes request while maintaining OpenAI-compatible format
-4. **Response Enhancement** - Returns response with selection metadata and cost savings info
-
-## Project Structure
-
-```
-adaptive/
-├── adaptive-backend/    # Go API server (OpenAI-compatible)
-├── adaptive_ai/        # Python AI service (model selection)
-├── adaptive-app/       # Next.js frontend (web interface)
-├── monitoring/         # Prometheus & Grafana
-└── analysis/          # Cost and performance analysis
-```
+- **adaptive-backend/** - Go API server (Fiber, OpenAI SDK, Redis)
+- **adaptive_ai/** - Python ML service (LitServe, HuggingFace, scikit-learn)
+- **adaptive-app/** - Next.js web app (React 19, Prisma, tRPC, Clerk)
+- **adaptive-docs/** - Documentation (Mintlify)
 
 ## Development
 
-### Prerequisites
-- Docker and Docker Compose
-- Go 1.21+ (backend), Python 3.11+ (AI service), Node.js 18+ (frontend)
-
-### Local Development
-
 ```bash
-# Backend (Go)
+# Backend
 cd adaptive-backend && go run cmd/api/main.go
 
-# AI Service (Python)
-cd adaptive_ai && uv sync && uv run python adaptive_ai/main.py
+# AI Service  
+cd adaptive_ai && uv run adaptive-ai
 
-# Frontend (Next.js)
-cd adaptive-app && bun install && bun run dev
+# Frontend
+cd adaptive-app && bun dev
 ```
 
-### Testing
+## Examples
+
+### TypeScript Examples
+
+Complete TypeScript examples demonstrating various integration patterns:
+
+#### 🚀 [OpenAI SDK Example](./examples/ts/examples/basic-openai.ts)
+- Drop-in OpenAI SDK replacement with intelligent routing
+- Streaming and non-streaming responses
+- 60-80% cost reduction with zero code changes
 
 ```bash
-cd adaptive-backend && go test ./...     # Backend tests
-cd adaptive_ai && uv run pytest         # AI service tests
-cd adaptive-app && bun run test         # Frontend tests
+cd examples/ts && bun basic-openai.ts
 ```
 
-## Performance
+#### 🏛️ [Anthropic SDK Example](./examples/ts/examples/basic-anthropic.ts) 
+- Native Claude Messages API format preserved
+- Streaming and non-streaming with intelligent routing
+- Type-safe Anthropic SDK patterns
 
-- **Latency**: <100ms model selection overhead
-- **Throughput**: 1000+ requests/second
-- **Cost Savings**: 30-70% typical reduction
-- **Availability**: 99.9% uptime target
+```bash
+cd examples/ts && bun basic-anthropic.ts
+```
 
-## Contributing
+#### ⚡ [Vercel AI SDK Example](./examples/ts/examples/basic-vercel-ai-sdk.ts)
+- Modern AI patterns with `generateText`, `streamText`, and tools
+- Perfect for React apps with `ai/react` hooks
+- Seamless Vercel AI SDK integration
 
-See [Contributing Guidelines](CONTRIBUTING.md) for details.
+```bash
+cd examples/ts && bun basic-vercel-ai-sdk.ts
+```
 
-## License
+#### 🎯 [Model Selection Example](./examples/ts/examples/basic-select-model.ts)
+- Test routing decisions without inference
+- Cost vs performance optimization with `cost_bias`
+- Function calling model prioritization
+- Custom model specifications for enterprise/local models
 
-Business Source License 1.1 - Free for non-commercial use, commercial license required for production.
+```bash
+cd examples/ts && bun basic-select-model.ts
+```
 
-## Support
+#### 🦜 [LangChain Example](./examples/ts/examples/basic-langchain.ts)
+- LangChain ChatOpenAI integration with intelligent routing
+- Chain composition and streaming support
+- Batch processing and agent compatibility
+- Perfect for complex AI workflows with cost optimization
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/adaptive/issues)
-- **Documentation**: [docs.adaptive.ai](https://docs.adaptive.ai)
+```bash
+cd examples/ts && bun basic-langchain.ts
+```
+
+### Development Setup
+
+```bash
+cd examples/ts
+bun install          # Install dependencies
+bun run typecheck    # Check TypeScript types
+bun run check        # Check formatting and linting
+bun run check:write  # Auto-fix issues
+bun run format       # Format code only
+```
+
+## Documentation
+
+See [adaptive-docs/](./adaptive-docs/) for complete documentation and API reference.

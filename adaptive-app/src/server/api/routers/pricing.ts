@@ -4,7 +4,7 @@ import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 export const modelPricingRouter = createTRPCRouter({
 	getProviders: publicProcedure.query(async ({ ctx }) => {
 		return await ctx.db.provider.findMany({
-			where: { isActive: true },
+			where: {},
 			select: {
 				id: true,
 				name: true,
@@ -20,8 +20,8 @@ export const modelPricingRouter = createTRPCRouter({
 			return await ctx.db.providerModel.findMany({
 				where: {
 					providerId: input.providerId,
-					isActive: true,
-					type: "chat", // Only chat models for cost comparison
+
+					// Only chat models for cost comparison
 				},
 				select: {
 					id: true,
@@ -33,6 +33,65 @@ export const modelPricingRouter = createTRPCRouter({
 				orderBy: { displayName: "asc" },
 			});
 		}),
+
+	getAllModelPricing: publicProcedure.query(async ({ ctx }) => {
+		const models = await ctx.db.providerModel.findMany({
+			where: {
+				// Only chat models
+			},
+			select: {
+				name: true,
+				displayName: true,
+				inputTokenCost: true,
+				outputTokenCost: true,
+				provider: {
+					select: {
+						name: true,
+						displayName: true,
+					},
+				},
+			},
+		});
+
+		// Convert to the format expected by the components
+		const pricingData: Record<
+			string,
+			{ inputCost: number; outputCost: number }
+		> = {};
+
+		for (const model of models) {
+			// Use provider:model format to handle cases where same model is offered by multiple providers
+			const key = `${model.provider.name}:${model.name}`;
+			pricingData[key] = {
+				inputCost: model.inputTokenCost.toNumber(),
+				outputCost: model.outputTokenCost.toNumber(),
+			};
+		}
+
+		return pricingData;
+	}),
+
+	getAllModelsWithMetadata: publicProcedure.query(async ({ ctx }) => {
+		return await ctx.db.providerModel.findMany({
+			where: {
+				// Only chat models
+			},
+			select: {
+				id: true,
+				name: true,
+				displayName: true,
+				inputTokenCost: true,
+				outputTokenCost: true,
+				provider: {
+					select: {
+						name: true,
+						displayName: true,
+					},
+				},
+			},
+			orderBy: { displayName: "asc" },
+		});
+	}),
 
 	calculateCostComparison: publicProcedure
 		.input(
@@ -71,7 +130,6 @@ export const modelPricingRouter = createTRPCRouter({
 				const allModels = await ctx.db.providerModel.findMany({
 					where: {
 						provider: { name: providerName },
-						isActive: true,
 					},
 					select: {
 						name: true,
@@ -162,7 +220,7 @@ export const modelPricingRouter = createTRPCRouter({
 			const savings = currentCost - compareCost;
 			console.log("Savings: ", savings);
 			const savingsPercentage =
-				currentCost > 0 ? (Math.abs(savings) / currentCost) * 100 : 0;
+				compareCost > 0 ? (Math.abs(savings) / compareCost) * 100 : 0;
 
 			return {
 				currentModel: {
