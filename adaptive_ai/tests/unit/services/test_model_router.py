@@ -3,7 +3,6 @@
 import pytest
 
 from adaptive_ai.models.llm_core_models import ModelCapability
-from adaptive_ai.models.llm_enums import TaskType
 from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.model_router import ModelRouter
 
@@ -57,7 +56,7 @@ class TestModelRouter:
         # Test selecting models with cost bias favoring capable options
         selected = router.select_models(
             task_complexity=0.5,
-            task_type=TaskType.TEXT_GENERATION,  # Use task type that models support
+            task_type="Text Generation",  # Use task type that models support
             models_input=sample_models,
             cost_bias=0.9,  # High cost bias = prefer capable models
         )
@@ -77,7 +76,7 @@ class TestModelRouter:
 
         selected = router.select_models(
             task_complexity=0.8,  # High complexity
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
             models_input=sample_models,
             cost_bias=0.1,  # Low cost bias = prefer quality
         )
@@ -93,7 +92,7 @@ class TestModelRouter:
         # When no models are provided, router should use models from registry
         selected = router.select_models(
             task_complexity=0.5,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
             models_input=None,
             cost_bias=0.5,
         )
@@ -120,7 +119,7 @@ class TestModelRouter:
 
         selected = router.select_models(
             task_complexity=0.5,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
             models_input=partial_models,
             cost_bias=0.5,
         )
@@ -135,7 +134,7 @@ class TestModelRouter:
 
         selected = router.select_models(
             task_complexity=0.5,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
             models_input=sample_models,
             cost_bias=0.5,
         )
@@ -167,7 +166,7 @@ class TestModelRouterEdgeCases:
         # Test with cost bias > 1
         selected = router.select_models(
             task_complexity=0.5,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
             models_input=models,
             cost_bias=2.0,
         )
@@ -188,7 +187,7 @@ class TestModelRouterEdgeCases:
         ]
         selected = router.select_models(
             task_complexity=0.5,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
             models_input=models_no_task,
             cost_bias=-1.0,
         )
@@ -212,7 +211,7 @@ class TestModelRouterEdgeCases:
 
         selected = router.select_models(
             task_complexity=0.0,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
             models_input=models,
             cost_bias=0.5,
         )
@@ -237,7 +236,7 @@ class TestModelRouterEdgeCases:
 
         selected = router.select_models(
             task_complexity=1.0,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
             models_input=models,
             cost_bias=0.5,
         )

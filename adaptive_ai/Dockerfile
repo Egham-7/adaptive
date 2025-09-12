@@ -1,11 +1,17 @@
 FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
 
+# Build arguments for host and port configuration
+ARG HOST=::
+ARG PORT=8000
+
 ENV DEBIAN_FRONTEND=noninteractive \
   PYTHONUNBUFFERED=1 \
   PYTHONDONTWRITEBYTECODE=1 \
   PATH="/root/.local/bin:$PATH" \
   HF_HOME=/app/cache/huggingface \
-  HF_HUB_CACHE=/app/cache/huggingface
+  HF_HUB_CACHE=/app/cache/huggingface \
+  HOST=${HOST} \
+  PORT=${PORT}
 
 WORKDIR /app
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -31,9 +37,5 @@ RUN uv sync --all-extras --no-dev
 # Copy application code
 COPY . .
 
-# Copy and setup entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 EXPOSE 8000
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["sh", "-c", "uv run hypercorn adaptive_ai.main:app --bind ${HOST:-::}:${PORT:-8000}"]

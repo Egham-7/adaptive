@@ -6,7 +6,6 @@ import pytest
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import ModelCapability
-from adaptive_ai.models.llm_enums import TaskType
 
 
 @pytest.fixture
@@ -88,7 +87,7 @@ def mock_model_router():
             cost_per_1m_output_tokens=60.0,
             max_context_tokens=128000,
             supports_function_calling=True,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
         ),
         ModelCapability(
             provider="anthropic",
@@ -97,7 +96,7 @@ def mock_model_router():
             cost_per_1m_output_tokens=75.0,
             max_context_tokens=200000,
             supports_function_calling=False,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
         ),
     ]
     return router
@@ -109,12 +108,12 @@ def mock_model_registry():
     registry = Mock()
     registry.get_models_by_task.return_value = [
         ModelCapability(
-            provider="openai", model_name="gpt-4", task_type=TaskType.CODE_GENERATION
+            provider="openai", model_name="gpt-4", task_type="Code Generation"
         ),
         ModelCapability(
             provider="anthropic",
             model_name="claude-3-sonnet",
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
         ),
     ]
     registry.get_all_models.return_value = {

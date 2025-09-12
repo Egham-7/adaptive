@@ -9,7 +9,6 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_ai.models.llm_enums import TaskType
 
 
 @pytest.fixture
@@ -22,7 +21,7 @@ def sample_model_capability():
         cost_per_1m_output_tokens=60.0,
         max_context_tokens=128000,
         supports_function_calling=True,
-        task_type=TaskType.CODE_GENERATION,
+        task_type="Code Generation",
         complexity="medium",
         description="GPT-4 model for complex tasks",
     )
@@ -38,7 +37,7 @@ def anthropic_model_capability():
         cost_per_1m_output_tokens=75.0,
         max_context_tokens=200000,
         supports_function_calling=False,
-        task_type=TaskType.TEXT_GENERATION,
+        task_type="Text Generation",
         complexity="high",
         description="Claude 3 Sonnet for analysis tasks",
     )
@@ -136,7 +135,7 @@ def complex_model_capabilities():
             cost_per_1m_output_tokens=60.0,
             max_context_tokens=128000,
             supports_function_calling=True,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
             complexity="hard",
         ),
         ModelCapability(
@@ -146,7 +145,7 @@ def complex_model_capabilities():
             cost_per_1m_output_tokens=1.25,
             max_context_tokens=200000,
             supports_function_calling=False,
-            task_type=TaskType.CHATBOT,
+            task_type="Chatbot",
             complexity="easy",
         ),
         ModelCapability(
@@ -156,7 +155,7 @@ def complex_model_capabilities():
             cost_per_1m_output_tokens=0.28,
             max_context_tokens=64000,
             supports_function_calling=True,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
             complexity="medium",
         ),
     ]

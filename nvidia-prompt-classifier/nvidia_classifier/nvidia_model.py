@@ -197,7 +197,3 @@ def get_model_classes():
             return self.process_logits(logits)
 
     return MeanPooling, MulticlassHead, CustomModel
-
-
-# Export for use in deployment
-__all__ = ["get_model_classes"]

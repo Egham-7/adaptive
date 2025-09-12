@@ -93,3 +93,19 @@ class ClassificationResult(BaseModel):
         description="Constraint complexity detected (0=none, 1=many constraints)",
         examples=[[0.2, 0.5]],
     )
+
+
+class ClassifyRequest(BaseModel):
+    """Request model for Modal batch classification API."""
+
+    prompts: list[str] = Field(
+        description="List of prompts to classify", min_length=1, max_length=100
+    )
+
+
+class SingleClassifyRequest(BaseModel):
+    """Request model for Modal single prompt classification API."""
+
+    prompt: str = Field(
+        description="Single prompt to classify", min_length=1, max_length=10000
+    )

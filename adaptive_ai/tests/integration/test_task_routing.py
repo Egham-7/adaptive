@@ -6,7 +6,7 @@ import requests
 
 @pytest.mark.integration
 class TestTaskTypeSpecialization:
-    """Test that all TaskType enum values route to appropriate models."""
+    """Test that all task types route to appropriate models."""
 
     @pytest.fixture
     def base_url(self):
