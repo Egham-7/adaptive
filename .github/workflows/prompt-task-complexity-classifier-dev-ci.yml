@@ -4,13 +4,13 @@ on:
   push:
     branches: [dev]
     paths:
-      - 'prompt-task-complexity-classifier/**'
-  
+      - "prompt-task-complexity-classifier/**"
+
   pull_request:
     branches: [dev]
     paths:
-      - 'prompt-task-complexity-classifier/**'
-  
+      - "prompt-task-complexity-classifier/**"
+
   workflow_dispatch:
 
 env:
@@ -38,18 +38,13 @@ jobs:
         run: uv sync --all-groups
 
       - name: Run type checking
-        run: uv run mypy deploy.py
+        run: uv run mypy .
 
       - name: Run linting
         run: uv run ruff check . --output-format=github
 
       - name: Check formatting
         run: uv run black . --check --diff
-
-      - name: Validate deployment script
-        run: |
-          python -m py_compile deploy.py
-          echo "✅ Deployment script syntax valid"
 
   deploy-dev:
     name: Deploy to Dev Environment
@@ -83,3 +78,4 @@ jobs:
           echo "🚀 Deploying Prompt Task Complexity Classifier to dev environment..."
           modal deploy deploy.py
           echo "✅ Deployment to dev completed"
+
