@@ -1,13 +1,16 @@
 """Classification models for prompt analysis and task complexity detection."""
 
-from __future__ import annotations
-
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 # Type alias for probability values constrained to [0.0, 1.0] range
 UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
+
+# Type alias for individual prompt strings with constraints
+PromptsItem = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000)
+]
 
 
 class ClassificationResult(BaseModel):
@@ -26,9 +29,8 @@ class ClassificationResult(BaseModel):
         reasoning: Reasoning complexity scores (0.0-1.0)
         contextual_knowledge: Required contextual knowledge scores (0.0-1.0)
         prompt_complexity_score: Overall complexity scores (0.0-1.0) (required)
-        domain: Domain classifications for each prompt (required)
         domain_knowledge: Domain-specific knowledge requirement scores (0.0-1.0)
-        number_of_few_shots: Few-shot learning requirement scores (0.0-1.0)
+        number_of_few_shots: Few-shot learning requirement scores (integer values)
         no_label_reason: Confidence in classification accuracy (0.0-1.0)
         constraint_ct: Number of constraints detected in prompts (0.0-1.0)
     """
@@ -41,10 +43,6 @@ class ClassificationResult(BaseModel):
     prompt_complexity_score: list[UnitFloat] = Field(
         description="Overall prompt complexity (0=simple, 1=complex) (required)",
         examples=[[0.45, 0.72]],
-    )
-    domain: list[str] = Field(
-        description="Domain classifications for each prompt (required)",
-        examples=[["General", "Technical"]],
     )
 
     # Optional detailed fields
@@ -96,16 +94,14 @@ class ClassificationResult(BaseModel):
 
 
 class ClassifyRequest(BaseModel):
-    """Request model for Modal batch classification API."""
+    """Request model for batch prompt classification API."""
 
-    prompts: list[str] = Field(
+    prompts: list[PromptsItem] = Field(
         description="List of prompts to classify", min_length=1, max_length=100
     )
 
 
 class SingleClassifyRequest(BaseModel):
-    """Request model for Modal single prompt classification API."""
+    """Request model for single prompt classification API."""
 
-    prompt: str = Field(
-        description="Single prompt to classify", min_length=1, max_length=10000
-    )
+    prompt: PromptsItem = Field(description="Single prompt to classify")

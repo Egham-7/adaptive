@@ -300,8 +300,23 @@ def serve() -> "FastAPI":
 
     @app.get("/health")
     def health_check() -> Dict[str, str]:
-        """Health check endpoint."""
+        """Basic health check endpoint."""
         return {"status": "healthy", "service": "nvidia-prompt-classifier"}
+
+    # TODO: Implement /health/detailed endpoint
+    # Should return: service info, version, uptime, model status, dependencies
+
+    # TODO: Implement /benchmark endpoint
+    # Should return: latency measurements, throughput tests, timestamp results
+
+    # TODO: Add JWT token caching with expiry/refresh logic
+    # Current implementation verifies tokens but doesn't cache them
+
+    # TODO: Add retry/backoff logic around classifier.classify.remote() calls
+    # Current implementation has no retry on Modal API failures
+
+    # TODO: Add structured logging with correlation IDs
+    # Current implementation only uses basic print statements
 
     return app
 

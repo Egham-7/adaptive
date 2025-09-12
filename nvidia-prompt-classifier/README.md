@@ -10,10 +10,10 @@ This project provides a clean, production-ready deployment of the NVIDIA prompt 
 
 - **🎮 GPU Acceleration**: Deployed on NVIDIA T4 GPUs for fast inference
 - **⚡ High Performance**: Simple, direct GPU processing
-- **🔐 Secure**: JWT authentication with token caching
+- **🔐 Secure**: JWT authentication for API access
 - **📦 Clean Architecture**: Organized package structure following Modal best practices
 - **🚀 Auto-scaling**: Dynamic container scaling based on load
-- **🛡️ Production Ready**: Comprehensive error handling, retries, and monitoring
+- **🛡️ Production Ready**: Comprehensive error handling and basic logging
 
 ## Project Structure
 
@@ -68,9 +68,11 @@ modal secret create jwt jwt_auth="your-secret-key-here"
 ## API Endpoints
 
 ### POST `/classify`
+
 Batch classification of multiple prompts.
 
 **Request:**
+
 ```json
 {
   "prompts": ["Write a Python function", "Solve 2+2"]
@@ -78,6 +80,7 @@ Batch classification of multiple prompts.
 ```
 
 **Response:**
+
 ```json
 {
   "task_type_1": ["Code Generation", "Closed QA"],
@@ -95,9 +98,11 @@ Batch classification of multiple prompts.
 ```
 
 ### POST `/classify/single`
+
 Single prompt classification (same response format as batch).
 
 ### GET `/health`
+
 Basic health check (no authentication required).
 
 ## Performance Characteristics
@@ -111,7 +116,7 @@ Basic health check (no authentication required).
 
 - **Model**: `nvidia/prompt-task-and-complexity-classifier`
 - **Architecture**: DeBERTa-v3-base backbone with multi-head classification
-- **GPU**: NVIDIA T4 (16GB VRAM) 
+- **GPU**: NVIDIA T4 (16GB VRAM)
 - **Framework**: PyTorch + Transformers + Accelerate
 
 ## Configuration
@@ -128,7 +133,7 @@ container_idle_timeout=300      # 5 min warm containers
 max_containers=20              # Scale up to 20 GPU containers
 min_containers=1               # Keep 1 container warm
 
-# Web Container Configuration  
+# Web Container Configuration
 container_idle_timeout=60       # Web containers scale down faster
 max_containers=10              # Limit web containers (lightweight)
 cpu=2                          # 2 CPUs for JSON processing
@@ -194,12 +199,16 @@ Following Modal best practices, the deployment uses two optimized images:
 
 ## Monitoring
 
-The deployment includes several monitoring endpoints:
+The deployment includes monitoring capabilities:
 
-- Health checks at `/health` and `/health/detailed`
-- Performance benchmarking at `/benchmark`
-- Structured logging with request correlation
-- Container metrics via Modal dashboard
+- **Health checks**: Basic health check at `/health`
+- **Container metrics**: Via Modal dashboard and logs  
+- **Request logging**: Basic request/response logging
+
+### 🚧 Planned Monitoring Features
+- **Detailed Health**: `/health/detailed` with dependency status, uptime, and service info
+- **Performance Benchmarking**: `/benchmark` endpoint with latency/throughput measurements
+- **Structured Logging**: Request correlation IDs and structured log format
 
 ## Cost Optimization
 
@@ -219,3 +228,4 @@ The deployment includes several monitoring endpoints:
 ## License
 
 This project follows the same license as the parent adaptive repository.
+

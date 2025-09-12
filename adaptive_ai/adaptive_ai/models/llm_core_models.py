@@ -2,10 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-# =============================================================================
-# Model Capability & Configuration Models
-# =============================================================================
-
 
 class ModelCapability(BaseModel):
     """Unified model capability supporting both partial and full specifications."""

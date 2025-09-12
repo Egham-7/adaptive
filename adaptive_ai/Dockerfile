@@ -38,4 +38,4 @@ RUN uv sync --all-extras --no-dev
 COPY . .
 
 EXPOSE 8000
-CMD ["sh", "-c", "uv run hypercorn adaptive_ai.main:app --bind ${HOST:-::}:${PORT:-8000}"]
+CMD sh -c "uv run hypercorn adaptive_ai.main:app --bind \${HOST:-::}:\${PORT:-8000}"

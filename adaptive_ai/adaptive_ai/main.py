@@ -21,7 +21,10 @@ from contextlib import asynccontextmanager
 import logging
 import sys
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from adaptive_ai.services.prompt_classifier import PromptClassifier
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -65,8 +68,8 @@ def setup_logging() -> None:
 
 
 # Global components initialized on startup
-prompt_classifier = None
-model_router = None
+prompt_classifier: "PromptClassifier | None" = None
+model_router: ModelRouter | None = None
 
 
 @asynccontextmanager
@@ -100,13 +103,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add CORS middleware
+# Add CORS middleware with secure configuration
+settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors.allowed_origins,
+    allow_credentials=settings.cors.allow_credentials,
+    allow_methods=settings.cors.allow_methods,
+    allow_headers=settings.cors.allow_headers,
 )
 
 
@@ -114,9 +118,9 @@ app.add_middleware(
 async def health_check() -> dict[str, Any]:
     """Health check endpoint."""
     try:
-        # Check Modal service health
+        # Check Modal service health using async method
         modal_health = (
-            prompt_classifier.health_check()
+            await prompt_classifier.health_check_async()
             if prompt_classifier
             else {"status": "not_initialized"}
         )
@@ -171,7 +175,7 @@ async def predict(request: ModelSelectionRequest) -> ModelSelectionResponse:
             task_complexity,
             task_type,
             request.models,
-            request.cost_bias or 0.5,
+            request.cost_bias if request.cost_bias is not None else 0.5,
         )
 
         if not selected_models:
