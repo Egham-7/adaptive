@@ -16,6 +16,8 @@ Architecture Flow:
 4. Return ModelSelectionResponse with selected model and alternatives
 """
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 import logging
 import sys
 import time
@@ -67,6 +69,27 @@ prompt_classifier = None
 model_router = None
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manage application lifespan events."""
+    global prompt_classifier, model_router
+
+    # Startup
+    setup_logging()
+    logger.info("Initializing Adaptive AI services...")
+
+    # Initialize services
+    prompt_classifier = get_prompt_classifier()
+    model_router = ModelRouter(model_registry)
+
+    logger.info("Adaptive AI services initialized successfully")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down Adaptive AI services...")
+
+
 # Create FastAPI app instance
 app = FastAPI(
     title="Adaptive AI - Model Selection Service",
@@ -74,6 +97,7 @@ app = FastAPI(
     version="0.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -84,29 +108,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Initialize services on startup."""
-    global prompt_classifier, model_router
-
-    # Setup logging first
-    setup_logging()
-
-    logger.info("Initializing Adaptive AI services...")
-
-    # Initialize services
-    prompt_classifier = get_prompt_classifier()
-    model_router = ModelRouter(model_registry)
-
-    logger.info("Adaptive AI services initialized successfully")
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Cleanup on shutdown."""
-    logger.info("Shutting down Adaptive AI services...")
 
 
 @app.get("/health")
