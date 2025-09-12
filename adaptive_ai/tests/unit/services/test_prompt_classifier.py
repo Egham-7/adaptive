@@ -1,6 +1,6 @@
 """Unit tests for PromptClassifier service."""
 
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -17,93 +17,101 @@ class TestPromptClassifier:
 
     def test_get_prompt_classifier_basic(self):
         """Test basic prompt classifier instantiation."""
-        # This will load the real model, but that's ok for a basic test
+        # This will load the real classifier, but that's ok for a basic test
         try:
             classifier = get_prompt_classifier()
             assert isinstance(classifier, PromptClassifier)
-            assert hasattr(classifier, "classify_prompts")
+            assert hasattr(classifier, "classify_prompts_async")
+            assert hasattr(classifier, "classify_prompt_async")
         except Exception:
-            # If model loading fails (no internet, etc), test still passes
-            # This is a unit test for basic interface, not model functionality
+            # If modal connection fails (no internet, missing env vars, etc), test still passes
+            # This is a unit test for basic interface, not modal functionality
             assert True
 
-    def test_prompt_classifier_interface(self):
+    @pytest.mark.asyncio
+    async def test_prompt_classifier_interface(self):
         """Test that PromptClassifier has expected interface."""
         # Create a mock classifier to test interface
         classifier = Mock(spec=PromptClassifier)
-        classifier.classify_prompts.return_value = [
-            ClassificationResult(
-                # Required fields
-                task_type_1=["Code Generation"],
-                prompt_complexity_score=[0.65],
-                domain=["Programming"],
-                # Optional fields
-                task_type_2=["Other"],
-                task_type_prob=[0.8],
-                creativity_scope=[0.2],
-                reasoning=[0.7],
-                contextual_knowledge=[0.3],
-                domain_knowledge=[0.4],
-                number_of_few_shots=[0],
-                no_label_reason=[0.9],
-                constraint_ct=[0.1],
-            )
-        ]
+        classifier.classify_prompts_async = AsyncMock(
+            return_value=[
+                ClassificationResult(
+                    # Required fields
+                    task_type_1=["Code Generation"],
+                    prompt_complexity_score=[0.65],
+                    domain=["Programming"],
+                    # Optional fields
+                    task_type_2=["Other"],
+                    task_type_prob=[0.8],
+                    creativity_scope=[0.2],
+                    reasoning=[0.7],
+                    contextual_knowledge=[0.3],
+                    domain_knowledge=[0.4],
+                    number_of_few_shots=[0],
+                    no_label_reason=[0.9],
+                    constraint_ct=[0.1],
+                )
+            ]
+        )
 
         # Test the interface
-        results = classifier.classify_prompts(["Test prompt"])
+        results = await classifier.classify_prompts_async(["Test prompt"])
         assert len(results) == 1
         assert isinstance(results[0], ClassificationResult)
 
-    def test_classify_prompts_empty_input(self):
-        """Test classify_prompts with empty input."""
+    @pytest.mark.asyncio
+    async def test_classify_prompts_empty_input(self):
+        """Test classify_prompts_async with empty input."""
         classifier = Mock(spec=PromptClassifier)
-        classifier.classify_prompts.return_value = []
+        classifier.classify_prompts_async = AsyncMock(return_value=[])
 
-        results = classifier.classify_prompts([])
+        results = await classifier.classify_prompts_async([])
         assert len(results) == 0
         assert isinstance(results, list)
 
-    def test_classify_prompts_multiple(self):
-        """Test classify_prompts with multiple prompts."""
+    @pytest.mark.asyncio
+    async def test_classify_prompts_multiple(self):
+        """Test classify_prompts_async with multiple prompts."""
         classifier = Mock(spec=PromptClassifier)
-        classifier.classify_prompts.return_value = [
-            ClassificationResult(
-                # Required fields
-                task_type_1=["Code Generation"],
-                prompt_complexity_score=[0.65],
-                domain=["Programming"],
-                # Optional fields
-                task_type_2=["Other"],
-                task_type_prob=[0.8],
-                creativity_scope=[0.2],
-                reasoning=[0.7],
-                contextual_knowledge=[0.3],
-                domain_knowledge=[0.4],
-                number_of_few_shots=[0],
-                no_label_reason=[0.9],
-                constraint_ct=[0.1],
-            ),
-            ClassificationResult(
-                # Required fields
-                task_type_1=["Chatbot"],
-                prompt_complexity_score=[0.35],
-                domain=["General"],
-                # Optional fields
-                task_type_2=["Other"],
-                task_type_prob=[0.9],
-                creativity_scope=[0.1],
-                reasoning=[0.3],
-                contextual_knowledge=[0.2],
-                domain_knowledge=[0.2],
-                number_of_few_shots=[0],
-                no_label_reason=[0.95],
-                constraint_ct=[0.05],
-            ),
-        ]
+        classifier.classify_prompts_async = AsyncMock(
+            return_value=[
+                ClassificationResult(
+                    # Required fields
+                    task_type_1=["Code Generation"],
+                    prompt_complexity_score=[0.65],
+                    domain=["Programming"],
+                    # Optional fields
+                    task_type_2=["Other"],
+                    task_type_prob=[0.8],
+                    creativity_scope=[0.2],
+                    reasoning=[0.7],
+                    contextual_knowledge=[0.3],
+                    domain_knowledge=[0.4],
+                    number_of_few_shots=[0],
+                    no_label_reason=[0.9],
+                    constraint_ct=[0.1],
+                ),
+                ClassificationResult(
+                    # Required fields
+                    task_type_1=["Chatbot"],
+                    prompt_complexity_score=[0.35],
+                    domain=["General"],
+                    # Optional fields
+                    task_type_2=["Other"],
+                    task_type_prob=[0.9],
+                    creativity_scope=[0.1],
+                    reasoning=[0.3],
+                    contextual_knowledge=[0.2],
+                    domain_knowledge=[0.2],
+                    number_of_few_shots=[0],
+                    no_label_reason=[0.95],
+                    constraint_ct=[0.05],
+                ),
+            ]
+        )
 
         prompts = ["Write Python code", "Hello, how are you?"]
-        results = classifier.classify_prompts(prompts)
+        results = await classifier.classify_prompts_async(prompts)
 
         assert len(results) == 2
         assert all(isinstance(r, ClassificationResult) for r in results)
@@ -141,42 +149,50 @@ class TestGetPromptClassifier:
 class TestPromptClassifierEdgeCases:
     """Test edge cases for PromptClassifier."""
 
-    def test_classifier_with_none_input(self):
+    @pytest.mark.asyncio
+    async def test_classifier_with_none_input(self):
         """Test classifier behavior with None input."""
         classifier = Mock(spec=PromptClassifier)
 
         # Mock should handle None gracefully
-        classifier.classify_prompts.side_effect = lambda x: (
-            []
-            if x is None
-            else [
-                ClassificationResult(
-                    task_type_1=["Other"],
-                    prompt_complexity_score=[0.5],
-                    domain=["General"],
-                    task_type_2=["Other"],
-                    task_type_prob=[0.5],
-                    creativity_scope=[0.5],
-                    reasoning=[0.5],
-                    contextual_knowledge=[0.5],
-                    domain_knowledge=[0.5],
-                    number_of_few_shots=[0],
-                    no_label_reason=[0.5],
-                    constraint_ct=[0.5],
-                )
-            ]
+        async def mock_classify_side_effect(x):
+            if x is None:
+                return []
+            else:
+                return [
+                    ClassificationResult(
+                        task_type_1=["Other"],
+                        prompt_complexity_score=[0.5],
+                        domain=["General"],
+                        task_type_2=["Other"],
+                        task_type_prob=[0.5],
+                        creativity_scope=[0.5],
+                        reasoning=[0.5],
+                        contextual_knowledge=[0.5],
+                        domain_knowledge=[0.5],
+                        number_of_few_shots=[0],
+                        no_label_reason=[0.5],
+                        constraint_ct=[0.5],
+                    )
+                ]
+
+        classifier.classify_prompts_async = AsyncMock(
+            side_effect=mock_classify_side_effect
         )
 
-        results = classifier.classify_prompts(None)
+        results = await classifier.classify_prompts_async(None)
         assert isinstance(results, list)
 
-    def test_classifier_error_handling(self):
+    @pytest.mark.asyncio
+    async def test_classifier_error_handling(self):
         """Test classifier error handling."""
         classifier = Mock(spec=PromptClassifier)
-        classifier.classify_prompts.side_effect = RuntimeError("Model error")
+        classifier.classify_prompts_async = AsyncMock(
+            side_effect=RuntimeError("Model error")
+        )
 
         with pytest.raises((RuntimeError, ValueError, ImportError)):
-            classifier.classify_prompts(["Test prompt"])
+            await classifier.classify_prompts_async(["Test prompt"])
 
     def test_classification_result_structure(self):
         """Test that classification results have expected structure."""
