@@ -79,7 +79,6 @@ class TestPromptClassifier:
                     # Required fields
                     task_type_1=["Code Generation"],
                     prompt_complexity_score=[0.65],
-                    domain=["Programming"],
                     # Optional fields
                     task_type_2=["Other"],
                     task_type_prob=[0.8],
@@ -95,7 +94,6 @@ class TestPromptClassifier:
                     # Required fields
                     task_type_1=["Chatbot"],
                     prompt_complexity_score=[0.35],
-                    domain=["General"],
                     # Optional fields
                     task_type_2=["Other"],
                     task_type_prob=[0.9],
