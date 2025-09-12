@@ -1,15 +1,10 @@
 """Comprehensive cost bias validation tests for @adaptive_ai/ model selection."""
 
-import os
-
 import pytest
 import requests
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(
-    os.getenv("CI") == "true", reason="Skip integration tests in CI environment"
-)
 class TestCostBiasValidation:
     """Test cost bias functionality and optimization logic across the full spectrum."""
 
@@ -58,23 +53,23 @@ class TestCostBiasValidation:
             model_info = f"{result['provider']}/{result['model']}"
             print(f"  Cost bias {bias:3.1f} -> {model_info}")
 
-        # Validate algorithm behavior boundaries
+        # Validate algorithm behavior across spectrum
         ultra_low_result = next(result for bias, result in results if bias == 0.0)
         balanced_result = next(result for bias, result in results if bias == 0.5)
         ultra_high_result = next(result for bias, result in results if bias == 1.0)
 
-        # Validate extreme cost bias override behavior (cost_bias <= 0.1)
+        # Validate low cost bias behavior (cost_bias = 0.0)
         ultra_low_model = ultra_low_result["model"]
         assert (
             ultra_low_model not in cost_tiers["ultra_expensive"]
-        ), f"Ultra-low cost bias (0.0) incorrectly selected expensive model: {ultra_low_model}"
+        ), f"Low cost bias (0.0) incorrectly selected expensive model: {ultra_low_model}"
 
-        # Validate ultra-high cost bias override behavior (cost_bias >= 0.9)
+        # Validate high cost bias behavior (cost_bias = 1.0)
         ultra_high_model = ultra_high_result["model"]
         if len(ultra_high_result.get("alternatives", [])) > 0:
             assert (
                 ultra_high_model not in cost_tiers["ultra_cheap"]
-            ), f"Ultra-high cost bias (1.0) incorrectly selected ultra-cheap model when alternatives exist: {ultra_high_model}"
+            ), f"High cost bias (1.0) incorrectly selected ultra-cheap model when alternatives exist: {ultra_high_model}"
 
         # Validate balanced routing (cost_bias = 0.5) behaves differently from extremes
         balanced_model = balanced_result["model"]
@@ -88,24 +83,24 @@ class TestCostBiasValidation:
 
         print("✓ VALIDATED: Cost bias algorithm works across full spectrum")
 
-    def test_cost_bias_boundary_transitions(self, base_url, cost_tiers):
-        """Test cost bias behavior at algorithm boundary points (0.1 and 0.9)."""
+    def test_cost_bias_gradient_behavior(self, base_url, cost_tiers):
+        """Test cost bias behavior shows smooth gradient across values."""
         prompt = "Write a complex data analysis script with error handling"
 
-        # Test around the 0.1 boundary (ultra-low cost mode)
-        boundary_tests = [
-            (0.05, "ultra_low_mode"),
-            (0.1, "boundary_low"),
-            (0.15, "balanced_mode"),
-            (0.85, "balanced_mode"),
-            (0.9, "boundary_high"),
-            (0.95, "ultra_high_mode"),
+        # Test across cost bias spectrum (no special boundaries)
+        gradient_tests = [
+            (0.0, "cost_focused"),
+            (0.2, "cost_leaning"),
+            (0.4, "slightly_cost_leaning"),
+            (0.6, "slightly_capability_leaning"),
+            (0.8, "capability_leaning"),
+            (1.0, "capability_focused"),
         ]
 
         results = {}
-        print("COST BIAS BOUNDARY TESTING:")
+        print("COST BIAS GRADIENT TESTING:")
 
-        for bias, mode in boundary_tests:
+        for bias, description in gradient_tests:
             response = requests.post(
                 f"{base_url}/predict",
                 json={"prompt": prompt, "cost_bias": bias},
@@ -116,28 +111,27 @@ class TestCostBiasValidation:
             results[bias] = result
 
             model_info = f"{result['provider']}/{result['model']}"
-            print(f"  {mode:15} (bias {bias:4.2f}) -> {model_info}")
+            print(f"  {description:25} (bias {bias:3.1f}) -> {model_info}")
 
-        # Validate boundary behavior
-        ultra_low_model = results[0.05]["model"]
-        balanced_model = results[0.15]["model"]
+        # Validate gradient behavior
+        cost_focused_model = results[0.0]["model"]
+        capability_focused_model = results[1.0]["model"]
 
-        # At 0.1 boundary, should transition from ultra-low cost mode to balanced mode
-        # This might result in different model selection
+        # Test that extreme ends behave differently
         print(
-            f"Boundary transition: 0.05 -> {ultra_low_model}, 0.15 -> {balanced_model}"
+            f"Gradient extremes: cost(0.0) -> {cost_focused_model}, capability(1.0) -> {capability_focused_model}"
         )
 
-        # Ensure the algorithm is making decisions (not defaulting to same model)
+        # Ensure the algorithm is making decisions across the spectrum
         all_models = [r["model"] for r in results.values()]
         unique_models = set(all_models)
 
         assert len(unique_models) >= 2, (
-            f"Cost bias boundaries not working: Only {len(unique_models)} unique models "
-            f"across different algorithm modes. Expected variety: {all_models}"
+            f"Cost bias gradient not working: Only {len(unique_models)} unique models "
+            f"across different bias values. Expected variety: {all_models}"
         )
 
-        print("✓ VALIDATED: Cost bias boundary transitions work correctly")
+        print("✓ VALIDATED: Cost bias gradient behavior works correctly")
 
     def test_balanced_cost_bias_validation(self, base_url, cost_tiers):
         """Test that cost_bias = 0.5 produces truly balanced model selection."""
@@ -308,12 +302,12 @@ class TestCostBiasValidation:
             if "comprehensive" in scenario["prompt"] or "complex" in scenario["prompt"]:
                 low_cost_response = requests.post(
                     f"{base_url}/predict",
-                    json={"prompt": scenario["prompt"], "cost_bias": 0.1},
+                    json={"prompt": scenario["prompt"], "cost_bias": 0.0},
                     timeout=30,
                 )
                 high_cost_response = requests.post(
                     f"{base_url}/predict",
-                    json={"prompt": scenario["prompt"], "cost_bias": 0.9},
+                    json={"prompt": scenario["prompt"], "cost_bias": 1.0},
                     timeout=30,
                 )
 
@@ -362,8 +356,8 @@ class TestCostBiasValidation:
         )
 
         # The routing should show intelligence:
-        # - Ultra-low cost bias should NOT pick ultra-expensive models
-        # - Ultra-high cost bias should NOT pick ultra-cheap models (unless it's the only option)
+        # - Low cost bias (0.0) should NOT pick ultra-expensive models
+        # - High cost bias (1.0) should NOT pick ultra-cheap models (unless it's the only option)
 
         # At minimum, verify they're making different choices when cost bias differs this much
         if (

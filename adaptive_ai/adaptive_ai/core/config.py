@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,13 +11,13 @@ class ServerConfig(BaseModel):
     port: int = 8000
 
 
-class LitServeConfig(BaseModel):
-    """LitServe configuration."""
+class FastAPIConfig(BaseModel):
+    """FastAPI server configuration."""
 
-    accelerator: str = "auto"
-    devices: str = "auto"
-    max_batch_size: int = 8
-    batch_timeout: float = 0.05
+    workers: int = 1
+    reload: bool = False
+    access_log: bool = True
+    log_level: str = "info"
 
 
 class LoggingConfig(BaseModel):
@@ -29,12 +29,16 @@ class LoggingConfig(BaseModel):
 class Settings(BaseSettings):
     """Main application settings."""
 
-    server: ServerConfig = ServerConfig()
-    litserve: LitServeConfig = LitServeConfig()
-    logging: LoggingConfig = LoggingConfig()
+    server: ServerConfig = Field(default_factory=ServerConfig)
+    fastapi: FastAPIConfig = Field(default_factory=FastAPIConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_prefix="ADAPTIVE_AI_", case_sensitive=False
+        env_file=".env",
+        env_prefix="",
+        case_sensitive=False,
+        # Allow environment variables to override nested settings
+        env_nested_delimiter="__",
     )
 
 

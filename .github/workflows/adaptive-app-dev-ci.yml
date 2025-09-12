@@ -125,6 +125,11 @@ jobs:
         run: pnpm exec prisma generate
 
       - name: Run database migrations (Development)
-        run: pnpm run db:migrate
+        run: |
+          for i in {1..10}; do
+            pnpm run db:migrate && break
+            echo "Database not ready yet, retrying in 5s... ($i/5)"
+            sleep 5
+          done
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}

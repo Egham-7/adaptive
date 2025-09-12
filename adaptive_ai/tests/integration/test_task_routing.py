@@ -1,15 +1,10 @@
 """Comprehensive tests for task type specialization and routing intelligence."""
 
-import os
-
 import pytest
 import requests
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(
-    os.getenv("CI") == "true", reason="Skip integration tests in CI environment"
-)
 class TestTaskTypeSpecialization:
     """Test that all TaskType enum values route to appropriate models."""
 
@@ -204,9 +199,6 @@ class TestTaskTypeSpecialization:
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(
-    os.getenv("CI") == "true", reason="Skip integration tests in CI environment"
-)
 class TestProviderConstraints:
     """Test provider-specific constraints and routing."""
 
@@ -259,7 +251,7 @@ class TestProviderConstraints:
             json={
                 "prompt": "Write a simple greeting message",
                 "models": [{"provider": "ANTHROPIC"}],
-                "cost_bias": 0.1,  # Prefer cheap Anthropic models
+                "cost_bias": 0.0,  # Prefer cheap Anthropic models
             },
             timeout=30,
         )
@@ -269,7 +261,7 @@ class TestProviderConstraints:
             json={
                 "prompt": "Write a simple greeting message",
                 "models": [{"provider": "ANTHROPIC"}],
-                "cost_bias": 0.9,  # Prefer premium Anthropic models
+                "cost_bias": 1.0,  # Prefer capable Anthropic models
             },
             timeout=30,
         )
@@ -308,7 +300,8 @@ class TestProviderConstraints:
             f"{base_url}/predict",
             json={
                 "prompt": "Process this very long document that requires 150,000 tokens of context",
-                "models": [{"max_context_tokens": 150000}],  # High context requirement
+                # High context requirement
+                "models": [{"max_context_tokens": 150000}],
                 "cost_bias": 0.5,
             },
             timeout=30,
@@ -364,9 +357,6 @@ class TestProviderConstraints:
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(
-    os.getenv("CI") == "true", reason="Skip integration tests in CI environment"
-)
 class TestComplexRoutingScenarios:
     """Test complex routing scenarios with multiple constraints."""
 
@@ -518,9 +508,6 @@ class TestComplexRoutingScenarios:
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(
-    os.getenv("CI") == "true", reason="Skip integration tests in CI environment"
-)
 class TestTaskComplexityRouting:
     """Test that task complexity affects model routing appropriately."""
 

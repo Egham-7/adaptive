@@ -30,7 +30,8 @@ dependencies = [
     "huggingface-hub>=0.32.0,<0.35",
     "transformers>=4.52.4,<5",
     "torch>=2.2.0,<2.9.0",
-    "litserve>=0.2.10,<0.3",
+    "fastapi>=0.104.0,<1.0",
+    "hypercorn>=0.17.0,<1.0",
     "pydantic>=2.11.5,<3",
     "pydantic-settings>=2.9.1,<3",
     "requests>=2.31.0,<3",
@@ -57,7 +58,12 @@ dependencies = [
     "langchain-anthropic>=0.3.0,<0.4",
     "httpx>=0.25.0,<1.0",
     "aiohttp>=3.8.0,<4.0",
+    "python-jose[cryptography]>=3.3.0,<4.0",
     "langchain-community>=0.3.27",
+    "types-pyyaml>=6.0.12.20250516",
+    "types-python-jose>=3.5.0.20250531",
+    "ruff>=0.11.13",
+    "black>=25.1.0",
 ]
 
 [project.urls]
@@ -80,6 +86,7 @@ dev = [
     "types-tqdm>=4.67.0.20250516,<5",
     "types-pyyaml>=6.0.12.20250516,<7",
     "types-cachetools>=5.3.0,<7",
+    "types-python-jose>=3.5.0.20250531",
 ]
 test = [
     "pytest>=8.4.1,<9",
@@ -149,7 +156,9 @@ warn_return_any = true
 strict_equality = true
 show_error_codes = true
 follow_imports = "silent"
+# Exclude test files by default - tests can be checked separately  
 exclude = [
+    "tests/",
     "benchmarks",
     "analysis",
     "adaptive-app",
@@ -161,7 +170,6 @@ exclude = [
 
 [[tool.mypy.overrides]]
 module = [
-  "litserve.*",
   "torch.*",
   "transformers.*",
   "huggingface_hub.*",
@@ -173,6 +181,8 @@ module = [
   "tiktoken.*",
   "sentence_transformers.*",
   "accelerate.*",
+  "hypercorn.*",
+  "fastapi.*",
 ]
 ignore_missing_imports = true
 
