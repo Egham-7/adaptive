@@ -1,6 +1,6 @@
 """Unit tests for PromptClassifier service."""
 
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -15,18 +15,21 @@ from adaptive_ai.services.prompt_classifier import (
 class TestPromptClassifier:
     """Test PromptClassifier functionality."""
 
+    @patch.dict(
+        "os.environ",
+        {
+            "MODAL_CLASSIFIER_URL": "https://mock-modal-url.com/classify",
+            "JWT_SECRET": "mock-jwt-secret",
+        },
+    )
     def test_get_prompt_classifier_basic(self):
         """Test basic prompt classifier instantiation."""
-        # This will load the real classifier, but that's ok for a basic test
-        try:
-            classifier = get_prompt_classifier()
-            assert isinstance(classifier, PromptClassifier)
-            assert hasattr(classifier, "classify_prompts_async")
-            assert hasattr(classifier, "classify_prompt_async")
-        except Exception:
-            # If modal connection fails (no internet, missing env vars, etc), test still passes
-            # This is a unit test for basic interface, not modal functionality
-            assert True
+        classifier = get_prompt_classifier()
+        assert isinstance(classifier, PromptClassifier)
+        assert hasattr(classifier, "classify_prompts_async")
+        assert hasattr(classifier, "classify_prompt_async")
+        assert hasattr(classifier, "health_check_async")
+        assert hasattr(classifier, "aclose")
 
     @pytest.mark.asyncio
     async def test_prompt_classifier_interface(self):
@@ -119,28 +122,45 @@ class TestPromptClassifier:
 class TestGetPromptClassifier:
     """Test get_prompt_classifier function."""
 
-    def test_get_prompt_classifier_caching(self):
+    @pytest.mark.asyncio
+    @patch.dict(
+        "os.environ",
+        {
+            "MODAL_CLASSIFIER_URL": "https://mock-modal-url.com/classify",
+            "JWT_SECRET": "mock-jwt-secret",
+        },
+    )
+    async def test_get_prompt_classifier_caching(self):
         """Test that get_prompt_classifier uses caching appropriately."""
         # Test that function exists and can be called
+        classifier1 = get_prompt_classifier()
+        classifier2 = get_prompt_classifier()
         try:
-            classifier1 = get_prompt_classifier()
-            classifier2 = get_prompt_classifier()
             # If caching works, should be same instance
             # If not, that's also fine for this test
             assert isinstance(classifier1, PromptClassifier)
             assert isinstance(classifier2, PromptClassifier)
-        except Exception:
-            # Model loading might fail, that's ok for unit test
-            assert True
+        finally:
+            # Close AsyncClient to avoid ResourceWarning
+            await classifier1.aclose()
+            if classifier1 is not classifier2:
+                await classifier2.aclose()
 
-    def test_get_prompt_classifier_basic(self):
+    @pytest.mark.asyncio
+    @patch.dict(
+        "os.environ",
+        {
+            "MODAL_CLASSIFIER_URL": "https://mock-modal-url.com/classify",
+            "JWT_SECRET": "mock-jwt-secret",
+        },
+    )
+    async def test_get_prompt_classifier_basic(self):
         """Test get_prompt_classifier basic functionality."""
+        classifier = get_prompt_classifier()
         try:
-            classifier = get_prompt_classifier()
             assert isinstance(classifier, PromptClassifier)
-        except Exception:
-            # Model loading might fail, that's ok for unit test
-            assert True
+        finally:
+            await classifier.aclose()
 
 
 @pytest.mark.unit
@@ -161,7 +181,6 @@ class TestPromptClassifierEdgeCases:
                     ClassificationResult(
                         task_type_1=["Other"],
                         prompt_complexity_score=[0.5],
-                        domain=["General"],
                         task_type_2=["Other"],
                         task_type_prob=[0.5],
                         creativity_scope=[0.5],
