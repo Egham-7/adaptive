@@ -2,9 +2,9 @@
 # High-performance GPU-accelerated prompt classification service
 
 [project]
-name = "nvidia-prompt-classifier"
+name = "prompt-task-complexity-classifier"
 version = "1.0.0"
-description = "NVIDIA prompt classifier with Modal GPU deployment"
+description = "NVIDIA prompt task complexity classifier with Modal GPU deployment"
 requires-python = ">=3.10,<4.0"
 dependencies = [
   # Core Modal deployment dependencies

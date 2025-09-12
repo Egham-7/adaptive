@@ -1,7 +1,7 @@
-"""Clean Modal deployment for NVIDIA prompt classifier.
+"""Clean Modal deployment for prompt task complexity classifier.
 
 Simple, production-ready deployment with:
-- Clean package structure with nvidia_classifier/
+- Clean package structure with prompt_task_complexity_classifier/
 - Dual image strategy (ML + Web)
 - Straightforward API endpoints
 - JWT authentication
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 MODEL_NAME = "nvidia/prompt-task-and-complexity-classifier"
 GPU_TYPE = "T4"
-APP_NAME = "nvidia-prompt-classifier"
+APP_NAME = "prompt-task-complexity-classifier"
 
 # ============================================================================
 # MODAL IMAGES
@@ -38,7 +38,10 @@ ml_image = (
             "accelerate>=1.8.1,<2",
         ]
     )
-    .add_local_dir("nvidia_classifier", remote_path="/root/nvidia_classifier")
+    .add_local_dir(
+        "prompt_task_complexity_classifier",
+        remote_path="/root/prompt_task_complexity_classifier",
+    )
 )
 
 # Web image for FastAPI endpoints
@@ -53,7 +56,10 @@ web_image = (
             "python-jose[cryptography]>=3.3.0",
         ]
     )
-    .add_local_dir("nvidia_classifier", remote_path="/root/nvidia_classifier")
+    .add_local_dir(
+        "prompt_task_complexity_classifier",
+        remote_path="/root/prompt_task_complexity_classifier",
+    )
 )
 
 # ============================================================================
@@ -71,24 +77,26 @@ app = modal.App(APP_NAME)
     image=ml_image,
     gpu=GPU_TYPE,
     secrets=[modal.Secret.from_name("jwt")],
-    container_idle_timeout=300,
+    scaledown_window=300,
     timeout=600,
-    max_containers=20,
-    min_containers=1,
+    max_containers=1,
+    min_containers=0,
 )
-class NvidiaPromptClassifier:
-    """NVIDIA prompt classifier with GPU acceleration."""
+class PromptTaskComplexityClassifier:
+    """Prompt task complexity classifier with GPU acceleration."""
 
     @modal.enter()
     def load_model(self) -> None:
-        """Load the NVIDIA classifier model."""
+        """Load the prompt task complexity classifier model."""
         import torch
         from transformers import AutoConfig, AutoTokenizer
-        from nvidia_classifier.nvidia_model import get_model_classes
+        from prompt_task_complexity_classifier.task_complexity_model import (
+            get_model_classes,
+        )
 
         _, _, CustomModelClass = get_model_classes()
 
-        print(f"🚀 Loading NVIDIA classifier: {MODEL_NAME}")
+        print(f"🚀 Loading prompt task complexity classifier: {MODEL_NAME}")
         print(
             f"🎮 GPU: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}"
         )
@@ -111,7 +119,7 @@ class NvidiaPromptClassifier:
             print("⚠️  Model loaded on CPU")
 
         self.model.eval()
-        print("✅ NVIDIA prompt classifier ready!")
+        print("✅ Prompt task complexity classifier ready!")
 
     @modal.method()
     def classify(self, prompts: List[str]) -> Dict[str, List[Any]]:
@@ -150,9 +158,9 @@ class NvidiaPromptClassifier:
 @app.function(
     image=web_image,
     secrets=[modal.Secret.from_name("jwt")],
-    container_idle_timeout=60,
+    scaledown_window=60,
     timeout=300,
-    max_containers=10,
+    max_containers=1,
     cpu=2,
 )
 @modal.asgi_app()
@@ -164,9 +172,9 @@ def serve() -> "FastAPI":
     import jwt
 
     app = FastAPI(
-        title="NVIDIA Prompt Classifier API",
+        title="Prompt Task Complexity Classifier API",
         version="1.0.0",
-        description="GPU-accelerated prompt classification service",
+        description="GPU-accelerated prompt task complexity classification service",
     )
     security = HTTPBearer()
 
@@ -266,7 +274,7 @@ def serve() -> "FastAPI":
         )
 
         try:
-            classifier = NvidiaPromptClassifier()
+            classifier = PromptTaskComplexityClassifier()
             result = classifier.classify.remote(request.prompts)
             print(f"Classification completed for {len(request.prompts)} prompts")
             return ClassificationResult(**result)
@@ -286,7 +294,7 @@ def serve() -> "FastAPI":
         print(f"Single classification request from user: {user}")
 
         try:
-            classifier = NvidiaPromptClassifier()
+            classifier = PromptTaskComplexityClassifier()
             result = classifier.classify.remote([request.prompt])
             print("Single prompt classification completed")
             return ClassificationResult(**result)
@@ -301,7 +309,7 @@ def serve() -> "FastAPI":
     @app.get("/health")
     def health_check() -> Dict[str, str]:
         """Basic health check endpoint."""
-        return {"status": "healthy", "service": "nvidia-prompt-classifier"}
+        return {"status": "healthy", "service": "prompt-task-complexity-classifier"}
 
     # TODO: Implement /health/detailed endpoint
     # Should return: service info, version, uptime, model status, dependencies
@@ -326,10 +334,10 @@ def serve() -> "FastAPI":
 # ============================================================================
 
 if __name__ == "__main__":
-    print("🚀 NVIDIA Prompt Classifier - Clean Modal Deployment")
+    print("🚀 Prompt Task Complexity Classifier - Clean Modal Deployment")
     print("=" * 60)
     print("✨ Features:")
-    print("  • 🧠 Complete NVIDIA model implementation")
+    print("  • 🧠 Complete prompt task complexity model implementation")
     print("  • 🎮 GPU acceleration (T4)")
     print("  • 🔐 JWT authentication")
     print("  • 📦 Clean package structure")

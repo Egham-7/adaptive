@@ -1,0 +1,85 @@
+name: Prompt Task Complexity Classifier CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'prompt-task-complexity-classifier/**'
+  
+  pull_request:
+    branches: [main]
+    paths:
+      - 'prompt-task-complexity-classifier/**'
+  
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+  WORKING_DIR: "./prompt-task-complexity-classifier"
+
+jobs:
+  test:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Run type checking
+        run: uv run mypy deploy.py
+
+      - name: Run linting
+        run: uv run ruff check . --output-format=github
+
+      - name: Check formatting
+        run: uv run black . --check --diff
+
+      - name: Validate deployment script
+        run: |
+          python -m py_compile deploy.py
+          echo "✅ Deployment script syntax valid"
+
+  deploy-main:
+    name: Deploy to Main Environment
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    environment: production
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      MODAL_ENVIRONMENT: main
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Modal
+        run: |
+          python -m pip install --upgrade pip
+          pip install modal
+
+      - name: Deploy to Main
+        run: |
+          echo "🚀 Deploying Prompt Task Complexity Classifier to main environment..."
+          modal deploy deploy.py
+          echo "✅ Deployment to main completed"

@@ -1,10 +1,10 @@
-# NVIDIA Prompt Classifier
+# Prompt Task Complexity Classifier
 
-High-performance Modal deployment of NVIDIA's prompt task and complexity classifier with GPU acceleration and production-ready features.
+High-performance Modal deployment of the prompt task complexity classifier with GPU acceleration and production-ready features.
 
 ## Overview
 
-This project provides a clean, production-ready deployment of the NVIDIA prompt classifier model using Modal's serverless GPU infrastructure. The classifier analyzes prompts to determine task types, complexity scores, and various metrics useful for intelligent model routing.
+This project provides a clean, production-ready deployment of the prompt task complexity classifier model using Modal's serverless GPU infrastructure. The classifier analyzes prompts to determine task types, complexity scores, and various metrics useful for intelligent model routing.
 
 ## Features
 
@@ -18,11 +18,11 @@ This project provides a clean, production-ready deployment of the NVIDIA prompt 
 ## Project Structure
 
 ```
-nvidia-prompt-classifier/
+prompt-task-complexity-classifier/
 ├── deploy.py                    # Modal deployment script (single file)
-├── nvidia_classifier/           # Minimal ML package
+├── prompt_task_complexity_classifier/  # Minimal ML package
 │   ├── __init__.py             # Package exports
-│   └── nvidia_model.py         # Complete NVIDIA model implementation
+│   └── task_complexity_model.py    # Complete model implementation
 ├── tests/                      # Test suite
 │   ├── integration/            # Integration tests
 │   └── unit/                   # Unit tests (placeholder)
@@ -126,15 +126,15 @@ Key configuration options in `deploy.py`:
 ```python
 MODEL_NAME = "nvidia/prompt-task-and-complexity-classifier"
 GPU_TYPE = "T4"
-APP_NAME = "nvidia-prompt-classifier"
+APP_NAME = "prompt-task-complexity-classifier"
 
 # ML Container Configuration
-container_idle_timeout=300      # 5 min warm containers
+scaledown_window=300            # 5 min warm containers
 max_containers=20              # Scale up to 20 GPU containers
-min_containers=1               # Keep 1 container warm
+min_containers=0               # Scale to zero when idle
 
 # Web Container Configuration
-container_idle_timeout=60       # Web containers scale down faster
+scaledown_window=60             # Web containers scale down faster
 max_containers=10              # Limit web containers (lightweight)
 cpu=2                          # 2 CPUs for JSON processing
 ```
