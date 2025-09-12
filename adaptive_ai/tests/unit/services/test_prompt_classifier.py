@@ -33,13 +33,16 @@ class TestPromptClassifier:
         classifier = Mock(spec=PromptClassifier)
         classifier.classify_prompts.return_value = [
             ClassificationResult(
+                # Required fields
                 task_type_1=["Code Generation"],
+                prompt_complexity_score=[0.65],
+                domain=["Programming"],
+                # Optional fields
                 task_type_2=["Other"],
                 task_type_prob=[0.8],
                 creativity_scope=[0.2],
                 reasoning=[0.7],
                 contextual_knowledge=[0.3],
-                prompt_complexity_score=[0.65],
                 domain_knowledge=[0.4],
                 number_of_few_shots=[0],
                 no_label_reason=[0.9],
@@ -66,26 +69,32 @@ class TestPromptClassifier:
         classifier = Mock(spec=PromptClassifier)
         classifier.classify_prompts.return_value = [
             ClassificationResult(
+                # Required fields
                 task_type_1=["Code Generation"],
+                prompt_complexity_score=[0.65],
+                domain=["Programming"],
+                # Optional fields
                 task_type_2=["Other"],
                 task_type_prob=[0.8],
                 creativity_scope=[0.2],
                 reasoning=[0.7],
                 contextual_knowledge=[0.3],
-                prompt_complexity_score=[0.65],
                 domain_knowledge=[0.4],
                 number_of_few_shots=[0],
                 no_label_reason=[0.9],
                 constraint_ct=[0.1],
             ),
             ClassificationResult(
+                # Required fields
                 task_type_1=["Chatbot"],
+                prompt_complexity_score=[0.35],
+                domain=["General"],
+                # Optional fields
                 task_type_2=["Other"],
                 task_type_prob=[0.9],
                 creativity_scope=[0.1],
                 reasoning=[0.3],
                 contextual_knowledge=[0.2],
-                prompt_complexity_score=[0.35],
                 domain_knowledge=[0.2],
                 number_of_few_shots=[0],
                 no_label_reason=[0.95],
@@ -118,12 +127,10 @@ class TestGetPromptClassifier:
             # Model loading might fail, that's ok for unit test
             assert True
 
-    def test_get_prompt_classifier_with_logger(self):
-        """Test get_prompt_classifier with logger parameter."""
-        mock_logger = Mock()
-
+    def test_get_prompt_classifier_basic(self):
+        """Test get_prompt_classifier basic functionality."""
         try:
-            classifier = get_prompt_classifier(lit_logger=mock_logger)
+            classifier = get_prompt_classifier()
             assert isinstance(classifier, PromptClassifier)
         except Exception:
             # Model loading might fail, that's ok for unit test
@@ -145,12 +152,13 @@ class TestPromptClassifierEdgeCases:
             else [
                 ClassificationResult(
                     task_type_1=["Other"],
+                    prompt_complexity_score=[0.5],
+                    domain=["General"],
                     task_type_2=["Other"],
                     task_type_prob=[0.5],
                     creativity_scope=[0.5],
                     reasoning=[0.5],
                     contextual_knowledge=[0.5],
-                    prompt_complexity_score=[0.5],
                     domain_knowledge=[0.5],
                     number_of_few_shots=[0],
                     no_label_reason=[0.5],
@@ -174,13 +182,16 @@ class TestPromptClassifierEdgeCases:
         """Test that classification results have expected structure."""
         # Test with a real ClassificationResult
         result = ClassificationResult(
+            # Required fields
             task_type_1=["Code Generation"],
+            prompt_complexity_score=[0.65],
+            domain=["Programming"],
+            # Optional fields
             task_type_2=["Other"],
             task_type_prob=[0.8],
             creativity_scope=[0.2],
             reasoning=[0.7],
             contextual_knowledge=[0.3],
-            prompt_complexity_score=[0.65],
             domain_knowledge=[0.4],
             number_of_few_shots=[0],
             no_label_reason=[0.9],

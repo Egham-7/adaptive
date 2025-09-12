@@ -17,7 +17,7 @@ uv run adaptive-ai
 - **Cost Optimization** - Balances performance vs cost based on bias settings
 - **Protocol Selection** - Chooses between standard, minion, or minions protocols
 - **Smart Caching** - Caches similar prompt classifications
-- **High Performance** - LitServe for fast batch inference
+- **High Performance** - FastAPI for fast API serving with async processing
 
 ## API
 
@@ -49,10 +49,10 @@ uv run adaptive-ai
 
 ## Tech Stack
 
-- **LitServe** for high-performance ML serving
-- **HuggingFace Transformers** for prompt classification
-- **scikit-learn** for ML pipeline
-- **sentence-transformers** for embeddings
+- **FastAPI** for high-performance API serving with async processing
+- **Modal** for GPU-accelerated prompt classification
+- **HuggingFace Transformers** for ML models (via Modal)
+- **httpx** for async HTTP client communication
 
 ## Development
 

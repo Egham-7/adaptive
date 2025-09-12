@@ -1,38 +1,127 @@
-"""Simplified prompt classifier service using Modal GPU inference.
+"""NVIDIA Prompt Classifier client for Modal API communication.
 
-This module provides a streamlined prompt classification interface for the adaptive_ai service.
-It uses Modal's GPU-accelerated NVIDIA model to get complete classification results directly.
-
-Architecture:
-- NVIDIA model inference: Modal GPU deployment with complete result processing
-- Direct result usage: Modal returns ready-to-use classification results
-- JWT authentication: Secure communication between adaptive_ai and Modal services
-
-Benefits:
-- Simplified architecture: Single source of truth for classification results
-- GPU acceleration: Fast inference using Modal's T4 GPU infrastructure
-- Complete results: No need for local post-processing
-- Cost optimization: Pay only for GPU usage during actual model inference
+This module provides a complete client interface to communicate with the NVIDIA prompt classifier
+deployed on Modal. It handles JWT authentication, HTTP requests, retries, and response processing.
 """
+
+from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timedelta
 import logging
 import os
 import time
-from typing import Any
+from typing import Any, Annotated
 
 import httpx
 from jose import jwt
-from pydantic import BaseModel
-
-from adaptive_ai.models.llm_classification_models import ClassificationResult
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+# Type alias for probability values constrained to [0.0, 1.0] range
+UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
+
+
+class ClassificationResult(BaseModel):
+    """Results from prompt classification including task type and complexity metrics.
+
+    This model contains the output from ML classifiers that analyze prompts
+    to determine task types, complexity scores, and various task characteristics.
+    All list fields contain results for batch processing where each index
+    corresponds to a single prompt in the batch.
+
+    Attributes:
+        task_type: Primary task type classifications for each prompt (required)
+        complexity_score: Overall complexity scores (0.0-1.0) (required)
+        domain: Domain classifications for each prompt (required)
+        task_type_1: Primary task type classifications for each prompt
+        task_type_2: Secondary task type classifications for each prompt
+        task_type_prob: Confidence scores for primary task types
+        creativity_scope: Creativity level scores (0.0-1.0)
+        reasoning: Reasoning complexity scores (0.0-1.0)
+        contextual_knowledge: Required contextual knowledge scores (0.0-1.0)
+        prompt_complexity_score: Overall complexity scores (0.0-1.0)
+        domain_knowledge: Domain-specific knowledge requirement scores (0.0-1.0)
+        number_of_few_shots: Few-shot learning requirement scores (0.0-1.0)
+        no_label_reason: Confidence in classification accuracy (0.0-1.0)
+        constraint_ct: Number of constraints detected in prompts (0.0-1.0)
+    """
+
+    # Required fields for compatibility with tests
+    task_type: list[str] = Field(
+        description="Primary task type for each prompt in batch (required)",
+        examples=[["Text Generation", "Code Generation"]],
+    )
+    complexity_score: list[UnitFloat] = Field(
+        description="Overall complexity scores (0=simple, 1=complex) (required)",
+        examples=[[0.45, 0.72]],
+    )
+    domain: list[str] = Field(
+        description="Domain classifications for each prompt (required)",
+        examples=[["General", "Technical"]],
+    )
+
+    # Optional detailed fields
+    task_type_1: list[str] | None = Field(
+        default=None,
+        description="Primary task type for each prompt in batch",
+        examples=[["Text Generation", "Code Generation"]],
+    )
+    task_type_2: list[str] | None = Field(
+        default=None,
+        description="Secondary task type for each prompt in batch",
+        examples=[["Summarization", "Classification"]],
+    )
+    task_type_prob: list[UnitFloat] | None = Field(
+        default=None,
+        description="Confidence scores for primary task types",
+        examples=[[0.89, 0.76]],
+    )
+    creativity_scope: list[UnitFloat] | None = Field(
+        default=None,
+        description="Creativity level required for each task (0=analytical, 1=creative)",
+        examples=[[0.2, 0.8]],
+    )
+    reasoning: list[UnitFloat] | None = Field(
+        default=None,
+        description="Reasoning complexity required (0=simple, 1=complex)",
+        examples=[[0.7, 0.4]],
+    )
+    contextual_knowledge: list[UnitFloat] | None = Field(
+        default=None,
+        description="Context knowledge requirement (0=none, 1=extensive)",
+        examples=[[0.3, 0.6]],
+    )
+    prompt_complexity_score: list[UnitFloat] | None = Field(
+        default=None,
+        description="Overall prompt complexity (0=simple, 1=complex)",
+        examples=[[0.45, 0.72]],
+    )
+    domain_knowledge: list[UnitFloat] | None = Field(
+        default=None,
+        description="Domain-specific knowledge requirement (0=general, 1=specialist)",
+        examples=[[0.1, 0.9]],
+    )
+    number_of_few_shots: list[int] | None = Field(
+        default=None,
+        description="Few-shot learning requirement (number of examples needed)",
+        examples=[[0, 3]],
+    )
+    no_label_reason: list[UnitFloat] | None = Field(
+        default=None,
+        description="Confidence in classification accuracy (0=low, 1=high)",
+        examples=[[0.9, 0.85]],
+    )
+    constraint_ct: list[UnitFloat] | None = Field(
+        default=None,
+        description="Constraint complexity detected (0=none, 1=many constraints)",
+        examples=[[0.2, 0.5]],
+    )
+
 
 class ModalConfig:
-    """Configuration for Modal API client."""
+    """Configuration for Modal API client with performance optimizations."""
 
     def __init__(self) -> None:
         self.modal_url = os.environ.get("MODAL_CLASSIFIER_URL", "url")
@@ -40,15 +129,29 @@ class ModalConfig:
         if not self.jwt_secret:
             logger.warning("JWT_SECRET not set, Modal authentication will fail")
 
-        self.request_timeout = int(os.environ.get("MODAL_REQUEST_TIMEOUT", "30"))
+        # Increased timeouts for chunked processing
+        self.request_timeout = int(os.environ.get("MODAL_REQUEST_TIMEOUT", "120"))
         self.max_retries = int(os.environ.get("MODAL_MAX_RETRIES", "3"))
         self.retry_delay = float(os.environ.get("MODAL_RETRY_DELAY", "1.0"))
 
+        # Connection pooling settings
+        self.max_connections = int(os.environ.get("MODAL_MAX_CONNECTIONS", "20"))
+        self.max_keepalive_connections = int(
+            os.environ.get("MODAL_MAX_KEEPALIVE", "10")
+        )
+        self.keepalive_expiry = int(os.environ.get("MODAL_KEEPALIVE_EXPIRY", "30"))
+
+        # Chunking settings for improved performance
+        self.default_chunk_size = int(os.environ.get("MODAL_CHUNK_SIZE", "10"))
+        self.max_concurrent_chunks = int(os.environ.get("MODAL_MAX_CONCURRENT", "5"))
+
 
 class ClassifyRequest(BaseModel):
-    """Request model for Modal classification API."""
+    """Request model for Modal classification API with chunking support."""
 
     prompts: list[str]
+    chunk_size: int | None = Field(default=None, ge=1, le=50)
+    max_concurrent: int | None = Field(default=None, ge=1, le=10)
 
 
 class ModalPromptClassifier:
@@ -64,15 +167,42 @@ class ModalPromptClassifier:
     - Health check functionality
     """
 
-    def __init__(self) -> None:
-        """Initialize Modal API client."""
+    def __init__(self, lit_logger: Any = None):
+        """Initialize Modal API client with optimized connection pooling.
+
+        Args:
+            lit_logger: Optional LitServe logger (maintained for compatibility)
+        """
         self.config = ModalConfig()
-        self.client = httpx.Client(timeout=self.config.request_timeout)
-        self.async_client = httpx.AsyncClient(timeout=self.config.request_timeout)
+        self.lit_logger = lit_logger
+
+        # Optimized connection limits for better performance
+        limits = httpx.Limits(
+            max_connections=self.config.max_connections,
+            max_keepalive_connections=self.config.max_keepalive_connections,
+            keepalive_expiry=self.config.keepalive_expiry,
+        )
+
+        # Create clients with connection pooling
+        self.client = httpx.Client(
+            timeout=self.config.request_timeout,
+            limits=limits,
+            http2=True,  # Enable HTTP/2 for better performance
+        )
+        self.async_client = httpx.AsyncClient(
+            timeout=self.config.request_timeout,
+            limits=limits,
+            http2=True,  # Enable HTTP/2 for better performance
+        )
+
         self._token_cache: str | None = None
         self._token_expires_at: datetime | None = None
 
-        logger.info(f"Initialized Modal client for URL: {self.config.modal_url}")
+        logger.info(
+            f"Initialized optimized Modal client for URL: {self.config.modal_url}, "
+            f"max_connections: {self.config.max_connections}, "
+            f"chunk_size: {self.config.default_chunk_size}"
+        )
 
     def _generate_jwt_token(self) -> str:
         """Generate JWT token for Modal authentication."""
@@ -172,13 +302,20 @@ class ModalPromptClassifier:
         if not prompts:
             raise ValueError("Prompts list cannot be empty")
 
-        logger.info(f"Starting Modal classification batch with {len(prompts)} prompts")
+        if self.lit_logger:
+            self.lit_logger.log(
+                "modal_classification_batch_start", {"batch_size": len(prompts)}
+            )
+
         logger.info(f"Classifying {len(prompts)} prompts via Modal API")
 
         try:
-            # Prepare request
+            # For backward compatibility, don't send the new fields yet
+            # The Modal API will use its defaults (10 chunks, 5 concurrent)
             request_data = ClassifyRequest(prompts=prompts)
             headers = self._get_auth_headers()
+
+            logger.info(f"Sending classification request for {len(prompts)} prompts")
 
             # Make API request
             response = self._make_request_with_retry(
@@ -209,21 +346,30 @@ class ModalPromptClassifier:
                         )
 
                 # Ensure required fields exist for our schema
-                single_result.setdefault("task_type_1", ["Other"])
-                single_result.setdefault("prompt_complexity_score", [0.5])
+                single_result.setdefault(
+                    "task_type",
+                    [single_result.get("task_type_1", ["Other"])[0]],
+                )
+                single_result.setdefault(
+                    "complexity_score",
+                    [single_result.get("prompt_complexity_score", [0.5])[0]],
+                )
                 single_result.setdefault("domain", ["General"])
 
                 results.append(ClassificationResult(**single_result))
 
-            logger.info(
-                f"Completed Modal classification batch with {len(results)} results"
-            )
+            if self.lit_logger:
+                self.lit_logger.log(
+                    "modal_classification_batch_complete", {"batch_size": len(results)}
+                )
+
             logger.info(f"Successfully classified {len(results)} prompts")
             return results
 
         except Exception as e:
             logger.error(f"Modal classification failed: {e}")
-            logger.error(f"Modal classification error details: {e!s}")
+            if self.lit_logger:
+                self.lit_logger.log("modal_classification_error", {"error": str(e)})
 
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
@@ -261,15 +407,22 @@ class ModalPromptClassifier:
         if not prompts:
             raise ValueError("Prompts list cannot be empty")
 
-        logger.info(
-            f"Starting Modal async classification batch with {len(prompts)} prompts"
-        )
+        if self.lit_logger:
+            self.lit_logger.log(
+                "modal_classification_batch_start", {"batch_size": len(prompts)}
+            )
+
         logger.info(f"Classifying {len(prompts)} prompts via Modal API (async)")
 
         try:
-            # Prepare request
+            # For backward compatibility, don't send the new fields yet
+            # The Modal API will use its defaults (10 chunks, 5 concurrent)
             request_data = ClassifyRequest(prompts=prompts)
             headers = self._get_auth_headers()
+
+            logger.info(
+                f"Sending async classification request for {len(prompts)} prompts"
+            )
 
             # Make async API request
             response = await self._make_request_with_retry_async(
@@ -300,21 +453,30 @@ class ModalPromptClassifier:
                         )
 
                 # Ensure required fields exist for our schema
-                single_result.setdefault("task_type_1", ["Other"])
-                single_result.setdefault("prompt_complexity_score", [0.5])
+                single_result.setdefault(
+                    "task_type",
+                    [single_result.get("task_type_1", ["Other"])[0]],
+                )
+                single_result.setdefault(
+                    "complexity_score",
+                    [single_result.get("prompt_complexity_score", [0.5])[0]],
+                )
                 single_result.setdefault("domain", ["General"])
 
                 results.append(ClassificationResult(**single_result))
 
-            logger.info(
-                f"Completed Modal async classification batch with {len(results)} results"
-            )
+            if self.lit_logger:
+                self.lit_logger.log(
+                    "modal_classification_batch_complete", {"batch_size": len(results)}
+                )
+
             logger.info(f"Successfully classified {len(results)} prompts (async)")
             return results
 
         except Exception as e:
             logger.error(f"Modal classification failed (async): {e}")
-            logger.error(f"Modal async classification error details: {e!s}")
+            if self.lit_logger:
+                self.lit_logger.log("modal_classification_error", {"error": str(e)})
 
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
@@ -398,124 +560,13 @@ class ModalPromptClassifier:
                 logging.getLogger(__name__).debug(f"Client cleanup failed: {e}")
 
 
-def get_modal_prompt_classifier() -> ModalPromptClassifier:
+def get_modal_prompt_classifier(lit_logger: Any = None) -> ModalPromptClassifier:
     """Get Modal prompt classifier instance.
+
+    Args:
+        lit_logger: Optional LitServe logger
 
     Returns:
         ModalPromptClassifier instance
     """
-    return ModalPromptClassifier()
-
-
-class PromptClassifier:
-    """Simplified prompt classifier using Modal's GPU-accelerated NVIDIA model.
-
-    This class provides a clean interface to Modal's NVIDIA prompt classifier,
-    returning complete classification results directly from Modal's GPU inference.
-
-    Benefits:
-    - GPU acceleration: NVIDIA model runs on Modal's T4 GPU infrastructure
-    - Complete results: Modal returns ready-to-use classification data
-    - Cost optimization: Pay only for GPU usage during actual model inference
-    - Simple architecture: Direct use of Modal's processed results
-    """
-
-    def __init__(self) -> None:
-        """Initialize prompt classifier with Modal API client."""
-        self._modal_client = ModalPromptClassifier()
-
-        logger.info("Initialized PromptClassifier with Modal API client")
-
-        # Perform health check on initialization
-        try:
-            health = self._modal_client.health_check()
-            if health.get("status") == "healthy":
-                logger.info("Modal service health check passed")
-            else:
-                logger.warning(f"Modal service health check failed: {health}")
-        except Exception as e:
-            logger.error(f"Modal service health check error: {e}")
-
-    def classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
-        """Classify multiple prompts using Modal-deployed NVIDIA model.
-
-        Args:
-            prompts: List of prompts to classify
-
-        Returns:
-            List of classification results, one per prompt
-
-        Raises:
-            ValueError: If prompts list is empty or invalid
-            RuntimeError: If Modal API request fails
-        """
-        logger.info(f"Classifying {len(prompts)} prompts via Modal API")
-
-        try:
-            # Get complete results directly from Modal
-            results = self._modal_client.classify_prompts(prompts)
-
-            logger.info(f"Successfully classified {len(results)} prompts")
-            return results
-
-        except Exception as e:
-            logger.error(f"Prompt classification failed: {e}")
-
-            # Log classification error details
-            logger.error(f"Prompt classification error details: {e!s}")
-
-            # Re-raise the exception
-            raise
-
-    async def classify_prompts_async(
-        self, prompts: list[str]
-    ) -> list[ClassificationResult]:
-        """Classify multiple prompts using Modal-deployed NVIDIA model asynchronously.
-
-        Args:
-            prompts: List of prompts to classify
-
-        Returns:
-            List of classification results, one per prompt
-
-        Raises:
-            ValueError: If prompts list is empty or invalid
-            RuntimeError: If Modal API request fails
-        """
-        logger.info(f"Classifying {len(prompts)} prompts via Modal API (async)")
-
-        try:
-            # Get complete results directly from Modal (async)
-            results = await self._modal_client.classify_prompts_async(prompts)
-
-            logger.info(f"Successfully classified {len(results)} prompts (async)")
-            return results
-
-        except Exception as e:
-            logger.error(f"Prompt classification failed (async): {e}")
-
-            # Log async classification error details
-            logger.error(f"Async prompt classification error details: {e!s}")
-
-            # Re-raise the exception
-            raise
-
-    def health_check(self) -> dict[str, Any]:
-        """Check Modal service health.
-
-        Returns:
-            Health status information from Modal service
-        """
-        return self._modal_client.health_check()
-
-
-def get_prompt_classifier() -> PromptClassifier:
-    """Get prompt classifier instance.
-
-    This function returns a Modal API client-based classifier for GPU-accelerated
-    prompt classification.
-
-    Returns:
-        PromptClassifier instance using Modal API
-    """
-    return PromptClassifier()
+    return ModalPromptClassifier(lit_logger=lit_logger)

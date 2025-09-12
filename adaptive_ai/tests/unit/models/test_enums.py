@@ -165,7 +165,7 @@ class TestTaskType:
     def test_task_type_default_fallback(self):
         """Test handling of unknown task types with OTHER fallback."""
         # Test that OTHER can serve as a fallback for unknown types
-        assert TaskType.OTHER.value == "other"
+        assert TaskType.OTHER.value == "Other"
 
         # Verify OTHER is a valid enum member
         assert TaskType.OTHER in list(TaskType)

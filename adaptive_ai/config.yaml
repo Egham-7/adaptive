@@ -6,12 +6,11 @@ server:
   host: "${HOST:::}"
   port: ${PORT:8000}
 
-# LitServe ML serving settings
-litserve:
-  accelerator: ${ACCELERATOR:auto}
-  devices: ${DEVICES:auto}
-  max_batch_size: ${MAX_BATCH_SIZE:8}
-  batch_timeout: ${BATCH_TIMEOUT:0.05}
+# FastAPI settings
+fastapi:
+  workers: ${FASTAPI_WORKERS:1}
+  access_log: ${FASTAPI_ACCESS_LOG:true}
+  log_level: ${FASTAPI_LOG_LEVEL:info}
 
 # Logging settings
 logging:

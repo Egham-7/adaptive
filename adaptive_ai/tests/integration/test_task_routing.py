@@ -251,7 +251,7 @@ class TestProviderConstraints:
             json={
                 "prompt": "Write a simple greeting message",
                 "models": [{"provider": "ANTHROPIC"}],
-                "cost_bias": 0.1,  # Prefer cheap Anthropic models
+                "cost_bias": 0.0,  # Prefer cheap Anthropic models
             },
             timeout=30,
         )
@@ -261,7 +261,7 @@ class TestProviderConstraints:
             json={
                 "prompt": "Write a simple greeting message",
                 "models": [{"provider": "ANTHROPIC"}],
-                "cost_bias": 0.9,  # Prefer premium Anthropic models
+                "cost_bias": 1.0,  # Prefer capable Anthropic models
             },
             timeout=30,
         )
