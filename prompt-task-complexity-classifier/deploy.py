@@ -3,13 +3,17 @@
 Just one function that does ML inference with FastAPI endpoint - following Modal best practices.
 """
 
+from __future__ import annotations
+
 import modal
-from typing import Dict, List, Any
-from prompt_task_complexity_classifier.models import (
-    ClassificationResult,
-    ClassifyRequest,
-    ClassifyBatchRequest,
-)
+from typing import Dict, List, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from prompt_task_complexity_classifier.models import (
+        ClassificationResult,
+        ClassifyRequest,
+        ClassifyBatchRequest,
+    )
 
 # Create image with all dependencies
 image = (
@@ -41,6 +45,7 @@ app = modal.App("prompt-task-complexity-classifier", image=image)
     scaledown_window=300,
     timeout=600,
     max_containers=1,
+    min_containers=0,
 )
 class PromptClassifier:
     """Prompt task complexity classifier with ML inference and FastAPI endpoints."""
@@ -138,16 +143,20 @@ class PromptClassifier:
         return [self._classify_prompt(prompt) for prompt in prompts]
 
     @modal.fastapi_endpoint(method="POST", docs=True)
-    def classify_single(self, request: ClassifyRequest) -> ClassificationResult:
+    def classify_single(self, request: "ClassifyRequest") -> "ClassificationResult":
         """FastAPI endpoint for single prompt classification."""
+        from prompt_task_complexity_classifier.models import ClassificationResult
+
         result = self._classify_prompt(request.prompt)
         return ClassificationResult(**result)
 
     @modal.fastapi_endpoint(method="POST", docs=True)
     def classify_prompts(
-        self, request: ClassifyBatchRequest
-    ) -> List[ClassificationResult]:
+        self, request: "ClassifyBatchRequest"
+    ) -> List["ClassificationResult"]:
         """FastAPI endpoint for batch prompt classification."""
+        from prompt_task_complexity_classifier.models import ClassificationResult
+
         results = [self._classify_prompt(prompt) for prompt in request.prompts]
         return [ClassificationResult(**result) for result in results]
 
