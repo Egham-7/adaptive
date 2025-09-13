@@ -11,7 +11,7 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/model_router"
-	"adaptive-backend/internal/stream/stream_simulator"
+	"adaptive-backend/internal/services/stream/stream_simulator"
 	"adaptive-backend/internal/utils"
 
 	"github.com/anthropics/anthropic-sdk-go"

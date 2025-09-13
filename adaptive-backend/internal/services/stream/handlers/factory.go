@@ -3,9 +3,9 @@ package handlers
 import (
 	"io"
 
-	"adaptive-backend/internal/stream/contracts"
-	"adaptive-backend/internal/stream/processors"
-	"adaptive-backend/internal/stream/readers"
+	"adaptive-backend/internal/services/stream/contracts"
+	"adaptive-backend/internal/services/stream/processors"
+	"adaptive-backend/internal/services/stream/readers"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"

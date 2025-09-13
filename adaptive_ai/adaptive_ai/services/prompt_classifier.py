@@ -1,312 +1,326 @@
-from typing import Any, cast
+import asyncio
+from datetime import UTC, datetime, timedelta
+import logging
+import os
+from typing import Any
 
-from huggingface_hub import PyTorchModelHubMixin
-import numpy as np
-import torch
-import torch.nn as nn
-from transformers import AutoConfig, AutoModel, AutoTokenizer
+import httpx
+from jose import jwt
 
-from adaptive_ai.models.llm_classification_models import ClassificationResult
+from adaptive_ai.models.llm_classification_models import (
+    ClassificationResult,
+    ClassifyRequest,
+    SingleClassifyRequest,
+)
+
+logger = logging.getLogger(__name__)
 
 
-class MeanPooling(nn.Module):
+class ModalConfig:
+    """Configuration for Modal API client."""
+
     def __init__(self) -> None:
-        super().__init__()
+        self.modal_url = os.environ.get("MODAL_CLASSIFIER_URL")
+        if not self.modal_url or not self.modal_url.startswith(("http://", "https://")):
+            raise ValueError("MODAL_CLASSIFIER_URL must be set to a valid http(s) URL")
 
-    def forward(
-        self, last_hidden_state: torch.Tensor, attention_mask: torch.Tensor
-    ) -> torch.Tensor:
-        input_mask_expanded = (
-            attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
-        )
-        sum_embeddings = torch.sum(last_hidden_state * input_mask_expanded, 1)
-        sum_mask = input_mask_expanded.sum(1)
-        sum_mask = torch.clamp(sum_mask, min=1e-9)
-        mean_embeddings = sum_embeddings / sum_mask
-        return mean_embeddings
+        self.jwt_secret = os.environ.get("JWT_SECRET")
+        if not self.jwt_secret:
+            raise ValueError("JWT_SECRET must be set for Modal authentication")
 
-
-class MulticlassHead(nn.Module):
-    def __init__(self, input_size: int, num_classes: int) -> None:
-        super().__init__()
-        self.fc = nn.Linear(input_size, num_classes)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.fc(x)
-        return x
-
-
-class CustomModel(nn.Module, PyTorchModelHubMixin):
-    def __init__(
-        self,
-        target_sizes: dict[str, int],
-        task_type_map: dict[str, str],
-        weights_map: dict[str, list[float]],
-        divisor_map: dict[str, float],
-        lit_logger: Any = None,
-    ) -> None:
-        super().__init__()
-        self.backbone = AutoModel.from_pretrained(
-            "microsoft/DeBERTa-v3-base", use_safetensors=True
-        )
-        self.target_sizes = target_sizes.values()
-        self.task_type_map = task_type_map
-        self.weights_map = weights_map
-        self.divisor_map = divisor_map
-        self.heads = [
-            MulticlassHead(self.backbone.config.hidden_size, sz)
-            for sz in self.target_sizes
-        ]
-        for i, head in enumerate(self.heads):
-            self.add_module(f"head_{i}", head)
-        self.pool = MeanPooling()
-        self.lit_logger = lit_logger
-
-    def log(self, key: str, value: Any) -> None:
-        if self.lit_logger:
-            self.lit_logger.log(key, value)
-
-    def compute_results(
-        self, preds: torch.Tensor, target: str, decimal: int = 4
-    ) -> tuple[list[str], list[str], list[float]] | list[float] | list[int]:
-        if target == "task_type":
-            top2_indices = torch.topk(preds, k=2, dim=1).indices
-            softmax_probs = torch.softmax(preds, dim=1)
-            top2_probs = softmax_probs.gather(1, top2_indices)
-            top2 = top2_indices.detach().cpu().tolist()
-            top2_prob = top2_probs.detach().cpu().tolist()
-            top2_strings = [
-                [self.task_type_map[str(idx)] for idx in sample] for sample in top2
-            ]
-            top2_prob_rounded = [
-                [round(value, 3) for value in sublist] for sublist in top2_prob
-            ]
-            # Use comprehensions with enumeration to replace manual counter
-            for i, sublist in enumerate(top2_prob_rounded):
-                if sublist[1] < 0.1:
-                    top2_strings[i][1] = "NA"
-            task_type_1 = [sublist[0] for sublist in top2_strings]
-            task_type_2 = [sublist[1] for sublist in top2_strings]
-            task_type_prob = [sublist[0] for sublist in top2_prob_rounded]
-            return (task_type_1, task_type_2, task_type_prob)
-        else:
-            preds = torch.softmax(preds, dim=1)
-            weights = np.array(self.weights_map[target])
-            weighted_sum = np.sum(np.array(preds.detach().cpu()) * weights, axis=1)
-            scores = weighted_sum / self.divisor_map[target]
-            scores = [round(value, decimal) for value in scores]
-            if target == "number_of_few_shots":
-                # Convert to integer count of examples needed
-                int_scores = [max(0, round(x)) for x in scores]
-                return cast(list[int], int_scores)
-            return cast(list[float], scores)
-
-    def _extract_classification_results(
-        self, logits: list[torch.Tensor]
-    ) -> dict[str, list[str] | list[float] | list[int] | float]:
-        """Extract individual classification results from logits."""
-        result: dict[str, list[str] | list[float] | list[int] | float] = {}
-
-        # Task type classification
-        task_type_logits = logits[0]
-        task_type_results = self.compute_results(task_type_logits, target="task_type")
-        if isinstance(task_type_results, tuple):
-            result["task_type_1"] = task_type_results[0]
-            result["task_type_2"] = task_type_results[1]
-            result["task_type_prob"] = task_type_results[2]
-
-        # Other classifications
-        classifications = [
-            ("creativity_scope", logits[1]),
-            ("reasoning", logits[2]),
-            ("contextual_knowledge", logits[3]),
-            ("number_of_few_shots", logits[4]),
-            ("domain_knowledge", logits[5]),
-            ("no_label_reason", logits[6]),
-            ("constraint_ct", logits[7]),
-        ]
-
-        for target, target_logits in classifications:
-            target_results = self.compute_results(target_logits, target=target)
-            if isinstance(target_results, list):
-                result[target] = target_results
-
-        return result
-
-    def _calculate_complexity_scores(
-        self,
-        results: dict[str, list[str] | list[float] | list[int] | float],
-        task_types: list[str],
-    ) -> list[float]:
-        """Calculate complexity scores using task-specific weights."""
-        # Task type specific weights for complexity calculation
-        task_type_weights: dict[str, list[float]] = {
-            "Open QA": [0.2, 0.3, 0.15, 0.2, 0.15],
-            "Closed QA": [0.1, 0.35, 0.2, 0.25, 0.1],
-            "Summarization": [0.2, 0.25, 0.25, 0.1, 0.2],
-            "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],
-            "Code Generation": [0.1, 0.3, 0.2, 0.3, 0.1],
-            "Chatbot": [0.25, 0.25, 0.15, 0.1, 0.25],
-            "Classification": [0.1, 0.35, 0.25, 0.2, 0.1],
-            "Rewrite": [0.2, 0.2, 0.3, 0.1, 0.2],
-            "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],
-            "Extraction": [0.05, 0.3, 0.3, 0.15, 0.2],
-            "Other": [0.25, 0.25, 0.2, 0.15, 0.15],
-        }
-
-        # Get required values
-        creativity_scope = cast(list[float], results.get("creativity_scope", []))
-        reasoning = cast(list[float], results.get("reasoning", []))
-        constraint_ct = cast(list[float], results.get("constraint_ct", []))
-        domain_knowledge = cast(list[float], results.get("domain_knowledge", []))
-        contextual_knowledge = cast(
-            list[float], results.get("contextual_knowledge", [])
-        )
-
-        complexity_scores = []
-        for i, task_type in enumerate(task_types):
-            # Use task-specific weights if available, otherwise use default weights
-            weights = task_type_weights.get(task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
-
-            score = round(
-                weights[0] * creativity_scope[i]
-                + weights[1] * reasoning[i]
-                + weights[2] * constraint_ct[i]
-                + weights[3] * domain_knowledge[i]
-                + weights[4] * contextual_knowledge[i],
-                5,
-            )
-            complexity_scores.append(score)
-
-        return complexity_scores
-
-    def _extract_single_sample_results(
-        self,
-        batch_results: dict[str, list[str] | list[float] | list[int] | float],
-        sample_idx: int,
-    ) -> dict[str, list[str] | list[float] | list[int] | float]:
-        """Extract results for a single sample from batch results."""
-
-        single_result: dict[str, list[str] | list[float] | list[int] | float] = {}
-
-        for key, value in batch_results.items():
-            if isinstance(value, list | tuple) and len(value) > sample_idx:
-                # Extract the value for this specific sample
-                extracted_value = value[sample_idx]
-                # Ensure proper typing based on the extracted value
-                if isinstance(extracted_value, str):
-                    single_result[key] = [extracted_value]  # List[str]
-                elif isinstance(extracted_value, int):
-                    single_result[key] = [extracted_value]  # List[int]
-                elif isinstance(extracted_value, float):
-                    single_result[key] = [extracted_value]  # List[float]
-                else:
-                    single_result[key] = [extracted_value]
-            elif isinstance(value, int | float):
-                # Single numeric value
-                single_result[key] = float(value)
-            else:
-                # Handle other cases (should be rare)
-                single_result[key] = value
-
-        return single_result
-
-    def process_logits(
-        self, logits: list[torch.Tensor]
-    ) -> list[dict[str, list[str] | list[float] | list[int] | float]]:
-        """Main orchestration method for processing logits and calculating complexity scores for batched inputs."""
-        batch_size = logits[0].shape[0]
-
-        # First, get batch-level results
-        batch_results = self._extract_classification_results(logits)
-
-        # Calculate complexity scores for the entire batch
-        if "task_type_1" in batch_results:
-            task_types = cast(list[str], batch_results["task_type_1"])
-            complexity_scores = self._calculate_complexity_scores(
-                batch_results, task_types
-            )
-            batch_results["prompt_complexity_score"] = complexity_scores
-
-        # Now split batch results into individual sample results
-        individual_results = []
-        for i in range(batch_size):
-            single_result = self._extract_single_sample_results(batch_results, i)
-            individual_results.append(single_result)
-
-        return individual_results
-
-    def forward(
-        self, batch: dict[str, torch.Tensor]
-    ) -> list[dict[str, list[str] | list[float] | list[int] | float]]:
-        input_ids = batch["input_ids"]
-        attention_mask = batch["attention_mask"]
-        outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)
-        last_hidden_state = outputs.last_hidden_state
-        mean_pooled_representation = self.pool(last_hidden_state, attention_mask)
-        logits = [
-            self.heads[k](mean_pooled_representation)
-            for k in range(len(self.target_sizes))
-        ]
-        return self.process_logits(logits)
+        self.request_timeout = int(os.environ.get("MODAL_REQUEST_TIMEOUT", "30"))
+        self.max_retries = int(os.environ.get("MODAL_MAX_RETRIES", "3"))
+        self.retry_delay = float(os.environ.get("MODAL_RETRY_DELAY", "1.0"))
 
 
 class PromptClassifier:
-    def __init__(self, lit_logger: Any = None) -> None:
-        self.config = AutoConfig.from_pretrained(
-            "nvidia/prompt-task-and-complexity-classifier"
-        )
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            "nvidia/prompt-task-and-complexity-classifier"
-        )
-        self.model = CustomModel(
-            target_sizes=self.config.target_sizes,
-            task_type_map=self.config.task_type_map,
-            weights_map=self.config.weights_map,
-            divisor_map=self.config.divisor_map,
-            lit_logger=lit_logger,
-        ).from_pretrained("nvidia/prompt-task-and-complexity-classifier")
-        self.lit_logger = lit_logger
+    """Modal API client for NVIDIA prompt classifier.
 
-    def classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
+    This client makes HTTP requests to the Modal-deployed NVIDIA model and
+    returns the complete classification results directly from Modal.
+
+    Features:
+    - JWT authentication with automatic token generation
+    - Retry logic with exponential backoff
+    - Direct use of Modal's complete classification results
+    - Health check functionality
+    """
+
+    def __init__(self) -> None:
+        """Initialize Modal API client."""
+        self.config = ModalConfig()
+        self.async_client = httpx.AsyncClient(timeout=self.config.request_timeout)
+        self._token_cache: str | None = None
+        self._token_expires_at: datetime | None = None
+
+        logger.info(
+            "Initialized Modal client", extra={"modal_url": self.config.modal_url}
+        )
+
+    def _generate_jwt_token(self) -> str:
+        """Generate JWT token for Modal authentication."""
+        if not self.config.jwt_secret:
+            raise ValueError("JWT_SECRET environment variable is required")
+
+        # Token expires in 1 hour (UTC)
+        now_utc = datetime.now(UTC)
+        expires_at = now_utc + timedelta(hours=1)
+
+        payload = {
+            "sub": "adaptive_ai_service",  # Subject (service identifier)
+            "user": "adaptive_ai",  # User field for compatibility
+            "iat": int(now_utc.timestamp()),  # Issued at (epoch seconds)
+            "exp": int(expires_at.timestamp()),  # Expires at (epoch seconds)
+            "service": "prompt_classification",
+        }
+
+        token: str = jwt.encode(payload, self.config.jwt_secret, algorithm="HS256")
+
+        # Cache token and expiration
+        self._token_cache = token
+        self._token_expires_at = expires_at
+
+        logger.debug(
+            "Generated new JWT token", extra={"service": "prompt_classification"}
+        )
+        return token
+
+    def _get_auth_headers(self) -> dict[str, str]:
+        """Get authorization headers with JWT token."""
+        # Check if we need to generate/refresh token
+        now_utc = datetime.now(UTC)
+
+        if (
+            not self._token_cache
+            or not self._token_expires_at
+            or now_utc >= self._token_expires_at - timedelta(minutes=5)
+        ):
+            self._generate_jwt_token()
+
+        return {
+            "Authorization": f"Bearer {self._token_cache}",
+            "Content-Type": "application/json",
+        }
+
+    async def classify_prompt_async(self, prompt: str) -> ClassificationResult:
+        """Classify a single prompt using Modal API's single endpoint asynchronously.
+
+        Args:
+            prompt: Single prompt to classify
+
+        Returns:
+            Classification result for the prompt
+
+        Raises:
+            ValueError: If prompt is empty or invalid
+            RuntimeError: If Modal API request fails
         """
-        Classify multiple prompts in a batch for optimal GPU utilization.
+        if not prompt or not prompt.strip():
+            raise ValueError("Prompt cannot be empty")
+
+        logger.info(
+            "Classifying single prompt via Modal",
+            extra={"endpoint": "single", "method": "async"},
+        )
+
+        try:
+            # Use proper request model
+            request_data = SingleClassifyRequest(prompt=prompt)
+            headers = self._get_auth_headers()
+
+            # Make async API request to single endpoint
+            response = await self._make_request_with_retry_async(
+                method="POST",
+                url=f"{self.config.modal_url}/classify",
+                headers=headers,
+                json=request_data.dict(),
+            )
+
+            # Parse response - Modal returns data compatible with ClassificationResult
+            response_data = response.json()
+
+            # Directly validate and convert to ClassificationResult
+            result = ClassificationResult(**response_data)
+            logger.info(
+                "Successfully classified single prompt",
+                extra={
+                    "method": "async",
+                    "endpoint": "single",
+                    "task_type": result.task_type_1,
+                    "complexity_score": result.prompt_complexity_score,
+                },
+            )
+            return result
+
+        except Exception as e:
+            logger.error(
+                "Modal single prompt classification failed",
+                extra={
+                    "method": "async",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+            raise RuntimeError(f"Modal single prompt classification failed: {e}") from e
+
+    async def classify_prompts_async(
+        self, prompts: list[str]
+    ) -> list[ClassificationResult]:
+        """Classify multiple prompts using Modal API asynchronously.
 
         Args:
             prompts: List of prompts to classify
 
         Returns:
             List of classification results, one per prompt
+
+        Raises:
+            ValueError: If prompts list is empty or invalid
+            RuntimeError: If Modal API request fails
         """
-        if self.lit_logger:
-            self.lit_logger.log(
-                "prompt_classification_batch_start", {"batch_size": len(prompts)}
-            )
+        if not prompts:
+            raise ValueError("Prompts list cannot be empty")
 
-        encoded_texts = self.tokenizer(
-            prompts,
-            padding=True,
-            truncation=True,
-            max_length=512,
-            return_tensors="pt",
+        logger.info(
+            "Starting Modal async classification batch",
+            extra={"prompts_count": len(prompts), "method": "async"},
         )
 
-        with torch.no_grad():
-            raw_results = self.model(encoded_texts)
+        try:
+            # Prepare request
+            request_data = ClassifyRequest(prompts=prompts)
+            headers = self._get_auth_headers()
 
-        # Convert raw dictionary results to ClassificationResult Pydantic models
-        results = [ClassificationResult(**result) for result in raw_results]
-
-        if self.lit_logger:
-            self.lit_logger.log(
-                "prompt_classification_batch_complete", {"batch_size": len(results)}
+            # Make async API request
+            response = await self._make_request_with_retry_async(
+                method="POST",
+                url=f"{self.config.modal_url}/classify_batch",
+                headers=headers,
+                json=request_data.dict(),
             )
 
-        print(
-            f"Batch classification complete: {len(results)} results for {len(prompts)} prompts"
-        )
-        return results
+            # Parse response - Modal returns list of ClassificationResults
+            response_data = response.json()
+
+            # Convert list of dicts to list of ClassificationResult objects
+            results = [
+                ClassificationResult(**result_data) for result_data in response_data
+            ]
+
+            logger.info(
+                "Successfully completed Modal async classification batch",
+                extra={"results_count": len(results), "method": "async"},
+            )
+            return results
+
+        except Exception as e:
+            logger.error(
+                "Modal classification failed",
+                extra={
+                    "method": "async",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+
+            # Re-raise as RuntimeError for consistency
+            raise RuntimeError(f"Modal prompt classification failed: {e}") from e
+
+    async def _make_request_with_retry_async(
+        self, method: str, url: str, **kwargs: Any
+    ) -> httpx.Response:
+        """Make HTTP request with retry logic asynchronously."""
+        last_exception = None
+
+        for attempt in range(self.config.max_retries):
+            try:
+                response = await self.async_client.request(method, url, **kwargs)
+
+                # Check for authentication errors
+                if response.status_code == 401:
+                    logger.warning(
+                        "Authentication failed",
+                        extra={
+                            "attempt": attempt + 1,
+                            "max_retries": self.config.max_retries,
+                        },
+                    )
+                    # Clear cached token and retry
+                    self._token_cache = None
+                    self._token_expires_at = None
+                    if attempt < self.config.max_retries - 1:
+                        kwargs["headers"] = self._get_auth_headers()
+                        continue
+
+                # Check for other HTTP errors
+                response.raise_for_status()
+                return response
+
+            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                last_exception = e
+                logger.warning(
+                    "Request failed",
+                    extra={
+                        "attempt": attempt + 1,
+                        "max_retries": self.config.max_retries,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                )
+
+                if attempt < self.config.max_retries - 1:
+                    # Exponential backoff
+                    delay = self.config.retry_delay * (2**attempt)
+                    logger.info(
+                        "Retrying request",
+                        extra={"delay_seconds": delay, "attempt": attempt + 1},
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(
+                        "All retry attempts failed",
+                        extra={
+                            "max_retries": self.config.max_retries,
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                    )
+                    raise
+
+        # This shouldn't be reached, but just in case
+        raise last_exception or Exception("Request failed after all retries")
+
+    async def health_check_async(self) -> dict[str, Any]:
+        """Check Modal service health asynchronously.
+
+        Returns:
+            Health status information from Modal service
+        """
+        try:
+            response = await self._make_request_with_retry_async(
+                method="GET", url=f"{self.config.modal_url}/health"
+            )
+            return response.json()  # type: ignore[no-any-return]
+        except Exception as e:
+            logger.error(
+                "Modal health check failed",
+                extra={
+                    "method": "async",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+            return {"status": "unhealthy", "error": str(e)}
+
+    async def aclose(self) -> None:
+        """Explicitly close async HTTP clients."""
+        await self.async_client.aclose()
 
 
-def get_prompt_classifier(lit_logger: Any = None) -> PromptClassifier:
-    return PromptClassifier(lit_logger=lit_logger)
+def get_prompt_classifier() -> PromptClassifier:
+    """Get Modal prompt classifier instance.
+
+    Returns:
+        ModalPromptClassifier instance
+    """
+    return PromptClassifier()

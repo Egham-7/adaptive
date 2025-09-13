@@ -2,20 +2,40 @@
 Model registry service for validating model names across all providers.
 """
 
+import logging
+
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
+
+logger = logging.getLogger(__name__)
 
 
 class ModelRegistry:
     """Service for validating and managing model availability across providers.
 
-    This class focuses on core model lookup and filtering functionality.
-    Simple operations are delegated directly to yaml_model_db.
+    This class provides core model lookup and filtering functionality.
+    Model definitions are loaded from YAML files using the yaml_model_db.get_all_models()
+    function, which remains the canonical source for model metadata and capabilities.
     """
 
     def __init__(self) -> None:
-        """Initialize the model registry with YAML models only."""
-        pass
+        """Initialize the model registry with model definitions from YAML files."""
+        self._models: dict[str, ModelCapability] = {}
+        self._load_models()
+
+    def _load_models(self) -> None:
+        """Load model definitions from YAML files."""
+        # Try to load from YAML files
+        try:
+            yaml_models = yaml_model_db.get_all_models()
+            # YAML loader guarantees unique provider:model_name keys, so we can directly update
+            self._models.update(yaml_models)
+        except Exception as e:
+            # If YAML loading fails, log but continue with empty models
+            logger.warning(
+                "Could not load YAML models",
+                extra={"error": str(e), "error_type": type(e).__name__},
+            )
 
     # Core model lookup methods
     def get_model_capability(self, unique_id: str) -> ModelCapability | None:
@@ -28,7 +48,7 @@ class ModelRegistry:
         Returns:
             ModelCapability object if model exists, None otherwise
         """
-        return yaml_model_db.get_model(unique_id)
+        return self._models.get(unique_id)
 
     def get_models_by_name(self, model_name: str) -> list[ModelCapability]:
         """
@@ -40,12 +60,14 @@ class ModelRegistry:
         Returns:
             List of ModelCapability objects from all providers that serve this model
         """
-        return yaml_model_db.get_models_by_name(model_name)
+        return [
+            model for model in self._models.values() if model.model_name == model_name
+        ]
 
-    # Simple validation methods (delegate to yaml_model_db)
+    # Simple validation methods
     def is_valid_model(self, unique_id: str) -> bool:
         """Check if a model unique_id is valid (exists in any provider's capabilities)."""
-        return yaml_model_db.has_model(unique_id)
+        return unique_id in self._models
 
     def is_valid_model_name(self, model_name: str) -> bool:
         """Check if a model name is valid (exists in any provider's capabilities)."""
@@ -55,6 +77,10 @@ class ModelRegistry:
         """Get all providers that support a given model name."""
         models = self.get_models_by_name(model_name)
         return {model.provider for model in models if model.provider is not None}
+
+    def get_all_model_names(self) -> list[str]:
+        """Get all unique_ids of models in the registry."""
+        return list(self._models.keys())
 
     # Core filtering functionality - this is the main value-add
     def find_models_matching_criteria(
@@ -79,8 +105,8 @@ class ModelRegistry:
             )
             models = registry.find_models_matching_criteria(criteria)
         """
-        # Models are already loaded at startup
-        all_models = list(yaml_model_db.get_all_models().values())
+        # Use the basic models from our registry
+        all_models = list(self._models.values())
 
         # Simple direct filtering without complex lambda predicates
         matching_models = []

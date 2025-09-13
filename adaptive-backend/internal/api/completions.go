@@ -12,7 +12,7 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/model_router"
-	"adaptive-backend/internal/stream/stream_simulator"
+	"adaptive-backend/internal/services/stream/stream_simulator"
 	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"

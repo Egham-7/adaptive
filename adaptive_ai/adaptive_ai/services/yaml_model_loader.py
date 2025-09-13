@@ -32,7 +32,9 @@ class YAMLModelDatabase:
         yaml_dir = current_dir / "model_data" / "data" / "provider_models"
 
         if not yaml_dir.exists():
-            logger.warning(f"YAML model directory not found: {yaml_dir}")
+            logger.warning(
+                "YAML model directory not found", extra={"yaml_dir": str(yaml_dir)}
+            )
             return
 
         # Supported providers
@@ -55,13 +57,25 @@ class YAMLModelDatabase:
                         self._load_provider_yaml(yaml_file, provider.upper())
                     )
                 except Exception as e:
-                    logger.error(f"Failed to load {provider} models: {e}")
+                    logger.error(
+                        "Failed to load provider models",
+                        extra={
+                            "provider": provider,
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                    )
                     models_loaded_per_provider.append(0)
             else:
-                logger.debug(f"YAML file not found for provider: {provider}")
+                logger.debug(
+                    "YAML file not found for provider", extra={"provider": provider}
+                )
 
         total_models_loaded = sum(models_loaded_per_provider)
-        logger.info(f"Loaded {total_models_loaded} models from YAML files")
+        logger.info(
+            "Loaded models from YAML files",
+            extra={"total_models_loaded": total_models_loaded},
+        )
 
     def _yaml_to_model_capability(
         self, yaml_data: dict[str, Any], provider_name: str, yaml_key: str
@@ -85,8 +99,12 @@ class YAMLModelDatabase:
             # Generate a safe fallback name using provider and yaml_key
             fallback_name = f"{provider_name.lower()}_{yaml_key}"
             logger.warning(
-                f"Missing or empty model_name in {provider_name}/{yaml_key}, "
-                f"using fallback: {fallback_name}"
+                "Missing or empty model_name, using fallback",
+                extra={
+                    "provider": provider_name,
+                    "yaml_key": yaml_key,
+                    "fallback_name": fallback_name,
+                },
             )
             model_name = fallback_name
 
@@ -122,8 +140,8 @@ class YAMLModelDatabase:
                     model_name = model_capability.model_name
                     if not model_name or not model_name.strip():
                         logger.error(
-                            f"Model capability has invalid model_name after processing: "
-                            f"provider={provider_name}, yaml_key={yaml_key}"
+                            "Model capability has invalid model_name after processing",
+                            extra={"provider": provider_name, "yaml_key": yaml_key},
                         )
                         continue
 
@@ -133,7 +151,8 @@ class YAMLModelDatabase:
                     normalized_unique_id = unique_id.lower()
                     if normalized_unique_id in self._models:
                         logger.warning(
-                            f"Overwriting existing model entry: '{unique_id}'"
+                            "Overwriting existing model entry",
+                            extra={"unique_id": unique_id},
                         )
 
                     self._models[normalized_unique_id] = model_capability
@@ -147,15 +166,53 @@ class YAMLModelDatabase:
                     models_loaded += 1
 
                 except Exception as e:
-                    logger.debug(f"Failed to convert model {yaml_key}: {e}")
+                    logger.debug(
+                        "Failed to convert model",
+                        extra={
+                            "yaml_key": yaml_key,
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                    )
                     continue
 
-            logger.debug(f"Loaded {models_loaded} models from {provider_name}")
+            logger.debug(
+                "Loaded models from provider",
+                extra={"models_loaded": models_loaded, "provider": provider_name},
+            )
             return models_loaded
 
-        except Exception as e:
-            logger.error(f"Failed to parse YAML file {yaml_file}: {e}")
+        except yaml.YAMLError as e:
+            logger.error(
+                "Failed to parse YAML file - YAML parsing error",
+                extra={
+                    "yaml_file": str(yaml_file),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
             return 0
+        except OSError as e:
+            logger.error(
+                "Failed to parse YAML file - IO error",
+                extra={
+                    "yaml_file": str(yaml_file),
+                    "errno": getattr(e, "errno", None),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+            return 0
+        except Exception as e:
+            logger.error(
+                "Failed to parse YAML file - unexpected error",
+                extra={
+                    "yaml_file": str(yaml_file),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+            raise
 
     def get_model(self, unique_id: str) -> ModelCapability | None:
         """

@@ -59,7 +59,7 @@ tests/
 - **Core (`tests/unit/core/`)**: Configuration loading, settings validation, YAML parsing
 - **Models (`tests/unit/models/`)**: Pydantic model validation, serialization, enum behavior
 - **Services (`tests/unit/services/`)**: Business logic, algorithm correctness, service interactions
-- **Main API (`tests/unit/test_main.py`)**: LitServe API wrapper, request/response handling
+- **Main API (`tests/unit/test_main.py`)**: FastAPI application, request/response handling
 
 ### Integration Tests (`tests/integration/`)
 

@@ -3,7 +3,7 @@ package writers
 import (
 	"bufio"
 
-	"adaptive-backend/internal/stream/contracts"
+	"adaptive-backend/internal/services/stream/contracts"
 
 	"github.com/valyala/fasthttp"
 )
