@@ -4,8 +4,8 @@ import (
 	"bufio"
 	"io"
 
-	"adaptive-backend/internal/stream/contracts"
-	"adaptive-backend/internal/stream/writers"
+	"adaptive-backend/internal/services/stream/contracts"
+	"adaptive-backend/internal/services/stream/writers"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"

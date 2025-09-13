@@ -3,8 +3,8 @@ package handlers
 import (
 	"bufio"
 
-	"adaptive-backend/internal/stream/contracts"
-	"adaptive-backend/internal/stream/writers"
+	"adaptive-backend/internal/services/stream/contracts"
+	"adaptive-backend/internal/services/stream/writers"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"

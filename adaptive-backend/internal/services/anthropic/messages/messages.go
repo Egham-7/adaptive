@@ -7,8 +7,8 @@ import (
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
-	"adaptive-backend/internal/stream/adapters"
-	"adaptive-backend/internal/stream/handlers"
+	"adaptive-backend/internal/services/stream/adapters"
+	"adaptive-backend/internal/services/stream/handlers"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
