@@ -67,6 +67,7 @@ RUN apt-get update && \
 # Copy virtual environment and application from builder
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appuser /app/adaptive_ai /app/adaptive_ai
+COPY --from=builder --chown=appuser:appuser /app/model_data /app/model_data
 COPY --from=builder --chown=appuser:appuser /app/config.yaml /app/entrypoint.sh /app/
 
 # Make entrypoint executable
