@@ -53,7 +53,9 @@ class PromptClassifier:
         self._token_cache: str | None = None
         self._token_expires_at: datetime | None = None
 
-        logger.info(f"Initialized Modal client for URL: {self.config.modal_url}")
+        logger.info(
+            "Initialized Modal client", extra={"modal_url": self.config.modal_url}
+        )
 
     def _generate_jwt_token(self) -> str:
         """Generate JWT token for Modal authentication."""
@@ -78,7 +80,9 @@ class PromptClassifier:
         self._token_cache = token
         self._token_expires_at = expires_at
 
-        logger.debug("Generated new JWT token")
+        logger.debug(
+            "Generated new JWT token", extra={"service": "prompt_classification"}
+        )
         return token
 
     def _get_auth_headers(self) -> dict[str, str]:
@@ -114,7 +118,10 @@ class PromptClassifier:
         if not prompt or not prompt.strip():
             raise ValueError("Prompt cannot be empty")
 
-        logger.info("Classifying single prompt via Modal single endpoint (async)")
+        logger.info(
+            "Classifying single prompt via Modal",
+            extra={"endpoint": "single", "method": "async"},
+        )
 
         try:
             # Use proper request model
@@ -135,12 +142,25 @@ class PromptClassifier:
             # Directly validate and convert to ClassificationResult
             result = ClassificationResult(**response_data)
             logger.info(
-                "Successfully classified single prompt via single endpoint (async)"
+                "Successfully classified single prompt",
+                extra={
+                    "method": "async",
+                    "endpoint": "single",
+                    "task_type": result.task_type_1,
+                    "complexity_score": result.prompt_complexity_score,
+                },
             )
             return result
 
         except Exception as e:
-            logger.error(f"Modal single prompt classification failed (async): {e}")
+            logger.error(
+                "Modal single prompt classification failed",
+                extra={
+                    "method": "async",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
             raise RuntimeError(f"Modal single prompt classification failed: {e}") from e
 
     async def classify_prompts_async(
@@ -162,9 +182,9 @@ class PromptClassifier:
             raise ValueError("Prompts list cannot be empty")
 
         logger.info(
-            f"Starting Modal async classification batch with {len(prompts)} prompts"
+            "Starting Modal async classification batch",
+            extra={"prompts_count": len(prompts), "method": "async"},
         )
-        logger.info(f"Classifying {len(prompts)} prompts via Modal API (async)")
 
         try:
             # Prepare request
@@ -188,14 +208,20 @@ class PromptClassifier:
             ]
 
             logger.info(
-                f"Completed Modal async classification batch with {len(results)} results"
+                "Successfully completed Modal async classification batch",
+                extra={"results_count": len(results), "method": "async"},
             )
-            logger.info(f"Successfully classified {len(results)} prompts (async)")
             return results
 
         except Exception as e:
-            logger.error(f"Modal classification failed (async): {e}")
-            logger.error(f"Modal async classification error details: {e!s}")
+            logger.error(
+                "Modal classification failed",
+                extra={
+                    "method": "async",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
 
             # Re-raise as RuntimeError for consistency
             raise RuntimeError(f"Modal prompt classification failed: {e}") from e
@@ -212,7 +238,13 @@ class PromptClassifier:
 
                 # Check for authentication errors
                 if response.status_code == 401:
-                    logger.warning(f"Authentication failed (attempt {attempt + 1})")
+                    logger.warning(
+                        "Authentication failed",
+                        extra={
+                            "attempt": attempt + 1,
+                            "max_retries": self.config.max_retries,
+                        },
+                    )
                     # Clear cached token and retry
                     self._token_cache = None
                     self._token_expires_at = None
@@ -227,16 +259,32 @@ class PromptClassifier:
             except (httpx.RequestError, httpx.HTTPStatusError) as e:
                 last_exception = e
                 logger.warning(
-                    f"Request failed (attempt {attempt + 1}/{self.config.max_retries}): {e}"
+                    "Request failed",
+                    extra={
+                        "attempt": attempt + 1,
+                        "max_retries": self.config.max_retries,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
                 )
 
                 if attempt < self.config.max_retries - 1:
                     # Exponential backoff
                     delay = self.config.retry_delay * (2**attempt)
-                    logger.info(f"Retrying in {delay} seconds...")
+                    logger.info(
+                        "Retrying request",
+                        extra={"delay_seconds": delay, "attempt": attempt + 1},
+                    )
                     await asyncio.sleep(delay)
                 else:
-                    logger.error(f"All retry attempts failed: {e}")
+                    logger.error(
+                        "All retry attempts failed",
+                        extra={
+                            "max_retries": self.config.max_retries,
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                    )
                     raise
 
         # This shouldn't be reached, but just in case
@@ -254,7 +302,14 @@ class PromptClassifier:
             )
             return response.json()  # type: ignore[no-any-return]
         except Exception as e:
-            logger.error(f"Modal health check failed (async): {e}")
+            logger.error(
+                "Modal health check failed",
+                extra={
+                    "method": "async",
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
             return {"status": "unhealthy", "error": str(e)}
 
     async def aclose(self) -> None:

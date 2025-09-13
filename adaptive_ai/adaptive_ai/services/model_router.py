@@ -46,7 +46,10 @@ class ModelRouter:
 
         # Get candidate models
         candidates = self._get_candidate_models(models_input, task_type)
-        logger.debug(f"Found {len(candidates)} candidate models")
+        logger.debug(
+            "Found candidate models",
+            extra={"candidates_count": len(candidates), "task_type": task_type},
+        )
 
         # Apply routing logic
         return self._rank_models(candidates, task_complexity, cost_bias)
@@ -110,7 +113,12 @@ class ModelRouter:
 
         filtered = [m for m in models if self._supports_task_type(m, task_type)]
         logger.debug(
-            f"Task filtering ({task_type}): {len(models)} → {len(filtered)} models"
+            "Task filtering completed",
+            extra={
+                "task_type": task_type,
+                "input_models": len(models),
+                "filtered_models": len(filtered),
+            },
         )
         return filtered
 

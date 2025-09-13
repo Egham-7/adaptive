@@ -18,16 +18,19 @@ Architecture Flow:
 
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from contextvars import ContextVar
 import logging
 import sys
 import time
 from typing import TYPE_CHECKING, Any
+import uuid
 
 if TYPE_CHECKING:
     from adaptive_ai.services.prompt_classifier import PromptClassifier
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pythonjsonlogger import jsonlogger
 
 from adaptive_ai.core.config import get_settings
 from adaptive_ai.models.llm_core_models import (
@@ -41,24 +44,56 @@ from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 
 logger = logging.getLogger(__name__)
 
+# Context variable for request correlation
+request_id_context: ContextVar[str] = ContextVar("request_id", default="")
+
 
 def setup_logging() -> None:
-    """Configure logging for the application."""
+    """Configure structured JSON logging for the application."""
     settings = get_settings()
 
-    # Configure root logger
-    logging.basicConfig(
-        level=getattr(logging, settings.logging.level.upper(), logging.INFO),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-        ],
+    # Create JSON formatter with request correlation
+    class RequestCorrelationFormatter(jsonlogger.JsonFormatter):
+        def add_fields(
+            self,
+            log_record: dict[str, Any],
+            record: logging.LogRecord,
+            message_dict: dict[str, Any],
+        ) -> None:
+            super().add_fields(log_record, record, message_dict)
+
+            # Add request correlation ID if available
+            request_id = request_id_context.get("")
+            if request_id:
+                log_record["request_id"] = request_id
+
+            # Add standard fields
+            log_record["timestamp"] = record.created
+            log_record["service"] = "adaptive_ai"
+
+    # Configure JSON formatter
+    json_formatter = RequestCorrelationFormatter(
+        "%(timestamp)s %(name)s %(levelname)s %(message)s"
     )
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, settings.logging.level.upper(), logging.INFO))
+
+    # Remove any existing handlers
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    # Add JSON handler
+    json_handler = logging.StreamHandler(sys.stdout)
+    json_handler.setFormatter(json_formatter)
+    root_logger.addHandler(json_handler)
 
     # Set specific loggers
     logger = logging.getLogger(__name__)
     logger.info(
-        "Adaptive AI service starting with log level: %s", settings.logging.level
+        "Adaptive AI service starting with structured JSON logging",
+        extra={"log_level": settings.logging.level},
     )
 
     # Suppress noisy third-party loggers
@@ -92,6 +127,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown
     logger.info("Shutting down Adaptive AI services...")
 
+    # Close the prompt classifier's AsyncClient to prevent socket leaks
+    if prompt_classifier:
+        try:
+            await prompt_classifier.aclose()
+            logger.info("Prompt classifier AsyncClient closed successfully")
+        except Exception as e:
+            logger.error(
+                "Failed to close prompt classifier AsyncClient",
+                extra={"error": str(e), "error_type": type(e).__name__}
+            )
+
 
 # Create FastAPI app instance
 app = FastAPI(
@@ -114,6 +160,30 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def request_correlation_middleware(request: Request, call_next: Any) -> Any:
+    """Middleware to handle request correlation via X-Request-ID header."""
+    # Get or generate request ID
+    request_id = request.headers.get("X-Request-ID")
+    if not request_id:
+        request_id = str(uuid.uuid4())
+
+    # Set request ID in context
+    token = request_id_context.set(request_id)
+
+    try:
+        # Process the request
+        response = await call_next(request)
+
+        # Add request ID to response headers for client correlation
+        response.headers["X-Request-ID"] = request_id
+
+        return response
+    finally:
+        # Clean up context
+        request_id_context.reset(token)
+
+
 @app.get("/health")
 async def health_check() -> dict[str, Any]:
     """Health check endpoint."""
@@ -132,7 +202,10 @@ async def health_check() -> dict[str, Any]:
             "timestamp": time.time(),
         }
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
+        logger.error(
+            "Health check failed",
+            extra={"error": str(e), "error_type": type(e).__name__},
+        )
         raise HTTPException(status_code=503, detail=f"Service unhealthy: {e!s}") from e
 
 
@@ -144,7 +217,14 @@ async def predict(request: ModelSelectionRequest) -> ModelSelectionResponse:
     selecting optimal models based on ML classification and cost optimization.
     """
     try:
-        logger.info("Processing model selection request")
+        logger.info(
+            "Processing model selection request",
+            extra={
+                "prompt_length": len(request.prompt),
+                "cost_bias": request.cost_bias,
+                "models_count": len(request.models) if request.models else 0,
+            },
+        )
 
         # Classify prompt using Modal API
         start_time = time.perf_counter()
@@ -153,7 +233,14 @@ async def predict(request: ModelSelectionRequest) -> ModelSelectionResponse:
 
         classification = await prompt_classifier.classify_prompt_async(request.prompt)
         elapsed = time.perf_counter() - start_time
-        logger.info(f"Modal classification completed in {elapsed:.3f}s")
+        logger.info(
+            "Modal classification completed",
+            extra={
+                "classification_time_ms": round(elapsed * 1000, 2),
+                "task_type": classification.task_type_1,
+                "complexity_score": classification.prompt_complexity_score,
+            },
+        )
 
         # Extract task type directly from classification
         task_type = (
@@ -192,7 +279,16 @@ async def predict(request: ModelSelectionRequest) -> ModelSelectionResponse:
             if alt.provider and alt.model_name
         ]
 
-        logger.info("Model selection request completed successfully")
+        logger.info(
+            "Model selection request completed successfully",
+            extra={
+                "selected_provider": best_model.provider,
+                "selected_model": best_model.model_name,
+                "alternatives_count": len(alternatives),
+                "task_type": task_type,
+                "task_complexity": task_complexity,
+            },
+        )
         return ModelSelectionResponse(
             provider=best_model.provider,
             model=best_model.model_name,
@@ -200,10 +296,16 @@ async def predict(request: ModelSelectionRequest) -> ModelSelectionResponse:
         )
 
     except ValueError as e:
-        logger.error(f"Validation error: {e}")
+        logger.error(
+            "Validation error in model selection",
+            extra={"error": str(e), "error_type": "ValidationError"},
+        )
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        logger.error(f"Model selection failed: {e}")
+        logger.error(
+            "Model selection failed",
+            extra={"error": str(e), "error_type": type(e).__name__},
+        )
         raise HTTPException(
             status_code=500, detail=f"Internal server error: {e!s}"
         ) from e

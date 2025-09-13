@@ -61,7 +61,13 @@ def test_classify_endpoint(
 
         result = response.json()
 
-        # Verify all expected fields are present
+        # API returns a list of ClassificationResult objects (one per prompt)
+        assert isinstance(result, list), f"Expected list, got {type(result)}"
+        assert len(result) == len(
+            test_prompts
+        ), f"Expected {len(test_prompts)} results, got {len(result)}"
+
+        # Verify all expected fields are present in each result
         expected_fields = [
             "task_type_1",
             "task_type_2",
@@ -76,35 +82,40 @@ def test_classify_endpoint(
             "constraint_ct",
         ]
 
-        for field in expected_fields:
-            assert field in result, f"Missing field: {field}"
-            assert len(result[field]) == len(
-                test_prompts
-            ), f"Field {field} has wrong length"
-
-        # Verify task types are strings
-        for task_type in result["task_type_1"]:
+        for i, classification_result in enumerate(result):
             assert isinstance(
-                task_type, str
-            ), f"task_type_1 should be string, got {type(task_type)}"
+                classification_result, dict
+            ), f"Result {i} should be dict, got {type(classification_result)}"
 
-        # Verify probabilities are floats between 0 and 1
-        for prob in result["task_type_prob"]:
+            # Check all expected fields are present
+            for field in expected_fields:
+                assert (
+                    field in classification_result
+                ), f"Missing field '{field}' in result {i}"
+
+            # Verify task types are strings
+            task_type_1 = classification_result["task_type_1"]
             assert isinstance(
-                prob, float
-            ), f"task_type_prob should be float, got {type(prob)}"
+                task_type_1, str
+            ), f"task_type_1 should be string, got {type(task_type_1)}"
+
+            # Verify probabilities are floats between 0 and 1
+            task_type_prob = classification_result["task_type_prob"]
+            assert isinstance(
+                task_type_prob, float
+            ), f"task_type_prob should be float, got {type(task_type_prob)}"
             assert (
-                0 <= prob <= 1
-            ), f"task_type_prob should be between 0 and 1, got {prob}"
+                0 <= task_type_prob <= 1
+            ), f"task_type_prob should be between 0 and 1, got {task_type_prob}"
 
-        # Verify complexity scores are floats
-        for score in result["prompt_complexity_score"]:
+            # Verify complexity scores are floats between 0 and 1
+            complexity_score = classification_result["prompt_complexity_score"]
             assert isinstance(
-                score, float
-            ), f"prompt_complexity_score should be float, got {type(score)}"
+                complexity_score, float
+            ), f"prompt_complexity_score should be float, got {type(complexity_score)}"
             assert (
-                0 <= score <= 1
-            ), f"prompt_complexity_score should be between 0 and 1, got {score}"
+                0 <= complexity_score <= 1
+            ), f"prompt_complexity_score should be between 0 and 1, got {complexity_score}"
 
 
 def test_health_endpoint() -> None:

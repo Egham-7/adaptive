@@ -82,24 +82,39 @@ Batch classification of multiple prompts.
 **Response:**
 
 ```json
-{
-  "task_type_1": ["Code Generation", "Closed QA"],
-  "task_type_2": ["NA", "NA"],
-  "task_type_prob": [0.95, 0.87],
-  "creativity_scope": [0.3, 0.1],
-  "reasoning": [0.7, 0.2],
-  "contextual_knowledge": [0.4, 0.1],
-  "prompt_complexity_score": [0.65, 0.25],
-  "domain_knowledge": [0.8, 0.1],
-  "number_of_few_shots": [0, 0],
-  "no_label_reason": [0.05, 0.13],
-  "constraint_ct": [0.2, 0.1]
-}
+[
+  {
+    "task_type_1": "Code Generation",
+    "task_type_2": null,
+    "task_type_prob": 0.95,
+    "creativity_scope": 0.3,
+    "reasoning": 0.7,
+    "contextual_knowledge": 0.4,
+    "prompt_complexity_score": 0.65,
+    "domain_knowledge": 0.8,
+    "number_of_few_shots": 0,
+    "no_label_reason": 0.05,
+    "constraint_ct": 0.2
+  },
+  {
+    "task_type_1": "Closed QA",
+    "task_type_2": "Other",
+    "task_type_prob": 0.87,
+    "creativity_scope": 0.1,
+    "reasoning": 0.2,
+    "contextual_knowledge": 0.1,
+    "prompt_complexity_score": 0.25,
+    "domain_knowledge": 0.1,
+    "number_of_few_shots": 0,
+    "no_label_reason": 0.13,
+    "constraint_ct": 0.1
+  }
+]
 ```
 
 ### POST `/classify/single`
 
-Single prompt classification (same response format as batch).
+Single prompt classification returning a single ClassificationResult object (not wrapped in an array).
 
 ### GET `/health`
 

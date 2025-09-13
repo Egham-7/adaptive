@@ -32,7 +32,10 @@ class ModelRegistry:
             self._models.update(yaml_models)
         except Exception as e:
             # If YAML loading fails, log but continue with empty models
-            logger.warning("Could not load YAML models: %s", e)
+            logger.warning(
+                "Could not load YAML models",
+                extra={"error": str(e), "error_type": type(e).__name__},
+            )
 
     # Core model lookup methods
     def get_model_capability(self, unique_id: str) -> ModelCapability | None:
