@@ -236,3 +236,9 @@ The deployment includes monitoring capabilities:
 
 This project follows the same license as the parent adaptive repository.
 
+## CI/CD
+
+The project uses GitHub Actions for automated testing and deployment:
+- **Test & Lint**: Runs on every push and PR
+- **Deploy to Dev**: Automatically deploys to Modal dev environment on push to `dev` branch
+
