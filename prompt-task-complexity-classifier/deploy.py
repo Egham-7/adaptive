@@ -5,6 +5,8 @@ Just one function that does ML inference with FastAPI endpoint - following Modal
 
 from __future__ import annotations
 
+import logging
+import traceback
 import modal
 from typing import Dict, List, Any, TYPE_CHECKING
 
@@ -30,6 +32,7 @@ image = (
             "PyJWT>=2.8.0",
             "python-jose[cryptography]>=3.3.0",
             "pyyaml>=6.0.2",
+            "tiktoken >=0.11.0",
         ]
     )
     .add_local_python_source("prompt_task_complexity_classifier")
@@ -57,14 +60,20 @@ class PromptClassifier:
         from transformers import AutoConfig, AutoTokenizer
         from prompt_task_complexity_classifier.task_complexity_model import CustomModel
 
+        # Set up logger
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+
         # Get config
         try:
             from prompt_task_complexity_classifier.config import get_config
 
             config = get_config()
             model_name = config.deployment.model_name
-        except Exception:
-            model_name = "microsoft/DeBERTa-v3-base"  # fallback
+        except Exception as e:
+            print(f"❌ Failed to load config: {e}")
+            print("🔄 Using default NVIDIA classifier model")
+            model_name = "nvidia/prompt-task-and-complexity-classifier"
 
         print(f"🚀 Loading model: {model_name}")
         print(
@@ -116,34 +125,18 @@ class PromptClassifier:
                     key: values[0] if isinstance(values, list) else values
                     for key, values in result.items()
                 }
-            except Exception:
-                # Fallback result if model fails
-                return {
-                    "task_type_1": "general",
-                    "task_type_2": "reasoning",
-                    "task_type_prob": 0.85,
-                    "creativity_scope": 0.6,
-                    "reasoning": 0.7,
-                    "contextual_knowledge": 0.5,
-                    "prompt_complexity_score": 0.65,
-                    "domain_knowledge": 0.4,
-                    "number_of_few_shots": 0.0,
-                    "no_label_reason": 0.9,
-                    "constraint_ct": 0.3,
-                }
+            except Exception as e:
+                # Log the full error with context and stacktrace
+                self.logger.error(
+                    f"Model inference failed for prompt (length: {len(prompt)}): {str(e)}"
+                )
+                self.logger.error(f"Full stacktrace: {traceback.format_exc()}")
 
-    @modal.method()
-    def classify(self, prompt: str) -> Dict[str, Any]:
-        """Classify a single prompt."""
-        return self._classify_prompt(prompt)
-
-    @modal.method()
-    def classify_batch(self, prompts: List[str]) -> List[Dict[str, Any]]:
-        """Classify multiple prompts."""
-        return [self._classify_prompt(prompt) for prompt in prompts]
+                # Re-raise the exception to propagate to FastAPI layer for HTTP 5xx
+                raise RuntimeError(f"Model inference failed: {str(e)}") from e
 
     @modal.fastapi_endpoint(method="POST", docs=True)
-    def classify_single(self, request: "ClassifyRequest") -> "ClassificationResult":
+    def classify(self, request: "ClassifyRequest") -> "ClassificationResult":
         """FastAPI endpoint for single prompt classification."""
         from prompt_task_complexity_classifier.models import ClassificationResult
 
@@ -151,7 +144,7 @@ class PromptClassifier:
         return ClassificationResult(**result)
 
     @modal.fastapi_endpoint(method="POST", docs=True)
-    def classify_prompts(
+    def classify_batch(
         self, request: "ClassifyBatchRequest"
     ) -> List["ClassificationResult"]:
         """FastAPI endpoint for batch prompt classification."""
@@ -176,7 +169,7 @@ if __name__ == "__main__":
     print("")
     print("🚀 Deploy: modal deploy deploy.py")
     print("🌐 Endpoints:")
-    print("  POST /classify-single - Single prompt classification")
-    print("  POST /classify-prompts - Batch classification")
+    print("  POST /classify - Single prompt classification")
+    print("  POST /classify_batch - Batch classification")
     print("  GET /health - Health check")
     print("")

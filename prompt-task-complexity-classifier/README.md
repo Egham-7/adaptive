@@ -199,19 +199,18 @@ uv run ruff check .
 
 ## Architecture
 
-### Dual Image Strategy
+### Single Image Strategy
 
-Following Modal best practices, the deployment uses two optimized images:
+The deployment uses a unified Modal image approach for simplicity and reliability:
 
-1. **ML Image** (`ml_image`): GPU-enabled container with PyTorch and ML dependencies
-2. **Web Image** (`web_image`): Lightweight FastAPI container for API endpoints
+1. **Unified Image** (`image`): Single container with both PyTorch ML dependencies and FastAPI web serving
 
 ### Resource Optimization
 
-- **GPU Containers**: Models download automatically on first use and are cached
-- **Web Containers**: Minimal dependencies for lightweight FastAPI serving
-- **Scaling**: Independent scaling of ML vs web containers based on load
-- **Caching**: JWKS/signing key caching (with TTL and rotation handling) and efficient model loading
+- **GPU Containers**: Models download automatically on first use and are cached in the container
+- **Unified Dependencies**: All ML and web dependencies bundled together for consistent deployment
+- **Container Scaling**: Modal automatically scales containers based on request load
+- **Model Caching**: HuggingFace models are downloaded once and cached for subsequent requests
 
 ### Performance Features
 

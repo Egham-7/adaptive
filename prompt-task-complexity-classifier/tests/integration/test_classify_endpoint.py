@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Test the /classify endpoint of the deployed Modal app"""
 
+
 import jwt
 import httpx
 import pytest
