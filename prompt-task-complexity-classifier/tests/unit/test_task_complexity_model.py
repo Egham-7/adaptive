@@ -2,16 +2,14 @@
 
 import pytest
 import torch
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 from unittest.mock import Mock
 
-from prompt_task_complexity_classifier.task_complexity_model import get_model_classes
-
-
-@pytest.fixture
-def model_classes() -> Tuple[Any, Any, Any]:
-    """Get model classes for testing"""
-    return get_model_classes()
+from prompt_task_complexity_classifier.task_complexity_model import (
+    MeanPooling,
+    MulticlassHead,
+    CustomModel,
+)
 
 
 @pytest.fixture
@@ -50,9 +48,8 @@ def sample_config() -> Dict[str, Any]:
 class TestMeanPooling:
     """Test MeanPooling layer"""
 
-    def test_mean_pooling_forward(self, model_classes: Tuple[Any, Any, Any]) -> None:
+    def test_mean_pooling_forward(self) -> None:
         """Test MeanPooling forward pass"""
-        MeanPooling, _, _ = model_classes
         pooling = MeanPooling()
 
         # Create sample tensors
@@ -70,9 +67,8 @@ class TestMeanPooling:
         assert not torch.isnan(output).any()
         assert not torch.isinf(output).any()
 
-    def test_mean_pooling_empty_mask(self, model_classes: Tuple[Any, Any, Any]) -> None:
+    def test_mean_pooling_empty_mask(self) -> None:
         """Test MeanPooling with empty attention mask"""
-        MeanPooling, _, _ = model_classes
         pooling = MeanPooling()
 
         batch_size, seq_len, hidden_size = 1, 5, 10
@@ -89,9 +85,8 @@ class TestMeanPooling:
 class TestMulticlassHead:
     """Test MulticlassHead layer"""
 
-    def test_multiclass_head_forward(self, model_classes: Tuple[Any, Any, Any]) -> None:
+    def test_multiclass_head_forward(self) -> None:
         """Test MulticlassHead forward pass"""
-        _, MulticlassHead, _ = model_classes
 
         input_size, num_classes = 768, 5
         head = MulticlassHead(input_size, num_classes)
@@ -104,11 +99,8 @@ class TestMulticlassHead:
         assert output.shape == (batch_size, num_classes)
         assert not torch.isnan(output).any()
 
-    def test_multiclass_head_parameters(
-        self, model_classes: Tuple[Any, Any, Any]
-    ) -> None:
+    def test_multiclass_head_parameters(self) -> None:
         """Test MulticlassHead has correct parameters"""
-        _, MulticlassHead, _ = model_classes
 
         input_size, num_classes = 512, 3
         head = MulticlassHead(input_size, num_classes)
@@ -125,13 +117,8 @@ class TestMulticlassHead:
 class TestCustomModel:
     """Test CustomModel class"""
 
-    def test_custom_model_init(
-        self,
-        model_classes: Tuple[Any, Any, Any],
-        sample_config: Dict[str, Any],
-    ) -> None:
+    def test_custom_model_init(self, sample_config: Dict[str, Any]) -> None:
         """Test CustomModel initialization"""
-        _, _, CustomModel = model_classes
 
         # We need to mock the AutoModel import inside the get_model_classes function
         # Since imports are inside the function, we'll test the actual behavior without deep mocking
@@ -149,11 +136,8 @@ class TestCustomModel:
             # This is fine for unit testing - the model requires actual ML dependencies
             pass
 
-    def test_compute_results_task_type(
-        self, model_classes: Tuple[Any, Any, Any], sample_config: Dict[str, Any]
-    ) -> None:
+    def test_compute_results_task_type(self, sample_config: Dict[str, Any]) -> None:
         """Test compute_results for task_type target"""
-        _, _, CustomModel = model_classes
 
         # Since we can't easily mock the internal imports, let's test the method logic
         # by creating a minimal mock model that has the required attributes

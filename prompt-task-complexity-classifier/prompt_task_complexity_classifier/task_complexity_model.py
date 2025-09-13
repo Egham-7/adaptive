@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 from huggingface_hub import PyTorchModelHubMixin
 from transformers import AutoModel
-from typing import Dict, List, Tuple, Any, Union
+from typing import Dict, List, Tuple, Union
 
 
 class MeanPooling(nn.Module):
@@ -118,9 +118,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         """Extract classification results from model logits."""
         result: Dict[str, Union[List[str], List[float]]] = {}
         task_type_logits = logits[0]
-        task_type_results = self.compute_results(
-            task_type_logits, target="task_type"
-        )
+        task_type_results = self.compute_results(task_type_logits, target="task_type")
         if isinstance(task_type_results, tuple):
             result["task_type_1"] = task_type_results[0]
             result["task_type_2"] = task_type_results[1]
