@@ -97,9 +97,8 @@ def setup_logging() -> None:
     )
 
     # Suppress noisy third-party loggers
-    logging.getLogger("transformers").setLevel(logging.WARNING)
-    logging.getLogger("torch").setLevel(logging.WARNING)
-    logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
 
 
 # Global components initialized on startup
