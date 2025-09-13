@@ -108,8 +108,7 @@ def get_model_classes():
                 scores = [round(value, decimal) for value in scores]
 
                 if target == "number_of_few_shots":
-                    int_scores = [max(0, round(x)) for x in scores]
-                    return int_scores
+                    scores = [x if x >= 0.05 else 0 for x in scores]
                 return scores
 
         def _extract_classification_results(
@@ -146,30 +145,17 @@ def get_model_classes():
         def _calculate_complexity_scores(
             self, results: Dict[str, List], task_types: List[str]
         ) -> List[float]:
-            """Calculate complexity scores based on task type and metrics."""
-            task_type_weights = {
-                "Open QA": [0.2, 0.3, 0.15, 0.2, 0.15],
-                "Closed QA": [0.1, 0.35, 0.2, 0.25, 0.1],
-                "Summarization": [0.2, 0.25, 0.25, 0.1, 0.2],
-                "Text Generation": [0.4, 0.2, 0.15, 0.1, 0.15],
-                "Code Generation": [0.1, 0.3, 0.2, 0.3, 0.1],
-                "Chatbot": [0.25, 0.25, 0.15, 0.1, 0.25],
-                "Classification": [0.1, 0.35, 0.25, 0.2, 0.1],
-                "Rewrite": [0.2, 0.2, 0.3, 0.1, 0.2],
-                "Brainstorming": [0.5, 0.2, 0.1, 0.1, 0.1],
-                "Extraction": [0.05, 0.3, 0.3, 0.15, 0.2],
-                "Other": [0.25, 0.25, 0.2, 0.15, 0.15],
-            }
-
+            """Calculate complexity scores using NVIDIA's official formula."""
             complexity_scores = []
-            for i, task_type in enumerate(task_types):
-                weights = task_type_weights.get(task_type, [0.3, 0.3, 0.2, 0.1, 0.1])
+            for i in range(len(task_types)):
+                # NVIDIA formula: 0.35*Creativity + 0.25*Reasoning + 0.15*Constraint + 0.15*DomainKnowledge + 0.05*ContextualKnowledge + 0.05*NumberOfFewShots
                 score = round(
-                    weights[0] * results.get("creativity_scope", [])[i]
-                    + weights[1] * results.get("reasoning", [])[i]
-                    + weights[2] * results.get("constraint_ct", [])[i]
-                    + weights[3] * results.get("domain_knowledge", [])[i]
-                    + weights[4] * results.get("contextual_knowledge", [])[i],
+                    0.35 * results.get("creativity_scope", [])[i]
+                    + 0.25 * results.get("reasoning", [])[i]
+                    + 0.15 * results.get("constraint_ct", [])[i]
+                    + 0.15 * results.get("domain_knowledge", [])[i]
+                    + 0.05 * results.get("contextual_knowledge", [])[i]
+                    + 0.05 * results.get("number_of_few_shots", [])[i],
                     5,
                 )
                 complexity_scores.append(score)

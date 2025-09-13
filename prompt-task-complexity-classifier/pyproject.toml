@@ -5,7 +5,7 @@
 name = "prompt-task-complexity-classifier"
 version = "1.0.0"
 description = "NVIDIA prompt task complexity classifier with Modal GPU deployment"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.11,<4.0"
 dependencies = [
   # Core Modal deployment dependencies
   "modal>=0.63.0",

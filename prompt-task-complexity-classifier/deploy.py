@@ -149,6 +149,54 @@ class PromptTaskComplexityClassifier:
         print(f"✅ Classification complete for {len(prompts)} prompts")
         return results
 
+    @modal.method()
+    def classify_single(self, prompt: str) -> Dict[str, Any]:
+        """Classify a single prompt and return individual result."""
+        # Use existing classify method with single prompt
+        batch_result = self.classify([prompt])
+
+        # Extract single result from batch (index 0)
+        single_result = {
+            "task_type_1": batch_result["task_type_1"][0],
+            "task_type_2": batch_result["task_type_2"][0],
+            "task_type_prob": batch_result["task_type_prob"][0],
+            "creativity_scope": batch_result["creativity_scope"][0],
+            "reasoning": batch_result["reasoning"][0],
+            "contextual_knowledge": batch_result["contextual_knowledge"][0],
+            "prompt_complexity_score": batch_result["prompt_complexity_score"][0],
+            "domain_knowledge": batch_result["domain_knowledge"][0],
+            "number_of_few_shots": batch_result["number_of_few_shots"][0],
+            "no_label_reason": batch_result["no_label_reason"][0],
+            "constraint_ct": batch_result["constraint_ct"][0],
+        }
+        return single_result
+
+    @modal.method()
+    def classify_batch(self, prompts: List[str]) -> List[Dict[str, Any]]:
+        """Classify a batch of prompts and return list of individual results."""
+        # Use existing classify method
+        batch_result = self.classify(prompts)
+
+        # Convert batch result to list of individual results
+        individual_results = []
+        for i in range(len(prompts)):
+            individual_result = {
+                "task_type_1": batch_result["task_type_1"][i],
+                "task_type_2": batch_result["task_type_2"][i],
+                "task_type_prob": batch_result["task_type_prob"][i],
+                "creativity_scope": batch_result["creativity_scope"][i],
+                "reasoning": batch_result["reasoning"][i],
+                "contextual_knowledge": batch_result["contextual_knowledge"][i],
+                "prompt_complexity_score": batch_result["prompt_complexity_score"][i],
+                "domain_knowledge": batch_result["domain_knowledge"][i],
+                "number_of_few_shots": batch_result["number_of_few_shots"][i],
+                "no_label_reason": batch_result["no_label_reason"][i],
+                "constraint_ct": batch_result["constraint_ct"][i],
+            }
+            individual_results.append(individual_result)
+
+        return individual_results
+
 
 # ============================================================================
 # FASTAPI WEB INTERFACE
@@ -169,6 +217,7 @@ def serve() -> "FastAPI":
     from fastapi import Depends, FastAPI, HTTPException, status
     from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
     from pydantic import BaseModel, Field
+    from typing import Annotated
     import jwt
 
     app = FastAPI(
@@ -180,45 +229,35 @@ def serve() -> "FastAPI":
 
     # Pydantic models
     class ClassificationResult(BaseModel):
-        """Classification results with task types and complexity metrics."""
+        """Classification result for a single prompt."""
 
-        task_type_1: List[str] = Field(description="Primary task type for each prompt")
-        task_type_2: List[str] = Field(
-            description="Secondary task type for each prompt"
+        task_type_1: str = Field(description="Primary task type")
+        task_type_2: str = Field(description="Secondary task type")
+        task_type_prob: float = Field(
+            description="Confidence score for primary task type"
         )
-        task_type_prob: List[float] = Field(
-            description="Confidence scores for primary task types"
-        )
-        creativity_scope: List[float] = Field(
-            description="Creativity level required (0-1)"
-        )
-        reasoning: List[float] = Field(
-            description="Reasoning complexity required (0-1)"
-        )
-        contextual_knowledge: List[float] = Field(
+        creativity_scope: float = Field(description="Creativity level required (0-1)")
+        reasoning: float = Field(description="Reasoning complexity required (0-1)")
+        contextual_knowledge: float = Field(
             description="Context knowledge requirement (0-1)"
         )
-        prompt_complexity_score: List[float] = Field(
+        prompt_complexity_score: float = Field(
             description="Overall prompt complexity (0-1)"
         )
-        domain_knowledge: List[float] = Field(
+        domain_knowledge: float = Field(
             description="Domain-specific knowledge requirement (0-1)"
         )
-        number_of_few_shots: List[int] = Field(
-            description="Few-shot learning requirement"
-        )
-        no_label_reason: List[float] = Field(
+        number_of_few_shots: float = Field(description="Few-shot learning requirement")
+        no_label_reason: float = Field(
             description="Confidence in classification accuracy (0-1)"
         )
-        constraint_ct: List[float] = Field(
-            description="Constraint complexity detected (0-1)"
-        )
+        constraint_ct: float = Field(description="Constraint complexity detected (0-1)")
 
     class ClassifyRequest(BaseModel):
         """Request model for batch prompt classification."""
 
-        prompts: List[str] = Field(
-            description="List of prompts to classify", min_length=1, max_length=100
+        prompts: Annotated[List[str], Field(min_length=1, max_length=100)] = Field(
+            description="List of prompts to classify"
         )
 
     class SingleClassifyRequest(BaseModel):
@@ -264,10 +303,10 @@ def serve() -> "FastAPI":
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed"
             )
 
-    @app.post("/classify", response_model=ClassificationResult)
+    @app.post("/classify", response_model=List[ClassificationResult])
     def classify_prompts(
         request: ClassifyRequest, user: str = Depends(verify_jwt_token)
-    ) -> ClassificationResult:
+    ) -> List[ClassificationResult]:
         """Classify batch of prompts."""
         print(
             f"Classification request from user: {user}, prompts: {len(request.prompts)}"
@@ -275,9 +314,9 @@ def serve() -> "FastAPI":
 
         try:
             classifier = PromptTaskComplexityClassifier()
-            result = classifier.classify.remote(request.prompts)
+            results = classifier.classify_batch.remote(request.prompts)
             print(f"Classification completed for {len(request.prompts)} prompts")
-            return ClassificationResult(**result)
+            return [ClassificationResult(**result) for result in results]
 
         except Exception as e:
             print(f"Classification failed: {e}")
@@ -295,7 +334,7 @@ def serve() -> "FastAPI":
 
         try:
             classifier = PromptTaskComplexityClassifier()
-            result = classifier.classify.remote([request.prompt])
+            result = classifier.classify_single.remote(request.prompt)
             print("Single prompt classification completed")
             return ClassificationResult(**result)
 

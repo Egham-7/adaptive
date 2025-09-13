@@ -157,13 +157,13 @@ async def predict(request: ModelSelectionRequest) -> ModelSelectionResponse:
 
         # Extract task type directly from classification
         task_type = (
-            classification.task_type_1[0] if classification.task_type_1 else "Other"
+            classification.task_type_1 if classification.task_type_1 else "Other"
         )
 
         # Extract task complexity
         task_complexity = (
-            classification.prompt_complexity_score[0]
-            if classification.prompt_complexity_score
+            classification.prompt_complexity_score
+            if classification.prompt_complexity_score is not None
             else 0.5
         )
 

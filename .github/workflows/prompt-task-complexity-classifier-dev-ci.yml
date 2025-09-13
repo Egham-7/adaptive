@@ -13,6 +13,10 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   PYTHON_VERSION: "3.11"
   WORKING_DIR: "./prompt-task-complexity-classifier"
@@ -35,10 +39,13 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --group default --group dev
 
       - name: Run type checking
         run: uv run mypy .
+
+      - name: Run tests
+        run: uv run pytest tests/unit
 
       - name: Run linting
         run: uv run ruff check . --output-format=github
