@@ -141,14 +141,21 @@ cpu=2                          # 2 CPUs for JSON processing
 
 ## Authentication
 
-All protected endpoints require JWT authentication:
+All protected endpoints require JWT authentication. Set up environment variables for secure usage:
 
 ```bash
-curl -X POST "https://your-modal-url/classify" \
-  -H "Authorization: Bearer your-jwt-token" \
+# IMPORTANT: These are placeholder values - DO NOT commit actual secrets to git
+export BASE_URL="https://your-modal-url"  # Replace with your actual Modal deployment URL
+export JWT_TOKEN="your-jwt-token"         # Replace with your actual JWT token
+
+# Example API request using environment variables
+curl -X POST "${BASE_URL}/classify" \
+  -H "Authorization: Bearer ${JWT_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"prompts": ["Hello world"]}'
 ```
+
+> **Security Note**: Never commit actual JWT tokens or API URLs to version control. Always use environment variables or secure credential management systems in production.
 
 ## Development
 
