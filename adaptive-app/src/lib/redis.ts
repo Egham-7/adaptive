@@ -10,6 +10,9 @@ const client =
 	globalForRedis.redis ??
 	createClient({
 		url: env.REDIS_URL,
+		socket: {
+			connectTimeout: 60000,
+		},
 	});
 
 if (env.NODE_ENV !== "production") globalForRedis.redis = client;

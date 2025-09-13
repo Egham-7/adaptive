@@ -6,58 +6,40 @@ authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<4.0"
 readme = "README.md"
 license = "MIT"
-keywords = [
-    "llm",
-    "ai",
-    "model-selection",
-    "machine-learning",
-    "adaptive",
-]
+keywords = ["llm", "ai", "model-selection", "machine-learning", "adaptive"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Typing :: Typed",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Typing :: Typed",
 ]
 dependencies = [
-    "numpy>=1.24.0,<3.0",
-    "scikit-learn>=1.7.0,<2",
-    "huggingface-hub>=0.32.0,<0.35",
-    "transformers>=4.52.4,<5",
-    "torch>=2.2.0,<2.9.0",
-    "litserve>=0.2.10,<0.3",
-    "pydantic>=2.11.5,<3",
-    "pydantic-settings>=2.9.1,<3",
-    "requests>=2.31.0,<3",
-    "pandas>=2.3.0,<3",
-    "tqdm>=4.67.1,<5",
-    "matplotlib>=3.7.0,<4",
-    "pyyaml>=6.0.2,<7",
-    "tiktoken>=0.9.0,<0.12",
-    "langchain>=0.3.26,<0.4",
-    "langchain-huggingface>=0.3.0,<0.4",
-    "sentence-transformers>=4.1.0,<6",
-    "langchain-core>=0.3.66,<0.4",
-    "protobuf>=6.31.1,<7",
-    "sentencepiece>=0.2.0,<0.3",
-    "accelerate>=1.8.1,<2",
-    "cachetools>=5.3.0,<7",
-    "openai>=1.97.1",
-    "pytest>=8.4.1",
-    "pytest-cov>=6.2.1",
-    "beautifulsoup4>=4.13.4",
-    "lxml>=6.0.0",
-    "langgraph>=0.2.68,<0.7",
-    "langchain-openai>=0.3.0,<0.4",
-    "langchain-anthropic>=0.3.0,<0.4",
-    "httpx>=0.25.0,<1.0",
-    "aiohttp>=3.8.0,<4.0",
-    "langchain-community>=0.3.27",
+  "fastapi>=0.104.0,<1.0",
+  "hypercorn>=0.17.0,<1.0",
+  "pydantic>=2.11.5,<3",
+  "pydantic-settings>=2.9.1,<3",
+  "requests>=2.31.0,<3",
+  "pyyaml>=6.0.2,<7",
+  "langchain>=0.3.26,<0.4",
+  "langchain-core>=0.3.66,<0.4",
+  "cachetools>=5.3.0,<7",
+  "openai>=1.97.1",
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+  "pytest-asyncio>=0.24.0",
+  "httpx>=0.25.0,<1.0",
+  "aiohttp>=3.8.0,<4.0",
+  "python-jose[cryptography]>=3.3.0,<4.0",
+  "types-pyyaml>=6.0.12.20250516",
+  "types-python-jose>=3.5.0.20250531",
+  "ruff>=0.11.13",
+  "black>=25.1.0",
+  "python-json-logger>=3.3.0",
 ]
 
 [project.urls]
@@ -67,28 +49,19 @@ Documentation = "https://docs.adaptive-ai.com"
 "Bug Tracker" = "https://github.com/your-org/adaptive-ai/issues"
 Changelog = "https://github.com/your-org/adaptive-ai/blob/main/CHANGELOG.md"
 
-[project.scripts]
-adaptive-ai = "adaptive_ai.main:main"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.15.0,<2",
-    "black>=25.1.0,<26",
-    "ruff>=0.11.11,<0.13",
-    "types-requests>=2.32.0.20250611,<3",
-    "pandas-stubs>=2.0.0,<3",
-    "types-tqdm>=4.67.0.20250516,<5",
-    "types-pyyaml>=6.0.12.20250516,<7",
-    "types-cachetools>=5.3.0,<7",
+  "mypy>=1.15.0,<2",
+  "black>=25.1.0,<26",
+  "ruff>=0.11.11,<0.13",
+  "types-requests>=2.32.0.20250611,<3",
+  "types-pyyaml>=6.0.12.20250516,<7",
+  "types-cachetools>=5.3.0,<7",
+  "types-python-jose>=3.5.0.20250531",
 ]
-test = [
-    "pytest>=8.4.1,<9",
-    "pytest-cov>=6.2.1,<7",
-]
-docs = [
-    "mkdocs>=1.5.0,<2",
-    "mkdocs-material>=9.0.0,<10",
-]
+test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<7"]
+docs = ["mkdocs>=1.5.0,<2", "mkdocs-material>=9.0.0,<10"]
 
 [tool.uv]
 default-groups = []
@@ -149,37 +122,35 @@ warn_return_any = true
 strict_equality = true
 show_error_codes = true
 follow_imports = "silent"
+# Exclude test files by default - tests can be checked separately  
 exclude = [
-    "benchmarks",
-    "analysis",
-    "adaptive-app",
-    "adaptive-backend", 
-    "adaptive-docs",
-    "model_data/agent",
-    "model_data/update_from_helicone.py"
+  "tests/",
+  "benchmarks",
+  "analysis",
+  "adaptive-app",
+  "adaptive-backend",
+  "adaptive-docs",
+  "model_data/agent",
+  "model_data/update_from_helicone.py",
 ]
 
 [[tool.mypy.overrides]]
 module = [
-  "litserve.*",
-  "torch.*",
-  "transformers.*",
-  "huggingface_hub.*",
-  "sklearn.*",
   "pydantic.*",
   "pydantic_settings.*",
-  "numpy.*",
   "langchain_core.*",
-  "tiktoken.*",
-  "sentence_transformers.*",
-  "accelerate.*",
+  "hypercorn.*",
+  "fastapi.*",
+  "httpx.*",
+  "pythonjsonlogger.*",
 ]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [
-    "integration: marks tests as integration tests (requiring running service)",
-    "unit: marks tests as unit tests (no external dependencies)",
+  "integration: marks tests as integration tests (requiring running service)",
+  "unit: marks tests as unit tests (no external dependencies)",
+  "asyncio: marks tests as async tests",
 ]
 addopts = "-v --strict-markers"
 

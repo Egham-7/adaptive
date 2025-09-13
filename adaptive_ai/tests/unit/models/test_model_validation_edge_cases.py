@@ -1,5 +1,6 @@
 """Enhanced model validation tests for comprehensive edge case coverage."""
 
+from pydantic import ValidationError
 import pytest
 
 from adaptive_ai.models.llm_core_models import (
@@ -8,7 +9,6 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_ai.models.llm_enums import TaskType
 
 
 class TestModelCapabilityValidation:
@@ -71,8 +71,8 @@ class TestModelCapabilityValidation:
     def test_task_type_flexibility(self):
         """Test task type accepts both enum and string values."""
         # Enum value
-        model = ModelCapability(task_type=TaskType.CODE_GENERATION)
-        assert model.task_type == TaskType.CODE_GENERATION
+        model = ModelCapability(task_type="Code Generation")
+        assert model.task_type == "Code Generation"
 
         # String value
         model = ModelCapability(task_type="custom_task")
@@ -122,13 +122,13 @@ class TestModelSelectionRequestValidation:
         ModelSelectionRequest(prompt="Hello world")
         ModelSelectionRequest(prompt="A" * 10000)  # Very long prompt
 
-        # Empty prompt is actually allowed in current model
-        request = ModelSelectionRequest(prompt="")
-        assert request.prompt == ""
+        # Empty prompt should raise ValidationError
+        with pytest.raises(ValidationError):
+            ModelSelectionRequest(prompt="")
 
-        # Whitespace-only prompt is also allowed
-        request = ModelSelectionRequest(prompt="   ")
-        assert request.prompt == "   "
+        # Whitespace-only prompt should raise ValidationError
+        with pytest.raises(ValidationError):
+            ModelSelectionRequest(prompt="   ")
 
     def test_cost_bias_edge_cases(self):
         """Test cost bias validation edge cases."""
@@ -137,13 +137,12 @@ class TestModelSelectionRequestValidation:
         ModelSelectionRequest(prompt="test", cost_bias=1.0)
         ModelSelectionRequest(prompt="test", cost_bias=0.5)
 
-        # Currently no validation constraints on cost_bias
-        # Values outside 0-1 range are allowed by the model
-        request = ModelSelectionRequest(prompt="test", cost_bias=-0.1)
-        assert request.cost_bias == -0.1
+        # Values outside 0-1 range should raise ValidationError
+        with pytest.raises(ValidationError):
+            ModelSelectionRequest(prompt="test", cost_bias=-0.1)
 
-        request = ModelSelectionRequest(prompt="test", cost_bias=1.1)
-        assert request.cost_bias == 1.1
+        with pytest.raises(ValidationError):
+            ModelSelectionRequest(prompt="test", cost_bias=1.1)
 
         # None is valid (default behavior)
         request = ModelSelectionRequest(prompt="test", cost_bias=None)
@@ -218,13 +217,13 @@ class TestModelSelectionResponseValidation:
         assert response.model == "gpt-4"
         assert response.alternatives == []
 
-        # Empty provider is allowed by current model
-        response = ModelSelectionResponse(provider="", model="gpt-4", alternatives=[])
-        assert response.provider == ""
+        # Empty provider should raise ValidationError
+        with pytest.raises(ValidationError):
+            ModelSelectionResponse(provider="", model="gpt-4", alternatives=[])
 
-        # Empty model is allowed by current model
-        response = ModelSelectionResponse(provider="openai", model="", alternatives=[])
-        assert response.model == ""
+        # Empty model should raise ValidationError
+        with pytest.raises(ValidationError):
+            ModelSelectionResponse(provider="openai", model="", alternatives=[])
 
     def test_alternatives_validation(self):
         """Test alternatives list validation."""
@@ -265,20 +264,20 @@ class TestAlternativeValidation:
         assert alt.provider == "anthropic"
         assert alt.model == "claude-3-haiku"
 
-        # Empty provider is allowed by current model
-        alt = Alternative(provider="", model="gpt-4")
-        assert alt.provider == ""
+        # Empty provider should raise ValidationError
+        with pytest.raises(ValidationError):
+            Alternative(provider="", model="gpt-4")
 
-        # Empty model is allowed by current model
-        alt = Alternative(provider="openai", model="")
-        assert alt.model == ""
+        # Empty model should raise ValidationError
+        with pytest.raises(ValidationError):
+            Alternative(provider="openai", model="")
 
-        # Whitespace-only fields are allowed by current model
-        alt = Alternative(provider="   ", model="gpt-4")
-        assert alt.provider == "   "
+        # Whitespace-only fields should raise ValidationError
+        with pytest.raises(ValidationError):
+            Alternative(provider="   ", model="gpt-4")
 
-        alt = Alternative(provider="openai", model="   ")
-        assert alt.model == "   "
+        with pytest.raises(ValidationError):
+            Alternative(provider="openai", model="   ")
 
     def test_alternative_edge_cases(self):
         """Test Alternative edge cases."""
@@ -309,7 +308,7 @@ class TestModelSerializationEdgeCases:
         assert restored.model_name is None
 
         # Model with enum task type
-        model = ModelCapability(task_type=TaskType.CODE_GENERATION)
+        model = ModelCapability(task_type="Code Generation")
         data = model.model_dump()
         restored = ModelCapability(**data)
         assert restored.task_type == "Code Generation"  # Serialized as string

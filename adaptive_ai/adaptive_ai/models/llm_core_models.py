@@ -1,12 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
-
-from .llm_enums import TaskType
-
-# =============================================================================
-# Model Capability & Configuration Models
-# =============================================================================
+from pydantic import BaseModel, Field, field_validator
 
 
 class ModelCapability(BaseModel):
@@ -23,7 +17,7 @@ class ModelCapability(BaseModel):
     supports_function_calling: bool | None = None
 
     # Task info
-    task_type: TaskType | str | None = None
+    task_type: str | None = None
     complexity: str | None = None  # "easy", "medium", "hard"
 
     # Metadata
@@ -96,10 +90,38 @@ class ModelSelectionRequest(BaseModel):
     complexity_threshold: float | None = None
     token_threshold: int | None = None
 
+    @field_validator("prompt")
+    @classmethod
+    def validate_prompt(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Prompt cannot be empty or whitespace only")
+        return v.strip()
+
+    @field_validator("cost_bias")
+    @classmethod
+    def validate_cost_bias(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0.0 or v > 1.0):
+            raise ValueError("Cost bias must be between 0.0 and 1.0")
+        return v
+
 
 class Alternative(BaseModel):
     provider: str
     model: str
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Provider cannot be empty or whitespace only")
+        return v.strip()
+
+    @field_validator("model")
+    @classmethod
+    def validate_model(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Model cannot be empty or whitespace only")
+        return v.strip()
 
 
 class ModelSelectionResponse(BaseModel):
@@ -108,3 +130,17 @@ class ModelSelectionResponse(BaseModel):
     provider: str
     model: str
     alternatives: list[Alternative]
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Provider cannot be empty or whitespace only")
+        return v.strip()
+
+    @field_validator("model")
+    @classmethod
+    def validate_model(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Model cannot be empty or whitespace only")
+        return v.strip()

@@ -1,301 +1,310 @@
-"""Main LitServe API for intelligent model selection and routing.
+"""FastAPI application for intelligent model selection and routing.
 
-This module provides the main entry point for the adaptive_ai service, implementing
-a LitServe-based API that handles model selection requests with ML-driven classification
-and intelligent routing.
+This module provides a FastAPI-based API that handles model selection requests with
+ML-driven classification and intelligent routing via Modal service integration.
 
 Key Components:
-- ModelRouterAPI: Main LitServe API class for handling requests
-- ConsoleLogger: Simple console logging for LitServe operations
-- Model classification and complexity analysis
+- FastAPI application with async endpoints
+- Model classification and complexity analysis via Modal
 - Intelligent model selection with cost optimization
+- Health check endpoints
 
 Architecture Flow:
 1. Receive ModelSelectionRequest with prompt and preferences
-2. Classify prompt using ML models (task type, complexity, etc.)
+2. Classify prompt using Modal API (task type, complexity, etc.)
 3. Route to optimal model based on classification and cost bias
 4. Return ModelSelectionResponse with selected model and alternatives
 """
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from contextvars import ContextVar
 import logging
 import sys
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
+import uuid
 
-import litserve as ls
+if TYPE_CHECKING:
+    from adaptive_ai.services.prompt_classifier import PromptClassifier
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pythonjsonlogger import jsonlogger
 
 from adaptive_ai.core.config import get_settings
-from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import (
     Alternative,
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_ai.models.llm_enums import TaskType
+from adaptive_ai.services.model_registry import model_registry
 from adaptive_ai.services.model_router import ModelRouter
 from adaptive_ai.services.prompt_classifier import get_prompt_classifier
 
-# No custom exceptions needed - using built-in ValueError
+logger = logging.getLogger(__name__)
+
+# Context variable for request correlation
+request_id_context: ContextVar[str] = ContextVar("request_id", default="")
 
 
 def setup_logging() -> None:
-    """Configure logging for the application."""
+    """Configure structured JSON logging for the application."""
     settings = get_settings()
 
-    # Configure root logger
-    logging.basicConfig(
-        level=getattr(logging, settings.logging.level.upper(), logging.INFO),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-        ],
+    # Create JSON formatter with request correlation
+    class RequestCorrelationFormatter(jsonlogger.JsonFormatter):
+        def add_fields(
+            self,
+            log_record: dict[str, Any],
+            record: logging.LogRecord,
+            message_dict: dict[str, Any],
+        ) -> None:
+            super().add_fields(log_record, record, message_dict)
+
+            # Add request correlation ID if available
+            request_id = request_id_context.get("")
+            if request_id:
+                log_record["request_id"] = request_id
+
+            # Add standard fields
+            log_record["timestamp"] = record.created
+            log_record["service"] = "adaptive_ai"
+
+    # Configure JSON formatter
+    json_formatter = RequestCorrelationFormatter(
+        "%(timestamp)s %(name)s %(levelname)s %(message)s"
     )
+
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(getattr(logging, settings.logging.level.upper(), logging.INFO))
+
+    # Remove any existing handlers
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
+    # Add JSON handler
+    json_handler = logging.StreamHandler(sys.stdout)
+    json_handler.setFormatter(json_formatter)
+    root_logger.addHandler(json_handler)
 
     # Set specific loggers
     logger = logging.getLogger(__name__)
     logger.info(
-        "Adaptive AI service starting with log level: %s", settings.logging.level
+        "Adaptive AI service starting with structured JSON logging",
+        extra={"log_level": settings.logging.level},
     )
 
     # Suppress noisy third-party loggers
-    logging.getLogger("transformers").setLevel(logging.WARNING)
-    logging.getLogger("torch").setLevel(logging.WARNING)
-    logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("hypercorn.access").setLevel(logging.WARNING)
 
 
-logger = logging.getLogger(__name__)
+# Global components initialized on startup
+prompt_classifier: "PromptClassifier | None" = None
+model_router: ModelRouter | None = None
 
 
-class ConsoleLogger(ls.Logger):
-    """Simple console logger for LitServe."""
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manage application lifespan events."""
+    global prompt_classifier, model_router
 
-    def process(self, key: str, value: Any) -> None:
-        print(f"[LitServe] {key}: {value}", flush=True)
+    # Startup
+    setup_logging()
+    logger.info("Initializing Adaptive AI services...")
+
+    # Initialize services
+    prompt_classifier = get_prompt_classifier()
+    model_router = ModelRouter(model_registry)
+
+    logger.info("Adaptive AI services initialized successfully")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down Adaptive AI services...")
+
+    # Close the prompt classifier's AsyncClient to prevent socket leaks
+    if prompt_classifier:
+        try:
+            await prompt_classifier.aclose()
+            logger.info("Prompt classifier AsyncClient closed successfully")
+        except Exception as e:
+            logger.error(
+                "Failed to close prompt classifier AsyncClient",
+                extra={"error": str(e), "error_type": type(e).__name__},
+            )
 
 
-class ModelRouterAPI(ls.LitAPI):
-    """LitServe API for intelligent model selection and routing.
+# Create FastAPI app instance
+app = FastAPI(
+    title="Adaptive AI - Model Selection Service",
+    description="Intelligent model selection and routing with ML-driven classification",
+    version="0.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
 
-    This class implements the main API interface for the adaptive_ai service.
-    It processes batches of model selection requests using ML-driven prompt
-    classification and intelligent routing algorithms.
+# Add CORS middleware with secure configuration
+settings = get_settings()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors.allowed_origins,
+    allow_credentials=settings.cors.allow_credentials,
+    allow_methods=settings.cors.allow_methods,
+    allow_headers=settings.cors.allow_headers,
+)
 
-    Request Processing Flow:
-    1. decode_request: Parse and validate incoming JSON requests
-    2. predict: Batch process requests with ML classification and routing
-    3. encode_response: Serialize responses back to JSON
 
-    Key Features:
-    - Batch processing for optimal GPU utilization
-    - ML-based prompt classification (task type, complexity)
-    - Intelligent model selection with cost optimization
-    - Comprehensive logging and metrics
-    - Error handling with graceful fallbacks
+@app.middleware("http")
+async def request_correlation_middleware(request: Request, call_next: Any) -> Any:
+    """Middleware to handle request correlation via X-Request-ID header."""
+    # Get or generate request ID
+    request_id = request.headers.get("X-Request-ID")
+    if not request_id:
+        request_id = str(uuid.uuid4())
 
-    Attributes:
-        settings: Application configuration from environment
-        tokenizer: Tiktoken tokenizer for token counting
-        prompt_classifier: ML model for prompt analysis
-        model_router: Intelligent routing engine
+    # Set request ID in context
+    token = request_id_context.set(request_id)
 
-    Example Request:
-    ```json
-    {
-        "prompt": "Write a Python function to sort a list",
-        "user_id": "user123",
-        "cost_bias": 0.7,
-        "complexity_threshold": 0.6
-    }
-    ```
+    try:
+        # Process the request
+        response = await call_next(request)
 
-    Example Response:
-    ```json
-    {
-        "provider": "openai",
-        "model": "gpt-4",
-        "alternatives": [
-            {"provider": "anthropic", "model": "claude-3-haiku"}
-        ]
-    }
-    ```
-    """
+        # Add request ID to response headers for client correlation
+        response.headers["X-Request-ID"] = request_id
 
-    def setup(self, device: str) -> None:
-        """Initialize classifiers and router components.
+        return response
+    finally:
+        # Clean up context
+        request_id_context.reset(token)
 
-        Args:
-            device: Device to run models on (auto-detected by LitServe)
-        """
-        self.settings = get_settings()
 
-        # Initialize ML components
-        self.prompt_classifier = get_prompt_classifier(lit_logger=self)
-        self.model_router = ModelRouter(lit_logger=self)
-
-    def decode_request(self, request: ModelSelectionRequest) -> ModelSelectionRequest:
-        """Decode and normalize incoming request."""
-        # Don't validate here - handle in predict where we can return proper errors
-        return request
-
-    def predict(
-        self, requests: list[ModelSelectionRequest]
-    ) -> list[ModelSelectionResponse | dict[str, Any]]:
-        """Process batch of model selection requests."""
-        if not requests:
-            return []
-
-        prompts = [req.prompt for req in requests]
-
-        # Run classifications
-        classification_results = self._classify_prompts(prompts)
-
-        # Process each request
-        responses: list[ModelSelectionResponse | dict[str, Any]] = []
-        for req, classification in zip(requests, classification_results, strict=False):
-            try:
-                response = self._process_request(req, classification)
-                responses.append(response)
-            except ValueError as e:
-                # LitServe limitation: Cannot return custom HTTP status codes
-                # Workaround: Include error details in the response body
-                error_response: dict[str, Any] = {
-                    "error": type(e).__name__,
-                    "message": str(e),
-                    "provider": None,
-                    "model": None,
-                    "alternatives": [],
-                }
-                responses.append(error_response)
-
-        self.log("predict_completed", {"batch_size": len(responses)})
-        return responses
-
-    def _classify_prompts(self, prompts: list[str]) -> list[ClassificationResult]:
-        """Classify prompts for task types."""
-        start_time = time.perf_counter()
-        results = self.prompt_classifier.classify_prompts(prompts)
-        elapsed = time.perf_counter() - start_time
-        self.log("task_classification_time", elapsed)
-        return results
-
-    def _convert_to_task_type(self, task_type_str: str | None) -> TaskType:
-        """Convert string task type to TaskType enum."""
-        if not task_type_str:
-            return TaskType.OTHER
-
-        # Try to find matching TaskType enum value
-        for task_type in TaskType:
-            if task_type.value == task_type_str:
-                return task_type
-
-        # Fallback to OTHER if no match found
-        return TaskType.OTHER
-
-    def _process_request(
-        self,
-        request: ModelSelectionRequest,
-        classification: ClassificationResult,
-    ) -> ModelSelectionResponse:
-        """Process a single model selection request."""
-        # Extract parameters
-        task_type_str = (
-            classification.task_type_1[0] if classification.task_type_1 else None
+@app.get("/health")
+async def health_check() -> dict[str, Any]:
+    """Health check endpoint."""
+    try:
+        # Check Modal service health using async method
+        modal_health = (
+            await prompt_classifier.health_check_async()
+            if prompt_classifier
+            else {"status": "not_initialized"}
         )
-        task_type = self._convert_to_task_type(task_type_str)
-        models_input = request.models
-        cost_bias = request.cost_bias
 
-        # Select models
+        return {
+            "status": "healthy",
+            "service": "adaptive_ai",
+            "modal_service": modal_health,
+            "timestamp": time.time(),
+        }
+    except Exception as e:
+        logger.error(
+            "Health check failed",
+            extra={"error": str(e), "error_type": type(e).__name__},
+        )
+        raise HTTPException(status_code=503, detail=f"Service unhealthy: {e!s}") from e
+
+
+@app.post("/predict", response_model=ModelSelectionResponse)
+async def predict(request: ModelSelectionRequest) -> ModelSelectionResponse:
+    """Process model selection request with intelligent routing.
+
+    This endpoint handles the core functionality of analyzing prompts and
+    selecting optimal models based on ML classification and cost optimization.
+    """
+    try:
+        logger.info(
+            "Processing model selection request",
+            extra={
+                "prompt_length": len(request.prompt),
+                "cost_bias": request.cost_bias,
+                "models_count": len(request.models) if request.models else 0,
+            },
+        )
+
+        # Classify prompt using Modal API
         start_time = time.perf_counter()
+        if prompt_classifier is None:
+            raise RuntimeError("Prompt classifier not initialized")
+
+        classification = await prompt_classifier.classify_prompt_async(request.prompt)
+        elapsed = time.perf_counter() - start_time
+        logger.info(
+            "Modal classification completed",
+            extra={
+                "classification_time_ms": round(elapsed * 1000, 2),
+                "task_type": classification.task_type_1,
+                "complexity_score": classification.prompt_complexity_score,
+            },
+        )
+
+        # Extract task type directly from classification
+        task_type = (
+            classification.task_type_1 if classification.task_type_1 else "Other"
+        )
+
+        # Extract task complexity
         task_complexity = (
-            classification.prompt_complexity_score[0]
-            if classification.prompt_complexity_score
+            classification.prompt_complexity_score
+            if classification.prompt_complexity_score is not None
             else 0.5
         )
 
-        selected_models = self.model_router.select_models(
-            task_complexity=task_complexity,
-            task_type=task_type,
-            models_input=models_input,
-            cost_bias=cost_bias or 0.5,  # Handle None case
+        # Select models
+        if model_router is None:
+            raise RuntimeError("Model router not initialized")
+
+        selected_models = model_router.select_models(
+            task_complexity,
+            task_type,
+            request.models,
+            request.cost_bias if request.cost_bias is not None else 0.5,
         )
 
-        elapsed = time.perf_counter() - start_time
-        self.log("model_selection_time", elapsed)
-
         if not selected_models:
-            # This should not happen with proper error handling above, but keep as fallback
             raise ValueError("No eligible models found")
 
         # Build response
         best_model = selected_models[0]
-
-        # Ensure we have valid provider and model names
-        if not best_model.provider:
-            raise ValueError("Selected model missing provider")
-        if not best_model.model_name:
-            raise ValueError("Selected model missing model_name")
+        if not best_model.provider or not best_model.model_name:
+            raise ValueError("Selected model missing provider or model_name")
 
         alternatives = [
             Alternative(provider=alt.provider, model=alt.model_name)
             for alt in selected_models[1:]
-            if alt.provider
-            and alt.model_name  # Skip alternatives with missing provider/model
+            if alt.provider and alt.model_name
         ]
 
+        logger.info(
+            "Model selection request completed successfully",
+            extra={
+                "selected_provider": best_model.provider,
+                "selected_model": best_model.model_name,
+                "alternatives_count": len(alternatives),
+                "task_type": task_type,
+                "task_complexity": task_complexity,
+            },
+        )
         return ModelSelectionResponse(
             provider=best_model.provider,
             model=best_model.model_name,
             alternatives=alternatives,
         )
 
-
-def create_app() -> ls.LitServer:
-    """Create and configure LitServer application."""
-    settings = get_settings()
-
-    api = ModelRouterAPI(
-        max_batch_size=settings.litserve.max_batch_size,
-        batch_timeout=settings.litserve.batch_timeout,
-    )
-
-    return ls.LitServer(
-        api,
-        accelerator=settings.litserve.accelerator,
-        devices=settings.litserve.devices,
-        loggers=[ConsoleLogger()],
-    )
-
-
-def main() -> None:
-    """Run the LitServe application with proper logging setup."""
-    # Setup logging first
-    setup_logging()
-
-    logger = logging.getLogger(__name__)
-    logger.info("Starting Adaptive AI Service")
-
-    try:
-        settings = get_settings()
-        app = create_app()
-
-        logger.info(
-            "Starting server on %s:%d with %s accelerator",
-            settings.server.host,
-            settings.server.port,
-            settings.litserve.accelerator,
+    except ValueError as e:
+        logger.error(
+            "Validation error in model selection",
+            extra={"error": str(e), "error_type": "ValidationError"},
         )
-
-        app.run(
-            generate_client_file=False,
-            host=settings.server.host,
-            port=settings.server.port,
-        )
-
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        logger.exception("Failed to start Adaptive AI Service: %s", e)
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
+        logger.error(
+            "Model selection failed",
+            extra={"error": str(e), "error_type": type(e).__name__},
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Internal server error: {e!s}"
+        ) from e

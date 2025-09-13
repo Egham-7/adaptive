@@ -6,7 +6,6 @@ import pytest
 
 from adaptive_ai.models.llm_classification_models import ClassificationResult
 from adaptive_ai.models.llm_core_models import ModelCapability
-from adaptive_ai.models.llm_enums import TaskType
 
 
 @pytest.fixture
@@ -41,30 +40,34 @@ def mock_prompt_classifier():
     classifier = Mock()
     classifier.classify_prompts.return_value = [
         ClassificationResult(
-            task_type_1=["code"],
-            task_type_2=["generation"],
-            task_type_prob=[0.85],
-            creativity_scope=[0.4],
-            reasoning=[0.8],
-            contextual_knowledge=[0.6],
-            prompt_complexity_score=[0.75],
-            domain_knowledge=[0.5],
-            number_of_few_shots=[0],
-            no_label_reason=[0.9],
-            constraint_ct=[0.3],
+            # Required fields
+            task_type_1="code",
+            prompt_complexity_score=0.75,
+            # Optional fields
+            task_type_2="generation",
+            task_type_prob=0.85,
+            creativity_scope=0.4,
+            reasoning=0.8,
+            contextual_knowledge=0.6,
+            domain_knowledge=0.5,
+            number_of_few_shots=0.0,
+            no_label_reason=0.9,
+            constraint_ct=0.3,
         ),
         ClassificationResult(
-            task_type_1=["analysis"],
-            task_type_2=["problem_solving"],
-            task_type_prob=[0.72],
-            creativity_scope=[0.6],
-            reasoning=[0.9],
-            contextual_knowledge=[0.7],
-            prompt_complexity_score=[0.65],
-            domain_knowledge=[0.4],
-            number_of_few_shots=[0],
-            no_label_reason=[0.8],
-            constraint_ct=[0.2],
+            # Required fields
+            task_type_1="analysis",
+            prompt_complexity_score=0.65,
+            # Optional fields
+            task_type_2="problem_solving",
+            task_type_prob=0.72,
+            creativity_scope=0.6,
+            reasoning=0.9,
+            contextual_knowledge=0.7,
+            domain_knowledge=0.4,
+            number_of_few_shots=0.0,
+            no_label_reason=0.8,
+            constraint_ct=0.2,
         ),
     ]
     return classifier
@@ -82,7 +85,7 @@ def mock_model_router():
             cost_per_1m_output_tokens=60.0,
             max_context_tokens=128000,
             supports_function_calling=True,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
         ),
         ModelCapability(
             provider="anthropic",
@@ -91,7 +94,7 @@ def mock_model_router():
             cost_per_1m_output_tokens=75.0,
             max_context_tokens=200000,
             supports_function_calling=False,
-            task_type=TaskType.TEXT_GENERATION,
+            task_type="Text Generation",
         ),
     ]
     return router
@@ -103,12 +106,12 @@ def mock_model_registry():
     registry = Mock()
     registry.get_models_by_task.return_value = [
         ModelCapability(
-            provider="openai", model_name="gpt-4", task_type=TaskType.CODE_GENERATION
+            provider="openai", model_name="gpt-4", task_type="Code Generation"
         ),
         ModelCapability(
             provider="anthropic",
             model_name="claude-3-sonnet",
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
         ),
     ]
     registry.get_all_models.return_value = {

@@ -9,12 +9,10 @@ from .llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from .llm_enums import TaskType
 
 __all__ = [
     "Alternative",
     "ModelCapability",
     "ModelSelectionRequest",
     "ModelSelectionResponse",
-    "TaskType",
 ]
