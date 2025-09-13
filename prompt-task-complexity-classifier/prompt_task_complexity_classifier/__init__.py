@@ -6,11 +6,10 @@ for Modal deployment.
 Modules:
     - task_complexity_model: Complete ML model implementation with GPU acceleration
     - config: Configuration management
+    - models: Pydantic models for API requests and responses
 """
-
-from . import task_complexity_model, config
 
 __version__ = "1.0.0"
 
-# Export available components
-__all__ = ["task_complexity_model", "config"]
+# Export available components - use lazy imports to avoid dependency issues
+__all__ = ["task_complexity_model", "config", "models"]
