@@ -16,7 +16,7 @@ import time
 import pytest
 import requests
 
-from adaptive_ai.main import create_app
+from adaptive_ai.main import app
 
 
 @pytest.mark.integration
@@ -272,17 +272,15 @@ class TestAPIWithMocks:
 
     def test_api_startup_with_mocked_dependencies(self):
         """Test that API can start with mocked ML dependencies."""
-        # Test that app creation doesn't fail (dependencies are initialized in lifespan)
-        app = create_app()
+        # Test that app instance is available (dependencies are initialized in lifespan)
         assert app is not None
 
-        # App creation succeeds without calling dependencies
+        # App instance exists without calling dependencies
         # Dependencies are only initialized during lifespan startup
 
     def test_api_handles_classifier_errors(self):
         """Test API handles classifier errors during lifespan startup."""
-        # App creation itself doesn't initialize dependencies, so it shouldn't raise errors
-        app = create_app()
+        # App instance itself doesn't initialize dependencies, so it shouldn't raise errors
         assert app is not None
 
         # Error handling happens during lifespan startup, not app creation

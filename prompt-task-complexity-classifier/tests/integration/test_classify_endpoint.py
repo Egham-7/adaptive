@@ -5,6 +5,7 @@ import jwt
 import httpx
 import pytest
 from datetime import datetime, timedelta, timezone
+from typing import Dict, List
 
 # Configuration
 MODAL_URL = "https://egham-7--nvidia-prompt-classifier-serve.modal.run"
@@ -15,7 +16,7 @@ JWT_SECRET = (
 
 
 @pytest.fixture
-def auth_headers():
+def auth_headers() -> Dict[str, str]:
     """Generate JWT token and return headers"""
     payload = {
         "sub": "test_user",
@@ -23,12 +24,15 @@ def auth_headers():
         "iat": datetime.now(timezone.utc),
         "exp": datetime.now(timezone.utc) + timedelta(hours=1),
     }
-    token = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
-    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    token_bytes = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token_str = (
+        token_bytes.decode("utf-8") if isinstance(token_bytes, bytes) else token_bytes
+    )
+    return {"Authorization": f"Bearer {token_str}", "Content-Type": "application/json"}
 
 
 @pytest.fixture
-def test_prompts():
+def test_prompts() -> List[str]:
     """Test prompts for classification"""
     return [
         "Write a Python function to sort a list",
@@ -39,7 +43,9 @@ def test_prompts():
     ]
 
 
-def test_classify_endpoint(auth_headers, test_prompts):
+def test_classify_endpoint(
+    auth_headers: Dict[str, str], test_prompts: List[str]
+) -> None:
     """Test the /classify endpoint with various prompts"""
     data = {"prompts": test_prompts}
 
@@ -98,7 +104,7 @@ def test_classify_endpoint(auth_headers, test_prompts):
             ), f"prompt_complexity_score should be between 0 and 1, got {score}"
 
 
-def test_health_endpoint():
+def test_health_endpoint() -> None:
     """Test the /health endpoint"""
     with httpx.Client() as client:
         response = client.get(f"{MODAL_URL}/health")
@@ -110,7 +116,7 @@ def test_health_endpoint():
         assert result["service"] == "nvidia-prompt-classifier"
 
 
-def test_auth_required(test_prompts):
+def test_auth_required(test_prompts: List[str]) -> None:
     """Test that authentication is required for /classify"""
     data = {"prompts": test_prompts}
 
@@ -120,7 +126,7 @@ def test_auth_required(test_prompts):
         assert response.status_code == 403  # Forbidden without auth
 
 
-def test_invalid_auth(test_prompts):
+def test_invalid_auth(test_prompts: List[str]) -> None:
     """Test that invalid authentication is rejected"""
     data = {"prompts": test_prompts}
     headers = {
