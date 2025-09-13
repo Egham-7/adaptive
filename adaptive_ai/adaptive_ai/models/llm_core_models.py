@@ -95,7 +95,7 @@ class ModelSelectionRequest(BaseModel):
     def validate_prompt(cls, v: str) -> str:
         if not v or not v.strip():
             raise ValueError("Prompt cannot be empty or whitespace only")
-        return v
+        return v.strip()
 
     @field_validator("cost_bias")
     @classmethod

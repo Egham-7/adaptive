@@ -2,16 +2,20 @@
 Model registry service for validating model names across all providers.
 """
 
+import logging
+
 from adaptive_ai.models.llm_core_models import ModelCapability
 from adaptive_ai.services.yaml_model_loader import yaml_model_db
+
+logger = logging.getLogger(__name__)
 
 
 class ModelRegistry:
     """Service for validating and managing model availability across providers.
 
     This class provides core model lookup and filtering functionality.
-    Since yaml_model_loader was removed with Modal migration, this now contains
-    basic model definitions.
+    Model definitions are loaded from YAML files using the yaml_model_db.get_all_models()
+    function, which remains the canonical source for model metadata and capabilities.
     """
 
     def __init__(self) -> None:
@@ -28,7 +32,7 @@ class ModelRegistry:
             self._models.update(yaml_models)
         except Exception as e:
             # If YAML loading fails, log but continue with empty models
-            print(f"Warning: Could not load YAML models: {e}")
+            logger.warning("Could not load YAML models: %s", e)
 
     # Core model lookup methods
     def get_model_capability(self, unique_id: str) -> ModelCapability | None:
