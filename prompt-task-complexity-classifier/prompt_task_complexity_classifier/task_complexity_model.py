@@ -6,17 +6,17 @@ classification logic, and complexity scoring - extracted from the original
 working implementation.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Tuple, Any, Union
 
 
-def get_model_classes():
+def get_model_classes() -> Tuple[Any, Any, Any]:
     """Get all model classes with proper ML imports (only called inside Modal containers)."""
     # Import ALL ML dependencies inside the function for Modal compatibility
-    import numpy as np  # type: ignore
-    import torch  # type: ignore
-    import torch.nn as nn  # type: ignore
-    from huggingface_hub import PyTorchModelHubMixin  # type: ignore
-    from transformers import AutoModel  # type: ignore
+    import numpy as np
+    import torch
+    import torch.nn as nn
+    from huggingface_hub import PyTorchModelHubMixin
+    from transformers import AutoModel
 
     class MeanPooling(nn.Module):
         """Mean pooling layer for transformer outputs."""
@@ -75,7 +75,9 @@ def get_model_classes():
             )
             self.pool = MeanPooling()
 
-        def compute_results(self, preds: torch.Tensor, target: str, decimal: int = 4):
+        def compute_results(
+            self, preds: torch.Tensor, target: str, decimal: int = 4
+        ) -> Union[Tuple[List[str], List[str], List[float]], List[float]]:
             """Compute classification results for different target types."""
             if target == "task_type":
                 top2_indices = torch.topk(preds, k=2, dim=1).indices
@@ -113,9 +115,9 @@ def get_model_classes():
 
         def _extract_classification_results(
             self, logits: List[torch.Tensor]
-        ) -> Dict[str, List]:
+        ) -> Dict[str, Union[List[str], List[float]]]:
             """Extract classification results from model logits."""
-            result = {}
+            result: Dict[str, Union[List[str], List[float]]] = {}
             task_type_logits = logits[0]
             task_type_results = self.compute_results(
                 task_type_logits, target="task_type"
@@ -138,41 +140,91 @@ def get_model_classes():
             for target, target_logits in classifications:
                 target_results = self.compute_results(target_logits, target=target)
                 if isinstance(target_results, list):
-                    result[target] = target_results
+                    result[target] = target_results  # type: ignore[assignment]
 
             return result
 
         def _calculate_complexity_scores(
-            self, results: Dict[str, List], task_types: List[str]
+            self,
+            results: Dict[str, Union[List[str], List[float]]],
+            task_types: List[str],
         ) -> List[float]:
             """Calculate complexity scores using NVIDIA's official formula."""
             complexity_scores = []
             for i in range(len(task_types)):
+                # Get float values from results, with type checking
+                creativity = results.get("creativity_scope", [])
+                reasoning = results.get("reasoning", [])
+                constraint = results.get("constraint_ct", [])
+                domain = results.get("domain_knowledge", [])
+                contextual = results.get("contextual_knowledge", [])
+                few_shots = results.get("number_of_few_shots", [])
+
+                # Extract float values with type assertions
+                creativity_val = (
+                    float(creativity[i])
+                    if isinstance(creativity, list) and len(creativity) > i
+                    else 0.0
+                )
+                reasoning_val = (
+                    float(reasoning[i])
+                    if isinstance(reasoning, list) and len(reasoning) > i
+                    else 0.0
+                )
+                constraint_val = (
+                    float(constraint[i])
+                    if isinstance(constraint, list) and len(constraint) > i
+                    else 0.0
+                )
+                domain_val = (
+                    float(domain[i])
+                    if isinstance(domain, list) and len(domain) > i
+                    else 0.0
+                )
+                contextual_val = (
+                    float(contextual[i])
+                    if isinstance(contextual, list) and len(contextual) > i
+                    else 0.0
+                )
+                few_shots_val = (
+                    float(few_shots[i])
+                    if isinstance(few_shots, list) and len(few_shots) > i
+                    else 0.0
+                )
+
                 # NVIDIA formula: 0.35*Creativity + 0.25*Reasoning + 0.15*Constraint + 0.15*DomainKnowledge + 0.05*ContextualKnowledge + 0.05*NumberOfFewShots
                 score = round(
-                    0.35 * results.get("creativity_scope", [])[i]
-                    + 0.25 * results.get("reasoning", [])[i]
-                    + 0.15 * results.get("constraint_ct", [])[i]
-                    + 0.15 * results.get("domain_knowledge", [])[i]
-                    + 0.05 * results.get("contextual_knowledge", [])[i]
-                    + 0.05 * results.get("number_of_few_shots", [])[i],
+                    0.35 * creativity_val
+                    + 0.25 * reasoning_val
+                    + 0.15 * constraint_val
+                    + 0.15 * domain_val
+                    + 0.05 * contextual_val
+                    + 0.05 * few_shots_val,
                     5,
                 )
                 complexity_scores.append(score)
             return complexity_scores
 
-        def process_logits(self, logits: List[torch.Tensor]) -> Dict[str, List]:
+        def process_logits(
+            self, logits: List[torch.Tensor]
+        ) -> Dict[str, Union[List[str], List[float]]]:
             """Process model logits into final classification results."""
             batch_results = self._extract_classification_results(logits)
             if "task_type_1" in batch_results:
-                task_types = batch_results["task_type_1"]
-                complexity_scores = self._calculate_complexity_scores(
-                    batch_results, task_types
-                )
-                batch_results["prompt_complexity_score"] = complexity_scores
+                task_types_raw = batch_results["task_type_1"]
+                if isinstance(task_types_raw, list) and all(
+                    isinstance(t, str) for t in task_types_raw
+                ):
+                    task_types: List[str] = task_types_raw  # type: ignore[assignment]
+                    complexity_scores = self._calculate_complexity_scores(
+                        batch_results, task_types
+                    )
+                    batch_results["prompt_complexity_score"] = complexity_scores
             return batch_results
 
-        def forward(self, batch: Dict[str, torch.Tensor]) -> Dict[str, List]:
+        def forward(
+            self, batch: Dict[str, torch.Tensor]
+        ) -> Dict[str, Union[List[str], List[float]]]:
             """Complete forward pass with classification and complexity scoring."""
             input_ids = batch["input_ids"]
             attention_mask = batch["attention_mask"]
