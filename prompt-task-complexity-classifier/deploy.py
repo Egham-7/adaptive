@@ -122,8 +122,34 @@ class PromptTaskComplexityClassifier:
         print("✅ Prompt task complexity classifier ready!")
 
     @modal.method()
-    def classify(self, prompts: List[str]) -> Dict[str, List[Any]]:
-        """Classify a batch of prompts."""
+    def classify_single(self, prompt: str) -> Dict[str, Any]:
+        """Classify a single prompt and return individual result."""
+        print("🔍 Classifying single prompt...")
+
+        # Tokenize
+        encoded_texts = self.tokenizer(
+            [prompt],
+            padding=True,
+            truncation=True,
+            max_length=512,
+            return_tensors="pt",
+        )
+
+        # Move to GPU
+        if self.torch.cuda.is_available():
+            encoded_texts = {k: v.cuda() for k, v in encoded_texts.items()}
+
+        # Run inference
+        with self.torch.no_grad():
+            batch_result = self.model(encoded_texts)
+
+        print("✅ Single prompt classification complete")
+        # Extract single result from batch (index 0) using dict comprehension
+        return {key: values[0] for key, values in batch_result.items()}
+
+    @modal.method()
+    def classify_batch(self, prompts: List[str]) -> List[Dict[str, Any]]:
+        """Classify a batch of prompts and return list of individual results."""
         if not prompts:
             raise ValueError("No prompts provided")
 
@@ -144,26 +170,9 @@ class PromptTaskComplexityClassifier:
 
         # Run inference
         with self.torch.no_grad():
-            results = self.model(encoded_texts)
+            batch_result = self.model(encoded_texts)
 
         print(f"✅ Classification complete for {len(prompts)} prompts")
-        return results
-
-    @modal.method()
-    def classify_single(self, prompt: str) -> Dict[str, Any]:
-        """Classify a single prompt and return individual result."""
-        # Use existing classify method with single prompt
-        batch_result = self.classify([prompt])
-
-        # Extract single result from batch (index 0) using dict comprehension
-        return {key: values[0] for key, values in batch_result.items()}
-
-    @modal.method()
-    def classify_batch(self, prompts: List[str]) -> List[Dict[str, Any]]:
-        """Classify a batch of prompts and return list of individual results."""
-        # Use existing classify method
-        batch_result = self.classify(prompts)
-
         # Convert batch result to list of individual results using list comprehension
         return [
             {key: values[i] for key, values in batch_result.items()}
