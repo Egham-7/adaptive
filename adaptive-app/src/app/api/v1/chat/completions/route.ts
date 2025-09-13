@@ -135,6 +135,28 @@ export async function POST(req: NextRequest) {
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
 
+		// Helper functions for cleaner usage handling
+		const userRequestedUsage = body.stream_options?.include_usage === true;
+		const withUsageTracking = (requestBody: ChatCompletionRequest) => ({
+			...requestBody,
+			stream_options: {
+				...requestBody.stream_options,
+				include_usage: true,
+			},
+		});
+		const filterUsageFromCompletion = (
+			completion: ChatCompletion,
+			includeUsage: boolean,
+		): ChatCompletion =>
+			includeUsage ? completion : { ...completion, usage: undefined };
+		const filterUsageFromChunk = (
+			chunk: ChatCompletionChunk,
+			includeUsage: boolean,
+		): ChatCompletionChunk =>
+			includeUsage ? chunk : { ...chunk, usage: undefined };
+
+		const internalBody = withUsageTracking(body);
+
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 
 		// Create JWT token for backend authentication
@@ -164,12 +186,12 @@ export async function POST(req: NextRequest) {
 					try {
 						const stream = await openai.chat.completions.create(
 							{
-								...body,
+								...internalBody,
 								stream: true,
 							},
 							{
 								body: {
-									...body,
+									...internalBody,
 									stream: true,
 									provider_configs: providerConfigs,
 								},
@@ -183,8 +205,14 @@ export async function POST(req: NextRequest) {
 								finalCompletion = chunk as ChatCompletionChunk;
 							}
 
+							// Filter out usage data if user didn't request it
+							const responseChunk = filterUsageFromChunk(
+								chunk as ChatCompletionChunk,
+								userRequestedUsage,
+							);
+
 							// Convert chunk to SSE format and enqueue
-							const sseData = `data: ${JSON.stringify(chunk)}\n\n`;
+							const sseData = `data: ${JSON.stringify(responseChunk)}\n\n`;
 							controller.enqueue(encoder.encode(sseData));
 						}
 
@@ -267,9 +295,9 @@ export async function POST(req: NextRequest) {
 		const nonStreamStartTime = Date.now();
 
 		try {
-			const completion = (await openai.chat.completions.create(body, {
+			const completion = (await openai.chat.completions.create(internalBody, {
 				body: {
-					...body,
+					...internalBody,
 					provider_configs: providerConfigs,
 				},
 			})) as ChatCompletion;
@@ -297,7 +325,13 @@ export async function POST(req: NextRequest) {
 				});
 			}
 
-			return Response.json(completion);
+			// Filter out usage data from response if user didn't request it
+			const responseCompletion = filterUsageFromCompletion(
+				completion,
+				userRequestedUsage,
+			);
+
+			return Response.json(responseCompletion);
 		} catch (error) {
 			// Record error for non-streaming requests
 			queueMicrotask(async () => {

@@ -246,6 +246,27 @@ export async function POST(
 		}
 
 		const shouldStream = body.stream === true;
+
+		// Helper functions for cleaner usage handling
+		const userRequestedUsage = body.stream_options?.include_usage === true;
+		const withUsageTracking = (requestBody: ChatCompletionRequest) => ({
+			...requestBody,
+			stream_options: {
+				...requestBody.stream_options,
+				include_usage: true,
+			},
+		});
+		const filterUsageFromCompletion = (
+			completion: ChatCompletion,
+			includeUsage: boolean,
+		): ChatCompletion =>
+			includeUsage ? completion : { ...completion, usage: undefined };
+		const filterUsageFromChunk = (
+			chunk: ChatCompletionChunk,
+			includeUsage: boolean,
+		): ChatCompletionChunk =>
+			includeUsage ? chunk : { ...chunk, usage: undefined };
+
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 		const jwtToken = await createBackendJWT(apiKey);
 
@@ -254,9 +275,11 @@ export async function POST(
 			baseURL,
 		});
 
+		const internalBody = withUsageTracking(body);
+
 		// Build enhanced request with cluster config and real model data
 		const enhancedRequest = {
-			...body,
+			...internalBody,
 			user: name,
 			model_router: {
 				models: modelDetails,
@@ -314,8 +337,14 @@ export async function POST(
 								finalChunk = chunk as ChatCompletionChunk;
 							}
 
+							// Filter out usage data if user didn't request it
+							const responseChunk = filterUsageFromChunk(
+								chunk as ChatCompletionChunk,
+								userRequestedUsage,
+							);
+
 							// Convert chunk to SSE format and enqueue
-							const sseData = `data: ${JSON.stringify(chunk)}\n\n`;
+							const sseData = `data: ${JSON.stringify(responseChunk)}\n\n`;
 							controller.enqueue(new TextEncoder().encode(sseData));
 						}
 
@@ -424,7 +453,13 @@ export async function POST(
 				});
 			}
 
-			return Response.json(completion);
+			// Filter out usage data from response if user didn't request it
+			const responseCompletion = filterUsageFromCompletion(
+				completion,
+				userRequestedUsage,
+			);
+
+			return Response.json(responseCompletion);
 		} catch (error) {
 			queueMicrotask(async () => {
 				try {
