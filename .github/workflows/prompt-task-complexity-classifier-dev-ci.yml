@@ -57,7 +57,6 @@ jobs:
     name: Deploy to Dev Environment
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
-    needs: test
     environment: development
     defaults:
       run:
@@ -70,17 +69,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup uv and Python
-        uses: astral-sh/setup-uv@v6
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync
+      - name: Install deployment dependencies
+        run: |
+          pip install modal
 
       - name: Deploy to Dev
         run: |
           echo "🚀 Deploying Prompt Task Complexity Classifier to dev environment..."
-          uv run modal deploy deploy.py
+          modal deploy deploy.py
           echo "✅ Deployment to dev completed"
