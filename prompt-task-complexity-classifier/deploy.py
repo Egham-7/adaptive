@@ -323,7 +323,6 @@ def serve() -> "FastAPI":
         """Basic health check endpoint."""
         return {"status": "healthy", "service": "prompt-task-complexity-classifier"}
 
-
     # TODO: Implement /benchmark endpoint
     # Should return: latency measurements, throughput tests, timestamp results
 
