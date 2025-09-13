@@ -268,9 +268,9 @@ class ModelRouter:
 
         # Use cost as complexity proxy
         valid_costs = [
-            m.cost_per_1m_input_tokens or 0
+            m.cost_per_1m_input_tokens
             for m in models
-            if m.cost_per_1m_input_tokens
+            if m.cost_per_1m_input_tokens is not None
         ]
         max_cost = max(valid_costs) if valid_costs else self._DEFAULT_COST
 

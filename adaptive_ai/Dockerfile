@@ -61,7 +61,7 @@ RUN apt-get update && \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   && groupadd -r appuser \
-  && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+  && useradd -r -g appuser -d /app -s /usr/sbin/nologin appuser
 
 # Copy virtual environment and application from builder
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
