@@ -10,9 +10,15 @@ class ClassificationResult(BaseModel):
 
     task_type_1: str = Field(description="Primary task type")
     task_type_2: str = Field(description="Secondary task type")
-    task_type_prob: float = Field(description="Confidence score for primary task type", ge=0, le=1)
-    creativity_scope: float = Field(description="Creativity level required (0-1)", ge=0, le=1)
-    reasoning: float = Field(description="Reasoning complexity required (0-1)", ge=0, le=1)
+    task_type_prob: float = Field(
+        description="Confidence score for primary task type", ge=0, le=1
+    )
+    creativity_scope: float = Field(
+        description="Creativity level required (0-1)", ge=0, le=1
+    )
+    reasoning: float = Field(
+        description="Reasoning complexity required (0-1)", ge=0, le=1
+    )
     contextual_knowledge: float = Field(
         description="Context knowledge requirement (0-1)", ge=0, le=1
     )
@@ -26,7 +32,9 @@ class ClassificationResult(BaseModel):
     no_label_reason: float = Field(
         description="Confidence in classification accuracy (0-1)", ge=0, le=1
     )
-    constraint_ct: float = Field(description="Constraint complexity detected (0-1)", ge=0, le=1)
+    constraint_ct: float = Field(
+        description="Constraint complexity detected (0-1)", ge=0, le=1
+    )
 
 
 class ClassifyRequest(BaseModel):
