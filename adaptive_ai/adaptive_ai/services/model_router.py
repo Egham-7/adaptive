@@ -102,7 +102,13 @@ class ModelRouter:
         self, models: list[ModelCapability]
     ) -> list[ModelCapability]:
         """Remove duplicate models while preserving order."""
-        return list({model.unique_id: model for model in models}.values())
+        seen = set()
+        result = []
+        for model in models:
+            if model.unique_id not in seen:
+                seen.add(model.unique_id)
+                result.append(model)
+        return result
 
     def _filter_by_task_type(
         self, models: list[ModelCapability], task_type: str

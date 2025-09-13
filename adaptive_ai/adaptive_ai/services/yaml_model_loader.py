@@ -182,9 +182,9 @@ class YAMLModelDatabase:
             )
             return models_loaded
 
-        except Exception as e:
+        except yaml.YAMLError as e:
             logger.error(
-                "Failed to parse YAML file",
+                "Failed to parse YAML file - YAML parsing error",
                 extra={
                     "yaml_file": str(yaml_file),
                     "error": str(e),
@@ -192,6 +192,27 @@ class YAMLModelDatabase:
                 },
             )
             return 0
+        except OSError as e:
+            logger.error(
+                "Failed to parse YAML file - IO error",
+                extra={
+                    "yaml_file": str(yaml_file),
+                    "errno": getattr(e, "errno", None),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+            return 0
+        except Exception as e:
+            logger.error(
+                "Failed to parse YAML file - unexpected error",
+                extra={
+                    "yaml_file": str(yaml_file),
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+            )
+            raise
 
     def get_model(self, unique_id: str) -> ModelCapability | None:
         """
