@@ -46,7 +46,7 @@ def get_model_classes() -> Tuple[Any, Any, Any]:
 
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             """Forward pass through classification head."""
-            return self.fc(x)
+            return self.fc(x)  # type: ignore[no-any-return]
 
     class CustomModel(nn.Module, PyTorchModelHubMixin):
         """Complete NVIDIA prompt classifier model with all functionality."""

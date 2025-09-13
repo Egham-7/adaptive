@@ -335,8 +335,9 @@ def serve() -> "FastAPI":
     # TODO: Implement /benchmark endpoint
     # Should return: latency measurements, throughput tests, timestamp results
 
-    # TODO: Add JWT token caching with expiry/refresh logic
-    # Current implementation verifies tokens but doesn't cache them
+    # TODO: Add JWKS/signing key caching (with TTL and rotation handling)
+    # Current implementation verifies tokens but doesn't cache signing keys
+    # Note: Keep tokens stateless, cache only keys with rotation support
 
     # TODO: Add retry/backoff logic around classifier.classify.remote() calls
     # Current implementation has no retry on Modal API failures

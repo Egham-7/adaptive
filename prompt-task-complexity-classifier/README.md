@@ -196,7 +196,7 @@ Following Modal best practices, the deployment uses two optimized images:
 - **GPU Containers**: Models download automatically on first use and are cached
 - **Web Containers**: Minimal dependencies for lightweight FastAPI serving
 - **Scaling**: Independent scaling of ML vs web containers based on load
-- **Caching**: JWT token caching and efficient model loading
+- **Caching**: JWKS/signing key caching (with TTL and rotation handling) and efficient model loading
 
 ### Performance Features
 
@@ -210,7 +210,7 @@ The deployment includes monitoring capabilities:
 
 - **Health checks**: Basic health check at `/health`
 - **Container metrics**: Via Modal dashboard and logs  
-- **Request logging**: Basic request/response logging
+- **Request logging**: Metadata-only logging (status, latency, request/response size, request IDs, user IDs). **Never log prompt bodies or token content**. Redact sensitive fields like Authorization headers and prompt text before logging.
 
 ### 🚧 Planned Monitoring Features
 - **Detailed Health**: `/health/detailed` with dependency status, uptime, and service info
