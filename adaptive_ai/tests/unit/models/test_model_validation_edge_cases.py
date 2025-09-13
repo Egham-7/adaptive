@@ -9,7 +9,6 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_ai.models.llm_enums import TaskType
 
 
 class TestModelCapabilityValidation:
@@ -72,8 +71,8 @@ class TestModelCapabilityValidation:
     def test_task_type_flexibility(self):
         """Test task type accepts both enum and string values."""
         # Enum value
-        model = ModelCapability(task_type=TaskType.CODE_GENERATION)
-        assert model.task_type == TaskType.CODE_GENERATION
+        model = ModelCapability(task_type="Code Generation")
+        assert model.task_type == "Code Generation"
 
         # String value
         model = ModelCapability(task_type="custom_task")
@@ -309,7 +308,7 @@ class TestModelSerializationEdgeCases:
         assert restored.model_name is None
 
         # Model with enum task type
-        model = ModelCapability(task_type=TaskType.CODE_GENERATION)
+        model = ModelCapability(task_type="Code Generation")
         data = model.model_dump()
         restored = ModelCapability(**data)
         assert restored.task_type == "Code Generation"  # Serialized as string
