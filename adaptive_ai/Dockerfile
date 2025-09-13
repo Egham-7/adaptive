@@ -35,6 +35,7 @@ RUN uv sync --no-dev --frozen
 
 # Copy application code
 COPY adaptive_ai/ ./adaptive_ai/
+COPY model_data/ ./model_data/
 COPY config.yaml entrypoint.sh ./
 
 # Production stage - Minimal runtime image
