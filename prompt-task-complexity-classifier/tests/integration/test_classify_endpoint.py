@@ -53,7 +53,9 @@ def test_classify_endpoint(
 
     with httpx.Client(timeout=config.service.timeout) as client:
         response = client.post(
-            f"{config.service.modal_url}/classify", headers=auth_headers, json=data
+            f"{config.service.modal_url}/classify_batch",
+            headers=auth_headers,
+            json=data,
         )
 
         assert (
@@ -140,7 +142,7 @@ def test_auth_required(test_prompts: List[str]) -> None:
 
     with httpx.Client() as client:
         # No auth headers
-        response = client.post(f"{config.service.modal_url}/classify", json=data)
+        response = client.post(f"{config.service.modal_url}/classify_batch", json=data)
         assert response.status_code == 403  # Forbidden without auth
 
 
@@ -155,6 +157,6 @@ def test_invalid_auth(test_prompts: List[str]) -> None:
 
     with httpx.Client() as client:
         response = client.post(
-            f"{config.service.modal_url}/classify", headers=headers, json=data
+            f"{config.service.modal_url}/classify_batch", headers=headers, json=data
         )
         assert response.status_code == 401  # Unauthorized with invalid token
