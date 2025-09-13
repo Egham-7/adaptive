@@ -14,13 +14,11 @@ import modal
 if TYPE_CHECKING:
     from fastapi import FastAPI
 
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
+# Import config getter function
+from prompt_task_complexity_classifier.config import get_config
 
-MODEL_NAME = "nvidia/prompt-task-and-complexity-classifier"
-GPU_TYPE = "T4"
-APP_NAME = "prompt-task-complexity-classifier"
+# Get configuration
+config = get_config()
 
 # ============================================================================
 # MODAL IMAGES
@@ -66,7 +64,7 @@ web_image = (
 # MODAL APPLICATION
 # ============================================================================
 
-app = modal.App(APP_NAME)
+app = modal.App(config.deployment.app_name)
 
 # ============================================================================
 # NVIDIA MODEL CLASS
@@ -75,7 +73,7 @@ app = modal.App(APP_NAME)
 
 @app.cls(
     image=ml_image,
-    gpu=GPU_TYPE,
+    gpu=config.deployment.gpu_type,
     secrets=[modal.Secret.from_name("jwt")],
     scaledown_window=300,
     timeout=600,
@@ -96,21 +94,23 @@ class PromptTaskComplexityClassifier:
 
         _, _, CustomModelClass = get_model_classes()
 
-        print(f"🚀 Loading prompt task complexity classifier: {MODEL_NAME}")
+        print(
+            f"🚀 Loading prompt task complexity classifier: {config.deployment.model_name}"
+        )
         print(
             f"🎮 GPU: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}"
         )
 
         self.torch = torch
-        self.config = AutoConfig.from_pretrained(MODEL_NAME)
-        self.tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        self.config = AutoConfig.from_pretrained(config.deployment.model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(config.deployment.model_name)
 
         self.model = CustomModelClass(
             target_sizes=self.config.target_sizes,
             task_type_map=self.config.task_type_map,
             weights_map=self.config.weights_map,
             divisor_map=self.config.divisor_map,
-        ).from_pretrained(MODEL_NAME)
+        ).from_pretrained(config.deployment.model_name)
 
         if torch.cuda.is_available():
             self.model = self.model.cuda()
@@ -187,10 +187,10 @@ class PromptTaskComplexityClassifier:
 
 @app.function(
     image=web_image,
-    secrets=[modal.Secret.from_name("jwt")],
+    secrets=[modal.Secret.from_name(config.deployment.modal_secret_name)],
     scaledown_window=60,
-    timeout=300,
-    max_containers=1,
+    timeout=config.deployment.web_timeout,
+    max_containers=config.deployment.max_containers,
     cpu=2,
 )
 @modal.asgi_app()
@@ -255,7 +255,8 @@ def serve() -> "FastAPI":
         """Verify JWT token from Authorization header."""
         try:
             token = credentials.credentials
-            secret = os.environ.get("jwt_auth")
+            # Use consistent environment variable name from config
+            secret = os.environ.get("jwt_auth") or os.environ.get("JWT_SECRET")
             if not secret:
                 raise Exception("JWT secret not configured")
 
@@ -357,7 +358,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print("✨ Features:")
     print("  • 🧠 Complete prompt task complexity model implementation")
-    print("  • 🎮 GPU acceleration (T4)")
+    print(f"  • 🎮 GPU acceleration ({config.deployment.gpu_type})")
     print("  • 🔐 JWT authentication")
     print("  • 📦 Clean package structure")
     print("  • ⚡ Simple, synchronous API endpoints")
@@ -368,5 +369,5 @@ if __name__ == "__main__":
     print("  POST /classify/single - Single prompt classification")
     print("  GET /health - Health check")
     print("")
-    print(f"🧠 Model: {MODEL_NAME}")
-    print(f"🎮 GPU: {GPU_TYPE}")
+    print(f"🧠 Model: {config.deployment.model_name}")
+    print(f"🎮 GPU: {config.deployment.gpu_type}")

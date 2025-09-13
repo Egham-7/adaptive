@@ -1044,8 +1044,10 @@ dependencies = [
     { name = "fastapi" },
     { name = "modal" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "python-jose", extra = ["cryptography"] },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -1057,6 +1059,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "ruff" },
     { name = "types-pyjwt" },
+    { name = "types-pyyaml" },
     { name = "types-requests" },
 ]
 ml = [
@@ -1072,8 +1075,10 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.110.0" },
     { name = "modal", specifier = ">=0.63.0" },
     { name = "pydantic", specifier = ">=2.11.5,<3" },
+    { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0,<4.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
 ]
 
 [package.metadata.requires-dev]
@@ -1085,6 +1090,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.1.0" },
     { name = "ruff", specifier = ">=0.11.11,<0.13" },
     { name = "types-pyjwt", specifier = ">=1.7.1" },
+    { name = "types-pyyaml", specifier = ">=6.0.12.20250822" },
     { name = "types-requests", specifier = ">=2.32.4.20250809" },
 ]
 ml = [
@@ -1296,6 +1302,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-settings"
+version = "2.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/68/85/1ea668bbab3c50071ca613c6ab30047fb36ab0da1b92fa8f17bbc38fd36c/pydantic_settings-2.10.1.tar.gz", hash = "sha256:06f0062169818d0f5524420a360d632d5857b83cffd4d42fe29597807a1614ee", size = 172583 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/f0/427018098906416f580e3cf1366d3b1abfb408a0652e9f31600c24a1903c/pydantic_settings-2.10.1-py3-none-any.whl", hash = "sha256:a60952460b99cf661dc25c29c0ef171721f98bfcb52ef8d9ea4c943d7c8cc796", size = 45235 },
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1339,6 +1359,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4e/51/f8794af39eeb870e87a8c8068642fc07bce0c854d6865d7dd0f2a9d338c2/pytest_asyncio-1.1.0.tar.gz", hash = "sha256:796aa822981e01b68c12e4827b8697108f7205020f24b5793b3c41555dab68ea", size = 46652 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/9d/bf86eddabf8c6c9cb1ea9a869d6873b46f105a5d292d3a6f7071f5b07935/pytest_asyncio-1.1.0-py3-none-any.whl", hash = "sha256:5fe2d69607b0bd75c656d1211f969cadba035030156745ee09e7d71740e58ecf", size = 15157 },
+]
+
+[[package]]
+name = "python-dotenv"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/b0/4bc07ccd3572a2f9df7e6782f52b0c6c90dcbb803ac4a167702d7d0dfe1e/python_dotenv-1.1.1.tar.gz", hash = "sha256:a8a6399716257f45be6a007360200409fce5cda2661e3dec71d23dc15f6189ab", size = 41978 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5f/ed/539768cf28c661b5b068d66d96a2f155c4971a5d55684a514c1a0e0dec2f/python_dotenv-1.1.1-py3-none-any.whl", hash = "sha256:31f23644fe2602f88ff55e1f5c79ba497e01224ee7737937930c448e4d0e24dc", size = 20556 },
 ]
 
 [[package]]
@@ -1781,6 +1810,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/45/92/f2b9e0a047aa22daf364556a61904e98fd164c07524b18487d4bf01bd858/types-PyJWT-1.7.1.tar.gz", hash = "sha256:99c1a0d94d370951f9c6e57b1c369be280b2cbfab72c0f9c0998707490f015c9", size = 3452 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5a/65/41dc35b71cbd44dbc40583ab1d7b919e7b5c269ec36b9cee8e26c5d665a0/types_PyJWT-1.7.1-py2.py3-none-any.whl", hash = "sha256:810112a84b6c060bb5bc1959a1d229830465eccffa91d8a68eeaac28fb7713ac", size = 4694 },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20250822"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/49/85/90a442e538359ab5c9e30de415006fb22567aa4301c908c09f19e42975c2/types_pyyaml-6.0.12.20250822.tar.gz", hash = "sha256:259f1d93079d335730a9db7cff2bcaf65d7e04b4a56b5927d49a612199b59413", size = 17481 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/32/8e/8f0aca667c97c0d76024b37cffa39e76e2ce39ca54a38f285a64e6ae33ba/types_pyyaml-6.0.12.20250822-py3-none-any.whl", hash = "sha256:1fe1a5e146aa315483592d292b72a172b65b946a6d98aa6ddd8e4aa838ab7098", size = 20314 },
 ]
 
 [[package]]

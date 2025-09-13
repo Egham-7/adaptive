@@ -107,11 +107,13 @@ def get_model_classes() -> Tuple[Any, Any, Any]:
                 weights = np.array(self.weights_map[target])
                 weighted_sum = np.sum(np.array(preds.detach().cpu()) * weights, axis=1)
                 scores = weighted_sum / self.divisor_map[target]
-                scores = [round(value, decimal) for value in scores]
+                scores_list: List[float] = [
+                    round(float(value), decimal) for value in scores
+                ]
 
                 if target == "number_of_few_shots":
-                    scores = [x if x >= 0.05 else 0 for x in scores]
-                return scores
+                    scores_list = [float(x) if x >= 0.05 else 0.0 for x in scores_list]
+                return scores_list
 
         def _extract_classification_results(
             self, logits: List[torch.Tensor]

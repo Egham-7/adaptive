@@ -7,24 +7,24 @@ import pytest
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
-# Configuration
-MODAL_URL = "https://egham-7--nvidia-prompt-classifier-serve.modal.run"
-# Note: This JWT secret must match what's configured in Modal secrets
-JWT_SECRET = (
-    "ByzOO6hHOfrHSF21mACgfswC8Qqm7yeNtkjf3Liwgok"  # Replace with your actual secret
-)
+from prompt_task_complexity_classifier.config import get_config
 
 
 @pytest.fixture
 def auth_headers() -> Dict[str, str]:
     """Generate JWT token and return headers"""
+    config = get_config()
+
     payload = {
-        "sub": "test_user",
-        "user": "claude_test",
+        "sub": config.test.test_subject,
+        "user": config.test.test_user,
         "iat": datetime.now(timezone.utc),
-        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "exp": datetime.now(timezone.utc)
+        + timedelta(hours=config.auth.token_expiry_hours),
     }
-    token_bytes = jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    token_bytes = jwt.encode(
+        payload, config.auth.jwt_secret, algorithm=config.auth.algorithm
+    )
     token_str = (
         token_bytes.decode("utf-8") if isinstance(token_bytes, bytes) else token_bytes
     )
@@ -47,10 +47,13 @@ def test_classify_endpoint(
     auth_headers: Dict[str, str], test_prompts: List[str]
 ) -> None:
     """Test the /classify endpoint with various prompts"""
+    config = get_config()
     data = {"prompts": test_prompts}
 
-    with httpx.Client(timeout=120) as client:  # 2 minute timeout for model loading
-        response = client.post(f"{MODAL_URL}/classify", headers=auth_headers, json=data)
+    with httpx.Client(timeout=config.service.timeout) as client:
+        response = client.post(
+            f"{config.service.modal_url}/classify", headers=auth_headers, json=data
+        )
 
         assert (
             response.status_code == 200
@@ -106,28 +109,32 @@ def test_classify_endpoint(
 
 def test_health_endpoint() -> None:
     """Test the /health endpoint"""
+    config = get_config()
+
     with httpx.Client() as client:
-        response = client.get(f"{MODAL_URL}/health")
+        response = client.get(f"{config.service.modal_url}/health")
 
         assert response.status_code == 200
         result = response.json()
 
         assert result["status"] == "healthy"
-        assert result["service"] == "nvidia-prompt-classifier"
+        assert result["service"] == config.service.name
 
 
 def test_auth_required(test_prompts: List[str]) -> None:
     """Test that authentication is required for /classify"""
+    config = get_config()
     data = {"prompts": test_prompts}
 
     with httpx.Client() as client:
         # No auth headers
-        response = client.post(f"{MODAL_URL}/classify", json=data)
+        response = client.post(f"{config.service.modal_url}/classify", json=data)
         assert response.status_code == 403  # Forbidden without auth
 
 
 def test_invalid_auth(test_prompts: List[str]) -> None:
     """Test that invalid authentication is rejected"""
+    config = get_config()
     data = {"prompts": test_prompts}
     headers = {
         "Authorization": "Bearer invalid_token",
@@ -135,5 +142,7 @@ def test_invalid_auth(test_prompts: List[str]) -> None:
     }
 
     with httpx.Client() as client:
-        response = client.post(f"{MODAL_URL}/classify", headers=headers, json=data)
+        response = client.post(
+            f"{config.service.modal_url}/classify", headers=headers, json=data
+        )
         assert response.status_code == 401  # Unauthorized with invalid token
