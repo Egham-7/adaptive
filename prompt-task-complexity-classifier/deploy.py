@@ -144,7 +144,7 @@ class PromptTaskComplexityClassifier:
 
         # Run inference
         with self.torch.no_grad():
-            results: Dict[str, List[Any]] = self.model(encoded_texts)
+            results = self.model(encoded_texts)
 
         print(f"✅ Classification complete for {len(prompts)} prompts")
         return results
@@ -155,21 +155,8 @@ class PromptTaskComplexityClassifier:
         # Use existing classify method with single prompt
         batch_result = self.classify([prompt])
 
-        # Extract single result from batch (index 0)
-        single_result = {
-            "task_type_1": batch_result["task_type_1"][0],
-            "task_type_2": batch_result["task_type_2"][0],
-            "task_type_prob": batch_result["task_type_prob"][0],
-            "creativity_scope": batch_result["creativity_scope"][0],
-            "reasoning": batch_result["reasoning"][0],
-            "contextual_knowledge": batch_result["contextual_knowledge"][0],
-            "prompt_complexity_score": batch_result["prompt_complexity_score"][0],
-            "domain_knowledge": batch_result["domain_knowledge"][0],
-            "number_of_few_shots": batch_result["number_of_few_shots"][0],
-            "no_label_reason": batch_result["no_label_reason"][0],
-            "constraint_ct": batch_result["constraint_ct"][0],
-        }
-        return single_result
+        # Extract single result from batch (index 0) using dict comprehension
+        return {key: values[0] for key, values in batch_result.items()}
 
     @modal.method()
     def classify_batch(self, prompts: List[str]) -> List[Dict[str, Any]]:
@@ -177,25 +164,11 @@ class PromptTaskComplexityClassifier:
         # Use existing classify method
         batch_result = self.classify(prompts)
 
-        # Convert batch result to list of individual results
-        individual_results = []
-        for i in range(len(prompts)):
-            individual_result = {
-                "task_type_1": batch_result["task_type_1"][i],
-                "task_type_2": batch_result["task_type_2"][i],
-                "task_type_prob": batch_result["task_type_prob"][i],
-                "creativity_scope": batch_result["creativity_scope"][i],
-                "reasoning": batch_result["reasoning"][i],
-                "contextual_knowledge": batch_result["contextual_knowledge"][i],
-                "prompt_complexity_score": batch_result["prompt_complexity_score"][i],
-                "domain_knowledge": batch_result["domain_knowledge"][i],
-                "number_of_few_shots": batch_result["number_of_few_shots"][i],
-                "no_label_reason": batch_result["no_label_reason"][i],
-                "constraint_ct": batch_result["constraint_ct"][i],
-            }
-            individual_results.append(individual_result)
-
-        return individual_results
+        # Convert batch result to list of individual results using list comprehension
+        return [
+            {key: values[i] for key, values in batch_result.items()}
+            for i in range(len(prompts))
+        ]
 
 
 # ============================================================================
@@ -350,8 +323,6 @@ def serve() -> "FastAPI":
         """Basic health check endpoint."""
         return {"status": "healthy", "service": "prompt-task-complexity-classifier"}
 
-    # TODO: Implement /health/detailed endpoint
-    # Should return: service info, version, uptime, model status, dependencies
 
     # TODO: Implement /benchmark endpoint
     # Should return: latency measurements, throughput tests, timestamp results
