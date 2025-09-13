@@ -65,11 +65,12 @@ class TestPromptClassifier:
     async def test_classify_prompts_empty_input(self):
         """Test classify_prompts_async with empty input."""
         classifier = Mock(spec=PromptClassifier)
-        classifier.classify_prompts_async = AsyncMock(return_value=[])
+        classifier.classify_prompts_async = AsyncMock(
+            side_effect=ValueError("Prompts list cannot be empty")
+        )
 
-        results = await classifier.classify_prompts_async([])
-        assert len(results) == 0
-        assert isinstance(results, list)
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await classifier.classify_prompts_async([])
 
     @pytest.mark.asyncio
     async def test_classify_prompts_multiple(self):
@@ -170,34 +171,12 @@ class TestPromptClassifierEdgeCases:
     async def test_classifier_with_none_input(self):
         """Test classifier behavior with None input."""
         classifier = Mock(spec=PromptClassifier)
-
-        # Mock should handle None gracefully
-        async def mock_classify_side_effect(x):
-            if x is None:
-                return []
-            else:
-                return [
-                    ClassificationResult(
-                        task_type_1="Other",
-                        prompt_complexity_score=0.5,
-                        task_type_2="Other",
-                        task_type_prob=0.5,
-                        creativity_scope=0.5,
-                        reasoning=0.5,
-                        contextual_knowledge=0.5,
-                        domain_knowledge=0.5,
-                        number_of_few_shots=0.0,
-                        no_label_reason=0.5,
-                        constraint_ct=0.5,
-                    )
-                ]
-
         classifier.classify_prompts_async = AsyncMock(
-            side_effect=mock_classify_side_effect
+            side_effect=ValueError("Prompts list cannot be empty")
         )
 
-        results = await classifier.classify_prompts_async(None)
-        assert isinstance(results, list)
+        with pytest.raises(ValueError, match="cannot be empty"):
+            await classifier.classify_prompts_async(None)
 
     @pytest.mark.asyncio
     async def test_classifier_error_handling(self):
