@@ -56,8 +56,8 @@ jobs:
       run:
         working-directory: ${{ env.WORKING_DIR }}
     env:
-      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID_DEV }}
-      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET_DEV }}
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
       MODAL_ENVIRONMENT: dev
     steps:
       - name: Checkout
@@ -78,4 +78,3 @@ jobs:
           echo "🚀 Deploying Prompt Task Complexity Classifier to dev environment..."
           modal deploy deploy.py
           echo "✅ Deployment to dev completed"
-
