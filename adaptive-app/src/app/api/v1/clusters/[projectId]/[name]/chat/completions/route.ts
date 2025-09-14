@@ -240,36 +240,6 @@ export async function POST(
 			300, // 5 minutes cache for model details
 		);
 
-		// Pre-flight credit check
-		const messages = body.messages || [];
-		const estimatedInputTokens = messages.reduce((acc, msg) => {
-			return (
-				acc + (typeof msg.content === "string" ? msg.content.length / 4 : 0)
-			);
-		}, 0);
-		const estimatedOutputTokens = Number(body.max_completion_tokens) || 1000;
-
-		try {
-			await api.usage.checkCreditsBeforeUsage({
-				apiKey,
-				estimatedInputTokens,
-				estimatedOutputTokens,
-			});
-		} catch (error: unknown) {
-			const statusCode =
-				(error as { code?: string }).code === "PAYMENT_REQUIRED" ? 402 : 400;
-			return new Response(
-				JSON.stringify({
-					error:
-						(error as { message?: string }).message || "Credit check failed",
-				}),
-				{
-					status: statusCode,
-					headers: { "Content-Type": "application/json" },
-				},
-			);
-		}
-
 		const shouldStream = body.stream === true;
 
 		// Check if user requested usage data
