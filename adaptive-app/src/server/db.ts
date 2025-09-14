@@ -18,11 +18,35 @@ async function connectWithRetry(
 			console.log("Database connected successfully");
 			return;
 		} catch (error) {
-			const delay = Math.min(1000 * 2 ** i, 10000); // Cap at 10s
-			console.log(
-				`Database connection attempt ${i + 1} failed, retrying in ${delay}ms...`,
+			// Check for fatal Prisma error codes that should fail fast
+			const errorCode = (error as { code?: string }).code;
+			if (errorCode === "P1000" || errorCode === "P1003") {
+				console.error(
+					`Fatal database error (${errorCode}): Invalid credentials or connection parameters`,
+					error,
+				);
+				throw error;
+			}
+
+			const isLastAttempt = i === maxRetries - 1;
+
+			if (isLastAttempt) {
+				console.error(
+					`Database connection attempt ${i + 1} failed (final attempt), throwing error:`,
+					error,
+				);
+				throw error;
+			}
+			// Calculate exponential backoff with jitter
+			const baseDelay = Math.min(1000 * 2 ** i, 10000); // Cap at 10s
+			const jitter = Math.random() * 250; // 0-250ms jitter
+			const delay = baseDelay + jitter;
+
+			console.error(
+				`Database connection attempt ${i + 1} failed, retrying in ${Math.round(delay)}ms...`,
+				error,
 			);
-			if (i === maxRetries - 1) throw error;
+
 			await new Promise((resolve) => setTimeout(resolve, delay));
 		}
 	}
