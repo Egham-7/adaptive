@@ -17,6 +17,9 @@ export type Provider =
 	| "adaptive"
 	| null;
 
+// Define supported authentication types
+export type AuthType = "bearer" | "api_key" | "basic" | "custom";
+
 // Cache tier constants
 export const CACHE_TIER_VALUES = [
 	"semantic_exact",
@@ -36,7 +39,7 @@ export const CACHE_TIER_PROMPT_RESPONSE = CACHE_TIER_VALUES[2];
 export interface ProviderConfig {
 	api_key?: string;
 	base_url?: string;
-	auth_type?: string;
+	auth_type?: AuthType;
 	auth_header_name?: string;
 	health_endpoint?: string;
 	rate_limit_rpm?: number;

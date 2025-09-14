@@ -10,7 +10,6 @@ import (
 
 	"adaptive-backend/internal/api"
 	"adaptive-backend/internal/config"
-	"adaptive-backend/internal/middleware"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
 	"adaptive-backend/internal/services/chat/completions"
@@ -74,8 +73,8 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, anthropicPromptCache, circuitBreakers)
 
-	// Apply JWT authentication to all v1 routes
-	v1Group := app.Group("/v1", middleware.JWTAuth(cfg))
+	// Setup v1 routes for internal communication (no authentication needed)
+	v1Group := app.Group("/v1")
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 	v1Group.Post("/messages", messagesHandler.Messages)
 	v1Group.Post("/select-model", selectModelHandler.SelectModel)

@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { decryptProviderApiKey } from "@/lib/auth-utils";
-import { createBackendJWT } from "@/lib/jwt";
 import {
 	filterUsageFromChunk,
 	userRequestedUsage,
@@ -9,6 +8,7 @@ import {
 } from "@/lib/usage-utils";
 import { api } from "@/trpc/server";
 import type {
+	AuthType,
 	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionRequest,
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
 					const provider = config.provider;
 					providerConfigs[provider.name] = {
 						base_url: provider.baseUrl ?? undefined,
-						auth_type: provider.authType ?? undefined,
+						auth_type: (provider.authType as AuthType | undefined) ?? undefined,
 						auth_header_name: provider.authHeaderName ?? undefined,
 						api_key: decryptProviderApiKey(config.providerApiKey), // Decrypt user's API key from config
 						health_endpoint: provider.healthEndpoint ?? undefined,
@@ -124,11 +124,8 @@ export async function POST(req: NextRequest) {
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 
-		// Create JWT token for backend authentication
-		const jwtToken = await createBackendJWT(apiKey);
-
 		const openai = new OpenAI({
-			apiKey: jwtToken, // Use JWT token instead of API key
+			apiKey: "internal", // Internal communication - no real API key needed
 			baseURL,
 		});
 
@@ -243,7 +240,6 @@ export async function POST(req: NextRequest) {
 			return new Response(customReadable, {
 				headers: {
 					Connection: "keep-alive",
-					"Content-Encoding": "none",
 					"Cache-Control": "no-cache, no-transform",
 					"Content-Type": "text/event-stream; charset=utf-8",
 				},
@@ -258,15 +254,9 @@ export async function POST(req: NextRequest) {
 				provider_configs: providerConfigs,
 			};
 
-			const completion = (await openai.chat.completions.create(
-				bodyWithProviders,
-				{
-					body: {
-						...internalBody,
-						provider_configs: providerConfigs,
-					},
-				},
-			)) as ChatCompletion;
+			const completion = (await openai.chat.completions.create(internalBody, {
+				body: bodyWithProviders,
+			})) as ChatCompletion;
 
 			// Record usage in background
 			if (completion.usage) {

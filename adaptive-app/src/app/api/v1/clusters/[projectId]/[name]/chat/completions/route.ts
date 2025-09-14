@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { decryptProviderApiKey } from "@/lib/auth-utils";
 import { withCache } from "@/lib/cache-utils";
-import { createBackendJWT } from "@/lib/jwt";
 import {
 	filterUsageFromChunk,
 	userRequestedUsage,
@@ -245,10 +244,9 @@ export async function POST(
 		const userWantsUsage = userRequestedUsage(body);
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
-		const jwtToken = await createBackendJWT(apiKey);
 
 		const openai = new OpenAI({
-			apiKey: jwtToken,
+			apiKey: "internal", // Internal communication - no real API key needed
 			baseURL,
 		});
 
