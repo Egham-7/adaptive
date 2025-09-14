@@ -1,5 +1,4 @@
 import type {
-	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
@@ -23,15 +22,6 @@ export const withUsageTracking = (
 		include_usage: true,
 	},
 });
-
-/**
- * Filters usage information from chat completion based on whether it should be included
- */
-export const filterUsageFromCompletion = (
-	completion: ChatCompletion,
-	includeUsage: boolean,
-): ChatCompletion =>
-	includeUsage ? completion : { ...completion, usage: undefined };
 
 /**
  * Filters usage information from chat completion chunk based on whether it should be included

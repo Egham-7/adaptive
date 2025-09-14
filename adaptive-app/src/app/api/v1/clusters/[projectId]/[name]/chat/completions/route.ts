@@ -5,7 +5,6 @@ import { withCache } from "@/lib/cache-utils";
 import { createBackendJWT } from "@/lib/jwt";
 import {
 	filterUsageFromChunk,
-	filterUsageFromCompletion,
 	userRequestedUsage,
 	withUsageTracking,
 } from "@/lib/usage-utils";
@@ -315,6 +314,7 @@ export async function POST(
 
 							// Record usage in background when we get it
 							if (typedChunk.usage) {
+								console.log("Usage Chunk: ", typedChunk.usage);
 								queueMicrotask(async () => {
 									try {
 										await api.usage.recordApiUsage({
@@ -431,13 +431,7 @@ export async function POST(
 				});
 			}
 
-			// Filter out usage data from response if user didn't request it
-			const responseCompletion = filterUsageFromCompletion(
-				completion,
-				userWantsUsage,
-			);
-
-			return Response.json(responseCompletion);
+			return Response.json(completion);
 		} catch (error) {
 			queueMicrotask(async () => {
 				try {
