@@ -301,12 +301,20 @@ export async function POST(req: NextRequest) {
 		const nonStreamStartTime = Date.now();
 
 		try {
-			const completion = (await openai.chat.completions.create(internalBody, {
-				body: {
-					...internalBody,
-					provider_configs: providerConfigs,
+			const bodyWithProviders = {
+				...internalBody,
+				provider_configs: providerConfigs,
+			};
+
+			const completion = (await openai.chat.completions.create(
+				bodyWithProviders,
+				{
+					body: {
+						...internalBody,
+						provider_configs: providerConfigs,
+					},
 				},
-			})) as ChatCompletion;
+			)) as ChatCompletion;
 
 			// Record usage in background
 			if (completion.usage) {
