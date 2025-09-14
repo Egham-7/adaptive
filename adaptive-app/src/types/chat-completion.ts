@@ -124,7 +124,7 @@ export interface ChatCompletionChunk
 
 // Zod schema for ChatCompletionRequest validation
 export const chatCompletionRequestSchema = z.looseObject({
-	model: z.string().min(1, "Model is required"),
+	model: z.string().optional(),
 	messages: z
 		.array(
 			z.object({
