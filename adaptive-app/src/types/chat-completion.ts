@@ -17,6 +17,9 @@ export type Provider =
 	| "adaptive"
 	| null;
 
+// Define supported authentication types
+export type AuthType = "bearer" | "api_key" | "basic" | "custom";
+
 // Cache tier constants
 export const CACHE_TIER_VALUES = [
 	"semantic_exact",
@@ -36,7 +39,7 @@ export const CACHE_TIER_PROMPT_RESPONSE = CACHE_TIER_VALUES[2];
 export interface ProviderConfig {
 	api_key?: string;
 	base_url?: string;
-	auth_type?: "bearer" | "api_key" | "basic" | "custom";
+	auth_type?: AuthType;
 	auth_header_name?: string;
 	health_endpoint?: string;
 	rate_limit_rpm?: number;
@@ -121,3 +124,34 @@ export interface ChatCompletionChunk
 	provider?: Provider;
 	usage?: AdaptiveUsage;
 }
+
+// Zod schema for ChatCompletionRequest validation
+export const chatCompletionRequestSchema = z.looseObject({
+	model: z.string().optional(),
+	messages: z
+		.array(
+			z.object({
+				role: z.enum(["system", "user", "assistant", "function", "tool"]),
+				content: z
+					.union([z.string(), z.array(z.unknown())])
+					.nullable()
+					.optional(),
+			}),
+		)
+		.min(1, "At least one message is required"),
+	temperature: z.number().min(0).max(2).optional(),
+	top_p: z.number().min(0).max(1).optional(),
+	n: z.number().positive().optional(),
+	stream: z.boolean().optional(),
+	stream_options: z
+		.object({
+			include_usage: z.boolean().optional(),
+		})
+		.optional(),
+	stop: z.union([z.string(), z.array(z.string())]).optional(),
+	max_tokens: z.number().positive().optional(),
+	presence_penalty: z.number().min(-2).max(2).optional(),
+	frequency_penalty: z.number().min(-2).max(2).optional(),
+	logit_bias: z.record(z.string(), z.number()).optional(),
+	user: z.string().optional(),
+}); // Allow additional fields for custom extensions
