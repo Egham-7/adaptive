@@ -121,3 +121,34 @@ export interface ChatCompletionChunk
 	provider?: Provider;
 	usage?: AdaptiveUsage;
 }
+
+// Zod schema for ChatCompletionRequest validation
+export const chatCompletionRequestSchema = z.looseObject({
+	model: z.string().min(1, "Model is required"),
+	messages: z
+		.array(
+			z.object({
+				role: z.enum(["system", "user", "assistant", "function", "tool"]),
+				content: z
+					.union([z.string(), z.array(z.unknown())])
+					.nullable()
+					.optional(),
+			}),
+		)
+		.min(1, "At least one message is required"),
+	temperature: z.number().min(0).max(2).optional(),
+	top_p: z.number().min(0).max(1).optional(),
+	n: z.number().positive().optional(),
+	stream: z.boolean().optional(),
+	stream_options: z
+		.object({
+			include_usage: z.boolean().optional(),
+		})
+		.optional(),
+	stop: z.union([z.string(), z.array(z.string())]).optional(),
+	max_tokens: z.number().positive().optional(),
+	presence_penalty: z.number().min(-2).max(2).optional(),
+	frequency_penalty: z.number().min(-2).max(2).optional(),
+	logit_bias: z.record(z.string(), z.number()).optional(),
+	user: z.string().optional(),
+}); // Allow additional fields for custom extensions

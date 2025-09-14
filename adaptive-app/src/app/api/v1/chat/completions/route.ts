@@ -2,18 +2,42 @@ import type { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { decryptProviderApiKey } from "@/lib/auth-utils";
 import { createBackendJWT } from "@/lib/jwt";
+import {
+	filterUsageFromChunk,
+	filterUsageFromCompletion,
+	userRequestedUsage,
+	withUsageTracking,
+} from "@/lib/usage-utils";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
+import { chatCompletionRequestSchema } from "@/types/chat-completion";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
 	try {
-		const body: ChatCompletionRequest = await req.json();
+		const rawBody = await req.json();
+
+		// Validate and parse the request body
+		const validationResult = chatCompletionRequestSchema.safeParse(rawBody);
+		if (!validationResult.success) {
+			return new Response(
+				JSON.stringify({
+					error: "Invalid request body",
+					details: validationResult.error.issues,
+				}),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		const body = validationResult.data as ChatCompletionRequest;
 
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
@@ -135,26 +159,8 @@ export async function POST(req: NextRequest) {
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
 
-		// Helper functions for cleaner usage handling
-		const userRequestedUsage = body.stream_options?.include_usage === true;
-		const withUsageTracking = (requestBody: ChatCompletionRequest) => ({
-			...requestBody,
-			stream_options: {
-				...requestBody.stream_options,
-				include_usage: true,
-			},
-		});
-		const filterUsageFromCompletion = (
-			completion: ChatCompletion,
-			includeUsage: boolean,
-		): ChatCompletion =>
-			includeUsage ? completion : { ...completion, usage: undefined };
-		const filterUsageFromChunk = (
-			chunk: ChatCompletionChunk,
-			includeUsage: boolean,
-		): ChatCompletionChunk =>
-			includeUsage ? chunk : { ...chunk, usage: undefined };
-
+		// Check if user requested usage data
+		const userWantsUsage = userRequestedUsage(body);
 		const internalBody = withUsageTracking(body);
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
@@ -208,7 +214,7 @@ export async function POST(req: NextRequest) {
 							// Filter out usage data if user didn't request it
 							const responseChunk = filterUsageFromChunk(
 								chunk as ChatCompletionChunk,
-								userRequestedUsage,
+								userWantsUsage,
 							);
 
 							// Convert chunk to SSE format and enqueue
@@ -328,7 +334,7 @@ export async function POST(req: NextRequest) {
 			// Filter out usage data from response if user didn't request it
 			const responseCompletion = filterUsageFromCompletion(
 				completion,
-				userRequestedUsage,
+				userWantsUsage,
 			);
 
 			return Response.json(responseCompletion);
