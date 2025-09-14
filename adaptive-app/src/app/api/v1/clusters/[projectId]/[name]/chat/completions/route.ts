@@ -294,8 +294,6 @@ export async function POST(
 			// Create custom ReadableStream that intercepts OpenAI SDK chunks
 			const customReadable = new ReadableStream({
 				async start(controller) {
-					let finalChunk: ChatCompletionChunk | null = null;
-
 					try {
 						const stream = await openai.chat.completions.create(
 							{
@@ -313,14 +311,35 @@ export async function POST(
 						);
 
 						for await (const chunk of stream) {
-							// Store final completion data for usage tracking
-							if (chunk.usage || chunk.choices[0]?.finish_reason) {
-								finalChunk = chunk as ChatCompletionChunk;
+							const typedChunk = chunk as ChatCompletionChunk;
+
+							// Record usage in background when we get it
+							if (typedChunk.usage) {
+								queueMicrotask(async () => {
+									try {
+										await api.usage.recordApiUsage({
+											apiKey,
+											provider: typedChunk.provider ?? null,
+											model: typedChunk.model ?? null,
+											usage: {
+												promptTokens: typedChunk.usage?.prompt_tokens ?? 0,
+												completionTokens:
+													typedChunk.usage?.completion_tokens ?? 0,
+												totalTokens: typedChunk.usage?.total_tokens ?? 0,
+											},
+											duration: Date.now() - streamStartTime,
+											timestamp: new Date(),
+											clusterId: cluster.id,
+										});
+									} catch (error) {
+										console.error("Failed to record streaming usage:", error);
+									}
+								});
 							}
 
 							// Filter out usage data if user didn't request it
 							const responseChunk = filterUsageFromChunk(
-								chunk as ChatCompletionChunk,
+								typedChunk,
 								userWantsUsage,
 							);
 
@@ -333,30 +352,6 @@ export async function POST(
 						controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 						controller.close();
 						clearTimeout(timeoutId);
-
-						// Record usage after stream completes
-						if (finalChunk?.usage) {
-							queueMicrotask(async () => {
-								try {
-									await api.usage.recordApiUsage({
-										apiKey,
-										provider: finalChunk?.provider ?? null,
-										model: finalChunk?.model ?? null,
-										usage: {
-											promptTokens: finalChunk?.usage?.prompt_tokens ?? 0,
-											completionTokens:
-												finalChunk?.usage?.completion_tokens ?? 0,
-											totalTokens: finalChunk?.usage?.total_tokens ?? 0,
-										},
-										duration: Date.now() - streamStartTime,
-										timestamp: new Date(),
-										clusterId: cluster.id,
-									});
-								} catch (error) {
-									console.error("Failed to record streaming usage:", error);
-								}
-							});
-						}
 					} catch (error) {
 						console.error("Streaming error:", error);
 						const errorData = `data: ${JSON.stringify({ error: "Stream failed" })}\n\n`;

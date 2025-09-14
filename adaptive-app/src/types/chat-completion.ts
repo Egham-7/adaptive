@@ -36,7 +36,7 @@ export const CACHE_TIER_PROMPT_RESPONSE = CACHE_TIER_VALUES[2];
 export interface ProviderConfig {
 	api_key?: string;
 	base_url?: string;
-	auth_type?: "bearer" | "api_key" | "basic" | "custom";
+	auth_type?: string;
 	auth_header_name?: string;
 	health_endpoint?: string;
 	rate_limit_rpm?: number;

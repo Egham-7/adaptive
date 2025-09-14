@@ -13,6 +13,7 @@ import type {
 	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionRequest,
+	ProviderConfig,
 } from "@/types/chat-completion";
 import { chatCompletionRequestSchema } from "@/types/chat-completion";
 
@@ -79,20 +80,7 @@ export async function POST(req: NextRequest) {
 		const { projectId } = verificationResult;
 
 		// Fetch provider configurations from database if project is specified
-		const providerConfigs: Record<
-			string,
-			{
-				base_url?: string;
-				auth_type?: string;
-				auth_header_name?: string;
-				api_key?: string;
-				health_endpoint?: string;
-				rate_limit_rpm?: number;
-				timeout_ms?: number;
-				retry_config?: Record<string, unknown>;
-				headers?: Record<string, string>;
-			}
-		> = {};
+		const providerConfigs: Record<string, ProviderConfig> = {};
 
 		if (projectId) {
 			try {
@@ -159,8 +147,6 @@ export async function POST(req: NextRequest) {
 			// Create custom ReadableStream that intercepts OpenAI SDK chunks
 			const customReadable = new ReadableStream({
 				async start(controller) {
-					let finalCompletion: ChatCompletionChunk | null = null; // Minimize scope
-
 					try {
 						const stream = await openai.chat.completions.create(
 							{
@@ -178,14 +164,35 @@ export async function POST(req: NextRequest) {
 						);
 
 						for await (const chunk of stream) {
-							// Store final completion data for usage tracking
-							if (chunk.usage || chunk.choices[0]?.finish_reason) {
-								finalCompletion = chunk as ChatCompletionChunk;
+							const typedChunk = chunk as ChatCompletionChunk;
+
+							// Record usage in background when we get it
+							if (typedChunk.usage) {
+								queueMicrotask(async () => {
+									try {
+										await api.usage.recordApiUsage({
+											apiKey,
+											provider: typedChunk.provider ?? null,
+											model: typedChunk.model ?? null,
+											usage: {
+												promptTokens: typedChunk.usage?.prompt_tokens ?? 0,
+												completionTokens:
+													typedChunk.usage?.completion_tokens ?? 0,
+												totalTokens: typedChunk.usage?.total_tokens ?? 0,
+											},
+											duration: Date.now() - streamStartTime,
+											timestamp: new Date(),
+											cacheTier: typedChunk.usage?.cache_tier,
+										});
+									} catch (error) {
+										console.error("Failed to record streaming usage:", error);
+									}
+								});
 							}
 
 							// Filter out usage data if user didn't request it
 							const responseChunk = filterUsageFromChunk(
-								chunk as ChatCompletionChunk,
+								typedChunk,
 								userWantsUsage,
 							);
 
@@ -197,34 +204,7 @@ export async function POST(req: NextRequest) {
 						// Send [DONE] message
 						controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 						controller.close();
-
-						// Clear timeout on successful completion
 						clearTimeout(timeoutId);
-
-						// Record usage after stream completes
-						if (finalCompletion?.usage) {
-							const completion = finalCompletion; // Capture for closure
-							queueMicrotask(async () => {
-								try {
-									await api.usage.recordApiUsage({
-										apiKey,
-										provider: completion.provider ?? null,
-										model: completion.model ?? null,
-										usage: {
-											promptTokens: completion.usage?.prompt_tokens ?? 0,
-											completionTokens:
-												completion.usage?.completion_tokens ?? 0,
-											totalTokens: completion.usage?.total_tokens ?? 0,
-										},
-										duration: Date.now() - streamStartTime,
-										timestamp: new Date(),
-										cacheTier: completion.usage?.cache_tier,
-									});
-								} catch (error) {
-									console.error("Failed to record streaming usage:", error);
-								}
-							});
-						}
 					} catch (error) {
 						console.error("Streaming error:", error);
 						clearTimeout(timeoutId); // Clear timeout on error
