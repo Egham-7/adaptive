@@ -2,18 +2,42 @@ import type { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { decryptProviderApiKey } from "@/lib/auth-utils";
 import { createBackendJWT } from "@/lib/jwt";
+import {
+	filterUsageFromChunk,
+	filterUsageFromCompletion,
+	userRequestedUsage,
+	withUsageTracking,
+} from "@/lib/usage-utils";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
+import { chatCompletionRequestSchema } from "@/types/chat-completion";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
 	try {
-		const body: ChatCompletionRequest = await req.json();
+		const rawBody = await req.json();
+
+		// Validate and parse the request body
+		const validationResult = chatCompletionRequestSchema.safeParse(rawBody);
+		if (!validationResult.success) {
+			return new Response(
+				JSON.stringify({
+					error: "Invalid request body",
+					details: validationResult.error.issues,
+				}),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		const body = validationResult.data as ChatCompletionRequest;
 
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
@@ -102,38 +126,14 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		// Pre-flight credit check - estimate token usage
-		const messages = body.messages || [];
-		const estimatedInputTokens = messages.reduce((acc, msg) => {
-			return (
-				acc + (typeof msg.content === "string" ? msg.content.length / 4 : 0)
-			);
-		}, 0);
-		const estimatedOutputTokens = body.max_completion_tokens || 1000; // Default estimate
-
-		try {
-			await api.usage.checkCreditsBeforeUsage({
-				apiKey,
-				estimatedInputTokens,
-				estimatedOutputTokens,
-			});
-		} catch (error: unknown) {
-			const statusCode =
-				(error as { code?: string }).code === "PAYMENT_REQUIRED" ? 402 : 400;
-			return new Response(
-				JSON.stringify({
-					error:
-						(error as { message?: string }).message || "Credit check failed",
-				}),
-				{
-					status: statusCode,
-					headers: { "Content-Type": "application/json" },
-				},
-			);
-		}
-
 		// Support both streaming and non-streaming requests
 		const shouldStream = body.stream === true;
+
+		// Check if user requested usage data
+		const userWantsUsage = userRequestedUsage(body);
+		// Only add include_usage: true for streaming requests
+		// Non-streaming requests will get usage info by default from most providers
+		const internalBody = shouldStream ? withUsageTracking(body) : body;
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 
@@ -164,12 +164,12 @@ export async function POST(req: NextRequest) {
 					try {
 						const stream = await openai.chat.completions.create(
 							{
-								...body,
+								...internalBody,
 								stream: true,
 							},
 							{
 								body: {
-									...body,
+									...internalBody,
 									stream: true,
 									provider_configs: providerConfigs,
 								},
@@ -183,8 +183,14 @@ export async function POST(req: NextRequest) {
 								finalCompletion = chunk as ChatCompletionChunk;
 							}
 
+							// Filter out usage data if user didn't request it
+							const responseChunk = filterUsageFromChunk(
+								chunk as ChatCompletionChunk,
+								userWantsUsage,
+							);
+
 							// Convert chunk to SSE format and enqueue
-							const sseData = `data: ${JSON.stringify(chunk)}\n\n`;
+							const sseData = `data: ${JSON.stringify(responseChunk)}\n\n`;
 							controller.enqueue(encoder.encode(sseData));
 						}
 
@@ -267,12 +273,20 @@ export async function POST(req: NextRequest) {
 		const nonStreamStartTime = Date.now();
 
 		try {
-			const completion = (await openai.chat.completions.create(body, {
-				body: {
-					...body,
-					provider_configs: providerConfigs,
+			const bodyWithProviders = {
+				...internalBody,
+				provider_configs: providerConfigs,
+			};
+
+			const completion = (await openai.chat.completions.create(
+				bodyWithProviders,
+				{
+					body: {
+						...internalBody,
+						provider_configs: providerConfigs,
+					},
 				},
-			})) as ChatCompletion;
+			)) as ChatCompletion;
 
 			// Record usage in background
 			if (completion.usage) {
@@ -297,7 +311,13 @@ export async function POST(req: NextRequest) {
 				});
 			}
 
-			return Response.json(completion);
+			// Filter out usage data from response if user didn't request it
+			const responseCompletion = filterUsageFromCompletion(
+				completion,
+				userWantsUsage,
+			);
+
+			return Response.json(responseCompletion);
 		} catch (error) {
 			// Record error for non-streaming requests
 			queueMicrotask(async () => {
