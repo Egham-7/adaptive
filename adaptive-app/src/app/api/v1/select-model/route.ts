@@ -92,7 +92,6 @@ export async function POST(req: NextRequest) {
 	try {
 		// Call the tRPC selectModel procedure
 		const result = await api.selectModel.selectModel({
-			apiKey,
 			request: body,
 		});
 
