@@ -3,12 +3,19 @@ import OpenAI from "openai";
 import { decryptProviderApiKey } from "@/lib/auth-utils";
 import { withCache } from "@/lib/cache-utils";
 import { createBackendJWT } from "@/lib/jwt";
+import {
+	filterUsageFromChunk,
+	filterUsageFromCompletion,
+	userRequestedUsage,
+	withUsageTracking,
+} from "@/lib/usage-utils";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,
 	ChatCompletionChunk,
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
+import { chatCompletionRequestSchema } from "@/types/chat-completion";
 
 // POST /api/v1/clusters/{projectId}/{name}/chat/completions - OpenAI-compatible chat completions with cluster routing
 export async function POST(
@@ -17,7 +24,25 @@ export async function POST(
 ) {
 	try {
 		const { projectId, name } = await params;
-		const body: ChatCompletionRequest = await request.json();
+
+		// Validate request body with Zod schema
+		const requestBody = await request.json();
+		const validationResult = chatCompletionRequestSchema.safeParse(requestBody);
+
+		if (!validationResult.success) {
+			return new Response(
+				JSON.stringify({
+					error: "Invalid request body",
+					details: validationResult.error.issues,
+				}),
+				{
+					status: 400,
+					headers: { "Content-Type": "application/json" },
+				},
+			);
+		}
+
+		const body = validationResult.data as ChatCompletionRequest;
 
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = request.headers.get("authorization");
@@ -222,7 +247,7 @@ export async function POST(
 				acc + (typeof msg.content === "string" ? msg.content.length / 4 : 0)
 			);
 		}, 0);
-		const estimatedOutputTokens = body.max_completion_tokens || 1000;
+		const estimatedOutputTokens = Number(body.max_completion_tokens) || 1000;
 
 		try {
 			await api.usage.checkCreditsBeforeUsage({
@@ -247,25 +272,8 @@ export async function POST(
 
 		const shouldStream = body.stream === true;
 
-		// Helper functions for cleaner usage handling
-		const userRequestedUsage = body.stream_options?.include_usage === true;
-		const withUsageTracking = (requestBody: ChatCompletionRequest) => ({
-			...requestBody,
-			stream_options: {
-				...requestBody.stream_options,
-				include_usage: true,
-			},
-		});
-		const filterUsageFromCompletion = (
-			completion: ChatCompletion,
-			includeUsage: boolean,
-		): ChatCompletion =>
-			includeUsage ? completion : { ...completion, usage: undefined };
-		const filterUsageFromChunk = (
-			chunk: ChatCompletionChunk,
-			includeUsage: boolean,
-		): ChatCompletionChunk =>
-			includeUsage ? chunk : { ...chunk, usage: undefined };
+		// Check if user requested usage data
+		const userWantsUsage = userRequestedUsage(body);
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 		const jwtToken = await createBackendJWT(apiKey);
@@ -275,7 +283,9 @@ export async function POST(
 			baseURL,
 		});
 
-		const internalBody = withUsageTracking(body);
+		// Only add include_usage: true for streaming requests
+		// Non-streaming requests will get usage info by default from most providers
+		const internalBody = shouldStream ? withUsageTracking(body) : body;
 
 		// Build enhanced request with cluster config and real model data
 		const enhancedRequest = {
@@ -303,11 +313,11 @@ export async function POST(
 
 		if (shouldStream) {
 			const streamStartTime = Date.now();
-			const _encoder = new TextEncoder();
+			const encoder = new TextEncoder();
 			const abortController = new AbortController();
 			const timeoutMs = 300000; // 5 minutes timeout
 
-			const _timeoutId = setTimeout(() => {
+			const timeoutId = setTimeout(() => {
 				abortController.abort();
 			}, timeoutMs);
 
@@ -323,6 +333,7 @@ export async function POST(
 								stream: true,
 							},
 							{
+								signal: abortController.signal,
 								body: {
 									...enhancedRequest,
 									stream: true,
@@ -340,17 +351,18 @@ export async function POST(
 							// Filter out usage data if user didn't request it
 							const responseChunk = filterUsageFromChunk(
 								chunk as ChatCompletionChunk,
-								userRequestedUsage,
+								userWantsUsage,
 							);
 
 							// Convert chunk to SSE format and enqueue
 							const sseData = `data: ${JSON.stringify(responseChunk)}\n\n`;
-							controller.enqueue(new TextEncoder().encode(sseData));
+							controller.enqueue(encoder.encode(sseData));
 						}
 
 						// Send [DONE] message
-						controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+						controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 						controller.close();
+						clearTimeout(timeoutId);
 
 						// Record usage after stream completes
 						if (finalChunk?.usage) {
@@ -378,8 +390,9 @@ export async function POST(
 					} catch (error) {
 						console.error("Streaming error:", error);
 						const errorData = `data: ${JSON.stringify({ error: "Stream failed" })}\n\n`;
-						controller.enqueue(new TextEncoder().encode(errorData));
+						controller.enqueue(encoder.encode(errorData));
 						controller.close();
+						clearTimeout(timeoutId);
 
 						// Record error usage
 						queueMicrotask(async () => {
@@ -456,7 +469,7 @@ export async function POST(
 			// Filter out usage data from response if user didn't request it
 			const responseCompletion = filterUsageFromCompletion(
 				completion,
-				userRequestedUsage,
+				userWantsUsage,
 			);
 
 			return Response.json(responseCompletion);

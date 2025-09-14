@@ -161,7 +161,9 @@ export async function POST(req: NextRequest) {
 
 		// Check if user requested usage data
 		const userWantsUsage = userRequestedUsage(body);
-		const internalBody = withUsageTracking(body);
+		// Only add include_usage: true for streaming requests
+		// Non-streaming requests will get usage info by default from most providers
+		const internalBody = shouldStream ? withUsageTracking(body) : body;
 
 		const baseURL = `${process.env.ADAPTIVE_API_BASE_URL}/v1`;
 
