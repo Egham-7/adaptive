@@ -54,13 +54,13 @@ Changelog = "https://github.com/your-org/adaptive-ai/blob/main/CHANGELOG.md"
 dev = [
   "mypy>=1.15.0,<2",
   "black>=25.1.0,<26",
-  "ruff>=0.11.11,<0.13",
+  "ruff>=0.11.11,<0.14",
   "types-requests>=2.32.0.20250611,<3",
   "types-pyyaml>=6.0.12.20250516,<7",
   "types-cachetools>=5.3.0,<7",
   "types-python-jose>=3.5.0.20250531",
 ]
-test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<7"]
+test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<8"]
 docs = ["mkdocs>=1.5.0,<2", "mkdocs-material>=9.0.0,<10"]
 
 [tool.uv]

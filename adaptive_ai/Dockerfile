@@ -1,7 +1,7 @@
 # Multi-stage build for optimized FastAPI service
 
 # Build stage - Install dependencies and prepare app
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 
 # Build arguments
 ARG HOST=::
@@ -39,7 +39,7 @@ COPY model_data/ ./model_data/
 COPY config.yaml entrypoint.sh ./
 
 # Production stage - Minimal runtime image
-FROM python:3.11-slim AS runtime
+FROM python:3.13-slim AS runtime
 
 # Build arguments passed to runtime
 ARG HOST=::

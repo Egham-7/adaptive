@@ -5,13 +5,13 @@ go 1.24.2
 toolchain go1.24.3
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.11.0
+	github.com/anthropics/anthropic-sdk-go v1.12.0
 	github.com/botirk38/semanticcache v0.3.0
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/joho/godotenv v1.5.1
-	github.com/openai/openai-go/v2 v2.3.1
-	github.com/redis/go-redis/v9 v9.13.0
-	github.com/valyala/fasthttp v1.65.0
+	github.com/openai/openai-go/v2 v2.4.2
+	github.com/redis/go-redis/v9 v9.14.0
+	github.com/valyala/fasthttp v1.66.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -39,5 +39,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 )
