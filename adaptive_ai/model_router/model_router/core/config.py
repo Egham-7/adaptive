@@ -47,7 +47,7 @@ class CORSConfig(BaseModel):
     )
 
 
-class Settings(BaseSettings):
+class Settings(BaseSettings):  # type: ignore[misc]
     """Main application settings."""
 
     server: ServerConfig = Field(default_factory=ServerConfig)

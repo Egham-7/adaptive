@@ -27,7 +27,7 @@ import uuid
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.jsonlogger import JsonFormatter
 
 from model_router.core.config import get_settings
 from model_router.models.llm_core_models import (
@@ -72,7 +72,7 @@ def setup_logging() -> None:
             log_record["service"] = "model_router"
 
     # Configure JSON formatter
-    json_formatter = RequestCorrelationFormatter(
+    json_formatter = RequestCorrelationFormatter(  # type: ignore[no-untyped-call]
         "%(timestamp)s %(name)s %(levelname)s %(message)s"
     )
 
