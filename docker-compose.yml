@@ -45,7 +45,7 @@ services:
 
     backend-python:
         build:
-            context: ./model_router
+            context: ./adaptive_ai/model_router
             dockerfile: Dockerfile
         ports:
             - "8000:8000"
@@ -53,12 +53,12 @@ services:
             - MODEL_ROUTER_ENVIRONMENT=production
             - MODEL_ROUTER_LOG_LEVEL=INFO
         env_file:
-            - ./model_router/.env.local
+            - ./adaptive_ai/model_router/.env.local
         restart: unless-stopped
         networks:
             - app-network
         volumes:
-            - ./model_router/config:/app/config:ro
+            - ./adaptive_ai/model_router/config:/app/config:ro
         healthcheck:
             test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
             interval: 20s
