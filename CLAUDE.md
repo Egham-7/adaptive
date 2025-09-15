@@ -64,8 +64,8 @@ This ensures you always have access to the most current documentation and can re
 - `go fmt ./...` - Format Go code
 - `go vet ./...` - Run Go vet analyzer
 
-### AI Service (adaptive_ai/)
-- `uv run adaptive-ai` - Start AI service
+### AI Service (adaptive_ai/model_router/)
+- `uv run model-router` - Start AI service
 - `uv run black .` - Format Python code
 - `uv run ruff check .` - Run linter
 - `uv run ruff check --fix .` - Run linter with auto-fix
@@ -83,7 +83,7 @@ This ensures you always have access to the most current documentation and can re
 ### Development Workflow
 - `pnpm run dev` - Start frontend development (from adaptive-app/)
 - `go run cmd/api/main.go` - Start backend API (from adaptive-backend/)
-- `uv run adaptive-ai` - Start AI service (from adaptive_ai/)
+- `uv run model-router` - Start AI service (from adaptive_ai/model_router/)
 
 ## Code Style Guidelines
 
@@ -166,7 +166,7 @@ This ensures you always have access to the most current documentation and can re
    cd ../adaptive-backend
    
    # AI Service
-   cd ../adaptive_ai && uv install
+   cd ../model_router && uv install
    ```
 
 2. Set up environment files:
@@ -193,7 +193,7 @@ This ensures you always have access to the most current documentation and can re
    cd adaptive-backend && go run cmd/api/main.go
    
    # Terminal 3: AI Service
-   cd adaptive_ai && uv run adaptive-ai
+   cd model_router && uv run model-router
    ```
 
 ### Required Tools
@@ -220,7 +220,7 @@ Each service has its own CLAUDE.md file with specific configuration and developm
   - Built with Fiber framework (Go 1.24+), high performance HTTP server
   - Port: 8080 | Commands: `go run cmd/api/main.go`, `go test ./...`
 
-- **[adaptive_ai/](adaptive_ai/CLAUDE.md)** - Python AI service 
+- **[adaptive_ai/model_router/](adaptive_ai/model_router/CLAUDE.md)** - Python AI service 
   - Intelligent model selection using ML classifiers (PyTorch, scikit-learn)
   - Prompt analysis and task complexity detection with NLP models
   - Cost optimization and provider routing decisions
@@ -318,7 +318,7 @@ go fmt ./...       # Auto-format
 
 **AI Service:**
 ```bash
-cd adaptive_ai
+cd model_router
 uv run mypy .      # Must pass
 uv run ruff check . # Must pass
 uv run black .     # Auto-format
@@ -350,16 +350,16 @@ uv run pytest     # Must pass
 - `internal/middleware/auth.go` - Authentication middleware
 
 ### AI Service Key Files
-- `adaptive_ai/main.py` - LitServe application entry
-- `adaptive_ai/services/` - ML models and classification logic
-- `adaptive_ai/models/` - Data models and enums
-- `adaptive_ai/config/` - Provider and task mappings
+- `adaptive_ai/model_router/main.py` - LitServe application entry
+- `adaptive_ai/model_router/services/` - ML models and classification logic
+- `adaptive_ai/model_router/models/` - Data models and enums
+- `adaptive_ai/model_router/config/` - Provider and task mappings
 - `pyproject.toml` - Dependencies and tool configuration
 
 ### Utility Functions
 - **Frontend**: `src/lib/utils.ts` - Common utilities, cn() for styling
 - **Go**: `internal/utils/` - Message utilities and helpers
-- **Python**: `adaptive_ai/utils/` - OpenAI utilities and helpers
+- **Python**: `adaptive_ai/model_router/utils/` - OpenAI utilities and helpers
 
 ## Debugging and Common Issues
 

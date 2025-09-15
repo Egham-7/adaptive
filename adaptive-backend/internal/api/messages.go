@@ -130,7 +130,7 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 
 		modelResp, _, err := h.modelRouter.SelectModelWithCache(
 			c.UserContext(),
-			prompt, userID, requestID, &resolvedConfig.ModelRouter, h.circuitBreakers,
+			prompt, userID, requestID, &resolvedConfig.Services.ModelRouter, h.circuitBreakers,
 			req.Tools, toolCall,
 		)
 		if err != nil {

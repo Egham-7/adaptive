@@ -1,25 +1,25 @@
-name: Prompt Task Complexity Classifier Dev CI/CD
+name: Task Complexity Classifier Dev CI/CD
 
 on:
   push:
     branches: [dev]
     paths:
-      - "prompt-task-complexity-classifier/**"
+      - "adaptive_ai/prompt-task-complexity-classifier/**"
 
   pull_request:
     branches: [dev]
     paths:
-      - "prompt-task-complexity-classifier/**"
+      - "adaptive_ai/prompt-task-complexity-classifier/**"
 
   workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.11"
-  WORKING_DIR: "./prompt-task-complexity-classifier"
+  WORKING_DIR: "./adaptive_ai/prompt-task-complexity-classifier"
 
 jobs:
   test:
-    name: Test & Lint
+    name: Test & Lint - Task Complexity Classifier
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,7 +50,7 @@ jobs:
         run: uv run black . --check --diff
 
   deploy-dev:
-    name: Deploy to Dev Environment
+    name: Deploy Task Complexity Classifier - Development
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     environment: development
