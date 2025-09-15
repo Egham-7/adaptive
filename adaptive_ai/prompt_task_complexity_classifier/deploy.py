@@ -6,11 +6,6 @@ import modal
 from typing import Dict, List, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from prompt_task_complexity_classifier.models import (
-        ClassificationResult,
-        ClassifyRequest,
-        ClassifyBatchRequest,
-    )
     from fastapi import Request, FastAPI
 
 # Create image with all dependencies - using latest versions
@@ -131,57 +126,52 @@ class PromptClassifier:
                 # Re-raise the exception to propagate to FastAPI layer for HTTP 5xx
                 raise RuntimeError(f"Model inference failed: {str(e)}") from e
 
-    def _verify_jwt_token(self, request: "Request") -> Dict[str, Any]:
-        """Verify JWT token from Authorization header."""
-        import jwt
-        import os
-        from fastapi import HTTPException, status
-
-        # Extract Authorization header
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Authorization header missing",
-            )
-
-        # Check Bearer token format
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Invalid authorization header format",
-            )
-
-        token = auth_header.split(" ", 1)[1]
-
-        # Get JWT secret from environment
-        jwt_secret = os.environ.get("jwt_auth")
-        if not jwt_secret:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="JWT secret not configured",
-            )
-
-        try:
-            # Verify and decode JWT token
-            payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-            return payload  # type: ignore[no-any-return]
-        except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
-            )
-        except jwt.InvalidTokenError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-            )
-
     @modal.asgi_app()
     def create_fastapi_app(self) -> "FastAPI":
         """Create FastAPI app with all endpoints."""
-        from fastapi import FastAPI
-        from prompt_task_complexity_classifier.models import (
-            ClassificationResult,
-        )
+        from fastapi import FastAPI, HTTPException, status
+        import jwt
+        import os
+
+        def _verify_jwt_token(request: Request) -> Dict[str, Any]:
+            """Verify JWT token from Authorization header."""
+            # Extract Authorization header
+            auth_header = request.headers.get("Authorization")
+            if not auth_header:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Authorization header missing",
+                )
+
+            # Check Bearer token format
+            if not auth_header.startswith("Bearer "):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Invalid authorization header format",
+                )
+
+            token = auth_header.split(" ", 1)[1]
+
+            # Get JWT secret from environment
+            jwt_secret = os.environ.get("jwt_auth")
+            if not jwt_secret:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="JWT secret not configured",
+                )
+
+            try:
+                # Verify and decode JWT token
+                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
+                return payload  # type: ignore[no-any-return]
+            except jwt.ExpiredSignatureError:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
+                )
+            except jwt.InvalidTokenError:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+                )
 
         # Create FastAPI app
         web_app = FastAPI(
@@ -190,25 +180,43 @@ class PromptClassifier:
             version="1.0.0",
         )
 
-        @web_app.post("/classify", response_model=ClassificationResult)
+        @web_app.post("/classify")
         async def classify_endpoint(
-            classify_request: ClassifyRequest, request: Request
-        ) -> ClassificationResult:
+            classify_request: Dict[str, Any], request: Request
+        ) -> Dict[str, Any]:
             """Classify a single prompt."""
-            self._verify_jwt_token(request)
-            result = self._classify_prompt(classify_request.prompt)
-            return ClassificationResult(**result)
+            # Import and cast inside function to avoid Modal import issues
+            from prompt_task_complexity_classifier.models import (
+                ClassifyRequest,
+                ClassificationResult,
+            )
 
-        @web_app.post("/classify_batch", response_model=List[ClassificationResult])
+            _verify_jwt_token(request)
+            # Cast dict to proper model for validation
+            validated_request = ClassifyRequest(**classify_request)
+            result = self._classify_prompt(validated_request.prompt)
+            # Return as dict to avoid response model issues
+            return ClassificationResult(**result).model_dump()
+
+        @web_app.post("/classify_batch")
         async def classify_batch_endpoint(
-            batch_request: ClassifyBatchRequest, request: Request
-        ) -> List[ClassificationResult]:
+            batch_request: Dict[str, Any], request: Request
+        ) -> List[Dict[str, Any]]:
             """Classify multiple prompts in batch."""
-            self._verify_jwt_token(request)
+            # Import and cast inside function to avoid Modal import issues
+            from prompt_task_complexity_classifier.models import (
+                ClassifyBatchRequest,
+                ClassificationResult,
+            )
+
+            _verify_jwt_token(request)
+            # Cast dict to proper model for validation
+            validated_request = ClassifyBatchRequest(**batch_request)
             results = [
-                self._classify_prompt(prompt) for prompt in batch_request.prompts
+                self._classify_prompt(prompt) for prompt in validated_request.prompts
             ]
-            return [ClassificationResult(**result) for result in results]
+            # Return as list of dicts to avoid response model issues
+            return [ClassificationResult(**result).model_dump() for result in results]
 
         @web_app.get("/health")
         async def health_endpoint() -> Dict[str, str]:
