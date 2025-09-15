@@ -99,19 +99,18 @@ def sample_classification_result() -> ClassificationResult:
 def empty_classification_result() -> ClassificationResult:
     """Minimal ClassificationResult for testing edge cases."""
     return ClassificationResult(
-        # Required fields cannot be empty, use minimal valid values
+        # All fields are required now, use minimal valid values
         task_type_1="Other",
+        task_type_2="NA",
+        task_type_prob=0.0,
+        creativity_scope=0.0,
+        reasoning=0.0,
+        contextual_knowledge=0.0,
         prompt_complexity_score=0.0,
-        # Optional fields can be None
-        task_type_2=None,
-        task_type_prob=None,
-        creativity_scope=None,
-        reasoning=None,
-        contextual_knowledge=None,
-        domain_knowledge=None,
-        number_of_few_shots=None,
-        no_label_reason=None,
-        constraint_ct=None,
+        domain_knowledge=0.0,
+        number_of_few_shots=0.0,
+        no_label_reason=0.0,
+        constraint_ct=0.0,
     )
 
 

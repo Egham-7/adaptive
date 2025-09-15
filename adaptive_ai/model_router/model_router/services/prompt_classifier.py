@@ -10,7 +10,7 @@ from jose import jwt
 from model_router.models.llm_classification_models import (
     ClassificationResult,
     ClassifyRequest,
-    SingleClassifyRequest,
+    ClassifyBatchRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,8 +124,8 @@ class PromptClassifier:
         )
 
         try:
-            # Use proper request model
-            request_data = SingleClassifyRequest(prompt=prompt)
+            # Use correct model that matches prompt-task-complexity-classifier
+            request_data = ClassifyRequest(prompt=prompt)
             headers = self._get_auth_headers()
 
             # Make async API request to single endpoint
@@ -133,7 +133,7 @@ class PromptClassifier:
                 method="POST",
                 url=f"{self.config.modal_url}/classify",
                 headers=headers,
-                json=request_data.dict(),
+                json=request_data.model_dump(),
             )
 
             # Parse response - Modal returns data compatible with ClassificationResult
@@ -187,8 +187,8 @@ class PromptClassifier:
         )
 
         try:
-            # Prepare request
-            request_data = ClassifyRequest(prompts=prompts)
+            # Use correct model that matches prompt-task-complexity-classifier
+            request_data = ClassifyBatchRequest(prompts=prompts)
             headers = self._get_auth_headers()
 
             # Make async API request

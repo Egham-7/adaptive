@@ -18,15 +18,14 @@ def create_classification_result(
         task_type_2 = "Other"
 
     defaults = {
-        # Required fields
+        # All fields are required
         "task_type_1": task_type_1,
-        "prompt_complexity_score": 0.65,
-        # Optional fields
         "task_type_2": task_type_2,
         "task_type_prob": 0.8,
         "creativity_scope": 0.2,
         "reasoning": 0.7,
         "contextual_knowledge": 0.3,
+        "prompt_complexity_score": 0.65,
         "domain_knowledge": 0.4,
         "number_of_few_shots": 0.0,
         "no_label_reason": 0.9,
@@ -41,7 +40,7 @@ class TestClassificationResult:
 
     def test_minimal_classification_result(self) -> None:
         """Test creating ClassificationResult with minimal fields."""
-        result = ClassificationResult(
+        result = create_classification_result(
             # Required fields
             task_type_1="Code Generation",
             prompt_complexity_score=0.65,
@@ -63,7 +62,7 @@ class TestClassificationResult:
 
     def test_full_classification_result(self) -> None:
         """Test creating ClassificationResult with all fields."""
-        result = ClassificationResult(
+        result = create_classification_result(
             # Required fields
             task_type_1="Code Generation",
             prompt_complexity_score=0.75,
@@ -86,24 +85,24 @@ class TestClassificationResult:
     def test_task_type_validation(self) -> None:
         """Test task type validation."""
         # Valid task types
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="code",
             prompt_complexity_score=0.5,
         )
         assert isinstance(result.task_type_1, str)
         assert result.task_type_1 == "code"
 
-        # None should be allowed for optional fields
-        result = ClassificationResult(
+        # All fields are required now, so we use "NA" for task_type_2
+        result = create_classification_result(
             task_type_1="code",
             prompt_complexity_score=0.5,
-            task_type_2=None,
+            task_type_2="NA",
         )
-        assert result.task_type_2 is None
+        assert result.task_type_2 == "NA"
         assert result.task_type_1 == "code"
 
         # String value
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="code",
             prompt_complexity_score=0.5,
         )
@@ -112,26 +111,26 @@ class TestClassificationResult:
     def test_complexity_score_validation(self) -> None:
         """Test complexity score validation."""
         # Valid complexity scores
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="Test",
             prompt_complexity_score=0.0,
         )
         assert result.prompt_complexity_score == 0.0
 
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="Test",
             prompt_complexity_score=0.5,
         )
         assert result.prompt_complexity_score == 0.5
 
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="Test",
             prompt_complexity_score=1.0,
         )
         assert result.prompt_complexity_score == 1.0
 
         # Score should be a single float value
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="Test",
             prompt_complexity_score=0.7,
         )
@@ -140,7 +139,7 @@ class TestClassificationResult:
 
     def test_domain_classification(self) -> None:
         """Test domain classification fields (using optional fields)."""
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="Test",
             prompt_complexity_score=0.5,
             task_type_2="secondary_task",
@@ -152,7 +151,7 @@ class TestClassificationResult:
 
     def test_complex_classification_scenario(self) -> None:
         """Test realistic classification scenario."""
-        result = ClassificationResult(
+        result = create_classification_result(
             # Required fields
             task_type_1="code",
             prompt_complexity_score=0.82,
@@ -173,7 +172,7 @@ class TestClassificationResult:
 
     def test_serialization(self) -> None:
         """Test ClassificationResult serialization."""
-        original = ClassificationResult(
+        original = create_classification_result(
             # Required fields
             task_type_1="code",
             prompt_complexity_score=0.65,
@@ -191,7 +190,7 @@ class TestClassificationResult:
         assert data["domain_knowledge"] == 0.7
 
         # Deserialize from dict
-        restored = ClassificationResult(**data)
+        restored = create_classification_result(**data)
 
         assert restored.task_type_1 == original.task_type_1
         assert restored.prompt_complexity_score == original.prompt_complexity_score
@@ -199,53 +198,52 @@ class TestClassificationResult:
         assert restored.domain_knowledge == original.domain_knowledge
 
     def test_none_values_handling(self) -> None:
-        """Test handling of None values."""
-        result = ClassificationResult(
-            # Required fields cannot be None
+        """Test handling of None values - all fields are now required."""
+        result = create_classification_result(
+            # All fields are required now
             task_type_1="Test",
             prompt_complexity_score=0.5,
-            # Optional fields can be None
-            task_type_2=None,
-            task_type_prob=None,
+            task_type_2="NA",  # Use "NA" instead of None
+            task_type_prob=0.0,  # Use 0.0 instead of None
         )
 
         assert result.task_type_1 == "Test"
         assert result.prompt_complexity_score == 0.5
-        assert result.task_type_2 is None
-        assert result.task_type_prob is None
+        assert result.task_type_2 == "NA"
+        assert result.task_type_prob == 0.0
 
     def test_empty_strings_vs_none(self) -> None:
-        """Test distinction between empty strings and None."""
-        result1 = ClassificationResult(
+        """Test distinction between empty strings and default values."""
+        result1 = create_classification_result(
             task_type_1="Test",
             prompt_complexity_score=0.5,
             task_type_2="",  # Empty string
         )
-        result2 = ClassificationResult(
+        result2 = create_classification_result(
             task_type_1="Test",
             prompt_complexity_score=0.5,
-            task_type_2=None,  # None value
+            task_type_2="NA",  # Default "NA" value
         )
 
         assert result1.task_type_2 == ""
-        assert result2.task_type_2 is None
+        assert result2.task_type_2 == "NA"
         assert result1.task_type_2 != result2.task_type_2
 
     def test_model_equality(self) -> None:
         """Test equality comparison between ClassificationResult instances."""
-        result1 = ClassificationResult(
+        result1 = create_classification_result(
             task_type_1="code",
             prompt_complexity_score=0.5,
             domain_knowledge=0.6,
         )
 
-        result2 = ClassificationResult(
+        result2 = create_classification_result(
             task_type_1="code",
             prompt_complexity_score=0.5,
             domain_knowledge=0.6,
         )
 
-        result3 = ClassificationResult(
+        result3 = create_classification_result(
             task_type_1="chat",
             prompt_complexity_score=0.5,
             domain_knowledge=0.6,
@@ -256,7 +254,7 @@ class TestClassificationResult:
 
     def test_json_serialization(self) -> None:
         """Test JSON serialization compatibility."""
-        result = ClassificationResult(
+        result = create_classification_result(
             task_type_1="code",
             prompt_complexity_score=0.75,
             task_type_2="analysis",
@@ -271,7 +269,7 @@ class TestClassificationResult:
 
         # Should be able to round-trip
         restored_data = json.loads(json_string)
-        restored_result = ClassificationResult(**restored_data)
+        restored_result = create_classification_result(**restored_data)
 
         assert restored_result == result
 
@@ -282,7 +280,7 @@ class TestClassificationResultEdgeCases:
 
     def test_single_values_not_lists(self) -> None:
         """Test that ClassificationResult now uses individual values, not lists."""
-        result = ClassificationResult(
+        result = create_classification_result(
             # Required fields
             task_type_1="task_42",
             prompt_complexity_score=0.75,
