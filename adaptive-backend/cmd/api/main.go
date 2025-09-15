@@ -40,12 +40,12 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	}
 
 	// Create prompt caches (shared services using Redis client)
-	openaiPromptCache, err := cache.NewOpenAIPromptCache(redisClient, cfg.PromptCache)
+	openaiPromptCache, err := cache.NewOpenAIPromptCache(redisClient, cfg.PromptCache, cfg.Services.Redis.URL)
 	if err != nil {
 		return fmt.Errorf("openAI prompt cache initialization failed: %w", err)
 	}
 
-	anthropicPromptCache, err := cache.NewAnthropicPromptCache(redisClient, cfg.PromptCache)
+	anthropicPromptCache, err := cache.NewAnthropicPromptCache(redisClient, cfg.PromptCache, cfg.Services.Redis.URL)
 	if err != nil {
 		return fmt.Errorf("anthropic prompt cache initialization failed: %w", err)
 	}

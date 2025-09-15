@@ -25,7 +25,7 @@ type OpenAIPromptCache struct {
 }
 
 // NewOpenAIPromptCache creates a new OpenAI prompt cache instance with semantic caching support
-func NewOpenAIPromptCache(redisClient *redis.Client, config models.CacheConfig) (*OpenAIPromptCache, error) {
+func NewOpenAIPromptCache(redisClient *redis.Client, config models.CacheConfig, redisURL string) (*OpenAIPromptCache, error) {
 	fiberlog.Info("OpenAIOpenAIPromptCache: Initializing with semantic cache support")
 
 	pc := &OpenAIPromptCache{
@@ -50,7 +50,7 @@ func NewOpenAIPromptCache(redisClient *redis.Client, config models.CacheConfig) 
 		}
 		semanticCache, err := semanticcache.New(
 			options.WithOpenAIProvider[string, models.ChatCompletion](config.OpenAIAPIKey, embedModel),
-			options.WithRedisBackend[string, models.ChatCompletion](config.RedisURL, 0),
+			options.WithRedisBackend[string, models.ChatCompletion](redisURL, 0),
 		)
 		if err != nil {
 			fiberlog.Errorf("OpenAIOpenAIPromptCache: Failed to create semantic cache: %v", err)

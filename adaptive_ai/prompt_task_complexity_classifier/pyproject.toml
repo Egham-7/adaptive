@@ -1,0 +1,47 @@
+# NVIDIA Prompt Classifier - Modal Deployment
+# High-performance GPU-accelerated prompt classification service
+
+[project]
+name = "prompt-task-complexity-classifier"
+version = "1.0.0"
+description = "NVIDIA prompt task complexity classifier with Modal GPU deployment"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+  # Core Modal deployment dependencies
+  "modal>=1.1.4",
+  "fastapi>=0.110.0",
+  "python-jose[cryptography]>=3.3.0,<4.0",
+  "pydantic>=2.11.5,<3",
+  "pyjwt>=2.10.1",
+  "pydantic-settings>=2.10.1",
+  "pyyaml>=6.0.2",
+  # ML dependencies 
+  "torch>=2.2.0,<2.5.0",
+  "transformers>=4.52.4,<5",
+  "huggingface-hub>=0.32.0,<1.0",
+  "numpy>=1.24.0,<3.0",
+  "accelerate>=1.8.1,<2",
+]
+
+[dependency-groups]
+ml = [
+  # ML dependencies (installed automatically in Modal container)
+  "torch>=2.2.0,<2.5.0",
+  "transformers>=4.52.4,<5",
+  "huggingface-hub>=0.32.0,<1.0",
+  "numpy>=1.24.0,<3.0",
+  "accelerate>=1.8.1,<2",
+]
+dev = [
+  "ruff>=0.11.11,<0.13",
+  "mypy>=1.15.0,<2",
+  "types-requests>=2.32.4.20250809",
+  "black>=25.1.0",
+  "pytest>=8.4.2",
+  "pytest-asyncio>=1.1.0",
+  "httpx>=0.25.0",
+  "types-pyjwt>=1.7.1",
+  "types-pyyaml>=6.0.12.20250822",
+  "types-python-jose>=3.5.0.20250531",
+  "pyjwt>=2.10.1",
+]

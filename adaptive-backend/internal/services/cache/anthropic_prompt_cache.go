@@ -21,7 +21,7 @@ type AnthropicPromptCache struct {
 }
 
 // NewAnthropicPromptCache creates a new Anthropic prompt cache instance with semantic caching support
-func NewAnthropicPromptCache(redisClient *redis.Client, config models.CacheConfig) (*AnthropicPromptCache, error) {
+func NewAnthropicPromptCache(redisClient *redis.Client, config models.CacheConfig, redisURL string) (*AnthropicPromptCache, error) {
 	fiberlog.Info("AnthropicPromptCache: Initializing with semantic cache support")
 
 	pc := &AnthropicPromptCache{
@@ -46,7 +46,7 @@ func NewAnthropicPromptCache(redisClient *redis.Client, config models.CacheConfi
 		}
 		semanticCache, err := semanticcache.New(
 			options.WithOpenAIProvider[string, models.AnthropicMessage](config.OpenAIAPIKey, embedModel),
-			options.WithRedisBackend[string, models.AnthropicMessage](config.RedisURL, 1), // Use database 1 for Anthropic
+			options.WithRedisBackend[string, models.AnthropicMessage](redisURL, 1), // Use database 1 for Anthropic
 		)
 		if err != nil {
 			fiberlog.Errorf("AnthropicPromptCache: Failed to create semantic cache: %v", err)
