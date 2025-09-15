@@ -22,8 +22,7 @@ class TestDeploymentConfig:
         assert config.app_name == "prompt-task-complexity-classifier"
         assert config.model_name == "nvidia/prompt-task-and-complexity-classifier"
         assert config.gpu_type == "T4"
-        assert config.ml_timeout == 600
-        assert config.web_timeout == 300
+        assert config.timeout == 600
         assert config.scaledown_window == 300
         assert config.max_containers == 1
         assert config.min_containers == 0

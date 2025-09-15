@@ -21,10 +21,7 @@ class DeploymentConfig(BaseModel):
         description="HuggingFace model name",
     )
     gpu_type: str = Field(default="T4", description="GPU type for Modal deployment")
-    ml_timeout: int = Field(default=600, description="ML container timeout in seconds")
-    web_timeout: int = Field(
-        default=300, description="Web container timeout in seconds"
-    )
+    timeout: int = Field(default=600, description="Container timeout in seconds")
     scaledown_window: int = Field(
         default=300, description="Scaledown window in seconds"
     )

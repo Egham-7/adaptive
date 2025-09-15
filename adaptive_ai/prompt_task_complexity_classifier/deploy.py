@@ -42,7 +42,7 @@ app = modal.App(config.deployment.app_name, image=image)
 
 @app.function(
     gpu=config.deployment.gpu_type,
-    timeout=config.deployment.ml_timeout,
+    timeout=config.deployment.timeout,
     scaledown_window=config.deployment.scaledown_window,
     secrets=[modal.Secret.from_name(config.deployment.modal_secret_name)],
     min_containers=config.deployment.min_containers,
@@ -89,7 +89,7 @@ def classify(
 
 @app.function(
     gpu=config.deployment.gpu_type,
-    timeout=config.deployment.ml_timeout,
+    timeout=config.deployment.timeout,
     scaledown_window=config.deployment.scaledown_window,
     min_containers=config.deployment.min_containers,
     max_containers=config.deployment.max_containers,
@@ -157,8 +157,7 @@ if __name__ == "__main__":
     print(f"  • App name: {config.deployment.app_name}")
     print(f"  • Model: {config.deployment.model_name}")
     print(f"  • GPU: {config.deployment.gpu_type}")
-    print(f"  • ML timeout: {config.deployment.ml_timeout}s")
-    print(f"  • Web timeout: {config.deployment.web_timeout}s")
+    print(f"  • Timeout: {config.deployment.timeout}s")
     print(f"  • Scale down: {config.deployment.scaledown_window}s")
     print(f"  • Min containers: {config.deployment.min_containers}")
     print(f"  • Max containers: {config.deployment.max_containers}")

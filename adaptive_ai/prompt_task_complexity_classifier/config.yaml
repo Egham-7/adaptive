@@ -4,8 +4,7 @@ deployment:
   app_name: "${MODAL_APP_NAME:prompt-task-complexity-classifier}"
   model_name: "${MODEL_NAME:nvidia/prompt-task-and-complexity-classifier}"
   gpu_type: "${GPU_TYPE:T4}"
-  ml_timeout: ${ML_TIMEOUT:600} # ML container timeout in seconds
-  web_timeout: ${WEB_TIMEOUT:300} # Web container timeout in seconds
+  timeout: ${TIMEOUT:600} # Container timeout in seconds
   scaledown_window: ${SCALEDOWN_WINDOW:300} # Scaledown window in seconds
   max_containers: ${MAX_CONTAINERS:1}
   min_containers: ${MIN_CONTAINERS:0}
