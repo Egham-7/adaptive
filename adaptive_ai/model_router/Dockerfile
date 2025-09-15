@@ -36,7 +36,7 @@ RUN uv sync --no-dev --frozen
 # Copy application code
 COPY model_router/ ./model_router/
 COPY model_data/ ./model_data/
-COPY config.yaml entrypoint.sh ./
+COPY config.yaml ./
 
 # Production stage - Minimal runtime image
 FROM python:3.13-slim AS runtime
@@ -69,10 +69,8 @@ RUN apt-get update && \
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:appuser /app/model_router /app/model_router
 COPY --from=builder --chown=appuser:appuser /app/model_data /app/model_data
-COPY --from=builder --chown=appuser:appuser /app/config.yaml /app/entrypoint.sh /app/
+COPY --from=builder --chown=appuser:appuser /app/config.yaml /app/
 
-# Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
 
 # Switch to non-root user for security
 USER appuser
