@@ -60,7 +60,7 @@ dev = [
   "types-cachetools>=5.3.0,<7",
   "types-python-jose>=3.5.0.20250531",
 ]
-test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<7"]
+test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<8"]
 docs = ["mkdocs>=1.5.0,<2", "mkdocs-material>=9.0.0,<10"]
 
 [tool.uv]
