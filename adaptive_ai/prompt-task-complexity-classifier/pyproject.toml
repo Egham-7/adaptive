@@ -36,4 +36,5 @@ dev = [
   "httpx>=0.25.0",
   "types-pyjwt>=1.7.1",
   "types-pyyaml>=6.0.12.20250822",
+  "types-python-jose>=3.5.0.20250531",
 ]

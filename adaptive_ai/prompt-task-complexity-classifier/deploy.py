@@ -165,7 +165,7 @@ class PromptClassifier:
         try:
             # Verify and decode JWT token
             payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-            return payload
+            return payload  # type: ignore[no-any-return]
         except jwt.ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
