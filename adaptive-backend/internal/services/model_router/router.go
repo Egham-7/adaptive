@@ -25,7 +25,7 @@ func NewModelRouter(cfg *config.Config, redisClient *redis.Client) (*ModelRouter
 	var err error
 
 	// Get semantic cache configuration from config
-	semanticCacheConfig := cfg.ModelRouter.SemanticCache
+	semanticCacheConfig := cfg.Services.ModelRouter.SemanticCache
 
 	fiberlog.Infof("ModelRouter: Initializing with semantic_cache enabled=%t, threshold=%.2f",
 		semanticCacheConfig.Enabled, semanticCacheConfig.SemanticThreshold)

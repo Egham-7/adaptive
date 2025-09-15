@@ -168,7 +168,7 @@ func (h *CompletionHandler) selectModel(
 
 	resp, cacheSource, err = h.modelRouter.SelectModelWithCache(
 		ctx,
-		prompt, userID, requestID, &resolvedConfig.ModelRouter, circuitBreakers,
+		prompt, userID, requestID, &resolvedConfig.Services.ModelRouter, circuitBreakers,
 		req.Tools, toolCall,
 	)
 	if err != nil {

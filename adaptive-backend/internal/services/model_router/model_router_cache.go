@@ -35,7 +35,7 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	fiberlog.Info("ModelRouterCache: Initializing cache")
 
 	// Get semantic cache configuration
-	semanticCacheConfig := cfg.ModelRouter.SemanticCache
+	semanticCacheConfig := cfg.Services.ModelRouter.SemanticCache
 
 	// Validate and set default threshold if invalid
 	threshold := semanticCacheConfig.SemanticThreshold
@@ -54,8 +54,8 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	}
 	fiberlog.Debug("ModelRouterCache: OpenAI API key found")
 
-	// Get Redis connection configuration
-	redisURL := semanticCacheConfig.RedisURL
+	// Get Redis connection configuration from services config
+	redisURL := cfg.Services.Redis.URL
 	if redisURL == "" {
 		fiberlog.Error("ModelRouterCache: Redis URL not set in semantic cache configuration")
 		return nil, fmt.Errorf("redis URL not set in semantic cache configuration")
