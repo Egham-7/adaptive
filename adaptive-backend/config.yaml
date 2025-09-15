@@ -69,8 +69,8 @@ endpoints:
 
 # Services configuration
 services:
-  adaptive_ai:
-    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+  model_router:
+    base_url: "${MODEL_ROUTER_BASE_URL:-http://localhost:8000}"
 
   redis:
     url: "${REDIS_URL:-redis://localhost:6379}"
@@ -99,7 +99,7 @@ model_router:
     redis_url: "${REDIS_URL:-redis://localhost:6379}"
     openai_api_key: "${OPENAI_API_KEY}" # For embeddings
   client:
-    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+    base_url: "${MODEL_ROUTER_BASE_URL:-http://localhost:8000}"
     timeout_ms: 3000
     circuit_breaker:
       failure_threshold: 3

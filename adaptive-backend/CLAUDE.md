@@ -123,8 +123,8 @@ providers:
     base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 services:
-  adaptive_ai:
-    base_url: "${ADAPTIVE_AI_BASE_URL:-http://localhost:8000}"
+  model_router:
+    base_url: "${MODEL_ROUTER_BASE_URL:-http://localhost:8000}"
   redis:
     url: "${REDIS_URL:-redis://localhost:6379}"
 ```

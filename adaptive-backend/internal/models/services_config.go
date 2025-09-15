@@ -2,12 +2,12 @@ package models
 
 // ServicesConfig holds configuration for external services
 type ServicesConfig struct {
-	AdaptiveAI AdaptiveAIConfig `json:"adaptive_ai" yaml:"adaptive_ai"`
-	Redis      RedisConfig      `json:"redis" yaml:"redis"`
+	ModelRouter ModelRouterConfig `json:"model_router" yaml:"model_router"`
+	Redis       RedisConfig       `json:"redis" yaml:"redis"`
 }
 
-// AdaptiveAIConfig holds configuration for the Adaptive AI service
-type AdaptiveAIConfig struct {
+// ModelRouterConfig holds configuration for the Model Router service
+type ModelRouterConfig struct {
 	BaseURL string `json:"base_url,omitzero" yaml:"base_url"`
 }
 
