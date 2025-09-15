@@ -194,7 +194,7 @@ class PromptClassifier:
             # Make async API request
             response = await self._make_request_with_retry_async(
                 method="POST",
-                url=f"{self.config.modal_url}/classify_batch",
+                url=f"{self.config.modal_url}",
                 headers=headers,
                 json=request_data.model_dump(),
             )
