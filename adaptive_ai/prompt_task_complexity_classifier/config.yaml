@@ -2,7 +2,7 @@
 
 service:
   name: "${SERVICE_NAME:nvidia-prompt-classifier}"
-  modal_url: "${MODAL_URL}" # Required - no fallback
+  modal_url: "${MODAL_URL:test}"
   timeout: ${HTTP_TIMEOUT:120} # HTTP client timeout in seconds
 
 test:
