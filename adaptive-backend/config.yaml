@@ -72,7 +72,7 @@ services:
   model_router:
     semantic_cache:
       enabled: true
-      threshold: 0.95
+      semantic_threshold: 0.95
       openai_api_key: "${OPENAI_API_KEY}" # For embeddings
     client:
       base_url: "${MODEL_ROUTER_BASE_URL:-http://localhost:8000}"

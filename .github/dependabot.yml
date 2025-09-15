@@ -56,7 +56,7 @@ updates:
 
   # Prompt classifier
   - package-ecosystem: "pip"
-    directory: "/prompt-task-complexity-classifier-quantized"
+    directory: "/adaptive_ai/prompt_task_complexity_classifier"
     schedule:
       interval: "weekly"
       day: "monday"

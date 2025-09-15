@@ -165,8 +165,8 @@ This ensures you always have access to the most current documentation and can re
    # Backend Go - dependencies auto-installed
    cd ../adaptive-backend
    
-   # AI Service
-   cd ../model_router && uv install
+    # AI Service
+    cd adaptive_ai/model_router && uv install
    ```
 
 2. Set up environment files:
@@ -192,8 +192,8 @@ This ensures you always have access to the most current documentation and can re
    # Terminal 2: Go Backend
    cd adaptive-backend && go run cmd/api/main.go
    
-   # Terminal 3: AI Service
-   cd model_router && uv run model-router
+    # Terminal 3: AI Service
+    cd adaptive_ai/model_router && uv run model-router
    ```
 
 ### Required Tools

@@ -51,6 +51,7 @@ clean:
 	@rm -rf *.egg-info/
 	@find . -name "*.pyc" -delete
 	@find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	@rm -rf .mypy_cache/
 	@echo "Clean complete!"
 
 # Test commands
@@ -101,7 +102,7 @@ format-check:
 	uv run black --check . --fast
 
 typecheck:
-	uv run mypy model_router/
+	uv run mypy --config-file pyproject.toml model_router/
 
 quality: lint format-check typecheck
 

@@ -4,18 +4,18 @@ on:
   push:
     branches: [main]
     paths:
-      - "adaptive_ai/prompt-task-complexity-classifier/**"
+      - "adaptive_ai/prompt_task_complexity_classifier/**"
 
   pull_request:
     branches: [main]
     paths:
-      - "adaptive_ai/prompt-task-complexity-classifier/**"
+      - "adaptive_ai/prompt_task_complexity_classifier/**"
 
   workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.11"
-  WORKING_DIR: "./adaptive_ai/prompt-task-complexity-classifier"
+  WORKING_DIR: "./adaptive_ai/prompt_task_complexity_classifier"
 
 jobs:
   test:
@@ -41,7 +41,7 @@ jobs:
         run: uv run mypy .
 
       - name: Run tests
-        run: uv run pytest tests/unit
+        run: uv run pytest
 
       - name: Run linting
         run: uv run ruff check . --output-format=github
