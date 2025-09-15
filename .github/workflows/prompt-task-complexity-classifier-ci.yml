@@ -71,10 +71,23 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Modal
+      - name: Setup uv and Python for deployment
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Export uv dependencies to requirements.txt
+        run: |
+          uv sync --all-groups
+          uv pip freeze > requirements.txt
+          echo "📦 Generated requirements.txt from uv dependencies:"
+          head -10 requirements.txt
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install modal
+          pip install -r requirements.txt
 
       - name: Deploy to Main
         id: deploy
