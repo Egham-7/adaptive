@@ -1,7 +1,7 @@
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
-github.com/anthropics/anthropic-sdk-go v1.11.0 h1:Ic72+3QvCwZA/nHgkVNXkfU7ktEEv9CZUnBech9HuK4=
-github.com/anthropics/anthropic-sdk-go v1.11.0/go.mod h1:WTz31rIUHUHqai2UslPpw5CwXrQP3geYBioRV4WOLvE=
+github.com/anthropics/anthropic-sdk-go v1.12.0 h1:xPqlGnq7rWrTiHazIvCiumA0u7mGQnwDQtvA1M82h9U=
+github.com/anthropics/anthropic-sdk-go v1.12.0/go.mod h1:WTz31rIUHUHqai2UslPpw5CwXrQP3geYBioRV4WOLvE=
 github.com/botirk38/semanticcache v0.3.0 h1:WkdMPnfVKja5APyDxImwis3TtTIjtcpri9zGzlKx4JY=
 github.com/botirk38/semanticcache v0.3.0/go.mod h1:YsoYVCBjJ4dEIGy6l0KoXEaEYVN5RGPHyMKCy9OLSnY=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
