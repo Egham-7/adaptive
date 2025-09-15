@@ -14,12 +14,9 @@ class PromptClassifier:
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        self.model = None
-        self.tokenizer = None
         self.torch = torch
 
-    def load_model(self) -> None:
-        """Load the model on startup."""
+        # Load model configuration
         app_config = get_config()
         model_name = app_config.deployment.model_name
         config = AutoConfig.from_pretrained(model_name)
@@ -29,9 +26,10 @@ class PromptClassifier:
             f"🎮 GPU: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}"
         )
 
+        # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        # Load model config and create custom model
+        # Load model and create custom model
         self.model = CustomModel(
             target_sizes=config.target_sizes,
             task_type_map=config.task_type_map,
@@ -40,20 +38,16 @@ class PromptClassifier:
         ).from_pretrained(model_name)
 
         if torch.cuda.is_available():
-            assert self.model is not None  # Type assertion for mypy
             self.model = self.model.cuda()
             print("✅ Model loaded on GPU")
         else:
             print("⚠️ Model loaded on CPU")
 
-        assert self.model is not None  # Type assertion for mypy
         self.model.eval()
         print("✅ Model ready!")
 
     def classify_prompt(self, prompt: str) -> Dict[str, Any]:
         """Classify a single prompt."""
-        if self.model is None or self.tokenizer is None:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
 
         # Tokenize
         encoded = self.tokenizer(
@@ -98,6 +92,4 @@ def get_prompt_classifier() -> PromptClassifier:
     Returns:
         PromptClassifier: Cached classifier instance with loaded model
     """
-    classifier = PromptClassifier()
-    classifier.load_model()
-    return classifier
+    return PromptClassifier()
