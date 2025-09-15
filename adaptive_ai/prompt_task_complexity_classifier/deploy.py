@@ -1,23 +1,17 @@
 import logging
 import traceback
 import modal
-from typing import Dict, List, Any
-from fastapi import Request, FastAPI
-import torch
-from transformers import AutoConfig, AutoTokenizer
-from prompt_task_complexity_classifier.task_complexity_model import CustomModel
-from fastapi import HTTPException, status
-from prompt_task_complexity_classifier.models import (
+from typing import List
+from fastapi import Request, HTTPException, status
+from prompt_task_complexity_classifier import (
+    get_prompt_classifier,
     ClassificationResult,
     ClassifyRequest,
     ClassifyBatchRequest,
+    verify_jwt_token,
 )
-import jwt
-import os
-from prompt_task_complexity_classifier.config import get_config
 
 
-# Create image with all dependencies - using latest versions
 image = (
     modal.Image.debian_slim(python_version="3.13")
     .pip_install(
@@ -41,179 +35,116 @@ image = (
 app = modal.App("prompt-task-complexity-classifier", image=image)
 
 
-@app.cls(
-    image=image,
-    gpu="A10G",
-    secrets=[modal.Secret.from_name("jwt")],
-    scaledown_window=300,
+@app.function(
+    gpu="T4",
     timeout=600,
-    max_containers=1,
+    container_idle_timeout=300,
+    secrets=[modal.Secret.from_name("jwt")],
     min_containers=0,
+    docs=True,
 )
-class PromptClassifier:
-    """Prompt task complexity classifier with ML inference and FastAPI endpoints."""
+@modal.fastapi_endpoint(method="POST")
+def classify(
+    classify_request: ClassifyRequest, request: Request
+) -> ClassificationResult:
+    """Classify a single prompt for task complexity and type.
 
-    @modal.enter()
-    def load_model(self) -> None:
-        """Load the model on container startup."""
+    Args:
+        classify_request: Request containing the prompt to classify
+        request: FastAPI Request object for JWT verification
 
-        # Set up logger
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
+    Returns:
+        ClassificationResult: Detailed classification results
 
-        config = get_config()
-        model_name = config.deployment.model_name
+    Raises:
+        HTTPException: If authentication fails or inference errors occur
+    """
+    try:
+        # Verify JWT token
+        verify_jwt_token(request)
 
-        print(f"🚀 Loading model: {model_name}")
-        print(
-            f"🎮 GPU: {torch.cuda.get_device_name() if torch.cuda.is_available() else 'CPU'}"
+        # Get cached classifier and run inference
+        classifier = get_prompt_classifier()
+        result = classifier.classify_prompt(classify_request.prompt)
+
+        return ClassificationResult(**result)
+
+    except HTTPException:
+        # Re-raise authentication/authorization errors
+        raise
+    except Exception as e:
+        # Log and convert inference errors to HTTP 500
+        logging.error(f"Classification failed: {str(e)}")
+        logging.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Classification failed: {str(e)}",
         )
 
-        self.torch = torch
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        # Load model config and create custom model
-        model_config = AutoConfig.from_pretrained(model_name)
-        self.model = CustomModel(
-            target_sizes=getattr(model_config, "target_sizes", {}),
-            task_type_map=getattr(model_config, "task_type_map", {}),
-            weights_map=getattr(model_config, "weights_map", {}),
-            divisor_map=getattr(model_config, "divisor_map", {}),
+@app.function(
+    gpu="T4",
+    timeout=600,
+    container_idle_timeout=300,
+    min_containers=0,
+    docs=True,
+    secrets=[modal.Secret.from_name("jwt")],
+)
+@modal.fastapi_endpoint(method="POST")
+def classify_batch(
+    batch_request: ClassifyBatchRequest, request: Request
+) -> List[ClassificationResult]:
+    """Classify multiple prompts in batch for task complexity and type.
+
+    Args:
+        batch_request: Request containing list of prompts to classify
+        request: FastAPI Request object for JWT verification
+
+    Returns:
+        List[ClassificationResult]: Classification results for each prompt
+
+    Raises:
+        HTTPException: If authentication fails or inference errors occur
+    """
+    try:
+        # Verify JWT token
+        verify_jwt_token(request)
+
+        # Get cached classifier and run batch inference
+        classifier = get_prompt_classifier()
+        results = [
+            classifier.classify_prompt(prompt) for prompt in batch_request.prompts
+        ]
+
+        return [ClassificationResult(**result) for result in results]
+
+    except HTTPException:
+        # Re-raise authentication/authorization errors
+        raise
+    except Exception as e:
+        # Log and convert inference errors to HTTP 500
+        logging.error(f"Batch classification failed: {str(e)}")
+        logging.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Batch classification failed: {str(e)}",
         )
-
-        if torch.cuda.is_available():
-            self.model = self.model.cuda()
-            print("✅ Model loaded on GPU")
-        else:
-            print("⚠️ Model loaded on CPU")
-
-        self.model.eval()
-        print("✅ Model ready!")
-
-    def _classify_prompt(self, prompt: str) -> Dict[str, Any]:
-        """Internal method to classify a single prompt."""
-        # Tokenize
-        encoded = self.tokenizer(
-            [prompt],
-            padding=True,
-            truncation=True,
-            max_length=512,
-            return_tensors="pt",
-        )
-
-        # Move to GPU if available
-        if self.torch.cuda.is_available():
-            encoded = {k: v.cuda() for k, v in encoded.items()}
-
-        # Run inference
-        with self.torch.no_grad():
-            try:
-                result = self.model(encoded)
-                # Extract single result from batch
-                return {
-                    key: values[0] if isinstance(values, list) else values
-                    for key, values in result.items()
-                }
-            except Exception as e:
-                # Log the full error with context and stacktrace
-                self.logger.error(
-                    f"Model inference failed for prompt (length: {len(prompt)}): {str(e)}"
-                )
-                self.logger.error(f"Full stacktrace: {traceback.format_exc()}")
-
-                # Re-raise the exception to propagate to FastAPI layer for HTTP 5xx
-                raise RuntimeError(f"Model inference failed: {str(e)}") from e
-
-    @modal.asgi_app()
-    def create_fastapi_app(self) -> FastAPI:
-        """Create FastAPI app with all endpoints."""
-
-        def _verify_jwt_token(request: Request) -> Dict[str, Any]:
-            """Verify JWT token from Authorization header."""
-            # Extract Authorization header
-            auth_header = request.headers.get("Authorization")
-            if not auth_header:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Authorization header missing",
-                )
-
-            # Check Bearer token format
-            if not auth_header.startswith("Bearer "):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Invalid authorization header format",
-                )
-
-            token = auth_header.split(" ", 1)[1]
-
-            # Get JWT secret from environment
-            jwt_secret = os.environ.get("jwt_auth")
-            if not jwt_secret:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="JWT secret not configured",
-                )
-
-            try:
-                # Verify and decode JWT token
-                payload = jwt.decode(token, jwt_secret, algorithms=["HS256"])
-                return payload  # type: ignore[no-any-return]
-            except jwt.ExpiredSignatureError:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired"
-                )
-            except jwt.InvalidTokenError:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-                )
-
-        # Create FastAPI app
-        web_app = FastAPI(
-            title="Prompt Task Complexity Classifier",
-            description="ML-powered prompt classification API",
-            version="1.0.0",
-        )
-
-        @web_app.post("/classify", response_model=ClassificationResult)
-        async def classify_endpoint(
-            classify_request: ClassifyRequest, request: Request
-        ) -> ClassificationResult:
-            """Classify a single prompt."""
-            _verify_jwt_token(request)
-            result = self._classify_prompt(classify_request.prompt)
-            return ClassificationResult(**result)
-
-        @web_app.post("/classify_batch", response_model=List[ClassificationResult])
-        async def classify_batch_endpoint(
-            batch_request: ClassifyBatchRequest, request: Request
-        ) -> List[ClassificationResult]:
-            """Classify multiple prompts in batch."""
-            _verify_jwt_token(request)
-            results = [
-                self._classify_prompt(prompt) for prompt in batch_request.prompts
-            ]
-            return [ClassificationResult(**result) for result in results]
-
-        @web_app.get("/health")
-        async def health_endpoint() -> Dict[str, str]:
-            """Health check endpoint - no auth required."""
-            return {"status": "healthy", "service": "prompt-task-complexity-classifier"}
-
-        return web_app
 
 
 if __name__ == "__main__":
-    print("🚀 Prompt Task Complexity Classifier - Fixed Modal Deployment")
+    print("🚀 Prompt Task Complexity Classifier - Modal Deployment")
     print("=" * 60)
     print("✨ Features:")
-    print("  • 🧠 ML inference with GPU acceleration")
-    print("  • 🌐 FastAPI endpoints via ASGI")
-    print("  • 📦 Single-file deployment")
+    print("  • 🧠 ML inference with GPU acceleration (T4)")
+    print("  • 🔐 JWT authentication with Modal secrets")
+    print("  • ⚡ Individual function endpoints with auto-scaling")
+    print("  • 📦 Optimized container lifecycle")
     print("")
     print("🚀 Deploy: modal deploy deploy.py")
     print("🌐 Endpoints:")
     print("  POST /classify - Single prompt classification")
     print("  POST /classify_batch - Batch classification")
-    print("  GET /health - Health check")
+    print("  GET /health - Health check (no auth)")
     print("")
+    print("🔑 Authentication: Bearer token in Authorization header")
+    print("🏷️  Modal Secret: 'jwt' with jwt_auth key required")
