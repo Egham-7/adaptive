@@ -1,7 +1,7 @@
 """Pydantic models for API requests and responses."""
 
-from typing import List, Annotated
-from pydantic import BaseModel, Field, conlist
+from typing import List
+from pydantic import BaseModel, Field
 
 
 class ClassificationResult(BaseModel):
@@ -47,6 +47,6 @@ class ClassifyRequest(BaseModel):
 class ClassifyBatchRequest(BaseModel):
     """Request model for batch prompt classification."""
 
-    prompts: Annotated[List[str], conlist(str, min_length=1, max_length=100)] = Field(
-        description="List of prompts to classify"
+    prompts: List[str] = Field(
+        min_length=1, max_length=100, description="List of prompts to classify"
     )

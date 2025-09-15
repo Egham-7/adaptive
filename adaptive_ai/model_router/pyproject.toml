@@ -47,6 +47,9 @@ Documentation = "https://docs.model-router.com"
 "Bug Tracker" = "https://github.com/Egham-7/model-router/issues"
 Changelog = "https://github.com/Egham-7/model-router/blob/main/CHANGELOG.md"
 
+[project.scripts]
+model-router = "model_router.main:app"
+
 
 [dependency-groups]
 dev = [

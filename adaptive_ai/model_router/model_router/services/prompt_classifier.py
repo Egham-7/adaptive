@@ -196,7 +196,7 @@ class PromptClassifier:
                 method="POST",
                 url=f"{self.config.modal_url}/classify_batch",
                 headers=headers,
-                json=request_data.dict(),
+                json=request_data.model_dump(),
             )
 
             # Parse response - Modal returns list of ClassificationResults

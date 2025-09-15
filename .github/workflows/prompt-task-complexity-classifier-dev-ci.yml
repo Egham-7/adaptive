@@ -52,6 +52,7 @@ jobs:
   deploy-dev:
     name: Deploy Task Complexity Classifier - Development
     runs-on: ubuntu-latest
+    needs: test
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     environment: development
     defaults:
