@@ -41,7 +41,7 @@ jobs:
         run: uv run mypy .
 
       - name: Run tests
-        run: uv run pytest tests/unit
+        run: uv run python -m pytest tests/unit
 
       - name: Run linting
         run: uv run ruff check . --output-format=github

@@ -130,6 +130,11 @@ class PromptClassifier:
     def create_fastapi_app(self) -> "FastAPI":
         """Create FastAPI app with all endpoints."""
         from fastapi import FastAPI, HTTPException, status
+        from prompt_task_complexity_classifier.models import (
+            ClassificationResult,
+            ClassifyRequest,
+            ClassifyBatchRequest,
+        )
         import jwt
         import os
 
@@ -180,43 +185,25 @@ class PromptClassifier:
             version="1.0.0",
         )
 
-        @web_app.post("/classify")
+        @web_app.post("/classify", response_model=ClassificationResult)
         async def classify_endpoint(
-            classify_request: Dict[str, Any], request: Request
-        ) -> Dict[str, Any]:
+            classify_request: ClassifyRequest, request: Request
+        ) -> ClassificationResult:
             """Classify a single prompt."""
-            # Import and cast inside function to avoid Modal import issues
-            from prompt_task_complexity_classifier.models import (
-                ClassifyRequest,
-                ClassificationResult,
-            )
-
             _verify_jwt_token(request)
-            # Cast dict to proper model for validation
-            validated_request = ClassifyRequest(**classify_request)
-            result = self._classify_prompt(validated_request.prompt)
-            # Return as dict to avoid response model issues
-            return ClassificationResult(**result).model_dump()
+            result = self._classify_prompt(classify_request.prompt)
+            return ClassificationResult(**result)
 
-        @web_app.post("/classify_batch")
+        @web_app.post("/classify_batch", response_model=List[ClassificationResult])
         async def classify_batch_endpoint(
-            batch_request: Dict[str, Any], request: Request
-        ) -> List[Dict[str, Any]]:
+            batch_request: ClassifyBatchRequest, request: Request
+        ) -> List[ClassificationResult]:
             """Classify multiple prompts in batch."""
-            # Import and cast inside function to avoid Modal import issues
-            from prompt_task_complexity_classifier.models import (
-                ClassifyBatchRequest,
-                ClassificationResult,
-            )
-
             _verify_jwt_token(request)
-            # Cast dict to proper model for validation
-            validated_request = ClassifyBatchRequest(**batch_request)
             results = [
-                self._classify_prompt(prompt) for prompt in validated_request.prompts
+                self._classify_prompt(prompt) for prompt in batch_request.prompts
             ]
-            # Return as list of dicts to avoid response model issues
-            return [ClassificationResult(**result).model_dump() for result in results]
+            return [ClassificationResult(**result) for result in results]
 
         @web_app.get("/health")
         async def health_endpoint() -> Dict[str, str]:
