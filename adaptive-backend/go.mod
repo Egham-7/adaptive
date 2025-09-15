@@ -11,7 +11,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/openai/openai-go/v2 v2.4.2
 	github.com/redis/go-redis/v9 v9.13.0
-	github.com/valyala/fasthttp v1.65.0
+	github.com/valyala/fasthttp v1.66.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -39,5 +39,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 )
