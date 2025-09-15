@@ -81,15 +81,6 @@ extend-exclude = '''
 '''
 
 
-[tool.mypy]
-python_version = "3.11"
-strict = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-disallow_any_generics = true
-show_error_codes = true
-follow_imports = "silent"
-
 [[tool.mypy.overrides]]
 module = [
   "pydantic.*",

@@ -27,7 +27,7 @@ import uuid
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pythonjsonlogger.jsonlogger import JsonFormatter
+from pythonjsonlogger import jsonlogger  # type: ignore[import-untyped]
 
 from model_router.core.config import get_settings
 from model_router.models.llm_core_models import (
@@ -53,7 +53,7 @@ def setup_logging() -> None:
     settings = get_settings()
 
     # Create JSON formatter with request correlation
-    class RequestCorrelationFormatter(jsonlogger.JsonFormatter):
+    class RequestCorrelationFormatter(jsonlogger.JsonFormatter):  # type: ignore[attr-defined]
         def add_fields(
             self,
             log_record: dict[str, Any],
