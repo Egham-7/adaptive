@@ -6,12 +6,24 @@ type ServicesConfig struct {
 	Redis       RedisConfig       `json:"redis" yaml:"redis"`
 }
 
-// ModelRouterConfig holds configuration for the Model Router service
-type ModelRouterConfig struct {
-	BaseURL string `json:"base_url,omitzero" yaml:"base_url"`
-}
-
 // RedisConfig holds configuration for Redis
 type RedisConfig struct {
 	URL string `json:"url,omitzero" yaml:"url"`
+}
+
+// ModelRouterConfig holds configuration for the model router
+type ModelRouterConfig struct {
+	// YAML config fields
+	SemanticCache CacheConfig             `json:"semantic_cache" yaml:"semantic_cache"`
+	Client        ModelRouterClientConfig `json:"client" yaml:"client"`
+	// Request-level config fields
+	Models   []ModelCapability `json:"models,omitzero"`
+	CostBias float32           `json:"cost_bias,omitzero"`
+}
+
+// ModelRouterClientConfig holds client configuration for model router
+type ModelRouterClientConfig struct {
+	BaseURL        string               `json:"base_url,omitzero" yaml:"base_url"`
+	TimeoutMs      int                  `json:"timeout_ms,omitzero" yaml:"timeout_ms"`
+	CircuitBreaker CircuitBreakerConfig `json:"circuit_breaker" yaml:"circuit_breaker"`
 }

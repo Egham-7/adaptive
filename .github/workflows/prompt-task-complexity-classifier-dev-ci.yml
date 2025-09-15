@@ -1,4 +1,4 @@
-name: Prompt Task Complexity Classifier Dev CI/CD
+name: Task Complexity Classifier Dev CI/CD
 
 on:
   push:
@@ -19,7 +19,7 @@ env:
 
 jobs:
   test:
-    name: Test & Lint
+    name: Test & Lint - Task Complexity Classifier
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,7 +50,7 @@ jobs:
         run: uv run black . --check --diff
 
   deploy-dev:
-    name: Deploy to Dev Environment
+    name: Deploy Task Complexity Classifier - Development
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     environment: development

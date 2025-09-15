@@ -43,8 +43,8 @@ type ModelRouterClientConfig struct {
 func NewModelRouterClient(cfg *config.Config, redisClient *redis.Client) *ModelRouterClient {
 	config := DefaultModelRouterClientConfig()
 
-	if cfg.Services.ModelRouter.BaseURL != "" {
-		config.BaseURL = cfg.Services.ModelRouter.BaseURL
+	if cfg.Services.ModelRouter.Client.BaseURL != "" {
+		config.BaseURL = cfg.Services.ModelRouter.Client.BaseURL
 	}
 
 	return NewModelRouterClientWithConfig(config, redisClient)

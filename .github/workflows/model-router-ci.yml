@@ -1,4 +1,4 @@
-name: AI Service CI/CD
+name: Model Router CI/CD
 
 on:
   push:
@@ -10,11 +10,11 @@ on:
 
 env:
   PYTHON_VERSION: "3.11"
-  WORKING_DIR: "./adaptive_ai"
+  WORKING_DIR: "./adaptive_ai/model_router"
 
 jobs:
   test:
-    name: Test & Coverage
+    name: Test & Coverage - Model Router
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,7 +44,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
-    name: Lint & Format
+    name: Lint & Format - Model Router
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -70,4 +70,3 @@ jobs:
 
       - name: Check formatting
         run: uv run black . --check --diff --fast
-
