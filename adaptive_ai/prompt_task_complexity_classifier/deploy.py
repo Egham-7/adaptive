@@ -9,8 +9,12 @@ from prompt_task_complexity_classifier import (
     ClassifyRequest,
     ClassifyBatchRequest,
     verify_jwt_token,
+    get_config,
 )
 
+
+# Load configuration
+config = get_config()
 
 image = (
     modal.Image.debian_slim(python_version="3.13")
@@ -32,16 +36,16 @@ image = (
     .add_local_python_source("prompt_task_complexity_classifier")
 )
 
-app = modal.App("prompt-task-complexity-classifier", image=image)
+app = modal.App(config.deployment.app_name, image=image)
 
 
 @app.function(
-    gpu="T4",
-    timeout=600,
-    container_idle_timeout=300,
-    secrets=[modal.Secret.from_name("jwt")],
-    min_containers=0,
-    docs=True,
+    gpu=config.deployment.gpu_type,
+    timeout=config.deployment.ml_timeout,
+    container_idle_timeout=config.deployment.scaledown_window,
+    secrets=[modal.Secret.from_name(config.deployment.modal_secret_name)],
+    min_containers=config.deployment.min_containers,
+    max_containers=config.deployment.max_containers,
 )
 @modal.fastapi_endpoint(method="POST")
 def classify(
@@ -83,12 +87,12 @@ def classify(
 
 
 @app.function(
-    gpu="T4",
-    timeout=600,
-    container_idle_timeout=300,
-    min_containers=0,
-    docs=True,
-    secrets=[modal.Secret.from_name("jwt")],
+    gpu=config.deployment.gpu_type,
+    timeout=config.deployment.ml_timeout,
+    container_idle_timeout=config.deployment.scaledown_window,
+    min_containers=config.deployment.min_containers,
+    max_containers=config.deployment.max_containers,
+    secrets=[modal.Secret.from_name(config.deployment.modal_secret_name)],
 )
 @modal.fastapi_endpoint(method="POST")
 def classify_batch(
@@ -132,11 +136,13 @@ def classify_batch(
 
 
 if __name__ == "__main__":
-    print("🚀 Prompt Task Complexity Classifier - Modal Deployment")
+    print(f"🚀 {config.service.name} - Modal Deployment")
     print("=" * 60)
     print("✨ Features:")
-    print("  • 🧠 ML inference with GPU acceleration (T4)")
-    print("  • 🔐 JWT authentication with Modal secrets")
+    print(f"  • 🧠 ML inference with GPU acceleration ({config.deployment.gpu_type})")
+    print(
+        f"  • 🔐 JWT authentication with Modal secret '{config.deployment.modal_secret_name}'"
+    )
     print("  • ⚡ Individual function endpoints with auto-scaling")
     print("  • 📦 Optimized container lifecycle")
     print("")
@@ -146,5 +152,12 @@ if __name__ == "__main__":
     print("  POST /classify_batch - Batch classification")
     print("  GET /health - Health check (no auth)")
     print("")
-    print("🔑 Authentication: Bearer token in Authorization header")
-    print("🏷️  Modal Secret: 'jwt' with jwt_auth key required")
+    print("⚙️  Configuration:")
+    print(f"  • App name: {config.deployment.app_name}")
+    print(f"  • Model: {config.deployment.model_name}")
+    print(f"  • GPU: {config.deployment.gpu_type}")
+    print(f"  • ML timeout: {config.deployment.ml_timeout}s")
+    print(f"  • Web timeout: {config.deployment.web_timeout}s")
+    print(f"  • Scale down: {config.deployment.scaledown_window}s")
+    print(f"  • Min containers: {config.deployment.min_containers}")
+    print(f"  • Max containers: {config.deployment.max_containers}")

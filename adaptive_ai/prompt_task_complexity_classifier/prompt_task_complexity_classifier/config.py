@@ -18,14 +18,6 @@ class ServiceConfig(BaseModel):
     timeout: int = Field(default=120, description="HTTP client timeout in seconds")
 
 
-class AuthConfig(BaseModel):
-    """Authentication configuration settings"""
-
-    jwt_secret: str = Field(..., description="JWT secret key for authentication")
-    algorithm: str = Field(default="HS256", description="JWT algorithm")
-    token_expiry_hours: int = Field(default=1, description="JWT token expiry in hours")
-
-
 class UserTestConfig(BaseModel):
     """Test configuration settings"""
 
@@ -62,7 +54,6 @@ class ClassifierConfig(BaseSettings):
     """Main configuration class for the prompt task complexity classifier"""
 
     service: ServiceConfig = Field(default_factory=lambda: ServiceConfig(modal_url=""))
-    auth: AuthConfig = Field(default_factory=lambda: AuthConfig(jwt_secret=""))
     test: UserTestConfig = Field(default_factory=lambda: UserTestConfig())
     deployment: DeploymentConfig = Field(default_factory=lambda: DeploymentConfig())
 
@@ -160,10 +151,6 @@ class ClassifierConfig(BaseSettings):
         return cls()
 
 
-# Global config instance - initialized lazily
-_config: Optional[ClassifierConfig] = None
-
-
 def get_config() -> ClassifierConfig:
     """Get the global configuration instance
 
@@ -174,21 +161,6 @@ def get_config() -> ClassifierConfig:
         This function tries to load from config.yaml first, then falls back
         to environment variables if the YAML file doesn't exist.
     """
-    global _config
-    if _config is None:
-        try:
-            _config = ClassifierConfig.from_yaml()
-        except FileNotFoundError:
-            # Fall back to environment variables
-            _config = ClassifierConfig.from_env()
-    return _config
+    config = ClassifierConfig.from_yaml()
 
-
-def set_config(config: ClassifierConfig) -> None:
-    """Set the global configuration instance (mainly for testing)
-
-    Args:
-        config: ClassifierConfig instance to set as global config
-    """
-    global _config
-    _config = config
+    return config

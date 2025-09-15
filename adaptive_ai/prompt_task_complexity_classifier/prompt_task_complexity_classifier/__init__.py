@@ -18,11 +18,9 @@ from .prompt_classifier import PromptClassifier, get_prompt_classifier
 from .config import (
     ClassifierConfig,
     ServiceConfig,
-    AuthConfig,
     UserTestConfig,
     DeploymentConfig,
     get_config,
-    set_config,
 )
 from .models import ClassificationResult, ClassifyRequest, ClassifyBatchRequest
 from .utils import verify_jwt_token
@@ -39,11 +37,9 @@ __all__ = [
     # Configuration
     "ClassifierConfig",
     "ServiceConfig",
-    "AuthConfig",
     "UserTestConfig",
     "DeploymentConfig",
     "get_config",
-    "set_config",
     # Pydantic models
     "ClassificationResult",
     "ClassifyRequest",

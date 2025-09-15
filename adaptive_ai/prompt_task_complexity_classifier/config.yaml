@@ -5,11 +5,6 @@ service:
   modal_url: "${MODAL_URL}" # Required - no fallback
   timeout: ${HTTP_TIMEOUT:120} # HTTP client timeout in seconds
 
-auth:
-  jwt_secret: "${JWT_SECRET}" # Required - no fallback for security
-  algorithm: "${JWT_ALGORITHM:HS256}"
-  token_expiry_hours: ${JWT_EXPIRY_HOURS:1}
-
 test:
   test_user: "${TEST_USER:claude_test}"
   test_subject: "${TEST_SUBJECT:test_user}"
@@ -24,4 +19,3 @@ deployment:
   max_containers: ${MAX_CONTAINERS:1}
   min_containers: ${MIN_CONTAINERS:0}
   modal_secret_name: "${MODAL_SECRET_NAME:jwt}"
-

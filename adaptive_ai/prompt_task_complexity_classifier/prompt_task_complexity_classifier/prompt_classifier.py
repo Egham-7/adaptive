@@ -20,8 +20,9 @@ class PromptClassifier:
 
     def load_model(self) -> None:
         """Load the model on startup."""
-        config = get_config()
-        model_name = config.deployment.model_name
+        app_config = get_config()
+        model_name = app_config.deployment.model_name
+        config = AutoConfig.from_pretrained(model_name)
 
         print(f"🚀 Loading model: {model_name}")
         print(
@@ -31,7 +32,6 @@ class PromptClassifier:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         # Load model config and create custom model
-        AutoConfig.from_pretrained(model_name)
         self.model = CustomModel(
             target_sizes=config.target_sizes,
             task_type_map=config.task_type_map,

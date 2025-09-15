@@ -9,11 +9,9 @@ import yaml
 from prompt_task_complexity_classifier.config import (
     ClassifierConfig,
     ServiceConfig,
-    AuthConfig,
     UserTestConfig,
     DeploymentConfig,
     get_config,
-    set_config,
 )
 
 
@@ -35,26 +33,6 @@ class TestServiceConfig:
         assert config.name == "custom-service"
         assert config.modal_url == "https://custom.com"
         assert config.timeout == 60
-
-
-class TestAuthConfig:
-    """Test AuthConfig model"""
-
-    def test_auth_config_defaults(self) -> None:
-        """Test AuthConfig with default values"""
-        config = AuthConfig(jwt_secret="test-secret")
-        assert config.jwt_secret == "test-secret"
-        assert config.algorithm == "HS256"
-        assert config.token_expiry_hours == 1
-
-    def test_auth_config_custom_values(self) -> None:
-        """Test AuthConfig with custom values"""
-        config = AuthConfig(
-            jwt_secret="custom-secret", algorithm="RS256", token_expiry_hours=24
-        )
-        assert config.jwt_secret == "custom-secret"
-        assert config.algorithm == "RS256"
-        assert config.token_expiry_hours == 24
 
 
 class TestUserTestConfig:
@@ -97,7 +75,6 @@ class TestClassifierConfig:
         """Test ClassifierConfig with default values"""
         config = ClassifierConfig()
         assert isinstance(config.service, ServiceConfig)
-        assert isinstance(config.auth, AuthConfig)
         assert isinstance(config.test, UserTestConfig)
         assert isinstance(config.deployment, DeploymentConfig)
 
@@ -106,7 +83,6 @@ class TestClassifierConfig:
         {
             "SERVICE__NAME": "test-service",
             "SERVICE__MODAL_URL": "https://test.com",
-            "AUTH__JWT_SECRET": "test-jwt-secret",
         },
     )
     def test_from_env(self) -> None:
@@ -114,7 +90,6 @@ class TestClassifierConfig:
         config = ClassifierConfig.from_env()
         assert config.service.name == "test-service"
         assert config.service.modal_url == "https://test.com"
-        assert config.auth.jwt_secret == "test-jwt-secret"
 
     def test_substitute_env_vars_with_defaults(self) -> None:
         """Test environment variable substitution with default values"""
@@ -162,11 +137,6 @@ class TestClassifierConfig:
                 "modal_url": "https://test.com",
                 "timeout": 60,
             },
-            "auth": {
-                "jwt_secret": "test-secret",
-                "algorithm": "HS256",
-                "token_expiry_hours": 2,
-            },
             "test": {"test_user": "test_user", "test_subject": "test_subject"},
             "deployment": {
                 "app_name": "test-app",
@@ -184,9 +154,6 @@ class TestClassifierConfig:
             assert config.service.name == "test-service"
             assert config.service.modal_url == "https://test.com"
             assert config.service.timeout == 60
-            assert config.auth.jwt_secret == "test-secret"
-            assert config.auth.algorithm == "HS256"
-            assert config.auth.token_expiry_hours == 2
             assert config.deployment.app_name == "test-app"
             assert config.deployment.model_name == "test/model"
             assert config.deployment.gpu_type == "A100"
@@ -203,17 +170,12 @@ class UserTestConfigGlobalFunctions:
         test_config = ClassifierConfig()
         test_config.service.name = "test-global-service"
 
-        # Set it as global config
-        set_config(test_config)
-
         # Get it back
         retrieved_config = get_config()
         assert retrieved_config.service.name == "test-global-service"
 
     def test_get_config_fallback_to_env(self) -> None:
         """Test that get_config falls back to environment when YAML not found"""
-        # Reset global config
-        set_config(None)  # type: ignore
 
         # Mock the from_yaml to raise FileNotFoundError
         with patch.object(ClassifierConfig, "from_yaml", side_effect=FileNotFoundError):
