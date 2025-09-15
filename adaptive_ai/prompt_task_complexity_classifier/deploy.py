@@ -1,12 +1,21 @@
-from __future__ import annotations
-
 import logging
 import traceback
 import modal
-from typing import Dict, List, Any, TYPE_CHECKING
+from typing import Dict, List, Any
+from fastapi import Request, FastAPI
+import torch
+from transformers import AutoConfig, AutoTokenizer
+from prompt_task_complexity_classifier.task_complexity_model import CustomModel
+from fastapi import HTTPException, status
+from prompt_task_complexity_classifier.models import (
+    ClassificationResult,
+    ClassifyRequest,
+    ClassifyBatchRequest,
+)
+import jwt
+import os
+from prompt_task_complexity_classifier.config import get_config
 
-if TYPE_CHECKING:
-    from fastapi import Request, FastAPI
 
 # Create image with all dependencies - using latest versions
 image = (
@@ -47,24 +56,13 @@ class PromptClassifier:
     @modal.enter()
     def load_model(self) -> None:
         """Load the model on container startup."""
-        import torch
-        from transformers import AutoConfig, AutoTokenizer
-        from prompt_task_complexity_classifier.task_complexity_model import CustomModel
 
         # Set up logger
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
 
-        # Get config
-        try:
-            from prompt_task_complexity_classifier.config import get_config
-
-            config = get_config()
-            model_name = config.deployment.model_name
-        except Exception as e:
-            print(f"❌ Failed to load config: {e}")
-            print("🔄 Using default NVIDIA classifier model")
-            model_name = "nvidia/prompt-task-and-complexity-classifier"
+        config = get_config()
+        model_name = config.deployment.model_name
 
         print(f"🚀 Loading model: {model_name}")
         print(
@@ -127,16 +125,8 @@ class PromptClassifier:
                 raise RuntimeError(f"Model inference failed: {str(e)}") from e
 
     @modal.asgi_app()
-    def create_fastapi_app(self) -> "FastAPI":
+    def create_fastapi_app(self) -> FastAPI:
         """Create FastAPI app with all endpoints."""
-        from fastapi import FastAPI, HTTPException, status
-        from prompt_task_complexity_classifier.models import (
-            ClassificationResult,
-            ClassifyRequest,
-            ClassifyBatchRequest,
-        )
-        import jwt
-        import os
 
         def _verify_jwt_token(request: Request) -> Dict[str, Any]:
             """Verify JWT token from Authorization header."""
