@@ -10,21 +10,6 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class ServiceConfig(BaseModel):
-    """Service configuration settings"""
-
-    name: str = Field(default="nvidia-prompt-classifier", description="Service name")
-    modal_url: str = Field(..., description="Modal deployment URL")
-    timeout: int = Field(default=120, description="HTTP client timeout in seconds")
-
-
-class UserTestConfig(BaseModel):
-    """Test configuration settings"""
-
-    test_user: str = Field(default="claude_test", description="Test user identifier")
-    test_subject: str = Field(default="test_user", description="Test JWT subject")
-
-
 class DeploymentConfig(BaseModel):
     """Deployment configuration for Modal"""
 
@@ -53,8 +38,6 @@ class DeploymentConfig(BaseModel):
 class ClassifierConfig(BaseSettings):
     """Main configuration class for the prompt task complexity classifier"""
 
-    service: ServiceConfig = Field(default_factory=lambda: ServiceConfig(modal_url=""))
-    test: UserTestConfig = Field(default_factory=lambda: UserTestConfig())
     deployment: DeploymentConfig = Field(default_factory=lambda: DeploymentConfig())
 
     model_config = SettingsConfigDict(
@@ -161,6 +144,9 @@ def get_config() -> ClassifierConfig:
         This function tries to load from config.yaml first, then falls back
         to environment variables if the YAML file doesn't exist.
     """
-    config = ClassifierConfig.from_yaml()
+    try:
+        config = ClassifierConfig.from_yaml()
+    except FileNotFoundError:
+        config = ClassifierConfig.from_env()
 
     return config

@@ -17,8 +17,6 @@ from .task_complexity_model import CustomModel, MeanPooling, MulticlassHead
 from .prompt_classifier import PromptClassifier, get_prompt_classifier
 from .config import (
     ClassifierConfig,
-    ServiceConfig,
-    UserTestConfig,
     DeploymentConfig,
     get_config,
 )
@@ -36,8 +34,6 @@ __all__ = [
     "get_prompt_classifier",
     # Configuration
     "ClassifierConfig",
-    "ServiceConfig",
-    "UserTestConfig",
     "DeploymentConfig",
     "get_config",
     # Pydantic models

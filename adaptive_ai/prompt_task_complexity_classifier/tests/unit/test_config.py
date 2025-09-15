@@ -8,47 +8,9 @@ import yaml
 
 from prompt_task_complexity_classifier.config import (
     ClassifierConfig,
-    ServiceConfig,
-    UserTestConfig,
     DeploymentConfig,
     get_config,
 )
-
-
-class TestServiceConfig:
-    """Test ServiceConfig model"""
-
-    def test_service_config_defaults(self) -> None:
-        """Test ServiceConfig with default values"""
-        config = ServiceConfig(modal_url="https://example.com")
-        assert config.name == "nvidia-prompt-classifier"
-        assert config.modal_url == "https://example.com"
-        assert config.timeout == 120
-
-    def test_service_config_custom_values(self) -> None:
-        """Test ServiceConfig with custom values"""
-        config = ServiceConfig(
-            name="custom-service", modal_url="https://custom.com", timeout=60
-        )
-        assert config.name == "custom-service"
-        assert config.modal_url == "https://custom.com"
-        assert config.timeout == 60
-
-
-class TestUserTestConfig:
-    """Test UserTestConfig model"""
-
-    def test_test_config_defaults(self) -> None:
-        """Test UserTestConfig with default values"""
-        config = UserTestConfig()
-        assert config.test_user == "claude_test"
-        assert config.test_subject == "test_user"
-
-    def test_test_config_custom_values(self) -> None:
-        """Test UserTestConfig with custom values"""
-        config = UserTestConfig(test_user="custom_user", test_subject="custom_subject")
-        assert config.test_user == "custom_user"
-        assert config.test_subject == "custom_subject"
 
 
 class TestDeploymentConfig:
@@ -74,50 +36,48 @@ class TestClassifierConfig:
     def test_classifier_config_defaults(self) -> None:
         """Test ClassifierConfig with default values"""
         config = ClassifierConfig()
-        assert isinstance(config.service, ServiceConfig)
-        assert isinstance(config.test, UserTestConfig)
         assert isinstance(config.deployment, DeploymentConfig)
 
     @patch.dict(
         os.environ,
         {
-            "SERVICE__NAME": "test-service",
-            "SERVICE__MODAL_URL": "https://test.com",
+            "DEPLOYMENT__APP_NAME": "test-app",
+            "DEPLOYMENT__GPU_TYPE": "A100",
         },
     )
     def test_from_env(self) -> None:
         """Test loading configuration from environment variables"""
         config = ClassifierConfig.from_env()
-        assert config.service.name == "test-service"
-        assert config.service.modal_url == "https://test.com"
+        assert config.deployment.app_name == "test-app"
+        assert config.deployment.gpu_type == "A100"
 
     def test_substitute_env_vars_with_defaults(self) -> None:
         """Test environment variable substitution with default values"""
         yaml_content = """
-        service:
-          name: "${SERVICE_NAME:default-service}"
-          modal_url: "${MODAL_URL:https://default.com}"
+        deployment:
+          app_name: "${APP_NAME:default-app}"
+          gpu_type: "${GPU_TYPE:T4}"
         """
         result = ClassifierConfig._substitute_env_vars(yaml_content)
-        assert "default-service" in result
-        assert "https://default.com" in result
+        assert "default-app" in result
+        assert "T4" in result
 
-    @patch.dict(os.environ, {"SERVICE_NAME": "env-service"})
+    @patch.dict(os.environ, {"APP_NAME": "env-app"})
     def test_substitute_env_vars_from_env(self) -> None:
         """Test environment variable substitution from actual env vars"""
         yaml_content = """
-        service:
-          name: "${SERVICE_NAME:default-service}"
+        deployment:
+          app_name: "${APP_NAME:default-app}"
         """
         result = ClassifierConfig._substitute_env_vars(yaml_content)
-        assert "env-service" in result
-        assert "default-service" not in result
+        assert "env-app" in result
+        assert "default-app" not in result
 
     def test_substitute_env_vars_missing_required(self) -> None:
         """Test that missing required environment variables raise ValueError"""
         yaml_content = """
-        service:
-          modal_url: "${MISSING_VAR}"
+        deployment:
+          app_name: "${MISSING_VAR}"
         """
         with pytest.raises(
             ValueError, match="Required environment variable 'MISSING_VAR' is not set"
@@ -132,12 +92,6 @@ class TestClassifierConfig:
     def test_from_yaml_success(self) -> None:
         """Test successful YAML loading"""
         yaml_content = {
-            "service": {
-                "name": "test-service",
-                "modal_url": "https://test.com",
-                "timeout": 60,
-            },
-            "test": {"test_user": "test_user", "test_subject": "test_subject"},
             "deployment": {
                 "app_name": "test-app",
                 "model_name": "test/model",
@@ -151,9 +105,9 @@ class TestClassifierConfig:
 
         try:
             config = ClassifierConfig.from_yaml(temp_path)
-            assert config.service.name == "test-service"
-            assert config.service.modal_url == "https://test.com"
-            assert config.service.timeout == 60
+            assert config.deployment.app_name == "test-app"
+            assert config.deployment.model_name == "test/model"
+            assert config.deployment.gpu_type == "A100"
             assert config.deployment.app_name == "test-app"
             assert config.deployment.model_name == "test/model"
             assert config.deployment.gpu_type == "A100"
@@ -161,18 +115,17 @@ class TestClassifierConfig:
             os.unlink(temp_path)
 
 
-class UserTestConfigGlobalFunctions:
+class TestGlobalConfigFunctions:
     """Test global configuration functions"""
 
     def test_set_and_get_config(self) -> None:
-        """Test setting and getting global configuration"""
-        # Create a test config
-        test_config = ClassifierConfig()
-        test_config.service.name = "test-global-service"
-
-        # Get it back
+        """Test that get_config returns configuration with expected values"""
+        # Get config (should load from YAML or env)
         retrieved_config = get_config()
-        assert retrieved_config.service.name == "test-global-service"
+
+        # Should have valid deployment config
+        assert isinstance(retrieved_config.deployment, DeploymentConfig)
+        assert retrieved_config.deployment.app_name  # Should have some value
 
     def test_get_config_fallback_to_env(self) -> None:
         """Test that get_config falls back to environment when YAML not found"""

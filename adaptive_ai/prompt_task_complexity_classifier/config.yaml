@@ -1,14 +1,5 @@
 # NVIDIA Prompt Task Complexity Classifier Configuration
 
-service:
-  name: "${SERVICE_NAME:nvidia-prompt-classifier}"
-  modal_url: "${MODAL_URL:test}"
-  timeout: ${HTTP_TIMEOUT:120} # HTTP client timeout in seconds
-
-test:
-  test_user: "${TEST_USER:claude_test}"
-  test_subject: "${TEST_SUBJECT:test_user}"
-
 deployment:
   app_name: "${MODAL_APP_NAME:prompt-task-complexity-classifier}"
   model_name: "${MODEL_NAME:nvidia/prompt-task-and-complexity-classifier}"

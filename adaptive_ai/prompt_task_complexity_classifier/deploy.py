@@ -31,6 +31,7 @@ image = (
             "python-jose[cryptography]",
             "pyyaml",
             "tiktoken",
+            "pydantic_settings",
         ]
     )
     .add_local_python_source("prompt_task_complexity_classifier")
@@ -42,7 +43,7 @@ app = modal.App(config.deployment.app_name, image=image)
 @app.function(
     gpu=config.deployment.gpu_type,
     timeout=config.deployment.ml_timeout,
-    container_idle_timeout=config.deployment.scaledown_window,
+    scaledown_window=config.deployment.scaledown_window,
     secrets=[modal.Secret.from_name(config.deployment.modal_secret_name)],
     min_containers=config.deployment.min_containers,
     max_containers=config.deployment.max_containers,
@@ -89,7 +90,7 @@ def classify(
 @app.function(
     gpu=config.deployment.gpu_type,
     timeout=config.deployment.ml_timeout,
-    container_idle_timeout=config.deployment.scaledown_window,
+    scaledown_window=config.deployment.scaledown_window,
     min_containers=config.deployment.min_containers,
     max_containers=config.deployment.max_containers,
     secrets=[modal.Secret.from_name(config.deployment.modal_secret_name)],
@@ -136,7 +137,7 @@ def classify_batch(
 
 
 if __name__ == "__main__":
-    print(f"🚀 {config.service.name} - Modal Deployment")
+    print(f"🚀 {config.deployment.app_name} - Modal Deployment")
     print("=" * 60)
     print("✨ Features:")
     print(f"  • 🧠 ML inference with GPU acceleration ({config.deployment.gpu_type})")
