@@ -1,8 +1,3 @@
-"""Simple Modal deployment for prompt task complexity classifier.
-
-Just one function that does ML inference with FastAPI endpoint - following Modal best practices.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -16,24 +11,24 @@ if TYPE_CHECKING:
         ClassifyRequest,
         ClassifyBatchRequest,
     )
-    from fastapi import Request
+    from fastapi import Request, FastAPI
 
-# Create image with all dependencies
+# Create image with all dependencies - using latest versions
 image = (
-    modal.Image.debian_slim(python_version="3.11")
+    modal.Image.debian_slim(python_version="3.13")
     .pip_install(
         [
-            "torch>=2.2.0,<2.5.0",
-            "transformers>=4.52.4,<5",
-            "huggingface-hub>=0.32.0,<0.35",
-            "numpy>=1.24.0,<3.0",
-            "accelerate>=1.8.1,<2",
-            "fastapi[standard]>=0.110.0",
-            "pydantic>=2.11.5,<3",
-            "PyJWT>=2.8.0",
-            "python-jose[cryptography]>=3.3.0",
-            "pyyaml>=6.0.2",
-            "tiktoken >=0.11.0",
+            "torch",
+            "transformers",
+            "huggingface-hub",
+            "numpy",
+            "accelerate",
+            "fastapi[standard]",
+            "pydantic",
+            "PyJWT",
+            "python-jose[cryptography]",
+            "pyyaml",
+            "tiktoken",
         ]
     )
     .add_local_python_source("prompt_task_complexity_classifier")
@@ -180,44 +175,55 @@ class PromptClassifier:
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
             )
 
-    @modal.fastapi_endpoint(method="POST", docs=True)
-    def classify(
-        self, classify_request: "ClassifyRequest", request: "Request"
-    ) -> "ClassificationResult":
-        """FastAPI endpoint for single prompt classification."""
-        from prompt_task_complexity_classifier.models import ClassificationResult
+    @modal.asgi_app()
+    def create_fastapi_app(self) -> "FastAPI":
+        """Create FastAPI app with all endpoints."""
+        from fastapi import FastAPI
+        from prompt_task_complexity_classifier.models import (
+            ClassificationResult,
+        )
 
-        # Verify JWT token
-        self._verify_jwt_token(request)
+        # Create FastAPI app
+        web_app = FastAPI(
+            title="Prompt Task Complexity Classifier",
+            description="ML-powered prompt classification API",
+            version="1.0.0",
+        )
 
-        result = self._classify_prompt(classify_request.prompt)
-        return ClassificationResult(**result)
+        @web_app.post("/classify", response_model=ClassificationResult)
+        async def classify_endpoint(
+            classify_request: ClassifyRequest, request: Request
+        ) -> ClassificationResult:
+            """Classify a single prompt."""
+            self._verify_jwt_token(request)
+            result = self._classify_prompt(classify_request.prompt)
+            return ClassificationResult(**result)
 
-    @modal.fastapi_endpoint(method="POST", docs=True)
-    def classify_batch(
-        self, batch_request: "ClassifyBatchRequest", request: "Request"
-    ) -> List["ClassificationResult"]:
-        """FastAPI endpoint for batch prompt classification."""
-        from prompt_task_complexity_classifier.models import ClassificationResult
+        @web_app.post("/classify_batch", response_model=List[ClassificationResult])
+        async def classify_batch_endpoint(
+            batch_request: ClassifyBatchRequest, request: Request
+        ) -> List[ClassificationResult]:
+            """Classify multiple prompts in batch."""
+            self._verify_jwt_token(request)
+            results = [
+                self._classify_prompt(prompt) for prompt in batch_request.prompts
+            ]
+            return [ClassificationResult(**result) for result in results]
 
-        # Verify JWT token
-        self._verify_jwt_token(request)
+        @web_app.get("/health")
+        async def health_endpoint() -> Dict[str, str]:
+            """Health check endpoint - no auth required."""
+            return {"status": "healthy", "service": "prompt-task-complexity-classifier"}
 
-        results = [self._classify_prompt(prompt) for prompt in batch_request.prompts]
-        return [ClassificationResult(**result) for result in results]
-
-    @modal.fastapi_endpoint(method="GET", docs=True)
-    def health(self) -> Dict[str, str]:
-        """Health check endpoint."""
-        return {"status": "healthy", "service": "prompt-task-complexity-classifier"}
+        return web_app
 
 
 if __name__ == "__main__":
-    print("🚀 Prompt Task Complexity Classifier - Simple Modal Deployment")
+    print("🚀 Prompt Task Complexity Classifier - Fixed Modal Deployment")
     print("=" * 60)
     print("✨ Features:")
     print("  • 🧠 ML inference with GPU acceleration")
-    print("  • 🌐 FastAPI endpoints")
+    print("  • 🌐 FastAPI endpoints via ASGI")
     print("  • 📦 Single-file deployment")
     print("")
     print("🚀 Deploy: modal deploy deploy.py")
