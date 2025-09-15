@@ -16,7 +16,7 @@ dependencies = [
   "pydantic-settings>=2.10.1",
   "pyyaml>=6.0.2",
   # ML dependencies 
-  "torch>=2.2.0,<2.5.0",
+  "torch>=2.2.0,<2.9.0",
   "transformers>=4.52.4,<5",
   "huggingface-hub>=0.32.0,<1.0",
   "numpy>=1.24.0,<3.0",
@@ -26,7 +26,7 @@ dependencies = [
 [dependency-groups]
 ml = [
   # ML dependencies (installed automatically in Modal container)
-  "torch>=2.2.0,<2.5.0",
+  "torch>=2.2.0,<2.9.0",
   "transformers>=4.52.4,<5",
   "huggingface-hub>=0.32.0,<1.0",
   "numpy>=1.24.0,<3.0",
