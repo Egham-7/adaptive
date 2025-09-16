@@ -10,14 +10,18 @@ import { useSmartRedirect } from "@/hooks/use-smart-redirect";
 import AnimatedBeamGraph from "./animated-beam-graph";
 
 export default function HeroSection() {
-	const rotatingTexts = ["Intelligent Inference", "Cost Effective AI"];
+	const rotatingTexts = [
+		"Intelligent Inference",
+		"New Models Day One",
+		"60-90% Savings",
+	];
 	const redirectPath = useSmartRedirect();
 
 	return (
 		<section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white dark:bg-neutral-950">
 			<div className="relative z-10 mx-auto max-w-4xl px-6 py-12 text-center">
 				<h1 className="mt-8 text-balance text-center font-display font-semibold text-4xl md:text-5xl xl:text-7xl xl:[line-height:1.125]">
-					{"We Provide ".split(" ").map((word, wordIndex) => (
+					{"AI Infrastructure for ".split(" ").map((word, wordIndex) => (
 						<span
 							key={word}
 							className="mr-2 inline-block flex-nowrap last:mr-0"
@@ -62,9 +66,17 @@ export default function HeroSection() {
 				</h1>
 
 				<p className="mx-auto mt-8 max-w-3xl text-balance text-muted-foreground">
-					Adaptive uses intelligent protocols to optimize your entire AI request
-					flow - from model selection and caching to reliability handling.
-					Reduce costs by up to 90% while improving performance.
+					The first AI router that works with any model instantly - no training
+					data, no onboarding, no setup. Our{" "}
+					<span className="font-medium text-foreground">
+						sub-2ms prompt complexity classifier
+					</span>{" "}
+					maps requests to optimal models in real-time, delivering 60-90% cost
+					savings across OpenAI, Anthropic, and any future provider.
+				</p>
+				<p className="mx-auto mt-4 max-w-2xl font-medium text-primary text-sm">
+					⚡ Be ready for the next model launch while competitors scramble for
+					weeks
 				</p>
 
 				<AnimatedBeamGraph />
@@ -78,7 +90,7 @@ export default function HeroSection() {
 								className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
 							>
 								<Rocket className="relative mr-2 size-4" aria-hidden="true" />
-								Get Started
+								Start Saving 60-90%
 							</Button>
 						</SignUpButton>
 					</SignedOut>
@@ -91,7 +103,7 @@ export default function HeroSection() {
 							>
 								<Link href={redirectPath}>
 									<Rocket className="relative mr-2 size-4" aria-hidden="true" />
-									Go to Dashboard
+									View Dashboard
 								</Link>
 							</Button>
 						) : (
@@ -101,7 +113,7 @@ export default function HeroSection() {
 								disabled
 							>
 								<Rocket className="relative mr-2 size-4" aria-hidden="true" />
-								Go to Dashboard
+								View Dashboard
 							</Button>
 						)}
 					</SignedIn>
@@ -111,7 +123,7 @@ export default function HeroSection() {
 						className="border-primary text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
 						asChild
 					>
-						<Link href="/features">Learn More</Link>
+						<Link href="/features">See How It Works</Link>
 					</Button>
 				</fieldset>
 			</div>

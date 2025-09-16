@@ -47,7 +47,7 @@ export default function FooterSection() {
 							<Logo />
 						</Link>
 						<p className="mt-4 max-w-xs text-muted-foreground text-sm">
-							Optimize performance and cut costs with Adaptive's LLM-driven
+							Optimize performance and cut costs with Adaptive's AI-driven
 							infrastructure for all your AI workloads.
 						</p>
 					</div>
