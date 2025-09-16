@@ -119,6 +119,10 @@ export default function OnboardingPage() {
 		);
 	};
 
+	const handleSkipApiKey = () => {
+		setCurrentStep("complete");
+	};
+
 	const getStepNumber = (step: OnboardingStep): number => {
 		switch (step) {
 			case "welcome":
@@ -166,6 +170,15 @@ export default function OnboardingPage() {
 			case "quickstart":
 				setCurrentStep("api-key");
 				break;
+			case "complete":
+				// If user skipped API key, go back to api-key step
+				// If user created API key, go back to quickstart step
+				if (createdApiKey) {
+					setCurrentStep("quickstart");
+				} else {
+					setCurrentStep("api-key");
+				}
+				break;
 			default:
 				break;
 		}
@@ -177,7 +190,7 @@ export default function OnboardingPage() {
 				{/* Header */}
 				<div className="mb-8 text-center">
 					<h1 className="mb-2 font-bold text-3xl text-foreground">
-						Welcome to Adaptive AI Platform
+						Welcome to Adaptive API Platform
 					</h1>
 					<p className="text-muted-foreground">
 						Let's get you set up with your first organization and project
@@ -220,6 +233,7 @@ export default function OnboardingPage() {
 				{currentStep === "api-key" && (
 					<ApiKeyStep
 						onCreateApiKey={handleCreateApiKey}
+						onSkip={handleSkipApiKey}
 						onBack={handleBack}
 						isLoading={createApiKey.isPending}
 					/>

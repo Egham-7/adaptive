@@ -103,7 +103,8 @@
 	--card-foreground: oklch(0.2435 0 0);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.2435 0 0);
-	--primary: oklch(0.4721 0.0873 326.8474); /* Gold */
+
+	--primary: var(--adaptive-gold);
 	--primary-foreground: oklch(1 0 0);
 	--secondary: oklch(0.9047 0.0634 62.2544); /* Slate */
 	--secondary-foreground: oklch(0.4379 0.056 72.5978);
