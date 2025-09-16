@@ -10,14 +10,66 @@ const client =
 	globalForRedis.redis ??
 	createClient({
 		url: env.REDIS_URL,
+		socket: {
+			connectTimeout: 60000,
+		},
 	});
 
 if (env.NODE_ENV !== "production") globalForRedis.redis = client;
 
-// Lazy connection function
+// Retry connection with exponential backoff
+async function connectWithRetry(
+	redisClient: ReturnType<typeof createClient>,
+	maxRetries = 5,
+): Promise<void> {
+	for (let i = 0; i < maxRetries; i++) {
+		try {
+			await redisClient.connect();
+			console.log("Redis connected successfully");
+			return;
+		} catch (error) {
+			// Check for fatal Redis error codes that should fail fast
+			const errorMessage = (error as Error).message?.toLowerCase() || "";
+			if (
+				errorMessage.includes("enotfound") ||
+				errorMessage.includes("econnrefused") ||
+				errorMessage.includes("invalid credentials")
+			) {
+				console.error(
+					"Fatal Redis error: Invalid credentials or connection parameters",
+					error,
+				);
+				throw error;
+			}
+
+			const isLastAttempt = i === maxRetries - 1;
+
+			if (isLastAttempt) {
+				console.error(
+					`Redis connection attempt ${i + 1} failed (final attempt), throwing error:`,
+					error,
+				);
+				throw error;
+			}
+			// Calculate exponential backoff with jitter
+			const baseDelay = Math.min(1000 * 2 ** i, 10000); // Cap at 10s
+			const jitter = Math.random() * 250; // 0-250ms jitter
+			const delay = baseDelay + jitter;
+
+			console.error(
+				`Redis connection attempt ${i + 1} failed, retrying in ${Math.round(delay)}ms...`,
+				error,
+			);
+
+			await new Promise((resolve) => setTimeout(resolve, delay));
+		}
+	}
+}
+
+// Lazy connection function with retry
 async function ensureConnected() {
 	if (!client.isOpen) {
-		await client.connect();
+		await connectWithRetry(client);
 	}
 	return client;
 }
@@ -47,3 +99,8 @@ export const redis = {
 };
 
 export default redis;
+
+// Initialize connection with retry logic in production
+if (env.NODE_ENV === "production") {
+	connectWithRetry(client).catch(console.error);
+}

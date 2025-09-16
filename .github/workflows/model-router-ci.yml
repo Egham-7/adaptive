@@ -1,0 +1,72 @@
+name: Model Router CI/CD
+
+on:
+  push:
+    branches: [main]
+
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.11"
+  WORKING_DIR: "./adaptive_ai/model_router"
+
+jobs:
+  test:
+    name: Test & Coverage - Model Router
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev --group test
+
+      - name: Run unit tests only
+        run: make test-unit
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          file: ${{ env.WORKING_DIR }}/coverage.xml
+          flags: backend-python
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  lint:
+    name: Lint & Format - Model Router
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run type checking
+        run: uv run mypy .
+
+      - name: Run linting
+        run: uv run ruff check . --output-format=github
+
+      - name: Check formatting
+        run: uv run black . --check --diff --fast

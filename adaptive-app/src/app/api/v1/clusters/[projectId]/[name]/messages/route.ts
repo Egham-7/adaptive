@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
-import { createBackendJWT } from "@/lib/jwt";
 import {
 	type ProviderType,
 	providerEnum,
@@ -127,12 +126,9 @@ export async function POST(
 			);
 		}
 
-		// Create JWT token for backend authentication
-		const jwtToken = await createBackendJWT(apiKey);
-
 		// Use Anthropic SDK to call our backend with cluster routing
 		const anthropic = new Anthropic({
-			apiKey: jwtToken, // Use JWT token instead of API key
+			apiKey: "internal", // Internal communication - no real API key needed
 			baseURL: `${env.ADAPTIVE_API_BASE_URL}/clusters/${projectId}/${name}`,
 		});
 

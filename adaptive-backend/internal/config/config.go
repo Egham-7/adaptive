@@ -20,12 +20,11 @@ const (
 
 // Config represents the complete application configuration
 type Config struct {
-	Server      models.ServerConfig      `yaml:"server"`
-	Endpoints   models.EndpointsConfig   `yaml:"endpoints"`
-	Services    models.ServicesConfig    `yaml:"services"`
-	Fallback    models.FallbackConfig    `yaml:"fallback"`
-	PromptCache models.CacheConfig       `yaml:"prompt_cache"`
-	ModelRouter models.ModelRouterConfig `yaml:"model_router"`
+	Server      models.ServerConfig    `yaml:"server"`
+	Endpoints   models.EndpointsConfig `yaml:"endpoints"`
+	Services    models.ServicesConfig  `yaml:"services"`
+	Fallback    models.FallbackConfig  `yaml:"fallback"`
+	PromptCache models.CacheConfig     `yaml:"prompt_cache"`
 }
 
 // LoadFromFile loads configuration from a YAML file with environment variable substitution
@@ -336,10 +335,9 @@ func (c *Config) MergeProviderConfigs(overrides map[string]*models.ProviderConfi
 // MergePromptCacheConfig merges YAML prompt cache config with request override.
 // Enabled and semantic threshold can be overridden in requests.
 func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.CacheConfig {
-	// Start with YAML config (RedisURL and OpenAIAPIKey are not overridable)
+	// Start with YAML config (OpenAIAPIKey is not overridable)
 	merged := &models.CacheConfig{
 		Enabled:           c.PromptCache.Enabled,
-		RedisURL:          c.PromptCache.RedisURL,
 		SemanticThreshold: c.PromptCache.SemanticThreshold,
 		OpenAIAPIKey:      c.PromptCache.OpenAIAPIKey,
 	}
@@ -362,9 +360,9 @@ func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.Ca
 func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *models.ModelRouterConfig {
 	// Start with YAML defaults
 	merged := &models.ModelRouterConfig{
-		CostBias:      float32(defaultCostBiasFactor), // Default value
-		SemanticCache: c.ModelRouter.SemanticCache,    // Copy YAML semantic cache config
-		Client:        c.ModelRouter.Client,           // Copy YAML client config
+		CostBias:      float32(defaultCostBiasFactor),       // Default value
+		SemanticCache: c.Services.ModelRouter.SemanticCache, // Copy YAML semantic cache config
+		Client:        c.Services.ModelRouter.Client,        // Copy YAML client config
 	}
 
 	// If no override provided, return defaults with YAML config
@@ -381,8 +379,8 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *mod
 	}
 
 	// Merge semantic cache config - request override takes precedence
-	if override.SemanticCache.Enabled != c.ModelRouter.SemanticCache.Enabled ||
-		override.SemanticCache.SemanticThreshold != c.ModelRouter.SemanticCache.SemanticThreshold {
+	if override.SemanticCache.Enabled != c.Services.ModelRouter.SemanticCache.Enabled ||
+		override.SemanticCache.SemanticThreshold != c.Services.ModelRouter.SemanticCache.SemanticThreshold {
 		merged.SemanticCache = override.SemanticCache
 	}
 
@@ -431,7 +429,7 @@ func (c *Config) ResolveConfig(req *models.ChatCompletionRequest) (*Config, erro
 
 	// Merge all configs with request overrides
 	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
-	resolved.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
+	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
 	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
 
 	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "chat_completions")
@@ -454,7 +452,7 @@ func (c *Config) ResolveConfigFromAnthropicRequest(req *models.AnthropicMessageR
 
 	// Merge all configs with request overrides
 	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
-	resolved.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
+	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
 	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
 
 	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "messages")

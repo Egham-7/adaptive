@@ -1,29 +1,25 @@
-name: Prompt Task Complexity Classifier CI/CD
+name: Task Complexity Classifier CI/CD
 
 on:
   push:
     branches: [main]
     paths:
-      - "prompt-task-complexity-classifier/**"
+      - "adaptive_ai/prompt_task_complexity_classifier/**"
 
   pull_request:
     branches: [main]
     paths:
-      - "prompt-task-complexity-classifier/**"
+      - "adaptive_ai/prompt_task_complexity_classifier/**"
 
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   PYTHON_VERSION: "3.11"
-  WORKING_DIR: "./prompt-task-complexity-classifier"
+  WORKING_DIR: "./adaptive_ai/prompt_task_complexity_classifier"
 
 jobs:
   test:
-    name: Test & Lint
+    name: Test & Lint - Task Complexity Classifier
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -45,7 +41,7 @@ jobs:
         run: uv run mypy .
 
       - name: Run tests
-        run: uv run pytest tests/unit
+        run: uv run python -m pytest tests/unit
 
       - name: Run linting
         run: uv run ruff check . --output-format=github
@@ -54,7 +50,7 @@ jobs:
         run: uv run black . --check --diff
 
   deploy-main:
-    name: Deploy to Main Environment
+    name: Deploy Task Complexity Classifier - Production
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: test
@@ -71,17 +67,69 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install Modal
+      - name: Setup uv and Python for deployment
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install modal
+          uv sync --all-groups
 
       - name: Deploy to Main
+        id: deploy
         run: |
           echo "🚀 Deploying Prompt Task Complexity Classifier to main environment..."
-          modal deploy deploy.py
-          echo "✅ Deployment to main completed"
+
+          # Create log file for deployment output
+          DEPLOY_LOG="deployment-$(date +%Y%m%d-%H%M%S).log"
+          echo "Log file: $DEPLOY_LOG"
+
+          # Run deployment with error handling
+          set +e  # Don't exit on error immediately
+          uv run modal deploy deploy.py 2>&1 | tee "$DEPLOY_LOG"
+          DEPLOY_EXIT_CODE=$?
+          set -e  # Re-enable exit on error
+
+          # Check deployment result
+          if [ $DEPLOY_EXIT_CODE -eq 0 ]; then
+            echo "✅ Deployment to main completed successfully"
+            echo "deployment_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Deployment failed with exit code: $DEPLOY_EXIT_CODE"
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            echo "deployment_log=$DEPLOY_LOG" >> $GITHUB_OUTPUT
+
+            # Log deployment error details
+            echo "::error title=Deployment Failed::Modal deployment failed with exit code $DEPLOY_EXIT_CODE"
+            echo "::group::Deployment Error Log"
+            tail -n 50 "$DEPLOY_LOG"
+            echo "::endgroup::"
+
+            exit $DEPLOY_EXIT_CODE
+          fi
+
+      - name: Upload Deployment Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-logs-${{ github.run_number }}
+          path: ${{ env.WORKING_DIR }}/deployment-*.log
+          retention-days: 30
+
+      - name: Handle Deployment Failure
+        if: failure() && steps.deploy.outputs.deployment_status == 'failed'
+        run: |
+          echo "❌ Deployment to Modal failed"
+          echo "::error title=Modal Deployment Failed::The deployment of Prompt Task Complexity Classifier to Modal failed. Please check the deployment logs artifact for detailed error information and retry the deployment manually if needed."
+          echo ""
+          echo "📋 Next steps:"
+          echo "1. Download and review the deployment logs from the workflow artifacts"
+          echo "2. Check Modal dashboard for any partial deployments"
+          echo "3. Verify Modal token credentials and permissions"
+          echo "4. Re-run the workflow or deploy manually using: modal deploy deploy.py"

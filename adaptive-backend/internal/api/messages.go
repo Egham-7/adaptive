@@ -11,7 +11,7 @@ import (
 	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/model_router"
-	"adaptive-backend/internal/stream/stream_simulator"
+	"adaptive-backend/internal/services/stream/stream_simulator"
 	"adaptive-backend/internal/utils"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -42,7 +42,7 @@ func NewMessagesHandler(
 		cfg:             cfg,
 		requestSvc:      messages.NewRequestService(),
 		messagesSvc:     messages.NewMessagesService(),
-		responseSvc:     messages.NewResponseService(),
+		responseSvc:     messages.NewResponseService(modelRouter),
 		modelRouter:     modelRouter,
 		promptCache:     promptCache,
 		circuitBreakers: circuitBreakers,
@@ -110,60 +110,68 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 		}
 
 		// Direct execution - no fallback for user-specified models
-		return h.messagesSvc.HandleProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, h.responseSvc)
+		err = h.messagesSvc.HandleProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, h.responseSvc, "")
+		if err != nil {
+			return err
+		}
+
+		// Store successful response in semantic cache for user-specified models
+		modelResp := &models.ModelSelectionResponse{
+			Provider: provider,
+			Model:    parsedModel,
+		}
+		h.responseSvc.StoreSuccessfulSemanticCache(c.UserContext(), req, modelResp, requestID)
+
+		return nil
 	}
 
 	// If no model is specified, use model router for selection WITH fallback
-	if req.Model == "" {
-		fiberlog.Debugf("[%s] No model specified, using model router for selection with fallback", requestID)
+	fiberlog.Debugf("[%s] No model specified, using model router for selection with fallback", requestID)
 
-		// Extract prompt for routing
-		prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
-		if err != nil {
-			fiberlog.Warnf("[%s] Failed to extract prompt for routing: %v", requestID, err)
-			return h.responseSvc.HandleBadRequest(c, "failed to extract prompt for routing: "+err.Error(), requestID)
-		}
-
-		// Use model router to select best model WITH CIRCUIT BREAKERS
-		userID := "anonymous"
-		toolCall := utils.ExtractToolCallsFromAnthropicMessages(req.Messages)
-
-		modelResp, _, err := h.modelRouter.SelectModelWithCache(
-			c.UserContext(),
-			prompt, userID, requestID, &resolvedConfig.ModelRouter, h.circuitBreakers,
-			req.Tools, toolCall,
-		)
-		if err != nil {
-			fiberlog.Errorf("[%s] Model router selection failed: %v", requestID, err)
-			return h.responseSvc.HandleError(c, err, requestID)
-		}
-
-		// Use fallback service with model router response (system-selected models get fallback)
-		fallbackConfig := h.fallbackService.GetFallbackConfig(req.Fallback)
-
-		// Create provider list with primary and alternatives from model router
-		providers := []models.Alternative{{
-			Provider: modelResp.Provider,
-			Model:    modelResp.Model,
-		}}
-		providers = append(providers, modelResp.Alternatives...)
-
-		// Update request with selected model
-		req.Model = anthropic.Model(modelResp.Model)
-		fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s (with %d alternatives)",
-			requestID, modelResp.Provider, modelResp.Model, len(modelResp.Alternatives))
-
-		return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, isStreaming), requestID, isStreaming)
+	// Extract prompt for routing
+	prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
+	if err != nil {
+		fiberlog.Warnf("[%s] Failed to extract prompt for routing: %v", requestID, err)
+		return h.responseSvc.HandleBadRequest(c, "failed to extract prompt for routing: "+err.Error(), requestID)
 	}
 
-	// If we reach here, something went wrong with the logic above
-	return h.responseSvc.HandleError(c, fmt.Errorf("invalid request state - no model handling path matched"), requestID)
+	// Use model router to select best model WITH CIRCUIT BREAKERS
+	userID := "anonymous"
+	toolCall := utils.ExtractToolCallsFromAnthropicMessages(req.Messages)
+
+	modelResp, cacheSource, err := h.modelRouter.SelectModelWithCache(
+		c.UserContext(),
+		prompt, userID, requestID, &resolvedConfig.Services.ModelRouter, h.circuitBreakers,
+		req.Tools, toolCall,
+	)
+	if err != nil {
+		fiberlog.Errorf("[%s] Model router selection failed: %v", requestID, err)
+		return h.responseSvc.HandleError(c, err, requestID)
+	}
+
+	// Use fallback service with model router response (system-selected models get fallback)
+	fallbackConfig := h.fallbackService.GetFallbackConfig(req.Fallback)
+
+	// Create provider list with primary and alternatives from model router
+	providers := []models.Alternative{{
+		Provider: modelResp.Provider,
+		Model:    modelResp.Model,
+	}}
+	providers = append(providers, modelResp.Alternatives...)
+
+	// Update request with selected model
+	req.Model = anthropic.Model(modelResp.Model)
+	fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s (with %d alternatives)",
+		requestID, modelResp.Provider, modelResp.Model, len(modelResp.Alternatives))
+
+	return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, isStreaming, cacheSource), requestID, isStreaming)
 }
 
 // createExecuteFunc creates an execution function for the fallback service
 func (h *MessagesHandler) createExecuteFunc(
 	req *models.AnthropicMessageRequest,
 	isStreaming bool,
+	cacheSource string,
 ) models.ExecutionFunc {
 	return func(c *fiber.Ctx, provider models.Alternative, reqID string) error {
 		// Get provider configuration from resolved config
@@ -183,7 +191,7 @@ func (h *MessagesHandler) createExecuteFunc(
 		reqCopy.Model = anthropic.Model(provider.Model)
 
 		// Call the messages service and handle retryable errors
-		err = h.messagesSvc.HandleProviderRequest(c, &reqCopy, provider.Provider, providerConfig, isStreaming, reqID, h.responseSvc)
+		err = h.messagesSvc.HandleProviderRequest(c, &reqCopy, provider.Provider, providerConfig, isStreaming, reqID, h.responseSvc, cacheSource)
 		// Check if the error is a retryable provider error that should trigger fallback
 		if err != nil {
 			if appErr, ok := err.(*models.AppError); ok && appErr.Type == models.ErrorTypeProvider && appErr.Retryable {
@@ -202,6 +210,13 @@ func (h *MessagesHandler) createExecuteFunc(
 				Retryable: false,
 			}
 		}
+
+		// Store successful response in semantic cache
+		modelResp := &models.ModelSelectionResponse{
+			Provider: provider.Provider,
+			Model:    provider.Model,
+		}
+		h.responseSvc.StoreSuccessfulSemanticCache(c.UserContext(), &reqCopy, modelResp, reqID)
 
 		return nil
 	}

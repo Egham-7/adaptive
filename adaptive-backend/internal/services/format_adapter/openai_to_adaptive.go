@@ -110,6 +110,12 @@ func (c *OpenAIToAdaptiveConverter) ConvertStreamingChunk(chunk *openai.ChatComp
 		}
 	}
 
+	var usage models.AdaptiveUsage
+
+	if chunk.Usage.TotalTokens > 0 || chunk.Usage.PromptTokens > 0 || chunk.Usage.CompletionTokens > 0 {
+		usage = c.convertUsage(chunk.Usage, cacheSource)
+	}
+
 	return &models.ChatCompletionChunk{
 		ID:          chunk.ID,
 		Choices:     adaptiveChoices,
@@ -117,7 +123,7 @@ func (c *OpenAIToAdaptiveConverter) ConvertStreamingChunk(chunk *openai.ChatComp
 		Model:       chunk.Model,
 		Object:      string(chunk.Object),
 		ServiceTier: chunk.ServiceTier,
-		Usage:       c.convertUsage(chunk.Usage, cacheSource),
+		Usage:       usage,
 		Provider:    provider,
 	}, nil
 }
@@ -128,19 +134,7 @@ func (c *OpenAIToAdaptiveConverter) convertUsage(usage openai.CompletionUsage, c
 		PromptTokens:     usage.PromptTokens,
 		CompletionTokens: usage.CompletionTokens,
 		TotalTokens:      usage.TotalTokens,
-		CacheTier:        "", // Will be set below based on cache source
-	}
-
-	// Set cache tier based on cache source
-	switch cacheSource {
-	case "semantic_exact":
-		adaptiveUsage.CacheTier = models.CacheTierSemanticExact
-	case "semantic_similar":
-		adaptiveUsage.CacheTier = models.CacheTierSemanticSimilar
-	case "prompt_response":
-		adaptiveUsage.CacheTier = models.CacheTierPromptResponse
-	default:
-		adaptiveUsage.CacheTier = ""
+		CacheTier:        cacheSource,
 	}
 
 	return adaptiveUsage

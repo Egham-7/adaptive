@@ -2,7 +2,6 @@ import { betterFetch } from "@better-fetch/fetch";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "@/env";
-import { createBackendJWT } from "@/lib/jwt";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	selectModelRequestSchema,
@@ -13,19 +12,15 @@ export const selectModelRouter = createTRPCRouter({
 	selectModel: publicProcedure
 		.input(
 			z.object({
-				apiKey: z.string().min(1, "API key cannot be empty"),
 				request: selectModelRequestSchema,
 			}),
 		)
 		.mutation(async ({ input }) => {
 			try {
-				const { apiKey, request } = input;
+				const { request } = input;
 
 				// Get backend URL from environment
 				const backendUrl = env.ADAPTIVE_API_BASE_URL;
-
-				// Create JWT token for backend authentication
-				const jwtToken = await createBackendJWT(apiKey);
 
 				// Construct URL properly to avoid double slashes
 				const url = new URL("/v1/select-model", backendUrl);
@@ -36,7 +31,6 @@ export const selectModelRouter = createTRPCRouter({
 					headers: {
 						"Content-Type": "application/json",
 						Accept: "application/json",
-						Authorization: `Bearer ${jwtToken}`,
 					},
 					body: JSON.stringify(request),
 					output: selectModelResponseSchema, // Runtime validation using Zod schema
