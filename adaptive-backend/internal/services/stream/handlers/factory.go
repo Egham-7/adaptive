@@ -34,19 +34,19 @@ func (f *StreamFactory) CreateOpenAIPipeline(
 // CreateAnthropicPipeline creates a complete Anthropic streaming pipeline
 func (f *StreamFactory) CreateAnthropicPipeline(
 	responseBody io.Reader,
-	requestID, provider string,
+	requestID, provider, cacheSource string,
 ) contracts.StreamHandler {
 	reader := readers.NewAnthropicStreamReader(responseBody, requestID)
-	processor := processors.NewAnthropicChunkProcessor(provider, requestID)
+	processor := processors.NewAnthropicChunkProcessor(provider, cacheSource, requestID)
 	return NewStreamOrchestrator(reader, processor, requestID)
 }
 
 // CreateAnthropicNativePipeline creates a complete Anthropic native streaming pipeline
 func (f *StreamFactory) CreateAnthropicNativePipeline(
 	stream *ssestream.Stream[anthropic.MessageStreamEventUnion],
-	requestID, provider string,
+	requestID, provider, cacheSource string,
 ) contracts.StreamHandler {
 	reader := readers.NewAnthropicNativeStreamReader(stream, requestID)
-	processor := processors.NewAnthropicChunkProcessor(provider, requestID)
+	processor := processors.NewAnthropicChunkProcessor(provider, cacheSource, requestID)
 	return NewStreamOrchestrator(reader, processor, requestID)
 }

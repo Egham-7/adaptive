@@ -42,7 +42,7 @@ func (c *AnthropicToAdaptiveConverter) ConvertRequest(req *anthropic.MessageNewP
 }
 
 // ConvertResponse converts standard Anthropic Message to our AdaptiveAnthropicMessage
-func (c *AnthropicToAdaptiveConverter) ConvertResponse(resp *anthropic.Message, provider string) (*models.AnthropicMessage, error) {
+func (c *AnthropicToAdaptiveConverter) ConvertResponse(resp *anthropic.Message, provider, cacheSource string) (*models.AnthropicMessage, error) {
 	if resp == nil {
 		return nil, fmt.Errorf("anthropic message cannot be nil")
 	}
@@ -55,13 +55,13 @@ func (c *AnthropicToAdaptiveConverter) ConvertResponse(resp *anthropic.Message, 
 		StopReason:   string(resp.StopReason),
 		StopSequence: resp.StopSequence,
 		Type:         string(resp.Type),
-		Usage:        *c.convertUsage(resp.Usage),
+		Usage:        *c.convertUsage(resp.Usage, cacheSource),
 		Provider:     provider,
 	}, nil
 }
 
 // ConvertStreamingChunk converts standard Anthropic MessageStreamEventUnion to our AdaptiveAnthropicMessageChunk
-func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.MessageStreamEventUnion, provider string) (*models.AnthropicMessageChunk, error) {
+func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.MessageStreamEventUnion, provider, cacheSource string) (*models.AnthropicMessageChunk, error) {
 	if chunk == nil {
 		return nil, fmt.Errorf("anthropic message stream event cannot be nil")
 	}
@@ -69,7 +69,7 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 	// Use typed accessors for all event kinds instead of direct field access
 	switch eventVariant := chunk.AsAny().(type) {
 	case anthropic.MessageStartEvent:
-		convertedMessage, err := c.ConvertResponse(&eventVariant.Message, provider)
+		convertedMessage, err := c.ConvertResponse(&eventVariant.Message, provider, cacheSource)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert message in chunk: %w", err)
 		}
@@ -92,6 +92,7 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 			adaptive.Usage = &models.AdaptiveAnthropicUsage{
 				InputTokens:  eventVariant.Usage.InputTokens,
 				OutputTokens: eventVariant.Usage.OutputTokens,
+				CacheTier:    cacheSource,
 			}
 		}
 		return adaptive, nil
@@ -144,13 +145,14 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 }
 
 // convertUsage creates AdaptiveAnthropicUsage from Anthropic's Usage
-func (c *AnthropicToAdaptiveConverter) convertUsage(usage anthropic.Usage) *models.AdaptiveAnthropicUsage {
+func (c *AnthropicToAdaptiveConverter) convertUsage(usage anthropic.Usage, cacheSource string) *models.AdaptiveAnthropicUsage {
 	return &models.AdaptiveAnthropicUsage{
 		CacheCreationInputTokens: usage.CacheCreationInputTokens,
 		CacheReadInputTokens:     usage.CacheReadInputTokens,
 		InputTokens:              usage.InputTokens,
 		OutputTokens:             usage.OutputTokens,
 		ServiceTier:              string(usage.ServiceTier),
+		CacheTier:                cacheSource,
 	}
 }
 

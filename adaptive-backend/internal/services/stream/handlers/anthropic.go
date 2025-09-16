@@ -15,7 +15,7 @@ import (
 )
 
 // HandleAnthropic manages Anthropic streaming response using proper layered architecture
-func HandleAnthropic(c *fiber.Ctx, responseBody io.Reader, requestID, provider string) error {
+func HandleAnthropic(c *fiber.Ctx, responseBody io.Reader, requestID, provider, cacheSource string) error {
 	fiberlog.Infof("[%s] Starting Anthropic stream handling", requestID)
 
 	fasthttpCtx := c.Context()
@@ -33,7 +33,7 @@ func HandleAnthropic(c *fiber.Ctx, responseBody io.Reader, requestID, provider s
 
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
-		handler := factory.CreateAnthropicPipeline(responseBody, requestID, provider)
+		handler := factory.CreateAnthropicPipeline(responseBody, requestID, provider, cacheSource)
 
 		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {
@@ -49,7 +49,7 @@ func HandleAnthropic(c *fiber.Ctx, responseBody io.Reader, requestID, provider s
 }
 
 // HandleAnthropicNative handles native Anthropic SDK streams using proper layered architecture
-func HandleAnthropicNative(c *fiber.Ctx, stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID, provider string) error {
+func HandleAnthropicNative(c *fiber.Ctx, stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID, provider, cacheSource string) error {
 	fiberlog.Infof("[%s] Starting native Anthropic stream handling", requestID)
 
 	fasthttpCtx := c.Context()
@@ -67,7 +67,7 @@ func HandleAnthropicNative(c *fiber.Ctx, stream *ssestream.Stream[anthropic.Mess
 
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
-		handler := factory.CreateAnthropicNativePipeline(stream, requestID, provider)
+		handler := factory.CreateAnthropicNativePipeline(stream, requestID, provider, cacheSource)
 
 		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {

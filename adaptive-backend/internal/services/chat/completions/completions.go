@@ -270,7 +270,7 @@ func (cs *CompletionService) executeAnthropicCompletion(
 		streamReader := adapters.NewAnthropicToOpenAIStreamAdapter(anthropicStream, providerName, requestID)
 
 		// Handle stream using the stream handler
-		return handlers.HandleAnthropic(c, streamReader, requestID, providerName)
+		return handlers.HandleAnthropic(c, streamReader, requestID, providerName, cacheSource)
 	}
 
 	fiberlog.Infof("[%s] generating Anthropic completion from %s (will convert to OpenAI format)", requestID, providerName)

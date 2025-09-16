@@ -1,11 +1,14 @@
 package messages
 
 import (
+	"context"
 	"fmt"
 
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/format_adapter"
+	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/stream/handlers"
+	"adaptive-backend/internal/utils"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
@@ -14,11 +17,15 @@ import (
 )
 
 // ResponseService handles Anthropic Messages response processing and formatting
-type ResponseService struct{}
+type ResponseService struct {
+	modelRouter *model_router.ModelRouter
+}
 
 // NewResponseService creates a new ResponseService
-func NewResponseService() *ResponseService {
-	return &ResponseService{}
+func NewResponseService(modelRouter *model_router.ModelRouter) *ResponseService {
+	return &ResponseService{
+		modelRouter: modelRouter,
+	}
 }
 
 // HandleNonStreamingResponse processes a non-streaming Anthropic response
@@ -26,10 +33,11 @@ func (rs *ResponseService) HandleNonStreamingResponse(
 	c *fiber.Ctx,
 	message *anthropic.Message,
 	requestID string,
+	cacheSource string,
 ) error {
 	fiberlog.Debugf("[%s] Converting Anthropic response to Adaptive format", requestID)
 	// Convert response using format adapter
-	adaptiveResponse, err := format_adapter.AnthropicToAdaptive.ConvertResponse(message, "anthropic")
+	adaptiveResponse, err := format_adapter.AnthropicToAdaptive.ConvertResponse(message, "anthropic", cacheSource)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to convert Anthropic response: %v", requestID, err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -50,11 +58,12 @@ func (rs *ResponseService) HandleStreamingResponse(
 	anthropicStream *ssestream.Stream[anthropic.MessageStreamEventUnion],
 	requestID string,
 	provider string,
+	cacheSource string,
 ) error {
 	fiberlog.Infof("[%s] Starting Anthropic streaming response handling", requestID)
 
 	// Use the optimized stream handler that properly handles native Anthropic streams
-	return handlers.HandleAnthropicNative(c, anthropicStream, requestID, provider)
+	return handlers.HandleAnthropicNative(c, anthropicStream, requestID, provider, cacheSource)
 }
 
 // HandleError handles error responses for Anthropic Messages API
@@ -88,6 +97,31 @@ func (rs *ResponseService) HandleError(c *fiber.Ctx, err error, requestID string
 	}
 
 	return c.Status(statusCode).JSON(response)
+}
+
+// StoreSuccessfulSemanticCache stores the model response in semantic cache after successful completion
+func (rs *ResponseService) StoreSuccessfulSemanticCache(
+	ctx context.Context,
+	req *models.AnthropicMessageRequest,
+	resp *models.ModelSelectionResponse,
+	requestID string,
+) {
+	if rs.modelRouter == nil {
+		fiberlog.Debugf("[%s] Model router not available for semantic cache storage", requestID)
+		return
+	}
+
+	// Extract prompt for cache storage from Anthropic messages
+	prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to extract prompt for semantic cache: %v", requestID, err)
+		return
+	}
+
+	// Store in semantic cache
+	if err := rs.modelRouter.StoreSuccessfulModel(ctx, prompt, *resp, requestID, nil); err != nil {
+		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
+	}
 }
 
 // HandleBadRequest handles validation and request parsing errors
