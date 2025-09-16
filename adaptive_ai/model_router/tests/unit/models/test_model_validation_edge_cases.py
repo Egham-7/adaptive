@@ -341,7 +341,7 @@ class TestModelSerializationEdgeCases:
             model="gpt-4",
             alternatives=[
                 Alternative(provider="anthropic", model="claude-3-sonnet"),
-                Alternative(provider="google", model="gemini-pro"),
+                Alternative(provider="gemini", model="gemini-2.5-pro"),
                 Alternative(provider="openai", model="gpt-3.5-turbo"),
             ],
         )

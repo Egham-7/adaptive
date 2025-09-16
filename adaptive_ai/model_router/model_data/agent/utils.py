@@ -21,7 +21,7 @@ def load_models_to_process() -> list[tuple[str, dict[str, Any], str, str]]:
     models_to_process = []
 
     # Only process these providers as requested
-    target_providers = {"ANTHROPIC", "GROK", "GROQ", "GOOGLE", "DEEPSEEK", "OPENAI"}
+    target_providers = {"ANTHROPIC", "GROK", "GROQ", "GEMINI", "DEEPSEEK", "OPENAI"}
 
     # Load models from structured YAML files (only target providers)
     structured_path = Path(config.STRUCTURED_MODELS_PATH)

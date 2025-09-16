@@ -343,7 +343,7 @@ class HeliconeUpdater:
                 providers = [
                     "openai",
                     "anthropic",
-                    "google",
+                    "gemini",
                     "groq",
                     "mistral",
                     "cohere",
