@@ -254,14 +254,19 @@ func (ms *MessagesService) handleOpenAINonStreamingRequest(
 	}
 
 	// Convert OpenAI response back to Anthropic format
-	anthropicResp, err := format_adapter.OpenAIToAnthropic.ConvertResponse(response, provider, cacheSource)
+	anthropicResp, err := format_adapter.OpenAIToAnthropic.ConvertResponse(response, provider)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to convert OpenAI response to Anthropic format: %v", requestID, err)
 		return fmt.Errorf("failed to convert response format: %w", err)
 	}
 
+	adaptiveResp, err := format_adapter.AnthropicToAdaptive.ConvertResponse(anthropicResp, provider, cacheSource)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to convert Anthropic response to Adaptive format: %v", requestID, err)
+	}
+
 	fiberlog.Infof("[%s] Non-streaming completion completed successfully for provider %s", requestID, provider)
-	return c.JSON(anthropicResp)
+	return c.JSON(adaptiveResp)
 }
 
 // handleOpenAIStreamingRequest processes streaming requests for non-Anthropic providers

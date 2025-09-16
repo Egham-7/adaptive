@@ -429,7 +429,7 @@ func (c *OpenAIToAnthropicConverter) convertFinishReason(finishReason string) an
 }
 
 // convertUsage converts OpenAI usage to Anthropic usage
-func (c *OpenAIToAnthropicConverter) convertUsage(usage openai.CompletionUsage, cacheSource string) anthropic.Usage {
+func (c *OpenAIToAnthropicConverter) convertUsage(usage openai.CompletionUsage) anthropic.Usage {
 	return anthropic.Usage{
 		InputTokens:              usage.PromptTokens,
 		OutputTokens:             usage.CompletionTokens,
@@ -477,7 +477,7 @@ func (c *OpenAIToAnthropicConverter) convertResponseContent(content string, tool
 }
 
 // ConvertResponse converts OpenAI ChatCompletion to Anthropic Message format
-func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *openai.ChatCompletion, provider, cacheSource string) (*anthropic.Message, error) {
+func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *openai.ChatCompletion, provider string) (*anthropic.Message, error) {
 	if resp == nil {
 		return nil, fmt.Errorf("chat completion cannot be nil")
 	}
@@ -502,7 +502,7 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *openai.ChatCompletion
 	modelName := anthropicparam.Opt[string]{Value: resp.Model}
 
 	// Use helper to convert usage
-	usage := c.convertUsage(resp.Usage, cacheSource)
+	usage := c.convertUsage(resp.Usage)
 
 	// Create Anthropic Message
 	message := &anthropic.Message{
