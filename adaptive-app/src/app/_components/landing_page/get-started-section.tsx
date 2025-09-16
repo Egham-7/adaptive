@@ -51,9 +51,9 @@ export default function GetStartedSection() {
 		},
 		{
 			number: 6,
-			title: "See cost savings",
+			title: "See 60-90% savings",
 			description:
-				"Monitor your AI spend and track 30-70% cost reductions in real-time",
+				"Watch real-time cost reductions across OpenAI, Anthropic, Google, and any provider",
 			icon: TrendingDown,
 		},
 	];
@@ -91,9 +91,13 @@ export default function GetStartedSection() {
 							</span>
 						</h2>
 						<p className="mx-auto mt-6 max-w-3xl text-balance text-lg text-muted-foreground">
-							From signup to your first API call in minutes. Our streamlined
-							onboarding gets you up and running with intelligent AI routing
-							instantly.
+							From signup to 60-90% cost savings in minutes. No training data,
+							no model profiling, no weeks of setup - just instant savings
+							across any provider.
+						</p>
+						<p className="mx-auto mt-2 max-w-2xl font-medium text-sm text-warning">
+							⏰ While competitors spend weeks updating routers, you're already
+							using the latest models
 						</p>
 					</motion.div>
 
@@ -162,9 +166,9 @@ export default function GetStartedSection() {
 						className="mt-16 space-y-6 text-center"
 					>
 						<p className="text-muted-foreground">
-							Ready to optimize your AI costs?{" "}
+							Ready for 60-90% savings across any provider?{" "}
 							<span className="font-medium text-primary">
-								Start your free trial with $3.14 credit
+								Free trial • $3.14 credit • No credit card required
 							</span>
 						</p>
 
@@ -175,7 +179,7 @@ export default function GetStartedSection() {
 									className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
 								>
 									<Rocket className="relative mr-2 size-4" aria-hidden="true" />
-									Get Started Free
+									Start Saving 60-90%
 								</Button>
 							</SignUpButton>
 						</div>

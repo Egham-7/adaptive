@@ -80,7 +80,7 @@ func (a *OpenAIToAnthropicStreamAdapter) Read(p []byte) (n int, err error) {
 		}
 
 		// Format as SSE data and return
-		a.buffer.WriteString(fmt.Sprintf("event: %s \n\n data: %s \n\n", anthropicEvent.Type, string(anthropicJSON)))
+		a.buffer.WriteString(fmt.Sprintf("event: %s\ndata: %s\n\n", anthropicEvent.Type, string(anthropicJSON)))
 		return a.readFromBuffer(p)
 	}
 }

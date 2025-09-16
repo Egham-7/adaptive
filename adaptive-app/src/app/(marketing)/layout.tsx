@@ -4,7 +4,7 @@ import FloatingHeader from "@/app/_components/landing_page/floating-header";
 import Header from "@/app/_components/landing_page/header";
 
 export const metadata: Metadata = {
-	title: "LLM Adaptive - Intelligent AI Model Router | 60% Cost Reduction",
+	title: "Adaptive - Intelligent AI Model Router | 60% Cost Reduction",
 	description:
 		"The first LLM router that thinks. Intelligent prompt analysis automatically selects optimal models. Sub-millisecond routing, automatic failover, format adaptation. Free $10 credit.",
 	keywords: [
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 		"AI cost reduction",
 	],
 	openGraph: {
-		title: "LLM Adaptive - First Intelligent AI Model Router",
+		title: "Adaptive - First Intelligent AI Model Router",
 		description:
 			"Reduce LLM costs by 60% with intelligent prompt analysis and automatic model selection. Zero-config deployment with sub-millisecond routing.",
 		type: "website",
