@@ -76,6 +76,15 @@ func LoadFromFile(configPath string) (*Config, error) {
 		config.Endpoints.Messages.Providers = normalizedProviders
 	}
 
+	// Normalize provider map keys to lowercase for SelectModel endpoint too
+	if config.Endpoints.SelectModel.Providers != nil {
+		normalizedProviders := make(map[string]models.ProviderConfig, len(config.Endpoints.SelectModel.Providers))
+		for key, value := range config.Endpoints.SelectModel.Providers {
+			normalizedProviders[strings.ToLower(key)] = value
+		}
+		config.Endpoints.SelectModel.Providers = normalizedProviders
+	}
+
 	return &config, nil
 }
 
@@ -146,6 +155,8 @@ func (c *Config) GetProviderAPIKey(provider, endpoint string) string {
 		providers = c.Endpoints.ChatCompletions.Providers
 	case "messages":
 		providers = c.Endpoints.Messages.Providers
+	case "select_model":
+		providers = c.Endpoints.SelectModel.Providers
 	default:
 		return ""
 	}
@@ -164,6 +175,8 @@ func (c *Config) GetProviders(endpoint string) map[string]models.ProviderConfig 
 		return c.Endpoints.ChatCompletions.Providers
 	case "messages":
 		return c.Endpoints.Messages.Providers
+	case "select_model":
+		return c.Endpoints.SelectModel.Providers
 	default:
 		return nil
 	}
@@ -177,6 +190,8 @@ func (c *Config) GetProviderConfig(provider, endpoint string) (models.ProviderCo
 		providers = c.Endpoints.ChatCompletions.Providers
 	case "messages":
 		providers = c.Endpoints.Messages.Providers
+	case "select_model":
+		providers = c.Endpoints.SelectModel.Providers
 	default:
 		return models.ProviderConfig{}, false
 	}
@@ -357,7 +372,8 @@ func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.Ca
 
 // MergeModelRouterConfig merges YAML model router config with request override.
 // The request override takes precedence over YAML config for non-empty/non-nil values.
-func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *models.ModelRouterConfig {
+// If no models are specified, it populates them from the endpoint providers.
+func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endpoint string) *models.ModelRouterConfig {
 	// Start with YAML defaults
 	merged := &models.ModelRouterConfig{
 		CostBias:      float32(defaultCostBiasFactor),       // Default value
@@ -365,15 +381,20 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig) *mod
 		Client:        c.Services.ModelRouter.Client,        // Copy YAML client config
 	}
 
-	// If no override provided, return defaults with YAML config
+	// If no override provided, populate models from endpoint providers
 	if override == nil {
+		merged.Models = c.GetModelCapabilitiesFromEndpoint(endpoint)
 		return merged
 	}
 
 	// Apply request overrides
 	if len(override.Models) > 0 {
 		merged.Models = override.Models
+	} else {
+		// If no models specified in override, populate from endpoint providers
+		merged.Models = c.GetModelCapabilitiesFromEndpoint(endpoint)
 	}
+
 	if override.CostBias > 0 {
 		merged.CostBias = override.CostBias
 	}
@@ -429,7 +450,7 @@ func (c *Config) ResolveConfig(req *models.ChatCompletionRequest) (*Config, erro
 
 	// Merge all configs with request overrides
 	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
-	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
+	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig, "chat_completions")
 	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
 
 	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "chat_completions")
@@ -452,7 +473,7 @@ func (c *Config) ResolveConfigFromAnthropicRequest(req *models.AnthropicMessageR
 
 	// Merge all configs with request overrides
 	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
-	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig)
+	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig, "messages")
 	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
 
 	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "messages")
@@ -462,6 +483,28 @@ func (c *Config) ResolveConfigFromAnthropicRequest(req *models.AnthropicMessageR
 	resolved.Endpoints.Messages.Providers = providers
 
 	return resolved, nil
+}
+
+// GetModelCapabilitiesFromEndpoint converts endpoint providers to ModelCapability list
+// This allows constraining model router to only available providers for the endpoint
+func (c *Config) GetModelCapabilitiesFromEndpoint(endpoint string) []models.ModelCapability {
+	var capabilities []models.ModelCapability
+
+	providers := c.GetProviders(endpoint)
+	if providers == nil {
+		return capabilities
+	}
+
+	for providerName := range providers {
+		// Create a basic ModelCapability with only the provider field set
+		// The AI service will use the provider field to constrain routing
+		capability := models.ModelCapability{
+			Provider: providerName,
+		}
+		capabilities = append(capabilities, capability)
+	}
+
+	return capabilities
 }
 
 // ValidationError represents configuration validation errors
