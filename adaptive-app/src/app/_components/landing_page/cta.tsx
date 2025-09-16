@@ -14,11 +14,15 @@ export default function CallToAction() {
 			<div className="mx-auto max-w-5xl px-6">
 				<div className="text-center">
 					<h2 className="text-balance font-display font-semibold text-4xl lg:text-5xl">
-						Start Building with Adaptive
+						GPT-6 launches. Your router works. Your costs drop. Day one.
 					</h2>
 					<p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-						Optimize your LLM workloads today and experience the power of
-						intelligent infrastructure that scales with your needs.
+						The first router that works with tomorrow's models today - no
+						training data, no vendor lock-in, 60-90% savings across any
+						provider.
+					</p>
+					<p className="mt-2 font-medium text-primary text-sm">
+						Free trial • $3.14 credit • No credit card required
 					</p>
 					<div className="mt-12 flex flex-wrap justify-center gap-4">
 						<SignedOut>
@@ -31,7 +35,7 @@ export default function CallToAction() {
 									className="bg-primary font-medium text-primary-foreground shadow-subtle transition-opacity hover:opacity-90"
 								>
 									<Rocket className="relative mr-2 size-4" />
-									<span>Get Started</span>
+									<span>Start Saving 60-90%</span>
 								</Button>
 							</SignUpButton>
 						</SignedOut>
@@ -44,7 +48,7 @@ export default function CallToAction() {
 							>
 								<Link href={redirectPath || "/api-platform/organizations"}>
 									<Rocket className="relative mr-2 size-4" />
-									Get Started
+									View Dashboard
 								</Link>
 							</Button>
 						</SignedIn>
@@ -55,8 +59,8 @@ export default function CallToAction() {
 							variant="outline"
 							className="border-primary text-primary hover:bg-primary/10 dark:hover:bg-primary/20"
 						>
-							<Link href="/">
-								<span>Book Demo</span>
+							<Link href="/features">
+								<span>See Technical Details</span>
 							</Link>
 						</Button>
 					</div>

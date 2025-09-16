@@ -19,42 +19,68 @@ export default function ContentSection() {
 	return (
 		<section id="solution" className="py-16 md:py-32">
 			<div className="mx-auto max-w-5xl space-y-8 px-6 md:space-y-16">
-				<h2 className="relative z-10 max-w-xl font-medium text-4xl lg:text-5xl">
-					The Adaptive platform optimizes AI performance across all providers.
+				<h2 className="relative z-10 max-w-4xl font-medium text-4xl lg:text-5xl">
+					For Developers & CTOs: Stop overpaying while waiting weeks for new
+					model support.
 				</h2>
 
 				<div className="grid gap-6 md:grid-cols-2 md:gap-12 lg:gap-24">
 					<div className="relative space-y-4">
 						<p className="text-muted-foreground">
-							Adaptive is more than just model routing. It's an intelligent
-							inference platform with smart protocols that handle your entire
-							request flow automatically.
+							Every other router requires weeks of training data and model
+							profiling before they work. We work with GPT-6 the day it launches
+							- and save you 60-90% on costs across any provider.
 						</p>
 
 						<p className="text-muted-foreground">
-							From intuitive interfaces to powerful APIs, we help developers and
-							businesses get better AI results while reducing costs and ensuring
-							uptime.
+							New model support without retraining. Provider-agnostic cost
+							optimization. Turn your biggest expense into your competitive
+							advantage.
 						</p>
 
-						<div className="grid grid-cols-2 gap-3 pt-6 md:gap-4">
-							<div className="space-y-3">
-								<div className="flex items-center gap-2">
-									<Zap className="size-4" />
-									<h3 className="font-medium text-sm">Lightning Fast</h3>
+						<div className="mt-6 rounded-lg border bg-muted/30 p-4">
+							<h3 className="mb-2 font-medium text-foreground text-sm">
+								How It Works:
+							</h3>
+							<p className="text-muted-foreground text-sm">
+								Our{" "}
+								<span className="font-medium text-foreground">
+									sub-2ms prompt complexity classifier
+								</span>{" "}
+								analyzes task complexity, tool calling needs, and model
+								capabilities in real-time. When new models launch, we instantly
+								map their definitions (tasks, complexity, tools) to our routing
+								system - no weeks of training data required.
+							</p>
+						</div>
+
+						<div className="grid gap-4 pt-6">
+							{/* Developer Benefits */}
+							<div className="rounded-lg border bg-primary/5 p-4 dark:bg-primary/10">
+								<div className="mb-2 flex items-center gap-2">
+									<Zap className="size-4 text-primary" />
+									<h3 className="font-medium text-foreground text-sm">
+										For Developers
+									</h3>
 								</div>
 								<p className="text-muted-foreground text-sm">
-									Smart caching and optimization deliver lightning-fast
-									responses.
+									Skip weeks of integration work. Use new models day-one with
+									existing code. OpenAI-compatible API means zero code changes.
 								</p>
 							</div>
-							<div className="space-y-2">
-								<div className="flex items-center gap-2">
-									<Cpu className="size-4" />
-									<h3 className="font-medium text-sm">Powerful</h3>
+
+							{/* CTO Benefits */}
+							<div className="rounded-lg border bg-secondary/30 p-4 dark:bg-secondary/20">
+								<div className="mb-2 flex items-center gap-2">
+									<Cpu className="size-4 text-secondary-foreground" />
+									<h3 className="font-medium text-foreground text-sm">
+										For CTOs
+									</h3>
 								</div>
 								<p className="text-muted-foreground text-sm">
-									Advanced algorithms automatically optimize AI performance.
+									Reduce AI spend by 60-90% without vendor lock-in. Get
+									competitive advantage while other companies wait for router
+									updates.
 								</p>
 							</div>
 						</div>

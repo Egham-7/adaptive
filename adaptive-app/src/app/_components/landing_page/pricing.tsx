@@ -109,7 +109,7 @@ export default function Pricing() {
 							<ul className="list-outside space-y-3 text-sm">
 								{[
 									"Pay-as-you-go pricing",
-									"Basic LLM routing",
+									"Basic AI routing",
 									"Standard API access",
 									"Community support",
 									"$10 free credit to start",
