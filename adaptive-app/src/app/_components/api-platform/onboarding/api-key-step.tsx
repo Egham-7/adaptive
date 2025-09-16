@@ -10,12 +10,14 @@ import {
 
 interface ApiKeyStepProps {
 	onCreateApiKey: () => void;
+	onSkip: () => void;
 	onBack: () => void;
 	isLoading: boolean;
 }
 
 export function ApiKeyStep({
 	onCreateApiKey,
+	onSkip,
 	onBack,
 	isLoading,
 }: ApiKeyStepProps) {
@@ -23,14 +25,24 @@ export function ApiKeyStep({
 		<Card className="border-2">
 			<CardHeader>
 				<div className="mb-4 flex items-center gap-2">
-					<Button variant="ghost" size="sm" onClick={onBack} className="p-2">
-						<ArrowLeft className="h-4 w-4" />
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						onClick={onBack}
+						className="p-2"
+						disabled={isLoading}
+						aria-label="Go back to previous step"
+					>
+						<ArrowLeft className="h-4 w-4" aria-hidden="true" />
 					</Button>
 					<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-						<Key className="h-5 w-5 text-primary" />
+						<Key className="h-5 w-5 text-primary" aria-hidden="true" />
 					</div>
 				</div>
-				<CardTitle className="text-xl">Generate your API key</CardTitle>
+				<CardTitle className="text-xl">
+					Generate your API key (Optional)
+				</CardTitle>
 				<CardDescription>
 					Create your first API key to start making requests to the Adaptive AI
 					Platform.
@@ -47,18 +59,35 @@ export function ApiKeyStep({
 							<li>• Cost monitoring and optimization</li>
 						</ul>
 					</div>
-					<div className="flex justify-end gap-3">
-						<Button type="button" variant="outline" onClick={onBack}>
+					<div className="flex justify-between">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={onBack}
+							disabled={isLoading}
+						>
 							Back
 						</Button>
-						<Button
-							onClick={onCreateApiKey}
-							disabled={isLoading}
-							className="min-w-32"
-						>
-							{isLoading ? "Creating..." : "Generate API Key"}
-							<ChevronRight className="ml-2 h-4 w-4" />
-						</Button>
+						<div className="flex gap-3">
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={onSkip}
+								disabled={isLoading}
+							>
+								Skip for now
+							</Button>
+							<Button
+								type="button"
+								onClick={onCreateApiKey}
+								disabled={isLoading}
+								aria-busy={isLoading}
+								className="min-w-32"
+							>
+								{isLoading ? "Creating..." : "Generate API Key"}
+								<ChevronRight className="ml-2 h-4 w-4" aria-hidden="true" />
+							</Button>
+						</div>
 					</div>
 				</div>
 			</CardContent>
