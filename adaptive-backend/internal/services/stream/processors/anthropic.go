@@ -12,15 +12,17 @@ import (
 
 // AnthropicChunkProcessor handles Anthropic-specific format conversion
 type AnthropicChunkProcessor struct {
-	provider  string
-	requestID string
+	provider    string
+	cacheSource string
+	requestID   string
 }
 
 // NewAnthropicChunkProcessor creates a new Anthropic chunk processor
-func NewAnthropicChunkProcessor(provider, requestID string) *AnthropicChunkProcessor {
+func NewAnthropicChunkProcessor(provider, cacheSource, requestID string) *AnthropicChunkProcessor {
 	return &AnthropicChunkProcessor{
-		provider:  provider,
-		requestID: requestID,
+		provider:    provider,
+		cacheSource: cacheSource,
+		requestID:   requestID,
 	}
 }
 
@@ -50,7 +52,7 @@ func (p *AnthropicChunkProcessor) Process(ctx context.Context, data []byte) ([]b
 		return nil, fmt.Errorf("AnthropicToAdaptive converter is not initialized")
 	}
 
-	adaptiveChunk, err := format_adapter.AnthropicToAdaptive.ConvertStreamingChunk(&anthropicChunk, p.provider)
+	adaptiveChunk, err := format_adapter.AnthropicToAdaptive.ConvertStreamingChunk(&anthropicChunk, p.provider, p.cacheSource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert Anthropic chunk: %w", err)
 	}

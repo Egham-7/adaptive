@@ -58,11 +58,12 @@ func (rs *ResponseService) HandleStreamingResponse(
 	anthropicStream *ssestream.Stream[anthropic.MessageStreamEventUnion],
 	requestID string,
 	provider string,
+	cacheSource string,
 ) error {
 	fiberlog.Infof("[%s] Starting Anthropic streaming response handling", requestID)
 
 	// Use the optimized stream handler that properly handles native Anthropic streams
-	return handlers.HandleAnthropicNative(c, anthropicStream, requestID, provider)
+	return handlers.HandleAnthropicNative(c, anthropicStream, requestID, provider, cacheSource)
 }
 
 // HandleError handles error responses for Anthropic Messages API

@@ -163,7 +163,7 @@ func (ms *MessagesService) handleAnthropicProvider(
 		if err != nil {
 			return responseSvc.HandleError(c, err, requestID)
 		}
-		return responseSvc.HandleStreamingResponse(c, stream, requestID, provider)
+		return responseSvc.HandleStreamingResponse(c, stream, requestID, provider, cacheSource)
 	}
 
 	message, err := ms.SendMessage(c.Context(), client, req, requestID)
@@ -290,5 +290,5 @@ func (ms *MessagesService) handleOpenAIStreamingRequest(
 
 	// Handle stream using the stream handler
 	fiberlog.Infof("[%s] Streaming completion started for provider %s", requestID, provider)
-	return handlers.HandleAnthropic(c, streamReader, requestID, provider)
+	return handlers.HandleAnthropic(c, streamReader, requestID, provider, cacheSource)
 }
