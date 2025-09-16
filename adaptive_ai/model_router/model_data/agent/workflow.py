@@ -155,7 +155,7 @@ def run_enrichment(workflow: Any | None = None) -> None:
             f"(Comprehensive enrichment with GPT-4o-mini)"
         )
         print(
-            "💡 Target providers: Anthropic, X (Grok), Groq, Google, DeepSeek, OpenAI"
+            "💡 Target providers: Anthropic, X (Grok), Groq, Gemini, DeepSeek, OpenAI"
         )
 
         if estimated_cost > config.MAX_COST_LIMIT:

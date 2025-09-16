@@ -6,9 +6,9 @@
 # 
 # 📊 Database Statistics:
 #   • Total Providers: 20
-#   • Total Models: 967 (962 + 5 adaptive_ai hardcoded models)
+#   • Total Models: 952 (947 + 5 adaptive_ai hardcoded models)
 #   • Data Source: Live Helicone API + adaptive_ai config
-#   • Last Updated: 2025-08-09
+#   • Last Updated: 2025-09-16
 # 
 # 💡 Usage:
 #   1. Check this file for provider overview
@@ -20,9 +20,9 @@ database_info:
   title: Helicone AI Models - Complete Database
   description: Live pricing data for all AI models across major providers
   total_providers: 20
-  total_models: 967
+  total_models: 952
   data_source: https://helicone.ai/api/llm-costs
-  last_updated: '2025-08-09'
+  last_updated: '2025-09-16'
   currency: USD
   pricing_unit: per 1 million tokens
 providers:
@@ -83,15 +83,18 @@ providers:
     - accounts_fireworks_models_gpt_oss_120b
     - accounts_fireworks_models_gpt_oss_20b
     - '... and 20 more'
-  google:
-    total_models: 22
-    yaml_file: google_models_structured.yaml
-    api_endpoint: https://helicone.ai/api/llm-costs?provider=google
+  gemini:
+    total_models: 7
+    yaml_file: gemini_models_structured.yaml
+    api_endpoint: https://ai.google.dev/gemini-api/docs/models
     sample_models:
-    - claude_3_5_haiku
-    - claude_3_5_sonnet
-    - claude_3_7_sonnet
-    - '... and 16 more'
+    - gemini_2.5_pro
+    - gemini_2.5_flash
+    - gemini_2.5_flash_lite
+    - gemini_2.0_flash
+    - gemini_2.0_flash_lite
+    - gemini_1.5_flash (deprecated)
+    - gemini_1.5_pro (deprecated)
   groq:
     total_models: 21
     yaml_file: groq_models_structured.yaml
