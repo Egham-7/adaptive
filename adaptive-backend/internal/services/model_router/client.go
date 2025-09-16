@@ -124,8 +124,7 @@ func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.Mo
 	// Filter valid models (non-empty provider required)
 	var validModels []models.ModelCapability
 	for _, model := range availableModels {
-		if model.Provider != "" {
-			// Provider is required, ModelName can be empty (AI service will choose)
+		if model.Provider != "" || model.ModelName != "" {
 			validModels = append(validModels, model)
 		}
 	}
