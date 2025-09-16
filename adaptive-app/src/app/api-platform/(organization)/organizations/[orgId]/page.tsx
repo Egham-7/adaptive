@@ -4,7 +4,6 @@ import { useUser } from "@clerk/nextjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
 	Activity,
-	ArrowLeft,
 	Calendar,
 	CheckCircle,
 	ChevronRight,
@@ -24,6 +23,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { CreditManagement } from "@/app/_components/api-platform/organizations/credit-management";
+import { OrganizationSelector } from "@/app/_components/api-platform/organizations/organization-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -261,11 +261,7 @@ export default function OrganizationProjectsPage() {
 								{orgError?.message ||
 									"The organization you're looking for doesn't exist or you don't have access to it."}
 							</p>
-							<Button asChild variant="ghost" size="sm">
-								<Link href="/api-platform/organizations">
-									Back to Organizations
-								</Link>
-							</Button>
+							<OrganizationSelector />
 						</div>
 					</div>
 				</div>
@@ -280,21 +276,18 @@ export default function OrganizationProjectsPage() {
 
 	return (
 		<div className="w-full">
-			{/* Back Button */}
+			{/* Organization Selector */}
 			<div className="mb-6">
-				<Button asChild variant="ghost" size="sm" className="gap-2">
-					<Link href="/api-platform/organizations">
-						<ArrowLeft className="h-4 w-4" />
-						Back to Organizations
-					</Link>
-				</Button>
+				<OrganizationSelector
+					currentOrganization={{
+						id: organization.id,
+						name: organization.name,
+					}}
+				/>
 			</div>
 
 			{/* Header */}
 			<div className="mb-8">
-				<h1 className="mb-2 font-bold text-3xl text-foreground">
-					{organization.name}
-				</h1>
 				<p className="mb-6 text-muted-foreground">{organization.description}</p>
 
 				{/* Stats */}
