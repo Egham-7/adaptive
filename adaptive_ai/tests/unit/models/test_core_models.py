@@ -9,7 +9,6 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_ai.models.llm_enums import TaskType
 
 
 class TestModelCapability:
@@ -31,7 +30,7 @@ class TestModelCapability:
             cost_per_1m_output_tokens=60.0,
             max_context_tokens=128000,
             supports_function_calling=True,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
             complexity="medium",
             description="GPT-4 model for general tasks",
         )
@@ -41,7 +40,7 @@ class TestModelCapability:
         assert model.cost_per_1m_output_tokens == 60.0
         assert model.max_context_tokens == 128000
         assert model.supports_function_calling is True
-        assert model.task_type == TaskType.CODE_GENERATION
+        assert model.task_type == "Code Generation"
         assert model.complexity == "medium"
 
     def test_partial_model_capability(self):
@@ -58,8 +57,8 @@ class TestModelCapability:
     def test_task_type_string_conversion(self):
         """Test that task_type accepts both enum and string values."""
         # Test with enum
-        model1 = ModelCapability(task_type=TaskType.CLASSIFICATION)
-        assert model1.task_type == TaskType.CLASSIFICATION
+        model1 = ModelCapability(task_type="Classification")
+        assert model1.task_type == "Classification"
 
         # Test with string
         model2 = ModelCapability(task_type="analysis")
@@ -188,7 +187,7 @@ class TestModelSerialization:
             provider="openai",
             model_name="gpt-4",
             cost_per_1m_input_tokens=30.0,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
         )
 
         # Serialize to dict

@@ -9,7 +9,6 @@ from adaptive_ai.models.llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_ai.models.llm_enums import TaskType
 
 
 @pytest.fixture
@@ -22,7 +21,7 @@ def sample_model_capability():
         cost_per_1m_output_tokens=60.0,
         max_context_tokens=128000,
         supports_function_calling=True,
-        task_type=TaskType.CODE_GENERATION,
+        task_type="Code Generation",
         complexity="medium",
         description="GPT-4 model for complex tasks",
     )
@@ -38,7 +37,7 @@ def anthropic_model_capability():
         cost_per_1m_output_tokens=75.0,
         max_context_tokens=200000,
         supports_function_calling=False,
-        task_type=TaskType.TEXT_GENERATION,
+        task_type="Text Generation",
         complexity="high",
         description="Claude 3 Sonnet for analysis tasks",
     )
@@ -78,40 +77,38 @@ def sample_classification_result():
     """Sample ClassificationResult for testing."""
     return ClassificationResult(
         # Required fields
-        task_type_1=["code", "analysis"],
-        prompt_complexity_score=[0.75, 0.65],
-        domain=["Programming", "Analytics"],
+        task_type_1="code",
+        prompt_complexity_score=0.75,
         # Optional fields
-        task_type_2=["generation", "problem_solving"],
-        task_type_prob=[0.75, 0.70],
-        creativity_scope=[0.4, 0.3],
-        reasoning=[0.8, 0.7],
-        contextual_knowledge=[0.6, 0.5],
-        domain_knowledge=[0.5, 0.6],
-        number_of_few_shots=[0, 1],
-        no_label_reason=[0.9, 0.85],
-        constraint_ct=[0.3, 0.2],
+        task_type_2="generation",
+        task_type_prob=0.75,
+        creativity_scope=0.4,
+        reasoning=0.8,
+        contextual_knowledge=0.6,
+        domain_knowledge=0.5,
+        number_of_few_shots=0.0,
+        no_label_reason=0.9,
+        constraint_ct=0.3,
     )
 
 
 @pytest.fixture
 def empty_classification_result():
-    """Empty ClassificationResult for testing edge cases."""
+    """Minimal ClassificationResult for testing edge cases."""
     return ClassificationResult(
         # Required fields cannot be empty, use minimal valid values
-        task_type_1=["Other"],
-        prompt_complexity_score=[0.0],
-        domain=["General"],
-        # Optional fields can be empty
-        task_type_2=[],
-        task_type_prob=[],
-        creativity_scope=[],
-        reasoning=[],
-        contextual_knowledge=[],
-        domain_knowledge=[],
-        number_of_few_shots=[],
-        no_label_reason=[],
-        constraint_ct=[],
+        task_type_1="Other",
+        prompt_complexity_score=0.0,
+        # Optional fields can be None
+        task_type_2=None,
+        task_type_prob=None,
+        creativity_scope=None,
+        reasoning=None,
+        contextual_knowledge=None,
+        domain_knowledge=None,
+        number_of_few_shots=None,
+        no_label_reason=None,
+        constraint_ct=None,
     )
 
 
@@ -136,7 +133,7 @@ def complex_model_capabilities():
             cost_per_1m_output_tokens=60.0,
             max_context_tokens=128000,
             supports_function_calling=True,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
             complexity="hard",
         ),
         ModelCapability(
@@ -146,7 +143,7 @@ def complex_model_capabilities():
             cost_per_1m_output_tokens=1.25,
             max_context_tokens=200000,
             supports_function_calling=False,
-            task_type=TaskType.CHATBOT,
+            task_type="Chatbot",
             complexity="easy",
         ),
         ModelCapability(
@@ -156,7 +153,7 @@ def complex_model_capabilities():
             cost_per_1m_output_tokens=0.28,
             max_context_tokens=64000,
             supports_function_calling=True,
-            task_type=TaskType.CODE_GENERATION,
+            task_type="Code Generation",
             complexity="medium",
         ),
     ]

@@ -2,12 +2,6 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from .llm_enums import TaskType
-
-# =============================================================================
-# Model Capability & Configuration Models
-# =============================================================================
-
 
 class ModelCapability(BaseModel):
     """Unified model capability supporting both partial and full specifications."""
@@ -23,7 +17,7 @@ class ModelCapability(BaseModel):
     supports_function_calling: bool | None = None
 
     # Task info
-    task_type: TaskType | str | None = None
+    task_type: str | None = None
     complexity: str | None = None  # "easy", "medium", "hard"
 
     # Metadata
