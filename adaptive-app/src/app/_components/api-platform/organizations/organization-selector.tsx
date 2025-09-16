@@ -24,7 +24,7 @@ interface OrganizationSelectorProps {
 export function OrganizationSelector({
 	currentOrganization,
 }: OrganizationSelectorProps) {
-	const { orgId } = useParams();
+	const { orgId } = useParams<{ orgId: string }>();
 	const { data: organizations = [], isLoading } = useOrganizations();
 
 	if (isLoading) {
