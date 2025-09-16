@@ -132,15 +132,16 @@ func (ms *MessagesService) HandleProviderRequest(
 	isStreaming bool,
 	requestID string,
 	responseSvc *ResponseService,
+	cacheSource string,
 ) error {
 	// Check provider's native format to determine if conversion is needed
 	if providerConfig.NativeFormat == "anthropic" || providerConfig.NativeFormat == "" || provider == "anthropic" {
 		// Native Anthropic format - use directly
-		return ms.handleAnthropicProvider(c, req, providerConfig, isStreaming, requestID, responseSvc, provider)
+		return ms.handleAnthropicProvider(c, req, providerConfig, isStreaming, requestID, responseSvc, provider, cacheSource)
 	}
 
 	// Provider uses different native format (likely OpenAI) - convert via format adapters
-	return ms.handleNonAnthropicProvider(c, req, provider, providerConfig, isStreaming, requestID)
+	return ms.handleNonAnthropicProvider(c, req, provider, providerConfig, isStreaming, requestID, cacheSource)
 }
 
 // handleAnthropicProvider handles requests using native Anthropic client
@@ -152,6 +153,7 @@ func (ms *MessagesService) handleAnthropicProvider(
 	requestID string,
 	responseSvc *ResponseService,
 	provider string,
+	cacheSource string,
 ) error {
 	fiberlog.Debugf("[%s] Using native Anthropic provider", requestID)
 	client := ms.CreateClient(providerConfig)
@@ -168,7 +170,7 @@ func (ms *MessagesService) handleAnthropicProvider(
 	if err != nil {
 		return responseSvc.HandleError(c, err, requestID)
 	}
-	return responseSvc.HandleNonStreamingResponse(c, message, requestID)
+	return responseSvc.HandleNonStreamingResponse(c, message, requestID, cacheSource)
 }
 
 // handleNonAnthropicProvider handles providers that use different native formats (e.g., OpenAI)
@@ -179,6 +181,7 @@ func (ms *MessagesService) handleNonAnthropicProvider(
 	providerConfig models.ProviderConfig,
 	isStreaming bool,
 	requestID string,
+	cacheSource string,
 ) error {
 	fiberlog.Infof("[%s] Converting Anthropic request for non-Anthropic provider: %s", requestID, provider)
 
@@ -197,9 +200,9 @@ func (ms *MessagesService) handleNonAnthropicProvider(
 	}
 
 	if isStreaming {
-		return ms.handleOpenAIStreamingRequest(c, client, openaiReq, provider, requestID)
+		return ms.handleOpenAIStreamingRequest(c, client, openaiReq, provider, requestID, cacheSource)
 	}
-	return ms.handleOpenAINonStreamingRequest(c, client, openaiReq, provider, requestID)
+	return ms.handleOpenAINonStreamingRequest(c, client, openaiReq, provider, requestID, cacheSource)
 }
 
 // createOpenAIClient creates an OpenAI client for non-Anthropic providers
@@ -233,6 +236,7 @@ func (ms *MessagesService) handleOpenAINonStreamingRequest(
 	req *models.ChatCompletionRequest,
 	provider string,
 	requestID string,
+	cacheSource string,
 ) error {
 	fiberlog.Debugf("[%s] Sending non-streaming chat completion to %s", requestID, provider)
 
@@ -250,7 +254,7 @@ func (ms *MessagesService) handleOpenAINonStreamingRequest(
 	}
 
 	// Convert OpenAI response back to Anthropic format
-	anthropicResp, err := format_adapter.OpenAIToAnthropic.ConvertResponse(response, provider)
+	anthropicResp, err := format_adapter.OpenAIToAnthropic.ConvertResponse(response, provider, cacheSource)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to convert OpenAI response to Anthropic format: %v", requestID, err)
 		return fmt.Errorf("failed to convert response format: %w", err)
@@ -267,6 +271,7 @@ func (ms *MessagesService) handleOpenAIStreamingRequest(
 	req *models.ChatCompletionRequest,
 	provider string,
 	requestID string,
+	cacheSource string,
 ) error {
 	fiberlog.Debugf("[%s] Starting streaming chat completion to %s", requestID, provider)
 
