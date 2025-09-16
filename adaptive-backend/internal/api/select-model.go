@@ -75,7 +75,8 @@ func (h *SelectModelHandler) SelectModel(c *fiber.Ctx) error {
 	}
 
 	// Resolve config by merging YAML config with request overrides
-	mergedConfig := h.cfg.MergeModelRouterConfig(requestConfig)
+	// Use "select_model" endpoint to get the configured providers for model selection
+	mergedConfig := h.cfg.MergeModelRouterConfig(requestConfig, "select_model")
 
 	// Perform model selection using the service
 	resp, err := h.selectModelSvc.SelectModel(c.UserContext(), selectReq, userID, reqID, h.circuitBreakers, mergedConfig)

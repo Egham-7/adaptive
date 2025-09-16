@@ -9,4 +9,5 @@ type EndpointConfig struct {
 type EndpointsConfig struct {
 	ChatCompletions EndpointConfig `yaml:"chat_completions"`
 	Messages        EndpointConfig `yaml:"messages"`
+	SelectModel     EndpointConfig `yaml:"select_model"`
 }
