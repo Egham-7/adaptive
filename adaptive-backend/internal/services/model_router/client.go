@@ -64,9 +64,19 @@ func (c *ModelRouterClient) SelectModel(
 ) models.ModelSelectionResponse {
 	start := time.Now()
 
+	// Filter valid models before sending to AI service
+	var validModels []models.ModelCapability
+	for _, model := range req.Models {
+		if model.Provider != "" {
+			// Provider is required, ModelName can be empty (AI service will choose)
+			validModels = append(validModels, model)
+		}
+	}
+	req.Models = validModels
+
 	// Log the select model request details (non-PII at info level)
-	fiberlog.Infof("[MODEL_SELECTION] Making request to model_router service - prompt_length: %d",
-		len(req.Prompt))
+	fiberlog.Infof("[MODEL_SELECTION] Making request to model_router service - prompt_length: %d, valid_models: %d",
+		len(req.Prompt), len(validModels))
 
 	// Debug-level log with hashed user identifier
 	if req.UserID != "" {
@@ -75,8 +85,8 @@ func (c *ModelRouterClient) SelectModel(
 		fiberlog.Debugf("[MODEL_SELECTION] Request details - user_id_hash: %s", hashedUserID)
 	}
 	if req.CostBias != nil {
-		fiberlog.Debugf("[MODEL_SELECTION] Request config - cost_bias: %.2f, available_models: %d",
-			*req.CostBias, len(req.Models))
+		fiberlog.Debugf("[MODEL_SELECTION] Request config - cost_bias: %.2f, valid_models: %d",
+			*req.CostBias, len(validModels))
 	}
 
 	if !c.circuitBreaker.CanExecute() {
@@ -85,7 +95,7 @@ func (c *ModelRouterClient) SelectModel(
 		// Log circuit breaker error but continue with fallback
 		circuitErr := models.NewCircuitBreakerError("model_router")
 		fiberlog.Debugf("[CIRCUIT_BREAKER] %v", circuitErr)
-		return c.getFallbackModelResponse(req.Models)
+		return c.getFallbackModelResponse(validModels)
 	}
 
 	var out models.ModelSelectionResponse
@@ -99,7 +109,7 @@ func (c *ModelRouterClient) SelectModel(
 		providerErr := models.NewProviderError("model_router", "prediction request failed", err)
 		fiberlog.Warnf("[PROVIDER_ERROR] %v", providerErr)
 		fiberlog.Warnf("[SELECT_MODEL] Request failed, using fallback model")
-		return c.getFallbackModelResponse(req.Models)
+		return c.getFallbackModelResponse(validModels)
 	}
 
 	duration := time.Since(start)
@@ -111,19 +121,28 @@ func (c *ModelRouterClient) SelectModel(
 }
 
 func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.ModelCapability) models.ModelSelectionResponse {
-	// If we have models provided in the request, choose the first one
-	if len(availableModels) > 0 {
-		firstModel := availableModels[0]
+	// Filter valid models (non-empty provider required)
+	var validModels []models.ModelCapability
+	for _, model := range availableModels {
+		if model.Provider != "" {
+			// Provider is required, ModelName can be empty (AI service will choose)
+			validModels = append(validModels, model)
+		}
+	}
+
+	// If we have valid models, choose the first one
+	if len(validModels) > 0 {
+		firstModel := validModels[0]
 		response := models.ModelSelectionResponse{
 			Provider: firstModel.Provider,
 			Model:    firstModel.ModelName,
 		}
 
 		// Add alternatives from remaining models (up to 3 alternatives)
-		for i := 1; i < len(availableModels); i++ {
+		for i := 1; i < len(validModels); i++ {
 			response.Alternatives = append(response.Alternatives, models.Alternative{
-				Provider: availableModels[i].Provider,
-				Model:    availableModels[i].ModelName,
+				Provider: validModels[i].Provider,
+				Model:    validModels[i].ModelName,
 			})
 		}
 
