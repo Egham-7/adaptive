@@ -37,12 +37,14 @@ interface TourContextType {
   nextStep: () => void;
   previousStep: () => void;
   endTour: () => void;
+  skipTour: () => void;
   isActive: boolean;
   startTour: () => void;
   setSteps: (steps: TourStep[]) => void;
   steps: TourStep[];
   isTourCompleted: boolean;
   setIsTourCompleted: (completed: boolean) => void;
+  onComplete?: () => void;
 }
 
 interface TourProviderProps {
@@ -242,6 +244,12 @@ export function TourProvider({
     setCurrentStep(-1);
   }, []);
 
+  const skipTour = useCallback(() => {
+    setCurrentStep(-1);
+    setIsTourCompleted(true);
+    onComplete?.();
+  }, [setIsTourCompleted, onComplete]);
+
   const startTour = useCallback(() => {
     if (isTourCompleted) {
       return;
@@ -318,12 +326,14 @@ export function TourProvider({
         nextStep,
         previousStep,
         endTour,
+        skipTour,
         isActive: currentStep >= 0,
         startTour,
         setSteps,
         steps,
         isTourCompleted: isCompleted,
         setIsTourCompleted,
+        onComplete,
       }}
     >
       {children}
@@ -452,7 +462,7 @@ export function TourProvider({
                       </Button>
                     )}
                     <Button
-                      onClick={endTour}
+                      onClick={skipTour}
                       variant="ghost"
                       size="sm"
                       className="text-xs h-8 px-3 text-muted-foreground"
@@ -492,7 +502,7 @@ export function TourAlertDialog({
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }) {
-  const { startTour, steps, isTourCompleted, currentStep } = useTour();
+  const { startTour, steps, isTourCompleted, currentStep, setIsTourCompleted, onComplete } = useTour();
 
   if (isTourCompleted || steps.length === 0 || currentStep > -1) {
     return null;
@@ -500,6 +510,8 @@ export function TourAlertDialog({
 
   const handleSkip = async () => {
     setIsOpen(false);
+    setIsTourCompleted(true);
+    onComplete?.();
   };
 
   return (
