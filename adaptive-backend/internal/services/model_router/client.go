@@ -85,7 +85,7 @@ func (c *ModelRouterClient) SelectModel(
 		// Log circuit breaker error but continue with fallback
 		circuitErr := models.NewCircuitBreakerError("model_router")
 		fiberlog.Debugf("[CIRCUIT_BREAKER] %v", circuitErr)
-		return c.getFallbackModelResponse()
+		return c.getFallbackModelResponse(req.Models)
 	}
 
 	var out models.ModelSelectionResponse
@@ -99,7 +99,7 @@ func (c *ModelRouterClient) SelectModel(
 		providerErr := models.NewProviderError("model_router", "prediction request failed", err)
 		fiberlog.Warnf("[PROVIDER_ERROR] %v", providerErr)
 		fiberlog.Warnf("[SELECT_MODEL] Request failed, using fallback model")
-		return c.getFallbackModelResponse()
+		return c.getFallbackModelResponse(req.Models)
 	}
 
 	duration := time.Since(start)
@@ -110,8 +110,27 @@ func (c *ModelRouterClient) SelectModel(
 	return out
 }
 
-func (c *ModelRouterClient) getFallbackModelResponse() models.ModelSelectionResponse {
-	// Simple fallback: always route to gpt-4o-mini
+func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.ModelCapability) models.ModelSelectionResponse {
+	// If we have models provided in the request, choose the first one
+	if len(availableModels) > 0 {
+		firstModel := availableModels[0]
+		response := models.ModelSelectionResponse{
+			Provider: firstModel.Provider,
+			Model:    firstModel.ModelName,
+		}
+
+		// Add alternatives from remaining models (up to 3 alternatives)
+		for i := 1; i < len(availableModels); i++ {
+			response.Alternatives = append(response.Alternatives, models.Alternative{
+				Provider: availableModels[i].Provider,
+				Model:    availableModels[i].ModelName,
+			})
+		}
+
+		return response
+	}
+
+	// Simple fallback: always route to gpt-4o-mini when no models provided
 	return models.ModelSelectionResponse{
 		Provider: "openai",
 		Model:    "gpt-4o-mini",

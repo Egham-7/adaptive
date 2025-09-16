@@ -21,25 +21,15 @@ type ModelRouter struct {
 
 // NewModelRouter creates a new ModelRouter with cache configuration.
 func NewModelRouter(cfg *config.Config, redisClient *redis.Client) (*ModelRouter, error) {
-	var cache *ModelRouterCache
-	var err error
-
-	// Get semantic cache configuration from config
 	semanticCacheConfig := cfg.Services.ModelRouter.SemanticCache
 
 	fiberlog.Infof("ModelRouter: Initializing with semantic_cache enabled=%t, threshold=%.2f",
 		semanticCacheConfig.Enabled, semanticCacheConfig.SemanticThreshold)
 
 	// Create cache only if enabled
-	if semanticCacheConfig.Enabled {
-		cache, err = NewModelRouterCache(cfg)
-		if err != nil {
-			fiberlog.Errorf("ModelRouter: Failed to create cache: %v", err)
-			return nil, fmt.Errorf("failed to create protocol manager cache: %w", err)
-		}
-		fiberlog.Info("ModelRouter: Cache initialized successfully")
-	} else {
-		fiberlog.Warn("ModelRouter: Cache is disabled")
+	cache, err := createCacheIfEnabled(cfg, semanticCacheConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	client := NewModelRouterClient(cfg, redisClient)
@@ -78,16 +68,8 @@ func (pm *ModelRouter) SelectModelWithCache(
 
 	if useCache && pm.cache != nil {
 		fiberlog.Debugf("[%s] Checking cache for existing model response", requestID)
-		// Use threshold override if provided, otherwise use cache default
-		var hit *models.ModelSelectionResponse
-		var source string
-		var found bool
-		if cacheConfigOverride.SemanticThreshold > 0 {
-			fiberlog.Debugf("[%s] Using threshold override: %.2f", requestID, cacheConfigOverride.SemanticThreshold)
-			hit, source, found = pm.cache.LookupWithThreshold(ctx, prompt, requestID, float32(cacheConfigOverride.SemanticThreshold))
-		} else {
-			hit, source, found = pm.cache.Lookup(ctx, prompt, requestID)
-		}
+
+		hit, source, found := pm.lookupCache(ctx, prompt, requestID, cacheConfigOverride)
 		if found {
 			fiberlog.Infof("[%s] Cache hit (%s) - returning cached model: %s/%s", requestID, source, hit.Provider, hit.Model)
 			return hit, source, nil
@@ -133,13 +115,8 @@ func (pm *ModelRouter) StoreSuccessfulModel(
 	requestID string,
 	modelRouterConfig *models.ModelRouterConfig,
 ) error {
-	// Check if cache should be used - default to using cache if available
-	useCache := pm.cache != nil
-
-	// Override with explicit config if provided
-	if modelRouterConfig != nil {
-		useCache = modelRouterConfig.SemanticCache.Enabled
-	}
+	// Determine if cache should be used
+	useCache := pm.cache != nil && (modelRouterConfig == nil || modelRouterConfig.SemanticCache.Enabled)
 
 	if !useCache || pm.cache == nil {
 		fiberlog.Debugf("[%s] Semantic cache disabled - skipping storage", requestID)
@@ -220,4 +197,30 @@ func (pm *ModelRouter) Close() error {
 
 	fiberlog.Info("ModelRouter: Shutdown completed")
 	return nil
+}
+
+// createCacheIfEnabled creates a cache if semantic caching is enabled
+func createCacheIfEnabled(cfg *config.Config, semanticCacheConfig models.CacheConfig) (*ModelRouterCache, error) {
+	if !semanticCacheConfig.Enabled {
+		fiberlog.Warn("ModelRouter: Cache is disabled")
+		return nil, nil
+	}
+
+	cache, err := NewModelRouterCache(cfg)
+	if err != nil {
+		fiberlog.Errorf("ModelRouter: Failed to create cache: %v", err)
+		return nil, fmt.Errorf("failed to create protocol manager cache: %w", err)
+	}
+
+	fiberlog.Info("ModelRouter: Cache initialized successfully")
+	return cache, nil
+}
+
+// lookupCache performs cache lookup with optional threshold override
+func (pm *ModelRouter) lookupCache(ctx context.Context, prompt, requestID string, cacheConfig models.CacheConfig) (*models.ModelSelectionResponse, string, bool) {
+	if cacheConfig.SemanticThreshold > 0 {
+		fiberlog.Debugf("[%s] Using threshold override: %.2f", requestID, cacheConfig.SemanticThreshold)
+		return pm.cache.LookupWithThreshold(ctx, prompt, requestID, float32(cacheConfig.SemanticThreshold))
+	}
+	return pm.cache.Lookup(ctx, prompt, requestID)
 }
