@@ -15,8 +15,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       '@ai-sdk/react':
-        specifier: 2.0.18
-        version: 2.0.18(react@19.1.1)(zod@4.1.5)
+        specifier: 2.0.26
+        version: 2.0.26(react@19.1.1)(zod@4.1.5)
       '@anthropic-ai/sdk':
         specifier: ^0.60.0
         version: 0.60.0
@@ -84,11 +84,11 @@ importers:
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.1.9(@types/react@19.1.12))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@react-email/components':
-        specifier: 0.5.0
-        version: 0.5.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.5.1
+        version: 0.5.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@react-email/render':
-        specifier: 1.2.0
-        version: 1.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 1.2.1
+        version: 1.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@shikijs/transformers':
         specifier: ^3.12.2
         version: 3.12.2
@@ -141,8 +141,8 @@ importers:
         specifier: ^6.1.0
         version: 6.1.0
       lucide-react:
-        specifier: ^0.540.0
-        version: 0.540.0(react@19.1.1)
+        specifier: ^0.542.0
+        version: 0.542.0(react@19.1.1)
       motion:
         specifier: ^12.23.12
         version: 12.23.12(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -196,7 +196,7 @@ importers:
         version: 2.31.1
       resend:
         specifier: ^6.0.3
-        version: 6.0.3(@react-email/render@1.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1))
+        version: 6.0.3(@react-email/render@1.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1))
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -262,20 +262,20 @@ packages:
     resolution: {integrity: sha512-Y+MmQGpFBPvzOI9RQ+eVXv/yxY4G9n1hz1ki27DN/2lS422U9kj/R2PHzhN7zwTHTmGDzIOXflhYmw/nGME7jg==}
     engines: {node: '>=18'}
 
+  '@ai-sdk/gateway@1.0.15':
+    resolution: {integrity: sha512-xySXoQ29+KbGuGfmDnABx+O6vc7Gj7qugmj1kGpn0rW0rQNn6UKUuvscKMzWyv1Uv05GyC1vqHq8ZhEOLfXscQ==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.25.76 || ^4
+
   '@ai-sdk/gateway@1.0.22':
     resolution: {integrity: sha512-1rffatIFhyCrXo+uUmJzeUw1fHU/E9k3sSb7LMNzdyafjupnZJKg+GXkhESzvsdQ3kRa61ruziZ3qCFRJExXgw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
 
-  '@ai-sdk/gateway@1.0.9':
-    resolution: {integrity: sha512-kIfwunyUUwyBLg2KQcaRtjRQ1bDuJYPNIs4CNWaWPpMZ4SV5cRL1hLGMuX4bhfCJYDXHMGvJGLtUK6+iAJH2ZQ==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.25.76 || ^4
-
-  '@ai-sdk/provider-utils@3.0.4':
-    resolution: {integrity: sha512-/3Z6lfUp8r+ewFd9yzHkCmPlMOJUXup2Sx3aoUyrdXLhOmAfHRl6Z4lDbIdV0uvw/QYoBcVLJnvXN7ncYeS3uQ==}
+  '@ai-sdk/provider-utils@3.0.7':
+    resolution: {integrity: sha512-o3BS5/t8KnBL3ubP8k3w77AByOypLm+pkIL/DCw0qKkhDbvhCy+L3hRTGPikpdb8WHcylAeKsjgwOxhj4cqTUA==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -300,8 +300,8 @@ packages:
     resolution: {integrity: sha512-Z8SPncMtS3RsoXITmT7NVwrAq6M44dmw0DoUOYJqNNtCu8iMWuxB8Nxsoqpa0uEEy9R1V1ZThJAXTYgjTUxl3w==}
     engines: {node: '>=18'}
 
-  '@ai-sdk/react@2.0.18':
-    resolution: {integrity: sha512-7Jpp1H5iX5wlgO/kPaJGA/q3fXsnHvItAOQlChlMd8wxLbg9Bbiwcy2x5+wGaXFibx6HLHSG1YK+N5/Hj9fhUA==}
+  '@ai-sdk/react@2.0.26':
+    resolution: {integrity: sha512-l1lUnEmB26j/LtBkxVNpPxVTnwyPee0b7xTxiuyyF68D8QyAsoz5DJYK7I2LRhwdgqII7Grw7/WJs6tBiF8SPw==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
@@ -1329,8 +1329,8 @@ packages:
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
 
-  '@react-email/components@0.5.0':
-    resolution: {integrity: sha512-esRbP+yMmSkNP9hcpiy2RwpDnvSmlxJcJ1HHbzSwlACGlCHTap+ma344QovvzhpVRhMccyWemdClLG822UvVpQ==}
+  '@react-email/components@0.5.1':
+    resolution: {integrity: sha512-2BxfSZSqMZ6cyQearFIz7h4vZ8m+NiwtZ7PBVdTV7APmK9wxMRBx0rTBO63FV214DTipyPwBjGIcscLh5U+IZg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
@@ -1394,8 +1394,8 @@ packages:
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
 
-  '@react-email/render@1.2.0':
-    resolution: {integrity: sha512-5fpbV16VYR9Fmk8t7xiwPNAjxjdI8XzVtlx9J9OkhOsIHdr2s5DwAj8/MXzWa9qRYJyLirQ/l7rBSjjgyRAomw==}
+  '@react-email/render@1.2.1':
+    resolution: {integrity: sha512-7M4Xi8ITESZKS7pOPE0HWhKJWtS/JrAqPIyFPqIPJXZJHkjFMYXn2b/tAsHOufYW5/LTk4U1IkBMaVwE06kykw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
@@ -1748,8 +1748,8 @@ packages:
       vue-router:
         optional: true
 
-  ai@5.0.18:
-    resolution: {integrity: sha512-fx5RqO0e+wB/dd/pbtCvx2j5WT1UYXSeONyMCgej0s6neCEhh9Wv5OmZHk6yxWKqI0y6WyjEqxCp8VCIqNZTDg==}
+  ai@5.0.26:
+    resolution: {integrity: sha512-bGNtG+nYQ2U+5mzuLbxIg9WxGQJ2u5jv2gYgP8C+CJ1YI4qqIjvjOgGEZWzvNet8jiOGIlqstsht9aQefKzmBw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4
@@ -2261,8 +2261,8 @@ packages:
   longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
 
-  lucide-react@0.540.0:
-    resolution: {integrity: sha512-armkCAqQvO62EIX4Hq7hqX/q11WSZu0Jd23cnnqx0/49yIxGXyL/zyZfBxNN9YDx0ensPTb4L+DjTh3yQXUxtQ==}
+  lucide-react@0.542.0:
+    resolution: {integrity: sha512-w3hD8/SQB7+lzU2r4VdFyzzOzKnUjTZIF/MQJGSSvni7Llewni4vuViRppfRAa2guOsY5k4jZyxw/i9DQHv+dw==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -3004,25 +3004,24 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.8(zod@4.1.5)
       zod: 4.1.5
 
+  '@ai-sdk/gateway@1.0.15(zod@4.1.5)':
+    dependencies:
+      '@ai-sdk/provider': 2.0.0
+      '@ai-sdk/provider-utils': 3.0.7(zod@4.1.5)
+      zod: 4.1.5
+
   '@ai-sdk/gateway@1.0.22(zod@4.1.5)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.9(zod@4.1.5)
       zod: 4.1.5
 
-  '@ai-sdk/gateway@1.0.9(zod@4.1.5)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.4(zod@4.1.5)
-      zod: 4.1.5
-
-  '@ai-sdk/provider-utils@3.0.4(zod@4.1.5)':
+  '@ai-sdk/provider-utils@3.0.7(zod@4.1.5)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@standard-schema/spec': 1.0.0
       eventsource-parser: 3.0.6
       zod: 4.1.5
-      zod-to-json-schema: 3.24.6(zod@4.1.5)
 
   '@ai-sdk/provider-utils@3.0.8(zod@4.1.5)':
     dependencies:
@@ -3046,10 +3045,10 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@2.0.18(react@19.1.1)(zod@4.1.5)':
+  '@ai-sdk/react@2.0.26(react@19.1.1)(zod@4.1.5)':
     dependencies:
-      '@ai-sdk/provider-utils': 3.0.4(zod@4.1.5)
-      ai: 5.0.18(zod@4.1.5)
+      '@ai-sdk/provider-utils': 3.0.7(zod@4.1.5)
+      ai: 5.0.26(zod@4.1.5)
       react: 19.1.1
       swr: 2.3.6(react@19.1.1)
       throttleit: 2.1.0
@@ -3941,7 +3940,7 @@ snapshots:
     dependencies:
       react: 19.1.1
 
-  '@react-email/components@0.5.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@react-email/components@0.5.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@react-email/body': 0.1.0(react@19.1.1)
       '@react-email/button': 0.2.0(react@19.1.1)
@@ -3958,7 +3957,7 @@ snapshots:
       '@react-email/link': 0.0.12(react@19.1.1)
       '@react-email/markdown': 0.0.15(react@19.1.1)
       '@react-email/preview': 0.0.13(react@19.1.1)
-      '@react-email/render': 1.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@react-email/render': 1.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       '@react-email/row': 0.0.12(react@19.1.1)
       '@react-email/section': 0.0.16(react@19.1.1)
       '@react-email/tailwind': 1.2.2(react@19.1.1)
@@ -4008,7 +4007,7 @@ snapshots:
     dependencies:
       react: 19.1.1
 
-  '@react-email/render@1.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@react-email/render@1.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       html-to-text: 9.0.5
       prettier: 3.6.2
@@ -4295,11 +4294,11 @@ snapshots:
       next: 15.5.2(@opentelemetry/api@1.9.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react: 19.1.1
 
-  ai@5.0.18(zod@4.1.5):
+  ai@5.0.26(zod@4.1.5):
     dependencies:
-      '@ai-sdk/gateway': 1.0.9(zod@4.1.5)
+      '@ai-sdk/gateway': 1.0.15(zod@4.1.5)
       '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.4(zod@4.1.5)
+      '@ai-sdk/provider-utils': 3.0.7(zod@4.1.5)
       '@opentelemetry/api': 1.9.0
       zod: 4.1.5
 
@@ -4811,7 +4810,7 @@ snapshots:
 
   longest-streak@3.1.0: {}
 
-  lucide-react@0.540.0(react@19.1.1):
+  lucide-react@0.542.0(react@19.1.1):
     dependencies:
       react: 19.1.1
 
@@ -5512,9 +5511,9 @@ snapshots:
 
   reselect@5.1.1: {}
 
-  resend@6.0.3(@react-email/render@1.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)):
+  resend@6.0.3(@react-email/render@1.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)):
     optionalDependencies:
-      '@react-email/render': 1.2.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@react-email/render': 1.2.1(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
 
   resolve-pkg-maps@1.0.0: {}
 
@@ -5805,10 +5804,6 @@ snapshots:
   zod-to-json-schema@3.24.6(zod@3.25.76):
     dependencies:
       zod: 3.25.76
-
-  zod-to-json-schema@3.24.6(zod@4.1.5):
-    dependencies:
-      zod: 4.1.5
 
   zod@3.25.76: {}
 
