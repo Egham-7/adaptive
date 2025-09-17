@@ -21,8 +21,8 @@ export function Logo() {
 			<Image
 				src={
 					resolvedTheme === "dark"
-						? "/logos/adaptive-dark.svg"
-						: "/logos/adaptive-light.svg"
+						? "/logos/adaptive-dark.png"
+						: "/logos/adaptive-light.png"
 				}
 				alt="Adaptive Logo"
 				width={120}
