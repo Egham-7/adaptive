@@ -5,8 +5,8 @@
 
 @theme {
 	--font-sans:
-		"Graphie", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+		"League Spartan", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+		"Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 @theme inline {
@@ -55,9 +55,9 @@
 	--color-adaptive-pine: var(--adaptive-pine);
 	--color-adaptive-gold-dust: var(--adaptive-gold-dust);
 	--color-adaptive-burnt-gold: var(--adaptive-burnt-gold);
-	--font-sans: Inter;
-	--font-mono: JetBrains Mono;
-	--font-serif: Merriweather;
+	--font-sans: League Spartan;
+	--font-mono: Andale Mono;
+	--font-serif: Athelas;
 	--radius: 0.75rem;
 	--tracking-tighter: calc(var(--tracking-normal) - 0.05em);
 	--tracking-tight: calc(var(--tracking-normal) - 0.025em);
@@ -89,56 +89,51 @@
 :root {
 	--radius: 0.75rem;
 
-	/* Adaptive Brand Colors */
-	--adaptive-gold: #d4af37;
-	--adaptive-slate: #708090;
-	--adaptive-scarlet: #dc143c;
-	--adaptive-grape: #6f2da8;
-	--adaptive-pine: #01796f;
-	--adaptive-gold-dust: #f0e68c;
-	--adaptive-burnt-gold: #b8860b;
+	/* Light Theme Colors */
+	--background: #f7efe4;
+	--foreground: #202020;
+	--card: #ffffff;
+	--card-foreground: #202020;
+	--popover: #ffffff;
+	--popover-foreground: #202020;
 
-	/* Updated color scheme using Adaptive branding */
-	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.2435 0 0);
-	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.2435 0 0);
+	--primary: #253957;
+	--primary-foreground: #ffffff;
+	--secondary: #d0a579;
+	--secondary-foreground: #202020;
+	--muted: #e7e8e9;
+	--muted-foreground: #646464;
+	--accent: #e7e8e9;
+	--accent-foreground: #646464;
+	--destructive: #b21900;
+	--destructive-foreground: #ffffff;
+	--border: #e5d4c2;
+	--input: #e5d4c2;
+	--ring: #253957;
 
-	--primary: var(--adaptive-gold);
-	--primary-foreground: oklch(1 0 0);
-	--secondary: oklch(0.9047 0.0634 62.2544); /* Slate */
-	--secondary-foreground: oklch(0.4379 0.056 72.5978);
-	--muted: oklch(0.9219 0 0);
-	--muted-foreground: oklch(0.5032 0 0);
-	--accent: oklch(0.931 0 0); /* Gold Dust */
-	--accent-foreground: oklch(0.2435 0 0);
-	--destructive: oklch(0.6271 0.1936 33.339); /* Scarlet */
 	--success: oklch(0.5513 0.1376 141.3766);
 	--success-foreground: oklch(1 0 0);
-	--warning: oklch(0.6275 0.1294 85.3177); /* Burnt Gold */
+	--warning: oklch(0.6275 0.1294 85.3177);
 	--warning-foreground: oklch(0.2435 0 0);
-	--border: oklch(0.8822 0 0);
-	--input: oklch(0.8822 0 0);
-	--ring: oklch(0.4721 0.0873 326.8474); /* Gold */
-	--chart-1: oklch(0.4721 0.0873 326.8474); /* Gold */
-	--chart-2: oklch(0.9047 0.0634 62.2544); /* Slate */
-	--chart-3: oklch(0.931 0 0); /* Scarlet */
-	--chart-4: oklch(0.9367 0.0523 75.5009); /* Grape */
-	--chart-5: oklch(0.4716 0.0769 345.1709); /* Pine */
+
+	--chart-1: #253957;
+	--chart-2: #d0a579;
+	--chart-3: #b21900;
+	--chart-4: #e7e8e9;
+	--chart-5: #646464;
+
 	--sidebar: oklch(0.9881 0 0);
 	--sidebar-foreground: oklch(0.2645 0 0);
-	--sidebar-primary: oklch(0.325 0 0); /* Gold */
-	--sidebar-primary-foreground: oklch(0.9881 0 0);
-	--sidebar-accent: oklch(0.9761 0 0); /* Gold Dust */
-	--sidebar-accent-foreground: oklch(0.325 0 0);
-	--sidebar-border: oklch(0.9401 0 0);
-	--sidebar-ring: oklch(0.7731 0 0);
-	--background: oklch(0.9761 0 0);
-	--foreground: oklch(0.2435 0 0);
-	--destructive-foreground: oklch(1 0 0);
-	--font-sans: Inter;
-	--font-serif: Merriweather;
-	--font-mono: JetBrains Mono;
+	--sidebar-primary: #253957;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #e7e8e9;
+	--sidebar-accent-foreground: #202020;
+	--sidebar-border: #e5d4c2;
+	--sidebar-ring: #253957;
+
+	--font-sans: League Spartan;
+	--font-serif: Athelas;
+	--font-mono: Andale Mono;
 	--shadow-color: #000000;
 	--shadow-opacity: 0.2;
 	--shadow-blur: 10px;
@@ -164,48 +159,51 @@
 }
 
 .dark {
-	--background: oklch(0.1776 0 0);
-	--foreground: oklch(0.9491 0 0);
-	--card: oklch(0.2134 0 0);
-	--card-foreground: oklch(0.9491 0 0);
-	--popover: oklch(0.2134 0 0);
-	--popover-foreground: oklch(0.9491 0 0);
-	--primary: oklch(
-		0.9247 0.0524 66.1732
-	); /* Gold Dust - lighter in dark mode */
-	--primary-foreground: oklch(0.2029 0.024 200.1962);
-	--secondary: oklch(0.3163 0.019 63.6992); /* Darker Slate */
-	--secondary-foreground: oklch(0.9247 0.0524 66.1732);
-	--muted: oklch(0.252 0 0);
-	--muted-foreground: oklch(0.7699 0 0);
-	--accent: oklch(0.285 0 0); /* Gold */
-	--accent-foreground: oklch(0.9491 0 0);
-	--destructive: oklch(0.6271 0.1936 33.339); /* Brighter Scarlet */
+	/* Dark Theme Colors */
+	--background: #111111;
+	--foreground: #eeeeee;
+	--card: #0b2142;
+	--card-foreground: #eeeeee;
+	--popover: #0b2142;
+	--popover-foreground: #eeeeee;
+
+	--primary: #f7efe4;
+	--primary-foreground: #0b2142;
+	--secondary: #af7846;
+	--secondary-foreground: #eeeeee;
+	--muted: #222222;
+	--muted-foreground: #e5d4c2;
+	--accent: #04142b;
+	--accent-foreground: #f7efe4;
+	--destructive: #b21900;
+	--destructive-foreground: #ffffff;
+	--border: #040c16;
+	--input: #484848;
+	--ring: #e5d4c2;
+
 	--success: oklch(0.4412 0.1372 142.5009);
 	--success-foreground: oklch(1 0 0);
-	--warning: oklch(0.7275 0.1294 85.3177); /* Brighter Burnt Gold */
+	--warning: oklch(0.7275 0.1294 85.3177);
 	--warning-foreground: oklch(0.1776 0 0);
-	--border: oklch(0.2351 0.0115 91.7467);
-	--input: oklch(0.4017 0 0);
-	--ring: oklch(0.9247 0.0524 66.1732); /* Gold Dust */
-	--chart-1: oklch(0.9247 0.0524 66.1732); /* Gold Dust */
-	--chart-2: oklch(0.3163 0.019 63.6992); /* Darker Slate */
-	--chart-3: oklch(0.285 0 0); /* Brighter Scarlet */
-	--chart-4: oklch(0.3481 0.0219 67.0001); /* Brighter Grape */
-	--chart-5: oklch(0.9245 0.0533 67.0855); /* Brighter Pine */
-	--sidebar: oklch(0.2103 0.0059 285.8852);
-	--sidebar-foreground: oklch(0.9674 0.0013 286.3752);
-	--sidebar-primary: oklch(0.4882 0.2172 264.3763); /* Gold */
-	--sidebar-primary-foreground: oklch(1 0 0);
-	--sidebar-accent: oklch(0.2739 0.0055 286.0326); /* Gold Dust */
-	--sidebar-accent-foreground: oklch(0.9674 0.0013 286.3752);
-	--sidebar-border: oklch(0.2739 0.0055 286.0326);
-	--sidebar-ring: oklch(0.8711 0.0055 286.286);
-	--destructive-foreground: oklch(1 0 0);
-	--radius: 0.75rem;
-	--font-sans: Inter;
-	--font-serif: Merriweather;
-	--font-mono: JetBrains Mono;
+
+	--chart-1: #f7efe4;
+	--chart-2: #af7846;
+	--chart-3: #b21900;
+	--chart-4: #04142b;
+	--chart-5: #e5d4c2;
+
+	--sidebar: #0b2142;
+	--sidebar-foreground: #eeeeee;
+	--sidebar-primary: #f7efe4;
+	--sidebar-primary-foreground: #111111;
+	--sidebar-accent: #04142b;
+	--sidebar-accent-foreground: #f7efe4;
+	--sidebar-border: #040c16;
+	--sidebar-ring: #e5d4c2;
+
+	--font-sans: League Spartan;
+	--font-serif: Athelas;
+	--font-mono: Andale Mono;
 	--shadow-color: #000000;
 	--shadow-opacity: 0.2;
 	--shadow-blur: 10px;
@@ -434,6 +432,6 @@
 	body {
 		@apply bg-background text-foreground;
 		letter-spacing: var(--tracking-normal);
-		font-family: "Graphie", ui-sans-serif, system-ui, sans-serif;
+		font-family: "League Spartan", ui-sans-serif, system-ui, sans-serif;
 	}
 }

@@ -32,8 +32,8 @@ export function SocialLogo({
     <Image
       src={
         resolvedTheme === "dark"
-          ? "/logos/adaptive-social-dark.svg"
-          : "/logos/2.svg"
+          ? "/logos/adaptive-dark-social.png"
+          : "/logos/adaptive-light-social.png"
       }
       alt={alt}
       width={width}
