@@ -138,10 +138,19 @@ func (h *CompletionHandler) selectModel(
 ) {
 	fiberlog.Infof("[%s] Starting model selection for user: %s", requestID, userID)
 
-	// Check if model is explicitly provided (non-empty) - if so, use manual override
+	// Check if model is explicitly provided (non-empty) - if so, try manual override
 	if req.Model != "" {
-		fiberlog.Infof("[%s] Model explicitly provided (%s), using manual override instead of model router", requestID, req.Model)
-		return h.createManualModelResponse(req, requestID)
+		fiberlog.Infof("[%s] Model explicitly provided (%s), attempting manual override", requestID, req.Model)
+		resp, cacheSource, err := h.createManualModelResponse(req, requestID)
+		if err != nil {
+			return nil, "", err
+		}
+		// If manual override succeeded, return the response
+		if resp != nil {
+			return resp, cacheSource, nil
+		}
+		// If manual override returned nil, fall through to intelligent routing
+		fiberlog.Debugf("[%s] Manual override failed, proceeding with intelligent routing", requestID)
 	}
 
 	fiberlog.Debugf("[%s] No explicit model provided, proceeding with model router selection", requestID)
@@ -186,11 +195,12 @@ func (h *CompletionHandler) createManualModelResponse(
 ) (*models.ModelSelectionResponse, string, error) {
 	modelSpec := string(req.Model)
 
-	// Parse provider:model format
+	// Parse provider:model format, fallback to intelligent routing if parsing fails
 	provider, modelName, err := utils.ParseProviderModel(modelSpec)
 	if err != nil {
-		fiberlog.Errorf("[%s] Failed to parse model specification '%s': %v", requestID, modelSpec, err)
-		return nil, "", fmt.Errorf("%w: %s", ErrInvalidModelSpec, err.Error())
+		fiberlog.Debugf("[%s] Failed to parse model specification '%s': %v, falling back to intelligent routing", requestID, modelSpec, err)
+		// Return nil to trigger intelligent routing in selectModel
+		return nil, "", nil
 	}
 
 	fiberlog.Infof("[%s] Parsed model specification '%s' -> provider: %s, model: %s", requestID, modelSpec, provider, modelName)

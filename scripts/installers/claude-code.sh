@@ -12,7 +12,7 @@ NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
 CLAUDE_PACKAGE="@anthropic-ai/claude-code"
 CONFIG_DIR="$HOME/.claude"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1"
+API_BASE_URL="https://www.llmadaptive.uk/api"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 API_TIMEOUT_MS=3000000
 
@@ -390,4 +390,3 @@ main() {
 }
 
 main "$@"
-

@@ -85,44 +85,44 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 		return c.JSON(cachedResponse)
 	}
 
-	// If a model is specified, directly route to the appropriate provider without model router
+	// If a model is specified, try to directly route to the appropriate provider
 	if req.Model != "" {
 		modelStr := string(req.Model)
-		fiberlog.Debugf("[%s] Model specified: %s, directly routing to provider", requestID, modelStr)
+		fiberlog.Debugf("[%s] Model specified: %s, attempting direct routing", requestID, modelStr)
 
 		// Parse provider and model from the model specification (expecting "provider:model" format)
 		provider, parsedModel, err := utils.ParseProviderModel(modelStr)
 		if err != nil {
-			fiberlog.Errorf("[%s] Failed to parse model specification %s: %v", requestID, modelStr, err)
-			return h.responseSvc.HandleBadRequest(c, fmt.Sprintf("invalid model specification '%s': must be in 'provider:model' format", modelStr), requestID)
+			fiberlog.Debugf("[%s] Failed to parse model specification %s: %v, falling back to intelligent routing", requestID, modelStr, err)
+			// Fall through to intelligent routing below instead of returning error
+		} else {
+			// Update the request with the parsed model name
+			req.Model = anthropic.Model(parsedModel)
+
+			fiberlog.Infof("[%s] User-specified model %s routed to provider %s", requestID, modelStr, provider)
+
+			// Get provider configuration
+			providers := resolvedConfig.GetProviders("messages")
+			providerConfig, exists := providers[provider]
+			if !exists {
+				return h.responseSvc.HandleProviderNotConfigured(c, provider, requestID)
+			}
+
+			// Direct execution - no fallback for user-specified models
+			err = h.messagesSvc.HandleProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, h.responseSvc, "")
+			if err != nil {
+				return err
+			}
+
+			// Store successful response in semantic cache for user-specified models
+			modelResp := &models.ModelSelectionResponse{
+				Provider: provider,
+				Model:    parsedModel,
+			}
+			h.responseSvc.StoreSuccessfulSemanticCache(c.UserContext(), req, modelResp, requestID)
+
+			return nil
 		}
-
-		// Update the request with the parsed model name
-		req.Model = anthropic.Model(parsedModel)
-
-		fiberlog.Infof("[%s] User-specified model %s routed to provider %s", requestID, modelStr, provider)
-
-		// Get provider configuration
-		providers := resolvedConfig.GetProviders("messages")
-		providerConfig, exists := providers[provider]
-		if !exists {
-			return h.responseSvc.HandleProviderNotConfigured(c, provider, requestID)
-		}
-
-		// Direct execution - no fallback for user-specified models
-		err = h.messagesSvc.HandleProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, h.responseSvc, "")
-		if err != nil {
-			return err
-		}
-
-		// Store successful response in semantic cache for user-specified models
-		modelResp := &models.ModelSelectionResponse{
-			Provider: provider,
-			Model:    parsedModel,
-		}
-		h.responseSvc.StoreSuccessfulSemanticCache(c.UserContext(), req, modelResp, requestID)
-
-		return nil
 	}
 
 	// If no model is specified, use model router for selection WITH fallback
