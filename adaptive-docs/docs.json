@@ -17,11 +17,17 @@
         "pages": ["index", "quickstart", "authentication"]
       },
       {
-        "group": "Integration Guides",
+        "group": "Framework Integrations",
         "pages": [
           "integrations/openai-sdk",
           "integrations/vercel-ai-sdk",
           "integrations/langchain"
+        ]
+      },
+      {
+        "group": "Developer Tools",
+        "pages": [
+          "developer-tools/claude-code"
         ]
       },
       {
