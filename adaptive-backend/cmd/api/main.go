@@ -56,11 +56,16 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	// Create completion service (depends on response service)
 	completionSvc := completions.NewCompletionService(cfg, respSvc)
 
-	// Create shared circuit breakers for all providers
+	// Create shared circuit breakers for all providers across all services
 	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
-	// Initialize circuit breakers for each provider
-	for providerName := range cfg.GetProviders("chat_completions") {
-		circuitBreakers[providerName] = circuitbreaker.New(redisClient)
+	providerTypes := []string{"chat_completions", "messages"}
+
+	for _, serviceType := range providerTypes {
+		for providerName := range cfg.GetProviders(serviceType) {
+			if _, exists := circuitBreakers[providerName]; !exists {
+				circuitBreakers[providerName] = circuitbreaker.NewForProvider(redisClient, providerName)
+			}
+		}
 	}
 
 	// Create select model services
