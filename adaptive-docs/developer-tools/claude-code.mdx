@@ -1,0 +1,243 @@
+---
+title: "Claude Code"
+description: "Configure Claude Code to use Adaptive's intelligent LLM routing for cost-optimized development"
+icon: "terminal"
+---
+
+<Info>
+🚀 **Adaptive for Claude Code** — Save 60-80% on AI development costs with intelligent model routing • Drop-in replacement for Claude API
+</Info>
+
+Configure Claude Code to use Adaptive's intelligent LLM routing for significant cost savings while maintaining the same development experience.
+
+**Adaptive's intelligent routing** automatically selects the best model for each task, providing 60-80% cost savings without any changes to your Claude Code workflow.
+
+## Get Your Adaptive API Key
+
+Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key from the dashboard.
+
+## Configuration Methods
+
+Choose your preferred setup method:
+
+### Method 1: Automated Setup (Recommended)
+
+<CodeGroup>
+```bash One-Line Install
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
+```
+
+```bash Download First
+curl -O https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh
+chmod +x claude-code.sh
+./claude-code.sh
+```
+</CodeGroup>
+
+### Method 2: Manual Configuration
+
+<CodeGroup>
+```bash Environment Variables
+export ANTHROPIC_BASE_URL=https://www.llmadaptive.uk/api/v1
+export ANTHROPIC_AUTH_TOKEN=your-adaptive-api-key
+```
+
+```json Settings File
+# Create/edit ~/.claude/settings.json
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "your-adaptive-api-key",
+    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api/v1",
+    "API_TIMEOUT_MS": "3000000"
+  }
+}
+```
+</CodeGroup>
+
+## Quick Start Guide
+
+<Steps>
+  <Step title="Launch Claude Code" icon="play">
+    Run `claude` in your terminal. If prompted with "Do you want to use this API key," select "Yes."
+  </Step>
+  <Step title="Grant File Access" icon="folder-open">
+    Grant Claude Code permission to access files in your project folder when prompted.
+  </Step>
+  <Step title="Start Developing" icon="code">
+    Begin coding with Adaptive's intelligent routing automatically optimizing your requests.
+  </Step>
+</Steps>
+
+<Note>
+**How Claude Code Uses Models:**
+- **ANTHROPIC_MODEL** (primary): Handles dialogue, planning, coding, and complex reasoning
+- **ANTHROPIC_SMALL_FAST_MODEL** (auxiliary): Manages file search and syntax checking
+
+Adaptive automatically optimizes both model selections for the best balance of performance, speed, and cost.
+</Note>
+
+## Benefits
+
+<CardGroup cols={2}>
+  <Card title="60-80% Cost Savings" icon="dollar-sign">
+    Intelligent routing automatically selects the most cost-effective model for each request
+  </Card>
+  <Card title="Zero Configuration" icon="check">
+    Works exactly like normal Claude Code with no workflow changes required
+  </Card>
+  <Card title="Smart Fallbacks" icon="shield">
+    Circuit breaker protection with automatic provider fallbacks for reliability
+  </Card>
+  <Card title="Multiple Providers" icon="network-wired">
+    Access to OpenAI, Anthropic, Google, Groq, DeepSeek, and more providers
+  </Card>
+</CardGroup>
+
+## Verification
+
+Verify your setup is working correctly:
+
+<CodeGroup>
+```bash Check Configuration
+cat ~/.claude/settings.json
+```
+
+```bash Test API Connection
+curl https://www.llmadaptive.uk/api/v1/messages \
+  -H "x-api-key: your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -H "anthropic-version: 2023-06-01" \
+  -d '{
+    "model": "",
+    "max_tokens": 100,
+    "messages": [{"role": "user", "content": "Hello from Adaptive!"}]
+  }'
+```
+
+```bash Check Claude Status
+claude
+# In Claude Code, type: /status
+```
+</CodeGroup>
+
+## Cost Savings Examples
+
+<Tabs>
+<Tab title="Individual Developer">
+**Daily Usage**: 1,000 requests
+- **Direct Claude API**: $25-35/day
+- **With Adaptive**: $8-12/day
+- **Monthly Savings**: $500-700
+</Tab>
+
+<Tab title="Development Team">
+**Team of 5**: 5,000 requests/day
+- **Direct Claude API**: $125-175/day
+- **With Adaptive**: $40-60/day
+- **Monthly Savings**: $2,500-3,400
+</Tab>
+
+<Tab title="Enterprise">
+**Large Team**: 20,000 requests/day
+- **Direct Claude API**: $500-700/day
+- **With Adaptive**: $150-220/day
+- **Monthly Savings**: $10,000-14,400
+</Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Connection Issues" icon="wifi-off">
+**Problem**: Claude Code can't connect to Adaptive
+
+**Solutions**:
+- Verify your API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
+- Check that `ANTHROPIC_BASE_URL` is set to `https://www.llmadaptive.uk/api/v1`
+- Restart Claude Code after configuration changes
+- Test network connectivity with the verification commands above
+</Accordion>
+
+<Accordion title="Authentication Errors" icon="key">
+**Problem**: Invalid API key errors
+
+**Solutions**:
+- Regenerate your API key from the Adaptive dashboard
+- Ensure you're using your Adaptive API key, not the original Claude API key
+- Check for extra spaces or characters in the configuration file
+- Verify the API key format matches the expected pattern
+</Accordion>
+
+<Accordion title="Installation Issues" icon="download">
+**Problem**: Script fails to install or configure
+
+**Solutions**:
+- Ensure you have Node.js 18+ installed
+- Check internet connectivity for downloading dependencies
+- Run the script with proper permissions (`chmod +x`)
+- Try manual configuration if automated setup fails
+</Accordion>
+</AccordionGroup>
+
+## Reset Configuration
+
+<CodeGroup>
+```bash Complete Reset
+rm ~/.claude/settings.json
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
+```
+
+```bash Backup and Reset
+mv ~/.claude/settings.json ~/.claude/settings.json.backup
+# Reconfigure manually or run installer again
+```
+</CodeGroup>
+
+## Migration from Direct Claude
+
+<Steps>
+  <Step title="Backup Current Settings" icon="shield">
+    ```bash
+    cp ~/.claude/settings.json ~/.claude/settings.json.backup
+    ```
+  </Step>
+  <Step title="Update Base URL" icon="link">
+    Change `ANTHROPIC_BASE_URL` to `https://www.llmadaptive.uk/api/v1`
+  </Step>
+  <Step title="Update API Key" icon="key">
+    Replace your Claude API key with your Adaptive API key
+  </Step>
+  <Step title="Test Integration" icon="check">
+    Launch Claude Code and verify it works normally with `/status` command
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Monitor Usage"
+    href="https://www.llmadaptive.uk/dashboard"
+    icon="chart-line"
+  >
+    Track your cost savings and usage analytics
+  </Card>
+  <Card title="API Documentation" href="/api-reference/messages" icon="book">
+    Learn about Adaptive's API capabilities
+  </Card>
+  <Card
+    title="Framework Integration"
+    href="/integrations/openai-sdk"
+    icon="code"
+  >
+    Integrate Adaptive into your applications
+  </Card>
+  <Card title="Support" href="/troubleshooting" icon="life-ring">
+    Get help with any issues
+  </Card>
+</CardGroup>
+
+---
+
+**Was this page helpful?** Contact us at [support@llmadaptive.uk](mailto:support@llmadaptive.uk)
+
