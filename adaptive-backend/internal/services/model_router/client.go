@@ -54,7 +54,7 @@ func NewModelRouterClientWithConfig(config ModelRouterClientConfig, redisClient 
 	return &ModelRouterClient{
 		client:         services.NewClient(config.BaseURL),
 		timeout:        config.RequestTimeout,
-		circuitBreaker: circuitbreaker.NewWithConfig(redisClient, config.CircuitBreakerConfig),
+		circuitBreaker: circuitbreaker.NewWithConfig(redisClient, "model_router", config.CircuitBreakerConfig),
 	}
 }
 
@@ -81,7 +81,6 @@ func (c *ModelRouterClient) SelectModel(
 
 	if !c.circuitBreaker.CanExecute() {
 		fiberlog.Warnf("[CIRCUIT_BREAKER] Model Router service unavailable (Open state). Using fallback.")
-		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
 		// Log circuit breaker error but continue with fallback
 		circuitErr := models.NewCircuitBreakerError("model_router")
 		fiberlog.Debugf("[CIRCUIT_BREAKER] %v", circuitErr)
@@ -94,7 +93,6 @@ func (c *ModelRouterClient) SelectModel(
 	err := c.client.Post("/predict", req, &out, opts)
 	if err != nil {
 		c.circuitBreaker.RecordFailure()
-		c.circuitBreaker.RecordRequestDuration(time.Since(start), false)
 		// Log provider error but continue with fallback
 		providerErr := models.NewProviderError("model_router", "prediction request failed", err)
 		fiberlog.Warnf("[PROVIDER_ERROR] %v", providerErr)
@@ -104,7 +102,6 @@ func (c *ModelRouterClient) SelectModel(
 
 	duration := time.Since(start)
 	c.circuitBreaker.RecordSuccess()
-	c.circuitBreaker.RecordRequestDuration(duration, true)
 	fiberlog.Infof("[SELECT_MODEL] Request successful in %v - model: %s/%s",
 		duration, out.Provider, out.Model)
 	return out
