@@ -318,22 +318,81 @@ EOF
   # Add to shell profiles for persistence
   local env_line="export ADAPTIVE_API_KEY='$api_key'"
 
-  # Add to .bashrc if it exists
-  if [ -f "$HOME/.bashrc" ]; then
-    if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.bashrc" 2>/dev/null; then
-      echo "" >> "$HOME/.bashrc"
-      echo "# Adaptive API Key" >> "$HOME/.bashrc"
-      echo "$env_line" >> "$HOME/.bashrc"
-    fi
-  fi
+  # Detect current shell and add to appropriate profile
+  local current_shell=$(basename "${SHELL:-/bin/bash}")
+  local profile_updated=false
 
-  # Add to .zshrc if it exists
-  if [ -f "$HOME/.zshrc" ]; then
-    if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.zshrc" 2>/dev/null; then
-      echo "" >> "$HOME/.zshrc"
-      echo "# Adaptive API Key" >> "$HOME/.zshrc"
-      echo "$env_line" >> "$HOME/.zshrc"
+  case "$current_shell" in
+    zsh)
+      if [ -f "$HOME/.zshrc" ]; then
+        if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.zshrc" 2>/dev/null; then
+          echo "" >> "$HOME/.zshrc"
+          echo "# Adaptive API Key" >> "$HOME/.zshrc"
+          echo "$env_line" >> "$HOME/.zshrc"
+          log_info "Added API key to ~/.zshrc"
+          profile_updated=true
+        fi
+      fi
+      ;;
+    bash)
+      if [ -f "$HOME/.bashrc" ]; then
+        if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.bashrc" 2>/dev/null; then
+          echo "" >> "$HOME/.bashrc"
+          echo "# Adaptive API Key" >> "$HOME/.bashrc"
+          echo "$env_line" >> "$HOME/.bashrc"
+          log_info "Added API key to ~/.bashrc"
+          profile_updated=true
+        fi
+      fi
+      ;;
+    fish)
+      # Fish shell uses different syntax
+      local fish_config_dir="$HOME/.config/fish"
+      local fish_config="$fish_config_dir/config.fish"
+      ensure_dir_exists "$fish_config_dir"
+      if [ -f "$fish_config" ]; then
+        if ! grep -q "ADAPTIVE_API_KEY" "$fish_config" 2>/dev/null; then
+          echo "" >> "$fish_config"
+          echo "# Adaptive API Key" >> "$fish_config"
+          echo "set -gx ADAPTIVE_API_KEY '$api_key'" >> "$fish_config"
+          log_info "Added API key to ~/.config/fish/config.fish"
+          profile_updated=true
+        fi
+      fi
+      ;;
+    *)
+      log_info "Unknown shell: $current_shell, trying common profile files..."
+      ;;
+  esac
+
+  # Fallback: try common profile files if shell-specific config didn't work
+  if [ "$profile_updated" = false ]; then
+    # Try .profile (POSIX-compliant, works with most shells)
+    if [ -f "$HOME/.profile" ]; then
+      if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.profile" 2>/dev/null; then
+        echo "" >> "$HOME/.profile"
+        echo "# Adaptive API Key" >> "$HOME/.profile"
+        echo "$env_line" >> "$HOME/.profile"
+        log_info "Added API key to ~/.profile"
+        profile_updated=true
+      fi
+    else
+      # Create .profile if it doesn't exist
+      echo "# Adaptive API Key" > "$HOME/.profile"
+      echo "$env_line" >> "$HOME/.profile"
+      log_info "Created ~/.profile and added API key"
+      profile_updated=true
     fi
+
+    # Also try shell-specific files as backup
+    for profile in ".zshrc" ".bashrc"; do
+      if [ -f "$HOME/$profile" ] && ! grep -q "ADAPTIVE_API_KEY" "$HOME/$profile" 2>/dev/null; then
+        echo "" >> "$HOME/$profile"
+        echo "# Adaptive API Key" >> "$HOME/$profile"
+        echo "$env_line" >> "$HOME/$profile"
+        log_info "Added API key to ~/$profile"
+      fi
+    done
   fi
 
   log_success "Codex configured for Adaptive successfully"
@@ -422,7 +481,21 @@ main() {
     echo "📖 Full Documentation: https://docs.llmadaptive.uk/developer-tools/codex"
     echo "🐛 Report Issues: https://github.com/Egham-7/adaptive/issues"
     echo ""
-    echo "⚠️  Important: Restart your terminal or run 'source ~/.bashrc' to load environment variables"
+    local current_shell=$(basename "${SHELL:-/bin/bash}")
+    case "$current_shell" in
+      zsh)
+        echo "⚠️  Important: Restart your terminal or run 'source ~/.zshrc' to load environment variables"
+        ;;
+      bash)
+        echo "⚠️  Important: Restart your terminal or run 'source ~/.bashrc' to load environment variables"
+        ;;
+      fish)
+        echo "⚠️  Important: Restart your terminal or start a new fish session to load environment variables"
+        ;;
+      *)
+        echo "⚠️  Important: Restart your terminal or run 'source ~/.profile' to load environment variables"
+        ;;
+    esac
   else
     echo ""
     log_error "❌ Installation verification failed"
