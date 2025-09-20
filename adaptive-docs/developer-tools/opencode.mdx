@@ -14,7 +14,41 @@ Configure OpenCode to use Adaptive's intelligent routing for 60-80% cost savings
 
 Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
 
-## Setup Guide
+## Quick Setup (Recommended)
+
+**Automated installer** - Run this one-line command to automatically configure OpenCode:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh | bash
+```
+
+The installer will:
+- Install Node.js and OpenCode if needed
+- Create `opencode.json` configuration
+- Guide you through authentication setup
+
+### Installation Options
+
+<CodeGroup>
+```bash One-line Install
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh | bash
+```
+
+```bash Interactive Install
+curl -o opencode.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh
+chmod +x opencode.sh
+./opencode.sh
+```
+
+```bash Environment Variables
+export ADAPTIVE_API_KEY='your-api-key-here'
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh | bash
+```
+</CodeGroup>
+
+**Manual setup** - Follow the detailed steps below if you prefer manual configuration.
+
+## Manual Setup Guide
 
 ### Step 1: Add Adaptive as Custom Provider
 
@@ -54,18 +88,6 @@ Create or update your `opencode.json` file in your project directory:
       "models": {
         "": {
           "name": "Intelligent Routing (Recommended)"
-        },
-        "claude-3-5-sonnet-20241022": {
-          "name": "Claude 3.5 Sonnet"
-        },
-        "claude-3-5-haiku-20241022": {
-          "name": "Claude 3.5 Haiku"
-        },
-        "gpt-4o": {
-          "name": "GPT-4o"
-        },
-        "gpt-4o-mini": {
-          "name": "GPT-4o Mini"
         }
       }
     }
@@ -90,22 +112,6 @@ Create or update your `opencode.json` file in your project directory:
         "": {
           "name": "🧠 Intelligent Routing",
           "description": "Automatically selects optimal model for cost/performance"
-        },
-        "claude-3-5-sonnet-20241022": {
-          "name": "🚀 Claude 3.5 Sonnet",
-          "description": "High-performance coding and reasoning"
-        },
-        "claude-3-5-haiku-20241022": {
-          "name": "⚡ Claude 3.5 Haiku",
-          "description": "Fast responses for simple tasks"
-        },
-        "gpt-4o": {
-          "name": "🔥 GPT-4o",
-          "description": "OpenAI's flagship model"
-        },
-        "gpt-4o-mini": {
-          "name": "💨 GPT-4o Mini",
-          "description": "Cost-effective for basic coding"
         }
       }
     }
@@ -144,26 +150,6 @@ Create or update your `opencode.json` file in your project directory:
 **Model Selection:**
 - Empty string `""`: Enables intelligent routing (recommended)
 - Specific models: Override routing with specific model selection
-</Accordion>
-
-<Accordion title="Model Options" icon="robot">
-**Intelligent Routing (Recommended):**
-```json
-"": {
-  "name": "Intelligent Routing",
-  "description": "Automatically selects optimal model"
-}
-```
-
-**Available Models:**
-- `claude-3-5-sonnet-20241022` - High-performance coding
-- `claude-3-5-haiku-20241022` - Fast responses
-- `gpt-4o` - OpenAI flagship model
-- `gpt-4o-mini` - Cost-effective option
-- `gemini-pro` - Google's model
-- And more - see [dashboard](https://www.llmadaptive.uk/dashboard) for full list
-
-**Model Format**: Use standard model names without provider prefixes.
 </Accordion>
 
 <Accordion title="Authentication Options" icon="key">
@@ -372,6 +358,12 @@ opencode auth login
     }
   }
 }
+```
+
+```bash Reinstall with Script
+# Remove existing config and reinstall
+rm -f opencode.json
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh | bash
 ```
 </CodeGroup>
 
