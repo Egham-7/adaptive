@@ -69,23 +69,23 @@
   "logo": {
     "light": "/logo/logo.svg",
     "dark": "/logo/logo-dark.svg",
-    "href": "https://llmadaptive.com"
+    "href": "https://www.llmadaptive.uk"
   },
   "navbar": {
     "links": [
       {
         "label": "Pricing",
-        "href": "https://llmadaptive.com/pricing"
+        "href": "https://www.llmadaptive.uk/pricing"
       },
       {
         "label": "Support",
-        "href": "https://llmadaptive.com/support"
+        "href": "https://www.llmadaptive.uk/support"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Get Started",
-      "href": "https://llmadaptive.com/signup"
+      "href": "https://www.llmadaptive.uk/signup"
     }
   },
   "footer": {
@@ -100,11 +100,11 @@
         "items": [
           {
             "label": "Dashboard",
-            "href": "https://llmadaptive.com"
+            "href": "https://www.llmadaptive.uk"
           },
           {
             "label": "Documentation",
-            "href": "https://docs.llmadaptive.com"
+            "href": "https://docs.www.llmadaptive.uk"
           }
         ]
       },
@@ -113,11 +113,11 @@
         "items": [
           {
             "label": "Careers",
-            "href": "https://llmadaptive.com/careers"
+            "href": "https://www.llmadaptive.uk/careers"
           },
           {
             "label": "Blog",
-            "href": "https://llmadaptive.com/blog"
+            "href": "https://www.llmadaptive.uk/blog"
           }
         ]
       },
@@ -126,18 +126,18 @@
         "items": [
           {
             "label": "Terms of Service",
-            "href": "https://docs.llmadaptive.com/terms-of-service"
+            "href": "https://docs.www.llmadaptive.uk/terms-of-service"
           },
           {
             "label": "Privacy Policy",
-            "href": "https://docs.llmadaptive.com/privacy-policy"
+            "href": "https://docs.www.llmadaptive.uk/privacy-policy"
           }
         ]
       }
     ]
   },
   "api": {
-    "baseUrl": "https://llmadaptive.com/api/v1",
+    "baseUrl": "https://www.llmadaptive.uk/api/v1",
     "auth": {
       "method": "bearer"
     },
