@@ -1,81 +1,41 @@
 ---
 title: "Claude Code Integration"
-description: "Set up Claude Code with Adaptive's intelligent LLM routing for 60-80% cost savings and automated model selection"
+description: "Set up Claude Code with Adaptive's intelligent LLM routing for 60-80% cost savings"
 icon: "terminal"
 ---
 
-Configure Claude Code to use Adaptive's intelligent LLM routing for significant cost savings while maintaining the same development experience.
+Configure Claude Code to use Adaptive's intelligent routing for 60-80% cost savings while maintaining the same development experience.
 
 <Tip>
-**Save 60-80% on AI development costs** with intelligent model routing that automatically selects the optimal model for each task. Works as a drop-in replacement for the Claude API.
+**Save 60-80% on AI development costs** with intelligent model routing. Works as a drop-in replacement for the Claude API.
 </Tip>
-
-Adaptive's intelligent routing automatically selects the best model for each task, providing substantial cost savings without any changes to your Claude Code workflow.
 
 ## Get Your Adaptive API Key
 
-Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key from the dashboard.
+Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
 
-## Configuration Methods
+## Quick Setup
 
-Choose your preferred setup method:
+<Steps>
+  <Step title="Run Installer" icon="download">
+    ```bash
+    curl -o claude-code.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh
+    chmod +x claude-code.sh
+    ./claude-code.sh
+    ```
+  </Step>
+  <Step title="Launch Claude Code" icon="play">
+    ```bash
+    claude
+    ```
+    Select "Yes" when prompted about using the API key.
+  </Step>
+  <Step title="Verify Setup" icon="check">
+    Type `/status` in Claude Code to confirm Adaptive integration is active.
+  </Step>
+</Steps>
 
-### Method 1: Automated Setup (Recommended)
-
-Our intelligent installer automatically detects your environment and guides you through the setup process.
-
-<CodeGroup>
-
-```bash Interactive Setup
-curl -o claude-code.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh
-chmod +x claude-code.sh
-./claude-code.sh
-```
-
-```bash CI/Automation
-export ADAPTIVE_API_KEY='your-api-key-here'
-curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
-```
-
-```bash Custom Models
-# Override default intelligent routing with specific models
-export ADAPTIVE_API_KEY='your-api-key-here'
-export ADAPTIVE_PRIMARY_MODEL='anthropic:claude-opus-4-1'
-export ADAPTIVE_FAST_MODEL='anthropic:claude-3-5-haiku-latest'
-curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
-```
-
-```bash Manual Config
-# For experienced users who want manual control
-cat > ~/.claude/settings.json << 'EOF'
-{
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "your-adaptive-api-key",
-    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api/v1",
-    "API_TIMEOUT_MS": "3000000",
-    "ANTHROPIC_MODEL": "",
-    "ANTHROPIC_SMALL_FAST_MODEL": ""
-  }
-}
-EOF
-```
-
-</CodeGroup>
-
-<Note>
-**Installer Features:**
-- **Auto-detection**: Detects existing Node.js and Claude Code installations
-- **Validation**: Validates API key format and model override syntax
-- **Multiple methods**: Interactive prompts, environment variables, or manual setup
-- **Intelligent routing**: Empty models by default for optimal cost/performance
-- **Model overrides**: Custom models via `provider:model_name` format
-- **Verification**: Comprehensive setup verification with troubleshooting
-- **Error handling**: Clear error messages and recovery suggestions
-
-**Supported Models**: Claude Opus 4.1, Claude Sonnet 4, Claude Haiku 3.5, and more
-</Note>
-
-### Method 2: Manual Configuration
+## Alternative Setup Methods
 
 <CodeGroup>
 ```bash Environment Variables
@@ -83,267 +43,37 @@ export ANTHROPIC_BASE_URL=https://www.llmadaptive.uk/api/v1
 export ANTHROPIC_AUTH_TOKEN=your-adaptive-api-key
 ```
 
-```json Settings File
-# Create/edit ~/.claude/settings.json
+```json Manual Settings File
+# Create ~/.claude/settings.json
 {
   "env": {
     "ANTHROPIC_AUTH_TOKEN": "your-adaptive-api-key",
-    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api/v1",
-    "API_TIMEOUT_MS": "3000000"
+    "ANTHROPIC_BASE_URL": "https://www.llmadaptive.uk/api/v1"
   }
 }
 ```
+
+```bash CI/Automation
+export ADAPTIVE_API_KEY='your-api-key'
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
+```
 </CodeGroup>
-
-## Installation Success
-
-After running the installer, you'll see a comprehensive success message with next steps:
-
-```
-╭────────────────────────────────────────────╮
-│  🎉 Claude Code + Adaptive Setup Complete  │
-╰────────────────────────────────────────────╯
-
-🚀 Quick Start:
-   claude                    # Start Claude Code with Adaptive routing
-
-🔍 Verify Setup:
-   /status                   # Check Adaptive integration in Claude Code
-   /help                     # View available commands
-
-📊 Monitor Usage:
-   Dashboard: https://www.llmadaptive.uk/dashboard
-   API Logs: ~/.claude/logs/
-
-💡 Pro Tips:
-   • Intelligent routing enabled by default for optimal cost/performance
-   • Current models: Claude Opus 4.1, Sonnet 4, Haiku 3.5
-   • Override models: ADAPTIVE_PRIMARY_MODEL, ADAPTIVE_FAST_MODEL env vars
-   • Use provider:model format (e.g. anthropic:claude-opus-4-1)
-```
-
-## Quick Start Guide
-
-<Steps>
-  <Step title="Launch Claude Code" icon="play">
-    Run `claude` in your terminal. If prompted with "Do you want to use this API key," select "Yes."
-  </Step>
-  <Step title="Verify Integration" icon="shield-check">
-    Type `/status` in Claude Code to confirm Adaptive integration is working properly.
-  </Step>
-  <Step title="Grant File Access" icon="folder-open">
-    Grant Claude Code permission to access files in your project folder when prompted.
-  </Step>
-  <Step title="Start Developing" icon="code">
-    Begin coding with Adaptive's intelligent routing automatically optimizing your requests.
-  </Step>
-</Steps>
-
-<Info>
-**How Claude Code Uses Models:**
-- **ANTHROPIC_MODEL** (primary): Handles dialogue, planning, coding, and complex reasoning
-- **ANTHROPIC_SMALL_FAST_MODEL** (auxiliary): Manages file search and syntax checking
-
-**Default Configuration**: Empty strings enable intelligent routing for optimal cost/performance balance.
-
-**Model Override Examples**:
-- `ADAPTIVE_PRIMARY_MODEL='anthropic:claude-opus-4-1'` - Latest flagship model
-- `ADAPTIVE_FAST_MODEL='anthropic:claude-3-5-haiku-latest'` - Fast auxiliary model
-- Leave empty for intelligent routing (recommended)
-</Info>
-
-## Benefits
-
-<CardGroup cols={2}>
-  <Card title="60-80% Cost Savings" icon="dollar-sign">
-    Intelligent routing automatically selects the most cost-effective model for each request
-  </Card>
-  <Card title="Zero Configuration" icon="check">
-    Works exactly like normal Claude Code with no workflow changes required
-  </Card>
-  <Card title="Smart Fallbacks" icon="shield">
-    Circuit breaker protection with automatic provider fallbacks for reliability
-  </Card>
-  <Card title="Multiple Providers" icon="network-wired">
-    Access to OpenAI, Anthropic, Google, Groq, DeepSeek, and more providers
-  </Card>
-</CardGroup>
-
-## Verification
-
-Verify your setup is working correctly:
-
-<Steps>
-  <Step title="Check Configuration File">
-    ```bash
-    cat ~/.claude/settings.json
-    ```
-    Verify the configuration file contains your API key and base URL.
-  </Step>
-
-  <Step title="Test API Connection">
-    ```bash
-    curl https://www.llmadaptive.uk/api/v1/messages \
-      -H "x-api-key: your-adaptive-api-key" \
-      -H "Content-Type: application/json" \
-      -H "anthropic-version: 2023-06-01" \
-      -d '{
-        "model": "",
-        "max_tokens": 100,
-        "messages": [{"role": "user", "content": "Hello from Adaptive!"}]
-      }'
-    ```
-    You should receive a successful response from the API.
-  </Step>
-
-  <Step title="Verify Claude Code Integration">
-    ```bash
-    claude
-    # In Claude Code, type: /status
-    ```
-    <Check>Confirm that Adaptive integration is shown as active</Check>
-  </Step>
-</Steps>
-
-## Cost Savings Examples
-
-<Tabs>
-<Tab title="Individual Developer">
-**Daily Usage**: 1,000 requests
-- **Direct Claude API**: $25-35/day
-- **With Adaptive**: $8-12/day
-- **Monthly Savings**: $500-700
-</Tab>
-
-<Tab title="Development Team">
-**Team of 5**: 5,000 requests/day
-- **Direct Claude API**: $125-175/day
-- **With Adaptive**: $40-60/day
-- **Monthly Savings**: $2,500-3,400
-</Tab>
-
-<Tab title="Enterprise">
-**Large Team**: 20,000 requests/day
-- **Direct Claude API**: $500-700/day
-- **With Adaptive**: $150-220/day
-- **Monthly Savings**: $10,000-14,400
-</Tab>
-</Tabs>
 
 ## Troubleshooting
 
 <AccordionGroup>
 <Accordion title="Connection Issues" icon="wifi-off">
-**Problem**: Claude Code can't connect to Adaptive
-
-**Solutions**:
 - Verify your API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
 - Check that `ANTHROPIC_BASE_URL` is set to `https://www.llmadaptive.uk/api/v1`
 - Restart Claude Code after configuration changes
-- Test network connectivity with the verification commands above
 </Accordion>
 
 <Accordion title="Authentication Errors" icon="key">
-**Problem**: Invalid API key errors
-
-**Solutions**:
 - Regenerate your API key from the Adaptive dashboard
 - Ensure you're using your Adaptive API key, not the original Claude API key
 - Check for extra spaces or characters in the configuration file
-- Verify the API key format matches the expected pattern
-</Accordion>
-
-<Accordion title="Installation Issues" icon="download">
-**Problem**: Script fails to install or configure
-
-**Solutions**:
-- **Interactive mode required**: If running `curl | bash`, download the script first for interactive setup
-- **Environment variable method**: Use `export ADAPTIVE_API_KEY='your-key'` before running the installer
-- **Node.js requirement**: Ensure you have Node.js 18+ installed
-- **Permissions**: Run the script with proper permissions (`chmod +x claude-code.sh`)
-- **Manual fallback**: Use the advanced setup method if automated installation fails
-
-**Installer Options**:
-```bash
-# Option 1: Interactive (Recommended)
-curl -o claude-code.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh
-chmod +x claude-code.sh
-./claude-code.sh
-
-# Option 2: Environment Variable
-export ADAPTIVE_API_KEY='your-key'
-curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
-
-# Option 3: Custom Models
-export ADAPTIVE_API_KEY='your-key'
-export ADAPTIVE_PRIMARY_MODEL='anthropic:claude-opus-4-1'
-export ADAPTIVE_FAST_MODEL='anthropic:claude-3-5-haiku-latest'
-curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
-
-# Option 4: Manual Setup
-mkdir -p ~/.claude
-# Create settings.json file manually
-```
-</Accordion>
-
-<Accordion title="Model Override Issues" icon="robot">
-**Problem**: Want to use specific models instead of intelligent routing
-
-**Solutions**:
-- **Environment variables**: Set `ADAPTIVE_PRIMARY_MODEL` and `ADAPTIVE_FAST_MODEL` before installation
-- **Format**: Use `provider:model_name` format (e.g., `anthropic:claude-opus-4-1`)
-- **Current models**: Claude Opus 4.1, Sonnet 4, Haiku 3.5 (see [Claude docs](https://docs.claude.com/en/docs/about-claude/models/overview))
-- **Intelligent routing**: Leave empty for automatic optimization (recommended)
-
-**Valid Model Examples**:
-```bash
-# Latest flagship model
-ADAPTIVE_PRIMARY_MODEL='anthropic:claude-opus-4-1'
-
-# High-performance model
-ADAPTIVE_PRIMARY_MODEL='anthropic:claude-sonnet-4-0'
-
-# Fast model with aliases
-ADAPTIVE_FAST_MODEL='anthropic:claude-3-5-haiku-latest'
-
-# Empty for intelligent routing (default)
-ADAPTIVE_PRIMARY_MODEL=''
-```
 </Accordion>
 </AccordionGroup>
-
-## Reset Configuration
-
-<CodeGroup>
-```bash Complete Reset
-rm ~/.claude/settings.json
-curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
-```
-
-```bash Backup and Reset
-mv ~/.claude/settings.json ~/.claude/settings.json.backup
-# Reconfigure manually or run installer again
-```
-</CodeGroup>
-
-## Migration from Direct Claude
-
-<Steps>
-  <Step title="Backup Current Settings" icon="shield">
-    ```bash
-    cp ~/.claude/settings.json ~/.claude/settings.json.backup
-    ```
-  </Step>
-  <Step title="Update Base URL" icon="link">
-    Change `ANTHROPIC_BASE_URL` to `https://www.llmadaptive.uk/api/v1`
-  </Step>
-  <Step title="Update API Key" icon="key">
-    Replace your Claude API key with your Adaptive API key
-  </Step>
-  <Step title="Test Integration" icon="check">
-    Launch Claude Code and verify it works normally with `/status` command
-  </Step>
-</Steps>
 
 ## Next Steps
 

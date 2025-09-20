@@ -41,82 +41,12 @@ models:
       last_updated: "2025-08-09"
       matching_operator: equals
       available_in_playground: true
-  claude_3_7_sonnet_20250219:
-    description:
-      Claude 3.7 Sonnet is Anthropic's latest model with enhanced capabilities,
-      advanced reasoning, and comprehensive multimodal support.
-    provider: ANTHROPIC
-    model_name: claude-3-7-sonnet-20250219
-    cost_per_1m_input_tokens: 3
-    cost_per_1m_output_tokens: 15
-    max_context_tokens: 200000
-    max_output_tokens: 8192
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-      - text
-    languages_supported:
-      - en
-      - fr
-      - de
-      - es
-      - it
-      - pt
-      - zh
-      - ja
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: "2025-08-09"
-      matching_operator: equals
-      available_in_playground: true
   claude_opus_4_1_20250805:
     description:
       Claude Opus 4.1 is Anthropic's most advanced model with exceptional
       reasoning, analysis capabilities, and sophisticated tool use for complex tasks.
     provider: ANTHROPIC
     model_name: claude-opus-4-1-20250805
-    cost_per_1m_input_tokens: 15
-    cost_per_1m_output_tokens: 75
-    max_context_tokens: 200000
-    max_output_tokens: 8192
-    supports_streaming: true
-    supports_function_calling: true
-    supports_vision: null
-    multimodal_capabilities:
-      - text
-    languages_supported:
-      - en
-      - fr
-      - de
-      - es
-      - it
-      - pt
-      - zh
-      - ja
-    model_size_params: Unknown
-    latency_tier: slow
-    task_type: Open QA
-    complexity: hard
-    release_date: null
-    training_data_cutoff: null
-    metadata:
-      source: helicone_api
-      last_updated: "2025-08-09"
-      matching_operator: equals
-      available_in_playground: true
-  claude_opus_4_20250514:
-    description:
-      Claude Opus 4 represents Anthropic's flagship model with superior
-      reasoning, complex analysis capabilities, and advanced multimodal understanding.
-    provider: ANTHROPIC
-    model_name: claude-opus-4-20250514
     cost_per_1m_input_tokens: 15
     cost_per_1m_output_tokens: 75
     max_context_tokens: 200000

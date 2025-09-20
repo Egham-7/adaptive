@@ -1,0 +1,508 @@
+---
+title: "Kilo Code Integration"
+description: "Configure Kilo Code VS Code extension with Adaptive's intelligent LLM routing for 60-80% cost savings and MCP support"
+icon: "code-branch"
+---
+
+Configure Kilo Code to use Adaptive's intelligent routing for 60-80% cost savings while maintaining the same AI-assisted development experience with MCP support.
+
+<Tip>
+**Save 60-80% on AI development costs** with intelligent model routing. Kilo Code's MCP support works seamlessly with Adaptive's API.
+</Tip>
+
+Kilo Code is a powerful VS Code extension that supports MCP (Model Context Protocol), enabling you to leverage AI models for efficient code development directly in your editor with extended capabilities.
+
+## Get Your Adaptive API Key
+
+Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
+
+## Setup Guide
+
+### Step 1: Installing the Kilo Code Extension
+
+<Steps>
+  <Step title="Open Extensions Marketplace" icon="puzzle-piece">
+    1. Launch VS Code
+    2. Click the Extensions Marketplace icon on the left sidebar
+    3. Search for "Kilo Code" in the search bar
+    4. Locate the official Kilo Code extension
+  </Step>
+  <Step title="Install the Extension" icon="download">
+    1. Click the **Install** button to begin installation
+    2. After installation, choose to trust the developer when prompted
+    3. The Kilo Code icon will appear in your VS Code sidebar
+  </Step>
+</Steps>
+
+### Step 2: Configuring API Settings
+
+<Steps>
+  <Step title="Select API Key Authentication" icon="key">
+    Open Kilo Code and choose **"Use your own API key"**
+  </Step>
+  <Step title="Enter Configuration Details" icon="gear">
+    Fill in the configuration with the following settings:
+
+    <CodeGroup>
+    ```text Configuration Settings
+    API Provider: OpenAI Compatible
+    OpenAI Base URL: https://www.llmadaptive.uk/api/v1
+    API Key: your-adaptive-api-key-here
+    Model Name: leave empty for intelligent routing (or specify model)
+    ```
+
+    ```json Manual Configuration
+    {
+      "apiProvider": "openai-compatible",
+      "baseUrl": "https://www.llmadaptive.uk/api/v1",
+      "apiKey": "your-adaptive-api-key-here",
+      "modelName": ""
+    }
+    ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+### Step 3: Configuring MCP (Optional)
+
+Kilo Code supports MCP (Model Context Protocol) to extend AI model capabilities. Here are some useful MCP server configurations:
+
+<CodeGroup>
+```json SQLite MCP Server
+{
+  "mcpServers": {
+    "SQLite": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "path/to/mcp-server-sqlite",
+        "run",
+        "mcp-server-sqlite",
+        "--db-path",
+        "~/project.db"
+      ]
+    }
+  }
+}
+```
+
+```json File System MCP Server
+{
+  "mcpServers": {
+    "FileSystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+```json Git MCP Server
+{
+  "mcpServers": {
+    "Git": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-git",
+        "--repository",
+        "/path/to/your/repo"
+      ]
+    }
+  }
+}
+```
+
+```json Multiple MCP Servers
+{
+  "mcpServers": {
+    "SQLite": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "path/to/sqlite-server",
+        "run",
+        "mcp-server-sqlite",
+        "--db-path",
+        "~/database.db"
+      ]
+    },
+    "FileSystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/workspace"
+      ]
+    },
+    "Browser": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "your-brave-api-key"
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Configuration Details
+
+<AccordionGroup>
+<Accordion title="API Configuration Options" icon="gear">
+**Required Settings:**
+- **API Provider**: Must be "OpenAI Compatible"
+- **OpenAI Base URL**: `https://www.llmadaptive.uk/api/v1`
+- **API Key**: Your Adaptive API key from the dashboard
+
+**Model Selection:**
+- **Intelligent Routing**: Leave model name empty `""` (recommended)
+- **Specific Models**: Use standard model names like `claude-3-5-sonnet-20241022`
+
+**Advanced Options:**
+- **Temperature**: 0.1-0.9 (lower for more deterministic code)
+- **Max Tokens**: 4096-8192 (adjust based on complexity)
+- **Top P**: 0.9 (nucleus sampling parameter)
+</Accordion>
+
+<Accordion title="MCP Server Configuration" icon="server">
+**What is MCP?**
+Model Context Protocol allows AI models to interact with external tools and data sources, extending their capabilities beyond text generation.
+
+**Popular MCP Servers:**
+- **SQLite**: Database analysis and query generation
+- **File System**: Project file exploration and manipulation
+- **Git**: Repository operations and history analysis
+- **Browser**: Web search and content retrieval
+- **Slack**: Team communication integration
+
+**Installation Requirements:**
+- Python with `uv` for Python-based servers
+- Node.js with `npx` for JavaScript-based servers
+- Appropriate API keys for external services
+
+**Configuration Location:**
+Add MCP server configurations to Kilo Code's settings or workspace configuration file.
+</Accordion>
+
+<Accordion title="Model Options" icon="robot">
+**Intelligent Routing (Recommended):**
+- Model Name: `""` (empty string)
+- Automatically selects optimal model for each task
+- Provides best cost/performance balance
+
+**Available Models for Override:**
+- `claude-3-5-sonnet-20241022` - High-performance coding and reasoning
+- `claude-3-5-haiku-20241022` - Fast responses for simple tasks
+- `gpt-4o` - OpenAI's flagship model
+- `gpt-4o-mini` - Cost-effective for basic tasks
+- `gemini-pro` - Google's high-performance model
+
+**Custom Instructions:**
+Set project-specific guidelines for better code generation and analysis.
+</Accordion>
+</AccordionGroup>
+
+## Getting Started
+
+Once configured, you can use Kilo Code for various development tasks:
+
+<CardGroup cols={2}>
+  <Card title="Code Analysis" icon="search">
+    Analyze database structures, calculate statistics, and explore project architecture
+  </Card>
+  <Card title="SQL Generation" icon="database">
+    Generate and optimize SQL queries with database context through MCP
+  </Card>
+  <Card title="Code Generation" icon="code">
+    Create functions, components, and entire files based on specifications
+  </Card>
+  <Card title="Documentation" icon="book">
+    Generate project documentation and code comments with context awareness
+  </Card>
+</CardGroup>
+
+### Example Usage with MCP
+
+<CodeGroup>
+```text Database Analysis
+"Analyze the users table structure and suggest optimization strategies"
+```
+
+```text File System Operations
+"Find all TypeScript files in the project and list their main exports"
+```
+
+```text Git Operations
+"Show me the commit history for the authentication module"
+```
+
+```text Code Generation with Context
+"Create a new API endpoint that follows the existing patterns in this project"
+```
+</CodeGroup>
+
+## MCP Server Examples
+
+### SQLite Database Analysis
+
+```text
+With SQLite MCP configured, you can ask:
+"Show me the schema for all tables and identify potential performance issues"
+"Generate a query to find the top 10 most active users this month"
+"Analyze the relationship between orders and customers tables"
+```
+
+### File System Integration
+
+```text
+With File System MCP configured, you can ask:
+"List all React components and their dependencies"
+"Find files that haven't been modified in the last 6 months"
+"Show me the project structure and suggest organizational improvements"
+```
+
+### Git Integration
+
+```text
+With Git MCP configured, you can ask:
+"Show me recent changes to the authentication system"
+"Find who last modified the payment processing code"
+"Generate a changelog for the last 10 commits"
+```
+
+## Verification
+
+Test your setup is working correctly:
+
+<Steps>
+  <Step title="Basic Connection Test" icon="wifi">
+    1. Open a project in VS Code with Kilo Code
+    2. Start a new conversation
+    3. Ask: "Hello, can you help me with coding?"
+    4. Verify you receive a response
+  </Step>
+  <Step title="MCP Integration Test" icon="server">
+    If you configured MCP servers, test them:
+    ```text
+    "List the available tools and their capabilities"
+    "Show me what data sources you can access"
+    ```
+  </Step>
+  <Step title="Code Generation Test" icon="code">
+    Ask Kilo Code to create something specific:
+    ```text
+    "Create a TypeScript function that validates email addresses with proper error handling"
+    ```
+  </Step>
+  <Step title="Monitor Usage" icon="chart-line">
+    Check your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard) for usage statistics and cost savings.
+  </Step>
+</Steps>
+
+## Benefits with Adaptive
+
+<CardGroup cols={2}>
+  <Card title="60-80% Cost Savings" icon="dollar-sign">
+    Intelligent routing automatically selects the most cost-effective model for each task
+  </Card>
+  <Card title="Enhanced MCP Support" icon="plug">
+    All MCP features work seamlessly with Adaptive's OpenAI-compatible API
+  </Card>
+  <Card title="Smart Model Selection" icon="brain">
+    Complex analysis uses powerful models, simple tasks use efficient models automatically
+  </Card>
+  <Card title="Reliable Performance" icon="shield">
+    Circuit breaker protection with automatic provider fallbacks for uninterrupted development
+  </Card>
+</CardGroup>
+
+## Cost Savings Examples
+
+<Tabs>
+<Tab title="Solo Developer">
+**Daily Usage**: 300 AI requests with MCP
+- **Direct Provider APIs**: $12-18/day
+- **With Adaptive**: $3-6/day
+- **Monthly Savings**: $270-360
+</Tab>
+
+<Tab title="Development Team">
+**Team of 5**: 1,500 requests/day
+- **Direct Provider APIs**: $60-90/day
+- **With Adaptive**: $18-30/day
+- **Monthly Savings**: $1,260-1,800
+</Tab>
+
+<Tab title="Enterprise">
+**Large Team**: 7,500 requests/day
+- **Direct Provider APIs**: $300-450/day
+- **With Adaptive**: $90-150/day
+- **Monthly Savings**: $6,300-9,000
+</Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Connection Issues" icon="wifi-off">
+**Problem**: Kilo Code can't connect to Adaptive
+
+**Solutions**:
+- Verify your API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
+- Check that Base URL is exactly: `https://www.llmadaptive.uk/api/v1`
+- Restart VS Code after configuration changes
+- Test API connection manually:
+```bash
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 100
+  }'
+```
+</Accordion>
+
+<Accordion title="MCP Server Issues" icon="server">
+**Problem**: MCP servers not working or connecting
+
+**Solutions**:
+- **Check command paths**: Ensure `uv`, `npx`, or other commands are in your PATH
+- **Verify server installation**: Install required MCP servers before configuring
+- **Check permissions**: Ensure Kilo Code has permission to execute external commands
+- **Review logs**: Check VS Code developer console for MCP-related error messages
+- **Test server manually**: Run MCP server commands directly in terminal first
+
+**Common MCP Installation Commands**:
+```bash
+# Install SQLite MCP server
+pip install mcp-server-sqlite
+
+# Install File System MCP server
+npm install -g @modelcontextprotocol/server-filesystem
+
+# Install Git MCP server
+pip install mcp-server-git
+```
+</Accordion>
+
+<Accordion title="Authentication Errors" icon="key">
+**Problem**: Invalid API key errors
+
+**Solutions**:
+- Regenerate your API key from the Adaptive dashboard
+- Ensure you're using your Adaptive API key, not a direct provider key
+- Check for extra spaces or characters in the API key field
+- Verify the key format matches: `ada-...` (starts with ada-)
+</Accordion>
+
+<Accordion title="Model Selection Issues" icon="robot">
+**Problem**: Specific models not working or slow responses
+
+**Solutions**:
+- **For intelligent routing**: Leave model name completely empty
+- **For specific models**: Use standard model names without provider prefixes
+- **Performance issues**: Try faster models like `claude-3-5-haiku-20241022`
+- **Check model availability**: Visit dashboard for current supported models
+
+**Recommended Model Settings**:
+- **General coding**: Leave empty for intelligent routing
+- **Complex analysis**: `claude-3-5-sonnet-20241022`
+- **Quick responses**: `claude-3-5-haiku-20241022`
+- **Cost optimization**: `gpt-4o-mini`
+</Accordion>
+</AccordionGroup>
+
+## Advanced Configuration
+
+### Custom MCP Server
+
+Create your own MCP server for specific project needs:
+
+```python
+# Example custom MCP server (Python)
+from mcp import Server
+import json
+
+server = Server("custom-project-server")
+
+@server.tool("analyze_code_metrics")
+def analyze_code_metrics(file_path: str) -> str:
+    """Analyze code metrics for a given file."""
+    # Your custom analysis logic here
+    return json.dumps({"complexity": 5, "lines": 120})
+
+if __name__ == "__main__":
+    server.run()
+```
+
+### Workspace-Specific Configuration
+
+Create workspace-specific settings for team consistency:
+
+```json
+// .vscode/settings.json
+{
+  "kilocode.apiProvider": "openai-compatible",
+  "kilocode.baseUrl": "https://www.llmadaptive.uk/api/v1",
+  "kilocode.modelName": "",
+  "kilocode.mcpServers": {
+    "ProjectDB": {
+      "command": "uv",
+      "args": ["run", "mcp-server-sqlite", "--db-path", "./project.db"]
+    }
+  }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Monitor Usage & Savings"
+    href="https://www.llmadaptive.uk/dashboard"
+    icon="chart-line"
+    cta="View Dashboard"
+  >
+    Track your cost savings and usage analytics in real-time
+  </Card>
+  <Card
+    title="MCP Documentation"
+    href="https://modelcontextprotocol.io"
+    icon="book"
+    cta="Learn MCP"
+  >
+    Explore Model Context Protocol capabilities and additional servers
+  </Card>
+  <Card
+    title="Other IDE Integrations"
+    href="/developer-tools/claude-code"
+    icon="code"
+    cta="Explore Tools"
+  >
+    Set up Adaptive with Claude Code, Cline, and other AI development tools
+  </Card>
+  <Card
+    title="Get Support"
+    href="/troubleshooting"
+    icon="life-ring"
+    cta="Get Help"
+  >
+    Troubleshooting guides and support resources
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Was this page helpful?** Contact us at [info@llmadaptive.uk](mailto:info@llmadaptive.uk) for feedback or assistance with your Kilo Code integration.
+</Note>

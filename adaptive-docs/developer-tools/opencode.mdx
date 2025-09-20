@@ -1,0 +1,419 @@
+---
+title: "OpenCode Integration"
+description: "Configure OpenCode to use Adaptive's intelligent LLM routing for 60-80% cost savings"
+icon: "brackets-curly"
+---
+
+Configure OpenCode to use Adaptive's intelligent routing for 60-80% cost savings while maintaining the same AI coding experience.
+
+<Tip>
+**Save 60-80% on AI development costs** with intelligent model routing. Works as a custom provider in OpenCode.
+</Tip>
+
+## Get Your Adaptive API Key
+
+Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
+
+## Setup Guide
+
+### Step 1: Add Adaptive as Custom Provider
+
+<Steps>
+  <Step title="Add Custom Provider Credentials" icon="key">
+    ```bash
+    opencode auth login
+    ```
+    Scroll down and select **"Other"** to add a custom provider.
+  </Step>
+  <Step title="Configure Provider ID" icon="id-card">
+    When prompted for provider ID, enter:
+    ```
+    adaptive
+    ```
+  </Step>
+  <Step title="Enter API Key" icon="key">
+    Paste your Adaptive API key when prompted.
+  </Step>
+</Steps>
+
+### Step 2: Configure Provider Settings
+
+Create or update your `opencode.json` file in your project directory:
+
+<CodeGroup>
+```json Basic Configuration
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "adaptive": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Adaptive",
+      "options": {
+        "baseURL": "https://www.llmadaptive.uk/api/v1"
+      },
+      "models": {
+        "": {
+          "name": "Intelligent Routing (Recommended)"
+        },
+        "claude-3-5-sonnet-20241022": {
+          "name": "Claude 3.5 Sonnet"
+        },
+        "claude-3-5-haiku-20241022": {
+          "name": "Claude 3.5 Haiku"
+        },
+        "gpt-4o": {
+          "name": "GPT-4o"
+        },
+        "gpt-4o-mini": {
+          "name": "GPT-4o Mini"
+        }
+      }
+    }
+  }
+}
+```
+
+```json Advanced Configuration
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "adaptive": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Adaptive",
+      "options": {
+        "baseURL": "https://www.llmadaptive.uk/api/v1",
+        "headers": {
+          "User-Agent": "opencode-adaptive-integration"
+        }
+      },
+      "models": {
+        "": {
+          "name": "🧠 Intelligent Routing",
+          "description": "Automatically selects optimal model for cost/performance"
+        },
+        "claude-3-5-sonnet-20241022": {
+          "name": "🚀 Claude 3.5 Sonnet",
+          "description": "High-performance coding and reasoning"
+        },
+        "claude-3-5-haiku-20241022": {
+          "name": "⚡ Claude 3.5 Haiku",
+          "description": "Fast responses for simple tasks"
+        },
+        "gpt-4o": {
+          "name": "🔥 GPT-4o",
+          "description": "OpenAI's flagship model"
+        },
+        "gpt-4o-mini": {
+          "name": "💨 GPT-4o Mini",
+          "description": "Cost-effective for basic coding"
+        }
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+### Step 3: Select Model
+
+<Steps>
+  <Step title="Open Model Selection" icon="robot">
+    Run `/models` in OpenCode to see available models.
+  </Step>
+  <Step title="Choose Adaptive Model" icon="check">
+    Select **"Intelligent Routing (Recommended)"** for automatic optimization, or choose a specific model.
+  </Step>
+  <Step title="Start Coding" icon="code">
+    Begin using OpenCode with Adaptive's cost-optimized routing.
+  </Step>
+</Steps>
+
+## Configuration Details
+
+<AccordionGroup>
+<Accordion title="Provider Configuration Options" icon="gear">
+**Required Fields:**
+- `npm`: Must be `@ai-sdk/openai-compatible` for OpenAI compatibility
+- `name`: Display name shown in OpenCode UI
+- `options.baseURL`: Adaptive API endpoint (`https://www.llmadaptive.uk/api/v1`)
+
+**Optional Fields:**
+- `options.headers`: Custom headers (useful for tracking)
+- `models`: Available model configurations with display names and descriptions
+
+**Model Selection:**
+- Empty string `""`: Enables intelligent routing (recommended)
+- Specific models: Override routing with specific model selection
+</Accordion>
+
+<Accordion title="Model Options" icon="robot">
+**Intelligent Routing (Recommended):**
+```json
+"": {
+  "name": "Intelligent Routing",
+  "description": "Automatically selects optimal model"
+}
+```
+
+**Available Models:**
+- `claude-3-5-sonnet-20241022` - High-performance coding
+- `claude-3-5-haiku-20241022` - Fast responses
+- `gpt-4o` - OpenAI flagship model
+- `gpt-4o-mini` - Cost-effective option
+- `gemini-pro` - Google's model
+- And more - see [dashboard](https://www.llmadaptive.uk/dashboard) for full list
+
+**Model Format**: Use standard model names without provider prefixes.
+</Accordion>
+
+<Accordion title="Authentication Options" icon="key">
+**Method 1: OpenCode Auth (Recommended)**
+```bash
+opencode auth login
+# Select "Other" → Enter "adaptive" → Paste API key
+```
+
+**Method 2: Direct Configuration**
+```json
+{
+  "provider": {
+    "adaptive": {
+      "options": {
+        "baseURL": "https://www.llmadaptive.uk/api/v1",
+        "apiKey": "your-adaptive-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Method 3: Environment Variable**
+```json
+{
+  "provider": {
+    "adaptive": {
+      "options": {
+        "baseURL": "https://www.llmadaptive.uk/api/v1",
+        "apiKey": "{env:ADAPTIVE_API_KEY}"
+      }
+    }
+  }
+}
+```
+</Accordion>
+</AccordionGroup>
+
+## Usage Examples
+
+### Basic Coding Tasks
+
+```text
+Ask OpenCode with Adaptive routing:
+"Create a React component for user authentication with TypeScript"
+"Fix the bug in this Python function and add error handling"
+"Optimize this SQL query for better performance"
+```
+
+### Advanced Features
+
+<CodeGroup>
+```text Code Generation
+"Generate a REST API endpoint with proper validation and error handling using Express.js"
+```
+
+```text Code Review
+"Review this code for security vulnerabilities and suggest improvements"
+```
+
+```text Refactoring
+"Refactor this class to follow SOLID principles and improve testability"
+```
+
+```text Documentation
+"Generate comprehensive JSDoc comments for this TypeScript module"
+```
+</CodeGroup>
+
+## Verification
+
+Test your setup:
+
+<Steps>
+  <Step title="Check Provider Configuration" icon="list">
+    ```bash
+    opencode auth list
+    ```
+    Verify "adaptive" appears in the credentials list.
+  </Step>
+  <Step title="Test Model Selection" icon="robot">
+    Run `/models` in OpenCode and confirm Adaptive models appear in the list.
+  </Step>
+  <Step title="Test API Connection" icon="wifi">
+    Ask OpenCode a simple question and verify you receive a response.
+  </Step>
+  <Step title="Monitor Usage" icon="chart-line">
+    Check your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard) to see API usage and cost savings.
+  </Step>
+</Steps>
+
+## Benefits
+
+<CardGroup cols={2}>
+  <Card title="60-80% Cost Savings" icon="dollar-sign">
+    Intelligent routing automatically selects the most cost-effective model for each coding task
+  </Card>
+  <Card title="Same OpenCode Experience" icon="code">
+    All OpenCode features work exactly the same with enhanced performance and reliability
+  </Card>
+  <Card title="Multiple Model Access" icon="network-wired">
+    Access Claude, GPT, Gemini, and more through a single API with automatic optimization
+  </Card>
+  <Card title="Smart Fallbacks" icon="shield">
+    Circuit breaker protection with automatic provider fallbacks for uninterrupted coding
+  </Card>
+</CardGroup>
+
+## Cost Savings Examples
+
+<Tabs>
+<Tab title="Solo Developer">
+**Daily Coding**: 200 AI requests
+- **Direct Provider APIs**: $8-12/day
+- **With Adaptive**: $2-4/day
+- **Monthly Savings**: $180-240
+</Tab>
+
+<Tab title="Development Team">
+**Team of 5**: 1,000 requests/day
+- **Direct Provider APIs**: $40-60/day
+- **With Adaptive**: $12-20/day
+- **Monthly Savings**: $840-1,200
+</Tab>
+
+<Tab title="Enterprise">
+**Large Team**: 5,000 requests/day
+- **Direct Provider APIs**: $200-300/day
+- **With Adaptive**: $60-100/day
+- **Monthly Savings**: $4,200-6,000
+</Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Provider Not Appearing" icon="eye-slash">
+**Problem**: Adaptive doesn't appear in `/models` list
+
+**Solutions**:
+- Check `opencode.json` syntax is valid JSON
+- Ensure provider ID "adaptive" matches between `auth login` and config file
+- Verify `npm` field is set to `@ai-sdk/openai-compatible`
+- Run `opencode auth list` to confirm credentials were added
+</Accordion>
+
+<Accordion title="Authentication Errors" icon="key">
+**Problem**: API key authentication failing
+
+**Solutions**:
+- Regenerate API key from [Adaptive dashboard](https://www.llmadaptive.uk/dashboard)
+- Check for extra spaces or characters in the API key
+- Verify provider ID matches exactly between auth and config
+- Try re-running `opencode auth login` and selecting "Other"
+</Accordion>
+
+<Accordion title="Connection Issues" icon="wifi-off">
+**Problem**: Cannot connect to Adaptive API
+
+**Solutions**:
+- Verify `baseURL` is exactly: `https://www.llmadaptive.uk/api/v1`
+- Check network connectivity and firewall settings
+- Test API connection manually:
+```bash
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"","messages":[{"role":"user","content":"Hello"}]}'
+```
+</Accordion>
+
+<Accordion title="Model Selection Issues" icon="robot">
+**Problem**: Specific models not working as expected
+
+**Solutions**:
+- Use empty string `""` for intelligent routing (recommended)
+- Check model names match exactly (no provider prefixes)
+- Visit [dashboard](https://www.llmadaptive.uk/dashboard) for current model availability
+- Ensure model is supported by checking documentation
+</Accordion>
+</AccordionGroup>
+
+## Reset Configuration
+
+<CodeGroup>
+```bash Reset Auth
+opencode auth remove adaptive
+opencode auth login
+# Re-add adaptive provider
+```
+
+```bash Reset Config
+# Edit or recreate opencode.json
+{
+  "provider": {
+    "adaptive": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Adaptive",
+      "options": {
+        "baseURL": "https://www.llmadaptive.uk/api/v1"
+      },
+      "models": {
+        "": {"name": "Intelligent Routing"}
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Monitor Usage & Savings"
+    href="https://www.llmadaptive.uk/dashboard"
+    icon="chart-line"
+    cta="View Dashboard"
+  >
+    Track your cost savings and usage analytics in real-time
+  </Card>
+  <Card
+    title="API Documentation"
+    href="/api-reference/chat-completions"
+    icon="book"
+    cta="View API Docs"
+  >
+    Learn about Adaptive's API capabilities and advanced features
+  </Card>
+  <Card
+    title="Other IDE Integrations"
+    href="/developer-tools/claude-code"
+    icon="code"
+    cta="Explore Tools"
+  >
+    Set up Adaptive with Claude Code, Cline, and other AI development tools
+  </Card>
+  <Card
+    title="Get Support"
+    href="/troubleshooting"
+    icon="life-ring"
+    cta="Get Help"
+  >
+    Troubleshooting guides and support resources
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Was this page helpful?** Contact us at [info@llmadaptive.uk](mailto:info@llmadaptive.uk) for feedback or assistance with your OpenCode integration.
+</Note>
