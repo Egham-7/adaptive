@@ -1,0 +1,445 @@
+---
+title: "Roo Code Integration"
+description: "Configure Roo Code VS Code extension with Adaptive's intelligent LLM routing for 60-80% cost savings and automated project analysis"
+icon: "rocket"
+---
+
+Configure Roo Code to use Adaptive's intelligent routing for 60-80% cost savings while maintaining the same AI-assisted development experience with advanced project analysis capabilities.
+
+<Tip>
+**Save 60-80% on AI development costs** with intelligent model routing. Roo Code's project analysis features work seamlessly with Adaptive's API.
+</Tip>
+
+Roo Code is an intelligent VS Code extension that assists with project analysis, code generation, refactoring, and automated development tasks directly in your editor.
+
+## Get Your Adaptive API Key
+
+Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
+
+## Setup Guide
+
+### Step 1: Installing the Roo Code Extension
+
+<Steps>
+  <Step title="Open Extensions Marketplace" icon="puzzle-piece">
+    1. Launch VS Code
+    2. Click the Extensions Marketplace icon on the left sidebar
+    3. Enter "Roo Code" in the search bar
+    4. Locate the official Roo Code extension
+  </Step>
+  <Step title="Install the Extension" icon="download">
+    1. Click the **Install** button to begin installation
+    2. After installation, select **"Trust the Author"** when prompted
+    3. The Roo Code icon will appear in your VS Code sidebar
+  </Step>
+</Steps>
+
+### Step 2: Configuring API Settings
+
+<Steps>
+  <Step title="Open Roo Code Configuration" icon="gear">
+    Click the Roo Code icon in the sidebar to open the configuration panel.
+  </Step>
+  <Step title="Enter Configuration Details" icon="key">
+    Fill in the configuration with the following settings:
+
+    <CodeGroup>
+    ```text Configuration Settings
+    API Provider: OpenAI Compatible
+    OpenAI Base URL: https://www.llmadaptive.uk/api/v1
+    API Key: your-adaptive-api-key-here
+    Model Name: leave empty for intelligent routing (recommended)
+    ```
+
+    ```json Manual Configuration
+    {
+      "apiProvider": "openai-compatible",
+      "baseUrl": "https://www.llmadaptive.uk/api/v1",
+      "apiKey": "your-adaptive-api-key-here",
+      "modelName": ""
+    }
+    ```
+    </CodeGroup>
+  </Step>
+</Steps>
+
+### Step 3: Permission Setup and Usage
+
+<Steps>
+  <Step title="Configure Permissions" icon="shield-check">
+    Select the permissions you wish to enable based on your needs:
+
+    - **File read/write operations** - Allow Roo Code to analyze and modify project files
+    - **Auto-approve execution** - Enable automatic execution of safe operations
+    - **Project access permissions** - Grant access to project structure and dependencies
+  </Step>
+  <Step title="Start Using Roo Code" icon="play">
+    Enter your requirements in the input box. Roo Code will assist with various development tasks using Adaptive's intelligent routing.
+  </Step>
+</Steps>
+
+## Configuration Details
+
+<AccordionGroup>
+<Accordion title="API Configuration Options" icon="gear">
+**Required Settings:**
+- **API Provider**: Must be "OpenAI Compatible"
+- **OpenAI Base URL**: `https://www.llmadaptive.uk/api/v1`
+- **API Key**: Your Adaptive API key from the dashboard
+
+**Model Selection:**
+- **Intelligent Routing**: Leave model name empty `""` (recommended)
+- **Specific Models**: Use standard model names like `claude-3-5-sonnet-20241022`
+
+**Advanced Options:**
+- **Temperature**: 0.1-0.7 (lower for more deterministic analysis)
+- **Max Tokens**: 4096-8192 (adjust based on project complexity)
+- **Context Window**: Utilize full context for comprehensive project understanding
+</Accordion>
+
+<Accordion title="Permission Settings" icon="shield">
+**File Operations:**
+- **Read Access**: Allows Roo Code to analyze your project structure and files
+- **Write Access**: Enables code generation, refactoring, and file modifications
+- **Directory Traversal**: Permits exploration of the entire project hierarchy
+
+**Execution Permissions:**
+- **Auto-approve Safe Operations**: Automatically executes read operations and safe analyses
+- **Manual Approval**: Requires confirmation for file modifications and complex operations
+- **Restricted Mode**: Limits to read-only analysis and suggestions
+
+**Project Access:**
+- **Dependency Analysis**: Access to package.json, requirements.txt, etc.
+- **Configuration Files**: Read access to build configs, environment files
+- **Version Control**: Git integration for change tracking and history analysis
+</Accordion>
+
+<Accordion title="Model Options" icon="robot">
+**Intelligent Routing (Recommended):**
+- Model Name: `""` (empty string)
+- Automatically selects optimal model for each task type
+- Provides best cost/performance balance
+
+**Available Models for Override:**
+- `claude-3-5-sonnet-20241022` - Best for complex project analysis and refactoring
+- `claude-3-5-haiku-20241022` - Fast responses for simple code generation
+- `gpt-4o` - OpenAI's flagship model for comprehensive analysis
+- `gpt-4o-mini` - Cost-effective for basic tasks and quick fixes
+- `gemini-pro` - Google's model for multi-modal analysis
+
+**Task-Specific Recommendations:**
+- **Project Analysis**: Use intelligent routing for optimal model selection
+- **Code Generation**: Claude 3.5 Sonnet for complex logic
+- **Quick Fixes**: Claude 3.5 Haiku for speed
+- **Documentation**: Any model works well with intelligent routing
+</Accordion>
+</AccordionGroup>
+
+## Core Features
+
+Roo Code provides comprehensive development assistance:
+
+<CardGroup cols={2}>
+  <Card title="Project Analysis" icon="search">
+    Analyze project structure, dependencies, and architecture patterns
+  </Card>
+  <Card title="Code Generation" icon="code">
+    Generate functions, classes, and entire modules based on specifications
+  </Card>
+  <Card title="Refactoring" icon="arrows-rotate">
+    Intelligent code refactoring with pattern recognition and optimization
+  </Card>
+  <Card title="Documentation" icon="book">
+    Automatic generation of comments, docstrings, and project documentation
+  </Card>
+</CardGroup>
+
+### Example Usage
+
+<CodeGroup>
+```text Project Analysis
+"Summarize the current project structure and identify the main components"
+```
+
+```text Code Generation
+"Create a new authentication service following the existing patterns in this project"
+```
+
+```text Refactoring
+"Refactor the user management module to improve performance and maintainability"
+```
+
+```text Documentation
+"Generate comprehensive documentation for the API endpoints in this project"
+```
+
+```text Debugging
+"Analyze the recent error logs and suggest fixes for the most common issues"
+```
+
+```text Optimization
+"Review the database queries in this project and suggest performance improvements"
+```
+</CodeGroup>
+
+## Advanced Capabilities
+
+### Project Structure Analysis
+
+```text
+Roo Code can analyze and provide insights on:
+- "Map out the data flow between components"
+- "Identify potential security vulnerabilities in the codebase"
+- "Suggest architectural improvements for better scalability"
+- "Find duplicate code patterns and recommend consolidation"
+```
+
+### Automated Development Tasks
+
+```text
+With proper permissions, Roo Code can:
+- "Update all import statements to use the new module structure"
+- "Add TypeScript types to all untyped functions"
+- "Generate unit tests for the user service module"
+- "Create API documentation from endpoint definitions"
+```
+
+### Code Quality Assessment
+
+```text
+Roo Code provides comprehensive quality analysis:
+- "Review code quality and suggest improvements"
+- "Identify performance bottlenecks in the application"
+- "Check for accessibility issues in React components"
+- "Validate security best practices across the codebase"
+```
+
+## Verification
+
+Test your setup is working correctly:
+
+<Steps>
+  <Step title="Basic Connection Test" icon="wifi">
+    1. Open a project in VS Code with Roo Code
+    2. Start a new conversation
+    3. Ask: "Analyze the structure of this project"
+    4. Verify you receive a comprehensive project analysis
+  </Step>
+  <Step title="Permission Test" icon="shield">
+    Test the permissions you've configured:
+    ```text
+    "List all the files in the src directory and their purposes"
+    "Show me the dependencies defined in package.json"
+    ```
+  </Step>
+  <Step title="Code Generation Test" icon="code">
+    Ask Roo Code to create something specific:
+    ```text
+    "Create a utility function for handling API responses with proper error handling"
+    ```
+  </Step>
+  <Step title="Monitor Usage" icon="chart-line">
+    Check your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard) to see API usage and cost savings.
+  </Step>
+</Steps>
+
+## Benefits with Adaptive
+
+<CardGroup cols={2}>
+  <Card title="60-80% Cost Savings" icon="dollar-sign">
+    Intelligent routing automatically selects the most cost-effective model for each development task
+  </Card>
+  <Card title="Enhanced Project Intelligence" icon="brain">
+    All Roo Code features work seamlessly with Adaptive's smart model selection
+  </Card>
+  <Card title="Automated Optimization" icon="gauge">
+    Complex analysis uses powerful models, simple tasks use efficient models automatically
+  </Card>
+  <Card title="Reliable Performance" icon="shield">
+    Circuit breaker protection with automatic provider fallbacks for uninterrupted development
+  </Card>
+</CardGroup>
+
+## Cost Savings Examples
+
+<Tabs>
+<Tab title="Solo Developer">
+**Daily Usage**: 250 AI requests with project analysis
+- **Direct Provider APIs**: $10-15/day
+- **With Adaptive**: $3-5/day
+- **Monthly Savings**: $210-300
+</Tab>
+
+<Tab title="Development Team">
+**Team of 5**: 1,250 requests/day
+- **Direct Provider APIs**: $50-75/day
+- **With Adaptive**: $15-25/day
+- **Monthly Savings**: $1,050-1,500
+</Tab>
+
+<Tab title="Enterprise">
+**Large Team**: 6,250 requests/day
+- **Direct Provider APIs**: $250-375/day
+- **With Adaptive**: $75-125/day
+- **Monthly Savings**: $5,250-7,500
+</Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Connection Issues" icon="wifi-off">
+**Problem**: Roo Code can't connect to Adaptive
+
+**Solutions**:
+- Verify your API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
+- Check that Base URL is exactly: `https://www.llmadaptive.uk/api/v1`
+- Restart VS Code after configuration changes
+- Test API connection manually:
+```bash
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 100
+  }'
+```
+</Accordion>
+
+<Accordion title="Permission Issues" icon="shield">
+**Problem**: Roo Code can't access files or project structure
+
+**Solutions**:
+- **Check VS Code workspace trust**: Ensure the workspace is trusted
+- **Review permission settings**: Enable file read/write permissions in Roo Code settings
+- **Verify project access**: Grant project access permissions for full functionality
+- **Check file permissions**: Ensure VS Code has permission to access project files
+- **Restart extension**: Disable and re-enable Roo Code extension
+
+**Permission Troubleshooting**:
+```bash
+# Check if VS Code can access the project directory
+ls -la /path/to/your/project
+
+# Verify file permissions
+stat /path/to/your/project/package.json
+```
+</Accordion>
+
+<Accordion title="Authentication Errors" icon="key">
+**Problem**: Invalid API key errors
+
+**Solutions**:
+- Regenerate your API key from the Adaptive dashboard
+- Ensure you're using your Adaptive API key, not a direct provider key
+- Check for extra spaces or characters in the API key field
+- Verify the key format matches: `ada-...` (starts with ada-)
+</Accordion>
+
+<Accordion title="Performance Issues" icon="gauge">
+**Problem**: Slow responses or timeouts during project analysis
+
+**Solutions**:
+- **Use intelligent routing**: Leave model name empty for optimal performance
+- **Reduce project scope**: Focus analysis on specific directories or files
+- **Check project size**: Very large projects may require longer processing time
+- **Try faster models**: Use `claude-3-5-haiku-20241022` for quicker responses
+- **Optimize permissions**: Only enable necessary permissions to reduce overhead
+
+**Performance Tips**:
+- **Large projects**: Break analysis into smaller chunks
+- **Complex analysis**: Allow extra time for comprehensive project reviews
+- **Concurrent operations**: Avoid running multiple heavy analyses simultaneously
+</Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Optimal Configuration
+
+<CodeGroup>
+```json Recommended Settings
+{
+  "apiProvider": "openai-compatible",
+  "baseUrl": "https://www.llmadaptive.uk/api/v1",
+  "apiKey": "your-adaptive-api-key",
+  "modelName": "",
+  "permissions": {
+    "fileRead": true,
+    "fileWrite": true,
+    "projectAccess": true,
+    "autoApprove": false
+  }
+}
+```
+
+```json Performance Optimized
+{
+  "apiProvider": "openai-compatible",
+  "baseUrl": "https://www.llmadaptive.uk/api/v1",
+  "apiKey": "your-adaptive-api-key",
+  "modelName": "claude-3-5-haiku-20241022",
+  "maxTokens": 4096,
+  "temperature": 0.1
+}
+```
+</CodeGroup>
+
+### Security Considerations
+
+- **API Key Security**: Store API keys securely, never commit to version control
+- **Permission Granularity**: Only grant necessary permissions for your use case
+- **Project Isolation**: Use separate configurations for different projects
+- **Regular Key Rotation**: Rotate API keys periodically for enhanced security
+
+### Workflow Integration
+
+1. **Start with Project Analysis**: Begin new projects with comprehensive structure analysis
+2. **Iterative Development**: Use Roo Code for continuous code improvement and refactoring
+3. **Documentation Maintenance**: Regularly update documentation using Roo Code's capabilities
+4. **Quality Assurance**: Leverage analysis features for code quality and security reviews
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Monitor Usage & Savings"
+    href="https://www.llmadaptive.uk/dashboard"
+    icon="chart-line"
+    cta="View Dashboard"
+  >
+    Track your cost savings and usage analytics in real-time
+  </Card>
+  <Card
+    title="API Documentation"
+    href="/api-reference/chat-completions"
+    icon="book"
+    cta="View API Docs"
+  >
+    Learn about Adaptive's API capabilities and advanced features
+  </Card>
+  <Card
+    title="Other IDE Integrations"
+    href="/developer-tools/claude-code"
+    icon="code"
+    cta="Explore Tools"
+  >
+    Set up Adaptive with Claude Code, Cline, and other AI development tools
+  </Card>
+  <Card
+    title="Get Support"
+    href="/troubleshooting"
+    icon="life-ring"
+    cta="Get Help"
+  >
+    Troubleshooting guides and support resources
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Was this page helpful?** Contact us at [info@llmadaptive.uk](mailto:info@llmadaptive.uk) for feedback or assistance with your Roo Code integration.
+</Note>

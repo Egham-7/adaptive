@@ -1,0 +1,585 @@
+---
+title: "Grok CLI Integration"
+description: "Configure Grok CLI with Adaptive's intelligent LLM routing for 60-80% cost savings and enhanced AI terminal capabilities"
+icon: "terminal"
+---
+
+Configure Grok CLI to use Adaptive's intelligent routing for 60-80% cost savings while maintaining all the powerful AI terminal capabilities.
+
+<Tip>
+**Save 60-80% on AI development costs** with intelligent model routing. Grok CLI's conversational AI and tool capabilities work seamlessly with Adaptive's API.
+</Tip>
+
+Grok CLI is a conversational AI terminal tool with intelligent text editor capabilities, bash integration, and MCP tool support for extended functionality.
+
+## Get Your Adaptive API Key
+
+Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
+
+## Setup Guide
+
+### Method 1: Automated Setup (Recommended)
+
+Our installer automatically handles Bun/Node.js installation and Grok CLI configuration:
+
+<Steps>
+  <Step title="Run Installer" icon="download">
+    ```bash
+    curl -o grok-cli.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh
+    chmod +x grok-cli.sh
+    ./grok-cli.sh
+    ```
+  </Step>
+  <Step title="Launch Grok CLI" icon="play">
+    ```bash
+    grok
+    ```
+    Start the conversational AI assistant with Adaptive routing.
+  </Step>
+  <Step title="Test Integration" icon="check">
+    Try a simple command to verify setup:
+    ```bash
+    grok -p "hello, show me the current directory"
+    ```
+  </Step>
+</Steps>
+
+### Method 2: Environment Variables
+
+<Steps>
+  <Step title="Install Grok CLI" icon="download">
+    ```bash
+    # With Bun (recommended)
+    bun add -g @vibe-kit/grok-cli
+
+    # Or with npm
+    npm install -g @vibe-kit/grok-cli
+    ```
+  </Step>
+  <Step title="Configure Environment" icon="gear">
+    Set up environment variables for Adaptive integration:
+    ```bash
+    export GROK_API_KEY=your-adaptive-api-key
+    export GROK_BASE_URL=https://www.llmadaptive.uk/api/v1
+    export GROK_MODEL=""  # Empty for intelligent routing
+    ```
+  </Step>
+  <Step title="Start Using" icon="play">
+    ```bash
+    grok  # Interactive mode
+    grok -p "analyze this project structure"  # Headless mode
+    ```
+  </Step>
+</Steps>
+
+### Method 3: Configuration File
+
+Create a user settings file for persistent configuration:
+
+<CodeGroup>
+```json ~/.grok/user-settings.json
+{
+  "apiKey": "your-adaptive-api-key",
+  "baseURL": "https://www.llmadaptive.uk/api/v1",
+  "defaultModel": "",
+  "models": [
+    "anthropic:claude-sonnet-4-20250514",
+    "anthropic:claude-3-5-haiku-20241022",
+    "anthropic:claude-opus-4-1-20250805",
+    "openai:gpt-4o",
+    "openai:gpt-4o-mini",
+    "google:gemini-2.5-pro"
+  ]
+}
+```
+
+```bash Create Config Directory
+mkdir -p ~/.grok
+cat > ~/.grok/user-settings.json << 'EOF'
+{
+  "apiKey": "your-adaptive-api-key",
+  "baseURL": "https://www.llmadaptive.uk/api/v1",
+  "defaultModel": "",
+  "models": ["anthropic:claude-sonnet-4-20250514","anthropic:claude-opus-4-1-20250805","openai:gpt-4o","openai:gpt-4o-mini"]
+}
+EOF
+```
+
+```bash CI/Automation Setup
+export ADAPTIVE_API_KEY='your-api-key'
+export ADAPTIVE_MODEL=''  # Intelligent routing
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh | bash
+```
+</CodeGroup>
+
+## Configuration Options
+
+<AccordionGroup>
+<Accordion title="API Configuration" icon="gear">
+**Required Settings:**
+- **API Key**: Your Adaptive API key from the dashboard
+- **Base URL**: `https://www.llmadaptive.uk/api/v1`
+
+**Model Selection:**
+- **Intelligent Routing**: Leave model empty `""` (recommended)
+- **Specific Models**: Use provider:model format like `anthropic:claude-sonnet-4-20250514`
+
+**Configuration Priority:**
+1. Command line flags (`--api-key`, `--base-url`, `--model`)
+2. Environment variables (`GROK_API_KEY`, `GROK_BASE_URL`, `GROK_MODEL`)
+3. User settings file (`~/.grok/user-settings.json`)
+4. Project settings file (`.grok/settings.json`)
+</Accordion>
+
+<Accordion title="Model Options" icon="robot">
+**Intelligent Routing (Recommended):**
+```json
+{
+  "defaultModel": "",
+  "models": [
+    "anthropic:claude-sonnet-4-20250514",
+    "anthropic:claude-3-5-haiku-20241022",
+    "anthropic:claude-opus-4-1-20250805",
+    "openai:gpt-4o",
+    "openai:gpt-4o-mini"
+  ]
+}
+```
+
+**Available Models:**
+- `anthropic:claude-sonnet-4-20250514` - High intelligence with efficiency, advanced reasoning
+- `anthropic:claude-3-5-haiku-20241022` - Fast responses for simple tasks
+- `anthropic:claude-opus-4-1-20250805` - Most advanced model with exceptional reasoning
+- `openai:gpt-4o` - OpenAI's flagship model
+- `openai:gpt-4o-mini` - Cost-effective for basic operations
+- `google:gemini-2.5-pro` - Google's high-performance model
+
+**Model Override Examples:**
+```bash
+grok --model anthropic:claude-sonnet-4-20250514  # Specific model
+grok --model ""  # Intelligent routing
+export GROK_MODEL=openai:gpt-4o  # Environment variable
+```
+</Accordion>
+
+<Accordion title="Advanced Features" icon="tools">
+**Tool Execution Control:**
+```bash
+grok --max-tool-rounds 10  # Limit for simple tasks
+grok --max-tool-rounds 100  # Default for complex operations
+grok --max-tool-rounds 500  # Extended for comprehensive tasks
+```
+
+**Working Directory:**
+```bash
+grok -d /path/to/project  # Set working directory
+grok --directory ~/workspace/app  # Alternative syntax
+```
+
+**Headless Mode:**
+```bash
+grok -p "show package.json"  # Single command
+grok --prompt "create React component" --directory ~/project
+```
+
+**Custom Instructions:**
+Create `.grok/GROK.md` in your project for custom behavior:
+```markdown
+# Custom Instructions for Grok CLI
+
+Always use TypeScript for new code files.
+Follow the existing project patterns and conventions.
+Add comprehensive JSDoc comments for functions.
+Prefer functional components with hooks for React.
+```
+</Accordion>
+</AccordionGroup>
+
+## Core Features
+
+Grok CLI provides comprehensive AI terminal capabilities:
+
+<CardGroup cols={2}>
+  <Card title="Conversational AI" icon="message">
+    Natural language interface for development tasks and code assistance
+  </Card>
+  <Card title="Smart File Operations" icon="file">
+    AI automatically reads, creates, and edits files based on context
+  </Card>
+  <Card title="Bash Integration" icon="terminal">
+    Execute shell commands through natural conversation
+  </Card>
+  <Card title="Tool Automation" icon="wrench">
+    AI intelligently selects and uses the right tools for each task
+  </Card>
+</CardGroup>
+
+## Usage Examples
+
+### Interactive Mode
+
+<CodeGroup>
+```bash Basic Usage
+grok
+# Starts interactive conversational AI
+
+# Example interactions:
+> "show me the package.json file"
+> "create a new React component for user authentication"
+> "run the tests and analyze any failures"
+> "refactor the utils/api.js file to use async/await"
+```
+
+```bash With Directory
+grok -d /path/to/project
+# Sets working directory for project-specific context
+
+# Example interactions:
+> "analyze the project structure"
+> "find all TODO comments in the codebase"
+> "update all dependencies to latest versions"
+```
+
+```bash With Model Override
+grok --model claude-3-5-sonnet-20241022
+# Uses specific model instead of intelligent routing
+
+# Better for:
+# - Complex architectural analysis
+# - Large-scale refactoring
+# - Comprehensive code reviews
+```
+</CodeGroup>
+
+### Headless Mode
+
+Perfect for automation and scripting:
+
+<CodeGroup>
+```bash Quick Tasks
+grok -p "show current directory contents"
+grok -p "create a hello world function in utils.js"
+grok -p "run npm test and summarize results"
+```
+
+```bash Project Analysis
+grok -p "analyze package.json and suggest optimizations" -d ~/project
+grok -p "find potential security issues in the codebase" -d ~/app
+grok -p "generate README.md based on project structure" -d ~/repo
+```
+
+```bash CI/CD Integration
+# In GitHub Actions or other CI systems
+grok -p "analyze test failures and suggest fixes" --max-tool-rounds 20
+grok -p "validate code quality and generate report" --directory $GITHUB_WORKSPACE
+```
+</CodeGroup>
+
+### Advanced Features
+
+<CodeGroup>
+```bash MCP Integration
+# Add Linear MCP server for project management
+grok mcp add linear --transport sse --url "https://mcp.linear.app/sse"
+
+# Use in conversation:
+> "create a Linear issue for the authentication bug"
+> "update the user story status to in progress"
+```
+
+```bash Tool Control
+# Limit tool usage for faster responses
+grok --max-tool-rounds 5 -p "quick syntax check"
+
+# Extended tool usage for complex tasks
+grok --max-tool-rounds 200 -p "comprehensive code refactoring"
+```
+
+```bash Model Selection
+# Use faster model for simple tasks
+grok --model anthropic:claude-3-5-haiku-20241022 -p "fix typo in README"
+
+# Use powerful model for complex analysis
+grok --model anthropic:claude-sonnet-4-20250514 -p "architect new microservice"
+```
+</CodeGroup>
+
+## Verification
+
+Test your setup is working correctly:
+
+<Steps>
+  <Step title="Basic Connection Test" icon="wifi">
+    ```bash
+    grok --version
+    grok -p "hello, can you help me code?"
+    ```
+    Verify Grok CLI is installed and can connect to Adaptive.
+  </Step>
+  <Step title="File Operation Test" icon="file">
+    ```bash
+    grok -p "create a simple test.js file with a hello function"
+    ```
+    Test AI's ability to create and manipulate files.
+  </Step>
+  <Step title="Tool Integration Test" icon="tools">
+    ```bash
+    grok -p "show me the current directory and list all files"
+    ```
+    Verify bash integration and tool automation.
+  </Step>
+  <Step title="Monitor Usage" icon="chart-line">
+    Check your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard) to see API usage and cost savings.
+  </Step>
+</Steps>
+
+## Benefits with Adaptive
+
+<CardGroup cols={2}>
+  <Card title="60-80% Cost Savings" icon="dollar-sign">
+    Intelligent routing automatically selects the most cost-effective model for each terminal task
+  </Card>
+  <Card title="Enhanced AI Terminal" icon="terminal">
+    All Grok CLI features work seamlessly with improved performance and reliability
+  </Card>
+  <Card title="Smart Tool Selection" icon="brain">
+    Complex tasks use powerful models, simple operations use efficient models automatically
+  </Card>
+  <Card title="Reliable Performance" icon="shield">
+    Circuit breaker protection with automatic provider fallbacks for uninterrupted development
+  </Card>
+</CardGroup>
+
+## Cost Savings Examples
+
+<Tabs>
+<Tab title="Solo Developer">
+**Daily Usage**: 150 terminal AI requests
+- **Direct Provider APIs**: $6-9/day
+- **With Adaptive**: $2-3/day
+- **Monthly Savings**: $120-180
+</Tab>
+
+<Tab title="Development Team">
+**Team of 5**: 750 requests/day
+- **Direct Provider APIs**: $30-45/day
+- **With Adaptive**: $9-15/day
+- **Monthly Savings**: $630-900
+</Tab>
+
+<Tab title="Enterprise">
+**Large Team**: 3,750 requests/day
+- **Direct Provider APIs**: $150-225/day
+- **With Adaptive**: $45-75/day
+- **Monthly Savings**: $3,150-4,500
+</Tab>
+</Tabs>
+
+## Troubleshooting
+
+<AccordionGroup>
+<Accordion title="Installation Issues" icon="download">
+**Problem**: Grok CLI installation fails
+
+**Solutions**:
+- **Runtime missing**: Install Bun (recommended) or Node.js 18+
+- **Permission errors**: Use `sudo` for global installation if needed
+- **Network issues**: Check internet connection and firewall settings
+
+**Installation Commands**:
+```bash
+# Install Bun (recommended)
+curl -fsSL https://bun.sh/install | bash
+
+# Install with Bun
+bun add -g @vibe-kit/grok-cli
+
+# Or install with npm
+npm install -g @vibe-kit/grok-cli
+```
+</Accordion>
+
+<Accordion title="Connection Issues" icon="wifi-off">
+**Problem**: Cannot connect to Adaptive API
+
+**Solutions**:
+- Verify API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
+- Check base URL is exactly: `https://www.llmadaptive.uk/api/v1`
+- Test API connection manually:
+```bash
+curl https://www.llmadaptive.uk/api/v1/chat/completions \
+  -H "Authorization: Bearer your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "",
+    "messages": [{"role": "user", "content": "Hello"}],
+    "max_tokens": 100
+  }'
+```
+</Accordion>
+
+<Accordion title="Configuration Issues" icon="gear">
+**Problem**: Settings not being recognized
+
+**Solutions**:
+- **Check file location**: Ensure `~/.grok/user-settings.json` exists
+- **Validate JSON**: Use `cat ~/.grok/user-settings.json` to check syntax
+- **Environment variables**: Use `echo $GROK_API_KEY` to verify env vars
+- **Command precedence**: Remember command flags override all other settings
+
+**Debug Commands**:
+```bash
+# Check configuration
+cat ~/.grok/user-settings.json
+
+# Test environment variables
+echo $GROK_API_KEY
+echo $GROK_BASE_URL
+echo $GROK_MODEL
+
+# Override with command flags
+grok --api-key your-key --base-url https://www.llmadaptive.uk/api/v1
+```
+</Accordion>
+
+<Accordion title="Performance Issues" icon="gauge">
+**Problem**: Slow responses or timeouts
+
+**Solutions**:
+- **Use intelligent routing**: Leave model empty for optimal performance
+- **Limit tool rounds**: Use `--max-tool-rounds 10` for simple tasks
+- **Try faster models**: Use `claude-3-5-haiku-20241022` for quick responses
+- **Check project size**: Large projects may require more processing time
+
+**Performance Tips**:
+```bash
+# Fast responses for simple tasks
+grok --model anthropic:claude-3-5-haiku-20241022 --max-tool-rounds 5
+
+# Optimize for specific use cases
+grok -p "quick question" --max-tool-rounds 3
+grok -p "complex analysis" --max-tool-rounds 100
+```
+</Accordion>
+</AccordionGroup>
+
+## Advanced Configuration
+
+### Project-Specific Settings
+
+Create `.grok/settings.json` in your project for team-wide consistency:
+
+```json
+{
+  "model": "anthropic:claude-sonnet-4-20250514",
+  "mcpServers": {
+    "linear": {
+      "name": "linear",
+      "transport": "sse",
+      "url": "https://mcp.linear.app/sse"
+    },
+    "filesystem": {
+      "name": "filesystem",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "."]
+    }
+  }
+}
+```
+
+### MCP Server Management
+
+<CodeGroup>
+```bash Add MCP Servers
+# Add Linear integration
+grok mcp add linear --transport sse --url "https://mcp.linear.app/sse"
+
+# Add file system server
+grok mcp add fs --transport stdio --command "npx" --args "@modelcontextprotocol/server-filesystem" "."
+
+# Add with environment variables
+grok mcp add myserver --transport stdio --command "python" --args "server.py" --env "API_KEY=secret"
+```
+
+```bash Manage MCP Servers
+# List configured servers
+grok mcp list
+
+# Test server connection
+grok mcp test linear
+
+# Remove server
+grok mcp remove linear
+```
+</CodeGroup>
+
+### Automation Scripts
+
+<CodeGroup>
+```bash Development Workflow
+#!/bin/bash
+# dev-workflow.sh
+
+# Start with project analysis
+grok -p "analyze project structure and identify main components" -d $1
+
+# Check for issues
+grok -p "scan for potential bugs and security issues" -d $1 --max-tool-rounds 50
+
+# Generate documentation
+grok -p "update README.md with current project status" -d $1
+```
+
+```bash CI Integration
+# .github/workflows/ai-review.yml
+- name: AI Code Review
+  run: |
+    grok -p "review recent changes and suggest improvements" \
+      --directory $GITHUB_WORKSPACE \
+      --max-tool-rounds 30
+```
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Monitor Usage & Savings"
+    href="https://www.llmadaptive.uk/dashboard"
+    icon="chart-line"
+    cta="View Dashboard"
+  >
+    Track your cost savings and usage analytics in real-time
+  </Card>
+  <Card
+    title="API Documentation"
+    href="/api-reference/chat-completions"
+    icon="book"
+    cta="View API Docs"
+  >
+    Learn about Adaptive's API capabilities and advanced features
+  </Card>
+  <Card
+    title="Other AI Tools"
+    href="/developer-tools/claude-code"
+    icon="code"
+    cta="Explore Tools"
+  >
+    Set up Adaptive with Claude Code, Cline, and other AI development tools
+  </Card>
+  <Card
+    title="Get Support"
+    href="/troubleshooting"
+    icon="life-ring"
+    cta="Get Help"
+  >
+    Troubleshooting guides and support resources
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Was this page helpful?** Contact us at [info@llmadaptive.uk](mailto:info@llmadaptive.uk) for feedback or assistance with your Grok CLI integration.
+</Note>
