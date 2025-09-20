@@ -9,18 +9,54 @@ This directory contains installation and configuration scripts for integrating v
 | Tool | Script | Description |
 |------|--------|-------------|
 | Claude Code | `installers/claude-code.sh` | Configure Claude Code to use Adaptive API |
+| OpenAI Codex | `installers/codex.sh` | Configure OpenAI Codex to use Adaptive routing |
+| Grok CLI | `installers/grok-cli.sh` | Configure Grok CLI to use Adaptive routing |
+| OpenCode | `installers/opencode.sh` | Configure OpenCode to use Adaptive integration |
 
 ### Usage
 
 #### Claude Code Setup
 ```bash
 # Download and run
-curl -fsSL https://raw.githubusercontent.com/adaptive-ai/adaptive/main/scripts/installers/claude-code.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh | bash
 
 # Or download first
-curl -O https://raw.githubusercontent.com/adaptive-ai/adaptive/main/scripts/installers/claude-code.sh
+curl -O https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/claude-code.sh
 chmod +x claude-code.sh
 ./claude-code.sh
+```
+
+#### OpenAI Codex Setup
+```bash
+# Download and run
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh | bash
+
+# Or download first
+curl -O https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh
+chmod +x codex.sh
+./codex.sh
+```
+
+#### Grok CLI Setup
+```bash
+# Download and run
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh | bash
+
+# Or download first
+curl -O https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh
+chmod +x grok-cli.sh
+./grok-cli.sh
+```
+
+#### OpenCode Setup
+```bash
+# Download and run
+curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh | bash
+
+# Or download first
+curl -O https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh
+chmod +x opencode.sh
+./opencode.sh
 ```
 
 ## Script Structure
