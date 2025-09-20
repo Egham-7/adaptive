@@ -40,7 +40,7 @@ func NewRequestService() *RequestService {
 	}
 }
 
-// ParseChatCompletionRequest parses and validates the chat completion request body
+// ParseChatCompletionRequest parses the chat completion request body
 func (rs *RequestService) ParseChatCompletionRequest(c *fiber.Ctx) (*models.ChatCompletionRequest, error) {
 	requestID := rs.GetRequestID(c)
 
@@ -54,16 +54,6 @@ func (rs *RequestService) ParseChatCompletionRequest(c *fiber.Ctx) (*models.Chat
 	return &req, nil
 }
 
-// ValidateChatCompletionRequest validates the parsed chat completion request
-func (rs *RequestService) ValidateChatCompletionRequest(req *models.ChatCompletionRequest) error {
-	if len(req.Messages) == 0 {
-		return &ValidationError{Field: "messages", Message: "Messages cannot be empty"}
-	}
-
-	// Add more validation as needed
-	return nil
-}
-
 // ExtractPrompt extracts the prompt from the last user message
 func (rs *RequestService) ExtractPrompt(req *models.ChatCompletionRequest) string {
 	prompt, err := utils.FindLastUserMessage(req.Messages)
@@ -71,14 +61,4 @@ func (rs *RequestService) ExtractPrompt(req *models.ChatCompletionRequest) strin
 		return ""
 	}
 	return prompt
-}
-
-// ValidationError represents a request validation error
-type ValidationError struct {
-	Field   string
-	Message string
-}
-
-func (e *ValidationError) Error() string {
-	return e.Message
 }
