@@ -11,22 +11,6 @@ import (
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
 
-// redactSensitiveInfo creates a concise summary of the request without sensitive data
-func redactSensitiveInfo(req *models.ChatCompletionRequest) string {
-	messageCount := len(req.Messages)
-	modelName := string(req.Model)
-	if modelName == "" {
-		modelName = "unspecified"
-	}
-
-	var streamStr string
-	if req.Stream {
-		streamStr = ", streaming=true"
-	}
-
-	return fmt.Sprintf("model=%s, messages=%d%s", modelName, messageCount, streamStr)
-}
-
 // RequestService handles request parsing and validation for chat completions
 // It embeds the base request service and specializes it for completions
 type RequestService struct {
@@ -50,7 +34,6 @@ func (rs *RequestService) ParseChatCompletionRequest(c *fiber.Ctx) (*models.Chat
 		return nil, fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid request body: %v", err))
 	}
 
-	fiberlog.Debugf("[%s] Parsed request: %s", requestID, redactSensitiveInfo(&req))
 	return &req, nil
 }
 
