@@ -7,7 +7,6 @@ set -euo pipefail
 # ========================
 SCRIPT_NAME="OpenAI Codex Adaptive Installer"
 SCRIPT_VERSION="1.0.0"
-CODEX_PACKAGE="codex"
 CONFIG_DIR="$HOME/.codex"
 API_BASE_URL="https://www.llmadaptive.uk/api/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
@@ -110,8 +109,10 @@ install_codex_cargo() {
 
 install_codex_download() {
   log_info "Installing Codex via direct download..."
-  local platform=$(uname -s | tr '[:upper:]' '[:lower:]')
-  local arch=$(uname -m)
+  local platform
+  local arch
+  platform=$(uname -s | tr '[:upper:]' '[:lower:]')
+  arch=$(uname -m)
 
   # Normalize architecture names
   case "$arch" in
@@ -165,6 +166,73 @@ install_codex() {
       exit 1
       ;;
   esac
+}
+
+# ========================
+#     Configuration Management
+# ========================
+
+configure_adaptive_provider() {
+  local config_file="$1"
+  local model="$2"
+  local model_provider="$3"
+
+  # Check if config file exists and has content
+  if [ -f "$config_file" ] && [ -s "$config_file" ]; then
+    log_info "Existing Codex configuration found, adding Adaptive provider..."
+
+    # Check if adaptive provider already exists
+    if grep -q "\[model_providers\.adaptive\]" "$config_file" 2>/dev/null; then
+      log_info "Adaptive provider already configured, updating..."
+      # Remove existing adaptive provider section
+      sed -i '/\[model_providers\.adaptive\]/,/^$/d' "$config_file"
+      sed -i '/\[model_providers\.adaptive\]/,/^\[/{ /^\[/!d; }' "$config_file"
+    fi
+
+    # Add adaptive provider to existing config
+    {
+      echo ""
+      echo "[model_providers.adaptive]"
+      echo "name = \"Adaptive\""
+      echo "base_url = \"$API_BASE_URL\""
+      echo "env_key = \"ADAPTIVE_API_KEY\""
+      echo "wire_api = \"chat\""
+    } >> "$config_file"
+
+    # Update model_provider to adaptive if not already set to a specific provider
+    if ! grep -q "^model_provider" "$config_file" 2>/dev/null; then
+      # Add model_provider if it doesn't exist
+      sed -i "1i model_provider = \"$model_provider\"" "$config_file"
+    elif [ "$model_provider" = "adaptive" ]; then
+      # Only update to adaptive if that's what we want
+      sed -i "s/^model_provider = .*/model_provider = \"$model_provider\"/" "$config_file"
+    fi
+
+    # Update model if specified and not already set
+    if [ -n "$model" ] && ! grep -q "^model = " "$config_file" 2>/dev/null; then
+      sed -i "1i model = \"$model\"" "$config_file"
+    elif [ -n "$model" ] && [ "$model" != "$DEFAULT_MODEL" ]; then
+      sed -i "s/^model = .*/model = \"$model\"/" "$config_file"
+    fi
+
+    log_success "Adaptive provider added to existing configuration"
+  else
+    log_info "Creating new Codex configuration with Adaptive provider..."
+    # Create new config file
+    cat > "$config_file" << EOF
+# Adaptive LLM Routing Configuration
+model = "$model"
+model_provider = "$model_provider"
+approval_policy = "untrusted"
+
+[model_providers.adaptive]
+name = "Adaptive"
+base_url = "$API_BASE_URL"
+env_key = "ADAPTIVE_API_KEY"
+wire_api = "chat"
+EOF
+    log_success "New Codex configuration created with Adaptive provider"
+  fi
 }
 
 # ========================
@@ -265,7 +333,7 @@ configure_codex() {
 
     while [ $attempts -lt $max_attempts ]; do
       echo -n "🔑 Please enter your Adaptive API key: "
-      read -s api_key
+      read -rs api_key
       echo
 
       if [ -z "$api_key" ]; then
@@ -292,43 +360,31 @@ configure_codex() {
 
   ensure_dir_exists "$CONFIG_DIR"
 
-  # Create config.toml
+  # Configure Codex with Adaptive provider
   local config_file="$CONFIG_DIR/config.toml"
-  cat > "$config_file" << EOF
-# Adaptive LLM Routing Configuration
-model = "$model"
-model_provider = "$model_provider"
-approval_policy = "untrusted"
-
-[model_providers.adaptive]
-name = "Adaptive"
-base_url = "$API_BASE_URL"
-env_key = "ADAPTIVE_API_KEY"
-wire_api = "chat"
-
-# Optional: Network tuning for Adaptive
-request_max_retries = 4
-stream_max_retries = 10
-stream_idle_timeout_ms = 300000
-EOF
+  configure_adaptive_provider "$config_file" "$model" "$model_provider"
 
   # Set environment variable for the session
   export ADAPTIVE_API_KEY="$api_key"
 
   # Add to shell profiles for persistence
-  local env_line="export ADAPTIVE_API_KEY='$api_key'"
+  local env_line
+  env_line="export ADAPTIVE_API_KEY='$api_key'"
 
   # Detect current shell and add to appropriate profile
-  local current_shell=$(basename "${SHELL:-/bin/bash}")
+  local current_shell
   local profile_updated=false
+  current_shell=$(basename "${SHELL:-/bin/bash}")
 
   case "$current_shell" in
     zsh)
       if [ -f "$HOME/.zshrc" ]; then
         if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.zshrc" 2>/dev/null; then
-          echo "" >> "$HOME/.zshrc"
-          echo "# Adaptive API Key" >> "$HOME/.zshrc"
-          echo "$env_line" >> "$HOME/.zshrc"
+          {
+            echo ""
+            echo "# Adaptive API Key"
+            echo "$env_line"
+          } >> "$HOME/.zshrc"
           log_info "Added API key to ~/.zshrc"
           profile_updated=true
         fi
@@ -337,9 +393,11 @@ EOF
     bash)
       if [ -f "$HOME/.bashrc" ]; then
         if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.bashrc" 2>/dev/null; then
-          echo "" >> "$HOME/.bashrc"
-          echo "# Adaptive API Key" >> "$HOME/.bashrc"
-          echo "$env_line" >> "$HOME/.bashrc"
+          {
+            echo ""
+            echo "# Adaptive API Key"
+            echo "$env_line"
+          } >> "$HOME/.bashrc"
           log_info "Added API key to ~/.bashrc"
           profile_updated=true
         fi
@@ -352,9 +410,11 @@ EOF
       ensure_dir_exists "$fish_config_dir"
       if [ -f "$fish_config" ]; then
         if ! grep -q "ADAPTIVE_API_KEY" "$fish_config" 2>/dev/null; then
-          echo "" >> "$fish_config"
-          echo "# Adaptive API Key" >> "$fish_config"
-          echo "set -gx ADAPTIVE_API_KEY '$api_key'" >> "$fish_config"
+          {
+            echo ""
+            echo "# Adaptive API Key"
+            echo "set -gx ADAPTIVE_API_KEY '$api_key'"
+          } >> "$fish_config"
           log_info "Added API key to ~/.config/fish/config.fish"
           profile_updated=true
         fi
@@ -370,16 +430,20 @@ EOF
     # Try .profile (POSIX-compliant, works with most shells)
     if [ -f "$HOME/.profile" ]; then
       if ! grep -q "ADAPTIVE_API_KEY" "$HOME/.profile" 2>/dev/null; then
-        echo "" >> "$HOME/.profile"
-        echo "# Adaptive API Key" >> "$HOME/.profile"
-        echo "$env_line" >> "$HOME/.profile"
+        {
+          echo ""
+          echo "# Adaptive API Key"
+          echo "$env_line"
+        } >> "$HOME/.profile"
         log_info "Added API key to ~/.profile"
         profile_updated=true
       fi
     else
       # Create .profile if it doesn't exist
-      echo "# Adaptive API Key" > "$HOME/.profile"
-      echo "$env_line" >> "$HOME/.profile"
+      {
+        echo "# Adaptive API Key"
+        echo "$env_line"
+      } > "$HOME/.profile"
       log_info "Created ~/.profile and added API key"
       profile_updated=true
     fi
@@ -387,9 +451,11 @@ EOF
     # Also try shell-specific files as backup
     for profile in ".zshrc" ".bashrc"; do
       if [ -f "$HOME/$profile" ] && ! grep -q "ADAPTIVE_API_KEY" "$HOME/$profile" 2>/dev/null; then
-        echo "" >> "$HOME/$profile"
-        echo "# Adaptive API Key" >> "$HOME/$profile"
-        echo "$env_line" >> "$HOME/$profile"
+        {
+          echo ""
+          echo "# Adaptive API Key"
+          echo "$env_line"
+        } >> "$HOME/$profile"
         log_info "Added API key to ~/$profile"
       fi
     done
@@ -481,7 +547,8 @@ main() {
     echo "📖 Full Documentation: https://docs.llmadaptive.uk/developer-tools/codex"
     echo "🐛 Report Issues: https://github.com/Egham-7/adaptive/issues"
     echo ""
-    local current_shell=$(basename "${SHELL:-/bin/bash}")
+    local current_shell
+    current_shell=$(basename "${SHELL:-/bin/bash}")
     case "$current_shell" in
       zsh)
         echo "⚠️  Important: Restart your terminal or run 'source ~/.zshrc' to load environment variables"

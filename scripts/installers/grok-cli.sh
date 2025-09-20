@@ -10,7 +10,6 @@ SCRIPT_VERSION="1.0.0"
 NODE_MIN_VERSION=18
 NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
-BUN_MIN_VERSION="1.0.0"
 GROK_PACKAGE="@vibe-kit/grok-cli"
 CONFIG_DIR="$HOME/.grok"
 API_BASE_URL="https://www.llmadaptive.uk/api/v1"
@@ -52,7 +51,8 @@ ensure_dir_exists() {
 # ========================
 
 install_bun() {
-  local platform=$(uname -s)
+  local platform
+  platform=$(uname -s)
 
   case "$platform" in
   Linux | Darwin)
@@ -79,7 +79,8 @@ install_bun() {
 }
 
 install_nodejs() {
-  local platform=$(uname -s)
+  local platform
+  platform=$(uname -s)
 
   case "$platform" in
   Linux | Darwin)
@@ -91,6 +92,7 @@ install_nodejs() {
 
     # Load nvm
     log_info "Loading nvm environment..."
+    # shellcheck source=/dev/null
     \. "$HOME/.nvm/nvm.sh"
 
     # Install Node.js
@@ -149,7 +151,6 @@ check_runtime() {
   # Prefer Bun over Node.js for better performance
   if command -v bun &>/dev/null; then
     log_info "Using Bun runtime (recommended)"
-    RUNTIME="bun"
     INSTALL_CMD="bun add -g"
     return 0
   elif command -v node &>/dev/null && command -v npm &>/dev/null; then
@@ -158,7 +159,6 @@ check_runtime() {
 
     if [ "$major_version" -ge "$NODE_MIN_VERSION" ]; then
       log_info "Using Node.js runtime (fallback)"
-      RUNTIME="node"
       INSTALL_CMD="npm install -g"
       return 0
     fi
@@ -167,7 +167,6 @@ check_runtime() {
   # Install preferred runtime
   log_info "No suitable runtime found. Installing Bun (recommended)..."
   check_bun
-  RUNTIME="bun"
   INSTALL_CMD="bun add -g"
 }
 
@@ -284,7 +283,7 @@ configure_grok() {
 
     while [ $attempts -lt $max_attempts ]; do
       echo -n "🔑 Please enter your Adaptive API key: "
-      read -s api_key
+      read -rs api_key
       echo
 
       if [ -z "$api_key" ]; then
@@ -313,7 +312,7 @@ configure_grok() {
 
   # Create user-settings.json
   local settings_file="$CONFIG_DIR/user-settings.json"
-  cat > "$settings_file" << EOF
+  cat >"$settings_file" <<EOF
 {
   "apiKey": "$api_key",
   "baseURL": "$API_BASE_URL",
@@ -426,3 +425,4 @@ main() {
 }
 
 main "$@"
+
