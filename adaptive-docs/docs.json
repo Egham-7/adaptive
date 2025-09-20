@@ -27,7 +27,13 @@
       {
         "group": "Developer Tools",
         "pages": [
-          "developer-tools/claude-code"
+          "developer-tools/claude-code",
+          "developer-tools/cline",
+          "developer-tools/opencode",
+          "developer-tools/kilo-code",
+          "developer-tools/roo-code",
+          "developer-tools/grok-cli",
+          "developer-tools/codex"
         ]
       },
       {
