@@ -1,648 +1,83 @@
 ---
 title: "OpenAI Codex Integration"
-description: "Configure OpenAI Codex CLI with Adaptive's intelligent LLM routing for 60-80% cost savings and enhanced coding capabilities"
+description: "Configure OpenAI Codex with Adaptive's intelligent LLM routing for 60-80% cost savings"
 icon: "code"
 ---
 
-Configure OpenAI Codex CLI to use Adaptive's intelligent routing for 60-80% cost savings while maintaining all the powerful coding agent capabilities.
+Configure OpenAI Codex to use Adaptive's intelligent routing for 60-80% cost savings while maintaining the same AI-powered coding experience.
 
 <Tip>
-**Save 60-80% on AI development costs** with intelligent model routing. Codex's advanced coding features work seamlessly with Adaptive's API.
+**Save 60-80% on AI development costs** with intelligent model routing. Works as a drop-in replacement for OpenAI Codex API.
 </Tip>
-
-OpenAI Codex CLI is a powerful coding agent that runs locally with advanced capabilities including file operations, command execution, MCP server support, and intelligent sandbox environments.
 
 ## Get Your Adaptive API Key
 
 Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
 
-## Setup Guide
-
-### Method 1: Automated Setup (Recommended)
-
-Our installer automatically handles Codex installation and Adaptive configuration:
+## Quick Setup
 
 <Steps>
   <Step title="Run Installer" icon="download">
     ```bash
-    curl -o codex.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh
-    chmod +x codex.sh
-    ./codex.sh
+    curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh | bash
+    ```
+    The installer will handle configuration and environment setup automatically.
+  </Step>
+  <Step title="Verify Installation" icon="check">
+    ```bash
+    codex --version
+    echo $ADAPTIVE_API_KEY
     ```
   </Step>
-  <Step title="Launch Codex" icon="play">
+  <Step title="Start Coding" icon="play">
     ```bash
-    codex
-    ```
-    Start the coding agent with Adaptive routing.
-  </Step>
-  <Step title="Test Integration" icon="check">
-    Try a simple command to verify setup:
-    ```bash
-    codex exec "show me the current directory structure"
+    codex "create a React component for user authentication"
     ```
   </Step>
 </Steps>
 
-### Method 2: Manual Installation
-
-<Steps>
-  <Step title="Install Codex CLI" icon="download">
-    Choose your preferred installation method:
-
-    <CodeGroup>
-    ```bash npm (Recommended)
-    npm install -g @openai/codex
-    ```
-
-    ```bash Homebrew
-    brew install codex
-    ```
-
-    ```bash Direct Download
-    # Visit https://github.com/openai/codex/releases/latest
-    # Download the appropriate binary for your platform
-    ```
-    </CodeGroup>
-  </Step>
-  <Step title="Configure for Adaptive" icon="gear">
-    Create the configuration file:
-    ```bash
-    mkdir -p ~/.codex
-    cat > ~/.codex/config.toml << 'EOF'
-    model = ""
-    model_provider = "adaptive"
-
-    [model_providers.adaptive]
-    name = "Adaptive"
-    base_url = "https://www.llmadaptive.uk/api/v1"
-    env_key = "ADAPTIVE_API_KEY"
-    wire_api = "chat"
-    EOF
-    ```
-  </Step>
-  <Step title="Set Environment Variable" icon="key">
-    Add your API key to your shell profile:
-    ```bash
-    echo 'export ADAPTIVE_API_KEY="your-adaptive-api-key"' >> ~/.bashrc
-    source ~/.bashrc
-    ```
-  </Step>
-</Steps>
-
-### Method 3: Environment Variables Only
+## Alternative Setup Methods
 
 <CodeGroup>
-```bash Quick Setup
-export ADAPTIVE_API_KEY='your-adaptive-api-key'
+```bash Environment Variables
+export ADAPTIVE_API_KEY='your-api-key-here'
 curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh | bash
 ```
 
-```bash Custom Model
-export ADAPTIVE_API_KEY='your-api-key'
-export ADAPTIVE_MODEL='anthropic:claude-sonnet-4-20250514'
-curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh | bash
-```
-</CodeGroup>
+```toml Manual Configuration
+# Edit ~/.codex/config.toml
+model = ""
+model_provider = "adaptive"
 
-## Configuration Options
-
-<AccordionGroup>
-<Accordion title="Basic Configuration" icon="gear">
-**Required Settings:**
-- **API Key**: Your Adaptive API key via `ADAPTIVE_API_KEY` environment variable
-- **Base URL**: `https://www.llmadaptive.uk/api/v1`
-- **Wire API**: `chat` (OpenAI Chat Completions compatible)
-
-**Model Selection:**
-- **Intelligent Routing**: Leave model empty `""` (recommended)
-- **Specific Models**: Use `provider:model_name` format
-
-**Configuration File Location:** `~/.codex/config.toml`
-</Accordion>
-
-<Accordion title="Model Provider Configuration" icon="robot">
-**Adaptive Provider Configuration:**
-```toml
 [model_providers.adaptive]
 name = "Adaptive"
 base_url = "https://www.llmadaptive.uk/api/v1"
 env_key = "ADAPTIVE_API_KEY"
 wire_api = "chat"
-
-# Optional: Network tuning
-request_max_retries = 4
-stream_max_retries = 10
-stream_idle_timeout_ms = 300000
 ```
 
-**Available Models:**
-- `anthropic:claude-sonnet-4-20250514` - High intelligence with efficiency
-- `anthropic:claude-3-5-haiku-20241022` - Fast responses for simple tasks
-- `anthropic:claude-opus-4-1-20250805` - Most advanced model with exceptional reasoning
-- `openai:gpt-4o` - OpenAI's flagship model
-- `openai:gpt-4o-mini` - Cost-effective for basic operations
-- `google:gemini-2.5-pro` - Google's high-performance model
-
-**Model Override Examples:**
-```bash
-codex --model anthropic:claude-sonnet-4-20250514
-codex --model ""  # Intelligent routing
-codex --config model=anthropic:claude-opus-4-1-20250805
-```
-</Accordion>
-
-<Accordion title="Advanced Configuration" icon="tools">
-**Sandbox Settings:**
-```toml
-# Security levels
-sandbox_mode = "read-only"        # Read files only (default)
-sandbox_mode = "workspace-write"  # Write to current directory
-sandbox_mode = "danger-full-access"  # Full system access
-
-[sandbox_workspace_write]
-network_access = false  # Allow network requests
-writable_roots = ["/tmp", "/var/tmp"]  # Additional writable directories
-```
-
-**Approval Policy:**
-```toml
-approval_policy = "untrusted"   # Prompt for non-trusted commands (default)
-approval_policy = "on-failure"  # Prompt only when commands fail
-approval_policy = "on-request"  # Model decides when to escalate
-approval_policy = "never"       # Never prompt (automatic execution)
-```
-
-**Project Instructions:**
-Create `AGENTS.md` in your project root for custom instructions:
-```markdown
-# Project Instructions for Codex
-
-This is a TypeScript React project with the following conventions:
-- Use functional components with hooks
-- Prefer const assertions and explicit typing
-- Follow the existing file structure in src/
-- Use the existing testing patterns with Jest
-```
-</Accordion>
-</AccordionGroup>
-
-## Core Features
-
-Codex CLI provides comprehensive coding agent capabilities:
-
-<CardGroup cols={2}>
-  <Card title="Interactive Coding" icon="terminal">
-    Natural language interface for development tasks with intelligent tool selection
-  </Card>
-  <Card title="File Operations" icon="file">
-    AI automatically reads, creates, edits, and manages files across your project
-  </Card>
-  <Card title="Command Execution" icon="play">
-    Secure sandbox environment for running shell commands and scripts
-  </Card>
-  <Card title="MCP Integration" icon="plug">
-    Model Context Protocol support for extended capabilities and tool integration
-  </Card>
-</CardGroup>
-
-## Usage Examples
-
-### Interactive Mode
-
-<CodeGroup>
-```bash Basic Usage
-codex
-# Starts interactive coding agent
-
-# Example interactions:
-> "Create a new React component for user authentication"
-> "Fix the TypeScript errors in src/utils/api.ts"
-> "Add unit tests for the UserService class"
-> "Refactor the authentication flow to use async/await"
-```
-
-```bash With Specific Model
-codex --model anthropic:claude-sonnet-4-20250514
-# Uses specific model instead of intelligent routing
-
-# Better for:
-# - Complex architectural changes
-# - Large-scale refactoring
-# - Comprehensive code reviews
-```
-
-```bash With Sandbox Settings
-codex --sandbox workspace-write
-# Allows file modifications in current directory
-
-codex --sandbox read-only
-# Secure read-only mode for code analysis
+```bash Interactive Install
+curl -o codex.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/codex.sh
+chmod +x codex.sh
+./codex.sh
 ```
 </CodeGroup>
-
-### Exec Mode (Non-Interactive)
-
-Perfect for automation and CI/CD:
-
-<CodeGroup>
-```bash Quick Tasks
-codex exec "analyze the package.json and suggest dependency updates"
-codex exec "create a utility function for API error handling"
-codex exec "generate TypeScript interfaces from the API schema"
-```
-
-```bash CI/CD Integration
-# In GitHub Actions or other CI systems
-codex exec "review the recent changes and suggest improvements"
-codex exec "check for potential security vulnerabilities in dependencies"
-codex exec "generate documentation for new API endpoints"
-```
-
-```bash Project Analysis
-codex exec "analyze the codebase architecture and suggest improvements"
-codex exec "find all TODO comments and prioritize them"
-codex exec "identify potential performance bottlenecks"
-```
-</CodeGroup>
-
-### Advanced Features
-
-<CodeGroup>
-```bash MCP Integration
-# Configure MCP servers in ~/.codex/config.toml
-[mcp_servers.github]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-github"]
-env = { "GITHUB_PERSONAL_ACCESS_TOKEN" = "your-token" }
-
-# Use in conversation:
-> "create a GitHub issue for the authentication bug"
-> "review the recent pull requests"
-```
-
-```bash Custom Configuration
-# Use command-line config overrides
-codex --config approval_policy=never exec "run all tests"
-codex --config sandbox_mode=workspace-write exec "update dependencies"
-
-# Use profiles for different workflows
-codex --profile development  # Uses dev-specific settings
-codex --profile ci-testing   # Uses CI-specific settings
-```
-
-```bash Model Reasoning (Advanced Models)
-# For models that support reasoning (o3, o4-mini, etc.)
-codex --config model_reasoning_effort=high
-codex --config model_reasoning_summary=detailed
-
-# Control output verbosity
-codex --config model_verbosity=low exec "quick syntax check"
-```
-</CodeGroup>
-
-## Verification
-
-Test your setup is working correctly:
-
-<Steps>
-  <Step title="Basic Connection Test" icon="wifi">
-    ```bash
-    codex --version
-    codex exec "hello, can you help me code?"
-    ```
-    Verify Codex is installed and can connect to Adaptive.
-  </Step>
-  <Step title="Configuration Test" icon="gear">
-    ```bash
-    cat ~/.codex/config.toml
-    echo $ADAPTIVE_API_KEY
-    ```
-    Check configuration file and environment variable.
-  </Step>
-  <Step title="File Operation Test" icon="file">
-    ```bash
-    codex exec "show me the current directory structure"
-    ```
-    Test AI's ability to read and analyze files.
-  </Step>
-  <Step title="Monitor Usage" icon="chart-line">
-    Check your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard) to see API usage and cost savings.
-  </Step>
-</Steps>
-
-## Benefits with Adaptive
-
-<CardGroup cols={2}>
-  <Card title="60-80% Cost Savings" icon="dollar-sign">
-    Intelligent routing automatically selects the most cost-effective model for each coding task
-  </Card>
-  <Card title="Enhanced Coding Agent" icon="robot">
-    All Codex features work seamlessly with improved performance and reliability
-  </Card>
-  <Card title="Smart Model Selection" icon="brain">
-    Complex coding tasks use powerful models, simple operations use efficient models automatically
-  </Card>
-  <Card title="Reliable Performance" icon="shield">
-    Circuit breaker protection with automatic provider fallbacks for uninterrupted development
-  </Card>
-</CardGroup>
-
-## Cost Savings Examples
-
-<Tabs>
-<Tab title="Solo Developer">
-**Daily Usage**: 200 coding requests
-- **Direct OpenAI API**: $8-12/day
-- **With Adaptive**: $2-4/day
-- **Monthly Savings**: $180-240
-</Tab>
-
-<Tab title="Development Team">
-**Team of 5**: 1,000 requests/day
-- **Direct OpenAI API**: $40-60/day
-- **With Adaptive**: $12-20/day
-- **Monthly Savings**: $840-1,200
-</Tab>
-
-<Tab title="Enterprise">
-**Large Team**: 5,000 requests/day
-- **Direct OpenAI API**: $200-300/day
-- **With Adaptive**: $60-100/day
-- **Monthly Savings**: $4,200-6,000
-</Tab>
-</Tabs>
 
 ## Troubleshooting
 
 <AccordionGroup>
 <Accordion title="Installation Issues" icon="download">
-**Problem**: Codex installation fails
-
-**Solutions**:
-- **npm method**: Ensure Node.js 18+ is installed
-- **Homebrew method**: Update Homebrew with `brew update`
-- **Permission errors**: Use `sudo` for global npm installation if needed
-- **Network issues**: Check internet connection and proxy settings
-
-**Installation Commands**:
-```bash
-# Install Node.js first if needed
-curl -fsSL https://nodejs.org/dist/v20.11.0/node-v20.11.0-linux-x64.tar.xz
-
-# Install Codex globally
-npm install -g @openai/codex
-
-# Alternative: Homebrew
-brew install codex
-```
+- Check installation method availability (npm, brew, cargo, curl)
+- Verify system dependencies are installed
+- Try the interactive installation method for better error handling
 </Accordion>
 
-<Accordion title="Configuration Issues" icon="gear">
-**Problem**: Configuration not being recognized
-
-**Solutions**:
-- **Check file location**: Ensure `~/.codex/config.toml` exists
-- **Validate TOML syntax**: Use an online TOML validator
-- **Environment variables**: Verify `ADAPTIVE_API_KEY` is set
-- **Restart terminal**: Reload environment variables
-
-**Debug Commands**:
-```bash
-# Check configuration file
-cat ~/.codex/config.toml
-
-# Test environment variable
-echo $ADAPTIVE_API_KEY
-
-# Validate TOML syntax
-codex --config-check
-
-# Override with command flags
-codex --model "" --model-provider adaptive
-```
-</Accordion>
-
-<Accordion title="Authentication Errors" icon="key">
-**Problem**: API authentication failing
-
-**Solutions**:
-- **Regenerate API key**: Get new key from [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
-- **Check key format**: Ensure it starts with `ada-` and has correct length
-- **Environment setup**: Add to shell profile for persistence
-- **Test API directly**: Use curl to test API connection
-
-**Test API Connection**:
-```bash
-curl https://www.llmadaptive.uk/api/v1/chat/completions \
-  -H "Authorization: Bearer your-adaptive-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "max_tokens": 100
-  }'
-```
-</Accordion>
-
-<Accordion title="Performance Issues" icon="gauge">
-**Problem**: Slow responses or timeouts
-
-**Solutions**:
-- **Use intelligent routing**: Leave model empty for optimal performance
-- **Adjust timeout settings**: Increase `stream_idle_timeout_ms`
-- **Try faster models**: Use `anthropic:claude-3-5-haiku-20241022`
-- **Check project size**: Large projects may require more processing time
-
-**Performance Configuration**:
-```toml
-[model_providers.adaptive]
-# Increase timeouts for large projects
-stream_idle_timeout_ms = 600000  # 10 minutes
-request_max_retries = 6
-
-# Use faster model for simple tasks
-model = "anthropic:claude-3-5-haiku-20241022"
-```
+<Accordion title="Configuration Errors" icon="gear">
+- Verify API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
+- Check that `ADAPTIVE_API_KEY` environment variable is set
+- Restart terminal or run `source ~/.bashrc` after installation
 </Accordion>
 </AccordionGroup>
-
-## Advanced Configuration
-
-### Profiles for Different Workflows
-
-<CodeGroup>
-```toml ~/.codex/config.toml
-# Default settings
-model = ""
-model_provider = "adaptive"
-approval_policy = "untrusted"
-
-[model_providers.adaptive]
-name = "Adaptive"
-base_url = "https://www.llmadaptive.uk/api/v1"
-env_key = "ADAPTIVE_API_KEY"
-wire_api = "chat"
-
-# Development profile
-[profiles.development]
-model = "anthropic:claude-sonnet-4-20250514"
-approval_policy = "on-failure"
-sandbox_mode = "workspace-write"
-
-# CI/Testing profile
-[profiles.ci]
-model = "anthropic:claude-3-5-haiku-20241022"
-approval_policy = "never"
-sandbox_mode = "read-only"
-
-# Code review profile
-[profiles.review]
-model = "anthropic:claude-opus-4-1-20250805"
-approval_policy = "untrusted"
-sandbox_mode = "read-only"
-```
-
-```bash Usage with Profiles
-# Use development profile
-codex --profile development
-
-# Use CI profile for automated tasks
-codex --profile ci exec "run all tests and generate report"
-
-# Use review profile for thorough analysis
-codex --profile review exec "comprehensive code review"
-```
-</CodeGroup>
-
-### MCP Server Configuration
-
-<CodeGroup>
-```toml MCP Servers
-[mcp_servers.github]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-github"]
-env = { "GITHUB_PERSONAL_ACCESS_TOKEN" = "your-token" }
-
-[mcp_servers.filesystem]
-command = "npx"
-args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
-
-[mcp_servers.database]
-command = "python"
-args = ["-m", "mcp_server_sqlite", "--db-path", "./app.db"]
-env = { "DATABASE_URL" = "sqlite:./app.db" }
-```
-
-```bash MCP Management
-# Add MCP server via CLI
-codex mcp add docs -- docs-server --port 4000
-
-# List configured servers
-codex mcp list
-
-# Remove server
-codex mcp remove docs
-```
-</CodeGroup>
-
-### Project-Specific Instructions
-
-<CodeGroup>
-```markdown AGENTS.md
-# Project Instructions for Codex
-
-## Project Context
-This is a TypeScript React application with Node.js backend.
-
-## Coding Standards
-- Use functional components with hooks
-- Prefer const assertions and explicit typing
-- Follow the existing file structure in src/
-- Use existing testing patterns with Jest and React Testing Library
-
-## Architecture Notes
-- API endpoints are in src/api/
-- React components are in src/components/
-- Utilities are in src/utils/
-- Tests are co-located with source files
-
-## Development Workflow
-- Run `npm test` before committing
-- Use `npm run lint` to check code style
-- Build with `npm run build`
-- Start development server with `npm run dev`
-
-## Common Tasks
-- When adding new features, include unit tests
-- Update documentation in docs/ when changing APIs
-- Follow semantic versioning for releases
-```
-
-```bash Using Project Instructions
-# Codex automatically reads AGENTS.md from project root
-cd /path/to/project
-codex  # Will load instructions from ./AGENTS.md
-
-# Instructions are included in every conversation
-> "create a new API endpoint for user management"
-# Codex will follow the project conventions automatically
-```
-</CodeGroup>
-
-## CI/CD Integration
-
-<CodeGroup>
-```yaml GitHub Actions
-name: AI Code Review
-on: [pull_request]
-
-jobs:
-  ai-review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install Codex
-        run: npm install -g @openai/codex
-      - name: AI Code Review
-        env:
-          ADAPTIVE_API_KEY: ${{ secrets.ADAPTIVE_API_KEY }}
-        run: |
-          cat > ~/.codex/config.toml << 'EOF'
-          model = "anthropic:claude-3-5-haiku-20241022"
-          model_provider = "adaptive"
-          approval_policy = "never"
-
-          [model_providers.adaptive]
-          name = "Adaptive"
-          base_url = "https://www.llmadaptive.uk/api/v1"
-          env_key = "ADAPTIVE_API_KEY"
-          wire_api = "chat"
-          EOF
-
-          codex exec "review recent changes and suggest improvements"
-```
-
-```bash Local Development Scripts
-#!/bin/bash
-# dev-review.sh
-
-export ADAPTIVE_API_KEY="your-key"
-
-# Quick code review
-codex --profile review exec "review uncommitted changes"
-
-# Generate documentation
-codex exec "update README.md with recent API changes"
-
-# Security check
-codex exec "scan for potential security vulnerabilities"
-```
-</CodeGroup>
 
 ## Next Steps
 
@@ -664,12 +99,12 @@ codex exec "scan for potential security vulnerabilities"
     Learn about Adaptive's API capabilities and advanced features
   </Card>
   <Card
-    title="Other AI Tools"
-    href="/developer-tools/claude-code"
-    icon="code"
-    cta="Explore Tools"
+    title="CLI Tools"
+    href="/developer-tools/grok-cli"
+    icon="terminal"
+    cta="More Tools"
   >
-    Set up Adaptive with Claude Code, Cline, and other AI development tools
+    Explore other CLI tools with Adaptive integration
   </Card>
   <Card
     title="Get Support"
