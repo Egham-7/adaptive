@@ -1,342 +1,80 @@
 ---
 title: "Cline Integration"
-description: "Complete guide to using the Cline VS Code extension with Adaptive's intelligent LLM routing for 60-80% cost savings"
+description: "Set up Cline VS Code extension with Adaptive's intelligent LLM routing for 60-80% cost savings"
 icon: "code"
 ---
 
-Configure Cline VS Code extension to use Adaptive's intelligent LLM routing for significant cost savings while maintaining the same AI-assisted development experience.
+Configure Cline VS Code extension to use Adaptive's intelligent routing for 60-80% cost savings while maintaining the same AI-assisted development experience.
 
 <Tip>
-**Save 60-80% on AI development costs** with intelligent model routing that automatically selects the optimal model for each coding task. Works as a drop-in replacement in your favorite VS Code AI assistant.
+**Save 60-80% on AI development costs** with intelligent model routing. Works as a drop-in replacement in your favorite VS Code AI assistant.
 </Tip>
-
-Cline is a powerful VS Code extension that allows you to directly use AI models in the editor for tasks such as code generation, file operations, debugging, and refactoring. With Adaptive's intelligent routing, you get the same powerful capabilities at a fraction of the cost.
 
 ## Get Your Adaptive API Key
 
-Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key from the dashboard.
+Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
 
-## Setup Guide
-
-### Step 1: Installing the Cline Extension
+## Quick Setup
 
 <Steps>
-  <Step title="Open Extensions Marketplace" icon="puzzle-piece">
-    1. Open VS Code
-    2. Click the Extensions Marketplace icon on the left sidebar
-    3. Search for "cline" in the search box
-    4. Locate the official Cline extension
+  <Step title="Install Cline Extension" icon="download">
+    1. Open VS Code Extensions Marketplace
+    2. Search for "cline" and install the official extension
+    3. Click the Cline icon in the sidebar
   </Step>
-  <Step title="Install the Extension" icon="download">
-    1. Click the **Install** button
-    2. After installation, choose to trust the developer when prompted
-    3. The Cline icon will appear in your VS Code sidebar
-  </Step>
-</Steps>
-
-### Step 2: Configuring API Settings
-
-<Steps>
-  <Step title="Open Cline Configuration" icon="gear">
-    Click the Cline icon in the sidebar and select **"Use your own API Key"**
-  </Step>
-  <Step title="Enter Adaptive Configuration" icon="key">
-    Fill in the configuration with the following settings:
-
-    <CodeGroup>
-    ```text Configuration Settings
+  <Step title="Configure API Settings" icon="gear">
+    Select **"Use your own API Key"** and enter:
+    ```text
     API Provider: OpenAI Compatible
     Base URL: https://www.llmadaptive.uk/api/v1
-    API Key: your-adaptive-api-key-here
-    Model: Use custom - leave empty for intelligent routing
+    API Key: your-adaptive-api-key
+    Model: [leave empty for intelligent routing]
     ```
-
-    ```json Manual Configuration
-    {
-      "apiProvider": "openai-compatible",
-      "baseUrl": "https://www.llmadaptive.uk/api/v1",
-      "apiKey": "your-adaptive-api-key-here",
-      "model": ""
-    }
-    ```
-    </CodeGroup>
   </Step>
-  <Step title="Advanced Settings (Optional)" icon="sliders">
-    Adjust additional settings based on your preferences:
-    - **Temperature**: 0.7 (default for balanced creativity)
-    - **Max Tokens**: 4096 (or higher for complex tasks)
-    - **Browser Use**: Uncheck if not needed
-    - **Custom Instructions**: Add project-specific guidelines
+  <Step title="Start Coding" icon="play">
+    Begin using Cline for code generation, debugging, and AI-assisted development with cost-optimized routing.
   </Step>
 </Steps>
 
-## Configuration Details
+## Alternative Setup Methods
 
-<AccordionGroup>
-<Accordion title="API Provider Settings" icon="server">
-**Required Configuration:**
-- **API Provider**: Select "OpenAI Compatible"
-- **Base URL**: `https://www.llmadaptive.uk/api/v1`
-- **API Key**: Your Adaptive API key from the dashboard
-- **Model**: Leave empty for intelligent routing (recommended)
-
-**Why OpenAI Compatible?**
-Adaptive provides a fully compatible OpenAI API interface, allowing Cline to work seamlessly while benefiting from intelligent model routing and cost optimization.
-</Accordion>
-
-<Accordion title="Model Selection Options" icon="robot">
-**Intelligent Routing (Recommended):**
-- Leave the model field empty: `""`
-- Adaptive automatically selects the optimal model for each task
-- Provides the best cost/performance balance
-
-**Custom Model Override:**
-- `claude-3-5-sonnet-20241022` - High-performance coding
-- `claude-3-5-haiku-20241022` - Fast responses for simple tasks
-- `gpt-4o` - Alternative high-performance option
-- `gpt-4o-mini` - Cost-effective for basic tasks
-
-**Format**: Use standard model names without provider prefixes when overriding.
-</Accordion>
-
-<Accordion title="Advanced Configuration" icon="wrench">
-**Performance Tuning:**
-```json
+<CodeGroup>
+```json Settings File
+// In VS Code settings.json
 {
-  "temperature": 0.1,        // Lower for more deterministic code
-  "maxTokens": 8192,         // Higher for complex implementations
-  "topP": 0.9,              // Nucleus sampling parameter
-  "presencePenalty": 0.0,   // Repetition control
-  "frequencyPenalty": 0.0   // Frequency control
+  "cline.provider": "openai-compatible",
+  "cline.baseUrl": "https://www.llmadaptive.uk/api/v1",
+  "cline.apiKey": "your-adaptive-api-key"
 }
 ```
 
-**Custom Instructions Example:**
-```text
-Follow the project's TypeScript coding standards:
-- Use ES modules (import/export)
-- Prefer interface over type
-- Include proper JSDoc comments
-- Follow React 19 patterns
-```
-</Accordion>
-</AccordionGroup>
-
-## Getting Started
-
-Once configured, you can use Cline for various development tasks:
-
-<CardGroup cols={2}>
-  <Card title="Code Generation" icon="code">
-    Ask Cline to create functions, components, or entire files based on your specifications
-  </Card>
-  <Card title="File Operations" icon="folder">
-    Create, modify, and organize files across your project structure
-  </Card>
-  <Card title="Debugging & Fixes" icon="bug">
-    Identify and resolve bugs, error handling, and performance issues
-  </Card>
-  <Card title="Refactoring" icon="arrows-rotate">
-    Improve code structure, modernize syntax, and optimize implementations
-  </Card>
-</CardGroup>
-
-### Example Usage
-
-Start a conversation with Cline using natural language:
-
-<CodeGroup>
-```text Code Generation
-"Create a React component for a user profile card with TypeScript, including props for name, email, and avatar"
+```bash Environment Variables
+export OPENAI_BASE_URL=https://www.llmadaptive.uk/api/v1
+export OPENAI_API_KEY=your-adaptive-api-key
 ```
 
-```text Debugging
-"Fix the TypeScript errors in my authentication service and add proper error handling"
-```
-
-```text Refactoring
-"Refactor this component to use React 19 server components and improve performance"
-```
-
-```text File Operations
-"Create a new API route for user management with CRUD operations and proper validation"
+```text Manual Configuration
+1. Open Cline settings in VS Code
+2. Set API Provider to "OpenAI Compatible"
+3. Enter Base URL and API key as shown above
 ```
 </CodeGroup>
-
-## Benefits with Adaptive
-
-<CardGroup cols={2}>
-  <Card title="60-80% Cost Savings" icon="dollar-sign">
-    Intelligent routing automatically selects the most cost-effective model for each coding task
-  </Card>
-  <Card title="Same Powerful Experience" icon="magic-wand">
-    All Cline features work exactly the same with enhanced performance and reliability
-  </Card>
-  <Card title="Smart Model Selection" icon="brain">
-    Complex coding tasks use powerful models, simple fixes use efficient models automatically
-  </Card>
-  <Card title="Enhanced Reliability" icon="shield">
-    Circuit breaker protection with automatic provider fallbacks for uninterrupted development
-  </Card>
-</CardGroup>
-
-## Verification
-
-Test your setup is working correctly:
-
-<Steps>
-  <Step title="Basic Connection Test" icon="wifi">
-    1. Open a project in VS Code
-    2. Start a new Cline conversation
-    3. Ask: "Hello, can you help me code?"
-    4. Verify you receive a response
-  </Step>
-  <Step title="Code Generation Test" icon="code">
-    Ask Cline to create a simple function:
-    ```text
-    "Create a TypeScript function that calculates the factorial of a number"
-    ```
-    Verify Cline generates and explains the code.
-  </Step>
-  <Step title="Check Model Usage" icon="chart-line">
-    Visit your [Adaptive dashboard](https://www.llmadaptive.uk/dashboard) to see:
-    - API usage statistics
-    - Cost savings compared to direct provider pricing
-    - Model selection patterns
-  </Step>
-</Steps>
-
-## Cost Savings Examples
-
-<Tabs>
-<Tab title="Solo Developer">
-**Daily Coding**: 200 AI requests
-- **Direct Claude API**: $8-12/day
-- **With Adaptive**: $2-4/day
-- **Monthly Savings**: $180-240
-</Tab>
-
-<Tab title="Development Team">
-**Team of 5**: 1,000 requests/day
-- **Direct Claude API**: $40-60/day
-- **With Adaptive**: $12-20/day
-- **Monthly Savings**: $840-1,200
-</Tab>
-
-<Tab title="Enterprise">
-**Large Team**: 5,000 requests/day
-- **Direct Claude API**: $200-300/day
-- **With Adaptive**: $60-100/day
-- **Monthly Savings**: $4,200-6,000
-</Tab>
-</Tabs>
 
 ## Troubleshooting
 
 <AccordionGroup>
 <Accordion title="Connection Issues" icon="wifi-off">
-**Problem**: Cline can't connect to Adaptive
-
-**Solutions**:
 - Verify your API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
-- Check that Base URL is exactly: `https://www.llmadaptive.uk/api/v1`
+- Check that Base URL is set to `https://www.llmadaptive.uk/api/v1`
 - Restart VS Code after configuration changes
-- Test API key with curl:
-```bash
-curl https://www.llmadaptive.uk/api/v1/chat/completions \
-  -H "Authorization: Bearer your-adaptive-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "",
-    "messages": [{"role": "user", "content": "Hello"}],
-    "max_tokens": 100
-  }'
-```
 </Accordion>
 
-<Accordion title="Authentication Errors" icon="key">
-**Problem**: Invalid API key errors
-
-**Solutions**:
-- Regenerate your API key from the Adaptive dashboard
-- Ensure you're using your Adaptive API key, not a direct provider key
-- Check for extra spaces or characters in the API key field
-- Verify the key format matches: `ada-...` (starts with ada-)
-</Accordion>
-
-<Accordion title="Model Selection Issues" icon="robot">
-**Problem**: Want to use specific models or encountering model errors
-
-**Solutions**:
-- **For intelligent routing**: Leave model field completely empty
-- **For specific models**: Use standard model names like `claude-3-5-sonnet-20241022`
-- **Avoid provider prefixes**: Use `claude-3-5-sonnet-20241022`, not `anthropic:claude-3-5-sonnet-20241022`
-- **Check model availability**: Visit dashboard for current supported models
-
-**Supported Models**:
-- Claude 3.5 Sonnet, Claude 3.5 Haiku
-- GPT-4o, GPT-4o-mini, GPT-3.5-turbo
-- Gemini Pro, Gemini Flash
-- And more - see [dashboard](https://www.llmadaptive.uk/dashboard) for full list
-</Accordion>
-
-<Accordion title="Performance Issues" icon="gauge">
-**Problem**: Slow responses or timeouts
-
-**Solutions**:
-- Check your internet connection
-- Try reducing max_tokens for faster responses
-- Use intelligent routing instead of specific heavy models
-- Monitor usage on the [dashboard](https://www.llmadaptive.uk/dashboard) for any rate limits
-- Consider using faster models like Claude 3.5 Haiku for simple tasks
+<Accordion title="Model Selection" icon="robot">
+- Leave model field empty for intelligent routing (recommended)
+- Specific models: `claude-3-5-sonnet-20241022`, `gpt-4o`, `gpt-4o-mini`
+- Test connection with a simple request after setup
 </Accordion>
 </AccordionGroup>
-
-## Reset Configuration
-
-If you need to start over with your Cline configuration:
-
-<CodeGroup>
-```text VS Code Reset
-1. Open Cline settings in VS Code
-2. Clear all API configuration fields
-3. Re-enter Adaptive settings
-4. Test with a simple request
-```
-
-```text Complete Reset
-1. Uninstall Cline extension
-2. Restart VS Code
-3. Reinstall Cline extension
-4. Configure with Adaptive settings
-```
-</CodeGroup>
-
-## Advanced Usage
-
-### Custom Instructions
-
-Set project-specific guidelines for better code generation:
-
-```text
-Project Context: Next.js 15 with TypeScript, Prisma ORM, tRPC
-Coding Standards:
-- Use ES modules (import/export)
-- Prefer interface over type
-- Include JSDoc comments for public APIs
-- Follow React 19 Server Component patterns
-- Use Biome for formatting
-- Implement proper error handling
-```
-
-### Workflow Integration
-
-Integrate Cline with your development workflow:
-
-1. **Code Reviews**: Ask Cline to review your code for issues
-2. **Documentation**: Generate JSDoc comments and README sections
-3. **Testing**: Create unit tests for your functions and components
-4. **Refactoring**: Modernize legacy code to current standards
 
 ## Next Steps
 
@@ -358,12 +96,12 @@ Integrate Cline with your development workflow:
     Learn about Adaptive's API capabilities and advanced features
   </Card>
   <Card
-    title="Other IDE Integrations"
+    title="VS Code Extensions"
     href="/developer-tools/claude-code"
     icon="code"
-    cta="Explore Tools"
+    cta="More Tools"
   >
-    Set up Adaptive with Claude Code, Cursor, and other AI development tools
+    Explore other AI development tools with Adaptive integration
   </Card>
   <Card
     title="Get Support"
