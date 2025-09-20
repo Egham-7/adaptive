@@ -112,16 +112,16 @@ class ModelRegistry:
         matching_models = []
 
         for model in all_models:
-            # Provider filtering (case-insensitive)
-            if partial_model.provider:
+            # Provider filtering (case-insensitive) - only filter if provider is provided and non-empty
+            if partial_model.provider and partial_model.provider.strip():
                 if (
                     not model.provider
                     or model.provider.lower() != partial_model.provider.lower()
                 ):
                     continue
 
-            # Model name filtering
-            if partial_model.model_name:
+            # Model name filtering - only filter if model_name is provided and non-empty
+            if partial_model.model_name and partial_model.model_name.strip():
                 if (
                     not model.model_name
                     or model.model_name.lower() != partial_model.model_name.lower()

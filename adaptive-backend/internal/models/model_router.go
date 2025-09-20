@@ -75,3 +75,8 @@ type ModelSelectionResponse struct {
 	Model        string        `json:"model"`
 	Alternatives []Alternative `json:"alternatives,omitzero"`
 }
+
+// IsValid validates that the ModelSelectionResponse has required fields
+func (m *ModelSelectionResponse) IsValid() bool {
+	return m != nil && m.Provider != "" && m.Model != ""
+}

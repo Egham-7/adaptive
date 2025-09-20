@@ -100,6 +100,14 @@ func (c *ModelRouterClient) SelectModel(
 		return c.getFallbackModelResponse(req.Models)
 	}
 
+	// Validate the response from model router - use fallback if invalid
+	if !out.IsValid() {
+		c.circuitBreaker.RecordFailure()
+		fiberlog.Warnf("[SELECT_MODEL] Model router returned invalid response (provider: '%s', model: '%s'), using fallback",
+			out.Provider, out.Model)
+		return c.getFallbackModelResponse(req.Models)
+	}
+
 	duration := time.Since(start)
 	c.circuitBreaker.RecordSuccess()
 	fiberlog.Infof("[SELECT_MODEL] Request successful in %v - model: %s/%s",
@@ -108,10 +116,10 @@ func (c *ModelRouterClient) SelectModel(
 }
 
 func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.ModelCapability) models.ModelSelectionResponse {
-	// Filter valid models (non-empty provider required)
+	// Filter valid models (both provider and model name required)
 	var validModels []models.ModelCapability
 	for _, model := range availableModels {
-		if model.Provider != "" || model.ModelName != "" {
+		if model.Provider != "" && model.ModelName != "" {
 			validModels = append(validModels, model)
 		}
 	}
