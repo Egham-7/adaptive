@@ -66,7 +66,7 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	fiberlog.Debug("ModelRouterCache: Creating semantic cache")
 	embedModel := semanticCacheConfig.EmbeddingModel
 	if embedModel == "" {
-		embedModel = "text-embedding-3-small"
+		embedModel = "text-embedding-3-large"
 	}
 	cache, err := semanticcache.New(
 		options.WithOpenAIProvider[string, models.ModelSelectionResponse](apiKey, embedModel),
