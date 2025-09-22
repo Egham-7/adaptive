@@ -64,7 +64,7 @@
 		"framer-motion": "^12.23.16",
 		"install": "^0.13.0",
 		"jose": "^6.1.0",
-		"lucide-react": "^0.542.0",
+		"lucide-react": "^0.544.0",
 		"motion": "^12.23.16",
 		"next": "^15.5.3",
 		"next-themes": "^0.4.6",
