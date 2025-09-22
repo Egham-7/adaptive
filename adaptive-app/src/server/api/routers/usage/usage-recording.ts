@@ -9,8 +9,8 @@ import {
 	hasSufficientCredits,
 } from "@/lib/credit-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
-import type { CacheTier } from "@/types/chat-completion";
-import { cacheTierSchema } from "@/types/chat-completion";
+import type { CacheTier } from "@/types/cache";
+import { cacheTierSchema } from "@/types/cache";
 import {
 	findModelBySimilarity,
 	hashApiKey,

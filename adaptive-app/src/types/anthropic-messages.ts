@@ -7,11 +7,8 @@ import type {
 	MessageStreamEvent,
 } from "@anthropic-ai/sdk/resources/messages";
 import { z } from "zod";
-import type {
-	ModelCapability,
-	Provider,
-	ProviderConfig,
-} from "./chat-completion";
+import type { ModelCapability } from "./models";
+import type { Provider, ProviderConfig } from "./providers";
 
 // Use Anthropic SDK types as base
 export type AnthropicMessage = Message;

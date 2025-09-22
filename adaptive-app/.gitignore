@@ -153,3 +153,5 @@ build-storybook/
 # Local Netlify folder
 .netlify
 
+# pnpm
+pnpm-workspace.yaml

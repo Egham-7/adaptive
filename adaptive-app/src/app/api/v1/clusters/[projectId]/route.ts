@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { authenticateApiKey } from "@/lib/auth-utils";
 import { db } from "@/server/db";
-import { createClusterSchema } from "@/types/cluster-schemas";
+import { createClusterSchema } from "@/types";
 
 // GET /api/v1/clusters/{projectId} - List all clusters for project
 export async function GET(

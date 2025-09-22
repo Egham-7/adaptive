@@ -1,6 +1,35 @@
 import { z } from "zod";
+import type { Prisma } from "../../prisma/generated";
 
-// Provider config schema - for backend API communication
+// Define supported providers as a union type
+export type Provider =
+	| "openai"
+	| "anthropic"
+	| "gemini"
+	| "groq"
+	| "deepseek"
+	| "huggingface"
+	| "grok"
+	| "adaptive"
+	| null;
+
+// Define supported authentication types
+export type AuthType = "bearer" | "api_key" | "basic" | "custom";
+
+// Provider config interface
+export interface ProviderConfig {
+	api_key?: string;
+	base_url?: string;
+	auth_type?: AuthType;
+	auth_header_name?: string;
+	health_endpoint?: string;
+	rate_limit_rpm?: number;
+	timeout_ms?: number;
+	retry_config?: Record<string, unknown>;
+	headers?: Record<string, string>;
+}
+
+// Provider config Zod schema
 export const providerConfigSchema = z.object({
 	api_key: z.string().optional(),
 	base_url: z.string().optional(),
@@ -13,8 +42,21 @@ export const providerConfigSchema = z.object({
 	headers: z.record(z.string(), z.string()).optional(),
 });
 
+// Fallback configuration
+export type FallbackMode = "sequential" | "race";
+
+export interface FallbackConfig {
+	enabled?: boolean;
+	mode?: FallbackMode;
+}
+
+export const fallbackConfigSchema = z.object({
+	enabled: z.boolean().optional(),
+	mode: z.enum(["sequential", "race"]).optional(),
+});
+
 // Model capability schema matching Go backend ModelCapability struct
-export const modelCapabilitySchema = z.object({
+export const modelCapabilitySchemaBackend = z.object({
 	description: z.string().optional(),
 	maxContextTokens: z.number().min(1).optional(),
 	maxOutputTokens: z.number().min(1).optional(),
@@ -32,7 +74,7 @@ export const providerModelSchema = z.object({
 	displayName: z.string().min(1, "Display name is required"),
 	inputTokenCost: z.number().min(0, "Input token cost must be non-negative"),
 	outputTokenCost: z.number().min(0, "Output token cost must be non-negative"),
-	capabilities: modelCapabilitySchema.optional(),
+	capabilities: modelCapabilitySchemaBackend.optional(),
 });
 
 // Create provider schema (template without API keys)
@@ -98,7 +140,7 @@ export const addProviderModelSchema = z.object({
 	displayName: z.string().min(1, "Display name is required"),
 	inputTokenCost: z.number().min(0, "Input token cost must be non-negative"),
 	outputTokenCost: z.number().min(0, "Output token cost must be non-negative"),
-	capabilities: modelCapabilitySchema.optional(),
+	capabilities: modelCapabilitySchemaBackend.optional(),
 	apiKey: z.string().optional(),
 });
 
@@ -108,7 +150,7 @@ export const updateProviderModelSchema = z.object({
 	displayName: z.string().min(1).max(100).optional(),
 	inputTokenCost: z.number().min(0).optional(),
 	outputTokenCost: z.number().min(0).optional(),
-	capabilities: modelCapabilitySchema.optional(),
+	capabilities: modelCapabilitySchemaBackend.optional(),
 	apiKey: z.string().optional(),
 });
 
@@ -124,37 +166,29 @@ export const createProviderConfigSchema = z.object({
 	providerApiKey: z.string().min(1, "API key is required"),
 	customHeaders: z.record(z.string(), z.string()).optional(),
 	customSettings: z.record(z.string(), z.any()).optional(),
-
-	// Authentication for API call
 	apiKey: z.string().optional(),
 });
 
-// Update provider config schema
 export const updateProviderConfigSchema = z.object({
 	id: z.string(),
 	displayName: z.string().min(1).max(100).optional(),
 	providerApiKey: z.string().min(1, "API key is required").optional(),
 	customHeaders: z.record(z.string(), z.string()).optional(),
 	customSettings: z.record(z.string(), z.any()).optional(),
-
-	// Authentication for API call
 	apiKey: z.string().optional(),
 });
 
-// Get provider configs schema
 export const getProviderConfigsSchema = z.object({
 	projectId: z.string(),
-	providerId: z.string().optional(), // Filter by specific provider
+	providerId: z.string().optional(),
 	apiKey: z.string().optional(),
 });
 
-// Get provider config by ID schema
 export const providerConfigByIdSchema = z.object({
 	id: z.string(),
 	apiKey: z.string().optional(),
 });
 
-// Delete provider config schema
 export const deleteProviderConfigSchema = z.object({
 	id: z.string(),
 	apiKey: z.string().optional(),
@@ -185,8 +219,18 @@ export const getAllProvidersSchema = z.object({
 	apiKey: z.string().optional(),
 });
 
-// Type exports
-export type ProviderConfig = z.infer<typeof providerConfigSchema>;
+// Prisma payload types for providers
+export type ProviderWithModels = Prisma.ProviderGetPayload<{
+	include: {
+		models: {
+			include: {
+				capabilities: true;
+			};
+		};
+	};
+}>;
+
+// Type exports from schemas
 export type CreateProviderInput = z.infer<typeof createProviderSchema>;
 export type UpdateProviderInput = z.infer<typeof updateProviderSchema>;
 export type AddProviderModelInput = z.infer<typeof addProviderModelSchema>;
@@ -195,14 +239,8 @@ export type UpdateProviderModelInput = z.infer<
 >;
 export type ProviderModel = z.infer<typeof providerModelSchema>;
 
-export type CreateProviderConfigInput = z.infer<
-	typeof createProviderConfigSchema
->;
-export type UpdateProviderConfigInput = z.infer<
-	typeof updateProviderConfigSchema
->;
-export type GetProviderConfigsInput = z.infer<typeof getProviderConfigsSchema>;
+export type CreateProviderConfig = z.infer<typeof createProviderConfigSchema>;
+export type UpdateProviderConfig = z.infer<typeof updateProviderConfigSchema>;
+export type GetProviderConfigs = z.infer<typeof getProviderConfigsSchema>;
 export type ProviderConfigByIdInput = z.infer<typeof providerConfigByIdSchema>;
-export type DeleteProviderConfigInput = z.infer<
-	typeof deleteProviderConfigSchema
->;
+export type DeleteProviderConfig = z.infer<typeof deleteProviderConfigSchema>;

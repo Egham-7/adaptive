@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 import type { NextRequest } from "next/server";
 import { api } from "@/trpc/server";
-import { updateProviderSchema } from "@/types/provider-schemas";
+import { updateProviderSchema } from "@/types/providers";
 
 // GET /api/v1/providers/{providerId} - Get a specific provider
 export async function GET(

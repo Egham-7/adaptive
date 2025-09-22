@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Prisma } from "../../prisma/generated";
 
 // Simple cluster provider schema
 export const clusterProviderSchema = z.object({
@@ -94,3 +95,38 @@ export type AddProviderToClusterInput = z.infer<
 	typeof addProviderToClusterSchema
 >;
 export type ClusterProvider = z.infer<typeof clusterProviderSchema>;
+
+// Prisma payload types for clusters
+export type ClusterWithProviders = Prisma.LLMClusterGetPayload<{
+	include: {
+		providers: {
+			include: {
+				provider: {
+					include: {
+						models: {
+							include: {
+								capabilities: true;
+							};
+						};
+					};
+				};
+				config: true;
+			};
+		};
+	};
+}>;
+
+export type ClusterProviderWithModels = Prisma.ClusterProviderGetPayload<{
+	include: {
+		provider: {
+			include: {
+				models: {
+					include: {
+						capabilities: true;
+					};
+				};
+			};
+		};
+		config: true;
+	};
+}>;
