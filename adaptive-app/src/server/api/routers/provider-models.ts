@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { authenticateAndGetProject } from "@/lib/auth-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
-import type { ProviderWithModels } from "@/types/prisma-types";
+import type { ProviderWithModels } from "@/types/providers";
 
 export const providerModelsRouter = createTRPCRouter({
 	// Get models for a specific provider config

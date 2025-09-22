@@ -37,9 +37,9 @@ updates:
       prefix: "deps(frontend)"
       include: "scope"
 
-  # Python AI service
+  # Model Router
   - package-ecosystem: "pip"
-    directory: "/adaptive_ai"
+    directory: "/adaptive_ai/model_router"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -48,10 +48,10 @@ updates:
     target-branch: "dev"
     labels:
       - "dependencies"
-      - "ai-service"
+      - "model_router"
       - "python"
     commit-message:
-      prefix: "deps(ai)"
+      prefix: "deps(model_router)"
       include: "scope"
 
   # Prompt classifier
@@ -68,7 +68,7 @@ updates:
       - "classifier"
       - "python"
     commit-message:
-      prefix: "deps(classifier)"
+      prefix: "deps(prompt_task_complexity_classifier)"
       include: "scope"
 
   # Benchmarks - genai-perf
@@ -186,3 +186,4 @@ updates:
     commit-message:
       prefix: "deps(ci)"
       include: "scope"
+

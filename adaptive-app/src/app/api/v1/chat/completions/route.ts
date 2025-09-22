@@ -13,7 +13,7 @@ import type {
 	ChatCompletionChunk,
 	ChatCompletionRequest,
 	ProviderConfig,
-} from "@/types/chat-completion";
+} from "@/types";
 import { chatCompletionRequestSchema } from "@/types/chat-completion";
 
 export const dynamic = "force-dynamic";

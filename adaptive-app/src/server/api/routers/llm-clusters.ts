@@ -11,12 +11,12 @@ import { invalidateProjectCache, withCache } from "@/lib/cache-utils";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	addProviderToClusterSchema,
+	type ClusterWithProviders,
 	clusterByNameParamsSchema,
 	createClusterSchema,
 	projectClusterParamsSchema,
 	updateClusterSchema,
-} from "@/types/cluster-schemas";
-import type { ClusterWithProviders } from "@/types/prisma-types";
+} from "@/types/clusters";
 
 export const llmClustersRouter = createTRPCRouter({
 	// Get all clusters for a project
@@ -24,7 +24,7 @@ export const llmClustersRouter = createTRPCRouter({
 		.input(projectClusterParamsSchema)
 		.query(async ({ ctx, input }): Promise<ClusterWithProviders[]> => {
 			try {
-				const _auth = await authenticateAndGetProject(ctx, input);
+				await authenticateAndGetProject(ctx, input);
 
 				return await withCache(
 					`clusters:project:${input.projectId}`,
@@ -75,7 +75,7 @@ export const llmClustersRouter = createTRPCRouter({
 		.input(clusterByNameParamsSchema)
 		.query(async ({ ctx, input }): Promise<ClusterWithProviders | null> => {
 			try {
-				const _auth = await authenticateAndGetProject(ctx, input);
+				await authenticateAndGetProject(ctx, input);
 
 				const cluster = await ctx.db.lLMCluster.findFirst({
 					where: {

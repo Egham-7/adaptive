@@ -1,58 +1,7 @@
 import { z } from "zod";
-
-// Create Zod schema for CacheConfig (only configurable fields)
-const cacheConfigSchema = z.object({
-	enabled: z.boolean().optional(),
-	semantic_threshold: z.number().optional(),
-});
-
-// Create Zod schema for ModelCapability (partial type for flexible model selection)
-const modelCapabilitySchema = z
-	.object({
-		description: z.string().optional(),
-		provider: z.string().optional(),
-		model_name: z.string().optional(),
-		cost_per_1m_input_tokens: z.number().optional(),
-		cost_per_1m_output_tokens: z.number().optional(),
-		max_context_tokens: z.number().optional(),
-		max_output_tokens: z.number().optional(),
-		supports_function_calling: z.boolean().optional(),
-		languages_supported: z.array(z.string()).optional(),
-		model_size_params: z.string().optional(),
-		latency_tier: z.string().optional(),
-		task_type: z.string().optional(),
-		complexity: z.string().optional(),
-	})
-	.refine(
-		(data) => {
-			// Require at least one field to be defined
-			const values = Object.values(data);
-			return values.some((value) => value !== undefined);
-		},
-		{
-			message: "At least one model capability attribute must be provided",
-		},
-	);
-
-// Tool definition schema
-const toolSchema = z.object({
-	type: z.literal("function"),
-	function: z.object({
-		name: z.string(),
-		description: z.string().optional(),
-		parameters: z.record(z.string(), z.any()).optional(),
-	}),
-});
-
-// Tool call schema
-const toolCallSchema = z.object({
-	id: z.string(),
-	type: z.literal("function"),
-	function: z.object({
-		name: z.string(),
-		arguments: z.string(),
-	}),
-});
+import { cacheConfigSchema } from "./cache";
+import { alternativeSchema, modelCapabilitySchema } from "./models";
+import { toolCallSchema, toolSchema } from "./tools";
 
 // Provider-agnostic select model request schema
 export const selectModelRequestSchema = z
@@ -76,12 +25,6 @@ export const selectModelRequestSchema = z
 	})
 	.strict();
 
-// Zod schema for alternative provider/model combinations
-export const alternativeSchema = z.object({
-	provider: z.string(),
-	model: z.string(),
-});
-
 // Zod schema for select model response
 export const selectModelResponseSchema = z.object({
 	// Selected provider
@@ -94,8 +37,4 @@ export const selectModelResponseSchema = z.object({
 
 // TypeScript types derived from Zod schemas
 export type SelectModelRequest = z.infer<typeof selectModelRequestSchema>;
-export type Alternative = z.infer<typeof alternativeSchema>;
 export type SelectModelResponse = z.infer<typeof selectModelResponseSchema>;
-export type Tool = z.infer<typeof toolSchema>;
-export type ToolCall = z.infer<typeof toolCallSchema>;
-export type CacheConfig = z.infer<typeof cacheConfigSchema>;

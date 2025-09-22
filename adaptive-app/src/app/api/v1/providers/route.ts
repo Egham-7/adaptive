@@ -9,7 +9,7 @@ import {
 } from "@/lib/api-auth";
 import { invalidateProviderCache, withCache } from "@/lib/cache-utils";
 import { api } from "@/trpc/server";
-import { createProviderSchema } from "@/types/provider-schemas";
+import { createProviderSchema } from "@/types/providers";
 
 // GET /api/v1/providers - List providers with user configs
 export async function GET(req: NextRequest) {

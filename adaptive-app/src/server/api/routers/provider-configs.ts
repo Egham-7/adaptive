@@ -14,7 +14,7 @@ import {
 	getProviderConfigsSchema,
 	providerConfigByIdSchema,
 	updateProviderConfigSchema,
-} from "@/types/provider-config-schemas";
+} from "@/types/providers";
 
 type ProviderConfigWithProvider = Prisma.ProviderConfigGetPayload<{
 	include: {

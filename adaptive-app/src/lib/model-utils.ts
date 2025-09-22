@@ -1,12 +1,12 @@
 import type { z } from "zod";
 import type { Context } from "@/server/api/trpc";
-import type { modelCapabilitySchema } from "@/types/provider-schemas";
+import type { modelCapabilitySchemaBackend } from "@/types/providers";
 
 // Helper to create or update ModelCapability in a transaction
 export const upsertModelCapability = async (
 	tx: Parameters<Parameters<Context["db"]["$transaction"]>[0]>[0],
 	providerModelId: string,
-	capabilities: z.infer<typeof modelCapabilitySchema>,
+	capabilities: z.infer<typeof modelCapabilitySchemaBackend>,
 ) => {
 	const existingCapabilities = await tx.modelCapability.findUnique({
 		where: { providerModelId },

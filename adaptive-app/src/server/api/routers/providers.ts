@@ -16,7 +16,7 @@ import {
 	providerByNameSchema,
 	updateProviderModelSchema,
 	updateProviderSchema,
-} from "@/types/provider-schemas";
+} from "@/types/providers";
 
 type ProviderWithModels = Prisma.ProviderGetPayload<{
 	include: {

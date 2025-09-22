@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { authenticateApiKey } from "@/lib/auth-utils";
 import { db } from "@/server/db";
-import { updateClusterSchema } from "@/types/cluster-schemas";
+import { updateClusterSchema } from "@/types";
 
 // GET /api/v1/clusters/{projectId}/{name} - Get cluster by name
 export async function GET(
