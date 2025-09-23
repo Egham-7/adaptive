@@ -309,10 +309,55 @@ You can specify models in three ways:
    ```
 
 3. **OpenAI-compatible direct calls**:
-   ```bash
-   curl -X POST https://llmadaptive.uk/v1/chat/completions \
-     -H "X-Stainless-API-Key: $API_KEY" \
-     -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}'
+
+   ```bash cURL
+   curl -sS -X POST https://llmadaptive.uk/api/v1/chat/completions \
+     -H "Authorization: Bearer $ADAPTIVE_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"model": "openai:gpt-4.1-mini", "messages": [{"role": "user", "content": "Hello"}]}'
+   ```
+
+   ```python Python
+   import os
+   import requests
+
+   response = requests.post(
+       "https://llmadaptive.uk/api/v1/chat/completions",
+       headers={
+           "Authorization": f"Bearer {os.getenv('ADAPTIVE_API_KEY')}",
+           "Content-Type": "application/json"
+       },
+       json={
+           "model": "openai:gpt-4.1-mini",
+           "messages": [{"role": "user", "content": "Hello"}]
+       },
+       timeout=30
+   )
+
+   if not response.ok:
+       raise Exception(f"HTTP {response.status_code}: {response.text}")
+
+   print(response.json())
+   ```
+
+   ```javascript JavaScript (Node 18+)
+   const response = await fetch("https://llmadaptive.uk/api/v1/chat/completions", {
+     method: "POST",
+     headers: {
+       "Authorization": `Bearer ${process.env.ADAPTIVE_API_KEY}`,
+       "Content-Type": "application/json"
+     },
+     body: JSON.stringify({
+       model: "openai:gpt-4.1-mini",
+       messages: [{ role: "user", content: "Hello" }]
+     })
+   });
+
+   if (!response.ok) {
+     throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+   }
+
+   console.log(await response.json());
    ```
 
 ### Model Updates
