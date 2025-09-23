@@ -4,7 +4,7 @@ description: "Configure Roo Code VS Code extension with Adaptive's intelligent L
 icon: "rocket"
 ---
 
-Configure Roo Code to use Adaptive's intelligent routing for 60-80% cost savings while maintaining the same AI-assisted development experience with project analysis capabilities.
+Roo Code is an intelligent VS Code plugin that assists with project analysis, code generation, and refactoring—making the development process smoother and more efficient. Roo Code becomes even more powerful with Adaptive's intelligent routing — giving you 60-80% cost savings while maintaining greater efficiency and stability in project management and code optimization.
 
 <Tip>
 **Save 60-80% on AI development costs** with intelligent model routing. Roo Code's project analysis features work seamlessly with Adaptive's API.
@@ -14,27 +14,45 @@ Configure Roo Code to use Adaptive's intelligent routing for 60-80% cost savings
 
 Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and generate your API key.
 
-## Quick Setup
+## Step 1: Installing the Roo Code Plugin
 
-<Steps>
-  <Step title="Install Roo Code Extension" icon="download">
-    1. Open VS Code Extensions Marketplace
-    2. Search for "Roo Code" and install the official extension
-    3. Click the Roo Code icon in the sidebar
-  </Step>
-  <Step title="Configure API Settings" icon="gear">
-    Navigate to Roo Code settings and enter:
-    ```text
-    API Provider: OpenAI Compatible
-    Base URL: https://www.llmadaptive.uk/api/v1
-    API Key: your-adaptive-api-key
-    Model: [leave empty for intelligent routing]
-    ```
-  </Step>
-  <Step title="Start Project Analysis" icon="play">
-    Use Roo Code's project analysis, code generation, and refactoring features with cost-optimized routing.
-  </Step>
-</Steps>
+### 1. Open the Extensions Marketplace
+a. Launch VS Code
+b. Click the Extensions Marketplace icon on the left sidebar
+c. Enter "Roo Code" in the search bar
+d. Locate the Roo Code plugin
+
+### 2. Install the Plugin
+a. Click the **Install** button to begin installation
+b. After installation, select "Trust the Author" if prompted
+
+## Step 2: Configuring API Settings
+
+### Configuration Details
+Fill in the following information as specified:
+
+- **API Provider**: Select "OpenAI Compatible"
+- **OpenAI Base URL**: Enter `https://www.llmadaptive.uk/api/v1`
+- **API Key**: Input your Adaptive API Key
+- **Model Name**: Enter your preferred model (e.g., `gpt-4o`, `claude-3-5-sonnet-20241022`) and select "Use Custom"
+
+## Step 3: Permission Setup and Usage
+
+### 1. Configure Permissions
+Select the permissions you wish to enable based on your needs:
+
+- **File read/write operations**: Allow Roo Code to analyze and modify project files
+- **Auto-approve execution**: Enable automatic execution of safe operations
+- **Project access permissions**: Grant access to workspace files and directories
+
+### 2. Start Coding
+Enter your requirements in the input box, and Roo Code will assist with:
+
+- Summarizing the current project structure
+- Analyzing key modules and functionalities
+- Code refactoring and optimization
+- Generating documentation and comments
+- Issue diagnosis and repair suggestions
 
 ## Alternative Setup Methods
 
@@ -44,19 +62,24 @@ Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and gene
 {
   "rooCode.provider": "openai-compatible",
   "rooCode.baseUrl": "https://www.llmadaptive.uk/api/v1",
-  "rooCode.apiKey": "your-adaptive-api-key"
+  "rooCode.apiKey": "your-adaptive-api-key",
+  "rooCode.model": "gpt-4o"
 }
 ```
 
 ```bash Environment Variables
 export OPENAI_BASE_URL=https://www.llmadaptive.uk/api/v1
 export OPENAI_API_KEY=your-adaptive-api-key
+# Then launch VS Code from terminal
 ```
 
 ```text Manual Configuration
-1. Open Roo Code settings in VS Code
-2. Set API Provider to "OpenAI Compatible"
-3. Enter Base URL and API key as shown above
+1. Open VS Code settings (Ctrl/Cmd + ,)
+2. Search for "Roo Code"
+3. Set API Provider to "OpenAI Compatible"
+4. Enter Base URL: https://www.llmadaptive.uk/api/v1
+5. Enter your Adaptive API key
+6. Select your preferred model
 ```
 </CodeGroup>
 
