@@ -8,35 +8,65 @@ const globalPricing = {
 		displayName: "OpenAI",
 		description: "Advanced AI models from OpenAI",
 		models: {
-			"gpt-3.5-turbo": {
-				displayName: "GPT-3.5 Turbo",
-
+			"gpt-5": {
+				displayName: "GPT-5",
+				inputTokenCost: 1.25,
+				outputTokenCost: 10.0,
+			},
+			"gpt-5-pro": {
+				displayName: "GPT-5 Pro",
+				inputTokenCost: 15.0,
+				outputTokenCost: 75.0,
+			},
+			"gpt-5-mini": {
+				displayName: "GPT-5 Mini",
+				inputTokenCost: 0.25,
+				outputTokenCost: 2.0,
+			},
+			"gpt-5-nano": {
+				displayName: "GPT-5 Nano",
+				inputTokenCost: 0.05,
+				outputTokenCost: 0.4,
+			},
+			"gpt-4.1": {
+				displayName: "GPT-4.1",
+				inputTokenCost: 30.0,
+				outputTokenCost: 60.0,
+			},
+			"gpt-4.1-mini": {
+				displayName: "GPT-4.1 Mini",
+				inputTokenCost: 5.0,
+				outputTokenCost: 10.0,
+			},
+			"gpt-4.1-nano": {
+				displayName: "GPT-4.1 Nano",
 				inputTokenCost: 0.5,
-				outputTokenCost: 1.5,
+				outputTokenCost: 1.0,
 			},
 			"gpt-4o": {
 				displayName: "GPT-4o",
-
-				inputTokenCost: 3.0,
+				inputTokenCost: 2.5,
 				outputTokenCost: 10.0,
 			},
 			"gpt-4o-mini": {
 				displayName: "GPT-4o Mini",
-
 				inputTokenCost: 0.15,
 				outputTokenCost: 0.6,
 			},
-			"gpt-4": {
-				displayName: "GPT-4",
-
-				inputTokenCost: 30.0,
-				outputTokenCost: 60.0,
+			o3: {
+				displayName: "O3 Reasoning",
+				inputTokenCost: 60.0,
+				outputTokenCost: 240.0,
 			},
-			"gpt-4-turbo": {
-				displayName: "GPT-4 Turbo",
-
+			"o3-pro": {
+				displayName: "O3 Pro Reasoning",
+				inputTokenCost: 120.0,
+				outputTokenCost: 480.0,
+			},
+			"o4-mini": {
+				displayName: "O4 Mini Reasoning",
 				inputTokenCost: 10.0,
-				outputTokenCost: 30.0,
+				outputTokenCost: 40.0,
 			},
 		},
 	},
@@ -44,29 +74,35 @@ const globalPricing = {
 		displayName: "Anthropic",
 		description: "Constitutional AI models by Anthropic",
 		models: {
-			"claude-3.5-sonnet": {
-				displayName: "Claude 3.5 Sonnet",
-
-				inputTokenCost: 3.0,
-				outputTokenCost: 15.0,
-			},
-			"claude-3.5-haiku": {
-				displayName: "Claude 3.5 Haiku",
-
-				inputTokenCost: 0.8,
-				outputTokenCost: 4.0,
-			},
-			"claude-3-opus": {
-				displayName: "Claude 3 Opus",
-
+			"claude-opus-4.1": {
+				displayName: "Claude Opus 4.1",
 				inputTokenCost: 15.0,
 				outputTokenCost: 75.0,
 			},
-			"claude-4-sonnet": {
-				displayName: "Claude 4 Sonnet",
-
+			"claude-opus-4": {
+				displayName: "Claude Opus 4",
+				inputTokenCost: 15.0,
+				outputTokenCost: 75.0,
+			},
+			"claude-sonnet-4": {
+				displayName: "Claude Sonnet 4",
 				inputTokenCost: 3.0,
 				outputTokenCost: 15.0,
+			},
+			"claude-sonnet-3.7": {
+				displayName: "Claude Sonnet 3.7",
+				inputTokenCost: 3.0,
+				outputTokenCost: 15.0,
+			},
+			"claude-3-5-sonnet-20241022": {
+				displayName: "Claude 3.5 Sonnet",
+				inputTokenCost: 3.0,
+				outputTokenCost: 15.0,
+			},
+			"claude-3-5-haiku-20241022": {
+				displayName: "Claude 3.5 Haiku",
+				inputTokenCost: 0.8,
+				outputTokenCost: 4.0,
 			},
 		},
 	},
@@ -76,33 +112,28 @@ const globalPricing = {
 		models: {
 			"gemini-2.5-pro": {
 				displayName: "Gemini 2.5 Pro",
-
 				inputTokenCost: 1.25,
 				outputTokenCost: 10.0,
 			},
-			"gemini-2.5-pro-large": {
-				displayName: "Gemini 2.5 Pro Large",
-
-				inputTokenCost: 2.5,
-				outputTokenCost: 15.0,
+			"gemini-2.5-flash": {
+				displayName: "Gemini 2.5 Flash",
+				inputTokenCost: 0.3,
+				outputTokenCost: 1.2,
 			},
-			"gemini-1.5-flash": {
-				displayName: "Gemini 1.5 Flash",
-
-				inputTokenCost: 1.25,
-				outputTokenCost: 5.0,
-			},
-			"gemini-2.0-flash": {
-				displayName: "Gemini 2.0 Flash",
-
+			"gemini-2.5-flash-lite": {
+				displayName: "Gemini 2.5 Flash Lite",
 				inputTokenCost: 0.1,
 				outputTokenCost: 0.4,
 			},
-			"gemini-pro": {
-				displayName: "Gemini Pro",
-
-				inputTokenCost: 1.25,
-				outputTokenCost: 5.0,
+			"gemini-2.0-flash": {
+				displayName: "Gemini 2.0 Flash",
+				inputTokenCost: 0.1,
+				outputTokenCost: 0.4,
+			},
+			"gemini-2.0-flash-live": {
+				displayName: "Gemini 2.0 Flash Live",
+				inputTokenCost: 0.15,
+				outputTokenCost: 0.6,
 			},
 		},
 	},
@@ -111,16 +142,34 @@ const globalPricing = {
 		description: "Advanced reasoning AI models by DeepSeek",
 		models: {
 			"deepseek-chat": {
-				displayName: "DeepSeek Chat",
-
+				displayName: "DeepSeek Chat V3.1",
 				inputTokenCost: 0.27,
 				outputTokenCost: 1.1,
 			},
 			"deepseek-reasoner": {
-				displayName: "DeepSeek Reasoner",
-
+				displayName: "DeepSeek Reasoner V3.1",
 				inputTokenCost: 0.55,
 				outputTokenCost: 2.19,
+			},
+			"deepseek-v3-0324": {
+				displayName: "DeepSeek V3 Enhanced",
+				inputTokenCost: 0.27,
+				outputTokenCost: 1.1,
+			},
+			"deepseek-r1": {
+				displayName: "DeepSeek R1 Reasoning",
+				inputTokenCost: 0.55,
+				outputTokenCost: 2.19,
+			},
+			"deepseek-r1-0528": {
+				displayName: "DeepSeek R1 Advanced",
+				inputTokenCost: 0.75,
+				outputTokenCost: 2.99,
+			},
+			"deepseek-coder-v2": {
+				displayName: "DeepSeek Coder V2",
+				inputTokenCost: 0.27,
+				outputTokenCost: 1.1,
 			},
 		},
 	},
@@ -128,83 +177,35 @@ const globalPricing = {
 		displayName: "Groq",
 		description: "High-performance inference for open-source models",
 		models: {
-			"llama-4-scout-17b-16e-instruct": {
-				displayName: "Llama 4 Scout 17B",
-
-				inputTokenCost: 0.11,
-				outputTokenCost: 0.34,
-			},
-			"llama-4-maverick-17b-128e-instruct": {
-				displayName: "Llama 4 Maverick 17B",
-
-				inputTokenCost: 0.2,
-				outputTokenCost: 0.6,
-			},
-			"llama-guard-4-12b": {
-				displayName: "Llama Guard 4 12B",
-
-				inputTokenCost: 0.2,
-				outputTokenCost: 0.2,
-			},
-			"deepseek-r1-distill-llama-70b": {
-				displayName: "DeepSeek R1 Distill Llama 70B",
-
-				inputTokenCost: 0.75,
-				outputTokenCost: 0.99,
-			},
-			"qwen-qwq-32b": {
-				displayName: "Qwen QwQ 32B",
-
-				inputTokenCost: 0.29,
-				outputTokenCost: 0.39,
-			},
-			"mistral-saba-24b": {
-				displayName: "Mistral Saba 24B",
-
-				inputTokenCost: 0.79,
-				outputTokenCost: 0.79,
-			},
 			"llama-3.3-70b-versatile": {
 				displayName: "Llama 3.3 70B Versatile",
-
 				inputTokenCost: 0.59,
 				outputTokenCost: 0.79,
 			},
 			"llama-3.1-8b-instant": {
 				displayName: "Llama 3.1 8B Instant",
-
 				inputTokenCost: 0.05,
 				outputTokenCost: 0.08,
 			},
-			"llama3-70b-8192": {
-				displayName: "Llama 3 70B",
-
+			"deepseek-r1-distill-llama-70b": {
+				displayName: "DeepSeek R1 Distill Llama 70B",
+				inputTokenCost: 0.75,
+				outputTokenCost: 0.99,
+			},
+			"llama-3-groq-70b-tool-use": {
+				displayName: "Llama 3 Groq 70B Tool Use",
 				inputTokenCost: 0.59,
 				outputTokenCost: 0.79,
 			},
-			"llama3-8b-8192": {
-				displayName: "Llama 3 8B",
-
+			"llama-3-groq-8b-tool-use": {
+				displayName: "Llama 3 Groq 8B Tool Use",
 				inputTokenCost: 0.05,
 				outputTokenCost: 0.08,
 			},
-			"mixtral-8x7b-32768": {
-				displayName: "Mixtral 8x7B",
-
-				inputTokenCost: 0.27,
-				outputTokenCost: 0.27,
-			},
-			"gemma-7b-it": {
-				displayName: "Gemma 7B IT",
-
-				inputTokenCost: 0.1,
-				outputTokenCost: 0.1,
-			},
-			"gemma2-9b-it": {
-				displayName: "Gemma 2 9B IT",
-
-				inputTokenCost: 0.1,
-				outputTokenCost: 0.1,
+			"llama-guard-4-12b": {
+				displayName: "Llama Guard 4 12B",
+				inputTokenCost: 0.2,
+				outputTokenCost: 0.2,
 			},
 		},
 	},
@@ -212,29 +213,35 @@ const globalPricing = {
 		displayName: "Grok",
 		description: "Advanced AI models by xAI",
 		models: {
+			"grok-4": {
+				displayName: "Grok 4",
+				inputTokenCost: 15.0,
+				outputTokenCost: 75.0,
+			},
+			"grok-4-heavy": {
+				displayName: "Grok 4 Heavy",
+				inputTokenCost: 25.0,
+				outputTokenCost: 125.0,
+			},
+			"grok-4-fast": {
+				displayName: "Grok 4 Fast",
+				inputTokenCost: 5.0,
+				outputTokenCost: 25.0,
+			},
+			"grok-code-fast-1": {
+				displayName: "Grok Code Fast 1",
+				inputTokenCost: 3.0,
+				outputTokenCost: 15.0,
+			},
 			"grok-3": {
 				displayName: "Grok 3",
-
 				inputTokenCost: 3.0,
 				outputTokenCost: 15.0,
 			},
 			"grok-3-mini": {
 				displayName: "Grok 3 Mini",
-
 				inputTokenCost: 0.3,
 				outputTokenCost: 0.5,
-			},
-			"grok-3-fast": {
-				displayName: "Grok 3 Fast",
-
-				inputTokenCost: 5.0,
-				outputTokenCost: 25.0,
-			},
-			"grok-beta": {
-				displayName: "Grok Beta",
-
-				inputTokenCost: 38.15,
-				outputTokenCost: 114.44,
 			},
 		},
 	},
@@ -242,29 +249,35 @@ const globalPricing = {
 		displayName: "Hugging Face",
 		description: "Open-source models hosted on Hugging Face",
 		models: {
+			"meta-llama/Llama-3.3-70B-Instruct": {
+				displayName: "Llama 3.3 70B Instruct",
+				inputTokenCost: 0.05,
+				outputTokenCost: 0.08,
+			},
 			"meta-llama/Llama-3.1-8B-Instruct": {
 				displayName: "Llama 3.1 8B Instruct",
-
 				inputTokenCost: 0.01,
 				outputTokenCost: 0.02,
 			},
 			"deepseek-ai/DeepSeek-R1-Distill-Qwen-14B": {
 				displayName: "DeepSeek R1 Distill Qwen 14B",
-
-				inputTokenCost: 0.01,
-				outputTokenCost: 0.02,
-			},
-			"mistralai/Mistral-7B-Instruct-v0.3": {
-				displayName: "Mistral 7B Instruct v0.3",
-
-				inputTokenCost: 0.01,
-				outputTokenCost: 0.02,
+				inputTokenCost: 0.02,
+				outputTokenCost: 0.04,
 			},
 			"deepseek-ai/DeepSeek-R1-Distill-Llama-8B": {
 				displayName: "DeepSeek R1 Distill Llama 8B",
-
 				inputTokenCost: 0.01,
 				outputTokenCost: 0.02,
+			},
+			"Qwen/Qwen3-235B-A22B": {
+				displayName: "Qwen3 235B A22B",
+				inputTokenCost: 0.1,
+				outputTokenCost: 0.2,
+			},
+			"Qwen/Qwen3-30B-A3B": {
+				displayName: "Qwen3 30B A3B",
+				inputTokenCost: 0.02,
+				outputTokenCost: 0.04,
 			},
 		},
 	},
