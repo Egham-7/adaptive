@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 
 import { CodeBlock, CodeBlockCode } from "@/components/ui/code-block";
 import { CopyButton } from "@/components/ui/copy-button";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 import { useTheme } from "next-themes";
 
 interface MarkdownRendererProps {

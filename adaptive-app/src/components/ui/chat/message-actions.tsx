@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { CostComparison, CostComparisonResult } from "./cost-comparison";
 import { getMessageContent } from "./chat-utils";
-import { getProviderLogo, getProviderDisplayName } from "@/lib/providers";
+import { getProviderLogo, getProviderDisplayName } from "@/lib/providers/logos";
 import type { MessageTextPart } from "./chat-types";
 
 interface MessageActionsProps {

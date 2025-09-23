@@ -28,8 +28,8 @@ import { DotsLoader, TypingLoader } from "./loader";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { Textarea } from "@/components/ui/textarea";
 import { useAnimatedText } from "@/components/ui/animated-text";
-import { getProviderLogo, getProviderDisplayName } from "@/lib/providers";
-import { cn } from "@/lib/utils";
+import { getProviderLogo, getProviderDisplayName } from "@/lib/providers/logos";
+import { cn } from "@/lib/shared/utils";
 
 import type { UIMessage } from "@ai-sdk/react";
 

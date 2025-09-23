@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { api } from "@/trpc/react";
 import type { ProjectAnalytics } from "@/types/api-platform/dashboard";
+import type { CreditTransactionItem } from "@/types/credits";
 import { MetricCardSkeleton } from "./loading-skeleton";
 import { VersatileMetricChart } from "./versatile-metric-chart";
 
@@ -58,7 +59,7 @@ export function MetricsOverview({ data, loading }: MetricsOverviewProps) {
 	const creditBalanceData = (creditTransactions?.transactions ?? [])
 		.slice() // clone to avoid mutating cached data
 		.reverse() // chronological order
-		.map((transaction) => ({
+		.map((transaction: CreditTransactionItem) => ({
 			// Stable date string for charting (YYYY-MM-DD, UTC)
 			date: new Date(transaction.createdAt).toISOString().slice(0, 10),
 			value: Number.parseFloat(transaction.balanceAfter.toString()),

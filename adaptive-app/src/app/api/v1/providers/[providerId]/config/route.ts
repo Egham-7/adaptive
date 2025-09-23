@@ -7,8 +7,8 @@ import {
 	createErrorResponse,
 	createSuccessResponse,
 	extractApiKey,
-} from "@/lib/api-auth";
-import { invalidateProviderConfigCache, withCache } from "@/lib/cache-utils";
+} from "@/lib/auth/clerk";
+import { invalidateProviderConfigCache, withCache } from "@/lib/shared/cache";
 import { api } from "@/trpc/server";
 
 // Schema for provider config operations

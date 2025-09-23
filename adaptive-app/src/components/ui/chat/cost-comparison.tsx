@@ -12,8 +12,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { api } from "@/trpc/react";
-import { getProviderLogo } from "@/lib/providers";
-import { cn } from "@/lib/utils";
+import { getProviderLogo } from "@/lib/providers/logos";
+import { cn } from "@/lib/shared/utils";
 
 interface CostComparisonProps {
   message: UIMessage;

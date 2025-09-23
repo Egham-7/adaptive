@@ -2,13 +2,13 @@
 
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { invalidateConversationCache, withCache } from "@/lib/cache-utils";
+import { invalidateConversationCache, withCache } from "@/lib/shared/cache";
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import {
 	createConversationSchema,
 	getConversationsOptionsSchema,
 	updateConversationSchema,
-} from "@/lib/chat/schema";
-import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+} from "@/types/chat";
 
 export const conversationRouter = createTRPCRouter({
 	create: protectedProcedure

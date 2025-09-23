@@ -1,11 +1,11 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
-import { decryptProviderApiKey } from "@/lib/auth-utils";
+import { decryptProviderApiKey } from "@/lib/auth";
 import {
 	filterUsageFromChunk,
 	userRequestedUsage,
 	withUsageTracking,
-} from "@/lib/usage-utils";
+} from "@/lib/shared/usage-utils";
 import { api } from "@/trpc/server";
 import type {
 	AuthType,

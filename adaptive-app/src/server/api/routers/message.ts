@@ -1,140 +1,22 @@
 import { TRPCError } from "@trpc/server";
-import type {
-	Conversation,
-	Message,
-	Prisma,
-	PrismaClient,
-} from "prisma/generated";
 import { z } from "zod";
 import {
 	getRemainingMessages,
 	hasReachedDailyLimit,
 } from "@/lib/chat/message-limits";
-import { createMessageSchema, updateMessageSchema } from "@/lib/chat/schema";
+import {
+	createMessageData,
+	createMessageWithTimestampUpdate,
+	findConversationByUserAndId,
+	findMessageWithConversationAccess,
+	softDeleteMessageWithTimestampUpdate,
+	updateMessageData,
+	updateMessageWithTimestampUpdate,
+	validateConversationAccess,
+	validateMessageAccess,
+} from "@/lib/server/message-utils";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-
-type CreateMessageInput = z.infer<typeof createMessageSchema>;
-type UpdateMessageInput = z.infer<typeof updateMessageSchema>;
-
-// Validation functions
-const validateConversationAccess = (
-	conversation: Conversation | null,
-): Conversation => {
-	if (!conversation) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Conversation not found or you do not have access.",
-		});
-	}
-	return conversation;
-};
-
-const validateMessageAccess = (message: Message | null): Message => {
-	if (!message) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: "Message not found or you do not have access.",
-		});
-	}
-	return message;
-};
-
-// Data transformation functions
-const createMessageData = (
-	input: Omit<CreateMessageInput, "conversationId">,
-	conversationId: number,
-) => ({
-	id: input.id,
-	role: input.role,
-	metadata: input.metadata as Prisma.InputJsonValue | undefined,
-	annotations: input.annotations as Prisma.InputJsonValue | undefined,
-	parts: input.parts as Prisma.InputJsonValue,
-	conversation: { connect: { id: conversationId } },
-	...(input.createdAt && { createdAt: new Date(input.createdAt) }),
-});
-
-const updateMessageData = (input: Omit<UpdateMessageInput, "id">) => ({
-	metadata: input.metadata as Prisma.InputJsonValue | undefined,
-	annotations: input.annotations as Prisma.InputJsonValue | undefined,
-	parts: input.parts as Prisma.InputJsonValue | undefined,
-	updatedAt: new Date(),
-});
-
-// Database operations
-const findConversationByUserAndId = (
-	db: PrismaClient,
-	conversationId: number,
-	userId: string,
-) =>
-	db.conversation.findUnique({
-		where: { id: conversationId, userId, deletedAt: null },
-	});
-
-const findMessageWithConversationAccess = (
-	db: PrismaClient,
-	messageId: string,
-	userId: string,
-) =>
-	db.message.findFirst({
-		where: {
-			id: messageId,
-			deletedAt: null,
-			conversation: { userId, deletedAt: null },
-		},
-	});
-
-// Composed operations
-const createMessageWithTimestampUpdate = async (
-	db: PrismaClient,
-	messageData: ReturnType<typeof createMessageData>,
-	conversationId: number,
-) => {
-	return db.$transaction(async (tx) => {
-		const newMessage = await tx.message.create({ data: messageData });
-		await tx.conversation.update({
-			where: { id: conversationId },
-			data: { updatedAt: new Date() },
-		});
-		return newMessage;
-	});
-};
-
-const updateMessageWithTimestampUpdate = async (
-	db: PrismaClient,
-	messageId: string,
-	updateData: ReturnType<typeof updateMessageData>,
-	conversationId: number,
-) => {
-	return db.$transaction(async (tx) => {
-		const updatedMessage = await tx.message.update({
-			where: { id: messageId },
-			data: updateData,
-		});
-		await tx.conversation.update({
-			where: { id: conversationId },
-			data: { updatedAt: new Date() },
-		});
-		return updatedMessage;
-	});
-};
-
-const deleteMessageWithTimestampUpdate = async (
-	db: PrismaClient,
-	messageId: string,
-	conversationId: number,
-) => {
-	return db.$transaction(async (tx) => {
-		const deletedMessage = await tx.message.update({
-			where: { id: messageId },
-			data: { deletedAt: new Date() },
-		});
-		await tx.conversation.update({
-			where: { id: conversationId },
-			data: { updatedAt: new Date() },
-		});
-		return deletedMessage;
-	});
-};
+import { createMessageSchema, updateMessageSchema } from "@/types/chat";
 
 export const messageRouter = createTRPCRouter({
 	create: protectedProcedure
@@ -248,7 +130,7 @@ export const messageRouter = createTRPCRouter({
 			);
 			const message = validateMessageAccess(messageResult);
 
-			return deleteMessageWithTimestampUpdate(
+			return softDeleteMessageWithTimestampUpdate(
 				ctx.db,
 				input.id,
 				message.conversationId,

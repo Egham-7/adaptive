@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import React, { useId } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 export const BackgroundBeams = React.memo(
 	({ className }: { className?: string }) => {

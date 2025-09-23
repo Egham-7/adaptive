@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { getDetailedPromotionalStats } from "@/lib/admin-utils";
+import { getDetailedPromotionalStats } from "@/lib/credits/admin";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 // Admin user IDs from environment variable

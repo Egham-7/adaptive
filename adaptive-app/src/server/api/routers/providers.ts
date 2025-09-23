@@ -5,8 +5,8 @@ import { z } from "zod";
 import {
 	authenticateAndGetProject,
 	validateAndAuthenticateApiKey,
-} from "@/lib/auth-utils";
-import { upsertModelCapability } from "@/lib/model-utils";
+} from "@/lib/auth";
+import { upsertModelCapability } from "@/lib/providers/models";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	addProviderModelSchema,

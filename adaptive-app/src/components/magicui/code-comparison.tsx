@@ -7,7 +7,7 @@ import {
 import { FileIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 interface CodeComparisonProps {
 	beforeCode: string;

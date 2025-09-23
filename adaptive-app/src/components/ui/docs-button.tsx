@@ -2,7 +2,7 @@ import { HiOutlineDocumentText } from "react-icons/hi2";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 interface DocsButtonProps {
 	variant?: "default" | "outline" | "ghost" | "link";

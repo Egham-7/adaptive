@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import type { CreditTransactionType } from "prisma/generated";
 import type { InputJsonValue } from "prisma/generated/runtime/library";
-import { CREDIT_LIMITS, TOKEN_PRICING } from "@/lib/pricing-config";
+import { CREDIT_LIMITS, TOKEN_PRICING } from "@/lib/config/pricing";
 import {
 	getPromotionalCreditStats,
 	hasUserReceivedPromotionalCredits,
 	PROMOTIONAL_CONFIG,
-} from "@/lib/promotional-config";
+} from "@/lib/config/promotional";
 import { db } from "@/server/db";
 
 // ---- Core Credit Operations ----

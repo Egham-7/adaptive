@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { invalidateSubscriptionCache, withCache } from "@/lib/cache-utils";
+import { invalidateSubscriptionCache, withCache } from "@/lib/shared/cache";
 import { stripe } from "@/lib/stripe/stripe";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 

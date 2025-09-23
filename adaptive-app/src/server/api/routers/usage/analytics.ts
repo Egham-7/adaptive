@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { withCache } from "@/lib/cache-utils";
+import { withCache } from "@/lib/shared/cache";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { ensureNumber, providerEnum } from "./shared-utils";
 
