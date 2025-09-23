@@ -1,8 +1,27 @@
 # Claude Assistant Configuration
 
+## 🚀 Quick Reference - READ THIS FIRST
+
+**CRITICAL COMMANDS**:
+- Frontend: `cd adaptive-app && pnpm run dev` (port 3000)
+- Backend: `cd adaptive-backend && go run cmd/api/main.go` (port 8080)
+- AI Service: `cd adaptive_ai/model_router && uv run model-router` (port 8000)
+
+**BEFORE EVERY COMMIT**:
+- Frontend: `pnpm run typecheck && pnpm run check`
+- Backend: `go test ./... && go vet ./... && go fmt ./...`
+- AI Service: `uv run mypy . && uv run ruff check . && uv run black .`
+
+**CODE STYLE RULES**:
+- TypeScript: **USE ES modules**, NEVER CommonJS
+- Go: **NEVER ignore errors**, always use `go fmt`
+- Python: **ALL functions need type hints**, use Black formatting
+
+---
+
 ## Memory and Documentation
 
-When working with this project, use the following MCP tools:
+**IMPORTANT**: When working with this project, you MUST use the following MCP tools:
 
 ### Memory Management
 **IMPORTANT**: Use ByteRover MCP for persistent memory across sessions:
@@ -81,43 +100,46 @@ This ensures you always have access to the most current documentation and can re
 - `docker-compose exec [service] bash` - Access service shell
 
 ### Development Workflow
-- `pnpm run dev` - Start frontend development (from adaptive-app/)
-- `go run cmd/api/main.go` - Start backend API (from adaptive-backend/)
-- `uv run model-router` - Start AI service (from adaptive_ai/model_router/)
+**CRITICAL STARTUP SEQUENCE** - Start services in this order:
+1. `cd adaptive-app && pnpm run dev` - Frontend (port 3000)
+2. `cd adaptive-backend && go run cmd/api/main.go` - Backend API (port 8080)
+3. `cd adaptive_ai/model_router && uv run model-router` - AI service (port 8000)
+
+**IMPORTANT**: Always verify all services are running before making changes
 
 ## Code Style Guidelines
 
 ### TypeScript/React (Frontend)
-- **IMPORTANT**: Use ES modules (import/export) syntax, NOT CommonJS (require)
-- Use Biome for consistent code formatting and linting
-- Destructure imports when possible: `import { foo } from 'bar'`
-- Follow React 19 patterns with Server Components where appropriate
-- Use TypeScript strict mode - all types must be properly defined
-- Prefer `interface` over `type` for object shapes
-- Use `const` assertions for immutable data
-- Self-closing JSX elements: `<Component />` not `<Component></Component>`
-- Organize imports: React imports first, then third-party, then local
+- **YOU MUST**: Use ES modules (import/export) syntax, NEVER CommonJS (require)
+- **YOU MUST**: Use Biome for all code formatting and linting - run `pnpm run check` before committing
+- **REQUIRED**: Destructure imports when possible: `import { foo } from 'bar'`
+- **REQUIRED**: Follow React 19 patterns with Server Components where appropriate
+- **CRITICAL**: Use TypeScript strict mode - all types must be properly defined
+- **PREFER**: `interface` over `type` for object shapes
+- **USE**: `const` assertions for immutable data
+- **FORMAT**: Self-closing JSX elements: `<Component />` not `<Component></Component>`
+- **ORGANIZE IMPORTS**: React imports first, then third-party, then local
 
 ### Go (Backend)
-- Follow standard Go formatting with `go fmt`
-- Use descriptive variable names, avoid abbreviations
-- Implement proper error handling - never ignore errors
-- Use interfaces for abstractions and testing
-- Follow Go naming conventions (PascalCase for exports, camelCase for private)
-- Keep functions small and focused
-- Use context.Context for request scoping and cancellation
-- Prefer dependency injection over global variables
+- **YOU MUST**: Run `go fmt ./...` before every commit - NEVER commit unformatted code
+- **REQUIRED**: Use descriptive variable names, avoid abbreviations
+- **CRITICAL**: Implement proper error handling - NEVER ignore errors
+- **USE**: Interfaces for abstractions and testing
+- **FOLLOW**: Go naming conventions (PascalCase for exports, camelCase for private)
+- **KEEP**: Functions small and focused
+- **ALWAYS**: Use context.Context for request scoping and cancellation
+- **PREFER**: Dependency injection over global variables
 
 ### Python (AI Service)
-- **IMPORTANT**: Use Black for code formatting (line length: 88)
-- Use Ruff for linting and import sorting
-- All code must pass mypy type checking
-- Use type hints for all function parameters and return values
-- Follow PEP 8 naming conventions
-- Use dataclasses or Pydantic models for structured data
-- Prefer f-strings for string formatting
-- Use descriptive variable names, avoid single-letter variables
-- Handle exceptions explicitly, don't use bare `except:`
+- **YOU MUST**: Use Black for code formatting (line length: 88) - run `uv run black .` before committing
+- **YOU MUST**: Use Ruff for linting and import sorting - run `uv run ruff check .` before committing
+- **CRITICAL**: All code must pass mypy type checking - run `uv run mypy .` before committing
+- **REQUIRED**: Use type hints for ALL function parameters and return values
+- **FOLLOW**: PEP 8 naming conventions strictly
+- **USE**: dataclasses or Pydantic models for structured data
+- **PREFER**: f-strings for string formatting
+- **REQUIRED**: Use descriptive variable names, NEVER single-letter variables
+- **CRITICAL**: Handle exceptions explicitly, NEVER use bare `except:`
 
 ## Testing Instructions
 
@@ -220,12 +242,18 @@ Each service has its own CLAUDE.md file with specific configuration and developm
   - Built with Fiber framework (Go 1.24+), high performance HTTP server
   - Port: 8080 | Commands: `go run cmd/api/main.go`, `go test ./...`
 
-- **[adaptive_ai/model_router/](adaptive_ai/model_router/CLAUDE.md)** - Python AI service 
+- **[adaptive_ai/model_router/](adaptive_ai/model_router/CLAUDE.md)** - Python AI service
   - Intelligent model selection using ML classifiers (PyTorch, scikit-learn)
   - Prompt analysis and task complexity detection with NLP models
   - Cost optimization and provider routing decisions
-  - LitServe ML serving framework with sentence-transformers
-  - Port: 8000 | Commands: `uv run adaptive-ai`, `uv run pytest`
+  - FastAPI serving framework with Modal integration
+  - Port: 8000 | Commands: `uv run model-router`, `uv run pytest`
+
+- **[adaptive_ai/prompt_task_complexity_classifier/](adaptive_ai/prompt_task_complexity_classifier/)** - Modal-deployed ML classifier
+  - NVIDIA GPU-powered prompt classification service
+  - Task complexity analysis and domain detection
+  - Modal deployment with JWT authentication
+  - Real-time inference with <100ms latency
 
 - **[adaptive-app/](adaptive-app/CLAUDE.md)** - Next.js frontend
   - Multi-tenant web interface for chat and analytics dashboards
@@ -244,6 +272,7 @@ Each service has its own CLAUDE.md file with specific configuration and developm
   - GenAI-Perf load testing with concurrency analysis
   - MMLU academic benchmarking for model evaluation
   - Protocol testing for AI service routing validation
+  - Web performance benchmarking for frontend optimization
 
 - **[adaptive-docs/](adaptive-docs/CLAUDE.md)** - Documentation site
   - Mintlify-powered API documentation with interactive examples
@@ -299,7 +328,7 @@ When working with this codebase, consider the service interactions and data flow
 - Use conventional commit messages: `feat:`, `fix:`, `docs:`, `refactor:`
 
 ### Before Committing
-**IMPORTANT**: Always run these checks before committing:
+**YOU MUST ALWAYS** run these checks before committing - NO EXCEPTIONS:
 
 **Frontend:**
 ```bash
