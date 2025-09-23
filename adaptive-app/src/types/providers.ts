@@ -1,17 +1,22 @@
 import { z } from "zod";
 import type { Prisma } from "../../prisma/generated";
 
+// Provider enum for consistent typing across the app
+export const providerEnum = [
+	"openai",
+	"anthropic",
+	"gemini",
+	"groq",
+	"deepseek",
+	"huggingface",
+	"grok",
+	"adaptive",
+] as const;
+
+export type ProviderType = (typeof providerEnum)[number];
+
 // Define supported providers as a union type
-export type Provider =
-	| "openai"
-	| "anthropic"
-	| "gemini"
-	| "groq"
-	| "deepseek"
-	| "huggingface"
-	| "grok"
-	| "adaptive"
-	| null;
+export type Provider = ProviderType | null;
 
 // Define supported authentication types
 export type AuthType = "bearer" | "api_key" | "basic" | "custom";

@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { decryptProviderApiKey } from "@/lib/auth";
-import { withCache } from "@/lib/shared/cache";
 import {
 	filterUsageFromChunk,
 	userRequestedUsage,
 	withUsageTracking,
-} from "@/lib/shared/usage-utils";
+} from "@/lib/server/usage-utils";
+import { withCache } from "@/lib/shared/cache";
 import { api } from "@/trpc/server";
 import type {
 	ChatCompletion,

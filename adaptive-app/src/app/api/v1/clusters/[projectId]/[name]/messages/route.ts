@@ -1,12 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
-import {
-	type ProviderType,
-	providerEnum,
-} from "@/server/api/routers/usage/shared-utils";
 import { api } from "@/trpc/server";
 import { anthropicMessagesRequestSchema } from "@/types/anthropic-messages";
+import { type ProviderType, providerEnum } from "@/types/providers";
 
 export const runtime = "nodejs";
 

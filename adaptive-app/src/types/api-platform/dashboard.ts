@@ -4,14 +4,16 @@ import type { RouterInputs, RouterOutputs } from "../index";
 // ---- tRPC-derived Types ----
 
 /**
- * Project analytics data from the usage router
+ * Project analytics data from the projectAnalytics router
  */
-export type ProjectAnalytics = RouterOutputs["usage"]["getProjectAnalytics"];
+export type ProjectAnalytics =
+	RouterOutputs["projectAnalytics"]["getProjectAnalytics"];
 
 /**
- * User analytics data from the usage router
+ * User analytics data from the projectAnalytics router
  */
-export type UserAnalytics = RouterOutputs["usage"]["getUserAnalytics"];
+export type UserAnalytics =
+	RouterOutputs["projectAnalytics"]["getUserAnalytics"];
 
 /**
  * Daily usage trend data point
@@ -36,7 +38,7 @@ export type RequestTypeBreakdown =
  * Provider type from tRPC schema
  */
 export type ProviderType =
-	RouterInputs["usage"]["getProjectAnalytics"]["provider"];
+	RouterInputs["projectAnalytics"]["getProjectAnalytics"]["provider"];
 
 /**
  * Supported provider types for filtering - includes "all" option

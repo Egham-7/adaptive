@@ -1,5 +1,9 @@
 import crypto from "node:crypto";
 import type { PrismaClient } from "prisma/generated";
+import type {
+	ChatCompletionChunk,
+	ChatCompletionRequest,
+} from "@/types/chat-completion";
 
 // Helper function to ensure we always return valid numbers
 export const ensureNumber = (value: number | null | undefined): number => {
@@ -89,16 +93,31 @@ export const findModelBySimilarity = async (
 	return bestScore > 0 ? bestMatch : null;
 };
 
-// Provider enum for consistent typing
-export const providerEnum = [
-	"openai",
-	"anthropic",
-	"gemini",
-	"groq",
-	"deepseek",
-	"huggingface",
-	"grok",
-	"adaptive",
-] as const;
+/**
+ * Checks if the user requested usage data in the stream_options
+ */
+export const userRequestedUsage = (body: ChatCompletionRequest): boolean => {
+	return body.stream_options?.include_usage === true;
+};
 
-export type ProviderType = (typeof providerEnum)[number];
+/**
+ * Adds usage tracking to the request body for internal processing
+ */
+export const withUsageTracking = (
+	requestBody: ChatCompletionRequest,
+): ChatCompletionRequest => ({
+	...requestBody,
+	stream_options: {
+		...requestBody.stream_options,
+		include_usage: true,
+	},
+});
+
+/**
+ * Filters usage information from chat completion chunk based on whether it should be included
+ */
+export const filterUsageFromChunk = (
+	chunk: ChatCompletionChunk,
+	includeUsage: boolean,
+): ChatCompletionChunk =>
+	includeUsage ? chunk : { ...chunk, usage: undefined };

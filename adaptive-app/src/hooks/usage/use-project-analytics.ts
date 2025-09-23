@@ -14,7 +14,7 @@ export const useProjectAnalytics = ({
 	endDate,
 	provider,
 }: ProjectAnalyticsParams) => {
-	const query = api.usage.getProjectAnalytics.useQuery(
+	const query = api.projectAnalytics.getProjectAnalytics.useQuery(
 		{
 			projectId,
 			startDate,

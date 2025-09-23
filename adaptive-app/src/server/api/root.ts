@@ -7,6 +7,7 @@ import { llmClustersRouter } from "./routers/llm-clusters";
 import { messageRouter } from "./routers/message";
 import { organizationsRouter } from "./routers/organizations";
 import { modelPricingRouter } from "./routers/pricing";
+import { projectAnalyticsRouter } from "./routers/project-analytics";
 import { projectsRouter } from "./routers/projects";
 import { providerConfigsRouter } from "./routers/provider-configs";
 import { providerModelsRouter } from "./routers/provider-models";
@@ -31,6 +32,7 @@ export const appRouter = createTRPCRouter({
 	llmClusters: llmClustersRouter,
 	organizations: organizationsRouter,
 	modelPricing: modelPricingRouter,
+	projectAnalytics: projectAnalyticsRouter,
 	projects: projectsRouter,
 	providerConfigs: providerConfigsRouter,
 	providerModels: providerModelsRouter,

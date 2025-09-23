@@ -20,7 +20,5 @@ export {
 
 // Redis client
 export { redis } from "./redis";
-// Usage utilities
-export * from "./usage-utils";
 // Core utilities (cn, etc.)
 export { cn } from "./utils";

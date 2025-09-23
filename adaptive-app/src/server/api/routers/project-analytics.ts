@@ -2,19 +2,18 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { withCache } from "@/lib/shared/cache";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
-import { ensureNumber, providerEnum } from "./shared-utils";
+import {
+	projectAnalyticsInputSchema,
+	userAnalyticsInputSchema,
+} from "@/types/analytics";
 
-export const analyticsRouter = createTRPCRouter({
+/**
+ * Project analytics router for usage analytics and cost comparisons
+ */
+export const projectAnalyticsRouter = createTRPCRouter({
 	// Get usage analytics for a project
 	getProjectAnalytics: protectedProcedure
-		.input(
-			z.object({
-				projectId: z.string(),
-				startDate: z.date().optional(),
-				endDate: z.date().optional(),
-				provider: z.enum(providerEnum).optional(),
-			}),
-		)
+		.input(projectAnalyticsInputSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId;
 
@@ -161,7 +160,7 @@ export const analyticsRouter = createTRPCRouter({
 					let dailyUsageRaw: DailyUsageRow[];
 					if (input.provider) {
 						dailyUsageRaw = await ctx.db.$queryRaw<DailyUsageRow[]>`
-							SELECT 
+							SELECT
 								DATE("timestamp") as date,
 								SUM("totalTokens") as total_tokens,
 								SUM("inputTokens") as input_tokens,
@@ -170,7 +169,7 @@ export const analyticsRouter = createTRPCRouter({
 								SUM("creditCost") as credit_cost,
 								SUM("requestCount") as request_count
 							FROM "ApiUsage"
-							WHERE 
+							WHERE
 								"projectId" = ${input.projectId}
 								AND "timestamp" >= ${startUtc}
 								AND "timestamp" < ${endUtcExclusive}
@@ -180,7 +179,7 @@ export const analyticsRouter = createTRPCRouter({
 						`;
 					} else {
 						dailyUsageRaw = await ctx.db.$queryRaw<DailyUsageRow[]>`
-							SELECT 
+							SELECT
 								DATE("timestamp") as date,
 								SUM("totalTokens") as total_tokens,
 								SUM("inputTokens") as input_tokens,
@@ -189,7 +188,7 @@ export const analyticsRouter = createTRPCRouter({
 								SUM("creditCost") as credit_cost,
 								SUM("requestCount") as request_count
 							FROM "ApiUsage"
-							WHERE 
+							WHERE
 								"projectId" = ${input.projectId}
 								AND "timestamp" >= ${startUtc}
 								AND "timestamp" < ${endUtcExclusive}
@@ -215,7 +214,7 @@ export const analyticsRouter = createTRPCRouter({
 					}));
 
 					// Calculate comparison costs using database provider pricing
-					const totalSpend = ensureNumber(totalMetrics._sum.creditCost); // Use creditCost for customer spending
+					const totalSpend = totalMetrics._sum.creditCost ?? 0; // Use creditCost for customer spending
 
 					// Get all providers with their pricing data
 					const providers = await ctx.db.provider.findMany({
@@ -376,7 +375,7 @@ export const analyticsRouter = createTRPCRouter({
 						},
 					});
 
-					const totalCalls = ensureNumber(totalMetrics._count.id);
+					const totalCalls = totalMetrics._count.id ?? 0;
 					const errorCount = errorUsage.length;
 					const errorRate =
 						totalCalls > 0 ? (errorCount / totalCalls) * 100 : 0;
@@ -395,8 +394,8 @@ export const analyticsRouter = createTRPCRouter({
 
 					return {
 						totalSpend,
-						totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
-						totalRequests: ensureNumber(totalMetrics._sum.requestCount),
+						totalTokens: totalMetrics._sum.totalTokens ?? 0,
+						totalRequests: totalMetrics._sum.requestCount ?? 0,
 						totalApiCalls: totalCalls,
 						totalEstimatedCost,
 						totalSavings,
@@ -406,21 +405,21 @@ export const analyticsRouter = createTRPCRouter({
 						modelProviderBreakdown,
 						requestTypeBreakdown: requestTypeUsage.map((usage) => ({
 							type: usage.requestType,
-							spend: ensureNumber(usage._sum.cost),
-							tokens: ensureNumber(usage._sum.totalTokens),
-							requests: ensureNumber(usage._sum.requestCount),
-							calls: ensureNumber(usage._count.id),
+							spend: usage._sum.cost ?? 0,
+							tokens: usage._sum.totalTokens ?? 0,
+							requests: usage._sum.requestCount ?? 0,
+							calls: usage._count.id,
 						})),
 						dailyTrends: dailyUsage.map((usage) => {
 							const dateKey = usage.timestamp.toISOString().split("T")[0];
 							return {
 								date: usage.timestamp,
-								spend: ensureNumber(usage._sum.creditCost), // ← Use creditCost for customer spending
-								providerCost: ensureNumber(usage._sum.cost), // ← Keep provider cost for admin
-								tokens: ensureNumber(usage._sum.totalTokens),
-								inputTokens: ensureNumber(usage._sum.inputTokens), // ← Add input tokens
-								outputTokens: ensureNumber(usage._sum.outputTokens), // ← Add output tokens
-								requests: ensureNumber(usage._sum.requestCount),
+								spend: usage._sum.creditCost ?? 0, // ← Use creditCost for customer spending
+								providerCost: usage._sum.cost ?? 0, // ← Keep provider cost for admin
+								tokens: usage._sum.totalTokens ?? 0,
+								inputTokens: usage._sum.inputTokens ?? 0, // ← Add input tokens
+								outputTokens: usage._sum.outputTokens ?? 0, // ← Add output tokens
+								requests: usage._sum.requestCount ?? 0,
 								errorCount: dateKey ? errorsByDay[dateKey] || 0 : 0,
 							};
 						}),
@@ -444,13 +443,7 @@ export const analyticsRouter = createTRPCRouter({
 
 	// Get usage analytics for a user across all projects
 	getUserAnalytics: protectedProcedure
-		.input(
-			z.object({
-				startDate: z.date().optional(),
-				endDate: z.date().optional(),
-				provider: z.enum(providerEnum).optional(),
-			}),
-		)
+		.input(userAnalyticsInputSchema)
 		.query(async ({ ctx, input }) => {
 			const userId = ctx.userId;
 			const cacheKey = `user-analytics:${userId}:${JSON.stringify(input)}`;
@@ -570,19 +563,19 @@ export const analyticsRouter = createTRPCRouter({
 					});
 
 					return {
-						totalSpend: ensureNumber(totalMetrics._sum.creditCost),
-						totalTokens: ensureNumber(totalMetrics._sum.totalTokens),
-						totalRequests: ensureNumber(totalMetrics._sum.requestCount),
-						totalApiCalls: ensureNumber(totalMetrics._count.id),
+						totalSpend: totalMetrics._sum.creditCost ?? 0,
+						totalTokens: totalMetrics._sum.totalTokens ?? 0,
+						totalRequests: totalMetrics._sum.requestCount ?? 0,
+						totalApiCalls: totalMetrics._count.id ?? 0,
 						projectBreakdown: projectUsage.map((usage) => {
 							const project = projects.find((p) => p.id === usage.projectId);
 							return {
 								projectId: usage.projectId,
 								projectName: project?.name || "Unknown Project",
-								spend: ensureNumber(usage._sum.creditCost),
-								tokens: ensureNumber(usage._sum.totalTokens),
-								requests: ensureNumber(usage._sum.requestCount),
-								calls: ensureNumber(usage._count.id),
+								spend: usage._sum.creditCost ?? 0,
+								tokens: usage._sum.totalTokens ?? 0,
+								requests: usage._sum.requestCount ?? 0,
+								calls: usage._count.id,
 							};
 						}),
 					};

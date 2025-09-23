@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 	const selectModelCostInTokens = TOKEN_PRICING.tokensForUsd(0.001);
 
 	try {
-		await api.usage.checkCreditsBeforeUsage({
+		await api.credits.checkCreditsBeforeUsage({
 			apiKey,
 			estimatedInputTokens: selectModelCostInTokens,
 			estimatedOutputTokens: 0,
