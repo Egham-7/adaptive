@@ -39,6 +39,7 @@
       {
         "group": "Key Features",
         "pages": [
+          "supported-models",
           "features/intelligent-routing",
           "features/zero-completion-insurance",
           "features/data-privacy-retention",
