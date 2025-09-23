@@ -1,5 +1,30 @@
 # Adaptive Backend - Go API Server
 
+## 🚀 Quick Reference - READ THIS FIRST
+
+**START SERVICE**: `go run cmd/api/main.go` (port 8080)
+
+**BEFORE EVERY COMMIT**:
+```bash
+go test ./...      # MUST PASS
+go vet ./...       # MUST PASS
+go fmt ./...       # MUST RUN
+golangci-lint run  # MUST PASS
+```
+
+**CRITICAL RULES**:
+- **NEVER ignore errors** - always handle them properly
+- **ALWAYS use `go fmt`** before committing
+- **USE interfaces** for abstractions and testing
+- **FOLLOW Go naming conventions** (PascalCase for exports)
+
+**API ENDPOINTS**:
+- `POST /v1/chat/completions` - Main chat endpoint (requires API key)
+- `POST /v1/select-model` - Model selection endpoint
+- `GET /health` - Health check
+
+---
+
 ## Memory and Documentation
 
 **IMPORTANT**: When working on this service, remember to:
@@ -162,7 +187,7 @@ go test ./internal/services/providers/...
 
 ### Code Quality
 
-**IMPORTANT**: Always run these commands before committing:
+**YOU MUST ALWAYS** run these commands before committing - NO EXCEPTIONS:
 
 ```bash
 # Format code (REQUIRED before every commit)

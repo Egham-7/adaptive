@@ -128,13 +128,13 @@ MODAL_HEALTH_CHECK_INTERVAL=60   # Health check interval in seconds
 uv install
 
 # Start the service
-uv run model-router
+uv run adaptive-ai
 
 # Start with development settings
-DEBUG=true uv run model-router
+DEBUG=true uv run adaptive-ai
 
 # Start on custom port
-PORT=8001 uv run model-router
+PORT=8001 uv run adaptive-ai
 
 # Note: Hypercorn workers setting is ignored in programmatic mode
 # For multi-process deployment, use a process manager like gunicorn or supervisord
