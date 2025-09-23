@@ -45,7 +45,7 @@
 		"@radix-ui/react-switch": "^1.2.6",
 		"@radix-ui/react-tabs": "^1.1.13",
 		"@radix-ui/react-tooltip": "^1.2.8",
-		"@react-email/components": "0.5.1",
+		"@react-email/components": "0.5.3",
 		"@react-email/render": "1.2.3",
 		"@shikijs/transformers": "^3.13.0",
 		"@t3-oss/env-nextjs": "^0.13.8",
@@ -89,7 +89,7 @@
 		"stripe": "^18.5.0",
 		"superjson": "^2.2.2",
 		"tailwind-merge": "^3.3.1",
-		"uuid": "^11.1.0",
+		"uuid": "^13.0.0",
 		"vaul": "^1.1.2",
 		"zod": "^4.1.11"
 	},
