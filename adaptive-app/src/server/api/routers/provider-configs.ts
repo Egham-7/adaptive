@@ -6,7 +6,7 @@ import {
 	decryptProviderApiKey,
 	encryptProviderApiKey,
 	validateAndAuthenticateApiKey,
-} from "@/lib/auth-utils";
+} from "@/lib/auth";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	createProviderConfigSchema,

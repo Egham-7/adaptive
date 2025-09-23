@@ -14,10 +14,10 @@ import { Exa } from "exa-js";
 import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
-import type { messageRoleSchema } from "@/lib/chat/schema";
-import { multiTagReasoningMiddleware } from "@/lib/multi-tag-reasoning-middleware";
+import { multiTagReasoningMiddleware } from "@/lib/middleware/multi-tag-reasoning";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
+import type { messageRoleSchema } from "@/types/chat";
 
 type MessageRole = z.infer<typeof messageRoleSchema>;
 

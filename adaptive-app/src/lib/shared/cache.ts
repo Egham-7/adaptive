@@ -1,4 +1,4 @@
-import { redis } from "@/lib/redis";
+import { redis } from "./redis";
 
 type CacheKey = string;
 type CachePattern = string;

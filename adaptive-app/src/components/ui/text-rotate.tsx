@@ -16,7 +16,7 @@ import {
   type Transition,
 } from "motion/react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 interface TextRotateProps {
   texts: string[];

@@ -13,7 +13,7 @@ import {
 } from "motion/react";
 import * as React from "react";
 import { SlidingNumber } from "@/components/animate-ui/text/sliding-number";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 type FormatNumberResult = { number: string[]; unit: string };
 

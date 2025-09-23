@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { auth as getClerkAuth } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { Context } from "@/server/api/trpc";
+import type { AuthResult } from "@/types/auth";
 
 // API key validation constants
 const API_KEY_REGEX = /^sk-[A-Za-z0-9_-]+$/;
@@ -44,23 +45,6 @@ export const validateAndAuthenticateApiKey = async (
 
 	return record;
 };
-
-export type AuthResult =
-	| {
-			authType: "api_key";
-			apiKey: {
-				id: string;
-				projectId: string;
-				keyPrefix: string;
-				project: { id: string; name: string };
-			};
-			project: { id: string; name: string };
-	  }
-	| {
-			authType: "user";
-			userId: string;
-			project: { id: string; name: string };
-	  };
 
 // Helper function to authenticate and get project access
 export const authenticateAndGetProject = async (

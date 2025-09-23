@@ -21,7 +21,7 @@ import { InterruptPrompt } from "./interrupt-prompt";
 import { TextShimmerLoader } from "./loader";
 import { useAudioRecording } from "@/hooks/use-audio-recording";
 import { useAutosizeTextArea } from "@/hooks/use-autosize-textarea";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 interface MessageInputBaseProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {

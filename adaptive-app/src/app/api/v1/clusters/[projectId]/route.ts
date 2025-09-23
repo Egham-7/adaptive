@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { authenticateApiKey } from "@/lib/auth-utils";
+import { authenticateApiKey } from "@/lib/auth";
 import { db } from "@/server/db";
 import { createClusterSchema } from "@/types";
 

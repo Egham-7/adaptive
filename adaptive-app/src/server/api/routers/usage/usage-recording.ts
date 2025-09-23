@@ -1,13 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
-import { invalidateAnalyticsCache } from "@/lib/cache-utils";
 import {
 	calculateCreditCost,
 	deductCredits,
 	getOrganizationBalance,
 	hasSufficientCredits,
-} from "@/lib/credit-utils";
+} from "@/lib/credits";
+import { invalidateAnalyticsCache } from "@/lib/shared/cache";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import type { CacheTier } from "@/types/cache";
 import { cacheTierSchema } from "@/types/cache";

@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useRef } from "react";
 import { motion, useAnimationControls } from "framer-motion";
 import { v4 as uuidv4 } from "uuid";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 import { useDimensions } from "@/components/hooks/use-debounced-dimensions";
 
 interface PixelElement extends HTMLElement {

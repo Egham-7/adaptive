@@ -7,7 +7,7 @@ import { forwardRef, useCallback, useRef, useState } from "react";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { PixelTrail } from "@/components/ui/pixel-trail";
 import { SocialLogo } from "@/components/ui/social-logo";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 interface CircleProps {
 	className?: string;

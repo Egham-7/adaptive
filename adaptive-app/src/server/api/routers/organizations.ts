@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "prisma/generated";
 import { z } from "zod";
-import { invalidateOrganizationCache, withCache } from "@/lib/cache-utils";
+import { invalidateOrganizationCache, withCache } from "@/lib/shared/cache";
 import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 
 type OrganizationWithMembersAndCount = Prisma.OrganizationGetPayload<{

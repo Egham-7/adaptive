@@ -2,7 +2,7 @@
  * Admin utilities for promotional credit management
  */
 
-import { PROMOTIONAL_CONFIG } from "@/lib/promotional-config";
+import { PROMOTIONAL_CONFIG } from "@/lib/config/promotional";
 import { db } from "@/server/db";
 
 /**
@@ -97,7 +97,7 @@ export async function manuallyAwardPromotionalCredits(
 	}
 
 	// Award credits using the existing addCredits function
-	const { addCredits } = await import("@/lib/credit-utils");
+	const { addCredits } = await import("./credit-utils");
 
 	return await addCredits({
 		organizationId,

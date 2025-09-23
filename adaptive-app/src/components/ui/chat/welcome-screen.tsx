@@ -3,7 +3,7 @@ import { PromptSuggestions } from "./prompt-suggestions";
 import { MessageInputWrapper } from "./message-input-wrapper";
 import { ErrorDisplay } from "./error-display";
 import { ChatStatus } from "./chat-status";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 interface WelcomeScreenProps {
   className?: string;

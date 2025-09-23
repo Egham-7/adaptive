@@ -12,7 +12,7 @@ import { ChevronDown, Home, Star, FileText, DollarSign, Users, HelpCircle } from
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { HiOutlineDocumentText } from "react-icons/hi2";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

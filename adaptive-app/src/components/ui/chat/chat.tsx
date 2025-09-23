@@ -3,7 +3,7 @@ import type { UIMessage } from "@ai-sdk/react";
 
 import { useDeleteMessage } from "@/hooks/messages/use-delete-message";
 import { MessageList } from "@/components/ui/chat/message-list";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 
 import { ChatContainer } from "./chat-container";
 import { ChatErrorDisplay } from "./chat-error-display";

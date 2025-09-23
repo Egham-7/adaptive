@@ -4,7 +4,7 @@ import {
 	calculateCreditCost,
 	getOrganizationBalance,
 	hasSufficientCredits,
-} from "@/lib/credit-utils";
+} from "@/lib/credits";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { hashApiKey } from "./shared-utils";
 

@@ -7,7 +7,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/shared/utils";
 import type { ConversationListItem } from "@/types";
 import { DeleteConversationDialog } from "./delete-conversation-dialog";
 import { EditConversationDialog } from "./edit-conversation-dialog";

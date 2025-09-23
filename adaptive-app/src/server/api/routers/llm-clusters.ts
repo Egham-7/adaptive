@@ -6,8 +6,8 @@ import {
 	authenticateAndGetProject,
 	getCacheKey,
 	validateAndAuthenticateApiKey,
-} from "@/lib/auth-utils";
-import { invalidateProjectCache, withCache } from "@/lib/cache-utils";
+} from "@/lib/auth";
+import { invalidateProjectCache, withCache } from "@/lib/shared/cache";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	addProviderToClusterSchema,

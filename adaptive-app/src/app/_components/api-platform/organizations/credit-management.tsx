@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { TOKEN_PRICING } from "@/lib/pricing-config";
+import { TOKEN_PRICING } from "@/lib/config/pricing";
 import { api } from "@/trpc/react";
 
 interface CreditManagementProps {
