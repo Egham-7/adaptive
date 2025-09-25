@@ -10,7 +10,7 @@ SCRIPT_VERSION="1.0.0"
 NODE_MIN_VERSION=18
 NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
-GROK_PACKAGE="@vibe-kit/grok-cli"
+GROK_PACKAGE="@vibe-kit/grok-cli@0.0.16"
 CONFIG_DIR="$HOME/.grok"
 API_BASE_URL="https://www.llmadaptive.uk/api/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
@@ -202,6 +202,121 @@ validate_api_key() {
   return 0
 }
 
+detect_shell() {
+  if [ -n "$ZSH_VERSION" ]; then
+    echo "zsh"
+  elif [ -n "$BASH_VERSION" ]; then
+    echo "bash"
+  elif [ -n "$FISH_VERSION" ]; then
+    echo "fish"
+  else
+    # Fallback to checking SHELL environment variable
+    case "$SHELL" in
+      */zsh) echo "zsh" ;;
+      */bash) echo "bash" ;;
+      */fish) echo "fish" ;;
+      *) echo "bash" ;; # Default fallback
+    esac
+  fi
+}
+
+get_shell_config_file() {
+  local shell_type="$1"
+  
+  case "$shell_type" in
+    zsh)
+      echo "$HOME/.zshrc"
+      ;;
+    bash)
+      if [ -f "$HOME/.bashrc" ]; then
+        echo "$HOME/.bashrc"
+      elif [ -f "$HOME/.bash_profile" ]; then
+        echo "$HOME/.bash_profile"
+      else
+        echo "$HOME/.bashrc"
+      fi
+      ;;
+    fish)
+      mkdir -p "$HOME/.config/fish"
+      echo "$HOME/.config/fish/config.fish"
+      ;;
+    *)
+      echo "$HOME/.bashrc"
+      ;;
+  esac
+}
+
+add_env_to_shell_config() {
+  local api_key="$1"
+  local shell_type
+  local config_file
+
+  shell_type=$(detect_shell)
+  config_file=$(get_shell_config_file "$shell_type")
+
+  log_info "Adding environment variables to $config_file"
+
+  # Create config file if it doesn't exist
+  touch "$config_file"
+
+  # Check if ADAPTIVE_API_KEY already exists in the config
+  if grep -q "ADAPTIVE_API_KEY" "$config_file" 2>/dev/null; then
+    log_info "ADAPTIVE environment variables already exist in $config_file, updating..."
+
+    if [ "$shell_type" = "fish" ]; then
+      # Fish shell: update both API key and base URL
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS sed for Fish
+        sed -i '' "s/set -x ADAPTIVE_API_KEY.*/set -x ADAPTIVE_API_KEY \"$api_key\"/" "$config_file"
+        sed -i '' "s/set -x ADAPTIVE_BASE_URL.*/set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"/" "$config_file"
+      else
+        # Linux sed for Fish
+        sed -i "s/set -x ADAPTIVE_API_KEY.*/set -x ADAPTIVE_API_KEY \"$api_key\"/" "$config_file"
+        sed -i "s/set -x ADAPTIVE_BASE_URL.*/set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"/" "$config_file"
+      fi
+
+      # Add ADAPTIVE_BASE_URL if it doesn't exist in Fish config
+      if ! grep -q "ADAPTIVE_BASE_URL" "$config_file" 2>/dev/null; then
+        echo "set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
+      fi
+    else
+      # POSIX shells (bash/zsh): update both API key and base URL
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS sed for bash/zsh
+        sed -i '' "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
+        sed -i '' "s/export ADAPTIVE_BASE_URL=.*/export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"/" "$config_file"
+      else
+        # Linux sed for bash/zsh
+        sed -i "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
+        sed -i "s/export ADAPTIVE_BASE_URL=.*/export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"/" "$config_file"
+      fi
+
+      # Add ADAPTIVE_BASE_URL if it doesn't exist in POSIX shell config
+      if ! grep -q "ADAPTIVE_BASE_URL" "$config_file" 2>/dev/null; then
+        echo "export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+      fi
+    fi
+  else
+    # Add new environment variables based on shell type
+    echo "" >> "$config_file"
+    echo "# Adaptive LLM API Configuration (added by grok-cli installer)" >> "$config_file"
+    if [ "$shell_type" = "fish" ]; then
+      echo "set -x ADAPTIVE_API_KEY \"$api_key\"" >> "$config_file"
+      echo "set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
+    else
+      echo "export ADAPTIVE_API_KEY=\"$api_key\"" >> "$config_file"
+      echo "export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+    fi
+  fi
+
+  log_success "Environment variables added to $config_file"
+  if [ "$shell_type" = "fish" ]; then
+    log_info "Restart your terminal or run 'source $config_file' to apply changes"
+  else
+    log_info "Run 'source $config_file' or restart your terminal to apply changes"
+  fi
+}
+
 validate_model_override() {
   local model="$1"
 
@@ -254,18 +369,22 @@ configure_grok() {
     echo "   chmod +x grok-cli.sh"
     echo "   ./grok-cli.sh"
     echo ""
-    echo "🔑 Option 2: Set API key via environment variable"
-    echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh | bash"
+     echo "🔑 Option 2: Set API key via environment variable"
+     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
+     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh | bash"
+     echo "   # The installer will automatically add the API key to your shell config"
     echo ""
     echo "🎯 Option 3: Customize model (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
     echo "   export ADAPTIVE_MODEL='anthropic:claude-sonnet-4-20250514'  # or empty for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/grok-cli.sh | bash"
     echo ""
-    echo "⚙️  Option 4: Manual configuration (Advanced users)"
-    echo "   mkdir -p ~/.grok"
-    echo "   cat > ~/.grok/user-settings.json << 'EOF'"
+     echo "⚙️  Option 4: Manual configuration (Advanced users)"
+     echo "   mkdir -p ~/.grok"
+     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
+     echo "   # Add to your shell config (~/.bashrc, ~/.zshrc, etc.):"
+     echo "   echo 'export ADAPTIVE_API_KEY=\"your-api-key-here\"' >> ~/.bashrc"
+     echo "   cat > ~/.grok/user-settings.json << 'EOF'"
     echo "{"
     echo '  "apiKey": "your_api_key_here",'
     echo '  "baseURL": "https://www.llmadaptive.uk/api/v1",'
@@ -336,6 +455,9 @@ EOF
 
   log_success "Grok CLI configured for Adaptive successfully"
   log_info "Configuration saved to: $settings_file"
+  
+  # Add environment variables to shell configuration
+  add_env_to_shell_config "$api_key"
 }
 
 # ========================
@@ -400,9 +522,10 @@ main() {
     echo "📊 Monitor Usage:"
     echo "   Dashboard: $API_KEY_URL"
     echo "   Configuration: ~/.grok/user-settings.json"
-    echo ""
-    echo "💡 Pro Tips:"
-    echo "   • Intelligent routing enabled by default for optimal cost/performance"
+     echo ""
+     echo "💡 Pro Tips:"
+     echo "   • Your API key is automatically saved to your shell config"
+     echo "   • Intelligent routing enabled by default for optimal cost/performance"
     echo "   • Available models: anthropic:claude-sonnet-4-20250514, anthropic:claude-opus-4-1-20250805, openai:gpt-4o, etc."
     echo "   • Use --max-tool-rounds to control execution complexity"
     echo "   • Create .grok/GROK.md for custom project instructions"
@@ -425,4 +548,3 @@ main() {
 }
 
 main "$@"
-
