@@ -250,36 +250,71 @@ add_env_to_shell_config() {
   local api_key="$1"
   local shell_type
   local config_file
-  
+
   shell_type=$(detect_shell)
   config_file=$(get_shell_config_file "$shell_type")
-  
+
   log_info "Adding environment variables to $config_file"
-  
+
   # Create config file if it doesn't exist
   touch "$config_file"
-  
+
   # Check if ADAPTIVE_API_KEY already exists in the config
   if grep -q "ADAPTIVE_API_KEY" "$config_file" 2>/dev/null; then
-    log_info "ADAPTIVE_API_KEY already exists in $config_file, updating..."
-    # Use sed to replace the existing line
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      # macOS sed
-      sed -i '' "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
+    log_info "ADAPTIVE environment variables already exist in $config_file, updating..."
+
+    if [ "$shell_type" = "fish" ]; then
+      # Fish shell: update both API key and base URL
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS sed for Fish
+        sed -i '' "s/set -x ADAPTIVE_API_KEY.*/set -x ADAPTIVE_API_KEY \"$api_key\"/" "$config_file"
+        sed -i '' "s/set -x ADAPTIVE_BASE_URL.*/set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"/" "$config_file"
+      else
+        # Linux sed for Fish
+        sed -i "s/set -x ADAPTIVE_API_KEY.*/set -x ADAPTIVE_API_KEY \"$api_key\"/" "$config_file"
+        sed -i "s/set -x ADAPTIVE_BASE_URL.*/set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"/" "$config_file"
+      fi
+
+      # Add ADAPTIVE_BASE_URL if it doesn't exist in Fish config
+      if ! grep -q "ADAPTIVE_BASE_URL" "$config_file" 2>/dev/null; then
+        echo "set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
+      fi
     else
-      # Linux sed
-      sed -i "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
+      # POSIX shells (bash/zsh): update both API key and base URL
+      if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS sed for bash/zsh
+        sed -i '' "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
+        sed -i '' "s/export ADAPTIVE_BASE_URL=.*/export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"/" "$config_file"
+      else
+        # Linux sed for bash/zsh
+        sed -i "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
+        sed -i "s/export ADAPTIVE_BASE_URL=.*/export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"/" "$config_file"
+      fi
+
+      # Add ADAPTIVE_BASE_URL if it doesn't exist in POSIX shell config
+      if ! grep -q "ADAPTIVE_BASE_URL" "$config_file" 2>/dev/null; then
+        echo "export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+      fi
     fi
   else
-    # Add new environment variables
+    # Add new environment variables based on shell type
     echo "" >> "$config_file"
     echo "# Adaptive LLM API Configuration (added by grok-cli installer)" >> "$config_file"
-    echo "export ADAPTIVE_API_KEY=\"$api_key\"" >> "$config_file"
-    echo "export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+    if [ "$shell_type" = "fish" ]; then
+      echo "set -x ADAPTIVE_API_KEY \"$api_key\"" >> "$config_file"
+      echo "set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
+    else
+      echo "export ADAPTIVE_API_KEY=\"$api_key\"" >> "$config_file"
+      echo "export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+    fi
   fi
-  
+
   log_success "Environment variables added to $config_file"
-  log_info "Run 'source $config_file' or restart your terminal to apply changes"
+  if [ "$shell_type" = "fish" ]; then
+    log_info "Restart your terminal or run 'source $config_file' to apply changes"
+  else
+    log_info "Run 'source $config_file' or restart your terminal to apply changes"
+  fi
 }
 
 validate_model_override() {
