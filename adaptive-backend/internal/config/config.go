@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultCostBiasFactor = 0.5
+	defaultCostBiasFactor = 0.9
 )
 
 // Config represents the complete application configuration

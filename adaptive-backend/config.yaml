@@ -68,6 +68,7 @@ endpoints:
 # Services configuration
 services:
   model_router:
+    cost_bias: 0.9 # 0.0 = cheapest, 1.0 = best performance
     semantic_cache:
       enabled: true
       semantic_threshold: 0.95
