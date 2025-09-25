@@ -42,8 +42,10 @@ var bufferPool = sync.Pool{
 }
 
 // providerBufferPools holds provider-specific buffer pools
-var providerBufferPools = make(map[string]*sync.Pool)
-var poolInitOnce sync.Once
+var (
+	providerBufferPools = make(map[string]*sync.Pool)
+	poolInitOnce        sync.Once
+)
 
 // initializeProviderPools sets up provider-specific buffer pools
 func initializeProviderPools() {

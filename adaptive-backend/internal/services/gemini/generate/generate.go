@@ -1,11 +1,12 @@
 package generate
 
 import (
-	"adaptive-backend/internal/models"
 	"context"
 	"fmt"
 	"iter"
 	"time"
+
+	"adaptive-backend/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
