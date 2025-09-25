@@ -225,11 +225,7 @@ get_shell_config_file() {
   
   case "$shell_type" in
     zsh)
-      if [ -f "$HOME/.zshrc" ]; then
-        echo "$HOME/.zshrc"
-      else
-        echo "$HOME/.zshrc"
-      fi
+      echo "$HOME/.zshrc"
       ;;
     bash)
       if [ -f "$HOME/.bashrc" ]; then
