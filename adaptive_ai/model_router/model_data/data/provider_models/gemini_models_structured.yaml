@@ -2,7 +2,7 @@ provider_info:
   name: GEMINI
   total_models: 7
   data_source: https://ai.google.dev/gemini-api/docs/models
-  last_updated: '2025-09-16'
+  last_updated: "2025-09-16"
   currency: USD
   pricing_unit: per 1 million tokens
 models:
@@ -16,17 +16,17 @@ models:
     max_output_tokens: 8192
     supports_function_calling: true
     languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    - ar
-    - hi
-    - pt
-    - ru
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - ar
+      - hi
+      - pt
+      - ru
     model_size_params: Unknown
     latency_tier: medium
     task_type: Text Generation
@@ -51,17 +51,17 @@ models:
     max_output_tokens: 8192
     supports_function_calling: true
     languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    - ar
-    - hi
-    - pt
-    - ru
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - ar
+      - hi
+      - pt
+      - ru
     model_size_params: Unknown
     latency_tier: fast
     task_type: Text Generation
@@ -86,17 +86,17 @@ models:
     max_output_tokens: 4096
     supports_function_calling: true
     languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    - ar
-    - hi
-    - pt
-    - ru
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - ar
+      - hi
+      - pt
+      - ru
     model_size_params: Unknown
     latency_tier: very_fast
     task_type: Text Generation
@@ -109,129 +109,4 @@ models:
       method: langgraph_workflow
       confidence_score: 0.90
       enriched_at: 1754572747.0134084
-  gemini_2.0_flash:
-    description: Gemini 2.0 Flash offers next generation features, speed, and realtime streaming capabilities for diverse tasks.
-    provider: GEMINI
-    model_name: gemini-2.0-flash
-    cost_per_1m_input_tokens: 0.10
-    cost_per_1m_output_tokens: 0.40
-    max_context_tokens: 2000000
-    max_output_tokens: 500000
-    supports_function_calling: true
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    - ar
-    - hi
-    - pt
-    - ru
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: medium
-    metadata:
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.95
-      enriched_at: 1754574059.4780324
-  gemini_2.0_flash_lite:
-    description: Gemini 2.0 Flash-Lite is designed for cost efficiency and low latency with next-generation capabilities.
-    provider: GEMINI
-    model_name: gemini-2.0-flash-lite
-    cost_per_1m_input_tokens: 0.05
-    cost_per_1m_output_tokens: 0.20
-    max_context_tokens: 1000000
-    max_output_tokens: 8192
-    supports_function_calling: true
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    - ar
-    - hi
-    - pt
-    - ru
-    model_size_params: Unknown
-    latency_tier: very_fast
-    task_type: Text Generation
-    complexity: easy
-    metadata:
-      matching_operator: equals
-      available_in_playground: true
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.90
-      enriched_at: 1754572740.8134894
-  gemini_1.5_flash:
-    description: Gemini 1.5 Flash offers fast and versatile performance across a diverse variety of tasks (DEPRECATED - use Gemini 2.x models).
-    provider: GEMINI
-    model_name: gemini-1.5-flash
-    cost_per_1m_input_tokens: 0.35
-    cost_per_1m_output_tokens: 1.05
-    max_context_tokens: 1000000
-    max_output_tokens: 8192
-    supports_function_calling: true
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: fast
-    task_type: Text Generation
-    complexity: medium
-    deprecated: true
-    metadata:
-      matching_operator: equals
-      available_in_playground: false
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.70
-      enriched_at: 1754572728.5480685
-  gemini_1.5_pro:
-    description: Gemini 1.5 Pro handles complex reasoning tasks requiring more intelligence (DEPRECATED - use Gemini 2.x models).
-    provider: GEMINI
-    model_name: gemini-1.5-pro
-    cost_per_1m_input_tokens: 3.50
-    cost_per_1m_output_tokens: 10.50
-    max_context_tokens: 2000000
-    max_output_tokens: 8192
-    supports_function_calling: true
-    languages_supported:
-    - en
-    - es
-    - fr
-    - de
-    - ja
-    - ko
-    - zh
-    model_size_params: Unknown
-    latency_tier: medium
-    task_type: Text Generation
-    complexity: hard
-    deprecated: true
-    metadata:
-      matching_operator: equals
-      available_in_playground: false
-    _enrichment:
-      enriched: true
-      method: langgraph_workflow
-      confidence_score: 0.70
-      enriched_at: 1754572731.766179
+
