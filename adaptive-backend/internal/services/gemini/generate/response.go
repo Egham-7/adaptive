@@ -1,22 +1,29 @@
 package generate
 
 import (
+	"context"
 	"iter"
 
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/stream/handlers"
+	"adaptive-backend/internal/utils"
 
-	"google.golang.org/genai"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"google.golang.org/genai"
 )
 
 // ResponseService handles Gemini response processing
-type ResponseService struct{}
+type ResponseService struct {
+	modelRouter *model_router.ModelRouter
+}
 
 // NewResponseService creates a new ResponseService
-func NewResponseService() *ResponseService {
-	return &ResponseService{}
+func NewResponseService(modelRouter *model_router.ModelRouter) *ResponseService {
+	return &ResponseService{
+		modelRouter: modelRouter,
+	}
 }
 
 // HandleNonStreamingResponse processes a non-streaming Gemini response
@@ -62,7 +69,6 @@ func (rs *ResponseService) HandleStreamingResponse(
 	return handlers.HandleGemini(c, streamIter, requestID, provider, cacheSource)
 }
 
-
 // HandleError processes and returns error responses
 func (rs *ResponseService) HandleError(c *fiber.Ctx, err error, requestID string) error {
 	fiberlog.Errorf("[%s] Handling error: %v", requestID, err)
@@ -84,4 +90,32 @@ func (rs *ResponseService) HandleError(c *fiber.Ctx, err error, requestID string
 	}
 
 	return c.Status(appErr.StatusCode).JSON(errorResponse)
+}
+
+// StoreSuccessfulSemanticCache stores the model response in semantic cache after successful completion
+func (rs *ResponseService) StoreSuccessfulSemanticCache(
+	ctx context.Context,
+	req *models.GeminiGenerateRequest,
+	resp *models.ModelSelectionResponse,
+	requestID string,
+) {
+	if rs.modelRouter == nil {
+		fiberlog.Debugf("[%s] Model router not available for semantic cache storage", requestID)
+		return
+	}
+
+	// Extract prompt for cache storage from Gemini contents
+	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to extract prompt for semantic cache: %v", requestID, err)
+		return
+	}
+
+	// Store in semantic cache
+	if err := rs.modelRouter.StoreSuccessfulModel(ctx, prompt, *resp, requestID, nil); err != nil {
+		fiberlog.Warnf("[%s] Failed to store successful response in semantic cache: %v", requestID, err)
+	}
+
+	fiberlog.Debugf("[%s] Successfully stored model response in semantic cache - provider: %s, model: %s",
+		requestID, resp.Provider, resp.Model)
 }

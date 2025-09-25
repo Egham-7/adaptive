@@ -7,8 +7,8 @@ import (
 
 	"adaptive-backend/internal/services/format_adapter"
 
-	"google.golang.org/genai"
 	fiberlog "github.com/gofiber/fiber/v2/log"
+	"google.golang.org/genai"
 )
 
 // GeminiChunkProcessor handles processing of Gemini stream chunks

@@ -70,57 +70,80 @@ func (gs *GenerateService) SendStreamingRequest(
 	return streamIter, nil
 }
 
-// HandleProviderRequest routes the request to the appropriate provider and handles response
-func (gs *GenerateService) HandleProviderRequest(
+// HandleNonStreamingRequest handles non-streaming requests and returns concrete response
+func (gs *GenerateService) HandleNonStreamingRequest(
 	c *fiber.Ctx,
 	req *models.GeminiGenerateRequest,
 	provider string,
 	providerConfig models.ProviderConfig,
-	isStreaming bool,
 	requestID string,
-	responseSvc *ResponseService,
-	cacheSource string,
-) error {
+) (*genai.GenerateContentResponse, error) {
 	// Check provider's native format to determine if conversion is needed
 	if providerConfig.NativeFormat == "gemini" || providerConfig.NativeFormat == "" || provider == "gemini" {
 		// Native Gemini format - use directly
-		return gs.handleGeminiProvider(c, req, providerConfig, isStreaming, requestID, responseSvc, provider, cacheSource)
+		return gs.handleGeminiNonStreamingProvider(c, req, providerConfig, requestID)
 	}
 
 	// Provider uses different native format - not supported yet for Gemini endpoint
-	return fmt.Errorf("native format '%s' not supported for Gemini endpoint", providerConfig.NativeFormat)
+	return nil, fmt.Errorf("native format '%s' not supported for Gemini endpoint", providerConfig.NativeFormat)
 }
 
-// handleGeminiProvider handles requests using native Gemini client
-func (gs *GenerateService) handleGeminiProvider(
+// HandleStreamingRequest handles streaming requests and returns concrete iterator
+func (gs *GenerateService) HandleStreamingRequest(
+	c *fiber.Ctx,
+	req *models.GeminiGenerateRequest,
+	provider string,
+	providerConfig models.ProviderConfig,
+	requestID string,
+) (iter.Seq2[*genai.GenerateContentResponse, error], error) {
+	// Check provider's native format to determine if conversion is needed
+	if providerConfig.NativeFormat == "gemini" || providerConfig.NativeFormat == "" || provider == "gemini" {
+		// Native Gemini format - use directly
+		return gs.handleGeminiStreamingProvider(c, req, providerConfig, requestID)
+	}
+
+	// Provider uses different native format - not supported yet for Gemini endpoint
+	return nil, fmt.Errorf("native format '%s' not supported for Gemini endpoint", providerConfig.NativeFormat)
+}
+
+// handleGeminiNonStreamingProvider handles non-streaming requests using native Gemini client
+func (gs *GenerateService) handleGeminiNonStreamingProvider(
 	c *fiber.Ctx,
 	req *models.GeminiGenerateRequest,
 	providerConfig models.ProviderConfig,
-	isStreaming bool,
 	requestID string,
-	responseSvc *ResponseService,
-	provider string,
-	cacheSource string,
-) error {
-	fiberlog.Debugf("[%s] Using native Gemini provider", requestID)
+) (*genai.GenerateContentResponse, error) {
+	fiberlog.Debugf("[%s] Using native Gemini provider for non-streaming request", requestID)
 
 	client, err := gs.CreateClient(c.Context(), providerConfig)
 	if err != nil {
-		return responseSvc.HandleError(c, err, requestID)
-	}
-
-	if isStreaming {
-		streamIter, err := gs.SendStreamingRequest(c.Context(), client, req, requestID)
-		if err != nil {
-			return responseSvc.HandleError(c, err, requestID)
-		}
-		return responseSvc.HandleStreamingResponse(c, streamIter, requestID, provider, cacheSource)
+		return nil, err
 	}
 
 	response, err := gs.SendRequest(c.Context(), client, req, requestID)
 	if err != nil {
-		return responseSvc.HandleError(c, err, requestID)
+		return nil, err
 	}
-	return responseSvc.HandleNonStreamingResponse(c, response, requestID, cacheSource)
+	return response, nil
 }
 
+// handleGeminiStreamingProvider handles streaming requests using native Gemini client
+func (gs *GenerateService) handleGeminiStreamingProvider(
+	c *fiber.Ctx,
+	req *models.GeminiGenerateRequest,
+	providerConfig models.ProviderConfig,
+	requestID string,
+) (iter.Seq2[*genai.GenerateContentResponse, error], error) {
+	fiberlog.Debugf("[%s] Using native Gemini provider for streaming request", requestID)
+
+	client, err := gs.CreateClient(c.Context(), providerConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	streamIter, err := gs.SendStreamingRequest(c.Context(), client, req, requestID)
+	if err != nil {
+		return nil, err
+	}
+	return streamIter, nil
+}

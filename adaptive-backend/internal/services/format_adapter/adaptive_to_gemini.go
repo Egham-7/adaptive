@@ -26,4 +26,3 @@ func (c *AdaptiveToGeminiConverter) ConvertResponse(resp *genai.GenerateContentR
 		Provider:       provider,
 	}, nil
 }
-

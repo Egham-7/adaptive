@@ -7,10 +7,10 @@ import (
 	"adaptive-backend/internal/services/stream/contracts"
 	"adaptive-backend/internal/services/stream/writers"
 
-	"google.golang.org/genai"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/valyala/fasthttp"
+	"google.golang.org/genai"
 )
 
 // HandleGemini manages Gemini streaming response using proper layered architecture
