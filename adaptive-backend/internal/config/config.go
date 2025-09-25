@@ -158,6 +158,8 @@ func (c *Config) GetProviderAPIKey(provider, endpoint string) string {
 		providers = c.Endpoints.Messages.Providers
 	case "select_model":
 		providers = c.Endpoints.SelectModel.Providers
+	case "generate":
+		providers = c.Endpoints.Generate.Providers
 	default:
 		return ""
 	}
@@ -178,6 +180,8 @@ func (c *Config) GetProviders(endpoint string) map[string]models.ProviderConfig 
 		return c.Endpoints.Messages.Providers
 	case "select_model":
 		return c.Endpoints.SelectModel.Providers
+	case "generate":
+		return c.Endpoints.Generate.Providers
 	default:
 		return nil
 	}
@@ -193,6 +197,8 @@ func (c *Config) GetProviderConfig(provider, endpoint string) (models.ProviderCo
 		providers = c.Endpoints.Messages.Providers
 	case "select_model":
 		providers = c.Endpoints.SelectModel.Providers
+	case "generate":
+		providers = c.Endpoints.Generate.Providers
 	default:
 		return models.ProviderConfig{}, false
 	}
@@ -496,6 +502,33 @@ func (c *Config) ResolveConfigFromAnthropicRequest(req *models.AnthropicMessageR
 		return nil, err
 	}
 	resolved.Endpoints.Messages.Providers = providers
+
+	return resolved, nil
+}
+
+// ResolveConfigFromGeminiRequest creates a resolved config by merging YAML config with Gemini request overrides.
+// Returns a new Config struct with all merged values as single source of truth.
+func (c *Config) ResolveConfigFromGeminiRequest(req *models.GeminiGenerateRequest) (*Config, error) {
+	// Create a copy of the original config
+	resolved := &Config{
+		Server:   c.Server,
+		Services: c.Services,
+	}
+
+	// Merge all configs with request overrides
+	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
+	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig, "generate")
+	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
+
+	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "generate")
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up generate endpoint providers
+	resolved.Endpoints.Generate = models.EndpointConfig{
+		Providers: providers,
+	}
 
 	return resolved, nil
 }

@@ -32,8 +32,11 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *openai.ChatCompletionNe
 
 	// Create base Anthropic request
 	anthropicReq := &anthropic.MessageNewParams{
-		Model:    anthropic.Model(req.Model),
-		Messages: anthropicMessages,
+		Model:       anthropic.Model(req.Model),
+		Messages:    anthropicMessages,
+		MaxTokens:   req.MaxTokens.Value,
+		Temperature: anthropicparam.NewOpt(req.Temperature.Value),
+		TopK:        anthropicparam.NewOpt(req.N.Value), // OpenAI n -> Anthropic top_k
 	}
 
 	// Set system message if present (Anthropic uses separate system field)

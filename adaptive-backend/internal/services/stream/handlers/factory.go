@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"io"
+	"iter"
 
 	"adaptive-backend/internal/services/stream/contracts"
 	"adaptive-backend/internal/services/stream/processors"
@@ -11,6 +12,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
 	"github.com/openai/openai-go/v2"
 	openai_ssestream "github.com/openai/openai-go/v2/packages/ssestream"
+	"google.golang.org/genai"
 )
 
 // StreamFactory creates properly layered streaming pipelines
@@ -48,5 +50,15 @@ func (f *StreamFactory) CreateAnthropicNativePipeline(
 ) contracts.StreamHandler {
 	reader := readers.NewAnthropicNativeStreamReader(stream, requestID)
 	processor := processors.NewAnthropicChunkProcessor(provider, cacheSource, requestID)
+	return NewStreamOrchestrator(reader, processor, requestID)
+}
+
+// CreateGeminiPipeline creates a complete Gemini streaming pipeline
+func (f *StreamFactory) CreateGeminiPipeline(
+	streamIter iter.Seq2[*genai.GenerateContentResponse, error],
+	requestID, provider, cacheSource string,
+) contracts.StreamHandler {
+	reader := readers.NewGeminiStreamReader(streamIter, requestID)
+	processor := processors.NewGeminiChunkProcessor(provider, cacheSource, requestID)
 	return NewStreamOrchestrator(reader, processor, requestID)
 }

@@ -58,7 +58,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 
 	// Create shared circuit breakers for all providers across all services
 	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
-	providerTypes := []string{"chat_completions", "messages"}
+	providerTypes := []string{"chat_completions", "messages", "generate"}
 
 	for _, serviceType := range providerTypes {
 		for providerName := range cfg.GetProviders(serviceType) {
@@ -77,23 +77,28 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, modelRouter, openaiPromptCache, circuitBreakers)
 	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, anthropicPromptCache, circuitBreakers)
+	generateHandler := api.NewGenerateHandler(cfg, modelRouter, circuitBreakers)
 
 	// Setup v1 routes for internal communication (no authentication needed)
 	v1Group := app.Group("/v1")
 	v1Group.Post("/chat/completions", chatCompletionHandler.ChatCompletion)
 	v1Group.Post("/messages", messagesHandler.Messages)
 	v1Group.Post("/select-model", selectModelHandler.SelectModel)
+	v1Group.Post("/generate", generateHandler.Generate)
+	v1Group.Post("/generate/stream", generateHandler.StreamGenerate)
 
 	return nil
 }
 
 const (
-	defaultAppName      = "Adaptive v1.0"
-	defaultVersion      = "1.0.0"
-	chatEndpoint        = "/v1/chat/completions"
-	messagesEndpoint    = "/v1/messages"
-	selectModelEndpoint = "/v1/select-model"
-	allowedMethods      = "GET, POST, PUT, DELETE, OPTIONS"
+	defaultAppName           = "Adaptive v1.0"
+	defaultVersion           = "1.0.0"
+	chatEndpoint             = "/v1/chat/completions"
+	messagesEndpoint         = "/v1/messages"
+	selectModelEndpoint      = "/v1/select-model"
+	generateEndpoint         = "/v1/generate"
+	generateStreamEndpoint   = "/v1/generate/stream"
+	allowedMethods           = "GET, POST, PUT, DELETE, OPTIONS"
 )
 
 // main is the entry point for the Adaptive backend server.
@@ -199,9 +204,11 @@ func main() {
 			"go_version": runtime.Version(),
 			"status":     "running",
 			"endpoints": map[string]string{
-				"chat":         chatEndpoint,
-				"messages":     messagesEndpoint,
-				"select-model": selectModelEndpoint,
+				"chat":           chatEndpoint,
+				"messages":       messagesEndpoint,
+				"select-model":   selectModelEndpoint,
+				"generate":       generateEndpoint,
+				"generate-stream": generateStreamEndpoint,
 			},
 		})
 	})
