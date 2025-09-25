@@ -37,7 +37,8 @@ func DefaultBufferConfig() *BufferConfig {
 // bufferPool manages reusable byte buffers for streaming
 var bufferPool = sync.Pool{
 	New: func() interface{} {
-		return make([]byte, DefaultBufferConfig().DefaultSize)
+		buf := make([]byte, DefaultBufferConfig().DefaultSize)
+		return &buf
 	},
 }
 
@@ -54,7 +55,8 @@ func initializeProviderPools() {
 		providerBufferPools[provider] = &sync.Pool{
 			New: func(bufSize int) func() interface{} {
 				return func() interface{} {
-					return make([]byte, bufSize)
+					buf := make([]byte, bufSize)
+					return &buf
 				}
 			}(size),
 		}
@@ -66,11 +68,11 @@ func getBuffer(provider string) []byte {
 	poolInitOnce.Do(initializeProviderPools)
 
 	if pool, exists := providerBufferPools[provider]; exists {
-		return pool.Get().([]byte)
+		return *pool.Get().(*[]byte)
 	}
 
 	// Fallback to default pool
-	return bufferPool.Get().([]byte)
+	return *bufferPool.Get().(*[]byte)
 }
 
 // putBuffer returns a buffer to the appropriate pool
@@ -86,14 +88,14 @@ func putBuffer(buffer []byte, provider string) {
 		// Verify buffer size matches pool expectation
 		config := DefaultBufferConfig()
 		if expectedSize, ok := config.ProviderSizes[provider]; ok && len(buffer) == expectedSize {
-			pool.Put(buffer)
+			pool.Put(&buffer)
 			return
 		}
 	}
 
 	// Fallback to default pool if size matches
 	if len(buffer) == DefaultBufferConfig().DefaultSize {
-		bufferPool.Put(buffer)
+		bufferPool.Put(&buffer)
 	}
 	// If buffer size doesn't match any pool, let GC handle it
 }
