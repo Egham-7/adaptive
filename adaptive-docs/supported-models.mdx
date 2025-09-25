@@ -9,13 +9,40 @@ icon: "list"
 Adaptive supports the latest models from all major AI providers, automatically updated with new releases. Our intelligent routing system selects the optimal model based on your prompt, cost preferences, and performance requirements.
 
 <Tip>
-**New Models Available**: We've added support for GPT-4.1, Claude Opus 4, Gemini 2.5, DeepSeek-V3.1, Grok 4, and many more latest 2025 models.
+**New Models Available**: We've added support for GPT-5, GPT-4.1, Claude Opus 4, Gemini 2.5, DeepSeek-V3.1, Grok 4, and many more latest 2025 models. GPT-5 is now available as OpenAI's most advanced model series.
 </Tip>
 
 ## OpenAI Models
 
-### GPT-4.1 Series (New 2025)
-OpenAI's latest and most advanced models with significant improvements in coding and reasoning:
+### GPT-5 Series (Latest 2025)
+OpenAI's most advanced models featuring unified reasoning and superior intelligence across all domains:
+
+<AccordionGroup>
+  <Accordion title="GPT-5 Models">
+    - **gpt-5** - The flagship model with state-of-the-art performance across coding, math, writing, health, and visual perception
+    - **gpt-5-mini** - Faster, cost-efficient version of GPT-5 for well-defined tasks
+    - **gpt-5-nano** - Fastest, most cost-efficient version for simple tasks and high-volume usage
+    - **gpt-5-chat-latest** - GPT-5 variant optimized for ChatGPT (API access available)
+
+    **Key Features:**
+    - Context window: Up to 272,000 tokens input / 128,000 tokens output
+    - Unified system with fast and deeper reasoning modes
+    - 94.6% accuracy on AIME 2025 math problems
+    - 74.9% on SWE-bench Verified coding tasks
+    - 45% fewer factual errors vs GPT-4o, 80% fewer vs o3 when reasoning
+    - Support for custom tools with plaintext instead of JSON
+    - Reasoning effort levels: minimal, low, medium, high
+    - Advanced multimodal capabilities (text + vision)
+
+    **Pricing:**
+    - GPT-5: $1.25/$10 per million tokens (input/output)
+    - GPT-5-mini: $0.25/$2 per million tokens
+    - GPT-5-nano: $0.05/$0.4 per million tokens
+  </Accordion>
+</AccordionGroup>
+
+### GPT-4.1 Series (2025)
+Previous generation models with significant improvements in coding and reasoning:
 
 <AccordionGroup>
   <Accordion title="GPT-4.1 Models">
@@ -251,7 +278,7 @@ Our intelligent routing typically saves **60-80%** on costs by:
   <Tab title="Ultra Budget">
     **Best for**: Simple queries, basic tasks, high-volume usage
 
-    **Models**: DeepSeek-Chat, GPT-4.1-nano, Grok-3-mini, Groq Llama models
+    **Models**: GPT-5-nano, DeepSeek-Chat, GPT-4.1-nano, Grok-3-mini, Groq Llama models
 
     **Typical Cost**: $0.15-2.50 per 1M tokens
   </Tab>
@@ -259,17 +286,17 @@ Our intelligent routing typically saves **60-80%** on costs by:
   <Tab title="Budget">
     **Best for**: Most general-purpose tasks, balanced performance
 
-    **Models**: Claude 3.5 Haiku, GPT-4.1-mini
+    **Models**: GPT-5-mini, Claude 3.5 Haiku, GPT-4.1-mini
 
-    **Typical Cost**: $3.00-15.00 per 1M tokens
+    **Typical Cost**: $2.00-15.00 per 1M tokens
   </Tab>
 
   <Tab title="Premium">
     **Best for**: Complex analysis, advanced reasoning, high-quality output
 
-    **Models**: GPT-4o, Claude Sonnet 4, Grok-3
+    **Models**: GPT-5, GPT-4o, Claude Sonnet 4, Grok-3
 
-    **Typical Cost**: $15.00-60.00 per 1M tokens
+    **Typical Cost**: $10.00-60.00 per 1M tokens
   </Tab>
 
   <Tab title="Ultra Premium">
@@ -302,7 +329,7 @@ You can specify models in three ways:
    ```json
    {
      "models": [
-       {"provider": "openai", "model_name": "gpt-4.1-mini"},
+       {"provider": "openai", "model_name": "gpt-5-mini"},
        {"provider": "anthropic", "model_name": "claude-sonnet-4-20250514"}
      ]
    }
@@ -314,7 +341,7 @@ You can specify models in three ways:
    curl -sS -X POST https://llmadaptive.uk/api/v1/chat/completions \
      -H "Authorization: Bearer $ADAPTIVE_API_KEY" \
      -H "Content-Type: application/json" \
-     -d '{"model": "openai:gpt-4.1-mini", "messages": [{"role": "user", "content": "Hello"}]}'
+     -d '{"model": "openai:gpt-5-mini", "messages": [{"role": "user", "content": "Hello"}]}'
    ```
 
    ```python Python
@@ -328,7 +355,7 @@ You can specify models in three ways:
            "Content-Type": "application/json"
        },
        json={
-           "model": "openai:gpt-4.1-mini",
+           "model": "openai:gpt-5-mini",
            "messages": [{"role": "user", "content": "Hello"}]
        },
        timeout=30
@@ -348,7 +375,7 @@ You can specify models in three ways:
        "Content-Type": "application/json"
      },
      body: JSON.stringify({
-       model: "openai:gpt-4.1-mini",
+       model: "openai:gpt-5-mini",
        messages: [{ role: "user", content: "Hello" }]
      })
    });

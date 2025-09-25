@@ -224,8 +224,6 @@ class YAMLModelDatabase:
         Returns:
             ModelCapability if found, None otherwise
         """
-        if unique_id is None:
-            return None
         # Normalize unique_id to lowercase for case-insensitive lookup
         return self._models.get(unique_id.lower())
 
@@ -245,8 +243,6 @@ class YAMLModelDatabase:
 
     def has_model(self, unique_id: str) -> bool:
         """Check if model exists in database by unique_id."""
-        if unique_id is None:
-            return False
         # Normalize unique_id to lowercase for case-insensitive lookup
         return unique_id.lower() in self._models
 

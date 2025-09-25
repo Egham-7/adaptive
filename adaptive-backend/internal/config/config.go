@@ -375,8 +375,13 @@ func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.Ca
 // If no models are specified, it populates them from the endpoint providers.
 func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endpoint string) *models.ModelRouterConfig {
 	// Start with YAML defaults
+	costBias := c.Services.ModelRouter.CostBias
+	if costBias <= 0 {
+		costBias = float32(defaultCostBiasFactor) // Fallback to constant if YAML value invalid
+	}
+
 	merged := &models.ModelRouterConfig{
-		CostBias:      float32(defaultCostBiasFactor),       // Default value
+		CostBias:      costBias,                             // Use YAML value or fallback
 		SemanticCache: c.Services.ModelRouter.SemanticCache, // Copy YAML semantic cache config
 		Client:        c.Services.ModelRouter.Client,        // Copy YAML client config
 	}
