@@ -376,7 +376,8 @@ func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.Ca
 func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endpoint string) *models.ModelRouterConfig {
 	// Start with YAML defaults
 	costBias := c.Services.ModelRouter.CostBias
-	if costBias <= 0 {
+	// Validate cost_bias is in range 0.0-1.0, use fallback if invalid or not set
+	if costBias < 0.0 || costBias > 1.0 {
 		costBias = float32(defaultCostBiasFactor) // Fallback to constant if YAML value invalid
 	}
 
@@ -400,7 +401,8 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endp
 		merged.Models = c.GetModelCapabilitiesFromEndpoint(endpoint)
 	}
 
-	if override.CostBias > 0 {
+	// Apply request override for cost_bias if valid (0.0-1.0 range)
+	if override.CostBias >= 0.0 && override.CostBias <= 1.0 {
 		merged.CostBias = override.CostBias
 	}
 
