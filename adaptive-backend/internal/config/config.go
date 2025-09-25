@@ -10,12 +10,13 @@ import (
 
 	"adaptive-backend/internal/models"
 
+	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/joho/godotenv"
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	defaultCostBiasFactor = 0.5
+	defaultCostBiasFactor = 0.9
 )
 
 // Config represents the complete application configuration
@@ -375,8 +376,17 @@ func (c *Config) MergePromptCacheConfig(override *models.CacheConfig) *models.Ca
 // If no models are specified, it populates them from the endpoint providers.
 func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endpoint string) *models.ModelRouterConfig {
 	// Start with YAML defaults
+	costBias := c.Services.ModelRouter.CostBias
+	// Validate cost_bias is in range 0.0-1.0, use fallback if invalid or not set
+	if costBias < 0.0 || costBias > 1.0 {
+		fiberlog.Debugf("Invalid cost_bias value %.2f from YAML config, using fallback %.2f", costBias, defaultCostBiasFactor)
+		costBias = float32(defaultCostBiasFactor) // Fallback to constant if YAML value invalid
+	} else {
+		fiberlog.Debugf("Using cost_bias %.2f from YAML config for endpoint %s", costBias, endpoint)
+	}
+
 	merged := &models.ModelRouterConfig{
-		CostBias:      float32(defaultCostBiasFactor),       // Default value
+		CostBias:      costBias,                             // Use YAML value or fallback
 		SemanticCache: c.Services.ModelRouter.SemanticCache, // Copy YAML semantic cache config
 		Client:        c.Services.ModelRouter.Client,        // Copy YAML client config
 	}
@@ -395,8 +405,13 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endp
 		merged.Models = c.GetModelCapabilitiesFromEndpoint(endpoint)
 	}
 
-	if override.CostBias > 0 {
+	// Apply request override for cost_bias if valid (0.0-1.0 range)
+	if override.CostBias >= 0.0 && override.CostBias <= 1.0 {
+		fiberlog.Debugf("Overriding cost_bias from %.2f to %.2f from request for endpoint %s", merged.CostBias, override.CostBias, endpoint)
 		merged.CostBias = override.CostBias
+	} else if override.CostBias != 0.0 {
+		// Only log if there was an actual override attempt (not default zero value)
+		fiberlog.Debugf("Ignoring invalid cost_bias override %.2f for endpoint %s (must be 0.0-1.0)", override.CostBias, endpoint)
 	}
 
 	// Merge semantic cache config - request override takes precedence

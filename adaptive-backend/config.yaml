@@ -32,11 +32,6 @@ endpoints:
         enabled: true
         base_url: "https://api.deepseek.com"
 
-      huggingface:
-        api_key: "${HUGGINGFACE_API_KEY}"
-        enabled: true
-        base_url: "https://router.huggingface.co/v1"
-
   messages:
     providers:
       anthropic:
@@ -73,6 +68,7 @@ endpoints:
 # Services configuration
 services:
   model_router:
+    cost_bias: 0.9 # 0.0 = cheapest, 1.0 = best performance
     semantic_cache:
       enabled: true
       semantic_threshold: 0.95
