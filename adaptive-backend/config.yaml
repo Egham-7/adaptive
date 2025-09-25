@@ -32,11 +32,6 @@ endpoints:
         enabled: true
         base_url: "https://api.deepseek.com"
 
-      huggingface:
-        api_key: "${HUGGINGFACE_API_KEY}"
-        enabled: true
-        base_url: "https://router.huggingface.co/v1"
-
   messages:
     providers:
       anthropic:
