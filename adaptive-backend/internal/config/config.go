@@ -378,7 +378,10 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endp
 	costBias := c.Services.ModelRouter.CostBias
 	// Validate cost_bias is in range 0.0-1.0, use fallback if invalid or not set
 	if costBias < 0.0 || costBias > 1.0 {
+		fiberlog.Debugf("Invalid cost_bias value %.2f from YAML config, using fallback %.2f", costBias, defaultCostBiasFactor)
 		costBias = float32(defaultCostBiasFactor) // Fallback to constant if YAML value invalid
+	} else {
+		fiberlog.Debugf("Using cost_bias %.2f from YAML config for endpoint %s", costBias, endpoint)
 	}
 
 	merged := &models.ModelRouterConfig{
