@@ -30,7 +30,7 @@ endpoints:
       gemini:
         api_key: "${GEMINI_API_KEY}"
         enabled: true
-        base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
 
   messages:
     providers:
