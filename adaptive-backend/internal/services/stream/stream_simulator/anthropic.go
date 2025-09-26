@@ -9,6 +9,7 @@ import (
 
 	"adaptive-backend/internal/models"
 
+	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/valyala/fasthttp"
@@ -117,7 +118,7 @@ func convertToAnthropicStreamingChunks(message *models.AnthropicMessage, request
 		Type: "message_start",
 		Message: &models.AnthropicMessage{
 			ID:           message.ID,
-			Content:      []models.ContentBlockUnion{}, // Empty initially
+			Content:      []anthropic.ContentBlockUnion{}, // Empty initially
 			Model:        message.Model,
 			Role:         message.Role,
 			StopReason:   "",
@@ -158,7 +159,7 @@ func convertToAnthropicStreamingChunks(message *models.AnthropicMessage, request
 		contentDeltaChunk := models.AnthropicMessageChunk{
 			Type:  "content_block_delta",
 			Index: &contentBlockIndex,
-			Delta: &models.AdaptiveDelta{
+			Delta: &anthropic.MessageStreamEventUnionDelta{
 				Type: "text_delta",
 				Text: chunkText,
 			},
@@ -178,8 +179,8 @@ func convertToAnthropicStreamingChunks(message *models.AnthropicMessage, request
 	// 5. Send message_delta event with stop reason and usage
 	messageDeltaChunk := models.AnthropicMessageChunk{
 		Type: "message_delta",
-		Delta: &models.AdaptiveDelta{
-			StopReason: message.StopReason,
+		Delta: &anthropic.MessageStreamEventUnionDelta{
+			StopReason: anthropic.StopReason(message.StopReason),
 		},
 		Usage:    &message.Usage,
 		Provider: message.Provider,

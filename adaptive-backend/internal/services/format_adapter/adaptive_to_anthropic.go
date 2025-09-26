@@ -45,7 +45,7 @@ func (c *AdaptiveToAnthropicConverter) ConvertResponse(resp *models.AnthropicMes
 
 	return &anthropic.Message{
 		ID:           resp.ID,
-		Content:      c.convertContentBlocksToAnthropic(resp.Content),
+		Content:      resp.Content,
 		Model:        anthropic.Model(resp.Model),
 		Role:         "assistant",
 		StopReason:   anthropic.StopReason(resp.StopReason),
@@ -143,61 +143,4 @@ func (c *AdaptiveToAnthropicConverter) SetCacheTier(usage *models.AdaptiveAnthro
 	default:
 		usage.CacheTier = ""
 	}
-}
-
-// convertContentBlocksToAnthropic converts our custom ContentBlockUnion to Anthropic ContentBlockUnion
-func (c *AdaptiveToAnthropicConverter) convertContentBlocksToAnthropic(content []models.ContentBlockUnion) []anthropic.ContentBlockUnion {
-	if content == nil {
-		return nil
-	}
-
-	result := make([]anthropic.ContentBlockUnion, len(content))
-	for i, block := range content {
-		// Create ContentBlockUnion directly by populating the appropriate fields
-		result[i] = anthropic.ContentBlockUnion{
-			Type:      block.Type,
-			Text:      block.Text,
-			Citations: c.convertTextCitationsToAnthropic(block.Citations),
-			Thinking:  block.Thinking,
-			Signature: block.Signature,
-			Data:      block.Data,
-			ID:        block.ID,
-			Name:      block.Name,
-			ToolUseID: block.ToolUseID,
-			Content:   block.Content,
-			// Skip Input field for now since it needs type conversion
-		}
-	}
-	return result
-}
-
-// convertTextCitationsToAnthropic converts our custom TextCitationUnion to Anthropic TextCitationUnion
-func (c *AdaptiveToAnthropicConverter) convertTextCitationsToAnthropic(citations []models.TextCitationUnion) []anthropic.TextCitationUnion {
-	if citations == nil {
-		return nil
-	}
-
-	result := make([]anthropic.TextCitationUnion, len(citations))
-	for i, citation := range citations {
-		// Create TextCitationUnion directly by populating the appropriate fields
-		result[i] = anthropic.TextCitationUnion{
-			Type:              citation.Type,
-			CitedText:         citation.CitedText,
-			DocumentIndex:     citation.DocumentIndex,
-			DocumentTitle:     citation.DocumentTitle,
-			StartCharIndex:    citation.StartCharIndex,
-			EndCharIndex:      citation.EndCharIndex,
-			FileID:            citation.FileID,
-			StartPageNumber:   citation.StartPageNumber,
-			EndPageNumber:     citation.EndPageNumber,
-			StartBlockIndex:   citation.StartBlockIndex,
-			EndBlockIndex:     citation.EndBlockIndex,
-			EncryptedIndex:    citation.EncryptedIndex,
-			Title:             citation.Title,
-			URL:               citation.URL,
-			SearchResultIndex: citation.SearchResultIndex,
-			Source:            citation.Source,
-		}
-	}
-	return result
 }
