@@ -1,6 +1,7 @@
 package format_adapter
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -48,6 +49,38 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *openai.ChatCompletionNe
 	// Convert parameters
 	if err := c.convertParameters(req, anthropicReq); err != nil {
 		return nil, fmt.Errorf("failed to convert parameters: %w", err)
+	}
+
+	// Convert tool choice if present (check if any ToolChoice variant is set)
+	if req.ToolChoice.OfAuto.Valid() ||
+		req.ToolChoice.OfFunctionToolChoice != nil || req.ToolChoice.OfCustomToolChoice != nil {
+		toolChoice, err := c.convertToolChoice(req.ToolChoice)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert tool choice: %w", err)
+		}
+		anthropicReq.ToolChoice = toolChoice
+	}
+
+	// Convert service tier if present
+	if req.ServiceTier != "" {
+		serviceTier, err := c.convertServiceTier(req.ServiceTier)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert service tier: %w", err)
+		}
+		anthropicReq.ServiceTier = serviceTier
+	}
+
+	// Convert metadata if present - convert OpenAI param types to Anthropic param types
+	if req.SafetyIdentifier.Valid() || req.User.Valid() {
+		var safetyID, user anthropicparam.Opt[string]
+		if req.SafetyIdentifier.Valid() {
+			safetyID = anthropicparam.Opt[string]{Value: req.SafetyIdentifier.Value}
+		}
+		if req.User.Valid() {
+			user = anthropicparam.Opt[string]{Value: req.User.Value}
+		}
+		metadata := c.convertMetadata(safetyID, user)
+		anthropicReq.Metadata = metadata
 	}
 
 	// Convert tools if present
@@ -120,8 +153,31 @@ func (c *OpenAIToAnthropicConverter) convertMessagesFromOpenAI(messages []openai
 				systemMessage = systemContent
 			}
 
+		} else if msg.OfDeveloper != nil {
+			// Handle developer messages (convert to system in Anthropic)
+			developerContent := c.extractDeveloperContent(msg.OfDeveloper.Content)
+			if systemMessage != "" {
+				systemMessage += "\n\n" + developerContent
+			} else {
+				systemMessage = developerContent
+			}
+
 		} else if msg.OfTool != nil {
 			// Convert tool messages to user messages with tool result content
+			toolContent, err := c.convertToolContent(msg.OfTool.Content)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to convert tool content: %w", err)
+			}
+
+			isError := false
+			// Check if this is an error response based on content or status
+			if msg.OfTool.Content.OfString.Valid() {
+				content := strings.ToLower(msg.OfTool.Content.OfString.Value)
+				if strings.Contains(content, "error") || strings.Contains(content, "failed") {
+					isError = true
+				}
+			}
+
 			anthropicMessages = append(anthropicMessages, anthropic.MessageParam{
 				Role: anthropic.MessageParamRoleUser,
 				Content: []anthropic.ContentBlockParamUnion{
@@ -129,13 +185,24 @@ func (c *OpenAIToAnthropicConverter) convertMessagesFromOpenAI(messages []openai
 						OfToolResult: &anthropic.ToolResultBlockParam{
 							Type:      "tool_result",
 							ToolUseID: msg.OfTool.ToolCallID,
-							Content:   []anthropic.ToolResultBlockParamContentUnion{{OfText: &anthropic.TextBlockParam{Type: "text", Text: msg.OfTool.Content.OfString.Value}}},
+							Content:   toolContent,
+							IsError:   anthropicparam.Opt[bool]{Value: isError},
 						},
 					},
 				},
 			})
 		} else if msg.OfFunction != nil {
 			// Convert deprecated function messages to tool result format
+			functionContent := msg.OfFunction.Content.Value
+			if functionContent == "" {
+				functionContent = "Function executed successfully"
+			}
+
+			isError := false
+			if strings.Contains(strings.ToLower(functionContent), "error") {
+				isError = true
+			}
+
 			anthropicMessages = append(anthropicMessages, anthropic.MessageParam{
 				Role: anthropic.MessageParamRoleUser,
 				Content: []anthropic.ContentBlockParamUnion{
@@ -143,7 +210,8 @@ func (c *OpenAIToAnthropicConverter) convertMessagesFromOpenAI(messages []openai
 						OfToolResult: &anthropic.ToolResultBlockParam{
 							Type:      "tool_result",
 							ToolUseID: msg.OfFunction.Name, // Use function name as tool ID
-							Content:   []anthropic.ToolResultBlockParamContentUnion{{OfText: &anthropic.TextBlockParam{Type: "text", Text: msg.OfFunction.Content.Value}}},
+							Content:   []anthropic.ToolResultBlockParamContentUnion{{OfText: &anthropic.TextBlockParam{Type: "text", Text: functionContent}}},
+							IsError:   anthropicparam.Opt[bool]{Value: isError},
 						},
 					},
 				},
@@ -185,6 +253,12 @@ func (c *OpenAIToAnthropicConverter) convertUserContent(content openai.ChatCompl
 					return nil, fmt.Errorf("failed to convert image: %w", err)
 				}
 				parts = append(parts, *imageBlock)
+			} else if part.OfFile != nil {
+				fileBlock, err := c.convertFileContent(*part.OfFile)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert file: %w", err)
+				}
+				parts = append(parts, *fileBlock)
 			}
 		}
 
@@ -326,8 +400,40 @@ func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *openai.ChatCom
 		anthropicReq.TopP = anthropicparam.Opt[float64]{Value: openaiReq.TopP.Value}
 	}
 
+	// Top-k (OpenAI has this as topLogprobs, Anthropic as top_k)
+	if openaiReq.TopLogprobs.Valid() {
+		// Convert top_logprobs to top_k (approximate mapping)
+		topK := openaiReq.TopLogprobs.Value
+		if topK > 0 && topK <= 500 { // Anthropic's valid range
+			anthropicReq.TopK = anthropicparam.Opt[int64]{Value: topK}
+		}
+	}
+
+	// Note: OpenAI doesn't have a separate system field in ChatCompletionNewParams
+	// System messages are included in the Messages array and converted separately
+
+	// Convert reasoning effort to thinking budget if present
+	if openaiReq.ReasoningEffort != "" {
+		thinkingBudget, err := c.convertReasoningEffort(string(openaiReq.ReasoningEffort))
+		if err == nil {
+			anthropicReq.Thinking = anthropic.ThinkingConfigParamUnion{
+				OfEnabled: &anthropic.ThinkingConfigEnabledParam{
+					Type:         "enabled",
+					BudgetTokens: int64(thinkingBudget),
+				},
+			}
+		}
+	}
+
+	// Convert modalities and audio parameters (OpenAI audio to Anthropic text)
+	if len(openaiReq.Modalities) > 0 {
+		// Anthropic doesn't support audio output directly
+		// Audio parameters are present but will be ignored in Anthropic conversion
+		_ = openaiReq.Audio.Format // Acknowledge audio format but ignore for Anthropic
+	}
+
 	// Note: Some OpenAI parameters don't have Anthropic equivalents:
-	// - frequency_penalty, presence_penalty, logit_bias, n, etc.
+	// - frequency_penalty, presence_penalty, logit_bias, n, seed, etc.
 	// These are silently ignored during conversion
 
 	return nil
@@ -336,49 +442,242 @@ func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *openai.ChatCom
 // convertTools converts OpenAI tools to Anthropic format
 func (c *OpenAIToAnthropicConverter) convertTools(tools []openai.ChatCompletionToolUnionParam) ([]anthropic.ToolParam, error) {
 	var anthropicTools []anthropic.ToolParam
+	var errors []string
 
-	for _, tool := range tools {
-		// Only function tools are supported in this conversion
-		if tool.OfFunction == nil {
+	for i, tool := range tools {
+		var anthropicTool *anthropic.ToolParam
+		var err error
+
+		if tool.OfFunction != nil {
+			anthropicTool, err = c.convertFunctionTool(&tool)
+		} else if tool.OfCustom != nil {
+			anthropicTool, err = c.convertCustomTool(&tool)
+		} else {
+			// Skip unsupported tool types with warning
+			errors = append(errors, fmt.Sprintf("unsupported tool type at index %d", i))
 			continue
 		}
-		anthropicTool := anthropic.ToolParam{
-			Name:        tool.OfFunction.Function.Name,
-			Description: anthropicparam.Opt[string]{Value: tool.OfFunction.Function.Description.Value},
+
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("failed to convert tool at index %d: %v", i, err))
+			continue
 		}
 
-		// Convert function parameters (OpenAI JSON Schema) to Anthropic input_schema
-		if tool.OfFunction.Function.Parameters != nil {
-			// FunctionParameters is already map[string]any, so cast directly
-			m := map[string]any(tool.OfFunction.Function.Parameters)
-			// Extract properties (fallback to the whole map if no explicit "properties")
-			var props map[string]any
-			if p, ok := m["properties"].(map[string]any); ok {
-				props = p
-			} else {
-				props = m
-			}
-			// Extract required
-			var reqFields []string
-			if r, ok := m["required"].([]any); ok {
-				reqFields = make([]string, 0, len(r))
-				for _, v := range r {
-					if s, ok := v.(string); ok {
-						reqFields = append(reqFields, s)
-					}
-				}
-			}
-			anthropicTool.InputSchema = anthropic.ToolInputSchemaParam{
-				Type:       "object",
-				Properties: props,
-				Required:   reqFields,
-			}
+		if anthropicTool != nil {
+			anthropicTools = append(anthropicTools, *anthropicTool)
 		}
+	}
 
-		anthropicTools = append(anthropicTools, anthropicTool)
+	// Return error if we couldn't convert any tools
+	if len(anthropicTools) == 0 && len(tools) > 0 {
+		return nil, fmt.Errorf("failed to convert any tools: %s", strings.Join(errors, "; "))
 	}
 
 	return anthropicTools, nil
+}
+
+// convertFunctionTool converts OpenAI function tool to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertFunctionTool(funcTool *openai.ChatCompletionToolUnionParam) (*anthropic.ToolParam, error) {
+	if funcTool == nil || funcTool.OfFunction == nil || funcTool.OfFunction.Function.Name == "" {
+		return nil, fmt.Errorf("function tool name cannot be empty")
+	}
+
+	// Validate tool name (Anthropic has restrictions)
+	if err := c.validateToolName(funcTool.OfFunction.Function.Name); err != nil {
+		return nil, fmt.Errorf("invalid function tool name '%s': %w", funcTool.OfFunction.Function.Name, err)
+	}
+
+	anthropicTool := anthropic.ToolParam{
+		Name: funcTool.OfFunction.Function.Name,
+		Type: "custom",
+	}
+
+	// Set description if present
+	if funcTool.OfFunction.Function.Description.Valid() {
+		anthropicTool.Description = anthropicparam.Opt[string]{Value: funcTool.OfFunction.Function.Description.Value}
+	}
+
+	// Convert function parameters with enhanced validation
+	if funcTool.OfFunction.Function.Parameters != nil {
+		inputSchema, err := c.convertJSONSchemaToInputSchema(funcTool.OfFunction.Function.Parameters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert function parameters: %w", err)
+		}
+		anthropicTool.InputSchema = inputSchema
+	} else {
+		// Default empty schema for parameterless functions
+		anthropicTool.InputSchema = anthropic.ToolInputSchemaParam{
+			Type:       "object",
+			Properties: map[string]any{},
+			Required:   []string{},
+		}
+	}
+
+	return &anthropicTool, nil
+}
+
+// convertCustomTool converts OpenAI custom tool to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertCustomTool(customTool *openai.ChatCompletionToolUnionParam) (*anthropic.ToolParam, error) {
+	if customTool == nil || customTool.OfCustom == nil || customTool.OfCustom.Custom.Name == "" {
+		return nil, fmt.Errorf("custom tool name cannot be empty")
+	}
+
+	// Validate tool name
+	if err := c.validateToolName(customTool.OfCustom.Custom.Name); err != nil {
+		return nil, fmt.Errorf("invalid custom tool name '%s': %w", customTool.OfCustom.Custom.Name, err)
+	}
+
+	anthropicTool := anthropic.ToolParam{
+		Name: customTool.OfCustom.Custom.Name,
+		Type: "custom",
+	}
+
+	// Set description if present
+	if customTool.OfCustom.Custom.Description.Valid() {
+		anthropicTool.Description = anthropicparam.Opt[string]{Value: customTool.OfCustom.Custom.Description.Value}
+	}
+
+	// Convert custom tool format to input schema with enhanced handling
+	if customTool.OfCustom.Custom.Format.OfGrammar != nil {
+		// Handle grammar format with validation
+		grammar := customTool.OfCustom.Custom.Format.OfGrammar
+		if grammar.Grammar.Syntax == "" || grammar.Grammar.Definition == "" {
+			return nil, fmt.Errorf("grammar format requires both syntax and definition")
+		}
+
+		anthropicTool.InputSchema = anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]any{
+				"input": map[string]any{
+					"type": "string",
+					"description": fmt.Sprintf("Input following %s grammar: %s",
+						grammar.Grammar.Syntax, grammar.Grammar.Definition),
+					"pattern": c.generatePatternFromGrammar(grammar.Grammar.Syntax, grammar.Grammar.Definition),
+				},
+			},
+			Required: []string{"input"},
+		}
+	} else if customTool.OfCustom.Custom.Format.OfText != nil {
+		// Handle text format
+		anthropicTool.InputSchema = anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]any{
+				"input": map[string]any{
+					"type":        "string",
+					"description": "Free text input for the custom tool",
+				},
+			},
+			Required: []string{"input"},
+		}
+	} else {
+		// Default to text format
+		anthropicTool.InputSchema = anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]any{
+				"input": map[string]any{
+					"type":        "string",
+					"description": "Input for the custom tool",
+				},
+			},
+			Required: []string{"input"},
+		}
+	}
+
+	return &anthropicTool, nil
+}
+
+// validateToolName validates tool names according to Anthropic requirements
+func (c *OpenAIToAnthropicConverter) validateToolName(name string) error {
+	if name == "" {
+		return fmt.Errorf("tool name cannot be empty")
+	}
+
+	// Anthropic tool names must be alphanumeric with underscores, 1-64 chars
+	if len(name) > 64 {
+		return fmt.Errorf("tool name too long (max 64 characters)")
+	}
+
+	for i, char := range name {
+		if (char < 'a' || char > 'z') && (char < 'A' || char > 'Z') &&
+			(char < '0' || char > '9') && char != '_' {
+			return fmt.Errorf("invalid character '%c' at position %d (only alphanumeric and underscore allowed)", char, i)
+		}
+	}
+
+	return nil
+}
+
+// convertJSONSchemaToInputSchema converts OpenAI JSON Schema to Anthropic InputSchema
+func (c *OpenAIToAnthropicConverter) convertJSONSchemaToInputSchema(parameters openai.FunctionParameters) (anthropic.ToolInputSchemaParam, error) {
+	// Cast to map for processing
+	m := map[string]any(parameters)
+
+	// Validate required fields
+	schemaType, hasType := m["type"]
+	if !hasType {
+		// Default to object if no type specified
+		schemaType = "object"
+	}
+
+	if schemaType != "object" {
+		return anthropic.ToolInputSchemaParam{}, fmt.Errorf("only object type schemas are supported, got: %v", schemaType)
+	}
+
+	// Extract properties with validation
+	var props any
+	if p, ok := m["properties"]; ok {
+		if propsMap, isMap := p.(map[string]any); isMap {
+			props = propsMap
+		} else {
+			return anthropic.ToolInputSchemaParam{}, fmt.Errorf("properties must be an object")
+		}
+	} else {
+		// Empty properties for schemas without explicit properties
+		props = map[string]any{}
+	}
+
+	// Extract and validate required fields
+	var reqFields []string
+	if r, ok := m["required"]; ok {
+		switch reqArray := r.(type) {
+		case []any:
+			reqFields = make([]string, 0, len(reqArray))
+			for i, v := range reqArray {
+				if s, ok := v.(string); ok {
+					reqFields = append(reqFields, s)
+				} else {
+					return anthropic.ToolInputSchemaParam{}, fmt.Errorf("required[%d] must be a string, got: %T", i, v)
+				}
+			}
+		case []string:
+			reqFields = reqArray
+		default:
+			return anthropic.ToolInputSchemaParam{}, fmt.Errorf("required must be an array of strings, got: %T", r)
+		}
+	}
+
+	return anthropic.ToolInputSchemaParam{
+		Type:       "object",
+		Properties: props,
+		Required:   reqFields,
+	}, nil
+}
+
+// generatePatternFromGrammar generates a regex pattern hint from grammar definition
+func (c *OpenAIToAnthropicConverter) generatePatternFromGrammar(syntax, definition string) string {
+	// This is a simplified pattern generator - in practice, you'd want more sophisticated grammar parsing
+	switch strings.ToLower(syntax) {
+	case "json":
+		return `^[\s]*\{.*\}[\s]*$`
+	case "xml":
+		return `^[\s]*<.*>.*</.*>[\s]*$`
+	case "regex", "regexp":
+		// Use the definition as the pattern if it's a regex
+		return definition
+	default:
+		// Generic pattern for structured text
+		return `^.+$`
+	}
 }
 
 // convertStopSequences converts OpenAI stop sequences to Anthropic format
@@ -520,6 +819,8 @@ func (c *OpenAIToAnthropicConverter) ConvertResponse(resp *openai.ChatCompletion
 }
 
 // ConvertStreamingChunk converts OpenAI streaming chunk to Anthropic streaming event format
+// Note: This function should be called as part of a stateful streaming process that tracks
+// whether content blocks have been started
 func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCompletionChunk, provider string) (*anthropic.MessageStreamEventUnion, error) {
 	if chunk == nil {
 		return nil, fmt.Errorf("chat completion chunk cannot be nil")
@@ -533,9 +834,10 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 
 	// Handle different types of streaming events based on OpenAI chunk content
 
-	// Check if this is the start of streaming (when delta starts)
+	// Check if this is the start of streaming (when delta role appears)
 	if choice.Delta.Role != "" && choice.Delta.Content == "" && len(choice.Delta.ToolCalls) == 0 {
-		// This is a message start event
+		// This is a message start event - convert usage properly
+		usage := c.convertUsage(chunk.Usage)
 		return &anthropic.MessageStreamEventUnion{
 			Type: "message_start",
 			Message: anthropic.Message{
@@ -544,11 +846,12 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 				Model:   anthropic.Model(chunk.Model),
 				Role:    "assistant",
 				Type:    "message",
+				Usage:   usage,
 			},
 		}, nil
 	}
 
-	// Handle content delta (text content)
+	// Handle content delta (text content) - caller should emit content_block_start first
 	if choice.Delta.Content != "" {
 		return &anthropic.MessageStreamEventUnion{
 			Type:  "content_block_delta",
@@ -593,12 +896,15 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 
 	// Handle finish reason (end of streaming)
 	if choice.FinishReason != "" {
-		// Create message_delta event with usage when finishing
+		stopReason := c.convertFinishReason(choice.FinishReason)
 		event := &anthropic.MessageStreamEventUnion{
 			Type: "message_delta",
+			Delta: anthropic.MessageStreamEventUnionDelta{
+				StopReason: stopReason,
+			},
 		}
 
-		// Add usage only if present in the chunk (not all providers send usage in streaming)
+		// Add usage only if present in the chunk
 		if chunk.Usage.CompletionTokens != 0 || chunk.Usage.PromptTokens != 0 {
 			event.Usage = anthropic.MessageDeltaUsage{
 				OutputTokens: chunk.Usage.CompletionTokens,
@@ -606,22 +912,192 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 			}
 		}
 
-		// Add stop reason to delta
-		stopReason := c.convertFinishReason(choice.FinishReason)
-		event.Delta = anthropic.MessageStreamEventUnionDelta{
-			StopReason: stopReason,
-		}
-
 		return event, nil
 	}
 
-	// Default case - return a simple delta event if we have any content
-	return &anthropic.MessageStreamEventUnion{
-		Type:  "content_block_delta",
-		Index: choice.Index,
-		Delta: anthropic.MessageStreamEventUnionDelta{
-			Type: "text_delta",
-			Text: "",
+	// Return nil for chunks that don't contain meaningful updates
+	// This allows the caller to skip empty chunks
+	return nil, nil
+}
+
+// convertToolChoice converts OpenAI tool choice to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertToolChoice(toolChoice openai.ChatCompletionToolChoiceOptionUnionParam) (anthropic.ToolChoiceUnionParam, error) {
+	if toolChoice.OfAuto.Valid() {
+		return anthropic.ToolChoiceUnionParam{
+			OfAuto: &anthropic.ToolChoiceAutoParam{
+				Type:                   "auto",
+				DisableParallelToolUse: anthropicparam.Opt[bool]{Value: false},
+			},
+		}, nil
+	}
+
+	if toolChoice.OfFunctionToolChoice != nil {
+		return anthropic.ToolChoiceUnionParam{
+			OfTool: &anthropic.ToolChoiceToolParam{
+				Type:                   "tool",
+				Name:                   toolChoice.OfFunctionToolChoice.Function.Name,
+				DisableParallelToolUse: anthropicparam.Opt[bool]{Value: true},
+			},
+		}, nil
+	}
+
+	// Default to auto
+	return anthropic.ToolChoiceUnionParam{
+		OfAuto: &anthropic.ToolChoiceAutoParam{
+			Type:                   "auto",
+			DisableParallelToolUse: anthropicparam.Opt[bool]{Value: false},
+		},
+	}, nil
+}
+
+// convertServiceTier converts OpenAI service tier to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertServiceTier(serviceTier openai.ChatCompletionNewParamsServiceTier) (anthropic.MessageNewParamsServiceTier, error) {
+	switch serviceTier {
+	case "auto":
+		return anthropic.MessageNewParamsServiceTierAuto, nil
+	case "default":
+		return anthropic.MessageNewParamsServiceTierStandardOnly, nil
+	default:
+		return anthropic.MessageNewParamsServiceTierAuto, nil
+	}
+}
+
+// convertMetadata converts OpenAI metadata fields to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertMetadata(safetyIdentifier, user anthropicparam.Opt[string]) anthropic.MetadataParam {
+	metadata := anthropic.MetadataParam{}
+
+	// Use safety_identifier as user_id, fallback to user field
+	if safetyIdentifier.Valid() {
+		metadata.UserID = safetyIdentifier
+	} else if user.Valid() {
+		metadata.UserID = user
+	}
+
+	return metadata
+}
+
+// extractDeveloperContent extracts string content from OpenAI developer message
+func (c *OpenAIToAnthropicConverter) extractDeveloperContent(content openai.ChatCompletionDeveloperMessageParamContentUnion) string {
+	if content.OfString.Valid() {
+		return content.OfString.Value
+	} else if len(content.OfArrayOfContentParts) > 0 {
+		var text strings.Builder
+		for _, part := range content.OfArrayOfContentParts {
+			if part.Text != "" {
+				if text.Len() > 0 {
+					text.WriteString("\n")
+				}
+				text.WriteString(part.Text)
+			}
+		}
+		return text.String()
+	}
+	return ""
+}
+
+// convertToolContent converts OpenAI tool content to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertToolContent(content openai.ChatCompletionToolMessageParamContentUnion) ([]anthropic.ToolResultBlockParamContentUnion, error) {
+	if content.OfString.Valid() {
+		return []anthropic.ToolResultBlockParamContentUnion{
+			{OfText: &anthropic.TextBlockParam{Type: "text", Text: content.OfString.Value}},
+		}, nil
+	} else if len(content.OfArrayOfContentParts) > 0 {
+		var parts []anthropic.ToolResultBlockParamContentUnion
+		for _, part := range content.OfArrayOfContentParts {
+			if part.Text != "" {
+				parts = append(parts, anthropic.ToolResultBlockParamContentUnion{
+					OfText: &anthropic.TextBlockParam{Type: "text", Text: part.Text},
+				})
+			}
+		}
+		return parts, nil
+	}
+
+	// Fallback to empty text
+	return []anthropic.ToolResultBlockParamContentUnion{
+		{OfText: &anthropic.TextBlockParam{Type: "text", Text: ""}},
+	}, nil
+}
+
+// convertReasoningEffort converts OpenAI reasoning effort to Anthropic thinking budget
+func (c *OpenAIToAnthropicConverter) convertReasoningEffort(effort string) (int, error) {
+	// Convert reasoning effort levels to token budgets
+	switch effort {
+	case "low":
+		return 5000, nil
+	case "medium":
+		return 15000, nil
+	case "high":
+		return 50000, nil
+	default:
+		return 15000, nil // Default to medium
+	}
+}
+
+// Note: Audio content conversion not available - ChatCompletionContentPartAudioParam
+// doesn't exist in current OpenAI SDK. Audio handling is done through modalities.
+
+// convertFileContent converts OpenAI file content to Anthropic format
+func (c *OpenAIToAnthropicConverter) convertFileContent(file openai.ChatCompletionContentPartFileParam) (*anthropic.ContentBlockParamUnion, error) {
+	if file.File.FileData.Valid() {
+		// Handle base64 file data
+		data := file.File.FileData.Value
+		filename := "file"
+		if file.File.Filename.Valid() {
+			filename = file.File.Filename.Value
+		}
+
+		// Try to determine if it's a PDF based on filename or content
+		if strings.HasSuffix(strings.ToLower(filename), ".pdf") {
+			return &anthropic.ContentBlockParamUnion{
+				OfDocument: &anthropic.DocumentBlockParam{
+					Type: "document",
+					Source: anthropic.DocumentBlockParamSourceUnion{
+						OfBase64: &anthropic.Base64PDFSourceParam{
+							Type:      "base64",
+							MediaType: "application/pdf",
+							Data:      data,
+						},
+					},
+					Title: anthropicparam.Opt[string]{Value: filename},
+				},
+			}, nil
+		}
+
+		// For other file types, decode and treat as text
+		decodedData, err := base64.StdEncoding.DecodeString(data)
+		if err != nil {
+			// If not base64, treat as plain text
+			return &anthropic.ContentBlockParamUnion{
+				OfText: &anthropic.TextBlockParam{
+					Type: "text",
+					Text: fmt.Sprintf("[File: %s]\n%s", filename, data),
+				},
+			}, nil
+		}
+
+		return &anthropic.ContentBlockParamUnion{
+			OfText: &anthropic.TextBlockParam{
+				Type: "text",
+				Text: fmt.Sprintf("[File: %s]\n%s", filename, string(decodedData)),
+			},
+		}, nil
+	}
+
+	if file.File.FileID.Valid() {
+		// Handle file ID (treat as text reference)
+		return &anthropic.ContentBlockParamUnion{
+			OfText: &anthropic.TextBlockParam{
+				Type: "text",
+				Text: fmt.Sprintf("[File ID: %s]", file.File.FileID.Value),
+			},
+		}, nil
+	}
+
+	return &anthropic.ContentBlockParamUnion{
+		OfText: &anthropic.TextBlockParam{
+			Type: "text",
+			Text: "[Unknown file content]",
 		},
 	}, nil
 }

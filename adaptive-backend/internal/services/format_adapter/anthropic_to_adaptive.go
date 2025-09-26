@@ -49,7 +49,7 @@ func (c *AnthropicToAdaptiveConverter) ConvertResponse(resp *anthropic.Message, 
 
 	return &models.AnthropicMessage{
 		ID:           resp.ID,
-		Content:      c.convertContentBlocks(resp.Content),
+		Content:      resp.Content,
 		Model:        string(resp.Model),
 		Role:         string(resp.Role),
 		StopReason:   string(resp.StopReason),
@@ -82,8 +82,8 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 	case anthropic.MessageDeltaEvent:
 		adaptive := &models.AnthropicMessageChunk{
 			Type: "message_delta",
-			Delta: &models.AdaptiveDelta{
-				StopReason:   string(eventVariant.Delta.StopReason),
+			Delta: &anthropic.MessageStreamEventUnionDelta{
+				StopReason:   eventVariant.Delta.StopReason,
 				StopSequence: eventVariant.Delta.StopSequence,
 			},
 			Provider: provider,
@@ -114,7 +114,7 @@ func (c *AnthropicToAdaptiveConverter) ConvertStreamingChunk(chunk *anthropic.Me
 	case anthropic.ContentBlockDeltaEvent:
 		adaptive := &models.AnthropicMessageChunk{
 			Type: "content_block_delta",
-			Delta: &models.AdaptiveDelta{
+			Delta: &anthropic.MessageStreamEventUnionDelta{
 				Type: eventVariant.Delta.Type,
 			},
 			Index:    &eventVariant.Index,
@@ -154,126 +154,4 @@ func (c *AnthropicToAdaptiveConverter) convertUsage(usage anthropic.Usage, cache
 		ServiceTier:              string(usage.ServiceTier),
 		CacheTier:                cacheSource,
 	}
-}
-
-// convertContentBlocks converts Anthropic ContentBlockUnion to our custom ContentBlockUnion
-func (c *AnthropicToAdaptiveConverter) convertContentBlocks(content []anthropic.ContentBlockUnion) []models.ContentBlockUnion {
-	if content == nil {
-		return nil
-	}
-
-	result := make([]models.ContentBlockUnion, len(content))
-	for i, block := range content {
-		switch b := block.AsAny().(type) {
-		case anthropic.TextBlock:
-			result[i] = models.ContentBlockUnion{
-				Type:      "text",
-				Text:      b.Text,
-				Citations: c.convertTextCitations(b.Citations),
-			}
-		case anthropic.ThinkingBlock:
-			result[i] = models.ContentBlockUnion{
-				Type:      "thinking",
-				Thinking:  b.Thinking,
-				Signature: b.Signature,
-			}
-		case anthropic.RedactedThinkingBlock:
-			result[i] = models.ContentBlockUnion{
-				Type: "redacted_thinking",
-				Data: b.Data,
-			}
-		case anthropic.ToolUseBlock:
-			result[i] = models.ContentBlockUnion{
-				Type:  "tool_use",
-				ID:    b.ID,
-				Name:  b.Name,
-				Input: b.Input,
-			}
-		case anthropic.ServerToolUseBlock:
-			result[i] = models.ContentBlockUnion{
-				Type:  "server_tool_use",
-				ID:    b.ID,
-				Name:  string(b.Name),
-				Input: b.Input,
-			}
-		case anthropic.WebSearchToolResultBlock:
-			result[i] = models.ContentBlockUnion{
-				Type:      "web_search_tool_result",
-				ToolUseID: b.ToolUseID,
-				Content:   b.Content,
-			}
-		default:
-			// Fallback for unknown types
-			result[i] = models.ContentBlockUnion{
-				Type: "text",
-				Text: "",
-			}
-		}
-	}
-	return result
-}
-
-// convertTextCitations converts Anthropic TextCitationUnion to our custom TextCitationUnion
-func (c *AnthropicToAdaptiveConverter) convertTextCitations(citations []anthropic.TextCitationUnion) []models.TextCitationUnion {
-	if citations == nil {
-		return nil
-	}
-
-	result := make([]models.TextCitationUnion, len(citations))
-	for i, citation := range citations {
-		switch c := citation.AsAny().(type) {
-		case anthropic.CitationCharLocation:
-			result[i] = models.TextCitationUnion{
-				Type:           "char_location",
-				CitedText:      c.CitedText,
-				DocumentIndex:  c.DocumentIndex,
-				DocumentTitle:  c.DocumentTitle,
-				StartCharIndex: c.StartCharIndex,
-				EndCharIndex:   c.EndCharIndex,
-				FileID:         c.FileID,
-			}
-		case anthropic.CitationPageLocation:
-			result[i] = models.TextCitationUnion{
-				Type:            "page_location",
-				CitedText:       c.CitedText,
-				DocumentIndex:   c.DocumentIndex,
-				DocumentTitle:   c.DocumentTitle,
-				StartPageNumber: c.StartPageNumber,
-				EndPageNumber:   c.EndPageNumber,
-				FileID:          c.FileID,
-			}
-		case anthropic.CitationContentBlockLocation:
-			result[i] = models.TextCitationUnion{
-				Type:            "content_block_location",
-				CitedText:       c.CitedText,
-				DocumentIndex:   c.DocumentIndex,
-				DocumentTitle:   c.DocumentTitle,
-				StartBlockIndex: c.StartBlockIndex,
-				EndBlockIndex:   c.EndBlockIndex,
-				FileID:          c.FileID,
-			}
-		case anthropic.CitationsWebSearchResultLocation:
-			result[i] = models.TextCitationUnion{
-				Type:           "web_search_result_location",
-				CitedText:      c.CitedText,
-				EncryptedIndex: c.EncryptedIndex,
-				Title:          c.Title,
-				URL:            c.URL,
-			}
-		case anthropic.CitationsSearchResultLocation:
-			result[i] = models.TextCitationUnion{
-				Type:              "search_result_location",
-				CitedText:         c.CitedText,
-				SearchResultIndex: c.SearchResultIndex,
-				Source:            c.Source,
-			}
-		default:
-			// Fallback for unknown types
-			result[i] = models.TextCitationUnion{
-				Type:      "char_location",
-				CitedText: "",
-			}
-		}
-	}
-	return result
 }
