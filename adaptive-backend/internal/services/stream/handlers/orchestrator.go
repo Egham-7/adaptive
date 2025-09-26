@@ -78,9 +78,7 @@ func getBuffer(provider string) []byte {
 // putBuffer returns a buffer to the appropriate pool
 func putBuffer(buffer []byte, provider string) {
 	// Clear buffer to prevent data leaks
-	for i := range buffer {
-		buffer[i] = 0
-	}
+	clear(buffer)
 
 	poolInitOnce.Do(initializeProviderPools)
 
