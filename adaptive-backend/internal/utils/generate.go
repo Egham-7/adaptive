@@ -156,14 +156,8 @@ func ExtractToolCallsFromGeminiContents(contents []*genai.Content) any {
 	if lastContent.Role == "model" {
 		for _, part := range lastContent.Parts {
 			// Check if this part represents a function call
-			// This is a placeholder implementation - would need SDK-specific checks
-			if part != nil {
-				partStr := fmt.Sprintf("%v", part)
-				if partStr != "" {
-					// Return the part if it might be a function call
-					// More sophisticated checking would be needed in practice
-					return part
-				}
+			if part != nil && part.FunctionCall != nil {
+				return part
 			}
 		}
 	}
