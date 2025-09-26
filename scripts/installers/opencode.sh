@@ -1,4 +1,6 @@
 #!/bin/bash
+# OpenCode + Adaptive one-shot installer
+# Works on macOS/Linux (bash), needs curl
 
 set -euo pipefail
 
@@ -6,99 +8,76 @@ set -euo pipefail
 #       Constants
 # ========================
 SCRIPT_NAME="OpenCode Adaptive Installer"
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
+
 NODE_MIN_VERSION=18
 NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
-OPENCODE_PACKAGE="@opencode/cli"
+
+# ✅ Correct package for OpenCode:
+OPENCODE_PACKAGE="opencode-ai"
+
 CONFIG_FILE="opencode.json"
 API_BASE_URL="https://www.llmadaptive.uk/api/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
-# Model override defaults (can be overridden by environment variables)
-# Empty strings enable intelligent model routing for optimal cost/performance
+# Model override defaults:
+# - empty string means "use intelligent routing"
 DEFAULT_MODEL=""
 
 # ========================
-#       Utility Functions
+#       Logging
 # ========================
-
-log_info() {
-  echo "🔹 $*"
-}
-
-log_success() {
-  echo "✅ $*"
-}
-
-log_error() {
-  echo "❌ $*" >&2
-}
-
-ensure_dir_exists() {
-  local dir="$1"
-  if [ ! -d "$dir" ]; then
-    mkdir -p "$dir" || {
-      log_error "Failed to create directory: $dir"
-      exit 1
-    }
-  fi
-}
+log_info()    { echo "🔹 $*"; }
+log_success() { echo "✅ $*"; }
+log_error()   { echo "❌ $*" >&2; }
 
 # ========================
-#     Node.js Installation Functions
+#     Node.js helpers
 # ========================
-
 install_nodejs() {
   local platform
   platform=$(uname -s)
 
   case "$platform" in
-  Linux | Darwin)
-    log_info "Installing Node.js on $platform..."
+    Linux|Darwin)
+      log_info "Installing Node.js on $platform..."
+      log_info "Installing nvm ($NVM_VERSION)..."
+      curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash
 
-    # Install nvm
-    log_info "Installing nvm ($NVM_VERSION)..."
-    curl -s https://raw.githubusercontent.com/nvm-sh/nvm/"$NVM_VERSION"/install.sh | bash
+      # Load nvm in this shell
+      if [ -s "$HOME/.nvm/nvm.sh" ]; then
+        # shellcheck disable=SC1090
+        . "$HOME/.nvm/nvm.sh"
+      else
+        log_error "nvm did not install correctly (missing ~/.nvm/nvm.sh)."
+        exit 1
+      fi
 
-    # Load nvm
-    log_info "Loading nvm environment..."
-    # shellcheck disable=SC1091
-    \. "$HOME/.nvm/nvm.sh"
+      log_info "Installing Node.js v$NODE_INSTALL_VERSION via nvm..."
+      nvm install "$NODE_INSTALL_VERSION"
 
-    # Install Node.js
-    log_info "Installing Node.js $NODE_INSTALL_VERSION..."
-    nvm install "$NODE_INSTALL_VERSION"
-
-    # Verify installation
-    node -v &>/dev/null || {
-      log_error "Node.js installation failed"
+      node -v >/dev/null 2>&1 || { log_error "Node.js installation failed."; exit 1; }
+      log_success "Node.js installed: $(node -v)"
+      log_success "npm version: $(npm -v)"
+      ;;
+    *)
+      log_error "Unsupported platform: $platform"
       exit 1
-    }
-    log_success "Node.js installed: $(node -v)"
-    log_success "npm version: $(npm -v)"
-    ;;
-  *)
-    log_error "Unsupported platform: $platform"
-    exit 1
-    ;;
+      ;;
   esac
 }
 
-# ========================
-#     Node.js Check Functions
-# ========================
-
 check_nodejs() {
-  if command -v node &>/dev/null; then
-    current_version=$(node -v | sed 's/v//')
+  if command -v node >/dev/null 2>&1; then
+    local current_version major_version
+    current_version=$(node -v | sed 's/^v//')
     major_version=$(echo "$current_version" | cut -d. -f1)
-
     if [ "$major_version" -ge "$NODE_MIN_VERSION" ]; then
       log_success "Node.js is already installed: v$current_version"
       return 0
     else
-      log_info "Node.js v$current_version is installed but version < $NODE_MIN_VERSION. Upgrading..."
+      log_info "Node v$current_version < $NODE_MIN_VERSION; updating..."
       install_nodejs
     fi
   else
@@ -108,34 +87,55 @@ check_nodejs() {
 }
 
 # ========================
-#     OpenCode Installation
+#     OpenCode install
 # ========================
-
 install_opencode() {
-  if command -v opencode &>/dev/null; then
-    log_success "OpenCode is already installed: $(opencode --version 2>/dev/null || echo 'installed')"
-  else
-    log_info "Installing OpenCode..."
-    npm install -g "$OPENCODE_PACKAGE" || {
-      log_error "Failed to install OpenCode"
-      exit 1
-    }
-    log_success "OpenCode installed successfully"
+  if command -v opencode >/dev/null 2>&1; then
+    log_success "OpenCode already installed: $(opencode --version 2>/dev/null || echo 'present')"
+    return 0
   fi
+
+  log_info "Installing OpenCode via npm (package: $OPENCODE_PACKAGE)..."
+  npm install -g "$OPENCODE_PACKAGE" || {
+    log_error "Failed to install OpenCode"
+    exit 1
+  }
+  log_success "OpenCode installed via npm."
 }
 
 # ========================
-#     Configuration Management
+#     Validation helpers
 # ========================
+validate_api_key() {
+  local api_key="$1"
+  [[ "$api_key" =~ ^[A-Za-z0-9._-]{20,}$ ]]
+}
 
+validate_model_override() {
+  local model="$1"
+  # empty => allowed (router)
+  if [ -z "$model" ]; then return 0; fi
+  [[ "$model" =~ ^[a-zA-Z0-9._-]+$ ]]
+}
+
+# ========================
+#     Config generator
+# ========================
 create_opencode_config() {
   local config_file="$1"
   local model="$2"
 
   log_info "Creating OpenCode configuration..."
 
-  # Create the opencode.json configuration
-  cat >"$config_file" <<EOF
+  # If user gave ADAPTIVE_MODEL, use it; else default to router id.
+  local effective_model
+  if [ -z "$model" ]; then
+    effective_model="intelligent-routing"
+  else
+    effective_model="$model"
+  fi
+
+  cat > "$config_file" <<EOF
 {
   "\$schema": "https://opencode.ai/config.json",
   "provider": {
@@ -144,256 +144,146 @@ create_opencode_config() {
       "name": "Adaptive",
       "options": {
         "baseURL": "$API_BASE_URL",
-        "headers": {
-          "User-Agent": "opencode-adaptive-integration"
-        }
+        "headers": { "User-Agent": "opencode-adaptive-integration" }
       },
       "models": {
-        "": {
+        "intelligent-routing": {
           "name": "🧠 Intelligent Routing",
-          "description": "Automatically selects optimal model for cost/performance"
-        },
+          "description": "Chooses the optimal model per request"
+        }
       }
     }
-  }
+  },
+  "model": "adaptive/${effective_model}"
 }
 EOF
 
-  log_success "OpenCode configuration created at: $config_file"
+  # quick JSON sanity check (jq optional)
+  if command -v jq >/dev/null 2>&1; then
+    if ! jq . "$config_file" >/dev/null 2>&1; then
+      log_error "Generated $config_file is not valid JSON."
+      exit 1
+    fi
+  fi
+
+  log_success "OpenCode configuration written: $config_file"
 }
 
 # ========================
-#     API Key Configuration
+#     Auth guidance
 # ========================
-
-validate_api_key() {
-  local api_key="$1"
-
-  # Basic validation - check if it looks like a valid API key format
-  if [[ ! "$api_key" =~ ^[A-Za-z0-9_-]{20,}$ ]]; then
-    log_error "API key format appears invalid. Please check your key."
-    return 1
-  fi
-  return 0
-}
-
-validate_model_override() {
-  local model="$1"
-
-  # Allow empty string for intelligent routing
-  if [ -z "$model" ]; then
-    return 0
-  fi
-
-  # Validate model name format
-  if [[ ! "$model" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model name format invalid. Use standard model names like 'claude-3-5-sonnet-20241022' or empty string for intelligent routing"
-    return 1
-  fi
-  return 0
-}
-
-configure_opencode() {
-  log_info "Configuring OpenCode for Adaptive..."
-  echo "   You can get your API key from: $API_KEY_URL"
-
-  # Check for environment variable first
-  local api_key="${ADAPTIVE_API_KEY:-}"
-
-  # Check for model override
-  local model="${ADAPTIVE_MODEL:-$DEFAULT_MODEL}"
-
-  # Validate model override if provided
-  if [ "$model" != "$DEFAULT_MODEL" ]; then
-    log_info "Using custom model: $model"
-    if ! validate_model_override "$model"; then
-      log_error "Invalid model format in ADAPTIVE_MODEL"
-      exit 1
-    fi
-  fi
-
-  if [ -n "$api_key" ]; then
-    log_info "Using API key from ADAPTIVE_API_KEY environment variable"
-    if ! validate_api_key "$api_key"; then
-      log_error "Invalid API key format in ADAPTIVE_API_KEY environment variable"
-      exit 1
-    fi
-  # Check if running in non-interactive mode (e.g., piped from curl)
-  elif [ ! -t 0 ]; then
-    echo ""
-    log_info "🎯 Interactive setup required for API key configuration"
-    echo ""
-    echo "📥 Option 1: Download and run interactively (Recommended)"
-    echo "   curl -o opencode.sh https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh"
-    echo "   chmod +x opencode.sh"
-    echo "   ./opencode.sh"
-    echo ""
-    echo "🔑 Option 2: Set API key via environment variable"
-    echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh | bash"
-    echo ""
-    echo "🎯 Option 3: Customize model (Advanced)"
-    echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_MODEL='claude-3-5-sonnet-20241022'  # or empty for intelligent routing"
-    echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/opencode.sh | bash"
-    echo ""
-    echo "⚙️  Option 4: Manual configuration (Advanced users)"
-    echo "   1. Create opencode.json in your project directory"
-    echo "   2. Add Adaptive provider with: opencode auth login"
-    echo "   3. Configure API key and baseURL as shown in documentation"
-    echo ""
-    echo "🔗 Get your API key: $API_KEY_URL"
-    exit 1
-  else
-    # Interactive mode - prompt for API key
-    local attempts=0
-    local max_attempts=3
-
-    while [ $attempts -lt $max_attempts ]; do
-      echo -n "🔑 Please enter your Adaptive API key: "
-      read -rs api_key
-      echo
-
-      if [ -z "$api_key" ]; then
-        log_error "API key cannot be empty."
-        ((attempts++))
-        continue
-      fi
-
-      if validate_api_key "$api_key"; then
-        break
-      fi
-
-      ((attempts++))
-      if [ $attempts -lt $max_attempts ]; then
-        log_info "Please try again ($((max_attempts - attempts)) attempts remaining)..."
-      fi
-    done
-
-    if [ $attempts -eq $max_attempts ]; then
-      log_error "Maximum attempts reached. Please run the script again."
-      exit 1
-    fi
-  fi
-
-  # Create opencode.json configuration
-  local config_file="$PWD/$CONFIG_FILE"
-  create_opencode_config "$config_file" "$model"
-
-  # Set up authentication with OpenCode
-  log_info "Setting up OpenCode authentication..."
-  log_info "Please follow the authentication prompts..."
-
-  # Use OpenCode's auth system to add the provider
-  # Based on documentation, we need to run auth login and select "Other"
-  log_info "Run 'opencode auth login' and:"
-  log_info "1. Scroll down and select 'Other'"
-  log_info "2. Enter provider ID: adaptive"
-  log_info "3. Enter your API key when prompted"
-
-  # Note: OpenCode auth is interactive, so we'll provide instructions
+print_auth_instructions() {
   echo ""
-  echo "⚠️  IMPORTANT: Complete the authentication setup manually:"
+  echo "⚠️  Authentication is interactive in OpenCode."
+  echo "   Run the following to finish setup:"
+  echo ""
   echo "   opencode auth login"
-  echo "   → Select 'Other'"
-  echo "   → Provider ID: adaptive"
-  echo "   → API Key: [your key]"
+  echo "     → Select: Other"
+  echo "     → Provider ID: adaptive"
+  echo "     → Paste your API key (get it from $API_KEY_URL)"
   echo ""
-
-  log_success "OpenCode configured for Adaptive successfully"
-  log_info "Configuration saved to: $config_file"
-  log_info "Authentication configured with OpenCode"
 }
 
 # ========================
-#        Main Flow
+#     Verification
 # ========================
+verify_installation() {
+  log_info "Verifying installation..."
 
+  if ! command -v opencode >/dev/null 2>&1; then
+    log_error "OpenCode binary not found after install."
+    return 1
+  fi
+
+  if [ ! -f "$PWD/$CONFIG_FILE" ]; then
+    log_error "Missing $CONFIG_FILE in current directory."
+    return 1
+  fi
+
+  log_success "Installation verification passed."
+  return 0
+}
+
+# ========================
+#        Main
+# ========================
 show_banner() {
   echo "=========================================="
   echo "  $SCRIPT_NAME v$SCRIPT_VERSION"
   echo "=========================================="
   echo "Configure OpenCode to use Adaptive's"
-  echo "intelligent LLM routing for 60-80% cost savings"
+  echo "intelligent LLM routing (save 60–80% costs)"
   echo ""
-}
-
-verify_installation() {
-  log_info "Verifying installation..."
-
-  # Check if OpenCode can be found
-  if ! command -v opencode &>/dev/null; then
-    log_error "OpenCode installation verification failed"
-    return 1
-  fi
-
-  # Check if configuration file exists
-  if [ ! -f "$PWD/$CONFIG_FILE" ]; then
-    log_error "Configuration file not found in current directory"
-    return 1
-  fi
-
-  log_success "Installation verification passed"
-  log_info "Note: Complete authentication manually with 'opencode auth login'"
-  return 0
 }
 
 main() {
   show_banner
 
+  # 1) Node & npm
   check_nodejs
-  install_opencode
-  configure_opencode
 
+  # 2) OpenCode CLI
+  install_opencode
+
+  # 3) Read env overrides (optional)
+  local api_key="${ADAPTIVE_API_KEY:-}"
+  local model="${ADAPTIVE_MODEL:-$DEFAULT_MODEL}"
+
+  if [ -n "$model" ]; then
+    if ! validate_model_override "$model"; then
+      log_error "Invalid ADAPTIVE_MODEL: '$model'. Use letters, digits, dot, underscore, or dash."
+      exit 1
+    fi
+    log_info "Using custom model: $model"
+  else
+    log_info "Using Intelligent Routing (no explicit model override)."
+  fi
+
+  # 4) If API key is present, quick format check (we cannot inject it non-interactively)
+  if [ -n "$api_key" ]; then
+    if validate_api_key "$api_key"; then
+      log_success "ADAPTIVE_API_KEY detected (format looks OK)."
+      log_info "Note: OpenCode still requires an interactive 'auth login' to store the key."
+    else
+      log_error "ADAPTIVE_API_KEY format looks invalid. Re-check your key or omit the variable."
+      exit 1
+    fi
+  else
+    log_info "No ADAPTIVE_API_KEY in env. You can still complete auth interactively."
+  fi
+
+  # 5) Create per-project config
+  create_opencode_config "$PWD/$CONFIG_FILE" "$model"
+
+  # 6) Final instructions for auth
+  print_auth_instructions
+
+  # 7) Verify
   if verify_installation; then
     echo ""
-    echo "╭─────────────────────────────────────────────╮"
-    echo "│  🎉 OpenCode + Adaptive Setup Complete      │"
-    echo "╰─────────────────────────────────────────────╯"
+    echo "╭──────────────────────────────────────────────╮"
+    echo "│  🎉 OpenCode + Adaptive Setup Complete       │"
+    echo "╰──────────────────────────────────────────────╯"
     echo ""
-    echo "🚀 Quick Start:"
-    echo "   1. Complete authentication: opencode auth login"
-    echo "      → Select 'Other' → Provider ID: adaptive → Enter API key"
-    echo "   2. Start OpenCode: opencode"
-    echo "   3. Use /models to select Adaptive models"
+    echo "🚀 Quick Start"
+    echo "   1) opencode auth login         # add 'adaptive' provider with your API key"
+    echo "   2) opencode                    # open the TUI"
+    echo "   3) /models                     # pick 'Adaptive / 🧠 Intelligent Routing'"
     echo ""
-    echo "🔍 Verify Setup:"
-    echo "   opencode auth list        # Check configured providers"
-    echo "   cat opencode.json         # View configuration"
+    echo "🔍 Verify"
+    echo "   opencode auth list             # should list 'adaptive'"
+    echo "   cat $CONFIG_FILE               # see 'model': 'adaptive/intelligent-routing'"
     echo ""
-    echo "💡 Usage Examples:"
-    echo "   # In OpenCode:"
-    echo "   /models                   # Select Adaptive models"
-    echo "   'Create a React component for user authentication'"
-    echo "   'Optimize this SQL query for better performance'"
-    echo "   'Review this code for security vulnerabilities'"
-    echo ""
-    echo "📊 Monitor Usage:"
+    echo "📊 Monitor"
     echo "   Dashboard: $API_KEY_URL"
-    echo "   Configuration: ./opencode.json"
-    echo "   Auth settings: ~/.opencode/"
-    echo ""
-    echo "💡 Pro Tips:"
-    echo "   • Select 'Intelligent Routing' model for optimal cost/performance"
-    echo "   • Available models: Claude 3.5 Sonnet/Haiku, GPT-4o/Mini"
-    echo "   • Use /models command to switch between models"
-    echo "   • Configuration is project-specific via opencode.json"
-    echo ""
-    echo "📖 Full Documentation: https://docs.llmadaptive.uk/developer-tools/opencode"
-    echo "🐛 Report Issues: https://github.com/Egham-7/adaptive/issues"
+    echo "   Config:    $PWD/$CONFIG_FILE"
   else
     echo ""
-    log_error "❌ Installation verification failed"
+    log_error "Installation verification failed."
     echo ""
-    echo "🔧 Manual Setup (if needed):"
-    echo "   1. Create opencode.json in your project:"
-    echo "      curl -o opencode.json https://raw.githubusercontent.com/Egham-7/adaptive/main/examples/opencode.json"
-    echo "   2. Configure authentication:"
-    echo "      opencode auth login"
-    echo "      # Select 'Other' → Enter 'adaptive' → Paste API key"
-    echo "   3. Start OpenCode and use /models to select Adaptive"
-    echo ""
-    echo "🆘 Get help: https://docs.llmadaptive.uk/troubleshooting"
+    echo "🔧 Manual fallback:"
+    echo "   curl -o $CONFIG_FILE https://raw.githubusercontent.com/Egham-7/adaptive/main/examples/opencode.json"
+    echo "   opencode auth login   # Other → provider id 'adaptive' → paste API key"
     exit 1
   fi
 }
