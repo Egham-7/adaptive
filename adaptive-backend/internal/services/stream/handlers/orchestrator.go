@@ -36,7 +36,7 @@ func DefaultBufferConfig() *BufferConfig {
 
 // bufferPool manages reusable byte buffers for streaming
 var bufferPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		buf := make([]byte, DefaultBufferConfig().DefaultSize)
 		return &buf
 	},
@@ -53,8 +53,8 @@ func initializeProviderPools() {
 	config := DefaultBufferConfig()
 	for provider, size := range config.ProviderSizes {
 		providerBufferPools[provider] = &sync.Pool{
-			New: func(bufSize int) func() interface{} {
-				return func() interface{} {
+			New: func(bufSize int) func() any {
+				return func() any {
 					buf := make([]byte, bufSize)
 					return &buf
 				}

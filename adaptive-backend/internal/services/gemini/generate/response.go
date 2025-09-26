@@ -80,8 +80,8 @@ func (rs *ResponseService) HandleError(c *fiber.Ctx, err error, requestID string
 		appErr = models.NewInternalError("internal server error", err)
 	}
 
-	errorResponse := map[string]interface{}{
-		"error": map[string]interface{}{
+	errorResponse := map[string]any{
+		"error": map[string]any{
 			"message":    appErr.Message,
 			"type":       string(appErr.Type),
 			"code":       appErr.StatusCode,

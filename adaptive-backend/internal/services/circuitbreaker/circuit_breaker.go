@@ -347,7 +347,7 @@ func (cb *CircuitBreaker) acquireLockWithRetry(ctx context.Context, lockKey stri
 	const maxLockRetries = 3
 	baseDelay := 10 * time.Millisecond
 
-	for attempt := 0; attempt < maxLockRetries; attempt++ {
+	for attempt := range maxLockRetries {
 		locked, err := cb.redisClient.SetNX(ctx, lockKey, "1", defaultLockTTL).Result()
 		if err != nil {
 			// Redis error - return error instead of silent failure

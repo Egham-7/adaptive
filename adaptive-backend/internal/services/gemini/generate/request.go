@@ -33,10 +33,5 @@ func (rs *RequestService) ParseRequest(c *fiber.Ctx) (*models.GeminiGenerateRequ
 		return nil, fmt.Errorf("failed to parse request body: %w", err)
 	}
 
-	// Basic validation - let the SDK handle detailed content validation
-	if req.Model == "" {
-		return nil, fmt.Errorf("model is required")
-	}
-
 	return &req, nil
 }
