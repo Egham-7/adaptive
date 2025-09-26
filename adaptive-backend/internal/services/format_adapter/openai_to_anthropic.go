@@ -53,7 +53,7 @@ func (c *OpenAIToAnthropicConverter) ConvertRequest(req *openai.ChatCompletionNe
 		Messages:    anthropicMessages,
 		MaxTokens:   req.MaxTokens.Value,
 		Temperature: anthropicparam.NewOpt(req.Temperature.Value),
-		TopK:        anthropicparam.NewOpt(req.N.Value), // OpenAI n -> Anthropic top_k
+		// TopK is not set from OpenAI n; omitted to avoid semantic mismatch
 	}
 
 	// Set system message if present (Anthropic uses separate system field)
