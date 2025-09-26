@@ -957,23 +957,37 @@ func (c *OpenAIToAnthropicConverter) convertToolChoice(toolChoice openai.ChatCom
 		}, nil
 	}
 
-	if toolChoice.OfFunctionToolChoice != nil {
-		return anthropic.ToolChoiceUnionParam{
-			OfTool: &anthropic.ToolChoiceToolParam{
-				Type:                   "tool",
-				Name:                   toolChoice.OfFunctionToolChoice.Function.Name,
-				DisableParallelToolUse: anthropicparam.Opt[bool]{Value: true},
-			},
-		}, nil
-	}
+    if toolChoice.OfFunctionToolChoice != nil {
+        return anthropic.ToolChoiceUnionParam{
+            OfTool: &anthropic.ToolChoiceToolParam{
+                Type:                   "tool",
+                Name:                   toolChoice.OfFunctionToolChoice.Function.Name,
+                DisableParallelToolUse: anthropicparam.Opt[bool]{Value: true},
+            },
+        }, nil
+    }
 
-	// Default to auto
-	return anthropic.ToolChoiceUnionParam{
-		OfAuto: &anthropic.ToolChoiceAutoParam{
-			Type:                   "auto",
-			DisableParallelToolUse: anthropicparam.Opt[bool]{Value: false},
-		},
-	}, nil
+    if toolChoice.OfCustomToolChoice != nil {
+        name := toolChoice.OfCustomToolChoice.Custom.Name
+        if name == "" {
+            return anthropic.ToolChoiceUnionParam{}, fmt.Errorf("custom tool choice name cannot be empty")
+        }
+        return anthropic.ToolChoiceUnionParam{
+            OfTool: &anthropic.ToolChoiceToolParam{
+                Type:                   "tool",
+                Name:                   name,
+                DisableParallelToolUse: anthropicparam.Opt[bool]{Value: true},
+            },
+        }, nil
+    }
+
+    // Default to auto
+    return anthropic.ToolChoiceUnionParam{
+        OfAuto: &anthropic.ToolChoiceAutoParam{
+            Type:                   "auto",
+            DisableParallelToolUse: anthropicparam.Opt[bool]{Value: false},
+        },
+    }, nil
 }
 
 // convertServiceTier converts OpenAI service tier to Anthropic format
