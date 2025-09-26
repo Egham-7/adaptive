@@ -11,6 +11,7 @@ import (
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/gemini/generate"
 	"adaptive-backend/internal/services/model_router"
+	"adaptive-backend/internal/services/stream/stream_simulator"
 	"adaptive-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
@@ -50,21 +51,8 @@ func NewGenerateHandler(
 
 // Generate handles the Gemini GenerateContent API HTTP request (non-streaming)
 func (h *GenerateHandler) Generate(c *fiber.Ctx) error {
-	return h.processRequest(c, false)
-}
-
-// StreamGenerate handles the Gemini GenerateContent API HTTP request (streaming)
-func (h *GenerateHandler) StreamGenerate(c *fiber.Ctx) error {
-	return h.processRequest(c, true)
-}
-
-// processRequest handles both streaming and non-streaming Gemini API requests
-func (h *GenerateHandler) processRequest(c *fiber.Ctx, isStreaming bool) error {
 	requestID := h.requestSvc.GetRequestID(c)
 	requestType := "GenerateContent"
-	if isStreaming {
-		requestType = "StreamGenerateContent"
-	}
 	fiberlog.Infof("[%s] Starting Gemini %s API request from %s", requestID, requestType, c.IP())
 
 	// Parse and validate request
@@ -85,10 +73,6 @@ func (h *GenerateHandler) processRequest(c *fiber.Ctx, isStreaming bool) error {
 	// Check prompt cache first
 	if cachedResponse, cacheSource, found := h.checkPromptCache(c.UserContext(), req, &resolvedConfig.PromptCache, requestID); found {
 		fiberlog.Infof("[%s] prompt cache hit (%s) - returning cached response", requestID, cacheSource)
-		if isStreaming {
-			// For now, return an error - we'll implement streaming cache later
-			return h.responseSvc.HandleError(c, fmt.Errorf("streaming cached responses not yet implemented"), requestID)
-		}
 		return c.JSON(cachedResponse)
 	}
 
@@ -115,7 +99,7 @@ func (h *GenerateHandler) processRequest(c *fiber.Ctx, isStreaming bool) error {
 			}
 
 			// Direct execution - no fallback for user-specified models
-			err = h.executeProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, "")
+			err = h.executeProviderRequest(c, req, provider, providerConfig, false, requestID, "")
 			if err != nil {
 				return err
 			}
@@ -170,7 +154,116 @@ func (h *GenerateHandler) processRequest(c *fiber.Ctx, isStreaming bool) error {
 	fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s (with %d alternatives)",
 		requestID, modelResp.Provider, modelResp.Model, len(modelResp.Alternatives))
 
-	return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, isStreaming, cacheSource), requestID, isStreaming)
+	return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, false, cacheSource), requestID, false)
+}
+
+// StreamGenerate handles the Gemini GenerateContent API HTTP request (streaming)
+func (h *GenerateHandler) StreamGenerate(c *fiber.Ctx) error {
+	requestID := h.requestSvc.GetRequestID(c)
+	requestType := "StreamGenerateContent"
+	fiberlog.Infof("[%s] Starting Gemini %s API request from %s", requestID, requestType, c.IP())
+
+	// Parse and validate request
+	req, err := h.requestSvc.ParseRequest(c)
+	if err != nil {
+		fiberlog.Warnf("[%s] Request parsing failed: %v", requestID, err)
+		return h.responseSvc.HandleError(c, models.NewValidationError("invalid request", err), requestID)
+	}
+	fiberlog.Debugf("[%s] Request parsed successfully - model: %s", requestID, req.Model)
+
+	// Resolve configuration
+	resolvedConfig, err := h.cfg.ResolveConfigFromGeminiRequest(req)
+	if err != nil {
+		fiberlog.Errorf("[%s] Config resolution failed: %v", requestID, err)
+		return h.responseSvc.HandleError(c, fmt.Errorf("failed to resolve config: %w", err), requestID)
+	}
+
+	// Check prompt cache first
+	if cachedResponse, cacheSource, found := h.checkPromptCache(c.UserContext(), req, &resolvedConfig.PromptCache, requestID); found {
+		fiberlog.Infof("[%s] prompt cache hit (%s) - streaming cached response", requestID, cacheSource)
+		// Stream the cached response instead of returning as JSON
+		return stream_simulator.StreamGeminiCachedResponse(c, cachedResponse, requestID)
+	}
+
+	// If a model is specified, try to directly route to the appropriate provider
+	if req.Model != "" {
+		fiberlog.Debugf("[%s] Model specified: %s, attempting direct routing", requestID, req.Model)
+
+		// Parse provider and model from the model specification (expecting "provider:model" format)
+		provider, parsedModel, err := utils.ParseProviderModel(req.Model)
+		if err != nil {
+			fiberlog.Debugf("[%s] Failed to parse model specification %s: %v, falling back to intelligent routing", requestID, req.Model, err)
+			// Fall through to intelligent routing below instead of returning error
+		} else {
+			// Update the request with the parsed model name
+			req.Model = parsedModel
+
+			fiberlog.Infof("[%s] User-specified model %s routed to provider %s", requestID, req.Model, provider)
+
+			// Get provider configuration
+			providers := resolvedConfig.GetProviders("generate")
+			providerConfig, exists := providers[provider]
+			if !exists {
+				return h.responseSvc.HandleError(c, models.NewValidationError(fmt.Sprintf("provider %s not configured", provider), nil), requestID)
+			}
+
+			// Direct execution - no fallback for user-specified models
+			err = h.executeProviderRequest(c, req, provider, providerConfig, true, requestID, "")
+			if err != nil {
+				return err
+			}
+
+			// Store successful response in semantic cache for user-specified models
+			modelResp := &models.ModelSelectionResponse{
+				Provider: provider,
+				Model:    parsedModel,
+			}
+			h.storeSuccessfulSemanticCache(c.UserContext(), req, modelResp, requestID)
+
+			return nil
+		}
+	}
+
+	// If no model is specified, use model router for selection WITH fallback
+	fiberlog.Debugf("[%s] No model specified, using model router for selection with fallback", requestID)
+
+	// Extract prompt for routing
+	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
+	if err != nil {
+		fiberlog.Warnf("[%s] Failed to extract prompt for routing: %v", requestID, err)
+		return h.responseSvc.HandleError(c, models.NewValidationError("failed to extract prompt for routing: "+err.Error(), err), requestID)
+	}
+
+	// Use model router to select best model WITH CIRCUIT BREAKERS
+	userID := "anonymous"
+	toolCall := utils.ExtractToolCallsFromGeminiContents(req.Contents)
+
+	modelResp, cacheSource, err := h.modelRouter.SelectModelWithCache(
+		c.UserContext(),
+		prompt, userID, requestID, &resolvedConfig.Services.ModelRouter, h.circuitBreakers,
+		req.Tools, toolCall,
+	)
+	if err != nil {
+		fiberlog.Errorf("[%s] Model router selection failed: %v", requestID, err)
+		return h.responseSvc.HandleError(c, err, requestID)
+	}
+
+	// Use fallback service with model router response (system-selected models get fallback)
+	fallbackConfig := h.fallbackService.GetFallbackConfig(req.Fallback)
+
+	// Create provider list with primary and alternatives from model router
+	providers := []models.Alternative{{
+		Provider: modelResp.Provider,
+		Model:    modelResp.Model,
+	}}
+	providers = append(providers, modelResp.Alternatives...)
+
+	// Update request with selected model
+	req.Model = modelResp.Model
+	fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s (with %d alternatives)",
+		requestID, modelResp.Provider, modelResp.Model, len(modelResp.Alternatives))
+
+	return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, true, cacheSource), requestID, true)
 }
 
 // checkCircuitBreaker validates circuit breaker state for the provider
