@@ -22,10 +22,6 @@ endpoints:
         enabled: true
         base_url: "https://api.anthropic.com/v1"
 
-      gemini:
-        api_key: "${GEMINI_API_KEY}"
-        enabled: true
-        base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
 
       deepseek:
         api_key: "${DEEPSEEK_API_KEY}"
@@ -50,10 +46,6 @@ endpoints:
         enabled: true
         base_url: "https://api.anthropic.com/v1"
 
-      gemini:
-        api_key: "${GEMINI_API_KEY}"
-        enabled: true
-        base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
 
       deepseek:
         api_key: "${DEEPSEEK_API_KEY}"
