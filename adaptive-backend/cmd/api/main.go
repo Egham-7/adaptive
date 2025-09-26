@@ -7,7 +7,6 @@ import (
 	"os/signal"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
 	"adaptive-backend/internal/api"
@@ -228,7 +227,7 @@ func main() {
 
 	// Create a channel to listen for interrupt signals
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(sigChan, os.Interrupt)
 
 	// Start server in a goroutine
 	serverErrChan := make(chan error, 1)
