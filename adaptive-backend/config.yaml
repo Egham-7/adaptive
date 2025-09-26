@@ -22,11 +22,15 @@ endpoints:
         enabled: true
         base_url: "https://api.anthropic.com/v1"
 
-
       deepseek:
         api_key: "${DEEPSEEK_API_KEY}"
         enabled: true
         base_url: "https://api.deepseek.com"
+
+      gemini:
+        api_key: "${GEMINI_API_KEY}"
+        enabled: true
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
 
   messages:
     providers:
@@ -34,6 +38,23 @@ endpoints:
         api_key: "${ANTHROPIC_API_KEY}"
         enabled: true
         base_url: "https://api.anthropic.com"
+
+      openai:
+        api_key: "${OPENAI_API_KEY}"
+        enabled: true
+        native_format: "openai"
+
+      deepseek:
+        api_key: "${DEEPSEEK_API_KEY}"
+        enabled: true
+        base_url: "https://api.deepseek.com"
+        native_format: "openai"
+
+      gemini:
+        api_key: "${GEMINI_API_KEY}"
+        enabled: true
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
+        native_format: "openai"
 
   select_model:
     providers:
@@ -45,7 +66,6 @@ endpoints:
         api_key: "${ANTHROPIC_API_KEY}"
         enabled: true
         base_url: "https://api.anthropic.com/v1"
-
 
       deepseek:
         api_key: "${DEEPSEEK_API_KEY}"
