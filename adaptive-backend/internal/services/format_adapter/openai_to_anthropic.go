@@ -8,7 +8,23 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropicparam "github.com/anthropics/anthropic-sdk-go/packages/param"
+	"github.com/gofiber/fiber/v2/log"
 	"github.com/openai/openai-go/v2"
+)
+
+// Reasoning effort to thinking budget token mappings
+// These constants define the token budgets for different reasoning effort levels
+// when converting OpenAI reasoning_effort parameter to Anthropic thinking budget
+const (
+	// ReasoningEffortLowTokens represents the token budget for low reasoning effort
+	ReasoningEffortLowTokens = 5000
+
+	// ReasoningEffortMediumTokens represents the token budget for medium reasoning effort
+	// This is also used as the default when reasoning effort is not specified or invalid
+	ReasoningEffortMediumTokens = 15000
+
+	// ReasoningEffortHighTokens represents the token budget for high reasoning effort
+	ReasoningEffortHighTokens = 50000
 )
 
 // OpenAIToAnthropicConverter handles conversion from OpenAI format to Anthropic format
@@ -299,6 +315,7 @@ func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.Chat
 			var args map[string]any
 			if err := json.Unmarshal([]byte(toolCall.OfFunction.Function.Arguments), &args); err != nil {
 				// If JSON parsing fails, use the raw string in a simple map
+				log.Warnf("Failed to parse function arguments as JSON during OpenAI->Anthropic conversion, using raw string fallback: %v", err)
 				args = map[string]any{"arguments": toolCall.OfFunction.Function.Arguments}
 			}
 
@@ -429,7 +446,6 @@ func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *openai.ChatCom
 	if len(openaiReq.Modalities) > 0 {
 		// Anthropic doesn't support audio output directly
 		// Audio parameters are present but will be ignored in Anthropic conversion
-		_ = openaiReq.Audio.Format // Acknowledge audio format but ignore for Anthropic
 	}
 
 	// Note: Some OpenAI parameters don't have Anthropic equivalents:
@@ -441,6 +457,11 @@ func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *openai.ChatCom
 
 // convertTools converts OpenAI tools to Anthropic format
 func (c *OpenAIToAnthropicConverter) convertTools(tools []openai.ChatCompletionToolUnionParam) ([]anthropic.ToolParam, error) {
+	// Handle empty tools case
+	if len(tools) == 0 {
+		return nil, nil
+	}
+
 	var anthropicTools []anthropic.ToolParam
 	var errors []string
 
@@ -454,11 +475,13 @@ func (c *OpenAIToAnthropicConverter) convertTools(tools []openai.ChatCompletionT
 			anthropicTool, err = c.convertCustomTool(&tool)
 		} else {
 			// Skip unsupported tool types with warning
+			log.Warnf("Skipping unsupported tool type at index %d during OpenAI->Anthropic conversion", i)
 			errors = append(errors, fmt.Sprintf("unsupported tool type at index %d", i))
 			continue
 		}
 
 		if err != nil {
+			log.Errorf("Failed to convert tool at index %d during OpenAI->Anthropic conversion: %v", i, err)
 			errors = append(errors, fmt.Sprintf("failed to convert tool at index %d: %v", i, err))
 			continue
 		}
@@ -468,9 +491,9 @@ func (c *OpenAIToAnthropicConverter) convertTools(tools []openai.ChatCompletionT
 		}
 	}
 
-	// Return error if we couldn't convert any tools
-	if len(anthropicTools) == 0 && len(tools) > 0 {
-		return nil, fmt.Errorf("failed to convert any tools: %s", strings.Join(errors, "; "))
+	// Return error if any errors were collected during conversion
+	if len(errors) > 0 {
+		return nil, fmt.Errorf("failed to convert tools: %s", strings.Join(errors, "; "))
 	}
 
 	return anthropicTools, nil
@@ -916,7 +939,9 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 	}
 
 	// Return nil for chunks that don't contain meaningful updates
-	// This allows the caller to skip empty chunks
+	// Log the chunk details to help with debugging streaming issues
+	log.Warnf("Ignoring OpenAI streaming chunk with no meaningful content - ID: %s, Model: %s, Choice index: %d, Delta role: %s",
+		chunk.ID, chunk.Model, choice.Index, choice.Delta.Role)
 	return nil, nil
 }
 
@@ -1021,16 +1046,16 @@ func (c *OpenAIToAnthropicConverter) convertToolContent(content openai.ChatCompl
 
 // convertReasoningEffort converts OpenAI reasoning effort to Anthropic thinking budget
 func (c *OpenAIToAnthropicConverter) convertReasoningEffort(effort string) (int, error) {
-	// Convert reasoning effort levels to token budgets
+	// Convert reasoning effort levels to token budgets using defined constants
 	switch effort {
 	case "low":
-		return 5000, nil
+		return ReasoningEffortLowTokens, nil
 	case "medium":
-		return 15000, nil
+		return ReasoningEffortMediumTokens, nil
 	case "high":
-		return 50000, nil
+		return ReasoningEffortHighTokens, nil
 	default:
-		return 15000, nil // Default to medium
+		return ReasoningEffortMediumTokens, nil // Default to medium effort
 	}
 }
 
@@ -1068,6 +1093,7 @@ func (c *OpenAIToAnthropicConverter) convertFileContent(file openai.ChatCompleti
 		decodedData, err := base64.StdEncoding.DecodeString(data)
 		if err != nil {
 			// If not base64, treat as plain text
+			log.Warnf("Failed to decode file data as base64 during OpenAI->Anthropic conversion, treating as plain text: %v", err)
 			return &anthropic.ContentBlockParamUnion{
 				OfText: &anthropic.TextBlockParam{
 					Type: "text",
