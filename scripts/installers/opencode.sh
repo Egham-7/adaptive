@@ -1,6 +1,6 @@
 #!/bin/bash
 # OpenCode + Adaptive one-shot installer
-# Works on macOS/Linux (bash), needs curl
+# Works on macOS/Linux/Windows (bash/PowerShell), needs curl
 
 set -euo pipefail
 
@@ -35,6 +35,43 @@ log_error()   { echo "❌ $*" >&2; }
 # ========================
 #     Node.js helpers
 # ========================
+install_nodejs_windows() {
+  log_info "Installing Node.js on Windows..."
+  
+  # Check if winget is available (Windows 10 1809+)
+  if command -v winget >/dev/null 2>&1; then
+    log_info "Installing Node.js via winget..."
+    winget install OpenJS.NodeJS --version "$NODE_INSTALL_VERSION" --silent --accept-package-agreements --accept-source-agreements || {
+      log_error "winget installation failed"
+      return 1
+    }
+  # Check if chocolatey is available
+  elif command -v choco >/dev/null 2>&1; then
+    log_info "Installing Node.js via Chocolatey..."
+    choco install nodejs --version="$NODE_INSTALL_VERSION" -y || {
+      log_error "Chocolatey installation failed"
+      return 1
+    }
+  else
+    log_error "Neither winget nor Chocolatey found. Please install Node.js manually from https://nodejs.org/"
+    log_info "After installing Node.js, re-run this script."
+    exit 1
+  fi
+  
+  # Refresh PATH
+  log_info "Refreshing PATH environment..."
+  export PATH="/c/Program Files/nodejs:$PATH"
+  
+  # Verify installation
+  if command -v node >/dev/null 2>&1; then
+    log_success "Node.js installed: $(node -v)"
+    log_success "npm version: $(npm -v)"
+  else
+    log_error "Node.js installation verification failed. Please restart your terminal and try again."
+    exit 1
+  fi
+}
+
 install_nodejs() {
   local platform
   platform=$(uname -s)
@@ -61,8 +98,13 @@ install_nodejs() {
       log_success "Node.js installed: $(node -v)"
       log_success "npm version: $(npm -v)"
       ;;
+    MINGW*|MSYS*|CYGWIN*)
+      log_info "Windows environment detected (Git Bash/MSYS2/Cygwin)..."
+      install_nodejs_windows
+      ;;
     *)
       log_error "Unsupported platform: $platform"
+      log_info "Supported platforms: Linux, macOS, Windows (Git Bash/MSYS2/WSL)"
       exit 1
       ;;
   esac
