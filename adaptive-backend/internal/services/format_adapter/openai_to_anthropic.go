@@ -445,7 +445,8 @@ func (c *OpenAIToAnthropicConverter) convertParameters(openaiReq *openai.ChatCom
 	// Convert modalities and audio parameters (OpenAI audio to Anthropic text)
 	if len(openaiReq.Modalities) > 0 {
 		// Anthropic doesn't support audio output directly
-		// Audio parameters are present but will be ignored in Anthropic conversion
+		// Log that modalities are being ignored during conversion
+		log.Warnf("OpenAI modalities (%v) are not supported by Anthropic and will be ignored during conversion", openaiReq.Modalities)
 	}
 
 	// Note: Some OpenAI parameters don't have Anthropic equivalents:
