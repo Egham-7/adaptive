@@ -39,23 +39,6 @@ endpoints:
         enabled: true
         base_url: "https://api.anthropic.com"
 
-      openai:
-        api_key: "${OPENAI_API_KEY}"
-        enabled: true
-        native_format: "openai"
-
-      deepseek:
-        api_key: "${DEEPSEEK_API_KEY}"
-        enabled: true
-        base_url: "https://api.deepseek.com"
-        native_format: "openai"
-
-      gemini:
-        api_key: "${GEMINI_API_KEY}"
-        enabled: true
-        base_url: "https://generativelanguage.googleapis.com/v1beta/openai"
-        native_format: "openai"
-
   select_model:
     providers:
       openai:
@@ -89,7 +72,7 @@ services:
   model_router:
     cost_bias: 0.9 # 0.0 = cheapest, 1.0 = best performance
     semantic_cache:
-      enabled: true
+      enabled: false
       semantic_threshold: 0.95
       openai_api_key: "${OPENAI_API_KEY}" # For embeddings
     client:

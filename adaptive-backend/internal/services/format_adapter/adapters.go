@@ -11,8 +11,6 @@ var (
 	AnthropicToAdaptive *AnthropicToAdaptiveConverter
 
 	// OpenAI to Anthropic adapters
-	OpenAIToAnthropic *OpenAIToAnthropicConverter
-	AnthropicToOpenAI *AnthropicToOpenAIConverter
 
 	// Gemini adapters
 	AdaptiveToGemini *AdaptiveToGeminiConverter
@@ -25,8 +23,6 @@ func init() {
 	OpenAIToAdaptive = &OpenAIToAdaptiveConverter{}
 	AdaptiveToAnthropic = &AdaptiveToAnthropicConverter{}
 	AnthropicToAdaptive = &AnthropicToAdaptiveConverter{}
-	OpenAIToAnthropic = &OpenAIToAnthropicConverter{}
-	AnthropicToOpenAI = &AnthropicToOpenAIConverter{}
 	AdaptiveToGemini = &AdaptiveToGeminiConverter{}
 	GeminiToAdaptive = &GeminiToAdaptiveConverter{}
 }

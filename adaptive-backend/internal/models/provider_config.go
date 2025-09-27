@@ -11,5 +11,4 @@ type ProviderConfig struct {
 	TimeoutMs      int               `yaml:"timeout_ms" json:"timeout_ms,omitzero"`             // Optional timeout in milliseconds
 	RetryConfig    map[string]any    `yaml:"retry_config" json:"retry_config,omitzero"`         // Retry configuration
 	Headers        map[string]string `yaml:"headers" json:"headers,omitzero"`                   // Optional custom headers
-	NativeFormat   string            `yaml:"native_format" json:"native_format,omitzero"`       // Native API format: "openai" or "anthropic"
 }

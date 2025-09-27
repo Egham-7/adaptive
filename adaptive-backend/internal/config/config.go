@@ -280,7 +280,6 @@ func (c *Config) MergeProviderConfig(providerName string, override *models.Provi
 		TimeoutMs:      baseConfig.TimeoutMs,
 		RetryConfig:    cloneStringAnyMap(baseConfig.RetryConfig),
 		Headers:        cloneStringStringMap(baseConfig.Headers),
-		NativeFormat:   baseConfig.NativeFormat,
 	}
 
 	// Override non-empty values from request

@@ -306,7 +306,7 @@ func (h *GenerateHandler) executeNonStreamingWithCircuitBreaker(
 	cacheSource string,
 ) error {
 	// Execute the non-streaming request
-	response, err := h.generateSvc.HandleNonStreamingRequest(c, req, provider, providerConfig, requestID)
+	response, err := h.generateSvc.HandleGeminiNonStreamingProvider(c, req, providerConfig, requestID)
 	if err != nil {
 		// Record failure in circuit breaker
 		if cb != nil {
@@ -347,7 +347,7 @@ func (h *GenerateHandler) executeStreamingWithCircuitBreaker(
 	cacheSource string,
 ) error {
 	// Execute the streaming request
-	streamIter, err := h.generateSvc.HandleStreamingRequest(c, req, provider, providerConfig, requestID)
+	streamIter, err := h.generateSvc.HandleGeminiStreamingProvider(c, req, providerConfig, requestID)
 	if err != nil {
 		// Record failure in circuit breaker
 		if cb != nil {

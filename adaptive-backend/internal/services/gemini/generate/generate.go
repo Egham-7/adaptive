@@ -71,44 +71,8 @@ func (gs *GenerateService) SendStreamingRequest(
 	return streamIter, nil
 }
 
-// HandleNonStreamingRequest handles non-streaming requests and returns concrete response
-func (gs *GenerateService) HandleNonStreamingRequest(
-	c *fiber.Ctx,
-	req *models.GeminiGenerateRequest,
-	provider string,
-	providerConfig models.ProviderConfig,
-	requestID string,
-) (*genai.GenerateContentResponse, error) {
-	// Check provider's native format to determine if conversion is needed
-	if providerConfig.NativeFormat == "gemini" || providerConfig.NativeFormat == "" || provider == "gemini" {
-		// Native Gemini format - use directly
-		return gs.handleGeminiNonStreamingProvider(c, req, providerConfig, requestID)
-	}
-
-	// Provider uses different native format - not supported yet for Gemini endpoint
-	return nil, fmt.Errorf("native format '%s' not supported for Gemini endpoint", providerConfig.NativeFormat)
-}
-
-// HandleStreamingRequest handles streaming requests and returns concrete iterator
-func (gs *GenerateService) HandleStreamingRequest(
-	c *fiber.Ctx,
-	req *models.GeminiGenerateRequest,
-	provider string,
-	providerConfig models.ProviderConfig,
-	requestID string,
-) (iter.Seq2[*genai.GenerateContentResponse, error], error) {
-	// Check provider's native format to determine if conversion is needed
-	if providerConfig.NativeFormat == "gemini" || providerConfig.NativeFormat == "" || provider == "gemini" {
-		// Native Gemini format - use directly
-		return gs.handleGeminiStreamingProvider(c, req, providerConfig, requestID)
-	}
-
-	// Provider uses different native format - not supported yet for Gemini endpoint
-	return nil, fmt.Errorf("native format '%s' not supported for Gemini endpoint", providerConfig.NativeFormat)
-}
-
 // handleGeminiNonStreamingProvider handles non-streaming requests using native Gemini client
-func (gs *GenerateService) handleGeminiNonStreamingProvider(
+func (gs *GenerateService) HandleGeminiNonStreamingProvider(
 	c *fiber.Ctx,
 	req *models.GeminiGenerateRequest,
 	providerConfig models.ProviderConfig,
@@ -129,7 +93,7 @@ func (gs *GenerateService) handleGeminiNonStreamingProvider(
 }
 
 // handleGeminiStreamingProvider handles streaming requests using native Gemini client
-func (gs *GenerateService) handleGeminiStreamingProvider(
+func (gs *GenerateService) HandleGeminiStreamingProvider(
 	c *fiber.Ctx,
 	req *models.GeminiGenerateRequest,
 	providerConfig models.ProviderConfig,

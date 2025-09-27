@@ -13,14 +13,13 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: "24"
-  PNPM_VERSION: "10"
+  BUN_VERSION: "latest"
   WORKING_DIR: "./adaptive-app"
 
 jobs:
   lint-and-typecheck:
     name: Lint & Type Check
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -28,34 +27,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: ${{ env.WORKING_DIR }}/pnpm-lock.yaml
+          version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm exec prisma generate
+        run: bun prisma generate
 
       - name: Run Biome linter
-        run: pnpm run check
+        run: bun run check
 
       - name: Run TypeScript type check
-        run: pnpm run typecheck
+        run: bun run typecheck
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [lint-and-typecheck]
     defaults:
       run:
@@ -64,24 +55,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: ${{ env.WORKING_DIR }}/pnpm-lock.yaml
+          version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build application
-        run: pnpm run build
+        run: bun run build
         env:
           # Build-time environment variables
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
@@ -95,7 +78,7 @@ jobs:
 
   migrate:
     name: Database Migration
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [build]
     if: (github.ref == 'refs/heads/dev') && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     defaults:
@@ -105,29 +88,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
-          cache-dependency-path: ${{ env.WORKING_DIR }}/pnpm-lock.yaml
+          version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm exec prisma generate
+        run: bun prisma generate
 
       - name: Run database migrations (Development)
         run: |
           for i in {1..10}; do
-            pnpm run db:migrate && break
+            bun run db:migrate && break
             echo "Database not ready yet, retrying in 5s... ($i/5)"
             sleep 5
           done
