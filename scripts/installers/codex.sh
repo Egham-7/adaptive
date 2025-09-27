@@ -42,6 +42,32 @@ ensure_dir_exists() {
   fi
 }
 
+create_config_backup() {
+  local config_file="$1"
+
+  if [ -f "$config_file" ]; then
+    local backup_file="${config_file}.bak"
+    local timestamp=$(date +"%Y%m%d_%H%M%S")
+    local timestamped_backup="${config_file}.${timestamp}.bak"
+
+    # Create timestamped backup
+    cp "$config_file" "$timestamped_backup" || {
+      log_error "Failed to create timestamped backup: $timestamped_backup"
+      exit 1
+    }
+
+    # Create/update .bak file for easy revert
+    cp "$config_file" "$backup_file" || {
+      log_error "Failed to create backup: $backup_file"
+      exit 1
+    }
+
+    log_success "Config backed up to: $backup_file"
+    log_info "Timestamped backup: $timestamped_backup"
+    log_info "To revert: cp \"$backup_file\" \"$config_file\""
+  fi
+}
+
 # ========================
 #     Installation Detection
 # ========================
@@ -362,6 +388,7 @@ configure_codex() {
 
   # Configure Codex with Adaptive provider
   local config_file="$CONFIG_DIR/config.toml"
+  create_config_backup "$config_file"
   configure_adaptive_provider "$config_file" "$model" "$model_provider"
 
   # Set environment variable for the session
