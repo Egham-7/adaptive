@@ -145,12 +145,12 @@ func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.Mo
 
 	// Simple fallback: always route to gpt-4o-mini when no models provided
 	return models.ModelSelectionResponse{
-		Provider: "openai",
-		Model:    "gpt-4o-mini",
+		Provider: "gemini",
+		Model:    "gemini-2.5-pro",
 		Alternatives: []models.Alternative{
 			{
 				Provider: "openai",
-				Model:    "gpt-4o",
+				Model:    "gemini-2.5-flash",
 			},
 		},
 	}

@@ -266,15 +266,40 @@ func (c *OpenAIToAnthropicConverter) convertUserContent(content openai.ChatCompl
 			} else if part.OfImageURL != nil {
 				imageBlock, err := c.convertImageContent(*part.OfImageURL)
 				if err != nil {
-					return nil, fmt.Errorf("failed to convert image: %w", err)
+					log.Warnf("Failed to convert image content during OpenAI->Anthropic conversion, skipping: %v", err)
+					// Add a placeholder text block instead of failing completely
+					parts = append(parts, anthropic.ContentBlockParamUnion{
+						OfText: &anthropic.TextBlockParam{
+							Type: "text",
+							Text: "[Image content - conversion failed]",
+						},
+					})
+					continue
 				}
 				parts = append(parts, *imageBlock)
 			} else if part.OfFile != nil {
 				fileBlock, err := c.convertFileContent(*part.OfFile)
 				if err != nil {
-					return nil, fmt.Errorf("failed to convert file: %w", err)
+					log.Warnf("Failed to convert file content during OpenAI->Anthropic conversion, skipping: %v", err)
+					// Add a placeholder text block instead of failing completely
+					parts = append(parts, anthropic.ContentBlockParamUnion{
+						OfText: &anthropic.TextBlockParam{
+							Type: "text",
+							Text: "[File content - conversion failed]",
+						},
+					})
+					continue
 				}
 				parts = append(parts, *fileBlock)
+			} else {
+				// Handle unrecognized content part types gracefully
+				log.Warnf("Encountered unsupported content part type during OpenAI->Anthropic conversion, adding placeholder text")
+				parts = append(parts, anthropic.ContentBlockParamUnion{
+					OfText: &anthropic.TextBlockParam{
+						Type: "text",
+						Text: "[Unsupported content part]",
+					},
+				})
 			}
 		}
 
@@ -310,7 +335,12 @@ func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.Chat
 	// Convert tool calls to Anthropic tool_use blocks
 	for _, toolCall := range toolCalls {
 		// Based on Context7 docs, tool calls are ChatCompletionMessageToolCallUnionParam
-		if toolCall.OfFunction != nil && toolCall.OfFunction.Function.Arguments != "" {
+		// Safely check that all required properties exist before accessing them
+		if toolCall.OfFunction != nil &&
+			toolCall.OfFunction.ID != "" &&
+			toolCall.OfFunction.Function.Name != "" &&
+			toolCall.OfFunction.Function.Arguments != "" {
+
 			// Parse function arguments
 			var args map[string]any
 			if err := json.Unmarshal([]byte(toolCall.OfFunction.Function.Arguments), &args); err != nil {
@@ -325,6 +355,18 @@ func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.Chat
 					ID:    toolCall.OfFunction.ID,
 					Name:  toolCall.OfFunction.Function.Name,
 					Input: args,
+				},
+			})
+		} else if toolCall.OfFunction != nil &&
+			toolCall.OfFunction.ID != "" &&
+			toolCall.OfFunction.Function.Name != "" {
+			// Handle tool calls without arguments (still valid)
+			contentParts = append(contentParts, anthropic.ContentBlockParamUnion{
+				OfToolUse: &anthropic.ToolUseBlockParam{
+					Type:  "tool_use",
+					ID:    toolCall.OfFunction.ID,
+					Name:  toolCall.OfFunction.Function.Name,
+					Input: map[string]any{},
 				},
 			})
 		}
@@ -345,6 +387,7 @@ func (c *OpenAIToAnthropicConverter) convertAssistantContent(content openai.Chat
 
 // convertImageContent converts OpenAI image content to Anthropic format
 func (c *OpenAIToAnthropicConverter) convertImageContent(img openai.ChatCompletionContentPartImageParam) (*anthropic.ContentBlockParamUnion, error) {
+	// Check if ImageURL has a valid URL
 	if img.ImageURL.URL == "" {
 		return nil, fmt.Errorf("image URL is required")
 	}
@@ -779,6 +822,11 @@ func (c *OpenAIToAnthropicConverter) convertResponseContent(content string, tool
 
 	// Add tool calls if present
 	for _, toolCall := range toolCalls {
+		// Check if Function has required fields - since it's a struct, check for empty values
+		if toolCall.Function.Name == "" {
+			log.Warnf("Skipping tool call with empty Function.Name during OpenAI->Anthropic response conversion")
+			continue
+		}
 
 		// Parse function arguments as raw JSON
 		var input json.RawMessage
@@ -865,12 +913,14 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 		return &anthropic.MessageStreamEventUnion{
 			Type: "message_start",
 			Message: anthropic.Message{
-				ID:      chunk.ID,
-				Content: []anthropic.ContentBlockUnion{},
-				Model:   anthropic.Model(chunk.Model),
-				Role:    "assistant",
-				Type:    "message",
-				Usage:   usage,
+				ID:           chunk.ID,
+				Content:      []anthropic.ContentBlockUnion{},
+				Model:        anthropic.Model(chunk.Model),
+				Role:         "assistant",
+				StopReason:   "", // Empty at message start per Anthropic docs
+				StopSequence: "", // Empty at message start per Anthropic docs
+				Type:         "message",
+				Usage:        usage,
 			},
 		}, nil
 	}
@@ -892,6 +942,7 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 		toolCall := choice.Delta.ToolCalls[0]
 
 		// Check if this is a new tool use block starting
+		// Check if Function has required fields (it's a struct, so check for empty values)
 		if toolCall.ID != "" && toolCall.Function.Name != "" {
 			return &anthropic.MessageStreamEventUnion{
 				Type:  "content_block_start",
@@ -906,6 +957,7 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 		}
 
 		// Handle function arguments delta
+		// Check if Function has arguments (it's a struct, so check for empty values)
 		if toolCall.Function.Arguments != "" {
 			return &anthropic.MessageStreamEventUnion{
 				Type:  "content_block_delta",
@@ -941,8 +993,18 @@ func (c *OpenAIToAnthropicConverter) ConvertStreamingChunk(chunk *openai.ChatCom
 
 	// Return nil for chunks that don't contain meaningful updates
 	// Log the chunk details to help with debugging streaming issues
-	log.Warnf("Ignoring OpenAI streaming chunk with no meaningful content - ID: %s, Model: %s, Choice index: %d, Delta role: %s",
+	log.Debugf("Ignoring OpenAI streaming chunk with no meaningful content - ID: %s, Model: %s, Choice index: %d, Delta role: %s",
 		chunk.ID, chunk.Model, choice.Index, choice.Delta.Role)
+
+	// Check if this is an empty chunk that should trigger a content_block_start for text
+	if choice.Delta.Role == "" && choice.Delta.Content == "" && len(choice.Delta.ToolCalls) == 0 && choice.FinishReason == "" {
+		// This might be a spurious chunk, safely ignore
+		return nil, nil
+	}
+
+	// If we reach here with unexpected chunk content, log it but don't fail
+	log.Warnf("Unexpected OpenAI streaming chunk format during conversion: ID=%s, Model=%s, Choice.Index=%d, Delta.Role=%s, Delta.Content=%s, ToolCalls=%d",
+		chunk.ID, chunk.Model, choice.Index, choice.Delta.Role, choice.Delta.Content, len(choice.Delta.ToolCalls))
 	return nil, nil
 }
 
@@ -958,6 +1020,11 @@ func (c *OpenAIToAnthropicConverter) convertToolChoice(toolChoice openai.ChatCom
 	}
 
 	if toolChoice.OfFunctionToolChoice != nil {
+		// Safely check that Function is not nil and has a name before accessing
+		if toolChoice.OfFunctionToolChoice.Function.Name == "" {
+			return anthropic.ToolChoiceUnionParam{}, fmt.Errorf("function tool choice name cannot be empty")
+		}
+
 		return anthropic.ToolChoiceUnionParam{
 			OfTool: &anthropic.ToolChoiceToolParam{
 				Type:                   "tool",
@@ -968,10 +1035,12 @@ func (c *OpenAIToAnthropicConverter) convertToolChoice(toolChoice openai.ChatCom
 	}
 
 	if toolChoice.OfCustomToolChoice != nil {
-		name := toolChoice.OfCustomToolChoice.Custom.Name
-		if name == "" {
+		// Safely check that Custom is not nil before accessing its properties
+		if toolChoice.OfCustomToolChoice.Custom.Name == "" {
 			return anthropic.ToolChoiceUnionParam{}, fmt.Errorf("custom tool choice name cannot be empty")
 		}
+
+		name := toolChoice.OfCustomToolChoice.Custom.Name
 		return anthropic.ToolChoiceUnionParam{
 			OfTool: &anthropic.ToolChoiceToolParam{
 				Type:                   "tool",
