@@ -20,7 +20,7 @@ env:
 jobs:
   test:
     name: Test & Lint - Task Complexity Classifier
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -51,7 +51,7 @@ jobs:
 
   deploy-dev:
     name: Deploy Task Complexity Classifier - Development
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: test
     if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     environment: development
