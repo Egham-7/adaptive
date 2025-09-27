@@ -11,7 +11,7 @@ env:
 jobs:
   test:
     name: Test & Coverage
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -38,7 +38,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -79,7 +79,7 @@ jobs:
           args: --timeout=5m
   security:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -99,7 +99,7 @@ jobs:
         run: gosec -exclude-dir=vendor -exclude-dir=testdata ./...
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: [test, lint]
     defaults:
       run:

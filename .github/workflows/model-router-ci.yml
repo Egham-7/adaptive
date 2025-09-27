@@ -15,7 +15,7 @@ env:
 jobs:
   test:
     name: Test & Coverage - Model Router
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -45,7 +45,7 @@ jobs:
 
   lint:
     name: Lint & Format - Model Router
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
