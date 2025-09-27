@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import VideoPlayer from "@/components/ui/video-player";
 
 export default function GetStartedSection() {
-
 	return (
 		<SignedOut>
 			<section className="overflow-hidden py-16 md:py-32">
@@ -26,8 +25,9 @@ export default function GetStartedSection() {
 							</span>
 						</h2>
 						<p className="mx-auto mt-6 max-w-3xl text-balance text-lg text-muted-foreground">
-							Watch how Adaptive reduces your AI costs by 60-90% with intelligent
-							model routing and automatic optimization - no setup required.
+							Watch how Adaptive reduces your AI costs by 60-90% with
+							intelligent model routing and automatic optimization - no setup
+							required.
 						</p>
 					</motion.div>
 
@@ -38,7 +38,7 @@ export default function GetStartedSection() {
 						transition={{ duration: 0.6, delay: 0.2 }}
 						className="mt-16"
 					>
-						<VideoPlayer src="/demo-video.mp4" />
+						<VideoPlayer src="/adaptive-demo.mp4" />
 					</motion.div>
 
 					{/* Call to action */}
