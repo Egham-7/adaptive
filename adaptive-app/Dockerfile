@@ -1,4 +1,4 @@
-FROM node:alpine AS base
+FROM oven/bun:alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -7,15 +7,12 @@ WORKDIR /app
 # Install dependencies needed for building native modules
 RUN apk add --no-cache libc6-compat openssl
 
-# Install pnpm globally
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 # Copy package manager files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json bun.lock ./
 COPY prisma ./prisma
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 
 # Rebuild the source code only when needed
@@ -25,9 +22,6 @@ WORKDIR /app
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Install pnpm in builder
-RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Set build-time environment variables
 ARG DATABASE_URL
@@ -56,15 +50,14 @@ ENV NEXT_PUBLIC_URL=${NEXT_PUBLIC_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
-RUN pnpm run build
+RUN bun run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache openssl curl && \
-  corepack enable && corepack prepare pnpm@latest --activate
+RUN apk add --no-cache openssl curl
 
 # Create nextjs user and group
 RUN addgroup --system --gid 1001 nodejs && \

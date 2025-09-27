@@ -42,6 +42,7 @@ func (c *AnthropicToOpenAIConverter) ConvertRequest(req *models.AnthropicMessage
 		PromptCache:       req.PromptCache,
 		Fallback:          req.Fallback,
 		ProviderConfigs:   req.ProviderConfigs,
+		MaxTokens:         openaiParam.Opt[int64]{Value: req.MaxTokens},
 	}
 
 	// Convert parameters

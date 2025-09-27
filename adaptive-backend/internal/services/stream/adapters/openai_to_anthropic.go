@@ -36,6 +36,7 @@ const (
 type streamState struct {
 	textContentStarted bool
 	toolContentStarted bool
+	currentToolIndex   int
 }
 
 // OpenAIToAnthropicStreamAdapter converts OpenAI streaming response to Anthropic SSE format
@@ -147,8 +148,7 @@ func (a *OpenAIToAnthropicStreamAdapter) processChunk(chunk *openai.ChatCompleti
 	case eventMessageDelta:
 		return a.handleMessageDelta(event)
 	case eventContentBlockStart:
-		a.state.toolContentStarted = true
-		return a.emitEvent(event)
+		return a.handleContentBlockStart(event, chunk)
 	default:
 		return a.emitEvent(event)
 	}
@@ -167,13 +167,32 @@ func (a *OpenAIToAnthropicStreamAdapter) handleContentBlockDelta(event *anthropi
 	return a.emitEvent(event)
 }
 
+// handleContentBlockStart handles the start of content blocks (text or tool)
+func (a *OpenAIToAnthropicStreamAdapter) handleContentBlockStart(event *anthropic.MessageStreamEventUnion, chunk *openai.ChatCompletionChunk) error {
+	// Check if this is a tool use content block start
+	if a.isToolCall(chunk) {
+		a.state.toolContentStarted = true
+		a.state.currentToolIndex = int(event.Index)
+	}
+
+	return a.emitEvent(event)
+}
+
 // handleMessageDelta closes content blocks before emitting message_delta
 func (a *OpenAIToAnthropicStreamAdapter) handleMessageDelta(event *anthropic.MessageStreamEventUnion) error {
+	// Close any open content blocks before message_delta
 	if a.state.textContentStarted {
 		if err := a.emitContentBlockStop(); err != nil {
 			return err
 		}
 		a.state.textContentStarted = false
+	}
+
+	if a.state.toolContentStarted {
+		if err := a.emitToolContentBlockStop(); err != nil {
+			return err
+		}
+		a.state.toolContentStarted = false
 	}
 
 	return a.emitEvent(event)
@@ -182,6 +201,11 @@ func (a *OpenAIToAnthropicStreamAdapter) handleMessageDelta(event *anthropic.Mes
 // isTextContentDelta checks if chunk contains text content
 func (a *OpenAIToAnthropicStreamAdapter) isTextContentDelta(chunk *openai.ChatCompletionChunk) bool {
 	return len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != ""
+}
+
+// isToolCall checks if chunk contains tool call data
+func (a *OpenAIToAnthropicStreamAdapter) isToolCall(chunk *openai.ChatCompletionChunk) bool {
+	return len(chunk.Choices) > 0 && len(chunk.Choices[0].Delta.ToolCalls) > 0
 }
 
 // emitTextContentBlockStart emits the content_block_start event for text content
@@ -197,11 +221,20 @@ func (a *OpenAIToAnthropicStreamAdapter) emitTextContentBlockStart() error {
 	return a.emitEventMap(eventContentBlockStart, event)
 }
 
-// emitContentBlockStop emits content_block_stop event
+// emitContentBlockStop emits content_block_stop event for text content
 func (a *OpenAIToAnthropicStreamAdapter) emitContentBlockStop() error {
 	event := map[string]any{
 		"type":  eventContentBlockStop,
 		"index": textContentBlockIndex,
+	}
+	return a.emitEventMap(eventContentBlockStop, event)
+}
+
+// emitToolContentBlockStop emits content_block_stop event for tool content
+func (a *OpenAIToAnthropicStreamAdapter) emitToolContentBlockStop() error {
+	event := map[string]any{
+		"type":  eventContentBlockStop,
+		"index": a.state.currentToolIndex,
 	}
 	return a.emitEventMap(eventContentBlockStop, event)
 }
@@ -211,6 +244,10 @@ func (a *OpenAIToAnthropicStreamAdapter) emitFinalEvents() {
 	// Close any open content blocks
 	if a.state.textContentStarted {
 		_ = a.emitContentBlockStop() // Best effort - ignore errors at stream end
+	}
+
+	if a.state.toolContentStarted {
+		_ = a.emitToolContentBlockStop() // Best effort - ignore errors at stream end
 	}
 
 	// Emit message_stop
