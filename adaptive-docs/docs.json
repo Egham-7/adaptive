@@ -151,7 +151,7 @@
   },
   "openapi": "api-reference/openapi.json",
   "contextual": {
-    "options": ["copy", "view", "chatgpt"]
+    "options": ["copy", "view", "chatgpt", "claude"]
   },
   "errors": {
     "404": {
@@ -159,4 +159,3 @@
     }
   }
 }
-
