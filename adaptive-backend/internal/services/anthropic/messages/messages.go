@@ -165,4 +165,3 @@ func (ms *MessagesService) handleAnthropicProvider(
 	}
 	return responseSvc.HandleNonStreamingResponse(c, message, requestID, cacheSource)
 }
-
