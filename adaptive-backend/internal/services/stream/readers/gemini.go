@@ -95,21 +95,17 @@ func (r *GeminiStreamReader) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	// Marshal chunk to JSON for SSE format (matching Gemini's native format)
+	// Marshal chunk to JSON (writer will handle array formatting)
 	chunkData, err := json.Marshal(chunk)
 	if err != nil {
 		return 0, err
 	}
 
-	// Format as SSE data (matching Gemini API format: "data: {...}\n\n")
-	sseData := append([]byte("data: "), chunkData...)
-	sseData = append(sseData, '\n', '\n')
-
-	// Copy to output buffer
-	n = copy(p, sseData)
-	if n < len(sseData) {
+	// Copy to output buffer (no additional formatting needed)
+	n = copy(p, chunkData)
+	if n < len(chunkData) {
 		// Buffer remaining data for next read
-		r.buffer = append(r.buffer, sseData[n:]...)
+		r.buffer = append(r.buffer, chunkData[n:]...)
 	}
 
 	return n, nil

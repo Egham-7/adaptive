@@ -61,6 +61,13 @@ func (h *GenerateHandler) Generate(c *fiber.Ctx) error {
 		fiberlog.Warnf("[%s] Request parsing failed: %v", requestID, err)
 		return h.responseSvc.HandleError(c, models.NewValidationError("invalid request", err), requestID)
 	}
+
+	// Extract model from route parameter if present (for Gemini SDK compatibility)
+	if routeModel := c.Params("model"); routeModel != "" {
+		fiberlog.Debugf("[%s] Model found in route parameter: %s, overriding request model", requestID, routeModel)
+		req.Model = routeModel
+	}
+
 	fiberlog.Debugf("[%s] Request parsed successfully - model: %s", requestID, req.Model)
 
 	// Resolve configuration
@@ -169,6 +176,13 @@ func (h *GenerateHandler) StreamGenerate(c *fiber.Ctx) error {
 		fiberlog.Warnf("[%s] Request parsing failed: %v", requestID, err)
 		return h.responseSvc.HandleError(c, models.NewValidationError("invalid request", err), requestID)
 	}
+
+	// Extract model from route parameter if present (for Gemini SDK compatibility)
+	if routeModel := c.Params("model"); routeModel != "" {
+		fiberlog.Debugf("[%s] Model found in route parameter: %s, overriding request model", requestID, routeModel)
+		req.Model = routeModel
+	}
+
 	fiberlog.Debugf("[%s] Request parsed successfully - model: %s", requestID, req.Model)
 
 	// Resolve configuration

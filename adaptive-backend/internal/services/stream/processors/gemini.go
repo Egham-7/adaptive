@@ -30,23 +30,8 @@ func NewGeminiChunkProcessor(provider, cacheSource, requestID string) *GeminiChu
 
 // Process processes raw Gemini chunk data and converts it to our adaptive format
 func (p *GeminiChunkProcessor) Process(ctx context.Context, data []byte) ([]byte, error) {
-	// Skip empty data or SSE keepalive
+	// Skip empty data
 	if len(data) == 0 {
-		return nil, nil
-	}
-
-	// Remove SSE "data: " prefix if present
-	if len(data) > 6 && string(data[:6]) == "data: " {
-		data = data[6:]
-	}
-
-	// Check for SSE sentinel indicating end of stream
-	if string(data) == "[DONE]" {
-		return nil, nil
-	}
-
-	// Skip if it's just a newline or whitespace
-	if len(data) <= 2 {
 		return nil, nil
 	}
 

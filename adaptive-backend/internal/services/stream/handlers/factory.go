@@ -59,6 +59,7 @@ func (f *StreamFactory) CreateGeminiPipeline(
 	requestID, provider, cacheSource string,
 ) contracts.StreamHandler {
 	reader := readers.NewGeminiStreamReader(streamIter, requestID)
-	processor := processors.NewGeminiChunkProcessor(provider, cacheSource, requestID)
+	// Use passthrough processor to preserve original Gemini format for SDK compatibility
+	processor := processors.NewPassthroughProcessor(provider, requestID)
 	return NewStreamOrchestrator(reader, processor, requestID)
 }

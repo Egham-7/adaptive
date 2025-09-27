@@ -18,7 +18,8 @@ func HandleGemini(c *fiber.Ctx, streamIter iter.Seq2[*genai.GenerateContentRespo
 	fiberlog.Infof("[%s] Starting Gemini stream handling", requestID)
 
 	fasthttpCtx := c.Context()
-	c.Set("Content-Type", "text/event-stream")
+	// Use JSON streaming format for Gemini SDK compatibility (not SSE)
+	c.Set("Content-Type", "application/json")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
 	c.Set("Access-Control-Allow-Origin", "*")
@@ -27,15 +28,15 @@ func HandleGemini(c *fiber.Ctx, streamIter iter.Seq2[*genai.GenerateContentRespo
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
 
-		// Create HTTP writer
-		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID)
+		// Create JSON writer (no SSE formatting for Gemini SDK compatibility)
+		jsonWriter := writers.NewJSONStreamWriter(w, connState, requestID)
 
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
 		handler := factory.CreateGeminiPipeline(streamIter, requestID, provider, cacheSource)
 
 		// Handle the stream
-		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {
+		if err := handler.Handle(fasthttpCtx, jsonWriter); err != nil {
 			if !contracts.IsExpectedError(err) {
 				fiberlog.Errorf("[%s] Stream error: %v", requestID, err)
 			} else {

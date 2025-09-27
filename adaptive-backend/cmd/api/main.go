@@ -94,6 +94,12 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	v1Group.Post("/generate", generateHandler.Generate)
 	v1Group.Post("/generate/stream", generateHandler.StreamGenerate)
 
+	// Setup v1beta routes for Gemini SDK compatibility
+	// Use escaped colon to handle model names like "intelligent-routing:generateContent"
+	v1betaGroup := app.Group("/v1beta")
+	v1betaGroup.Post(`/models/:model\:generateContent`, generateHandler.Generate)
+	v1betaGroup.Post(`/models/:model\:streamGenerateContent`, generateHandler.StreamGenerate)
+
 	return nil
 }
 
@@ -105,6 +111,8 @@ const (
 	selectModelEndpoint    = "/v1/select-model"
 	generateEndpoint       = "/v1/generate"
 	generateStreamEndpoint = "/v1/generate/stream"
+	geminiEndpoint         = "/v1beta/models/:model\\:generateContent"
+	geminiStreamEndpoint   = "/v1beta/models/:model\\:streamGenerateContent"
 	allowedMethods         = "GET, POST, PUT, DELETE, OPTIONS"
 )
 
@@ -216,6 +224,8 @@ func main() {
 				"select-model":    selectModelEndpoint,
 				"generate":        generateEndpoint,
 				"generate-stream": generateStreamEndpoint,
+				"gemini":          geminiEndpoint,
+				"gemini-stream":   geminiStreamEndpoint,
 			},
 		})
 	})
