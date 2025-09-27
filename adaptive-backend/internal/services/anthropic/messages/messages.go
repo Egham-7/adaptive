@@ -2,7 +2,6 @@ package messages
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"adaptive-backend/internal/models"
@@ -118,27 +117,8 @@ func (ms *MessagesService) SendStreamingMessage(
 	return streamResp, nil
 }
 
-// HandleProviderRequest handles requests using native Anthropic provider only
-func (ms *MessagesService) HandleProviderRequest(
-	c *fiber.Ctx,
-	req *models.AnthropicMessageRequest,
-	provider string,
-	providerConfig models.ProviderConfig,
-	isStreaming bool,
-	requestID string,
-	responseSvc *ResponseService,
-	cacheSource string,
-) error {
-	// Only support native Anthropic format providers
-	if providerConfig.NativeFormat != "anthropic" && providerConfig.NativeFormat != "" && provider != "anthropic" {
-		return fmt.Errorf("provider %s does not support native Anthropic format", provider)
-	}
-
-	return ms.handleAnthropicProvider(c, req, providerConfig, isStreaming, requestID, responseSvc, provider, cacheSource)
-}
-
 // handleAnthropicProvider handles requests using native Anthropic client
-func (ms *MessagesService) handleAnthropicProvider(
+func (ms *MessagesService) HandleAnthropicProvider(
 	c *fiber.Ctx,
 	req *models.AnthropicMessageRequest,
 	providerConfig models.ProviderConfig,
