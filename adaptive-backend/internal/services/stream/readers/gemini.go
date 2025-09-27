@@ -2,7 +2,6 @@ package readers
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"iter"
 	"sync"
@@ -51,7 +50,7 @@ func (r *GeminiStreamReader) setupIterator() {
 		for resp, err := range r.iterator {
 			select {
 			case <-stopCh:
-				return nil, errors.New("stream stopped"), false
+				return nil, io.EOF, false
 			default:
 				if err != nil {
 					return nil, err, false

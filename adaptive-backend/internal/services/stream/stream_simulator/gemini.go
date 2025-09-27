@@ -111,6 +111,12 @@ func convertToGeminiStreamingChunks(response *models.GeminiGenerateContentRespon
 		}
 	}
 
+	// Safely extract role from candidate content
+	role := ""
+	if candidate.Content != nil {
+		role = candidate.Content.Role
+	}
+
 	if textContent == "" {
 		fiberlog.Warnf("[%s] No text content found in cached Gemini response", requestID)
 		// Return a single chunk with empty content but preserve metadata
@@ -119,7 +125,7 @@ func convertToGeminiStreamingChunks(response *models.GeminiGenerateContentRespon
 				{
 					Content: &genai.Content{
 						Parts: []*genai.Part{{Text: ""}},
-						Role:  candidate.Content.Role,
+						Role:  role,
 					},
 					FinishReason:     candidate.FinishReason,
 					SafetyRatings:    candidate.SafetyRatings,
@@ -160,7 +166,7 @@ func convertToGeminiStreamingChunks(response *models.GeminiGenerateContentRespon
 				{
 					Content: &genai.Content{
 						Parts: []*genai.Part{{Text: accumulatedContent.String()}},
-						Role:  candidate.Content.Role,
+						Role:  role,
 					},
 					// Don't set FinishReason until the last chunk
 					SafetyRatings:    candidate.SafetyRatings,

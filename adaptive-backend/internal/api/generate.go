@@ -101,7 +101,7 @@ func (h *GenerateHandler) Generate(c *fiber.Ctx) error {
 			// Direct execution - no fallback for user-specified models
 			err = h.executeProviderRequest(c, req, provider, providerConfig, false, requestID, "")
 			if err != nil {
-				return err
+				return h.responseSvc.HandleError(c, err, requestID)
 			}
 
 			// Store successful response in semantic cache for user-specified models
@@ -210,7 +210,7 @@ func (h *GenerateHandler) StreamGenerate(c *fiber.Ctx) error {
 			// Direct execution - no fallback for user-specified models
 			err = h.executeProviderRequest(c, req, provider, providerConfig, true, requestID, "")
 			if err != nil {
-				return err
+				return h.responseSvc.HandleError(c, err, requestID)
 			}
 
 			// Store successful response in semantic cache for user-specified models
@@ -267,11 +267,11 @@ func (h *GenerateHandler) StreamGenerate(c *fiber.Ctx) error {
 }
 
 // checkCircuitBreaker validates circuit breaker state for the provider
-func (h *GenerateHandler) checkCircuitBreaker(provider, requestID string, c *fiber.Ctx) error {
+func (h *GenerateHandler) checkCircuitBreaker(provider, requestID string) error {
 	cb := h.circuitBreakers[provider]
 	if cb != nil && !cb.CanExecute() {
 		fiberlog.Warnf("[%s] Circuit breaker is open for provider %s", requestID, provider)
-		return h.responseSvc.HandleError(c, models.NewProviderError(provider, "circuit breaker open", nil), requestID)
+		return models.NewProviderError(provider, "circuit breaker open", nil)
 	}
 	return nil
 }
@@ -313,7 +313,7 @@ func (h *GenerateHandler) executeNonStreamingWithCircuitBreaker(
 			cb.RecordFailure()
 		}
 		fiberlog.Errorf("[%s] Non-streaming provider request failed: %v", requestID, err)
-		return h.responseSvc.HandleError(c, err, requestID)
+		return err
 	}
 
 	// Handle the non-streaming response with proper cache source
@@ -324,7 +324,7 @@ func (h *GenerateHandler) executeNonStreamingWithCircuitBreaker(
 			cb.RecordFailure()
 		}
 		fiberlog.Errorf("[%s] Non-streaming response handling failed: %v", requestID, err)
-		return h.responseSvc.HandleError(c, err, requestID)
+		return err
 	}
 
 	// Record success in circuit breaker
@@ -458,7 +458,7 @@ func (h *GenerateHandler) executeProviderRequest(
 	cacheSource string,
 ) error {
 	// Check circuit breaker state
-	if err := h.checkCircuitBreaker(provider, requestID, c); err != nil {
+	if err := h.checkCircuitBreaker(provider, requestID); err != nil {
 		return err
 	}
 

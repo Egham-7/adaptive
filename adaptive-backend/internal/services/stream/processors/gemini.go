@@ -40,6 +40,11 @@ func (p *GeminiChunkProcessor) Process(ctx context.Context, data []byte) ([]byte
 		data = data[6:]
 	}
 
+	// Check for SSE sentinel indicating end of stream
+	if string(data) == "[DONE]" {
+		return nil, nil
+	}
+
 	// Skip if it's just a newline or whitespace
 	if len(data) <= 2 {
 		return nil, nil

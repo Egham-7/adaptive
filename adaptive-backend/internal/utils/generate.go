@@ -145,7 +145,7 @@ func extractTextFromPart(part *genai.Part) string {
 }
 
 // ExtractToolCallsFromGeminiContents extracts tool calls from the last content if it's a model content
-func ExtractToolCallsFromGeminiContents(contents []*genai.Content) any {
+func ExtractToolCallsFromGeminiContents(contents []*genai.Content) *genai.Part {
 	if len(contents) == 0 {
 		return nil
 	}
