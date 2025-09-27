@@ -69,10 +69,11 @@ func (pm *ModelRouter) SelectModelWithCache(
 	if useCache && pm.cache != nil {
 		fiberlog.Debugf("[%s] Checking cache for existing model response", requestID)
 
-		hit, source, found := pm.lookupCache(ctx, prompt, requestID, cacheConfigOverride)
-		if found {
-			fiberlog.Infof("[%s] Cache hit (%s) - returning cached model: %s/%s", requestID, source, hit.Provider, hit.Model)
-			return hit, source, nil
+		cacheResult := pm.lookupCache(ctx, prompt, requestID, cacheConfigOverride, cbs)
+		if cacheResult.Hit {
+			fiberlog.Infof("[%s] Cache hit (%s) - returning cached model: %s/%s",
+				requestID, cacheResult.Source, cacheResult.Response.Provider, cacheResult.Response.Model)
+			return cacheResult.Response, cacheResult.Source, nil
 		}
 		fiberlog.Debugf("[%s] Cache miss - proceeding to model selection service", requestID)
 	} else {
@@ -216,11 +217,103 @@ func createCacheIfEnabled(cfg *config.Config, semanticCacheConfig models.CacheCo
 	return cache, nil
 }
 
-// lookupCache performs cache lookup with optional threshold override
-func (pm *ModelRouter) lookupCache(ctx context.Context, prompt, requestID string, cacheConfig models.CacheConfig) (*models.ModelSelectionResponse, string, bool) {
+// lookupCache performs cache lookup with circuit breaker validation
+func (pm *ModelRouter) lookupCache(ctx context.Context, prompt, requestID string, cacheConfig models.CacheConfig, cbs map[string]*circuitbreaker.CircuitBreaker) models.CacheResult {
+	cachedResponse, source, found := pm.getCachedResponse(ctx, prompt, requestID, cacheConfig)
+	if !found {
+		return models.CacheResult{Hit: false}
+	}
+
+	validResponse := pm.selectAvailableModel(cachedResponse, cbs, requestID)
+	if validResponse == nil {
+		fiberlog.Debugf("[%s] No available models from cache due to circuit breakers", requestID)
+
+		// Invalidate the cache entry since all providers are circuit-broken
+		if pm.cache != nil {
+			if err := pm.cache.Delete(ctx, prompt, cachedResponse.Provider, requestID); err != nil {
+				fiberlog.Errorf("[%s] Failed to invalidate cache entry: %v", requestID, err)
+			}
+		}
+
+		return models.CacheResult{Hit: false}
+	}
+
+	return models.CacheResult{
+		Response: validResponse,
+		Source:   source,
+		Hit:      true,
+	}
+}
+
+// getCachedResponse retrieves cached response with threshold handling
+func (pm *ModelRouter) getCachedResponse(ctx context.Context, prompt, requestID string, cacheConfig models.CacheConfig) (*models.ModelSelectionResponse, string, bool) {
 	if cacheConfig.SemanticThreshold > 0 {
 		fiberlog.Debugf("[%s] Using threshold override: %.2f", requestID, cacheConfig.SemanticThreshold)
 		return pm.cache.LookupWithThreshold(ctx, prompt, requestID, float32(cacheConfig.SemanticThreshold))
 	}
 	return pm.cache.Lookup(ctx, prompt, requestID)
+}
+
+// selectAvailableModel finds the first available model from cached response considering circuit breakers
+func (pm *ModelRouter) selectAvailableModel(cachedResponse *models.ModelSelectionResponse, cbs map[string]*circuitbreaker.CircuitBreaker, requestID string) *models.ModelSelectionResponse {
+	if cachedResponse == nil {
+		return nil
+	}
+
+	// Build a list of all potential models (primary + alternatives)
+	candidates := []models.Alternative{
+		{Provider: cachedResponse.Provider, Model: cachedResponse.Model},
+	}
+	candidates = append(candidates, cachedResponse.Alternatives...)
+
+	// Find first available model
+	availableIdx := pm.findFirstAvailableModel(candidates, cbs, requestID)
+	if availableIdx == -1 {
+		return nil
+	}
+
+	selected := candidates[availableIdx]
+	alternatives := pm.buildAlternativesList(candidates, availableIdx)
+
+	return &models.ModelSelectionResponse{
+		Provider:     selected.Provider,
+		Model:        selected.Model,
+		Alternatives: alternatives,
+	}
+}
+
+// findFirstAvailableModel returns the index of the first available model, or -1 if none are available
+func (pm *ModelRouter) findFirstAvailableModel(candidates []models.Alternative, cbs map[string]*circuitbreaker.CircuitBreaker, requestID string) int {
+	for i, candidate := range candidates {
+		if pm.isModelAvailable(candidate.Provider, cbs) {
+			if i > 0 {
+				fiberlog.Debugf("[%s] Using alternative %s/%s due to circuit breaker",
+					requestID, candidate.Provider, candidate.Model)
+			}
+			return i
+		}
+		fiberlog.Debugf("[%s] Model %s/%s unavailable due to circuit breaker",
+			requestID, candidate.Provider, candidate.Model)
+	}
+	return -1
+}
+
+// isModelAvailable checks if a model provider is available via circuit breaker
+func (pm *ModelRouter) isModelAvailable(provider string, cbs map[string]*circuitbreaker.CircuitBreaker) bool {
+	if cbs == nil {
+		return true
+	}
+	cb, exists := cbs[provider]
+	return !exists || cb.CanExecute()
+}
+
+// buildAlternativesList creates alternatives list excluding the selected model
+func (pm *ModelRouter) buildAlternativesList(candidates []models.Alternative, selectedIdx int) []models.Alternative {
+	alternatives := make([]models.Alternative, 0, len(candidates)-1)
+	for i, candidate := range candidates {
+		if i != selectedIdx {
+			alternatives = append(alternatives, candidate)
+		}
+	}
+	return alternatives
 }

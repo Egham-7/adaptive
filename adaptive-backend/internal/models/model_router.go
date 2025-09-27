@@ -80,3 +80,10 @@ type ModelSelectionResponse struct {
 func (m *ModelSelectionResponse) IsValid() bool {
 	return m != nil && m.Provider != "" && m.Model != ""
 }
+
+// CacheResult represents the result of a cache lookup operation
+type CacheResult struct {
+	Response *ModelSelectionResponse `json:"response,omitzero"`
+	Source   string                  `json:"source,omitzero"`
+	Hit      bool                    `json:"hit"`
+}

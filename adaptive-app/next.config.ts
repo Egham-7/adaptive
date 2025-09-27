@@ -4,9 +4,9 @@
  */
 import "./src/env.js";
 
-/** @type {import("next").NextConfig} */
-const config = {
-	output: "standalone",
+import type { NextConfig } from "next";
+
+const config: NextConfig = {
 	images: {
 		remotePatterns: [
 			{

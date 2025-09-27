@@ -149,3 +149,17 @@ func (pmc *ModelRouterCache) Len(ctx context.Context) (int, error) {
 func (pmc *ModelRouterCache) Flush(ctx context.Context) error {
 	return pmc.cache.Flush(ctx)
 }
+
+// Delete removes a cache entry when its provider is circuit-broken
+func (pmc *ModelRouterCache) Delete(ctx context.Context, prompt, provider, requestID string) error {
+	fiberlog.Debugf("[%s] Invalidating cache entry for provider %s", requestID, provider)
+
+	err := pmc.cache.Delete(ctx, prompt)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to invalidate cache entry for provider %s: %v", requestID, provider, err)
+		return err
+	}
+
+	fiberlog.Infof("[%s] Successfully invalidated cache entry for provider %s", requestID, provider)
+	return nil
+}
