@@ -109,7 +109,7 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 			}
 
 			// Direct execution - no fallback for user-specified models
-			err = h.messagesSvc.HandleProviderRequest(c, req, provider, providerConfig, isStreaming, requestID, h.responseSvc, "")
+			err = h.messagesSvc.HandleAnthropicProvider(c, req, providerConfig, isStreaming, requestID, h.responseSvc, provider, "")
 			if err != nil {
 				return err
 			}
@@ -191,7 +191,7 @@ func (h *MessagesHandler) createExecuteFunc(
 		reqCopy.Model = anthropic.Model(provider.Model)
 
 		// Call the messages service and handle retryable errors
-		err = h.messagesSvc.HandleProviderRequest(c, &reqCopy, provider.Provider, providerConfig, isStreaming, reqID, h.responseSvc, cacheSource)
+		err = h.messagesSvc.HandleAnthropicProvider(c, &reqCopy, providerConfig, isStreaming, reqID, h.responseSvc, provider.Provider, cacheSource)
 		// Check if the error is a retryable provider error that should trigger fallback
 		if err != nil {
 			if appErr, ok := err.(*models.AppError); ok && appErr.Type == models.ErrorTypeProvider && appErr.Retryable {
