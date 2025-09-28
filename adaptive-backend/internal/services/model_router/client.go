@@ -1,14 +1,15 @@
 package model_router
 
 import (
-	"adaptive-backend/internal/config"
-	"adaptive-backend/internal/models"
-	"adaptive-backend/internal/services"
-	"adaptive-backend/internal/services/circuitbreaker"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"time"
+
+	"adaptive-backend/internal/config"
+	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services"
+	"adaptive-backend/internal/services/circuitbreaker"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
