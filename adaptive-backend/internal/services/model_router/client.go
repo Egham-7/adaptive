@@ -1,15 +1,14 @@
 package model_router
 
 import (
-	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"time"
-
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services"
 	"adaptive-backend/internal/services/circuitbreaker"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"time"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 	"github.com/redis/go-redis/v9"
@@ -146,11 +145,11 @@ func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.Mo
 	// Simple fallback: always route to gpt-4o-mini when no models provided
 	return models.ModelSelectionResponse{
 		Provider: "gemini",
-		Model:    "gemini-2.5-pro",
+		Model:    "gemini-2.5-flash",
 		Alternatives: []models.Alternative{
 			{
 				Provider: "openai",
-				Model:    "gemini-2.5-flash",
+				Model:    "gemini-2.5-pro",
 			},
 		},
 	}

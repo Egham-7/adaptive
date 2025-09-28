@@ -56,13 +56,15 @@ func (p *GeminiChunkProcessor) Process(ctx context.Context, data []byte) ([]byte
 	}
 
 	// Marshal back to JSON for output
-	processedData, err := json.Marshal(adaptiveResponse)
+	chunkJSON, err := json.Marshal(adaptiveResponse)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to marshal adaptive response: %v", p.requestID, err)
 		return nil, fmt.Errorf("failed to marshal adaptive response: %w", err)
 	}
 
-	return processedData, nil
+	// Format as SSE event - this matches the responseLineRE regex: /^\s*data: (.*)(?:\n\n|\r\r|\r\n\r\n)/
+	sseData := fmt.Sprintf("data: %s\n\n", string(chunkJSON))
+	return []byte(sseData), nil
 }
 
 // Provider returns the provider name

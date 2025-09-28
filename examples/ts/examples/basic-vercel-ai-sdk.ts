@@ -155,10 +155,14 @@ async function toolCallingExample() {
 							.string()
 							.describe("The location to get the weather for"),
 					}),
-					execute: async ({ location }: { location: string }) => ({
-						location,
-						temperature: 72 + Math.floor(Math.random() * 21) - 10,
-					}),
+					execute: async ({ location }: { location: string }) => {
+						// Simulate weather API call
+						return {
+							location,
+							temperature: 72 + Math.floor(Math.random() * 21) - 10,
+							condition: "Partly cloudy",
+						};
+					},
 				}),
 			},
 		});

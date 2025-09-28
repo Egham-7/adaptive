@@ -28,8 +28,8 @@ func HandleAnthropic(c *fiber.Ctx, responseBody io.Reader, requestID, provider, 
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
 
-		// Create HTTP writer
-		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID)
+		// Create HTTP writer (with [DONE] message for Anthropic compatibility)
+		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID, true)
 
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
@@ -62,8 +62,8 @@ func HandleAnthropicNative(c *fiber.Ctx, stream *ssestream.Stream[anthropic.Mess
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
 
-		// Create HTTP writer
-		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID)
+		// Create HTTP writer (with [DONE] message for Anthropic compatibility)
+		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID, true)
 
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()
