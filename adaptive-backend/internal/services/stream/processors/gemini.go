@@ -43,7 +43,7 @@ func (p *GeminiChunkProcessor) Process(ctx context.Context, data []byte) ([]byte
 	}
 
 	// Convert to our adaptive format using the format adapter
-	adaptiveResponse, err := format_adapter.GeminiToAdaptive.ConvertResponse(&geminiChunk, p.provider)
+	adaptiveResponse, err := format_adapter.GeminiToAdaptive.ConvertResponse(&geminiChunk, p.provider, p.cacheSource)
 	if err != nil {
 		fiberlog.Errorf("[%s] Failed to convert Gemini response: %v", p.requestID, err)
 		return nil, fmt.Errorf("failed to convert Gemini response: %w", err)

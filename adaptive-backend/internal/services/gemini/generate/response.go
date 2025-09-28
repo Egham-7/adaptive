@@ -5,6 +5,7 @@ import (
 	"iter"
 
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/model_router"
 	"adaptive-backend/internal/services/stream/handlers"
 	"adaptive-backend/internal/utils"
@@ -31,19 +32,16 @@ func (rs *ResponseService) HandleNonStreamingResponse(
 	c *fiber.Ctx,
 	response *genai.GenerateContentResponse,
 	requestID string,
+	provider string,
 	cacheSource string,
 ) error {
 	fiberlog.Debugf("[%s] Processing non-streaming Gemini response", requestID)
 
-	// Convert to our adaptive response format
-	adaptiveResp := &models.GeminiGenerateContentResponse{
-		Candidates:     response.Candidates,
-		CreateTime:     response.CreateTime,
-		ModelVersion:   response.ModelVersion,
-		PromptFeedback: response.PromptFeedback,
-		ResponseID:     response.ResponseID,
-		UsageMetadata:  response.UsageMetadata,
-		Provider:       "gemini",
+	// Convert to our adaptive response format using the format adapter
+	adaptiveResp, err := format_adapter.GeminiToAdaptive.ConvertResponse(response, provider, cacheSource)
+	if err != nil {
+		fiberlog.Errorf("[%s] Failed to convert Gemini response: %v", requestID, err)
+		return rs.HandleError(c, err, requestID)
 	}
 
 	// Add cache source metadata if available

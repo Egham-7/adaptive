@@ -27,11 +27,31 @@ type GeminiGenerateRequest struct {
 
 // AdaptiveGeminiUsage extends genai.UsageMetadata with cache tier information
 type AdaptiveGeminiUsage struct {
-	PromptTokenCount        int32  `json:"prompt_token_count"`
-	CandidatesTokenCount    int32  `json:"candidates_token_count"`
-	TotalTokenCount         int32  `json:"total_token_count"`
-	CachedContentTokenCount int32  `json:"cached_content_token_count,omitzero"`
-	CacheTier               string `json:"cache_tier,omitzero"`
+	CacheTokensDetails []*genai.ModalityTokenCount `json:"cacheTokensDetails,omitempty"`
+	// Output only. Number of tokens in the cached part in the input (the cached content).
+	CachedContentTokenCount int32 `json:"cachedContentTokenCount,omitempty"`
+	// Number of tokens in the response(s). This includes all the generated response candidates.
+	CandidatesTokenCount int32 `json:"candidatesTokenCount,omitempty"`
+	// Output only. List of modalities that were returned in the response.
+	CandidatesTokensDetails []*genai.ModalityTokenCount `json:"candidatesTokensDetails,omitempty"`
+	// Number of tokens in the prompt. When cached_content is set, this is still the total
+	// effective prompt size meaning this includes the number of tokens in the cached content.
+	PromptTokenCount int32 `json:"promptTokenCount,omitempty"`
+	// Output only. List of modalities that were processed in the request input.
+	PromptTokensDetails []*genai.ModalityTokenCount `json:"promptTokensDetails,omitempty"`
+	// Output only. Number of tokens present in thoughts output.
+	ThoughtsTokenCount int32 `json:"thoughtsTokenCount,omitempty"`
+	// Output only. Number of tokens present in tool-use prompt(s).
+	ToolUsePromptTokenCount int32 `json:"toolUsePromptTokenCount,omitempty"`
+	// Output only. List of modalities that were processed for tool-use request inputs.
+	ToolUsePromptTokensDetails []*genai.ModalityTokenCount `json:"toolUsePromptTokensDetails,omitempty"`
+	// Total token count for prompt, response candidates, and tool-use prompts (if present).
+	TotalTokenCount int32 `json:"totalTokenCount,omitempty"`
+	// Output only. Traffic type. This shows whether a request consumes Pay-As-You-Go or
+	// Provisioned Throughput quota.
+	TrafficType genai.TrafficType `json:"trafficType,omitempty"`
+
+	CacheTier string `json:"cacheTier,omitempty"`
 }
 
 type GeminiGenerateContentResponse struct {
@@ -51,7 +71,7 @@ type GeminiGenerateContentResponse struct {
 	// the event_id.
 	ResponseID string `json:"responseId,omitzero"`
 	// Usage metadata about the response(s).
-	UsageMetadata *genai.GenerateContentResponseUsageMetadata `json:"usageMetadata,omitzero"`
+	UsageMetadata *AdaptiveGeminiUsage `json:"usageMetadata,omitzero"`
 
 	Provider string `json:"provider,omitzero"`
 }

@@ -331,7 +331,7 @@ func (h *GenerateHandler) executeNonStreamingWithCircuitBreaker(
 	}
 
 	// Handle the non-streaming response with proper cache source
-	err = h.responseSvc.HandleNonStreamingResponse(c, response, requestID, cacheSource)
+	err = h.responseSvc.HandleNonStreamingResponse(c, response, requestID, provider, cacheSource)
 	if err != nil {
 		// Record failure in circuit breaker
 		if cb != nil {

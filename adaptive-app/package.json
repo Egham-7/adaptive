@@ -27,6 +27,7 @@
 		"@better-fetch/fetch": "^1.1.18",
 		"@clerk/nextjs": "^6.32.0",
 		"@clerk/types": "^4.86.0",
+		"@google/genai": "^1.21.0",
 		"@hookform/resolvers": "^5.2.2",
 		"@prisma/client": "^6.16.2",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
