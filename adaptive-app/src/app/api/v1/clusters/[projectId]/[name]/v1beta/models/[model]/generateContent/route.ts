@@ -1,12 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
+import { extractModelFromGeminiParam } from "@/lib/gemini-utils";
 import { safeParseJson } from "@/lib/server/json-utils";
 import { api } from "@/trpc/server";
-import {
-	type AdaptiveGeminiResponse,
-	type AdaptiveGeminiUsage,
-	geminiGenerateContentRequestSchema,
+import type {
+	AdaptiveGeminiRequest,
+	AdaptiveGeminiResponse,
+	AdaptiveGeminiUsage,
 } from "@/types/gemini-generate";
 
 export const dynamic = "force-dynamic";
@@ -19,30 +20,12 @@ export async function POST(
 	}: { params: Promise<{ projectId: string; name: string; model: string }> },
 ) {
 	try {
-		const { projectId, name, model } = await params;
+		const { projectId, name, model: modelParam } = await params;
 
-		const rawBody = await safeParseJson(req);
-		const validationResult =
-			geminiGenerateContentRequestSchema.safeParse(rawBody);
-
-		if (!validationResult.success) {
-			return new Response(
-				JSON.stringify({
-					error: {
-						code: 400,
-						message: "Invalid request body",
-						status: "INVALID_ARGUMENT",
-						details: validationResult.error.issues,
-					},
-				}),
-				{
-					status: 400,
-					headers: { "Content-Type": "application/json" },
-				},
-			);
-		}
-
-		const body = validationResult.data;
+		// Parse JSON with proper typing - let Gemini SDK handle validation
+		const body = await safeParseJson<AdaptiveGeminiRequest>(req);
+		// Handle Gemini colon syntax: "model:generateContent" -> "model"
+		const model = extractModelFromGeminiParam(modelParam);
 
 		// Extract API key from headers (Google uses x-goog-api-key primarily)
 		const apiKey =
