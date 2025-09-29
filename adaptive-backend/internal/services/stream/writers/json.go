@@ -78,7 +78,12 @@ func (w *JSONStreamWriter) Flush() error {
 func (w *JSONStreamWriter) Close() error {
 	// Just flush remaining data
 	if w.connState.IsConnected() {
-		return w.writer.Flush()
+		if err := w.writer.Flush(); err != nil {
+			if contracts.IsConnectionClosed(err) {
+				return contracts.NewClientDisconnectError(w.requestID)
+			}
+			return contracts.NewInternalError(w.requestID, "flush failed", err)
+		}
 	}
 	return nil
 }

@@ -33,34 +33,33 @@ func NewGeminiStreamReader(
 		requestID: requestID,
 	}
 
-	// Set up iterator function
+	// Set up stateful iterator using iter.Pull2
 	reader.setupIterator()
 
 	return reader
 }
 
-// setupIterator sets up the iterator function and stop function
+// setupIterator sets up the stateful iterator using iter.Pull2
 func (r *GeminiStreamReader) setupIterator() {
-	stopCh := make(chan struct{})
-	r.stop = func() {
-		close(stopCh)
-	}
+	// Use iter.Pull2 to create a stateful next function and stop function
+	nextFunc, stopFunc := iter.Pull2(r.iterator)
 
+	// Store the stop function to release resources when needed
+	r.stop = stopFunc
+
+	// Create our next function that wraps the stateful iterator
 	r.next = func() (*genai.GenerateContentResponse, error, bool) {
-		for resp, err := range r.iterator {
-			select {
-			case <-stopCh:
-				return nil, io.EOF, false
-			default:
-				if err != nil {
-					return nil, err, false
-				}
-				if resp != nil {
-					return resp, nil, true
-				}
-			}
+		resp, err, more := nextFunc()
+		if !more {
+			// Iterator is exhausted
+			return nil, io.EOF, false
 		}
-		return nil, io.EOF, false
+		if err != nil {
+			// Error occurred
+			return nil, err, false
+		}
+		// Valid response
+		return resp, nil, true
 	}
 }
 
@@ -88,6 +87,11 @@ func (r *GeminiStreamReader) Read(p []byte) (n int, err error) {
 		r.doneMux.Lock()
 		r.done = true
 		r.doneMux.Unlock()
+
+		// Release iterator resources
+		if r.stop != nil {
+			r.stop()
+		}
 
 		if err != nil && err != io.EOF {
 			return 0, err
