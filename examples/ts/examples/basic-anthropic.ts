@@ -126,6 +126,7 @@ async function streamingExample() {
 
 		let fullContent = "";
 		let chunkCount = 0;
+		let streamError: Error | null = null;
 
 		console.log("🔄 Streaming response:");
 		process.stdout.write("📝 ");
@@ -139,11 +140,17 @@ async function streamingExample() {
 
 		stream.on("error", (error) => {
 			console.error("\n❌ Stream error:", error);
-			throw error;
+			streamError = error;
+			stream.abort();
 		});
 
 		// Wait for the final message
 		const finalMessage = await stream.finalMessage();
+
+		// Check if there was a captured stream error and rethrow it
+		if (streamError) {
+			throw streamError;
+		}
 
 		console.log(); // New line after content
 		console.log();

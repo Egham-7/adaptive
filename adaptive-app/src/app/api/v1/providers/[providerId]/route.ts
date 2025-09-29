@@ -1,8 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { getHTTPStatusCodeFromError } from "@trpc/server/http";
 import type { NextRequest } from "next/server";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { api } from "@/trpc/server";
-import { updateProviderSchema } from "@/types/providers";
+import {
+	type UpdateProviderInput,
+	updateProviderSchema,
+} from "@/types/providers";
 
 // GET /api/v1/providers/{providerId} - Get a specific provider
 export async function GET(
@@ -78,7 +82,7 @@ export async function PUT(
 ) {
 	try {
 		const { providerId } = await params;
-		const body = await req.json();
+		const body = await safeParseJson<Omit<UpdateProviderInput, "id">>(req);
 
 		// Extract API key from headers
 		const authHeader = req.headers.get("authorization");

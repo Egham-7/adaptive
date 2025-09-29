@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { api } from "@/trpc/server";
 import {
 	type AdaptiveAnthropicResponse,
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
 	try {
-		const rawBody = await req.json();
+		const rawBody = await safeParseJson(req);
 		const validationResult = anthropicMessagesRequestSchema.safeParse(rawBody);
 
 		if (!validationResult.success) {

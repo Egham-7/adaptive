@@ -7,6 +7,7 @@ import {
 	createSuccessResponse,
 	extractApiKey,
 } from "@/lib/auth/clerk";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { invalidateProviderCache, withCache } from "@/lib/shared/cache";
 import { api } from "@/trpc/server";
 import { createProviderSchema } from "@/types/providers";
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
 // POST /api/v1/providers - Create a new provider template
 export async function POST(req: NextRequest) {
 	try {
-		const body = await req.json();
+		const body = await safeParseJson(req);
 
 		// Extract API key from headers
 		const apiKey = extractApiKey(req);

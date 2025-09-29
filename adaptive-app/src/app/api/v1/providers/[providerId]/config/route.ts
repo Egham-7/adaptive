@@ -8,6 +8,7 @@ import {
 	createSuccessResponse,
 	extractApiKey,
 } from "@/lib/auth/clerk";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { invalidateProviderConfigCache, withCache } from "@/lib/shared/cache";
 import { api } from "@/trpc/server";
 
@@ -34,7 +35,7 @@ export async function POST(
 ) {
 	try {
 		const { providerId } = await params;
-		const body = await req.json();
+		const body = await safeParseJson(req);
 
 		// Extract API key from headers
 		const apiKey = extractApiKey(req);
@@ -164,7 +165,7 @@ export async function PUT(
 ) {
 	try {
 		const { providerId } = await params;
-		const body = await req.json();
+		const body = await safeParseJson(req);
 		const url = new URL(req.url);
 		const projectId = url.searchParams.get("project_id");
 

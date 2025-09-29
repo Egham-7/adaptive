@@ -29,6 +29,10 @@ func (c *GeminiToAdaptiveConverter) ConvertResponse(resp *genai.GenerateContentR
 }
 
 func (c *GeminiToAdaptiveConverter) ConvertUsage(usage *genai.GenerateContentResponseUsageMetadata, cacheTier string) *models.AdaptiveGeminiUsage {
+	if usage == nil {
+		return nil
+	}
+
 	adaptiveUsage := &models.AdaptiveGeminiUsage{
 		CacheTokensDetails:         usage.CacheTokensDetails,
 		CachedContentTokenCount:    usage.CachedContentTokenCount,

@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { api } from "@/trpc/server";
 import {
 	type AdaptiveGeminiChunk,
@@ -15,7 +16,7 @@ export async function POST(
 	{ params }: { params: { model: string } },
 ) {
 	try {
-		const rawBody = await req.json();
+		const rawBody = await safeParseJson(req);
 		const validationResult =
 			geminiGenerateContentRequestSchema.safeParse(rawBody);
 

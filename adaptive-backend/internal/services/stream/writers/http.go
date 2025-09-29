@@ -78,18 +78,31 @@ func (w *HTTPStreamWriter) Close() error {
 	if w.connState.IsConnected() {
 		if w.sendDone {
 			n, writeErr := w.writer.WriteString("data: [DONE]\n\n")
-			if writeErr == nil {
-				// Add written bytes to total if write succeeded
-				w.totalBytes += int64(n)
+			// Always add written bytes to total, even on partial writes
+			w.totalBytes += int64(n)
 
-				// Flush and capture any error
-				flushErr := w.writer.Flush()
-				return flushErr
+			if writeErr != nil {
+				if contracts.IsConnectionClosed(writeErr) {
+					return contracts.NewClientDisconnectError(w.requestID)
+				}
+				return contracts.NewInternalError(w.requestID, "write failed", writeErr)
 			}
-			return writeErr
+
+			// Flush and capture any error
+			if flushErr := w.writer.Flush(); flushErr != nil {
+				if contracts.IsConnectionClosed(flushErr) {
+					return contracts.NewClientDisconnectError(w.requestID)
+				}
+				return contracts.NewInternalError(w.requestID, "flush failed", flushErr)
+			}
 		} else {
 			// Just flush without sending [DONE] message
-			return w.writer.Flush()
+			if flushErr := w.writer.Flush(); flushErr != nil {
+				if contracts.IsConnectionClosed(flushErr) {
+					return contracts.NewClientDisconnectError(w.requestID)
+				}
+				return contracts.NewInternalError(w.requestID, "flush failed", flushErr)
+			}
 		}
 	}
 	return nil

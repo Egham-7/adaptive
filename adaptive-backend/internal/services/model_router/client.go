@@ -150,7 +150,7 @@ func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.Mo
 		Alternatives: []models.Alternative{
 			{
 				Provider: "openai",
-				Model:    "gemini-2.5-pro",
+				Model:    "gpt-4o",
 			},
 		},
 	}

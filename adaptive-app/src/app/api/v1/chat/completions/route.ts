@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import OpenAI from "openai";
 import { decryptProviderApiKey } from "@/lib/auth";
+import { safeParseJson } from "@/lib/server/json-utils";
 import {
 	filterUsageFromChunk,
 	userRequestedUsage,
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
 	try {
-		const rawBody = await req.json();
+		const rawBody = await safeParseJson(req);
 
 		// Validate and parse the request body
 		const validationResult = chatCompletionRequestSchema.safeParse(rawBody);
