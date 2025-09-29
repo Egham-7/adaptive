@@ -105,9 +105,7 @@ async function nonStreamingExample() {
 // Streaming example - get response as it's generated
 async function streamingExample() {
 	console.log("=== Streaming Anthropic Example ===");
-	console.log(
-		"💬 Sending message: 'Write a short story about a robot learning to paint'",
-	);
+	console.log("💬 Sending message: 'Write a short poem about coding'");
 	console.log("🧠 Using intelligent routing with streaming...");
 	console.log("📡 Response will appear in real-time:");
 	console.log();

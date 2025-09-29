@@ -143,7 +143,7 @@ func (c *ModelRouterClient) getFallbackModelResponse(availableModels []models.Mo
 		return response
 	}
 
-	// Simple fallback: always route to gpt-4o-mini when no models provided
+	// Simple fallback: route to gemini-2.5-flash when no models provided, with gpt-4o as alternative
 	return models.ModelSelectionResponse{
 		Provider: "gemini",
 		Model:    "gemini-2.5-flash",
