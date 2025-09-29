@@ -20,26 +20,26 @@ import { chatCompletionRequestSchema } from "@/types/chat-completion";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+	// Parse and validate request body outside try-catch to let validation errors bubble up naturally
+	const rawBody = await safeParseJson(req);
+	const validationResult = chatCompletionRequestSchema.safeParse(rawBody);
+
+	if (!validationResult.success) {
+		return new Response(
+			JSON.stringify({
+				error: "Invalid request body",
+				details: validationResult.error.issues,
+			}),
+			{
+				status: 400,
+				headers: { "Content-Type": "application/json" },
+			},
+		);
+	}
+
+	const body = validationResult.data as ChatCompletionRequest;
+
 	try {
-		const rawBody = await safeParseJson(req);
-
-		// Validate and parse the request body
-		const validationResult = chatCompletionRequestSchema.safeParse(rawBody);
-		if (!validationResult.success) {
-			return new Response(
-				JSON.stringify({
-					error: "Invalid request body",
-					details: validationResult.error.issues,
-				}),
-				{
-					status: 400,
-					headers: { "Content-Type": "application/json" },
-				},
-			);
-		}
-
-		const body = validationResult.data as ChatCompletionRequest;
-
 		// Extract API key from OpenAI-compatible headers
 		const authHeader = req.headers.get("authorization");
 

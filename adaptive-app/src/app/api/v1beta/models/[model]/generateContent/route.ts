@@ -15,28 +15,29 @@ export async function POST(
 	req: NextRequest,
 	{ params }: { params: { model: string } },
 ) {
-	try {
-		const rawBody = await safeParseJson(req);
-		const validationResult =
-			geminiGenerateContentRequestSchema.safeParse(rawBody);
+	// Parse and validate request body outside try-catch to let validation errors bubble up naturally
+	const rawBody = await safeParseJson(req);
+	const validationResult =
+		geminiGenerateContentRequestSchema.safeParse(rawBody);
 
-		if (!validationResult.success) {
-			return new Response(
-				JSON.stringify({
-					error: {
-						code: 400,
-						message: "Invalid request body",
-						status: "INVALID_ARGUMENT",
-						details: validationResult.error.issues,
-					},
-				}),
-				{
-					status: 400,
-					headers: { "Content-Type": "application/json" },
+	if (!validationResult.success) {
+		return new Response(
+			JSON.stringify({
+				error: {
+					code: 400,
+					message: "Invalid request body",
+					status: "INVALID_ARGUMENT",
+					details: validationResult.error.issues,
 				},
-			);
-		}
+			}),
+			{
+				status: 400,
+				headers: { "Content-Type": "application/json" },
+			},
+		);
+	}
 
+	try {
 		const body = validationResult.data;
 		const { model } = params;
 

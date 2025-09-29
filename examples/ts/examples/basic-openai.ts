@@ -22,7 +22,7 @@
  * Set ADAPTIVE_API_KEY environment variable to avoid hardcoding your API key.
  */
 
-import OpenAI from "openai";
+import OpenAI, { APIError } from "openai";
 
 // Initialize the OpenAI client with Adaptive's endpoint
 // This is the only change needed to use Adaptive instead of OpenAI directly
@@ -83,7 +83,7 @@ async function nonStreamingExample() {
 	} catch (error) {
 		console.error("❌ Non-streaming Error:", error);
 
-		if (error instanceof OpenAI.APIError) {
+		if (error instanceof APIError) {
 			console.error("🔧 API Error Details:");
 			console.error("   • Status:", error.status);
 			console.error("   • Message:", error.message);
@@ -158,7 +158,7 @@ async function streamingExample() {
 	} catch (error) {
 		console.error("❌ Streaming Error:", error);
 
-		if (error instanceof OpenAI.APIError) {
+		if (error instanceof APIError) {
 			console.error("🔧 API Error Details:");
 			console.error("   • Status:", error.status);
 			console.error("   • Message:", error.message);
@@ -296,7 +296,7 @@ async function functionCallingExample() {
 	} catch (error) {
 		console.error("❌ Function Calling Error:", error);
 
-		if (error instanceof OpenAI.APIError) {
+		if (error instanceof APIError) {
 			console.error("🔧 API Error Details:");
 			console.error("   • Status:", error.status);
 			console.error("   • Message:", error.message);
