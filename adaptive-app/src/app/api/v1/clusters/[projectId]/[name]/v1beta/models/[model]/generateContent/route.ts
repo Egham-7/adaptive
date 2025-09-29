@@ -164,20 +164,24 @@ export async function POST(
 		}
 
 		return Response.json(response);
-	} catch (error) {
-		console.error("Gemini cluster generateContent API error:", error);
-		return new Response(
-			JSON.stringify({
-				error: {
-					code: 500,
-					message: "Internal server error",
-					status: "INTERNAL",
-				},
-			}),
-			{
-				status: 500,
-				headers: { "Content-Type": "application/json" },
-			},
-		);
-	}
+} catch (error) {
+    if (error instanceof Response) {
+        // Propagate structured 4xx from safeParseJson/validators
+        return error;
+    }
+    console.error("Gemini cluster generateContent API error:", error);
+    return new Response(
+        JSON.stringify({
+            error: {
+                code: 500,
+                message: "Internal server error",
+                status: "INTERNAL",
+            },
+        }),
+        {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+        },
+    );
+}
 }
