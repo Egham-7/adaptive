@@ -23,7 +23,7 @@
 		"@adaptive-llm/adaptive-ai-provider": "^1.4.0",
 		"@ai-sdk/provider": "^2.0.0",
 		"@ai-sdk/react": "2.0.48",
-		"@anthropic-ai/sdk": "^0.63.0",
+		"@anthropic-ai/sdk": "^0.64.0",
 		"@better-fetch/fetch": "^1.1.18",
 		"@clerk/nextjs": "^6.32.0",
 		"@clerk/types": "^4.86.0",
