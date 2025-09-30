@@ -9,7 +9,7 @@ require (
 	github.com/botirk38/semanticcache v0.3.0
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/joho/godotenv v1.5.1
-	github.com/openai/openai-go/v2 v2.6.0
+	github.com/openai/openai-go/v2 v2.7.0
 	github.com/redis/go-redis/v9 v9.14.0
 	github.com/valyala/fasthttp v1.66.0
 	google.golang.org/genai v1.25.0
