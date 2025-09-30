@@ -80,10 +80,10 @@ export async function PUT(
 	req: NextRequest,
 	{ params }: { params: Promise<{ providerId: string }> },
 ) {
-	try {
-		const { providerId } = await params;
-		const body = await safeParseJson<Omit<UpdateProviderInput, "id">>(req);
+	const { providerId } = await params;
+	const body = await safeParseJson<Omit<UpdateProviderInput, "id">>(req);
 
+	try {
 		// Extract API key from headers
 		const authHeader = req.headers.get("authorization");
 		const bearerToken = authHeader?.startsWith("Bearer ")

@@ -19,11 +19,12 @@ export async function POST(
 		params,
 	}: { params: Promise<{ projectId: string; name: string; model: string }> },
 ) {
-	try {
-		const { projectId, name, model: modelParam } = await params;
+	const { projectId, name, model: modelParam } = await params;
 
-		// Parse JSON with proper typing - let Gemini SDK handle validation
-		const body = await safeParseJson<AdaptiveGeminiRequest>(req);
+	// Parse JSON with proper typing - let Gemini SDK handle validation
+	const body = await safeParseJson<AdaptiveGeminiRequest>(req);
+
+	try {
 		// Handle Gemini colon syntax: "model:streamGenerateContent" -> "model"
 		const model = extractModelFromGeminiParam(modelParam);
 
@@ -86,11 +87,11 @@ export async function POST(
 			);
 		}
 
-		// Use Google Gen AI SDK to call backend with cluster routing
+		// Use Google Gen AI SDK to call our backend with standard baseUrl
 		const ai = new GoogleGenAI({
 			apiKey: "internal", // Internal communication - will be handled by backend
 			httpOptions: {
-				baseUrl: `${env.ADAPTIVE_API_BASE_URL}/clusters/${projectId}/${name}`, // Use cluster routing path
+				baseUrl: env.ADAPTIVE_API_BASE_URL,
 			},
 		});
 

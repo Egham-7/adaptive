@@ -70,9 +70,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/v1/providers - Create a new provider template
 export async function POST(req: NextRequest) {
-	try {
-		const body = await safeParseJson(req);
+	const body = await safeParseJson(req);
 
+	try {
 		// Extract API key from headers
 		const apiKey = extractApiKey(req);
 		if (!apiKey) {

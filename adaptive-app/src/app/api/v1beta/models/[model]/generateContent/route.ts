@@ -16,9 +16,10 @@ export async function POST(
 	req: NextRequest,
 	{ params }: { params: { model: string } },
 ) {
+	// Parse JSON with proper typing - let Gemini SDK handle validation
+	const body = await safeParseJson<AdaptiveGeminiRequest>(req);
+
 	try {
-		// Parse JSON with proper typing - let Gemini SDK handle validation
-		const body = await safeParseJson<AdaptiveGeminiRequest>(req);
 		// Handle Gemini colon syntax: "model:generateContent" -> "model"
 		const model = extractModelFromGeminiParam(params.model);
 

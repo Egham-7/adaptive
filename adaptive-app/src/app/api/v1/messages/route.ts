@@ -11,8 +11,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+	const rawBody = await safeParseJson(req);
+
 	try {
-		const rawBody = await safeParseJson(req);
 		const validationResult = anthropicMessagesRequestSchema.safeParse(rawBody);
 
 		if (!validationResult.success) {

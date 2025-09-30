@@ -33,10 +33,10 @@ export async function POST(
 	req: NextRequest,
 	{ params }: { params: Promise<{ providerId: string }> },
 ) {
-	try {
-		const { providerId } = await params;
-		const body = await safeParseJson(req);
+	const { providerId } = await params;
+	const body = await safeParseJson(req);
 
+	try {
 		// Extract API key from headers
 		const apiKey = extractApiKey(req);
 		if (!apiKey) {
@@ -163,9 +163,10 @@ export async function PUT(
 	req: NextRequest,
 	{ params }: { params: Promise<{ providerId: string }> },
 ) {
+	const { providerId } = await params;
+	const body = await safeParseJson(req);
+
 	try {
-		const { providerId } = await params;
-		const body = await safeParseJson(req);
 		const url = new URL(req.url);
 		const projectId = url.searchParams.get("project_id");
 

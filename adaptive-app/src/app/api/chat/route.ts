@@ -111,15 +111,16 @@ async function webSearch(query: string): Promise<
 }
 
 export async function POST(req: Request) {
-	try {
-		// Authentication
-		const { userId } = await auth();
-		if (!userId) {
-			return new Response("Unauthorized", { status: 401 });
-		}
+	// Authentication
+	const { userId } = await auth();
+	if (!userId) {
+		return new Response("Unauthorized", { status: 401 });
+	}
 
-		// Parse and validate request body
-		const body = await safeParseJson<ChatRequestBody>(req);
+	// Parse and validate request body
+	const body = await safeParseJson<ChatRequestBody>(req);
+
+	try {
 		const { messages, id: conversationId } = body;
 
 		// Validate conversation ID
@@ -316,11 +317,6 @@ export async function POST(req: Request) {
 		return data;
 	} catch (error) {
 		console.error("Chat API error:", error);
-
-		// Handle specific error types
-		if (error instanceof Response) {
-			return error; // Already a Response (from safeParseJson or other utils)
-		}
 
 		const errorMessage =
 			error instanceof Error ? error.message : "Internal server error";
