@@ -75,6 +75,7 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           ADAPTIVE_API_BASE_URL: ${{ secrets.ADAPTIVE_API_BASE_URL_DEV }}
+          EXA_API_KEY: ${{secrets.EXA_API_KEY}}
 
   migrate:
     name: Database Migration
