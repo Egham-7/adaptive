@@ -6,7 +6,7 @@ import type {
 import { z } from "zod";
 import type { CacheConfig, CacheTier, PromptCacheConfig } from "./cache";
 import type { ModelRouterConfig } from "./models";
-import type { FallbackConfig, Provider, ProviderConfig } from "./providers";
+import type { FallbackConfig, ProviderConfig, ProviderType } from "./providers";
 
 // Extend OpenAI's ChatCompletionCreateParamsBase with our custom fields
 export interface ChatCompletionRequest extends ChatCompletionCreateParamsBase {
@@ -30,14 +30,14 @@ export interface AdaptiveUsage {
 
 // Extend OpenAI types with provider field and adaptive usage
 export interface ChatCompletion extends Omit<OpenAIChatCompletion, "usage"> {
-	provider?: Provider;
+	provider?: ProviderType | null;
 	usage?: AdaptiveUsage;
 	cache_tier?: CacheTier;
 }
 
 export interface ChatCompletionChunk
 	extends Omit<OpenAIChatCompletionChunk, "usage"> {
-	provider?: Provider;
+	provider?: ProviderType | null;
 	usage?: AdaptiveUsage;
 }
 

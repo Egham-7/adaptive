@@ -71,7 +71,7 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY_DEV }}
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY_DEV }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_DEV }}
-          REDIS_URL: ${{ secrets.REDIS_URL_DEV }}
+          REDIS_URL: ${{ secrets.FRONTEND_REDIS_URL_DEV }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           ADAPTIVE_API_BASE_URL: ${{ secrets.ADAPTIVE_API_BASE_URL_DEV }}

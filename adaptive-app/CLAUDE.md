@@ -136,67 +136,67 @@ ANALYZE="false"
 ### Local Development
 ```bash
 # Install dependencies
-pnpm install
+bun install
 
 # Start development server with Turbo
-pnpm dev
+bun dev
 
 # Start development server (standard)
-pnpm run dev
+bun run dev
 
 # Generate Prisma client and start dev
-pnpm prisma generate && pnpm dev
+bun prisma generate && bun dev
 ```
 
 ### Database Management
 ```bash
 # Generate Prisma client and run migrations
-pnpm run db:generate
+bun run db:generate
 
 # Push schema changes to database
-pnpm run db:push
+bun run db:push
 
 # Open Prisma Studio database browser
-pnpm run db:studio
+bun run db:studio
 
 # Seed provider data
-pnpm run db:seed-providers
+bun run db:seed-providers
 
 # Deploy migrations to production
-pnpm run db:migrate
+bun run db:migrate
 ```
 
 ### Code Quality
 ```bash
 # Run Biome linter and formatter
-pnpm run check
+bun run check
 
 # Auto-fix issues with Biome
-pnpm run check:write
+bun run check:write
 
 # Unsafe auto-fix (use with caution)
-pnpm run check:unsafe
+bun run check:unsafe
 
 # TypeScript type checking
-pnpm run typecheck
+bun run typecheck
 ```
 
 ### Build and Deploy
 ```bash
 # Build for production
-pnpm run build
+bun run build
 
 # Start production server
-pnpm start
+bun start
 
 # Preview build locally
-pnpm run preview
+bun run preview
 ```
 
 ### Stripe Development
 ```bash
 # Start Stripe webhook listener
-pnpm run stripe
+bun run stripe
 
 # Listen to specific events
 stripe listen --events payment_intent.succeeded,customer.subscription.updated --forward-to localhost:3000/api/stripe-checkout
@@ -352,17 +352,17 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install dependencies
-COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+COPY package.json bun.lockb ./
+RUN npm install -g bun && bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Generate Prisma client and build
-RUN pnpm prisma generate && pnpm run build
+RUN bun prisma generate && bun run build
 
 EXPOSE 3000
-CMD ["pnpm", "start"]
+CMD ["bun", "start"]
 ```
 
 ### Vercel Deployment
@@ -416,22 +416,22 @@ CMD ["pnpm", "start"]
 ### Debug Commands
 ```bash
 # Check TypeScript errors
-pnpm run typecheck
+bun run typecheck
 
 # Lint and format code
-pnpm run check
+bun run check
 
 # Debug database schema
-pnpm prisma studio
+bun prisma studio
 
 # Check environment variables
 node -e "console.log(process.env)"
 
 # Analyze bundle size
-ANALYZE=true pnpm run build
+ANALYZE=true bun run build
 
 # Check dependency issues
-pnpm install --frozen-lockfile
+bun install --frozen-lockfile
 ```
 
 ## Contributing
@@ -474,7 +474,7 @@ pnpm install --frozen-lockfile
 ### Pull Request Process
 1. Create feature branch from `dev`
 2. Implement changes with comprehensive tests
-3. Run quality checks: `pnpm run typecheck && pnpm run check`
+3. Run quality checks: `bun run typecheck && bun run check`
 4. **Update relevant documentation** (CLAUDE.md files, component docs, README)
 5. Submit PR with clear description, screenshots, and documentation updates
 6. Ensure all CI checks pass including build, lint, and type checking

@@ -1,17 +1,20 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { NextRequest } from "next/server";
 import { env } from "@/env";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { api } from "@/trpc/server";
 import {
 	type AdaptiveAnthropicResponse,
 	anthropicMessagesRequestSchema,
 } from "@/types/anthropic-messages";
+import type { ProviderType } from "@/types/providers";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
+	const rawBody = await safeParseJson(req);
+
 	try {
-		const rawBody = await req.json();
 		const validationResult = anthropicMessagesRequestSchema.safeParse(rawBody);
 
 		if (!validationResult.success) {
@@ -183,7 +186,7 @@ export async function POST(req: NextRequest) {
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
-										provider: "anthropic",
+										provider: "anthropic" as ProviderType,
 										model: modelName,
 										usage: {
 											promptTokens: usage.input_tokens ?? 0,
@@ -213,7 +216,7 @@ export async function POST(req: NextRequest) {
 							try {
 								await api.usage.recordApiUsage({
 									apiKey,
-									provider: "anthropic" as const,
+									provider: "anthropic" as ProviderType,
 									model: null,
 									usage: {
 										promptTokens: 0,

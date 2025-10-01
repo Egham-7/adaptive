@@ -5,12 +5,6 @@ import type {
 	ChatCompletionRequest,
 } from "@/types/chat-completion";
 
-// Helper function to ensure we always return valid numbers
-export const ensureNumber = (value: number | null | undefined): number => {
-	const num = Number(value ?? 0);
-	return Number.isNaN(num) || !Number.isFinite(num) ? 0 : num;
-};
-
 // Helper function to hash API keys consistently
 export const hashApiKey = (apiKey: string): string => {
 	return crypto.createHash("sha256").update(apiKey).digest("hex");

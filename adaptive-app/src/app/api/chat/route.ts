@@ -15,19 +15,43 @@ import type { z } from "zod";
 import { z as zodSchema } from "zod";
 import { hasReachedDailyLimit } from "@/lib/chat/message-limits";
 import { multiTagReasoningMiddleware } from "@/lib/middleware/multi-tag-reasoning";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { db } from "@/server/db";
 import { api } from "@/trpc/server";
 import type { messageRoleSchema } from "@/types/chat";
 
+// Types
 type MessageRole = z.infer<typeof messageRoleSchema>;
 
+interface ChatRequestBody {
+	messages: UIMessage[];
+	id: string;
+}
+
+// Constants
+const MAX_PREVIOUS_MESSAGES = 20;
+const REASONING_TAG_PATTERNS = [
+	"think",
+	"reasoning",
+	"analysis",
+	"thought",
+	"internal",
+];
+
+// Environment validation
 if (!process.env.ADAPTIVE_API_BASE_URL) {
 	throw new Error(
 		"ADAPTIVE_API_BASE_URL environment variable is required but not defined",
 	);
 }
 
-// Function to create adaptive client for internal communication
+if (!process.env.EXA_API_KEY) {
+	throw new Error(
+		"EXA_API_KEY environment variable is required but not defined",
+	);
+}
+
+// Utility functions
 function createInternalAdaptive() {
 	return createAdaptive({
 		baseURL: `${process.env.ADAPTIVE_API_BASE_URL}/v1`,
@@ -35,7 +59,6 @@ function createInternalAdaptive() {
 	});
 }
 
-// Function to create model for internal communication
 function createInternalModel() {
 	const adaptive = createInternalAdaptive();
 	const baseModel = adaptive.chat();
@@ -43,8 +66,7 @@ function createInternalModel() {
 	return wrapLanguageModel({
 		model: baseModel,
 		middleware: multiTagReasoningMiddleware({
-			// Common reasoning tags used by different models
-			tagPatterns: ["think", "reasoning", "analysis", "thought", "internal"],
+			tagPatterns: REASONING_TAG_PATTERNS,
 			startWithReasoning: false,
 		}),
 	});
@@ -89,20 +111,27 @@ async function webSearch(query: string): Promise<
 }
 
 export async function POST(req: Request) {
+	// Authentication
+	const { userId } = await auth();
+	if (!userId) {
+		return new Response("Unauthorized", { status: 401 });
+	}
+
+	// Parse and validate request body
+	const body = await safeParseJson<ChatRequestBody>(req);
+
 	try {
-		const { userId } = await auth();
-
-		if (!userId) {
-			return new Response("Unauthorized", { status: 401 });
-		}
-
-		const body = await req.json();
 		const { messages, id: conversationId } = body;
 
+		// Validate conversation ID
 		const numericConversationId = Number(conversationId);
-
 		if (Number.isNaN(numericConversationId) || numericConversationId <= 0) {
 			return new Response("Invalid Conversation ID", { status: 400 });
+		}
+
+		// Validate message array
+		if (!Array.isArray(messages) || messages.length === 0) {
+			return new Response("Invalid messages array", { status: 400 });
 		}
 
 		try {
@@ -143,34 +172,34 @@ export async function POST(req: Request) {
 			}
 		}
 
+		// Get conversation history
 		const previousMessages = (await api.messages.listByConversation({
 			conversationId: numericConversationId,
 		})) as unknown as UIMessage[];
 
+		// Limit context window to prevent token overflow
+		const recentMessages = previousMessages.slice(-MAX_PREVIOUS_MESSAGES);
+
 		// Convert UI messages to core messages for the AI model
 		const coreMessages = convertToModelMessages([
-			...previousMessages,
+			...recentMessages,
 			...messages,
 		]);
 
 		// Save user message immediately before attempting AI response
-		const message = messages[messages.length - 1];
+		const message = messages[messages.length - 1] as UIMessage;
 		const userMessage = {
 			id: message.id || crypto.randomUUID(),
 			role: message.role as MessageRole,
 			conversationId: numericConversationId,
-			parts: message.parts || [
-				{ type: "text" as const, text: message.content as string },
-			],
+			parts: message.parts,
 			metadata: message.metadata ?? null,
-			annotations: message.annotations ?? null,
 		};
 
 		await api.messages.create(userMessage);
 
 		// Check if this is the first message in the conversation to generate a title
 		const isFirstMessage = previousMessages.length === 0;
-		const shouldGenerateTitle = isFirstMessage && message.content;
 
 		const tools = {
 			webSearch: tool({
@@ -222,7 +251,7 @@ export async function POST(req: Request) {
 				await api.messages.create(assistantMessage);
 
 				// Generate title for the first message
-				if (shouldGenerateTitle) {
+				if (isFirstMessage) {
 					try {
 						const titleAdaptive = createInternalAdaptive();
 						const titleModel = titleAdaptive.chat();
@@ -237,7 +266,10 @@ export async function POST(req: Request) {
 								},
 								{
 									role: "user",
-									content: message.content as string,
+									content: message.parts
+										.filter((part) => part.type === "text")
+										.map((part) => part.text)
+										.join("\n"),
 								},
 							],
 						});
@@ -284,12 +316,19 @@ export async function POST(req: Request) {
 
 		return data;
 	} catch (error) {
-		console.error("Error in chat API:", error);
+		console.error("Chat API error:", error);
+
 		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
-		return new Response(JSON.stringify({ error: errorMessage }), {
-			status: 500,
-			headers: { "Content-Type": "application/json" },
-		});
+			error instanceof Error ? error.message : "Internal server error";
+		return new Response(
+			JSON.stringify({
+				error: errorMessage,
+				code: "INTERNAL_ERROR",
+			}),
+			{
+				status: 500,
+				headers: { "Content-Type": "application/json" },
+			},
+		);
 	}
 }
