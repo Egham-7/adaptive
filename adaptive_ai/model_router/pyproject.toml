@@ -83,6 +83,15 @@ extend-exclude = '''
 )/
 '''
 
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_errors = false
+exclude = [
+  "prompt_task_complexity_classifier/tests/.*",
+]
 
 [[tool.mypy.overrides]]
 module = [

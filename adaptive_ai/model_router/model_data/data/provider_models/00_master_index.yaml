@@ -8,7 +8,7 @@
 #   • Total Providers: 20
 #   • Total Models: 952 (947 + 5 adaptive_ai hardcoded models)
 #   • Data Source: Live Helicone API + adaptive_ai config
-#   • Last Updated: 2025-09-16
+#   • Last Updated: 2025-09-22
 # 
 # 💡 Usage:
 #   1. Check this file for provider overview
@@ -22,7 +22,7 @@ database_info:
   total_providers: 20
   total_models: 952
   data_source: https://helicone.ai/api/llm-costs
-  last_updated: '2025-09-16'
+  last_updated: '2025-09-22'
   currency: USD
   pricing_unit: per 1 million tokens
 providers:
@@ -34,7 +34,8 @@ providers:
     - claude_2
     - claude_2_0
     - claude_3_5_haiku_20241022
-    - '... and 12 more'
+    - claude_sonnet_4_5_20250929
+    - '... and 11 more'
   avian:
     total_models: 4
     yaml_file: avian_models_structured.yaml
@@ -73,7 +74,8 @@ providers:
     yaml_file: deepseek_models_structured.yaml
     api_endpoint: https://helicone.ai/api/llm-costs?provider=deepseek
     sample_models:
-    - deepseek_chat
+    - deepseek_chat (V3.1-Terminus)
+    - deepseek_reasoner (V3.1-Terminus)
   fireworks:
     total_models: 23
     yaml_file: fireworks_models_structured.yaml
