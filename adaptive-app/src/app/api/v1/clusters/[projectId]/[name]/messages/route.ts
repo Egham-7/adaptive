@@ -269,7 +269,7 @@ export async function POST(
 							try {
 								await api.usage.recordApiUsage({
 									apiKey,
-									provider: "anthropic",
+									provider: "anthropic" as ProviderType,
 									model: null,
 									usage: {
 										promptTokens: 0,

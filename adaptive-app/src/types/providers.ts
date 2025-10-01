@@ -15,9 +15,6 @@ export const providerEnum = [
 
 export type ProviderType = (typeof providerEnum)[number];
 
-// Define supported providers as a union type
-export type Provider = ProviderType | null;
-
 // Define supported authentication types
 export type AuthType = "bearer" | "api_key" | "basic" | "custom";
 

@@ -60,6 +60,13 @@ endpoints:
         enabled: true
         base_url: "https://router.huggingface.co/v1"
 
+  generate:
+    providers:
+      gemini:
+        api_key: "${GEMINI_API_KEY}"
+        enabled: true
+        base_url: "https://generativelanguage.googleapis.com/v1beta"
+
 # Services configuration
 services:
   model_router:

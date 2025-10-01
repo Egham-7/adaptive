@@ -216,6 +216,126 @@ async function batchExample() {
 	}
 }
 
+// Function calling example with LangChain tools
+async function functionCallingExample() {
+	console.log("=== LangChain Function Calling Example ===");
+	console.log("💬 Testing function calling with weather lookup");
+	console.log("🧠 Using intelligent routing with LangChain tools...");
+	console.log();
+
+	try {
+		// Create a model with tools bound to it
+		const modelWithTools = model.bind({
+			tools: [
+				{
+					type: "function",
+					function: {
+						name: "getCurrentWeather",
+						description: "Get the current weather for a given location",
+						parameters: {
+							type: "object",
+							properties: {
+								location: {
+									type: "string",
+									description:
+										"The city and state/country, e.g. San Francisco, CA",
+								},
+								unit: {
+									type: "string",
+									enum: ["celsius", "fahrenheit"],
+									description: "The temperature unit to use",
+								},
+							},
+							required: ["location"],
+						},
+					},
+				},
+			],
+		});
+
+		const messages = [
+			new SystemMessage("You are a helpful weather assistant."),
+			new HumanMessage(
+				"What's the weather like in Tokyo, Japan? Please use Celsius.",
+			),
+		];
+
+		const response = await modelWithTools.invoke(messages);
+
+		console.log("🔄 Function calling response:");
+
+		// Check if the model wants to call a function
+		if (response.tool_calls && response.tool_calls.length > 0) {
+			console.log("🛠️ Tool calls detected:");
+
+			for (const toolCall of response.tool_calls) {
+				console.log(`   • Function: ${toolCall.name}`);
+				console.log(`   • Arguments:`, JSON.stringify(toolCall.args, null, 2));
+
+				// Simulate function execution (in real implementation, call actual weather API)
+				const functionResponse = {
+					location: toolCall.args?.location || "Unknown",
+					temperature: "22°C",
+					condition: "Partly cloudy",
+					humidity: "65%",
+					wind: "8 km/h NE",
+				};
+
+				console.log(
+					"📡 Function response:",
+					JSON.stringify(functionResponse, null, 2),
+				);
+
+				// For a complete function calling flow, you would create a ToolMessage
+				// and continue the conversation with the function result
+				console.log();
+				console.log("📝 Function call completed successfully!");
+				console.log(
+					"💡 In a real implementation, you would create a ToolMessage with the result and continue the conversation.",
+				);
+			}
+		} else {
+			// No function call, just regular response
+			console.log("📝 Direct response:");
+			console.log(response.content);
+		}
+
+		// Response metadata
+		if (response.response_metadata) {
+			console.log();
+			console.log("🔍 Response metadata:");
+			const modelName =
+				response.response_metadata.model_name ||
+				response.response_metadata.model ||
+				"unknown";
+			console.log(`   • Model: ${modelName}`);
+			console.log(
+				`   • Finish reason: ${response.response_metadata.finish_reason || "unknown"}`,
+			);
+
+			// Usage information if available
+			if (response.usage_metadata) {
+				console.log("📊 Usage:");
+				console.log(
+					`   • Input tokens: ${response.usage_metadata.input_tokens}`,
+				);
+				console.log(
+					`   • Output tokens: ${response.usage_metadata.output_tokens}`,
+				);
+				console.log(
+					`   • Total tokens: ${response.usage_metadata.total_tokens}`,
+				);
+			}
+		}
+
+		console.log();
+		console.log("✨ Function calling example completed successfully!");
+	} catch (error) {
+		console.error("❌ Function Calling Error:", error);
+		throw error;
+	}
+}
+
 async function main() {
 	console.log("🚀 Starting LangChain example with Adaptive...");
 	console.log("🦜 Using LangChain ChatOpenAI with intelligent routing");
@@ -250,12 +370,31 @@ async function main() {
 		console.log();
 		console.log("=".repeat(50));
 		console.log();
+
+		// Run function calling example
+		await functionCallingExample();
+
+		console.log();
+		console.log("=".repeat(50));
+		console.log();
 		console.log("🎉 All LangChain examples completed successfully!");
 		console.log(
 			"💰 You're getting intelligent routing with familiar LangChain patterns.",
 		);
-		console.log("🔗 Chains, agents, and tools work seamlessly with Adaptive.");
+		console.log(
+			"🔗 Chains, agents, tools, and function calling work seamlessly with Adaptive.",
+		);
 		console.log("🧠 Perfect for complex AI workflows with cost optimization.");
+		console.log();
+		console.log("💡 Key features demonstrated:");
+		console.log("   • LangChain ChatOpenAI integration with Adaptive endpoint");
+		console.log("   • Intelligent model routing with empty model name");
+		console.log(
+			"   • Chain composition with prompt templates and output parsers",
+		);
+		console.log("   • Batch processing for multiple requests");
+		console.log("   • Function calling with LangChain tools");
+		console.log("   • Streaming and non-streaming responses");
 		console.log();
 		console.log("💡 Next steps:");
 		console.log("• Use LangChain agents with Adaptive for advanced workflows");

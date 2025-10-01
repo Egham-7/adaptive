@@ -27,8 +27,8 @@ func HandleOpenAI(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatComplet
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
 
-		// Create HTTP writer
-		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID)
+		// Create HTTP writer (with [DONE] message for OpenAI compatibility)
+		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID, true)
 
 		// Create streaming pipeline using factory
 		factory := NewStreamFactory()

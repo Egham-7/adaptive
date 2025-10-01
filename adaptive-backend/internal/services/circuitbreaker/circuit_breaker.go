@@ -45,7 +45,6 @@ const (
 	successCountKey         = "success_count"
 	lastFailureTimeKey      = "last_failure_time"
 	lastStateChangeKey      = "last_state_change"
-	defaultLockTTL          = 5 * time.Second
 	defaultTimeout          = 1 * time.Second
 	maxRetries              = 3
 )
@@ -66,7 +65,6 @@ func (kb *keyBuilder) failureCount() string { return kb.prefix + failureCountKey
 func (kb *keyBuilder) successCount() string { return kb.prefix + successCountKey }
 func (kb *keyBuilder) lastFailure() string  { return kb.prefix + lastFailureTimeKey }
 func (kb *keyBuilder) lastChange() string   { return kb.prefix + lastStateChangeKey }
-func (kb *keyBuilder) lock() string         { return kb.prefix + "lock" }
 
 type LocalMetrics struct {
 	TotalRequests      int64
@@ -182,38 +180,79 @@ func (cb *CircuitBreaker) RecordSuccess() {
 	defer cancel()
 
 	kb := &keyBuilder{prefix: cb.keyPrefix}
-	lockKey := kb.lock()
-	locked, err := cb.redisClient.SetNX(ctx, lockKey, "1", defaultLockTTL).Result()
-	if err != nil || !locked {
-		fiberlog.Debugf("CircuitBreaker: Could not acquire lock for success recording")
-		return
-	}
-	defer func() {
-		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), defaultTimeout)
-		defer cleanupCancel()
-		if err := cb.redisClient.Del(cleanupCtx, lockKey).Err(); err != nil {
-			fiberlog.Errorf("Failed to release lock %s: %v", lockKey, err)
+
+	// Use Redis transactions for atomic operations with retries
+	for attempt := range maxRetries {
+		err := cb.redisClient.Watch(ctx, func(tx *redis.Tx) error {
+			// Get current state within transaction
+			state, err := cb.getState(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get current state: %w", err)
+			}
+
+			// Start pipeline
+			pipe := tx.TxPipeline()
+
+			// Always reset failure count on success
+			pipe.Set(ctx, kb.failureCount(), 0, 0)
+
+			if state == HalfOpen {
+				// Increment success count
+				pipe.Incr(ctx, kb.successCount())
+
+				// Get current success count to check threshold
+				successCountCmd := pipe.Get(ctx, kb.successCount())
+
+				// Execute pipeline to get success count
+				_, err := pipe.Exec(ctx)
+				if err != nil {
+					return err
+				}
+
+				// Check if we should transition to Closed
+				successCount, err := successCountCmd.Int64()
+				if err == nil && successCount >= int64(cb.config.SuccessThreshold) {
+					// Start new pipeline for state transition
+					pipe2 := tx.TxPipeline()
+					pipe2.Set(ctx, kb.state(), int(Closed), 0)
+					pipe2.Set(ctx, kb.successCount(), 0, 0)
+					pipe2.Set(ctx, kb.lastChange(), time.Now().Unix(), 0)
+					_, err = pipe2.Exec(ctx)
+					if err != nil {
+						return err
+					}
+					fiberlog.Debugf("CircuitBreaker: %s transitioned to Closed state", cb.serviceName)
+				} else {
+					fiberlog.Debugf("CircuitBreaker: %s recorded success in HalfOpen state", cb.serviceName)
+				}
+			} else {
+				// Just execute the failure count reset
+				_, err = pipe.Exec(ctx)
+				if err != nil {
+					return err
+				}
+				fiberlog.Debugf("CircuitBreaker: %s recorded success", cb.serviceName)
+			}
+
+			return nil
+		}, kb.state(), kb.successCount())
+
+		if err == nil {
+			return // Success
 		}
-	}()
 
-	cb.redisClient.Set(ctx, kb.failureCount(), 0, 0)
-
-	state, err := cb.getState(ctx)
-	if err != nil {
-		return
-	}
-
-	if state == HalfOpen {
-		successCount, err := cb.redisClient.Incr(ctx, kb.successCount()).Result()
-		if err != nil {
-			fiberlog.Errorf("CircuitBreaker: Failed to increment success count: %v", err)
+		if err != redis.TxFailedErr {
+			fiberlog.Errorf("CircuitBreaker: Failed to record success: %v", err)
 			return
 		}
 
-		if successCount >= int64(cb.config.SuccessThreshold) {
-			cb.transitionToState(Closed)
+		// Retry on transaction failure with backoff
+		if attempt < maxRetries-1 {
+			time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
 		}
 	}
+
+	fiberlog.Errorf("CircuitBreaker: Failed to record success after %d attempts", maxRetries)
 }
 
 func (cb *CircuitBreaker) RecordFailure() {
@@ -221,36 +260,74 @@ func (cb *CircuitBreaker) RecordFailure() {
 	defer cancel()
 
 	kb := &keyBuilder{prefix: cb.keyPrefix}
-	lockKey := kb.lock()
-	locked, err := cb.redisClient.SetNX(ctx, lockKey, "1", defaultLockTTL).Result()
-	if err != nil || !locked {
-		fiberlog.Debugf("CircuitBreaker: Could not acquire lock for failure recording")
-		return
-	}
-	defer func() {
-		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), defaultTimeout)
-		defer cleanupCancel()
-		if err := cb.redisClient.Del(cleanupCtx, lockKey).Err(); err != nil {
-			fiberlog.Errorf("Failed to release lock %s: %v", lockKey, err)
+
+	// Use Redis transactions for atomic operations with retries
+	for attempt := range maxRetries {
+		err := cb.redisClient.Watch(ctx, func(tx *redis.Tx) error {
+			// Get current state within transaction
+			state, err := cb.getState(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get current state: %w", err)
+			}
+
+			// Start pipeline
+			pipe := tx.TxPipeline()
+
+			// Increment failure count and set last failure time
+			pipe.Incr(ctx, kb.failureCount())
+			pipe.Set(ctx, kb.lastFailure(), time.Now().Unix(), 0)
+
+			// Get the incremented failure count
+			failureCountCmd := pipe.Get(ctx, kb.failureCount())
+
+			// Execute pipeline to get failure count
+			_, err = pipe.Exec(ctx)
+			if err != nil {
+				return err
+			}
+
+			// Check if we should transition to Open
+			failureCount, err := failureCountCmd.Int64()
+			if err != nil {
+				return fmt.Errorf("failed to get failure count: %w", err)
+			}
+
+			shouldTransitionToOpen := (state == Closed && failureCount >= int64(cb.config.FailureThreshold)) ||
+				state == HalfOpen
+
+			if shouldTransitionToOpen {
+				// Start new pipeline for state transition
+				pipe2 := tx.TxPipeline()
+				pipe2.Set(ctx, kb.state(), int(Open), 0)
+				pipe2.Set(ctx, kb.lastChange(), time.Now().Unix(), 0)
+				_, err = pipe2.Exec(ctx)
+				if err != nil {
+					return err
+				}
+				fiberlog.Debugf("CircuitBreaker: %s transitioned to Open state", cb.serviceName)
+			} else {
+				fiberlog.Debugf("CircuitBreaker: %s recorded failure", cb.serviceName)
+			}
+
+			return nil
+		}, kb.state(), kb.failureCount())
+
+		if err == nil {
+			return // Success
 		}
-	}()
 
-	failureCount, err := cb.redisClient.Incr(ctx, kb.failureCount()).Result()
-	if err != nil {
-		fiberlog.Errorf("CircuitBreaker: Failed to increment failure count: %v", err)
-		return
+		if err != redis.TxFailedErr {
+			fiberlog.Errorf("CircuitBreaker: Failed to record failure: %v", err)
+			return
+		}
+
+		// Retry on transaction failure with backoff
+		if attempt < maxRetries-1 {
+			time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
+		}
 	}
 
-	cb.redisClient.Set(ctx, kb.lastFailure(), time.Now().Unix(), 0)
-
-	state, err := cb.getState(ctx)
-	if err != nil {
-		return
-	}
-
-	if (state == Closed && failureCount >= int64(cb.config.FailureThreshold)) || state == HalfOpen {
-		cb.transitionToState(Open)
-	}
+	fiberlog.Errorf("CircuitBreaker: Failed to record failure after %d attempts", maxRetries)
 }
 
 func (cb *CircuitBreaker) GetState() State {

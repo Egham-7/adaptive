@@ -14,14 +14,16 @@ type HTTPStreamWriter struct {
 	connState  contracts.ConnectionState
 	requestID  string
 	totalBytes int64
+	sendDone   bool
 }
 
 // NewHTTPStreamWriter creates a new HTTP stream writer
-func NewHTTPStreamWriter(writer *bufio.Writer, connState contracts.ConnectionState, requestID string) *HTTPStreamWriter {
+func NewHTTPStreamWriter(writer *bufio.Writer, connState contracts.ConnectionState, requestID string, sendDone bool) *HTTPStreamWriter {
 	return &HTTPStreamWriter{
 		writer:    writer,
 		connState: connState,
 		requestID: requestID,
+		sendDone:  sendDone,
 	}
 }
 
@@ -72,18 +74,36 @@ func (w *HTTPStreamWriter) Flush() error {
 
 // Close closes the writer
 func (w *HTTPStreamWriter) Close() error {
-	// Write completion message
+	// Write completion message only if sendDone is true
 	if w.connState.IsConnected() {
-		n, writeErr := w.writer.WriteString("data: [DONE]\n\n")
-		if writeErr == nil {
-			// Add written bytes to total if write succeeded
+		if w.sendDone {
+			n, writeErr := w.writer.WriteString("data: [DONE]\n\n")
+			// Always add written bytes to total, even on partial writes
 			w.totalBytes += int64(n)
 
+			if writeErr != nil {
+				if contracts.IsConnectionClosed(writeErr) {
+					return contracts.NewClientDisconnectError(w.requestID)
+				}
+				return contracts.NewInternalError(w.requestID, "write failed", writeErr)
+			}
+
 			// Flush and capture any error
-			flushErr := w.writer.Flush()
-			return flushErr
+			if flushErr := w.writer.Flush(); flushErr != nil {
+				if contracts.IsConnectionClosed(flushErr) {
+					return contracts.NewClientDisconnectError(w.requestID)
+				}
+				return contracts.NewInternalError(w.requestID, "flush failed", flushErr)
+			}
+		} else {
+			// Just flush without sending [DONE] message
+			if flushErr := w.writer.Flush(); flushErr != nil {
+				if contracts.IsConnectionClosed(flushErr) {
+					return contracts.NewClientDisconnectError(w.requestID)
+				}
+				return contracts.NewInternalError(w.requestID, "flush failed", flushErr)
+			}
 		}
-		return writeErr
 	}
 	return nil
 }

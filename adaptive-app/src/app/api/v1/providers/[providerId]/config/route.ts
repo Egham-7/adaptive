@@ -8,6 +8,7 @@ import {
 	createSuccessResponse,
 	extractApiKey,
 } from "@/lib/auth/clerk";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { invalidateProviderConfigCache, withCache } from "@/lib/shared/cache";
 import { api } from "@/trpc/server";
 
@@ -32,10 +33,10 @@ export async function POST(
 	req: NextRequest,
 	{ params }: { params: Promise<{ providerId: string }> },
 ) {
-	try {
-		const { providerId } = await params;
-		const body = await req.json();
+	const { providerId } = await params;
+	const body = await safeParseJson(req);
 
+	try {
 		// Extract API key from headers
 		const apiKey = extractApiKey(req);
 		if (!apiKey) {
@@ -162,9 +163,10 @@ export async function PUT(
 	req: NextRequest,
 	{ params }: { params: Promise<{ providerId: string }> },
 ) {
+	const { providerId } = await params;
+	const body = await safeParseJson(req);
+
 	try {
-		const { providerId } = await params;
-		const body = await req.json();
 		const url = new URL(req.url);
 		const projectId = url.searchParams.get("project_id");
 

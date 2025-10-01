@@ -1,10 +1,11 @@
 import type { NextRequest } from "next/server";
 import { TOKEN_PRICING } from "@/lib/config/pricing";
+import { safeParseJson } from "@/lib/server/json-utils";
 import { api } from "@/trpc/server";
 import { selectModelRequestSchema } from "@/types/select-model";
 
 export async function POST(req: NextRequest) {
-	const rawBody = await req.json();
+	const rawBody = await safeParseJson(req);
 
 	// Validate request body against schema
 	const validationResult = selectModelRequestSchema.safeParse(rawBody);
