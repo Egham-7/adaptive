@@ -8,7 +8,7 @@ import type {
 } from "@anthropic-ai/sdk/resources/messages";
 import { z } from "zod";
 import type { ModelCapability } from "./models";
-import type { Provider, ProviderConfig } from "./providers";
+import type { ProviderConfig, ProviderType } from "./providers";
 
 // Use Anthropic SDK types as base
 export type AnthropicMessage = Message;
@@ -109,7 +109,7 @@ export const anthropicMessagesRequestSchema = baseAnthropicMessageSchema.extend(
 
 // Enhanced response types that extend Anthropic's Message and Usage with provider info
 export interface AdaptiveAnthropicMessage extends Message {
-	provider?: Provider;
+	provider?: ProviderType | null;
 }
 
 export interface AdaptiveAnthropicUsage extends AnthropicSDKUsage {
@@ -117,7 +117,7 @@ export interface AdaptiveAnthropicUsage extends AnthropicSDKUsage {
 }
 
 export interface AdaptiveAnthropicResponse extends Omit<Message, "usage"> {
-	provider?: Provider;
+	provider?: ProviderType | null;
 	usage?: AdaptiveAnthropicUsage;
 }
 

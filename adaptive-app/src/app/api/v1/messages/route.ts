@@ -7,6 +7,7 @@ import {
 	type AdaptiveAnthropicResponse,
 	anthropicMessagesRequestSchema,
 } from "@/types/anthropic-messages";
+import type { ProviderType } from "@/types/providers";
 
 export const dynamic = "force-dynamic";
 
@@ -185,7 +186,7 @@ export async function POST(req: NextRequest) {
 								try {
 									await api.usage.recordApiUsage({
 										apiKey,
-										provider: "anthropic",
+										provider: "anthropic" as ProviderType,
 										model: modelName,
 										usage: {
 											promptTokens: usage.input_tokens ?? 0,
@@ -215,7 +216,7 @@ export async function POST(req: NextRequest) {
 							try {
 								await api.usage.recordApiUsage({
 									apiKey,
-									provider: "anthropic" as const,
+									provider: "anthropic" as ProviderType,
 									model: null,
 									usage: {
 										promptTokens: 0,

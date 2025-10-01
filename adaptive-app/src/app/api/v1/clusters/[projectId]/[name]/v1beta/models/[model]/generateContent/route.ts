@@ -9,6 +9,7 @@ import type {
 	AdaptiveGeminiResponse,
 	AdaptiveGeminiUsage,
 } from "@/types/gemini-generate";
+import type { ProviderType } from "@/types/providers";
 
 export const dynamic = "force-dynamic";
 
@@ -122,15 +123,7 @@ export async function POST(
 				try {
 					await api.usage.recordApiUsage({
 						apiKey,
-						provider: response.provider as
-							| "openai"
-							| "anthropic"
-							| "gemini"
-							| "groq"
-							| "deepseek"
-							| "huggingface"
-							| "grok"
-							| "adaptive",
+						provider: response.provider as ProviderType,
 						model: response.modelVersion ?? model,
 						usage: {
 							promptTokens: usage.promptTokenCount ?? 0,

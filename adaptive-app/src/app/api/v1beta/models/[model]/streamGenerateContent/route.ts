@@ -9,6 +9,7 @@ import type {
 	AdaptiveGeminiRequest,
 	AdaptiveGeminiUsage,
 } from "@/types/gemini-generate";
+import type { ProviderType } from "@/types/providers";
 
 export const dynamic = "force-dynamic";
 
@@ -124,8 +125,6 @@ export async function POST(
 						controller.enqueue(encoder.encode(sseData));
 					}
 
-					// Send final [DONE] marker
-					controller.enqueue(encoder.encode("data: [DONE]\n\n"));
 					controller.close();
 
 					// Record usage if available from final chunk
@@ -135,15 +134,7 @@ export async function POST(
 							try {
 								await api.usage.recordApiUsage({
 									apiKey,
-									provider: (providerId ?? "gemini") as
-										| "openai"
-										| "anthropic"
-										| "gemini"
-										| "groq"
-										| "deepseek"
-										| "huggingface"
-										| "grok"
-										| "adaptive",
+									provider: (providerId ?? "gemini") as ProviderType,
 									model: modelName ?? model,
 									usage: {
 										promptTokens: usage.promptTokenCount ?? 0,
