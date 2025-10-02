@@ -79,20 +79,12 @@ func (pc *OpenAIPromptCache) Get(ctx context.Context, req *models.ChatCompletion
 	}
 
 	// Use threshold override if provided in request, otherwise use cache default
+	threshold := pc.semanticThreshold
 	if req.PromptCache.SemanticThreshold > 0 {
+		threshold = float32(req.PromptCache.SemanticThreshold)
 		fiberlog.Debugf("[%s] OpenAIPromptCache: Using threshold override: %.2f", requestID, req.PromptCache.SemanticThreshold)
-		return pc.getFromCacheWithThreshold(ctx, req, requestID, float32(req.PromptCache.SemanticThreshold))
 	}
-	return pc.getFromCache(ctx, req, requestID)
-}
 
-// getFromCache retrieves from semantic cache with similarity matching using default threshold
-func (pc *OpenAIPromptCache) getFromCache(ctx context.Context, req *models.ChatCompletionRequest, requestID string) (*models.ChatCompletion, string, bool) {
-	return pc.getFromCacheWithThreshold(ctx, req, requestID, pc.semanticThreshold)
-}
-
-// getFromCacheWithThreshold retrieves from semantic cache with similarity matching using custom threshold
-func (pc *OpenAIPromptCache) getFromCacheWithThreshold(ctx context.Context, req *models.ChatCompletionRequest, requestID string, threshold float32) (*models.ChatCompletion, string, bool) {
 	// Extract prompt from messages for semantic search
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
@@ -136,11 +128,6 @@ func (pc *OpenAIPromptCache) Set(ctx context.Context, req *models.ChatCompletion
 		return nil
 	}
 
-	return pc.setInCache(ctx, req, response, requestID)
-}
-
-// setInCache stores in semantic cache
-func (pc *OpenAIPromptCache) setInCache(ctx context.Context, req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) error {
 	// Extract prompt from messages for semantic storage
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
@@ -161,15 +148,8 @@ func (pc *OpenAIPromptCache) setInCache(ctx context.Context, req *models.ChatCom
 
 // SetAsync stores a response asynchronously in the cache
 func (pc *OpenAIPromptCache) SetAsync(ctx context.Context, req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) <-chan error {
-	errCh := make(chan error, 1)
-
-	if req.PromptCache == nil || !req.PromptCache.Enabled {
-		errCh <- nil
-		close(errCh)
-		return errCh
-	}
-
-	if pc.semanticCache == nil {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		errCh := make(chan error, 1)
 		errCh <- nil
 		close(errCh)
 		return errCh
@@ -177,6 +157,7 @@ func (pc *OpenAIPromptCache) SetAsync(ctx context.Context, req *models.ChatCompl
 
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
+		errCh := make(chan error, 1)
 		errCh <- nil
 		close(errCh)
 		return errCh
@@ -188,15 +169,8 @@ func (pc *OpenAIPromptCache) SetAsync(ctx context.Context, req *models.ChatCompl
 
 // GetAsync retrieves a cached response asynchronously using semantic similarity
 func (pc *OpenAIPromptCache) GetAsync(ctx context.Context, req *models.ChatCompletionRequest, requestID string) <-chan semanticcache.GetResult[models.ChatCompletion] {
-	resultCh := make(chan semanticcache.GetResult[models.ChatCompletion], 1)
-
-	if req.PromptCache == nil || !req.PromptCache.Enabled {
-		resultCh <- semanticcache.GetResult[models.ChatCompletion]{Found: false}
-		close(resultCh)
-		return resultCh
-	}
-
-	if pc.semanticCache == nil {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		resultCh := make(chan semanticcache.GetResult[models.ChatCompletion], 1)
 		resultCh <- semanticcache.GetResult[models.ChatCompletion]{Found: false}
 		close(resultCh)
 		return resultCh
@@ -204,6 +178,7 @@ func (pc *OpenAIPromptCache) GetAsync(ctx context.Context, req *models.ChatCompl
 
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
+		resultCh := make(chan semanticcache.GetResult[models.ChatCompletion], 1)
 		resultCh <- semanticcache.GetResult[models.ChatCompletion]{Error: err}
 		close(resultCh)
 		return resultCh
@@ -215,15 +190,8 @@ func (pc *OpenAIPromptCache) GetAsync(ctx context.Context, req *models.ChatCompl
 
 // LookupAsync performs semantic similarity lookup asynchronously
 func (pc *OpenAIPromptCache) LookupAsync(ctx context.Context, req *models.ChatCompletionRequest, requestID string) <-chan semanticcache.LookupResult[models.ChatCompletion] {
-	resultCh := make(chan semanticcache.LookupResult[models.ChatCompletion], 1)
-
-	if req.PromptCache == nil || !req.PromptCache.Enabled {
-		resultCh <- semanticcache.LookupResult[models.ChatCompletion]{Match: nil}
-		close(resultCh)
-		return resultCh
-	}
-
-	if pc.semanticCache == nil {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		resultCh := make(chan semanticcache.LookupResult[models.ChatCompletion], 1)
 		resultCh <- semanticcache.LookupResult[models.ChatCompletion]{Match: nil}
 		close(resultCh)
 		return resultCh
@@ -231,6 +199,7 @@ func (pc *OpenAIPromptCache) LookupAsync(ctx context.Context, req *models.ChatCo
 
 	prompt, err := utils.FindLastUserMessage(req.Messages)
 	if err != nil {
+		resultCh := make(chan semanticcache.LookupResult[models.ChatCompletion], 1)
 		resultCh <- semanticcache.LookupResult[models.ChatCompletion]{Error: err}
 		close(resultCh)
 		return resultCh

@@ -157,15 +157,8 @@ func (pc *GeminiPromptCache) setInCache(ctx context.Context, req *models.GeminiG
 
 // SetAsync stores a response asynchronously in the cache
 func (pc *GeminiPromptCache) SetAsync(ctx context.Context, req *models.GeminiGenerateRequest, response *models.GeminiGenerateContentResponse, requestID string) <-chan error {
-	errCh := make(chan error, 1)
-
-	if req.PromptCache == nil || !req.PromptCache.Enabled {
-		errCh <- nil
-		close(errCh)
-		return errCh
-	}
-
-	if pc.semanticCache == nil {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		errCh := make(chan error, 1)
 		errCh <- nil
 		close(errCh)
 		return errCh
@@ -173,6 +166,7 @@ func (pc *GeminiPromptCache) SetAsync(ctx context.Context, req *models.GeminiGen
 
 	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
 	if err != nil {
+		errCh := make(chan error, 1)
 		errCh <- nil
 		close(errCh)
 		return errCh
@@ -184,15 +178,8 @@ func (pc *GeminiPromptCache) SetAsync(ctx context.Context, req *models.GeminiGen
 
 // GetAsync retrieves a cached response asynchronously using semantic similarity
 func (pc *GeminiPromptCache) GetAsync(ctx context.Context, req *models.GeminiGenerateRequest, requestID string) <-chan semanticcache.GetResult[models.GeminiGenerateContentResponse] {
-	resultCh := make(chan semanticcache.GetResult[models.GeminiGenerateContentResponse], 1)
-
-	if req.PromptCache == nil || !req.PromptCache.Enabled {
-		resultCh <- semanticcache.GetResult[models.GeminiGenerateContentResponse]{Found: false}
-		close(resultCh)
-		return resultCh
-	}
-
-	if pc.semanticCache == nil {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		resultCh := make(chan semanticcache.GetResult[models.GeminiGenerateContentResponse], 1)
 		resultCh <- semanticcache.GetResult[models.GeminiGenerateContentResponse]{Found: false}
 		close(resultCh)
 		return resultCh
@@ -200,6 +187,7 @@ func (pc *GeminiPromptCache) GetAsync(ctx context.Context, req *models.GeminiGen
 
 	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
 	if err != nil {
+		resultCh := make(chan semanticcache.GetResult[models.GeminiGenerateContentResponse], 1)
 		resultCh <- semanticcache.GetResult[models.GeminiGenerateContentResponse]{Error: err}
 		close(resultCh)
 		return resultCh
@@ -211,15 +199,8 @@ func (pc *GeminiPromptCache) GetAsync(ctx context.Context, req *models.GeminiGen
 
 // LookupAsync performs semantic similarity lookup asynchronously
 func (pc *GeminiPromptCache) LookupAsync(ctx context.Context, req *models.GeminiGenerateRequest, requestID string) <-chan semanticcache.LookupResult[models.GeminiGenerateContentResponse] {
-	resultCh := make(chan semanticcache.LookupResult[models.GeminiGenerateContentResponse], 1)
-
-	if req.PromptCache == nil || !req.PromptCache.Enabled {
-		resultCh <- semanticcache.LookupResult[models.GeminiGenerateContentResponse]{Match: nil}
-		close(resultCh)
-		return resultCh
-	}
-
-	if pc.semanticCache == nil {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		resultCh := make(chan semanticcache.LookupResult[models.GeminiGenerateContentResponse], 1)
 		resultCh <- semanticcache.LookupResult[models.GeminiGenerateContentResponse]{Match: nil}
 		close(resultCh)
 		return resultCh
@@ -227,6 +208,7 @@ func (pc *GeminiPromptCache) LookupAsync(ctx context.Context, req *models.Gemini
 
 	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
 	if err != nil {
+		resultCh := make(chan semanticcache.LookupResult[models.GeminiGenerateContentResponse], 1)
 		resultCh <- semanticcache.LookupResult[models.GeminiGenerateContentResponse]{Error: err}
 		close(resultCh)
 		return resultCh

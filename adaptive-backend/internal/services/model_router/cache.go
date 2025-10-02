@@ -83,13 +83,8 @@ func NewModelRouterCache(cfg *config.Config) (*ModelRouterCache, error) {
 	}, nil
 }
 
-// Lookup searches for a cached protocol response using exact match first, then semantic similarity with default threshold
-func (pmc *ModelRouterCache) Lookup(ctx context.Context, prompt, requestID string) (*models.ModelSelectionResponse, string, bool) {
-	return pmc.LookupWithThreshold(ctx, prompt, requestID, pmc.semanticThreshold)
-}
-
-// LookupWithThreshold searches for a cached protocol response using exact match first, then semantic similarity with custom threshold
-func (pmc *ModelRouterCache) LookupWithThreshold(ctx context.Context, prompt, requestID string, threshold float32) (*models.ModelSelectionResponse, string, bool) {
+// Lookup searches for a cached protocol response using exact match first, then semantic similarity with custom threshold
+func (pmc *ModelRouterCache) Lookup(ctx context.Context, prompt, requestID string, threshold float32) (*models.ModelSelectionResponse, string, bool) {
 	fiberlog.Debugf("[%s] ModelRouterCache: Starting cache lookup", requestID)
 
 	// 1) First try exact key matching
@@ -117,115 +112,73 @@ func (pmc *ModelRouterCache) LookupWithThreshold(ctx context.Context, prompt, re
 	return nil, "", false
 }
 
-// Store saves a protocol response to the cache
-func (pmc *ModelRouterCache) Store(ctx context.Context, prompt string, resp models.ModelSelectionResponse) error {
-	fiberlog.Debugf("ModelRouterCache: Storing model response (model: %s/%s)", resp.Provider, resp.Model)
-	err := pmc.cache.Set(ctx, prompt, prompt, resp)
-	if err != nil {
-		fiberlog.Errorf("ModelRouterCache: Failed to store in cache: %v", err)
-	} else {
-		fiberlog.Debugf("ModelRouterCache: Successfully stored protocol response")
-	}
-	return err
-}
-
-// Close properly closes the cache and releases resources
-func (pmc *ModelRouterCache) Close() error {
-	if pmc.cache != nil {
-		return pmc.cache.Close()
-	}
-	return nil
-}
-
-// Len returns the number of items in the cache
-func (pmc *ModelRouterCache) Len(ctx context.Context) (int, error) {
-	count, err := pmc.cache.Len(ctx)
-	if err != nil {
-		return 0, err
-	}
-	return count, nil
-}
-
-// Flush clears all entries from the cache
-func (pmc *ModelRouterCache) Flush(ctx context.Context) error {
-	return pmc.cache.Flush(ctx)
-}
-
-// Delete removes a cache entry when its provider is circuit-broken
-func (pmc *ModelRouterCache) Delete(ctx context.Context, prompt, provider, requestID string) error {
-	fiberlog.Debugf("[%s] Invalidating cache entry for provider %s", requestID, provider)
-
-	err := pmc.cache.Delete(ctx, prompt)
-	if err != nil {
-		fiberlog.Errorf("[%s] Failed to invalidate cache entry for provider %s: %v", requestID, provider, err)
-		return err
-	}
-
-	fiberlog.Infof("[%s] Successfully invalidated cache entry for provider %s", requestID, provider)
-	return nil
-}
-
-// LookupAsync searches for a cached protocol response asynchronously using exact match first, then semantic similarity with default threshold
-func (pmc *ModelRouterCache) LookupAsync(ctx context.Context, prompt, requestID string) <-chan semanticcache.LookupResult[models.ModelSelectionResponse] {
-	return pmc.LookupWithThresholdAsync(ctx, prompt, requestID, pmc.semanticThreshold)
-}
-
-// LookupWithThresholdAsync searches for a cached protocol response asynchronously using exact match first, then semantic similarity with custom threshold
-func (pmc *ModelRouterCache) LookupWithThresholdAsync(ctx context.Context, prompt, requestID string, threshold float32) <-chan semanticcache.LookupResult[models.ModelSelectionResponse] {
+// LookupAsync searches for a cached protocol response using exact match first, then semantic similarity with custom threshold
+// This method coordinates Get (exact) and Lookup (semantic) operations sequentially for proper cache tier determination
+func (pmc *ModelRouterCache) LookupAsync(ctx context.Context, prompt, requestID string, threshold float32) <-chan semanticcache.LookupResult[models.ModelSelectionResponse] {
 	resultCh := make(chan semanticcache.LookupResult[models.ModelSelectionResponse], 1)
 
+	// Spawn goroutine to coordinate Get -> Lookup sequence
+	// This is necessary because we need to try Get first (fast), then Lookup (slow) if Get misses
 	go func() {
 		defer close(resultCh)
 
-		fiberlog.Debugf("[%s] ModelRouterCache: Starting async cache lookup", requestID)
+		fiberlog.Debugf("[%s] ModelRouterCache: Starting cache lookup", requestID)
 
-		// Try exact key matching first
-		fiberlog.Debugf("[%s] ModelRouterCache: Trying async exact key match", requestID)
+		// Try exact key matching first (O(1) - fast)
+		fiberlog.Debugf("[%s] ModelRouterCache: Trying exact key match", requestID)
 		getCh := pmc.cache.GetAsync(ctx, prompt)
 		getResult := <-getCh
 
 		if getResult.Found && getResult.Error == nil {
-			fiberlog.Infof("[%s] ModelRouterCache: Exact cache hit (async)", requestID)
+			fiberlog.Infof("[%s] ModelRouterCache: Exact cache hit", requestID)
 			resultCh <- semanticcache.LookupResult[models.ModelSelectionResponse]{
 				Match: &semanticcache.Match[models.ModelSelectionResponse]{
 					Value: getResult.Value,
-					Score: 1.0,
+					Score: 1.0, // Exact match score
 				},
 				Error: nil,
 			}
 			return
 		} else if getResult.Error != nil {
-			fiberlog.Errorf("[%s] ModelRouterCache: Error during async exact lookup: %v", requestID, getResult.Error)
+			fiberlog.Errorf("[%s] ModelRouterCache: Error during exact lookup: %v", requestID, getResult.Error)
 		}
 
-		// Try semantic similarity search
-		fiberlog.Debugf("[%s] ModelRouterCache: Trying async semantic similarity search (threshold: %.2f)", requestID, threshold)
+		// Try semantic similarity search (O(n) - slower, requires embedding computation)
+		fiberlog.Debugf("[%s] ModelRouterCache: Trying semantic similarity search (threshold: %.2f)", requestID, threshold)
 		lookupCh := pmc.cache.LookupAsync(ctx, prompt, threshold)
 		lookupResult := <-lookupCh
 
 		if lookupResult.Match != nil && lookupResult.Error == nil {
-			fiberlog.Infof("[%s] ModelRouterCache: Semantic cache hit (async)", requestID)
+			fiberlog.Infof("[%s] ModelRouterCache: Semantic cache hit (score: %.2f)", requestID, lookupResult.Match.Score)
 			resultCh <- lookupResult
 			return
 		} else if lookupResult.Error != nil {
-			fiberlog.Errorf("[%s] ModelRouterCache: Error during async semantic lookup: %v", requestID, lookupResult.Error)
+			fiberlog.Errorf("[%s] ModelRouterCache: Error during semantic lookup: %v", requestID, lookupResult.Error)
 		}
 
-		fiberlog.Debugf("[%s] ModelRouterCache: Cache miss (async)", requestID)
+		fiberlog.Debugf("[%s] ModelRouterCache: Cache miss", requestID)
 		resultCh <- semanticcache.LookupResult[models.ModelSelectionResponse]{Match: nil, Error: nil}
 	}()
 
 	return resultCh
 }
 
-// StoreAsync saves a protocol response to the cache asynchronously
-func (pmc *ModelRouterCache) StoreAsync(ctx context.Context, prompt string, resp models.ModelSelectionResponse, requestID string) <-chan error {
-	fiberlog.Debugf("[%s] ModelRouterCache: Storing model response asynchronously (model: %s/%s)", requestID, resp.Provider, resp.Model)
-	return pmc.cache.SetAsync(ctx, prompt, prompt, resp)
+// StoreAsync saves a protocol response to the cache asynchronously (fire-and-forget)
+func (pmc *ModelRouterCache) StoreAsync(ctx context.Context, prompt string, resp models.ModelSelectionResponse, requestID string) {
+	fiberlog.Debugf("[%s] ModelRouterCache: Storing model response (fire-and-forget, model: %s/%s)", requestID, resp.Provider, resp.Model)
+	pmc.cache.SetAsync(ctx, prompt, prompt, resp)
 }
 
-// DeleteAsync removes a cache entry asynchronously when its provider is circuit-broken
-func (pmc *ModelRouterCache) DeleteAsync(ctx context.Context, prompt, provider, requestID string) <-chan error {
-	fiberlog.Debugf("[%s] Invalidating cache entry for provider %s (async)", requestID, provider)
-	return pmc.cache.DeleteAsync(ctx, prompt)
+// DeleteAsync removes a cache entry asynchronously (fire-and-forget)
+func (pmc *ModelRouterCache) DeleteAsync(ctx context.Context, prompt, provider, requestID string) {
+	fiberlog.Debugf("[%s] Invalidating cache entry for provider %s (fire-and-forget)", requestID, provider)
+	pmc.cache.DeleteAsync(ctx, prompt)
+}
+
+// Close closes the cache and releases resources
+func (pmc *ModelRouterCache) Close() error {
+	if pmc.cache != nil {
+		return pmc.cache.Close()
+	}
+	return nil
 }
