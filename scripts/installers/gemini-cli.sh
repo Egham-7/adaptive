@@ -12,7 +12,7 @@ NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
 GEMINI_PACKAGE="@google/gemini-cli"
 CONFIG_DIR="$HOME/.gemini"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1"
+API_BASE_URL="https://www.llmadaptive.uk/api/v1beta"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)
@@ -365,7 +365,7 @@ configure_gemini() {
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
     echo "   # Add to your shell config (~/.bashrc, ~/.zshrc, etc.):"
     echo "   echo 'export GEMINI_API_KEY=\"your-api-key-here\"' >> ~/.bashrc"
-    echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api/v1\"' >> ~/.bashrc"
+    echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api/v1beta\"' >> ~/.bashrc"
     echo ""
     echo "🔗 Get your API key: $API_KEY_URL"
     exit 1
