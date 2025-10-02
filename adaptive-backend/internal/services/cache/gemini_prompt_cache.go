@@ -155,6 +155,74 @@ func (pc *GeminiPromptCache) setInCache(ctx context.Context, req *models.GeminiG
 	return nil
 }
 
+// SetAsync stores a response asynchronously in the cache
+func (pc *GeminiPromptCache) SetAsync(ctx context.Context, req *models.GeminiGenerateRequest, response *models.GeminiGenerateContentResponse, requestID string) <-chan error {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		errCh := make(chan error, 1)
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
+	if err != nil {
+		errCh := make(chan error, 1)
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	fiberlog.Debugf("[%s] GeminiPromptCache: Storing response in semantic cache (async)", requestID)
+	return pc.semanticCache.SetAsync(ctx, prompt, prompt, *response)
+}
+
+// GetAsync retrieves a cached response asynchronously using semantic similarity
+func (pc *GeminiPromptCache) GetAsync(ctx context.Context, req *models.GeminiGenerateRequest, requestID string) <-chan semanticcache.GetResult[models.GeminiGenerateContentResponse] {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		resultCh := make(chan semanticcache.GetResult[models.GeminiGenerateContentResponse], 1)
+		resultCh <- semanticcache.GetResult[models.GeminiGenerateContentResponse]{Found: false}
+		close(resultCh)
+		return resultCh
+	}
+
+	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
+	if err != nil {
+		resultCh := make(chan semanticcache.GetResult[models.GeminiGenerateContentResponse], 1)
+		resultCh <- semanticcache.GetResult[models.GeminiGenerateContentResponse]{Error: err}
+		close(resultCh)
+		return resultCh
+	}
+
+	fiberlog.Debugf("[%s] GeminiPromptCache: Getting from semantic cache (async)", requestID)
+	return pc.semanticCache.GetAsync(ctx, prompt)
+}
+
+// LookupAsync performs semantic similarity lookup asynchronously
+func (pc *GeminiPromptCache) LookupAsync(ctx context.Context, req *models.GeminiGenerateRequest, requestID string) <-chan semanticcache.LookupResult[models.GeminiGenerateContentResponse] {
+	if req.PromptCache == nil || !req.PromptCache.Enabled || pc.semanticCache == nil {
+		resultCh := make(chan semanticcache.LookupResult[models.GeminiGenerateContentResponse], 1)
+		resultCh <- semanticcache.LookupResult[models.GeminiGenerateContentResponse]{Match: nil}
+		close(resultCh)
+		return resultCh
+	}
+
+	prompt, err := utils.ExtractPromptFromGeminiContents(req.Contents)
+	if err != nil {
+		resultCh := make(chan semanticcache.LookupResult[models.GeminiGenerateContentResponse], 1)
+		resultCh <- semanticcache.LookupResult[models.GeminiGenerateContentResponse]{Error: err}
+		close(resultCh)
+		return resultCh
+	}
+
+	threshold := pc.semanticThreshold
+	if req.PromptCache.SemanticThreshold > 0 {
+		threshold = float32(req.PromptCache.SemanticThreshold)
+	}
+
+	fiberlog.Debugf("[%s] GeminiPromptCache: Semantic lookup (async, threshold: %.2f)", requestID, threshold)
+	return pc.semanticCache.LookupAsync(ctx, prompt, threshold)
+}
+
 // Flush clears all Gemini prompt cache entries
 func (pc *GeminiPromptCache) Flush(ctx context.Context) error {
 	if pc.semanticCache == nil {
