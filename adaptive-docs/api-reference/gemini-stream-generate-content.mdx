@@ -1,0 +1,592 @@
+---
+title: "Gemini Stream Generate Content"
+description: "Stream content generation using Google's Gemini API format with Server-Sent Events"
+api: "POST /api/v1beta/models/{model}/streamGenerateContent"
+---
+
+## Overview
+
+The Gemini Stream Generate Content endpoint provides real-time streaming responses using Google's Gemini API format. This endpoint is fully compatible with the official `@google/genai` SDK and streams responses as Server-Sent Events (SSE).
+
+<Info>
+**Streaming provides:**
+- Real-time token-by-token generation
+- Lower perceived latency for users
+- Progressive UI updates as content generates
+- Full compatibility with Google's Gen AI SDK
+</Info>
+
+## Authentication
+
+<ParamField header="x-goog-api-key" type="string" required>
+  Your Adaptive API key. Also supports `Authorization: Bearer`, `X-API-Key`, or `api-key` headers.
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="model" type="string" required>
+  The model to use for streaming generation. Supports Gemini model names and Adaptive's intelligent routing.
+
+  **Examples:**
+  - `gemini-2.5-pro` - Latest Gemini Pro model
+  - `gemini-2.5-flash` - Fast Gemini Flash model (recommended for streaming)
+  - `gemini-1.5-pro` - Gemini 1.5 Pro
+  - Custom model aliases configured in Adaptive
+</ParamField>
+
+## Request Body
+
+The request body format is identical to the [Generate Content](/api-reference/gemini-generate-content) endpoint.
+
+<ParamField body="contents" type="array" required>
+  An array of content parts representing the conversation history or prompt.
+
+  ```json
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Write a creative story about space exploration"
+        }
+      ]
+    }
+  ]
+  ```
+</ParamField>
+
+<ParamField body="config" type="object">
+  Generation configuration parameters (same as non-streaming endpoint).
+
+  <Expandable title="Configuration Properties">
+    <ParamField body="config.temperature" type="number">
+      Controls randomness in generation (0.0 to 2.0). Default: 1.0
+    </ParamField>
+
+    <ParamField body="config.topP" type="number">
+      Nucleus sampling parameter (0.0 to 1.0). Default: 0.95
+    </ParamField>
+
+    <ParamField body="config.topK" type="number">
+      Top-K sampling parameter. Default: 40
+    </ParamField>
+
+    <ParamField body="config.maxOutputTokens" type="number">
+      Maximum tokens to generate. Default: 8192
+    </ParamField>
+
+    <ParamField body="config.stopSequences" type="array">
+      Sequences that stop generation when encountered.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="provider_configs" type="object">
+  **Adaptive Extension**: Provider-specific configuration overrides.
+</ParamField>
+
+<ParamField body="model_router" type="object">
+  **Adaptive Extension**: Control intelligent routing behavior.
+</ParamField>
+
+<ParamField body="semantic_cache" type="object">
+  **Adaptive Extension**: Semantic caching configuration.
+</ParamField>
+
+<ParamField body="prompt_cache" type="object">
+  **Adaptive Extension**: Prompt caching configuration.
+</ParamField>
+
+<ParamField body="fallback" type="object">
+  **Adaptive Extension**: Fallback configuration for provider failures.
+</ParamField>
+
+## Response Format
+
+The endpoint returns a Server-Sent Events (SSE) stream with `Content-Type: text/event-stream`. Each chunk follows Gemini's streaming format.
+
+### Stream Chunk Structure
+
+<ResponseField name="candidates" type="array">
+  Array of generated response candidates (partial content).
+
+  <Expandable title="Candidate Structure">
+    <ResponseField name="content" type="object">
+      Partial generated content.
+
+      ```json
+      "content": {
+        "parts": [
+          {
+            "text": "Once upon a time, in a galaxy..."
+          }
+        ],
+        "role": "model"
+      }
+      ```
+    </ResponseField>
+
+    <ResponseField name="finishReason" type="string">
+      Present in final chunk: `STOP`, `MAX_TOKENS`, `SAFETY`, `RECITATION`, `OTHER`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usageMetadata" type="object">
+  Token usage information (included in final chunk).
+
+  <Expandable title="Usage Metadata">
+    <ResponseField name="promptTokenCount" type="number">
+      Number of tokens in the prompt.
+    </ResponseField>
+
+    <ResponseField name="candidatesTokenCount" type="number">
+      Number of tokens in the generated response.
+    </ResponseField>
+
+    <ResponseField name="totalTokenCount" type="number">
+      Total tokens used (prompt + completion).
+    </ResponseField>
+
+    <ResponseField name="cache_tier" type="string">
+      **Adaptive Extension**: Cache tier used (`none`, `prompt`, `semantic`)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="modelVersion" type="string">
+  The actual model version used for generation.
+</ResponseField>
+
+<ResponseField name="provider" type="string">
+  **Adaptive Extension**: The provider that handled the request.
+</ResponseField>
+
+## Code Examples
+
+<CodeGroup>
+```typescript TypeScript (Google Gen AI SDK)
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: {
+    baseUrl: 'https://www.llmadaptive.uk/api/v1beta'
+  }
+});
+
+const stream = await ai.models.generateContentStream({
+  model: 'gemini-2.5-flash',
+  contents: [
+    {
+      role: 'user',
+      parts: [
+        { text: 'Write a creative story about space exploration' }
+      ]
+    }
+  ],
+  config: {
+    temperature: 0.9,
+    maxOutputTokens: 2048
+  }
+});
+
+// Process stream chunks
+for await (const chunk of stream) {
+  const text = chunk.candidates[0].content.parts[0].text;
+  process.stdout.write(text);
+
+  // Check for final chunk with usage metadata
+  if (chunk.usageMetadata) {
+    console.log('\n\nTokens used:', chunk.usageMetadata.totalTokenCount);
+    console.log('Provider:', chunk.provider);
+    console.log('Cache tier:', chunk.usageMetadata.cache_tier);
+  }
+}
+```
+
+```python Python (EventSource)
+import json
+from sseclient import SSEClient
+
+response = requests.post(
+    'https://www.llmadaptive.uk/api/v1beta/models/gemini-2.5-flash/streamGenerateContent',
+    headers={
+        'x-goog-api-key': 'your-adaptive-api-key',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'contents': [
+            {
+                'role': 'user',
+                'parts': [
+                    {'text': 'Write a creative story about space exploration'}
+                ]
+            }
+        ],
+        'config': {
+            'temperature': 0.9,
+            'maxOutputTokens': 2048
+        }
+    },
+    stream=True
+)
+
+client = SSEClient(response)
+for event in client.events():
+    chunk = json.loads(event.data)
+
+    # Extract text from chunk
+    text = chunk['candidates'][0]['content']['parts'][0]['text']
+    print(text, end='', flush=True)
+
+    # Check for final chunk with usage
+    if 'usageMetadata' in chunk:
+        print(f"\n\nTokens: {chunk['usageMetadata']['totalTokenCount']}")
+        print(f"Provider: {chunk['provider']}")
+```
+
+```javascript JavaScript (Fetch + SSE)
+const response = await fetch(
+  'https://www.llmadaptive.uk/api/v1beta/models/gemini-2.5-flash/streamGenerateContent',
+  {
+    method: 'POST',
+    headers: {
+      'x-goog-api-key': 'your-adaptive-api-key',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: 'Write a creative story about space exploration' }
+          ]
+        }
+      ],
+      config: {
+        temperature: 0.9,
+        maxOutputTokens: 2048
+      }
+    })
+  }
+);
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n');
+
+  for (const line of lines) {
+    if (line.startsWith('data: ')) {
+      const data = JSON.parse(line.slice(6));
+      const text = data.candidates[0].content.parts[0].text;
+      process.stdout.write(text);
+
+      // Check for usage metadata in final chunk
+      if (data.usageMetadata) {
+        console.log('\n\nTokens:', data.usageMetadata.totalTokenCount);
+        console.log('Provider:', data.provider);
+      }
+    }
+  }
+}
+```
+
+```bash cURL
+curl -N -X POST https://www.llmadaptive.uk/api/v1beta/models/gemini-2.5-flash/streamGenerateContent \
+  -H "x-goog-api-key: your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Write a creative story about space exploration"
+          }
+        ]
+      }
+    ],
+    "config": {
+      "temperature": 0.9,
+      "maxOutputTokens": 2048
+    }
+  }'
+```
+</CodeGroup>
+
+## Advanced Examples
+
+### React Component with Streaming
+
+<CodeGroup>
+```typescript React Streaming Component
+import { GoogleGenAI } from '@google/genai';
+import { useState } from 'react';
+
+function StreamingChat() {
+  const [response, setResponse] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+
+  const ai = new GoogleGenAI({
+    apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY,
+    httpOptions: {
+      baseUrl: 'https://www.llmadaptive.uk/api/v1beta'
+    }
+  });
+
+  async function handleSubmit(prompt: string) {
+    setIsStreaming(true);
+    setResponse('');
+
+    try {
+      const stream = await ai.models.generateContentStream({
+        model: 'gemini-2.5-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }]
+          }
+        ]
+      });
+
+      for await (const chunk of stream) {
+        const text = chunk.candidates[0].content.parts[0].text;
+        setResponse(prev => prev + text);
+      }
+    } catch (error) {
+      console.error('Streaming error:', error);
+    } finally {
+      setIsStreaming(false);
+    }
+  }
+
+  return (
+    <div>
+      <textarea
+        disabled={isStreaming}
+        onChange={(e) => handleSubmit(e.target.value)}
+      />
+      <div className="response">
+        {response}
+        {isStreaming && <span className="cursor">▊</span>}
+      </div>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+### Multi-Turn Streaming Conversation
+
+<CodeGroup>
+```typescript Conversation History
+const conversationHistory = [
+  {
+    role: 'user',
+    parts: [{ text: 'Tell me about the solar system' }]
+  },
+  {
+    role: 'model',
+    parts: [{ text: 'The solar system consists of...' }]
+  },
+  {
+    role: 'user',
+    parts: [{ text: 'What about Mars specifically?' }]
+  }
+];
+
+const stream = await ai.models.generateContentStream({
+  model: 'gemini-2.5-pro',
+  contents: conversationHistory
+});
+
+for await (const chunk of stream) {
+  // Process chunk
+}
+```
+</CodeGroup>
+
+### With Adaptive Extensions
+
+<CodeGroup>
+```typescript Advanced Streaming
+const stream = await ai.models.generateContentStream({
+  model: 'gemini-2.5-flash',
+  contents: [
+    {
+      role: 'user',
+      parts: [{ text: 'Generate a Python web scraper' }]
+    }
+  ],
+  config: {
+    temperature: 0.3,
+    maxOutputTokens: 3000
+  },
+  // Adaptive-specific features
+  semantic_cache: {
+    enabled: true,
+    similarity_threshold: 0.95
+  },
+  fallback: {
+    enabled: true,
+    max_retries: 3
+  },
+  model_router: {
+    cost_optimization: true,
+    fallback_models: ['claude-3-5-haiku-20241022', 'gpt-4o-mini']
+  }
+});
+
+let fullResponse = '';
+for await (const chunk of stream) {
+  const text = chunk.candidates[0].content.parts[0].text;
+  fullResponse += text;
+
+  // Update UI progressively
+  updateUI(fullResponse);
+
+  // Log metadata from final chunk
+  if (chunk.usageMetadata) {
+    console.log('Cache hit:', chunk.usageMetadata.cache_tier !== 'none');
+    console.log('Provider used:', chunk.provider);
+  }
+}
+```
+</CodeGroup>
+
+## Stream Event Format
+
+Each Server-Sent Event (SSE) follows this format:
+
+```
+data: {"candidates":[{"content":{"parts":[{"text":"Once upon"}],"role":"model"}}],"modelVersion":"gemini-2.5-flash","provider":"google"}
+
+data: {"candidates":[{"content":{"parts":[{"text":" a time"}],"role":"model"}}],"modelVersion":"gemini-2.5-flash","provider":"google"}
+
+data: {"candidates":[{"content":{"parts":[{"text":" in a"}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":156,"totalTokenCount":168,"cache_tier":"none"},"modelVersion":"gemini-2.5-flash","provider":"google"}
+
+```
+
+<Note>
+The final chunk includes `finishReason` and complete `usageMetadata` with token counts and cache information.
+</Note>
+
+## Error Handling
+
+<AccordionGroup>
+<Accordion title="Stream Interruption">
+If the stream is interrupted, an error chunk will be sent:
+
+```json
+data: {
+  "error": {
+    "code": 500,
+    "message": "Stream failed",
+    "status": "INTERNAL"
+  }
+}
+```
+
+**Solution**: Adaptive's fallback system automatically retries with alternative providers.
+</Accordion>
+
+<Accordion title="Authentication Errors">
+Authentication errors return immediately before streaming begins:
+
+```json
+{
+  "error": {
+    "code": 401,
+    "message": "API key required",
+    "status": "UNAUTHENTICATED"
+  }
+}
+```
+
+**Solution**: Provide a valid API key in the `x-goog-api-key` header.
+</Accordion>
+
+<Accordion title="Rate Limiting">
+```json
+{
+  "error": {
+    "code": 429,
+    "message": "Rate limit exceeded",
+    "status": "RESOURCE_EXHAUSTED"
+  }
+}
+```
+
+**Solution**: Adaptive's multi-provider load balancing helps distribute requests and avoid rate limits.
+</Accordion>
+</AccordionGroup>
+
+## Performance Optimization
+
+<CardGroup cols={2}>
+  <Card title="Use Flash Models" icon="bolt">
+    `gemini-2.5-flash` provides faster streaming than Pro models—ideal for real-time applications
+  </Card>
+
+  <Card title="Streaming vs Non-Streaming" icon="gauge">
+    Streaming reduces perceived latency by ~60% but uses similar total tokens
+  </Card>
+
+  <Card title="Semantic Caching" icon="database">
+    Cache similar prompts to reduce latency and costs by up to 90%
+  </Card>
+
+  <Card title="Load Balancing" icon="scale-balanced">
+    Adaptive distributes streaming requests across providers for higher throughput
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Handle Partial Chunks">
+    Accumulate text chunks progressively—don't assume complete sentences in each chunk
+  </Step>
+  <Step title="Monitor Final Chunk">
+    The last chunk contains `finishReason` and complete `usageMetadata`—use this for billing and completion detection
+  </Step>
+  <Step title="Implement Error Recovery">
+    Handle stream interruptions gracefully with reconnection logic or fallback to non-streaming
+  </Step>
+  <Step title="Use Flash for Speed">
+    For real-time chat applications, prefer `gemini-2.5-flash` over Pro models
+  </Step>
+  <Step title="Enable Caching">
+    Use semantic and prompt caching for frequently asked questions or similar prompts
+  </Step>
+</Steps>
+
+## Differences from Non-Streaming
+
+| Feature | Streaming | Non-Streaming |
+|---------|-----------|---------------|
+| **Response Format** | SSE chunks | Single JSON response |
+| **Latency** | Progressive (lower perceived) | Wait for full completion |
+| **UI Updates** | Real-time token-by-token | All at once |
+| **Token Usage** | Same | Same |
+| **Error Handling** | Mid-stream errors possible | Single error response |
+| **Use Case** | Chat, real-time apps | Batch processing, APIs |
+
+## Related Endpoints
+
+- [Generate Content](/api-reference/gemini-generate-content) - Non-streaming version of this endpoint
+- [Chat Completions](/api-reference/chat-completions) - OpenAI-compatible streaming chat
+- [Select Model](/api-reference/select-model) - Get optimal model recommendations
+
+## SDK Integration
+
+For full SDK integration guide with streaming examples and best practices, see:
+- [Gemini CLI Integration](/developer-tools/gemini-cli)
+- [Google Gen AI SDK Documentation](https://ai.google.dev/gemini-api/docs/text-generation#generate-a-text-stream)

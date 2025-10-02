@@ -33,6 +33,7 @@
           "developer-tools/kilo-code",
           "developer-tools/roo-code",
           "developer-tools/grok-cli",
+          "developer-tools/gemini-cli",
           "developer-tools/codex"
         ]
       },
@@ -54,6 +55,8 @@
         "pages": [
           "api-reference/chat-completions",
           "api-reference/messages",
+          "api-reference/gemini-generate-content",
+          "api-reference/gemini-stream-generate-content",
           "api-reference/select-model"
         ]
       },

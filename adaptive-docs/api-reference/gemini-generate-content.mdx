@@ -1,0 +1,523 @@
+---
+title: "Gemini Generate Content"
+description: "Generate content using Google's Gemini API format with Adaptive's intelligent routing"
+api: "POST /api/v1beta/models/{model}/generateContent"
+---
+
+## Overview
+
+The Gemini Generate Content endpoint provides a Google Gemini API-compatible interface for generating text, code, and structured content. Use this endpoint with the official `@google/genai` SDK or any Gemini-compatible client.
+
+<Info>
+This endpoint is **fully compatible** with Google's Gemini API, allowing you to use the official Google Gen AI SDK while benefiting from Adaptive's intelligent routing, cost optimization, and multi-provider support.
+</Info>
+
+## Authentication
+
+<ParamField header="x-goog-api-key" type="string" required>
+  Your Adaptive API key. Also supports `Authorization: Bearer`, `X-API-Key`, or `api-key` headers.
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="model" type="string" required>
+  The model to use for generation. Supports Gemini model names and Adaptive's intelligent routing.
+
+  **Examples:**
+  - `gemini-2.5-pro` - Latest Gemini Pro model
+  - `gemini-2.5-flash` - Fast Gemini Flash model
+  - `gemini-1.5-pro` - Gemini 1.5 Pro
+  - Custom model aliases configured in Adaptive
+</ParamField>
+
+## Request Body
+
+<ParamField body="contents" type="array" required>
+  An array of content parts representing the conversation history or prompt.
+
+  ```json
+  "contents": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Explain quantum computing in simple terms"
+        }
+      ]
+    }
+  ]
+  ```
+</ParamField>
+
+<ParamField body="config" type="object">
+  Generation configuration parameters.
+
+  <Expandable title="Configuration Properties">
+    <ParamField body="config.temperature" type="number">
+      Controls randomness in generation (0.0 to 2.0). Default: 1.0
+    </ParamField>
+
+    <ParamField body="config.topP" type="number">
+      Nucleus sampling parameter (0.0 to 1.0). Default: 0.95
+    </ParamField>
+
+    <ParamField body="config.topK" type="number">
+      Top-K sampling parameter. Default: 40
+    </ParamField>
+
+    <ParamField body="config.maxOutputTokens" type="number">
+      Maximum tokens to generate. Default: 8192
+    </ParamField>
+
+    <ParamField body="config.stopSequences" type="array">
+      Sequences that stop generation when encountered.
+    </ParamField>
+
+    <ParamField body="config.candidateCount" type="number">
+      Number of response candidates to generate. Default: 1
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="provider_configs" type="object">
+  **Adaptive Extension**: Provider-specific configuration overrides.
+
+  ```json
+  "provider_configs": {
+    "anthropic": {
+      "temperature": 0.7
+    },
+    "openai": {
+      "temperature": 0.8
+    }
+  }
+  ```
+</ParamField>
+
+<ParamField body="model_router" type="object">
+  **Adaptive Extension**: Control intelligent routing behavior.
+
+  <Expandable title="Router Options">
+    <ParamField body="model_router.enabled" type="boolean">
+      Enable/disable intelligent routing. Default: true
+    </ParamField>
+
+    <ParamField body="model_router.fallback_models" type="array">
+      List of fallback models if primary model fails.
+    </ParamField>
+
+    <ParamField body="model_router.cost_optimization" type="boolean">
+      Enable cost-based model selection. Default: true
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="semantic_cache" type="object">
+  **Adaptive Extension**: Semantic caching configuration.
+
+  ```json
+  "semantic_cache": {
+    "enabled": true,
+    "similarity_threshold": 0.95
+  }
+  ```
+</ParamField>
+
+<ParamField body="prompt_cache" type="object">
+  **Adaptive Extension**: Prompt caching configuration.
+
+  ```json
+  "prompt_cache": {
+    "enabled": true,
+    "ttl": 3600
+  }
+  ```
+</ParamField>
+
+<ParamField body="fallback" type="object">
+  **Adaptive Extension**: Fallback configuration for provider failures.
+
+  ```json
+  "fallback": {
+    "enabled": true,
+    "max_retries": 3
+  }
+  ```
+</ParamField>
+
+## Response
+
+<ResponseField name="candidates" type="array">
+  Array of generated response candidates.
+
+  <Expandable title="Candidate Structure">
+    <ResponseField name="content" type="object">
+      The generated content.
+
+      ```json
+      "content": {
+        "parts": [
+          {
+            "text": "Quantum computing uses quantum..."
+          }
+        ],
+        "role": "model"
+      }
+      ```
+    </ResponseField>
+
+    <ResponseField name="finishReason" type="string">
+      Reason the generation stopped: `STOP`, `MAX_TOKENS`, `SAFETY`, `RECITATION`, `OTHER`
+    </ResponseField>
+
+    <ResponseField name="safetyRatings" type="array">
+      Safety classification ratings for the generated content.
+    </ResponseField>
+
+    <ResponseField name="citationMetadata" type="object">
+      Citation information for referenced sources.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="usageMetadata" type="object">
+  Token usage information.
+
+  <Expandable title="Usage Metadata">
+    <ResponseField name="promptTokenCount" type="number">
+      Number of tokens in the prompt.
+    </ResponseField>
+
+    <ResponseField name="candidatesTokenCount" type="number">
+      Number of tokens in the generated response.
+    </ResponseField>
+
+    <ResponseField name="totalTokenCount" type="number">
+      Total tokens used (prompt + completion).
+    </ResponseField>
+
+    <ResponseField name="cache_tier" type="string">
+      **Adaptive Extension**: Cache tier used (`none`, `prompt`, `semantic`)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="modelVersion" type="string">
+  The actual model version used for generation.
+</ResponseField>
+
+<ResponseField name="provider" type="string">
+  **Adaptive Extension**: The provider that handled the request (e.g., `google`, `anthropic`, `openai`)
+</ResponseField>
+
+## Code Examples
+
+<CodeGroup>
+```typescript TypeScript (Google Gen AI SDK)
+import { GoogleGenAI } from '@google/genai';
+
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  httpOptions: {
+    baseUrl: 'https://www.llmadaptive.uk/api/v1beta'
+  }
+});
+
+const response = await ai.models.generateContent({
+  model: 'gemini-2.5-pro',
+  contents: [
+    {
+      role: 'user',
+      parts: [
+        { text: 'Explain quantum computing in simple terms' }
+      ]
+    }
+  ],
+  config: {
+    temperature: 0.7,
+    maxOutputTokens: 1024
+  }
+});
+
+console.log(response.candidates[0].content.parts[0].text);
+console.log('Provider:', response.provider);
+console.log('Tokens used:', response.usageMetadata.totalTokenCount);
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://www.llmadaptive.uk/api/v1beta/models/gemini-2.5-pro/generateContent',
+    headers={
+        'x-goog-api-key': 'your-adaptive-api-key',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'contents': [
+            {
+                'role': 'user',
+                'parts': [
+                    {'text': 'Explain quantum computing in simple terms'}
+                ]
+            }
+        ],
+        'config': {
+            'temperature': 0.7,
+            'maxOutputTokens': 1024
+        }
+    }
+)
+
+data = response.json()
+print(data['candidates'][0]['content']['parts'][0]['text'])
+print(f"Provider: {data['provider']}")
+print(f"Tokens: {data['usageMetadata']['totalTokenCount']}")
+```
+
+```bash cURL
+curl -X POST https://www.llmadaptive.uk/api/v1beta/models/gemini-2.5-pro/generateContent \
+  -H "x-goog-api-key: your-adaptive-api-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Explain quantum computing in simple terms"
+          }
+        ]
+      }
+    ],
+    "config": {
+      "temperature": 0.7,
+      "maxOutputTokens": 1024
+    }
+  }'
+```
+
+```javascript JavaScript (Fetch)
+const response = await fetch(
+  'https://www.llmadaptive.uk/api/v1beta/models/gemini-2.5-pro/generateContent',
+  {
+    method: 'POST',
+    headers: {
+      'x-goog-api-key': 'your-adaptive-api-key',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: 'Explain quantum computing in simple terms' }
+          ]
+        }
+      ],
+      config: {
+        temperature: 0.7,
+        maxOutputTokens: 1024
+      }
+    })
+  }
+);
+
+const data = await response.json();
+console.log(data.candidates[0].content.parts[0].text);
+console.log('Provider:', data.provider);
+console.log('Tokens:', data.usageMetadata.totalTokenCount);
+```
+</CodeGroup>
+
+## Advanced Examples
+
+### Multi-Turn Conversation
+
+<CodeGroup>
+```typescript Multi-Turn Chat
+const response = await ai.models.generateContent({
+  model: 'gemini-2.5-pro',
+  contents: [
+    {
+      role: 'user',
+      parts: [{ text: 'What is the capital of France?' }]
+    },
+    {
+      role: 'model',
+      parts: [{ text: 'The capital of France is Paris.' }]
+    },
+    {
+      role: 'user',
+      parts: [{ text: 'What is its population?' }]
+    }
+  ]
+});
+```
+
+```python Multi-Turn Chat
+response = requests.post(
+    'https://www.llmadaptive.uk/api/v1beta/models/gemini-2.5-pro/generateContent',
+    headers={'x-goog-api-key': api_key},
+    json={
+        'contents': [
+            {'role': 'user', 'parts': [{'text': 'What is the capital of France?'}]},
+            {'role': 'model', 'parts': [{'text': 'The capital of France is Paris.'}]},
+            {'role': 'user', 'parts': [{'text': 'What is its population?'}]}
+        ]
+    }
+)
+```
+</CodeGroup>
+
+### With Adaptive Extensions
+
+<CodeGroup>
+```typescript Adaptive Features
+const response = await ai.models.generateContent({
+  model: 'gemini-2.5-pro',
+  contents: [
+    {
+      role: 'user',
+      parts: [{ text: 'Write a sorting algorithm in Python' }]
+    }
+  ],
+  config: {
+    temperature: 0.3,
+    maxOutputTokens: 2048
+  },
+  // Adaptive-specific features
+  semantic_cache: {
+    enabled: true,
+    similarity_threshold: 0.95
+  },
+  fallback: {
+    enabled: true,
+    max_retries: 3
+  },
+  model_router: {
+    cost_optimization: true,
+    fallback_models: ['claude-sonnet-4-20250514', 'gpt-4o']
+  }
+});
+
+console.log('Cache tier:', response.usageMetadata.cache_tier);
+console.log('Provider:', response.provider);
+```
+</CodeGroup>
+
+## Error Responses
+
+<ResponseField name="error" type="object">
+  Error information when the request fails.
+
+  <Expandable title="Error Structure">
+    <ResponseField name="code" type="number">
+      HTTP status code (400, 401, 429, 500, etc.)
+    </ResponseField>
+
+    <ResponseField name="message" type="string">
+      Human-readable error message.
+    </ResponseField>
+
+    <ResponseField name="status" type="string">
+      Error status: `INVALID_ARGUMENT`, `UNAUTHENTICATED`, `PERMISSION_DENIED`, `RESOURCE_EXHAUSTED`, `INTERNAL`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Common Errors
+
+<AccordionGroup>
+<Accordion title="401 UNAUTHENTICATED">
+```json
+{
+  "error": {
+    "code": 401,
+    "message": "API key required. Provide it via x-goog-api-key, Authorization: Bearer, X-API-Key, or api-key header",
+    "status": "UNAUTHENTICATED"
+  }
+}
+```
+**Solution**: Provide a valid API key in the `x-goog-api-key` header or other supported header formats.
+</Accordion>
+
+<Accordion title="400 INVALID_ARGUMENT">
+```json
+{
+  "error": {
+    "code": 400,
+    "message": "Invalid request format",
+    "status": "INVALID_ARGUMENT"
+  }
+}
+```
+**Solution**: Check your request body format. Ensure `contents` array is properly formatted with valid roles and parts.
+</Accordion>
+
+<Accordion title="429 RESOURCE_EXHAUSTED">
+```json
+{
+  "error": {
+    "code": 429,
+    "message": "Rate limit exceeded",
+    "status": "RESOURCE_EXHAUSTED"
+  }
+}
+```
+**Solution**: Reduce request rate or upgrade your plan for higher limits. Adaptive's load balancing helps distribute requests across providers.
+</Accordion>
+
+<Accordion title="500 INTERNAL">
+```json
+{
+  "error": {
+    "code": 500,
+    "message": "Internal server error",
+    "status": "INTERNAL"
+  }
+}
+```
+**Solution**: Temporary server issue. Adaptive's fallback system will automatically retry with alternative providers.
+</Accordion>
+</AccordionGroup>
+
+## Features & Benefits
+
+<CardGroup cols={2}>
+  <Card title="Google SDK Compatible" icon="check">
+    Drop-in replacement for Google's Gemini API—use the official `@google/genai` SDK without changes
+  </Card>
+
+  <Card title="Multi-Provider Routing" icon="route">
+    Access models from Google, Anthropic, OpenAI, and more through a single endpoint
+  </Card>
+
+  <Card title="Intelligent Caching" icon="bolt">
+    Semantic and prompt caching reduce costs by up to 90% for similar requests
+  </Card>
+
+  <Card title="Automatic Fallbacks" icon="shield">
+    Provider failures automatically route to alternative models for high reliability
+  </Card>
+
+  <Card title="Cost Optimization" icon="dollar-sign">
+    Intelligent routing selects the most cost-effective model for each request
+  </Card>
+
+  <Card title="Usage Analytics" icon="chart-line">
+    Detailed token usage, costs, and performance metrics in the dashboard
+  </Card>
+</CardGroup>
+
+## Related Endpoints
+
+- [Stream Generate Content](/api-reference/gemini-stream-generate-content) - Streaming version of this endpoint
+- [Chat Completions](/api-reference/chat-completions) - OpenAI-compatible chat endpoint
+- [Select Model](/api-reference/select-model) - Get optimal model recommendations
+
+## SDK Integration
+
+For full SDK integration guide with code examples and best practices, see:
+- [Gemini CLI Integration](/developer-tools/gemini-cli)
+- [Google Gen AI SDK Documentation](https://ai.google.dev/gemini-api/docs/quickstart)
