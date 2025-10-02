@@ -33,6 +33,7 @@
           "developer-tools/kilo-code",
           "developer-tools/roo-code",
           "developer-tools/grok-cli",
+          "developer-tools/gemini-cli",
           "developer-tools/codex"
         ]
       },
