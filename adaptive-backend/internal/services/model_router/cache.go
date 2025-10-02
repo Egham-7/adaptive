@@ -117,8 +117,8 @@ func (pmc *ModelRouterCache) Lookup(ctx context.Context, prompt, requestID strin
 func (pmc *ModelRouterCache) LookupAsync(ctx context.Context, prompt, requestID string, threshold float32) <-chan semanticcache.LookupResult[models.ModelSelectionResponse] {
 	resultCh := make(chan semanticcache.LookupResult[models.ModelSelectionResponse], 1)
 
-	// Spawn goroutine to coordinate Get -> Lookup sequence
-	// This is necessary because we need to try Get first (fast), then Lookup (slow) if Get misses
+	// Spawn goroutine to coordinate GetAsync -> LookupAsync sequence
+	// This is necessary because we need to try GetAsync first (fast), then LookupAsync (slow) if GetAsync misses
 	go func() {
 		defer close(resultCh)
 
