@@ -293,12 +293,12 @@ add_env_to_shell_config() {
       # Fish shell: update both API key and base URL
       if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS sed for Fish
-        sed -i '' "s/set -x ADAPTIVE_API_KEY.*/set -x ADAPTIVE_API_KEY \"$api_key\"/" "$config_file"
-        sed -i '' "s/set -x ADAPTIVE_BASE_URL.*/set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"/" "$config_file"
+        sed -i '' "s|set -x ADAPTIVE_API_KEY.*|set -x ADAPTIVE_API_KEY \"$api_key\"|" "$config_file"
+        sed -i '' "s|set -x ADAPTIVE_BASE_URL.*|set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"|" "$config_file"
       else
         # Linux sed for Fish
-        sed -i "s/set -x ADAPTIVE_API_KEY.*/set -x ADAPTIVE_API_KEY \"$api_key\"/" "$config_file"
-        sed -i "s/set -x ADAPTIVE_BASE_URL.*/set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"/" "$config_file"
+        sed -i "s|set -x ADAPTIVE_API_KEY.*|set -x ADAPTIVE_API_KEY \"$api_key\"|" "$config_file"
+        sed -i "s|set -x ADAPTIVE_BASE_URL.*|set -x ADAPTIVE_BASE_URL \"$API_BASE_URL\"|" "$config_file"
       fi
 
       # Add ADAPTIVE_BASE_URL if it doesn't exist in Fish config
@@ -309,12 +309,12 @@ add_env_to_shell_config() {
       # POSIX shells (bash/zsh): update both API key and base URL
       if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS sed for bash/zsh
-        sed -i '' "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
-        sed -i '' "s/export ADAPTIVE_BASE_URL=.*/export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"/" "$config_file"
+        sed -i '' "s|export ADAPTIVE_API_KEY=.*|export ADAPTIVE_API_KEY=\"$api_key\"|" "$config_file"
+        sed -i '' "s|export ADAPTIVE_BASE_URL=.*|export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"|" "$config_file"
       else
         # Linux sed for bash/zsh
-        sed -i "s/export ADAPTIVE_API_KEY=.*/export ADAPTIVE_API_KEY=\"$api_key\"/" "$config_file"
-        sed -i "s/export ADAPTIVE_BASE_URL=.*/export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"/" "$config_file"
+        sed -i "s|export ADAPTIVE_API_KEY=.*|export ADAPTIVE_API_KEY=\"$api_key\"|" "$config_file"
+        sed -i "s|export ADAPTIVE_BASE_URL=.*|export ADAPTIVE_BASE_URL=\"$API_BASE_URL\"|" "$config_file"
       fi
 
       # Add ADAPTIVE_BASE_URL if it doesn't exist in POSIX shell config
