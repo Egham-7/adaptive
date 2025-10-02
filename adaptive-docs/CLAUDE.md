@@ -16,6 +16,10 @@ For documentation needs, use Ref MCP tools:
 - **Search docs**: Use `mcp__Ref__ref_search_documentation` for Mintlify, MDX, documentation best practices
 - **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
 
+### Claude Agents
+Leverage specialized Claude agents for domain-specific tasks:
+- **shell-script-expert**: Use this agent for advanced shell scripting support including writing or debugging bash/zsh scripts, process management, POSIX compliance, and deployment automation. Provide the target environment, desired behaviour, and any constraints when invoking this agent.
+
 ## Overview
 
 The adaptive-docs service provides comprehensive public-facing documentation for the Adaptive LLM infrastructure. Built with Mintlify, it offers interactive API documentation, integration guides, feature explanations, and troubleshooting resources for developers using the Adaptive platform.
