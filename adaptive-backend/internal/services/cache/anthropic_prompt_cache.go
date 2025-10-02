@@ -155,6 +155,92 @@ func (pc *AnthropicPromptCache) setInCache(ctx context.Context, req *models.Anth
 	return nil
 }
 
+// SetAsync stores a response asynchronously in the cache
+func (pc *AnthropicPromptCache) SetAsync(ctx context.Context, req *models.AnthropicMessageRequest, response *models.AnthropicMessage, requestID string) <-chan error {
+	errCh := make(chan error, 1)
+
+	if req.PromptCache == nil || !req.PromptCache.Enabled {
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	if pc.semanticCache == nil {
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
+	if err != nil {
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	fiberlog.Debugf("[%s] AnthropicPromptCache: Storing response in semantic cache (async)", requestID)
+	return pc.semanticCache.SetAsync(ctx, prompt, prompt, *response)
+}
+
+// GetAsync retrieves a cached response asynchronously using semantic similarity
+func (pc *AnthropicPromptCache) GetAsync(ctx context.Context, req *models.AnthropicMessageRequest, requestID string) <-chan semanticcache.GetResult[models.AnthropicMessage] {
+	resultCh := make(chan semanticcache.GetResult[models.AnthropicMessage], 1)
+
+	if req.PromptCache == nil || !req.PromptCache.Enabled {
+		resultCh <- semanticcache.GetResult[models.AnthropicMessage]{Found: false}
+		close(resultCh)
+		return resultCh
+	}
+
+	if pc.semanticCache == nil {
+		resultCh <- semanticcache.GetResult[models.AnthropicMessage]{Found: false}
+		close(resultCh)
+		return resultCh
+	}
+
+	prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
+	if err != nil {
+		resultCh <- semanticcache.GetResult[models.AnthropicMessage]{Error: err}
+		close(resultCh)
+		return resultCh
+	}
+
+	fiberlog.Debugf("[%s] AnthropicPromptCache: Getting from semantic cache (async)", requestID)
+	return pc.semanticCache.GetAsync(ctx, prompt)
+}
+
+// LookupAsync performs semantic similarity lookup asynchronously
+func (pc *AnthropicPromptCache) LookupAsync(ctx context.Context, req *models.AnthropicMessageRequest, requestID string) <-chan semanticcache.LookupResult[models.AnthropicMessage] {
+	resultCh := make(chan semanticcache.LookupResult[models.AnthropicMessage], 1)
+
+	if req.PromptCache == nil || !req.PromptCache.Enabled {
+		resultCh <- semanticcache.LookupResult[models.AnthropicMessage]{Match: nil}
+		close(resultCh)
+		return resultCh
+	}
+
+	if pc.semanticCache == nil {
+		resultCh <- semanticcache.LookupResult[models.AnthropicMessage]{Match: nil}
+		close(resultCh)
+		return resultCh
+	}
+
+	prompt, err := utils.ExtractPromptFromAnthropicMessages(req.Messages)
+	if err != nil {
+		resultCh <- semanticcache.LookupResult[models.AnthropicMessage]{Error: err}
+		close(resultCh)
+		return resultCh
+	}
+
+	threshold := pc.semanticThreshold
+	if req.PromptCache.SemanticThreshold > 0 {
+		threshold = float32(req.PromptCache.SemanticThreshold)
+	}
+
+	fiberlog.Debugf("[%s] AnthropicPromptCache: Semantic lookup (async, threshold: %.2f)", requestID, threshold)
+	return pc.semanticCache.LookupAsync(ctx, prompt, threshold)
+}
+
 // Flush clears all Anthropic prompt cache entries
 func (pc *AnthropicPromptCache) Flush(ctx context.Context) error {
 	if pc.semanticCache == nil {

@@ -159,6 +159,92 @@ func (pc *OpenAIPromptCache) setInCache(ctx context.Context, req *models.ChatCom
 	return nil
 }
 
+// SetAsync stores a response asynchronously in the cache
+func (pc *OpenAIPromptCache) SetAsync(ctx context.Context, req *models.ChatCompletionRequest, response *models.ChatCompletion, requestID string) <-chan error {
+	errCh := make(chan error, 1)
+
+	if req.PromptCache == nil || !req.PromptCache.Enabled {
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	if pc.semanticCache == nil {
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	prompt, err := utils.FindLastUserMessage(req.Messages)
+	if err != nil {
+		errCh <- nil
+		close(errCh)
+		return errCh
+	}
+
+	fiberlog.Debugf("[%s] OpenAIPromptCache: Storing response in semantic cache (async)", requestID)
+	return pc.semanticCache.SetAsync(ctx, prompt, prompt, *response)
+}
+
+// GetAsync retrieves a cached response asynchronously using semantic similarity
+func (pc *OpenAIPromptCache) GetAsync(ctx context.Context, req *models.ChatCompletionRequest, requestID string) <-chan semanticcache.GetResult[models.ChatCompletion] {
+	resultCh := make(chan semanticcache.GetResult[models.ChatCompletion], 1)
+
+	if req.PromptCache == nil || !req.PromptCache.Enabled {
+		resultCh <- semanticcache.GetResult[models.ChatCompletion]{Found: false}
+		close(resultCh)
+		return resultCh
+	}
+
+	if pc.semanticCache == nil {
+		resultCh <- semanticcache.GetResult[models.ChatCompletion]{Found: false}
+		close(resultCh)
+		return resultCh
+	}
+
+	prompt, err := utils.FindLastUserMessage(req.Messages)
+	if err != nil {
+		resultCh <- semanticcache.GetResult[models.ChatCompletion]{Error: err}
+		close(resultCh)
+		return resultCh
+	}
+
+	fiberlog.Debugf("[%s] OpenAIPromptCache: Getting from semantic cache (async)", requestID)
+	return pc.semanticCache.GetAsync(ctx, prompt)
+}
+
+// LookupAsync performs semantic similarity lookup asynchronously
+func (pc *OpenAIPromptCache) LookupAsync(ctx context.Context, req *models.ChatCompletionRequest, requestID string) <-chan semanticcache.LookupResult[models.ChatCompletion] {
+	resultCh := make(chan semanticcache.LookupResult[models.ChatCompletion], 1)
+
+	if req.PromptCache == nil || !req.PromptCache.Enabled {
+		resultCh <- semanticcache.LookupResult[models.ChatCompletion]{Match: nil}
+		close(resultCh)
+		return resultCh
+	}
+
+	if pc.semanticCache == nil {
+		resultCh <- semanticcache.LookupResult[models.ChatCompletion]{Match: nil}
+		close(resultCh)
+		return resultCh
+	}
+
+	prompt, err := utils.FindLastUserMessage(req.Messages)
+	if err != nil {
+		resultCh <- semanticcache.LookupResult[models.ChatCompletion]{Error: err}
+		close(resultCh)
+		return resultCh
+	}
+
+	threshold := pc.semanticThreshold
+	if req.PromptCache.SemanticThreshold > 0 {
+		threshold = float32(req.PromptCache.SemanticThreshold)
+	}
+
+	fiberlog.Debugf("[%s] OpenAIPromptCache: Semantic lookup (async, threshold: %.2f)", requestID, threshold)
+	return pc.semanticCache.LookupAsync(ctx, prompt, threshold)
+}
+
 // Flush clears all prompt cache entries
 func (pc *OpenAIPromptCache) Flush(ctx context.Context) error {
 	if pc.semanticCache == nil {

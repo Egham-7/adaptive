@@ -108,7 +108,7 @@ func (pm *ModelRouter) SelectModelWithCache(
 	return &resp, "", nil
 }
 
-// StoreSuccessfulModel stores a model response in the semantic cache after successful completion
+// StoreSuccessfulModel stores a model response in the semantic cache after successful completion using async methods
 func (pm *ModelRouter) StoreSuccessfulModel(
 	ctx context.Context,
 	prompt string,
@@ -124,13 +124,14 @@ func (pm *ModelRouter) StoreSuccessfulModel(
 		return nil
 	}
 
-	fiberlog.Debugf("[%s] Storing successful model response in semantic cache", requestID)
-	if err := pm.cache.Store(ctx, prompt, resp); err != nil {
-		fiberlog.Errorf("[%s] Failed to store model response in semantic cache: %v", requestID, err)
+	fiberlog.Debugf("[%s] Storing successful model response in semantic cache (async)", requestID)
+	errCh := pm.cache.StoreAsync(ctx, prompt, resp, requestID)
+	if err := <-errCh; err != nil {
+		fiberlog.Errorf("[%s] Failed to store model response in semantic cache (async): %v", requestID, err)
 		return err
 	}
 
-	fiberlog.Debugf("[%s] Successfully stored model response in semantic cache", requestID)
+	fiberlog.Debugf("[%s] Successfully stored model response in semantic cache (async)", requestID)
 	return nil
 }
 
@@ -217,9 +218,9 @@ func createCacheIfEnabled(cfg *config.Config, semanticCacheConfig models.CacheCo
 	return cache, nil
 }
 
-// lookupCache performs cache lookup with circuit breaker validation
+// lookupCache performs cache lookup with circuit breaker validation using async methods
 func (pm *ModelRouter) lookupCache(ctx context.Context, prompt, requestID string, cacheConfig models.CacheConfig, cbs map[string]*circuitbreaker.CircuitBreaker) models.CacheResult {
-	cachedResponse, source, found := pm.getCachedResponse(ctx, prompt, requestID, cacheConfig)
+	cachedResponse, source, found := pm.getCachedResponseAsync(ctx, prompt, requestID, cacheConfig)
 	if !found {
 		return models.CacheResult{Hit: false}
 	}
@@ -230,8 +231,9 @@ func (pm *ModelRouter) lookupCache(ctx context.Context, prompt, requestID string
 
 		// Invalidate the cache entry since all providers are circuit-broken
 		if pm.cache != nil {
-			if err := pm.cache.Delete(ctx, prompt, cachedResponse.Provider, requestID); err != nil {
-				fiberlog.Errorf("[%s] Failed to invalidate cache entry: %v", requestID, err)
+			errCh := pm.cache.DeleteAsync(ctx, prompt, cachedResponse.Provider, requestID)
+			if err := <-errCh; err != nil {
+				fiberlog.Errorf("[%s] Failed to invalidate cache entry (async): %v", requestID, err)
 			}
 		}
 
@@ -245,13 +247,42 @@ func (pm *ModelRouter) lookupCache(ctx context.Context, prompt, requestID string
 	}
 }
 
-// getCachedResponse retrieves cached response with threshold handling
-func (pm *ModelRouter) getCachedResponse(ctx context.Context, prompt, requestID string, cacheConfig models.CacheConfig) (*models.ModelSelectionResponse, string, bool) {
-	if cacheConfig.SemanticThreshold > 0 {
-		fiberlog.Debugf("[%s] Using threshold override: %.2f", requestID, cacheConfig.SemanticThreshold)
-		return pm.cache.LookupWithThreshold(ctx, prompt, requestID, float32(cacheConfig.SemanticThreshold))
+// getCachedResponseAsync retrieves cached response with threshold handling using async methods
+func (pm *ModelRouter) getCachedResponseAsync(ctx context.Context, prompt, requestID string, cacheConfig models.CacheConfig) (*models.ModelSelectionResponse, string, bool) {
+	// Try exact match first
+	fiberlog.Debugf("[%s] ModelRouter: Trying async exact key match", requestID)
+	getCh := pm.cache.cache.GetAsync(ctx, prompt)
+	getResult := <-getCh
+
+	if getResult.Found && getResult.Error == nil {
+		fiberlog.Infof("[%s] ModelRouter: Exact cache hit (async)", requestID)
+		return &getResult.Value, models.CacheTierSemanticExact, true
+	} else if getResult.Error != nil {
+		fiberlog.Errorf("[%s] ModelRouter: Error during async exact lookup: %v", requestID, getResult.Error)
 	}
-	return pm.cache.Lookup(ctx, prompt, requestID)
+
+	// Try semantic lookup with threshold
+	threshold := pm.cache.semanticThreshold
+	if cacheConfig.SemanticThreshold > 0 {
+		threshold = float32(cacheConfig.SemanticThreshold)
+		fiberlog.Debugf("[%s] Using threshold override: %.2f (async)", requestID, cacheConfig.SemanticThreshold)
+	}
+
+	fiberlog.Debugf("[%s] ModelRouter: Trying async semantic lookup (threshold: %.2f)", requestID, threshold)
+	lookupCh := pm.cache.cache.LookupAsync(ctx, prompt, threshold)
+	lookupResult := <-lookupCh
+
+	if lookupResult.Error != nil {
+		fiberlog.Errorf("[%s] Error during async semantic lookup: %v", requestID, lookupResult.Error)
+		return nil, "", false
+	}
+
+	if lookupResult.Match == nil {
+		return nil, "", false
+	}
+
+	fiberlog.Infof("[%s] ModelRouter: Semantic cache hit (async)", requestID)
+	return &lookupResult.Match.Value, models.CacheTierSemanticSimilar, true
 }
 
 // selectAvailableModel finds the first available model from cached response considering circuit breakers
