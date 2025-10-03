@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"adaptive-backend/internal/api"
+	geminiapi "adaptive-backend/internal/api/gemini"
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
 	"adaptive-backend/internal/services/cache"
@@ -65,7 +66,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 
 	// Create shared circuit breakers for all providers across all services
 	circuitBreakers := make(map[string]*circuitbreaker.CircuitBreaker)
-	providerTypes := []string{"chat_completions", "messages", "generate"}
+	providerTypes := []string{"chat_completions", "messages", "generate", "count_tokens"}
 
 	for _, serviceType := range providerTypes {
 		for providerName := range cfg.GetProviders(serviceType) {
@@ -84,7 +85,8 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	chatCompletionHandler := api.NewCompletionHandler(cfg, reqSvc, respSvc, completionSvc, modelRouter, openaiPromptCache, circuitBreakers)
 	selectModelHandler := api.NewSelectModelHandler(cfg, selectModelReqSvc, selectModelSvc, selectModelRespSvc, circuitBreakers)
 	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, anthropicPromptCache, circuitBreakers)
-	generateHandler := api.NewGenerateHandler(cfg, modelRouter, geminiPromptCache, circuitBreakers)
+	generateHandler := geminiapi.NewGenerateHandler(cfg, modelRouter, geminiPromptCache, circuitBreakers)
+	countTokensHandler := geminiapi.NewCountTokensHandler(cfg, modelRouter, circuitBreakers)
 
 	// Setup v1 routes for internal communication (no authentication needed)
 	v1Group := app.Group("/v1")
@@ -99,6 +101,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	v1betaGroup := app.Group("/v1beta")
 	v1betaGroup.Post(`/models/:model\:generateContent`, generateHandler.Generate)
 	v1betaGroup.Post(`/models/:model\:streamGenerateContent`, generateHandler.StreamGenerate)
+	v1betaGroup.Post(`/models/:model\:countTokens`, countTokensHandler.CountTokens)
 
 	return nil
 }
