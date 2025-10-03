@@ -31,6 +31,13 @@ export async function POST(
 				params: { model: model || "" },
 			});
 		}
+
+		if (method === "countTokens") {
+			const { POST: countTokensHandler } = await import(
+				"../[model]/countTokens/route"
+			);
+			return countTokensHandler(req, { params: { model: model || "" } });
+		}
 	}
 
 	if (segments.length === 2) {
@@ -51,6 +58,13 @@ export async function POST(
 			return streamGenerateContentHandler(req, {
 				params: { model: model || "" },
 			});
+		}
+
+		if (method === "countTokens") {
+			const { POST: countTokensHandler } = await import(
+				"../[model]/countTokens/route"
+			);
+			return countTokensHandler(req, { params: { model: model || "" } });
 		}
 	}
 

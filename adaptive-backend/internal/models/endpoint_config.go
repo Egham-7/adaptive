@@ -11,4 +11,5 @@ type EndpointsConfig struct {
 	Messages        EndpointConfig `yaml:"messages"`
 	SelectModel     EndpointConfig `yaml:"select_model"`
 	Generate        EndpointConfig `yaml:"generate"`
+	CountTokens     EndpointConfig `yaml:"count_tokens"`
 }

@@ -1,29 +1,24 @@
 ---
 title: "Gemini CLI Integration"
-description: "Configure Gemini CLI with Adaptive's intelligent LLM routing for 60-80% cost savings and access to multiple AI providers"
+description: "Configure Gemini CLI with Adaptive's intelligent routing to automatically select the optimal Gemini model for each task"
 icon: "sparkles"
 ---
 
-Configure Gemini CLI to use Adaptive's intelligent routing for 60-80% cost savings while gaining access to multiple AI providers beyond just Google's Gemini models.
+Configure Gemini CLI to use Adaptive's intelligent routing infrastructure that automatically selects the optimal Google Gemini model for each task.
 
 <Tip>
-**Save 60-80% on AI development costs** with intelligent model routing. Works as a drop-in replacement for Gemini CLI's API backend. Access Anthropic Claude, OpenAI, and other providers through a unified interface with automatic load balancing and fallbacks.
+**Intelligent Gemini model selection** with automatic routing. Works as a drop-in replacement for Gemini CLI's API backend, selecting between Gemini 2.5 Pro, Flash, and Flash Lite based on task complexity with cost optimization built-in.
 </Tip>
 
 ## Benefits of Using Gemini CLI with Adaptive
 
 When you integrate Gemini CLI with Adaptive, you unlock powerful capabilities:
 
-### Developer Benefits
-- **Universal Model Access**: Use any LiteLLM-supported model (Anthropic Claude, OpenAI GPT-4, Vertex AI, Bedrock, etc.) through the Gemini CLI interface
-- **Higher Rate Limits & Reliability**: Load balance across multiple models and providers to avoid hitting individual provider limits
-- **Automatic Fallbacks**: Get responses even if one provider fails—Adaptive automatically routes to the next available model
-- **Cost Optimization**: Intelligent routing selects the most cost-effective model for each request
-
-### Admin Benefits
-- **Centralized Management**: Control access to all models through a single Adaptive proxy without giving developers API keys to each provider
-- **Budget Controls**: Set spending limits and track costs across all Gemini CLI usage
+- **Intelligent Model Selection**: Adaptive automatically selects the optimal Gemini model (2.5 Pro, 2.5 Flash, or 2.5 Flash Lite) based on your task complexity
+- **Cost Optimization**: Automatically routes simple tasks to Flash Lite, moderate tasks to Flash, and complex tasks to Pro, optimizing costs without sacrificing quality
+- **Higher Reliability**: Automatic fallbacks and retry logic ensure consistent responses
 - **Usage Analytics**: Monitor model usage, costs, and performance in real-time
+- **Simplified Configuration**: Single API key for all Gemini model variants
 
 ## Get Your Adaptive API Key
 
@@ -49,11 +44,11 @@ Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and gene
     echo $GOOGLE_GEMINI_BASE_URL
     ```
   </Step>
-  <Step title="Start Using with Multi-Provider Access" icon="play">
+  <Step title="Start Using" icon="play">
     ```bash
     gemini "explain quantum computing"
     ```
-    Adaptive will automatically route your request to the optimal model across all available providers.
+    Adaptive will automatically route your request to the optimal Gemini model.
   </Step>
 </Steps>
 
@@ -127,87 +122,51 @@ curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/insta
 
 ## Advanced Configuration
 
-### Using Multi-Provider Model Routing
+### Specifying Gemini Models
 
-With Adaptive, you can configure Gemini CLI to use models from multiple providers:
+Configure which Gemini model to use by default:
 
 <CodeGroup>
-```bash Anthropic Claude
-# Use Claude models through Gemini CLI
-export ADAPTIVE_MODEL='claude-sonnet-4-20250514'
-gemini "write a Python function"
+```bash Gemini 2.5 Pro
+# Use Gemini 2.5 Pro for complex tasks
+export GEMINI_MODEL='gemini:gemini-2.5-pro'
+gemini "write a complex algorithm"
 ```
 
-```bash OpenAI GPT-4
-# Use OpenAI models through Gemini CLI
-export ADAPTIVE_MODEL='gpt-4o'
+```bash Gemini 2.5 Flash
+# Use Gemini 2.5 Flash for moderate tasks
+export GEMINI_MODEL='gemini:gemini-2.5-flash'
 gemini "explain this code"
 ```
 
+```bash Gemini 2.5 Flash Lite
+# Use Gemini 2.5 Flash Lite for simple tasks
+export GEMINI_MODEL='gemini:gemini-2.5-flash-lite'
+gemini "what is JavaScript?"
+```
+
 ```bash Intelligent Routing (Recommended)
-# Let Adaptive choose the optimal model
-export ADAPTIVE_MODEL=''
+# Let Adaptive choose the optimal Gemini model
+export GEMINI_MODEL=''
 gemini "complex reasoning task"
 ```
 </CodeGroup>
 
-### Model Group Aliases
+### Model Selection
 
-For advanced use cases, configure model aliases in your Adaptive proxy to route Gemini model requests to any provider:
+When `GEMINI_MODEL` is not set or empty, Adaptive intelligently selects the best Gemini model for each task based on:
+- **Task complexity**: Analyzes prompt complexity to select the optimal model
+- **Performance requirements**: Matches model capabilities to task needs
+- **Cost optimization**: Balances performance and cost automatically
+- **Availability**: Automatic fallback if a model is unavailable
 
-```yaml proxy_config.yaml
-model_list:
-  - model_name: claude-sonnet-4-20250514
-    litellm_params:
-      model: anthropic/claude-3-5-sonnet-20241022
-      api_key: os.environ/ANTHROPIC_API_KEY
+### Available Gemini Models
 
-  - model_name: gpt-4o-latest
-    litellm_params:
-      model: openai/gpt-4o
-      api_key: os.environ/OPENAI_API_KEY
-
-router_settings:
-  model_group_alias:
-    "gemini-2.5-pro": "claude-sonnet-4-20250514"
-    "gemini-2.5-flash": "gpt-4o-latest"
-```
-
-With this configuration:
-- Requests for `gemini-2.5-pro` → routed to **Claude Sonnet**
-- Requests for `gemini-2.5-flash` → routed to **GPT-4o**
-- Automatic load balancing and fallbacks across providers
-
-### Load Balancing Configuration
-
-Configure load balancing across multiple models for higher throughput:
-
-```yaml proxy_config.yaml
-model_list:
-  - model_name: claude-sonnet
-    litellm_params:
-      model: anthropic/claude-3-5-sonnet-20241022
-      api_key: os.environ/ANTHROPIC_API_KEY
-
-  - model_name: gpt-4o
-    litellm_params:
-      model: openai/gpt-4o
-      api_key: os.environ/OPENAI_API_KEY
-
-  - model_name: gemini-pro
-    litellm_params:
-      model: google/gemini-2.5-pro
-      api_key: os.environ/GOOGLE_API_KEY
-
-router_settings:
-  model_group_alias:
-    "gemini-2.5-pro": ["claude-sonnet", "gpt-4o", "gemini-pro"]
-```
-
-Benefits:
-- **Higher rate limits**: Distribute requests across multiple providers
-- **Automatic failover**: If one provider is down, requests route to others
-- **Cost optimization**: Route to the most cost-effective available model
+| Model | Best For | Speed | Cost |
+|-------|----------|-------|------|
+| `gemini-2.5-pro` | Complex reasoning, deep analysis | Slower | Higher |
+| `gemini-2.5-flash` | Moderate tasks, balanced performance | Fast | Medium |
+| `gemini-2.5-flash-lite` | Simple tasks, quick responses | Fastest | Lowest |
 
 ## Usage Examples
 

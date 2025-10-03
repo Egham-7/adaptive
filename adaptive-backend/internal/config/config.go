@@ -86,6 +86,15 @@ func LoadFromFile(configPath string) (*Config, error) {
 		config.Endpoints.SelectModel.Providers = normalizedProviders
 	}
 
+	// Normalize provider map keys to lowercase for CountTokens endpoint too
+	if config.Endpoints.CountTokens.Providers != nil {
+		normalizedProviders := make(map[string]models.ProviderConfig, len(config.Endpoints.CountTokens.Providers))
+		for key, value := range config.Endpoints.CountTokens.Providers {
+			normalizedProviders[strings.ToLower(key)] = value
+		}
+		config.Endpoints.CountTokens.Providers = normalizedProviders
+	}
+
 	return &config, nil
 }
 
@@ -160,6 +169,8 @@ func (c *Config) GetProviderAPIKey(provider, endpoint string) string {
 		providers = c.Endpoints.SelectModel.Providers
 	case "generate":
 		providers = c.Endpoints.Generate.Providers
+	case "count_tokens":
+		providers = c.Endpoints.CountTokens.Providers
 	default:
 		return ""
 	}
@@ -182,6 +193,8 @@ func (c *Config) GetProviders(endpoint string) map[string]models.ProviderConfig 
 		return c.Endpoints.SelectModel.Providers
 	case "generate":
 		return c.Endpoints.Generate.Providers
+	case "count_tokens":
+		return c.Endpoints.CountTokens.Providers
 	default:
 		return nil
 	}
@@ -199,6 +212,8 @@ func (c *Config) GetProviderConfig(provider, endpoint string) (models.ProviderCo
 		providers = c.Endpoints.SelectModel.Providers
 	case "generate":
 		providers = c.Endpoints.Generate.Providers
+	case "count_tokens":
+		providers = c.Endpoints.CountTokens.Providers
 	default:
 		return models.ProviderConfig{}, false
 	}
