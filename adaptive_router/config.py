@@ -55,35 +55,6 @@ class ClassifierConfig(BaseModel):
     )
 
 
-class ModalDeploymentConfig(BaseModel):
-    """Modal deployment configuration."""
-
-    app_name: str = Field(
-        default="prompt-task-complexity-classifier",
-        description="Modal app name",
-    )
-    gpu_type: str = Field(
-        default="T4",
-        description="GPU type for Modal deployment (T4, A10G, A100, etc.)",
-    )
-    timeout: int = Field(
-        default=600,
-        description="Container timeout in seconds",
-    )
-    scaledown_window: int = Field(
-        default=300,
-        description="Time to wait before scaling down idle containers (seconds)",
-    )
-    min_containers: int = Field(
-        default=0,
-        description="Minimum number of containers to keep warm",
-    )
-    max_containers: int = Field(
-        default=1,
-        description="Maximum number of containers for auto-scaling",
-    )
-
-
 class Settings(BaseSettings):  # type: ignore[misc]
     """Main application settings."""
 
@@ -91,9 +62,6 @@ class Settings(BaseSettings):  # type: ignore[misc]
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     cors: CORSConfig = Field(default_factory=CORSConfig)
     classifier: ClassifierConfig = Field(default_factory=ClassifierConfig)
-    modal_deployment: ModalDeploymentConfig = Field(
-        default_factory=ModalDeploymentConfig
-    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

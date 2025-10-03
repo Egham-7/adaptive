@@ -7,74 +7,69 @@ This module deploys the model router as a single Modal function with:
 - JWT authentication for security
 """
 
-import importlib.util
 import logging
-import os
 import time
 
 import modal
 from fastapi import HTTPException, Request
 
-from config import get_settings
 from adaptive_router.models.llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
 from adaptive_router.services.model_router import ModelRouter
 
-# Import local JWT module
-spec = importlib.util.spec_from_file_location(
-    "jwt_auth", os.path.join(os.path.dirname(__file__), "jwt_auth.py")
-)
-if spec and spec.loader:
-    jwt_auth = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(jwt_auth)
-else:
-    raise ImportError("Could not load JWT authentication module")
+# Modal deployment constants
+APP_NAME = "prompt-task-complexity-classifier"
+GPU_TYPE = "T4"
+TIMEOUT = 600
+SCALEDOWN_WINDOW = 300
+MIN_CONTAINERS = 0
+MAX_CONTAINERS = 1
 
 logger = logging.getLogger(__name__)
 
-settings = get_settings()
-model_router_instance = ModelRouter()
 
-# Create Modal image with dependencies
-image = (
-    modal.Image.debian_slim(python_version="3.13")
-    .pip_install(
-        [
-            # Core ML dependencies
-            "torch",
-            "transformers",
-            "huggingface-hub",
-            "numpy",
-            "accelerate",
-            # API dependencies
-            "pydantic",
-            "pydantic-settings",
-            # LLM integration
-            "langchain",
-            "langchain-core",
-            "openai",
-            "pyyaml",
-            "cachetools",
-            # JWT authentication
-            "python-jose[cryptography]",
-            "pyjwt",
-        ]
+def get_modal_image() -> modal.Image:
+    """Create Modal image with dependencies."""
+    return (
+        modal.Image.debian_slim(python_version="3.13")
+        .pip_install(
+            [
+                # Core ML dependencies
+                "torch",
+                "transformers",
+                "huggingface-hub",
+                "numpy",
+                "accelerate",
+                # API dependencies
+                "pydantic",
+                "pydantic-settings",
+                # LLM integration
+                "langchain",
+                "langchain-core",
+                "openai",
+                "pyyaml",
+                "cachetools",
+                # JWT authentication
+                "python-jose[cryptography]",
+                "pyjwt",
+            ]
+        )
+        .add_local_file("config.py", "/root/config.py")
+        .add_local_python_source("adaptive_router")
     )
-    .add_local_file("config.py", "/root/config.py")
-    .add_local_python_source("adaptive_router")
-)
 
-app = modal.App(settings.modal_deployment.app_name, image=image)
+
+app = modal.App(APP_NAME, image=get_modal_image())
 
 
 @app.function(
-    gpu=settings.modal_deployment.gpu_type,
-    timeout=settings.modal_deployment.timeout,
-    scaledown_window=settings.modal_deployment.scaledown_window,
-    min_containers=settings.modal_deployment.min_containers,
-    max_containers=settings.modal_deployment.max_containers,
+    gpu=GPU_TYPE,
+    timeout=TIMEOUT,
+    scaledown_window=SCALEDOWN_WINDOW,
+    min_containers=MIN_CONTAINERS,
+    max_containers=MAX_CONTAINERS,
     secrets=[modal.Secret.from_name("jwt-auth")],
 )
 def select_model(
@@ -96,6 +91,8 @@ def select_model(
         ValueError: If validation fails or no eligible models found
         RuntimeError: If inference or routing errors occur
     """
+    import jwt_auth
+
     # Verify JWT token
     try:
         token_payload = jwt_auth.verify_jwt_token(http_request)
@@ -120,6 +117,7 @@ def select_model(
         },
     )
 
+    model_router_instance = ModelRouter()
     start_time = time.perf_counter()
     response = model_router_instance.select_model(request)
     elapsed = time.perf_counter() - start_time
@@ -138,12 +136,12 @@ def select_model(
 
 
 if __name__ == "__main__":
+    import os
+
     print("🚀 Adaptive Router - Modal Deployment")
     print("=" * 60)
     print("✨ Features:")
-    print(
-        f"  • 🧠 ML inference with GPU acceleration ({settings.modal_deployment.gpu_type})"
-    )
+    print(f"  • 🧠 ML inference with GPU acceleration ({GPU_TYPE})")
     print("  • ⚡ Auto-scaling serverless deployment")
     print("  • 🎯 Intelligent model selection")
     print("  • 🔒 JWT authentication for security")
@@ -152,9 +150,7 @@ if __name__ == "__main__":
     print("")
     print("📞 Usage:")
     print("  from modal import Function")
-    print(
-        '  select_model = Function.lookup("prompt-task-complexity-classifier", "select_model")'
-    )
+    print(f'  select_model = Function.lookup("{APP_NAME}", "select_model")')
     print("  result = select_model.remote(request)")
     print("")
     print("🔒 Authentication:")
@@ -162,12 +158,12 @@ if __name__ == "__main__":
     print("  Requests must include 'Authorization: Bearer <jwt_token>' header")
     print("")
     print("⚙️  Configuration:")
-    print(f"  • App name: {settings.modal_deployment.app_name}")
-    print(f"  • GPU: {settings.modal_deployment.gpu_type}")
-    print(f"  • Timeout: {settings.modal_deployment.timeout}s")
-    print(f"  • Scale down: {settings.modal_deployment.scaledown_window}s")
-    print(f"  • Min containers: {settings.modal_deployment.min_containers}")
-    print(f"  • Max containers: {settings.modal_deployment.max_containers}")
+    print(f"  • App name: {APP_NAME}")
+    print(f"  • GPU: {GPU_TYPE}")
+    print(f"  • Timeout: {TIMEOUT}s")
+    print(f"  • Scale down: {SCALEDOWN_WINDOW}s")
+    print(f"  • Min containers: {MIN_CONTAINERS}")
+    print(f"  • Max containers: {MAX_CONTAINERS}")
     print(
         f"  • JWT Secret: {'✅ Modal Secrets' if os.getenv('jwt_auth') else '❌ Not configured'}"
     )
