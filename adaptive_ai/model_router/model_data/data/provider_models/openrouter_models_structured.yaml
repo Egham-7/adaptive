@@ -1078,24 +1078,26 @@ models:
       matching_operator: equals
       available_in_playground: null
   deepseek_deepseek_chat_v3_0324:
-    description: ''
+    description: 'DeepSeek Chat V3.1-Terminus'
     provider: OPENROUTER
     model_name: deepseek/deepseek-chat-v3-0324
     cost_per_1m_input_tokens: 0.27
     cost_per_1m_output_tokens: 1.1
-    max_context_tokens: null
-    max_output_tokens: null
-    supports_function_calling: null
-    languages_supported: []
-    model_size_params: 67B
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_function_calling: true
+    languages_supported: 
+      - en
+      - zh
+    model_size_params: V3.1-Terminus (MoE)
     latency_tier: low
     task_type: Chatbot
     complexity: low
     metadata:
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
   deepseek_deepseek_chat_v3_0324_free:
-    description: ''
+    description: 'DeepSeek Chat V3.1-Terminus - Free tier'
     provider: OPENROUTER
     model_name: deepseek/deepseek-chat-v3-0324:free
     cost_per_1m_input_tokens: 0.0
@@ -1316,22 +1318,24 @@ models:
       matching_operator: equals
       available_in_playground: null
   deepseek_deepseek_v3_base_free:
-    description: ''
+    description: 'DeepSeek V3.1 Base model - Free tier'
     provider: OPENROUTER
     model_name: deepseek/deepseek-v3-base:free
     cost_per_1m_input_tokens: 0.0
     cost_per_1m_output_tokens: 0.0
-    max_context_tokens: null
-    max_output_tokens: null
-    supports_function_calling: null
-    languages_supported: []
-    model_size_params: 67B
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_function_calling: true
+    languages_supported: 
+      - en
+      - zh
+    model_size_params: V3.1-Terminus (MoE)
     latency_tier: low
     task_type: Chatbot
     complexity: low
     metadata:
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
   eleutherai_llemma_7b:
     description: ''
     provider: OPENROUTER

@@ -7,22 +7,24 @@ provider_info:
   pricing_unit: per 1 million tokens
 models:
   accounts_fireworks_models_deepseek_v3:
-    description: ''
+    description: 'DeepSeek V3.1-Terminus with improved language consistency'
     provider: FIREWORKS
     model_name: accounts/fireworks/models/deepseek-v3
     cost_per_1m_input_tokens: 0.9
     cost_per_1m_output_tokens: 0.9
-    max_context_tokens: null
-    max_output_tokens: null
-    supports_function_calling: null
-    languages_supported: []
-    model_size_params: 67B
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_function_calling: true
+    languages_supported: 
+      - en
+      - zh
+    model_size_params: V3.1-Terminus (MoE)
     latency_tier: low
     task_type: Chatbot
     complexity: low
     metadata:
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
   accounts_fireworks_models_gpt_oss_120b:
     description: ''
     provider: FIREWORKS

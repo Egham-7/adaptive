@@ -84,8 +84,8 @@ const globalPricing = {
 				inputTokenCost: 15.0,
 				outputTokenCost: 75.0,
 			},
-			"claude-sonnet-4": {
-				displayName: "Claude Sonnet 4",
+			"claude-sonnet-4-5-20250929": {
+				displayName: "Claude Sonnet 4.5",
 				inputTokenCost: 3.0,
 				outputTokenCost: 15.0,
 			},
