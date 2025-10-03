@@ -32,20 +32,31 @@ Visit [llmadaptive.uk](https://www.llmadaptive.uk) to create an account and gene
 
 <Steps>
   <Step title="Run Automated Installer" icon="rocket">
-    ```bash curl -fsSL
-    https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/qwen-code.sh
-    | bash ``` The installer will automatically: - Install Qwen Code if not
-    present (via npm) - Configure OpenAI-compatible environment variables for
-    Adaptive - Add configuration to your shell profile (~/.bashrc, ~/.zshrc,
-    etc.) - Verify the installation
+    ```bash
+    curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/qwen-code.sh | bash
+    ```
+
+    The installer will automatically:
+    - Install Qwen Code if not present (via npm)
+    - Configure OpenAI-compatible environment variables for Adaptive
+    - Add configuration to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+    - Verify the installation
   </Step>
   <Step title="Verify Configuration" icon="check">
-    ```bash qwen --version echo $OPENAI_API_KEY echo $OPENAI_BASE_URL ```
+    ```bash
+    qwen --version
+    echo $OPENAI_API_KEY
+    echo $OPENAI_BASE_URL
+    ```
   </Step>
   <Step title="Start Using" icon="play">
-    ```bash qwen # Or start with a prompt qwen "help me refactor this function"
-    ``` Adaptive will automatically route your request to the optimal model for
-    coding tasks.
+    ```bash
+    qwen
+    # Or start with a prompt
+    qwen "help me refactor this function"
+    ```
+
+    Adaptive will automatically route your request to the optimal model for coding tasks.
   </Step>
 </Steps>
 
@@ -60,8 +71,7 @@ npm install -g @qwen-code/qwen-code@latest
 ```
 
 <Note>
-  Qwen Code requires Node.js 20 or higher. Check your version with `node
-  --version`.
+  Qwen Code requires Node.js 20 or higher. Check your version with `node --version`.
 </Note>
 
 ### Step 2: Configure Environment Variables
@@ -82,7 +92,6 @@ set -x OPENAI_API_KEY "your-adaptive-api-key-here"  # qwen-code
 set -x OPENAI_BASE_URL "https://www.llmadaptive.uk/api/v1"  # qwen-code
 set -x OPENAI_MODEL "intelligent-routing"  # qwen-code - for automatic model selection
 ```
-
 </CodeGroup>
 
 ### Step 3: Apply Configuration
@@ -125,7 +134,6 @@ export ADAPTIVE_API_KEY='your-api-key-here'
 export ADAPTIVE_MODEL='qwen:qwen-plus'  # Optional: specify default model
 curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/qwen-code.sh | bash
 ```
-
 </CodeGroup>
 
 ## Advanced Configuration
@@ -162,7 +170,6 @@ qwen "refactor this codebase"
 export OPENAI_MODEL='openai:gpt-4'
 qwen "write comprehensive tests"
 ```
-
 </CodeGroup>
 
 ### Intelligent Routing
@@ -196,12 +203,10 @@ cd your-project/
 qwen
 
 # Architecture analysis
-
 > Describe the main pieces of this system's architecture
 > What are the key dependencies and how do they interact?
 > Find all API endpoints and their authentication methods
-
-````
+```
 
 ```bash Code Development
 # Refactoring
@@ -213,7 +218,7 @@ qwen
 > Create a REST API endpoint for user management
 > Generate unit tests for the authentication module
 > Add error handling to all database operations
-````
+```
 
 ```bash Debugging & Analysis
 # Performance analysis
@@ -224,7 +229,6 @@ qwen
 > Check for potential SQL injection vulnerabilities
 > Find all hardcoded credentials or API keys
 ```
-
 </CodeGroup>
 
 ### Workflow Automation
@@ -235,14 +239,11 @@ qwen
 > git log --since="7 days ago" --pretty=format:"%h - %s" --graph
 
 # Create a changelog from recent commits
-
 > Generate a CHANGELOG.md from commits since last release
 
 # Find all TODO comments and create GitHub issues
-
 > Find all TODO comments and create corresponding issues
-
-````
+```
 
 ```bash File Operations
 # Convert all images in this directory to PNG format
@@ -253,8 +254,7 @@ qwen
 
 # Find and remove all console.log statements
 > Find and remove console.log statements from all JavaScript files
-````
-
+```
 </CodeGroup>
 
 ### Session Management
@@ -279,12 +279,10 @@ Control your token usage with configurable session limits:
 # Check current token usage and limits
 /stats
 ```
-
 </CodeGroup>
 
 <Note>
-  Session token limit applies to a single conversation, not cumulative API
-  calls.
+  Session token limit applies to a single conversation, not cumulative API calls.
 </Note>
 
 ### Vision Model Support
@@ -299,14 +297,12 @@ qwen "Analyze this UI screenshot and suggest improvements" --image screenshot.pn
 # Vision model will automatically switch when images are detected
 
 # Configure behavior in .qwen/settings.json
-
 {
-"experimental": {
-"vlmSwitchMode": "once" // "once", "session", "persist", or omit for interactive
+  "experimental": {
+    "vlmSwitchMode": "once" // "once", "session", "persist", or omit for interactive
+  }
 }
-}
-
-````
+```
 
 ```bash Vision Model Modes
 # Switch once per query, then revert
@@ -324,8 +320,7 @@ qwen --vlm-switch-mode persist
     "visionModelPreview": false
   }
 }
-````
-
+```
 </CodeGroup>
 
 ## Integration with Adaptive Features
@@ -337,55 +332,48 @@ qwen --vlm-switch-mode persist
 Adaptive automatically routes your requests to the most cost-effective model that meets quality requirements:
 
 **Before Adaptive**: Fixed model costs
-
 - GPT-4: $0.03/1K tokens (input) + $0.06/1K tokens (output)
 - Claude Sonnet: $0.003/1K tokens (input) + $0.015/1K tokens (output)
 
 **With Adaptive**: Intelligent routing saves 60-80%
-
 - Simple queries → Qwen Turbo: $0.0008/1K tokens
 - Moderate tasks → Qwen Plus: $0.002/1K tokens
 - Complex reasoning → Claude Sonnet: $0.003/1K tokens
 
 **Example Savings**:
-
 - 1M tokens/month without Adaptive: ~$45
 - 1M tokens/month with Adaptive: ~$12
 - **Monthly savings: $33 (73% reduction)**
-  </Accordion>
+</Accordion>
 
 <Accordion title="Semantic Caching" icon="database">
 Adaptive caches similar requests to reduce API calls:
 
 **How it works**:
-
 - Semantic similarity detection for code queries
 - Automatic cache hits for similar questions
 - Configurable cache TTL and similarity threshold
 
 **Cost Impact**:
-
 - Cache hit rate: 30-40% for typical dev workflows
 - Additional savings: 20-30% on top of intelligent routing
 - Zero latency for cached responses
-  </Accordion>
+</Accordion>
 
 <Accordion title="Load Balancing" icon="scale-balanced">
 Distribute requests across providers for optimal performance:
 
 **Benefits**:
-
 - Higher rate limits through multi-provider distribution
 - Automatic failover if one provider is down
 - Geographic routing for lower latency
 - Cost-optimized provider selection
 
 **Performance Impact**:
-
 - 99.9% uptime with automatic failover
 - 50% higher effective rate limits
 - 20-30% latency reduction with geographic routing
-    </Accordion>
+</Accordion>
 </AccordionGroup>
 
 ## Troubleshooting
@@ -395,7 +383,6 @@ Distribute requests across providers for optimal performance:
 **Problem**: Qwen Code installation fails
 
 **Solutions**:
-
 - Ensure Node.js 20+ is installed: `node --version`
 - Install Node.js if needed:
 
@@ -408,13 +395,12 @@ Distribute requests across providers for optimal performance:
 - Check npm permissions: `npm config get prefix`
 - Try with sudo (not recommended): `sudo npm install -g @qwen-code/qwen-code`
 - Clear npm cache: `npm cache clean --force`
-  </Accordion>
+</Accordion>
 
 <Accordion title="Authentication Errors" icon="key">
 **Problem**: "Unauthorized" or "Invalid API key" errors
 
 **Solutions**:
-
 1. Verify your API key at [llmadaptive.uk/dashboard](https://www.llmadaptive.uk/dashboard)
 2. Check environment variables are set:
 
@@ -437,13 +423,12 @@ Distribute requests across providers for optimal performance:
 4. Restart your terminal if changes were made to shell config
 5. Verify the base URL is correct: `https://www.llmadaptive.uk/api/v1`
 6. Check for the `# qwen-code` comment to ensure correct environment variables
-   </Accordion>
+</Accordion>
 
 <Accordion title="Connection Errors" icon="network-wired">
 **Problem**: Cannot connect to Adaptive API
 
 **Solutions**:
-
 - Check internet connectivity
 - Verify base URL is correct: `echo $OPENAI_BASE_URL`
 - Test API directly:
@@ -460,13 +445,12 @@ Distribute requests across providers for optimal performance:
 
 - Check if your network/firewall blocks the API endpoint
 - Try using a different network or VPN
-  </Accordion>
+</Accordion>
 
 <Accordion title="Model Routing Issues" icon="route">
 **Problem**: Requests not routing to expected models
 
 **Solutions**:
-
 1. Check current model configuration:
 
    ```bash
@@ -488,13 +472,12 @@ Distribute requests across providers for optimal performance:
 
 4. Check Adaptive dashboard for routing logs and model availability
 5. Review model names match supported providers
-   </Accordion>
+</Accordion>
 
 <Accordion title="Performance Issues" icon="gauge-high">
 **Problem**: Slow response times or timeouts
 
 **Solutions**:
-
 - Check Adaptive dashboard for provider status
 - Verify rate limits aren't exceeded
 - Use faster models for simple tasks:
@@ -507,41 +490,40 @@ Distribute requests across providers for optimal performance:
 - Check your internet connection speed
 - Review model selection—Qwen Turbo and Flash models are faster
 - Consider load balancing configuration in Adaptive dashboard
-  </Accordion>
+</Accordion>
 
 <Accordion title="Session Token Limits" icon="gauge">
 **Problem**: Hitting token limits in long sessions
 
 **Solutions**:
+- Configure higher session limits in `.qwen/settings.json`:
 
-1. Configure higher session limits in `.qwen/settings.json`:
+  ```json
+  {
+    "sessionTokenLimit": 64000
+  }
+  ```
 
-   ```json
-   {
-     "sessionTokenLimit": 64000
-   }
-   ```
+- Use session compression to reduce token usage:
 
-2. Use session compression to reduce token usage:
+  ```bash
+  /compress
+  ```
 
-   ```bash
-   /compress
-   ```
+- Clear conversation history and start fresh:
 
-3. Clear conversation history and start fresh:
+  ```bash
+  /clear
+  ```
 
-   ```bash
-   /clear
-   ```
+- Monitor token usage:
 
-4. Monitor token usage:
+  ```bash
+  /stats
+  ```
 
-   ```bash
-   /stats
-   ```
-
-5. Break large tasks into smaller sessions
-      </Accordion>
+- Break large tasks into smaller sessions
+</Accordion>
 </AccordionGroup>
 
 ## Uninstallation
@@ -550,16 +532,24 @@ If you need to remove Qwen Code or revert configuration:
 
 <Steps>
   <Step title="Remove Qwen Code">
-    ```bash npm uninstall -g @qwen-code/qwen-code ```
+    ```bash
+    npm uninstall -g @qwen-code/qwen-code
+    ```
   </Step>
   <Step title="Remove Environment Variables">
-    Edit your shell config file and remove these lines: ```bash # Qwen Code with
-    Adaptive LLM API Configuration export OPENAI_API_KEY="..." # qwen-code
-    export OPENAI_BASE_URL="..." # qwen-code export OPENAI_MODEL="..." #
-    qwen-code ```
+    Edit your shell config file and remove these lines:
+
+    ```bash
+    # Qwen Code with Adaptive LLM API Configuration
+    export OPENAI_API_KEY="..." # qwen-code
+    export OPENAI_BASE_URL="..." # qwen-code
+    export OPENAI_MODEL="..." # qwen-code
+    ```
   </Step>
   <Step title="Reload Shell Configuration">
-    ```bash source ~/.bashrc # or ~/.zshrc or ~/.config/fish/config.fish ```
+    ```bash
+    source ~/.bashrc # or ~/.zshrc or ~/.config/fish/config.fish
+    ```
   </Step>
 </Steps>
 
