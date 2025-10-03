@@ -56,6 +56,26 @@ func NewModelRouterClient(cfg *config.Config, redisClient *redis.Client) *ModelR
 		config.JWTSecret = cfg.Services.ModelRouter.Client.JWTSecret
 	}
 
+	// Map timeout from config (milliseconds to duration)
+	if cfg.Services.ModelRouter.Client.TimeoutMs > 0 {
+		config.RequestTimeout = time.Duration(cfg.Services.ModelRouter.Client.TimeoutMs) * time.Millisecond
+	}
+
+	// Map circuit breaker configuration
+	cbCfg := &cfg.Services.ModelRouter.Client.CircuitBreaker
+	if cbCfg.FailureThreshold > 0 {
+		config.CircuitBreakerConfig.FailureThreshold = cbCfg.FailureThreshold
+	}
+	if cbCfg.SuccessThreshold > 0 {
+		config.CircuitBreakerConfig.SuccessThreshold = cbCfg.SuccessThreshold
+	}
+	if cbCfg.TimeoutMs > 0 {
+		config.CircuitBreakerConfig.Timeout = time.Duration(cbCfg.TimeoutMs) * time.Millisecond
+	}
+	if cbCfg.ResetAfterMs > 0 {
+		config.CircuitBreakerConfig.ResetAfter = time.Duration(cbCfg.ResetAfterMs) * time.Millisecond
+	}
+
 	return NewModelRouterClientWithConfig(config, redisClient)
 }
 
