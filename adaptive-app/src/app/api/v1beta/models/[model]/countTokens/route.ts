@@ -69,10 +69,10 @@ export async function POST(
 			},
 		});
 
-		// Build request parameters
-		const countParams = {
+		// Build request parameters - preserve all fields from request body and override model
+		const countParams: CountTokensParameters = {
+			...body,
 			model,
-			contents: body.contents,
 		};
 
 		// Call the countTokens method
