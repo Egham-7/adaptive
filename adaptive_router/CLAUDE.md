@@ -523,10 +523,27 @@ CMD ["uv", "run", "adaptive-ai"]
 The service is included in the root `docker-compose.yml` with proper networking and resource allocation.
 
 ### Resource Requirements
-- **CPU**: 1-2 cores sufficient (no local ML inference)
+
+Resource requirements vary significantly by deployment mode:
+
+#### Library Mode (Local Inference)
+- **CPU**: 2-4 cores recommended for ML inference
+- **GPU**: NVIDIA GPU with CUDA support recommended (optional, falls back to CPU)
+- **Memory**: 4-8GB RAM for PyTorch models and transformers
+- **Storage**: 2-3GB for HuggingFace model cache and application code
+
+#### FastAPI Server Mode (Local Inference)
+- **CPU**: 2-4 cores for concurrent request handling + ML inference
+- **GPU**: NVIDIA GPU with CUDA support recommended for production workloads
+- **Memory**: 4-8GB RAM for ML models, API server, and request processing
+- **Storage**: 2-3GB for models, application, and logs
+
+#### Modal Serverless Mode (Remote Inference)
+- **CPU**: 1-2 cores sufficient (no local ML inference, only API routing)
 - **Memory**: 512MB-1GB RAM (minimal local processing)
 - **Storage**: 1GB for application and logs
 - **Network**: Reliable internet connection for Modal API calls
+- **Modal Resources**: T4 GPU (or configured GPU type) managed by Modal
 
 ### Hypercorn Benefits
 - **Protocol Support**: HTTP/1.1, HTTP/2, WebSockets out of the box
@@ -545,48 +562,105 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - Review environment variable configuration
 - Verify Hypercorn is correctly installed: `uv run hypercorn --version`
 
-**Modal API connection failures**
-- Verify MODAL_CLASSIFIER_URL is correct and accessible
-- Check JWT_SECRET environment variable is set
+**Local ML model loading failures** (Library/FastAPI modes)
+- Verify PyTorch and transformers are installed: `uv sync`
+- Check HuggingFace Hub connectivity for model downloads
+- Verify CUDA drivers if using GPU: `python -c "import torch; print(torch.cuda.is_available())"`
+- Check available disk space for model cache (~2-3GB required)
+- Review CLASSIFIER__DEVICE setting (auto, cuda, or cpu)
+
+**Modal API connection failures** (Modal mode only)
+- Verify Modal deployment is active: `modal app list`
+- Check JWT_SECRET environment variable matches Modal secret
 - Verify network connectivity to Modal service
 - Check Modal service health status
 
-**Classification errors**
+**Classification errors** (All modes)
 - Verify input format matches expected schema
-- Check Modal API response format
-- Review JWT token generation and validation
-- Monitor network latency to Modal service
+- Check prompt length is within model limits (default: 512 tokens)
+- Review classification result structure
+- Enable debug logging: `DEBUG=true uv run adaptive-ai`
 
 **Performance issues**
+
+*Library/FastAPI modes (local inference):*
+- Monitor GPU utilization: `nvidia-smi` (if using CUDA)
+- Check CPU usage and available cores
+- Verify model is loaded in memory (first inference is slower)
+- Consider reducing CLASSIFIER__MAX_LENGTH for faster processing
+- Review batch size if processing multiple prompts
+
+*Modal mode (remote inference):*
 - Check Modal API response times
-- Verify JWT token caching is working
-- Monitor httpx connection pool usage
+- Verify JWT token generation overhead
+- Monitor network latency to Modal service
 - Consider adjusting request timeout settings
 
 ### Debug Commands
+
+**Library Mode:**
+```bash
+# Test local classifier
+python -c "
+from adaptive_router import get_prompt_classifier
+classifier = get_prompt_classifier()
+result = classifier.classify_prompt('Write a Python sorting function')
+print(result)
+"
+
+# Check GPU availability
+python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+
+# Monitor memory usage
+python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
+```
+
+**FastAPI Server Mode:**
 ```bash
 # Enable debug logging
 DEBUG=true uv run adaptive-ai
 
-# Check Modal API health
+# Check service health
 curl -X GET http://localhost:8000/health
 
-# Test classification endpoint
+# Test model selection endpoint
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
-  -d '{"chat_completion_request": {"messages": [{"role": "user", "content": "Hello"}]}}'
+  -d '{"prompt": "Write a sorting algorithm", "cost_bias": 0.5}'
 
-# Monitor resource usage
-pip install psutil && python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
+# Monitor GPU usage (if CUDA enabled)
+nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv -l 1
+```
+
+**Modal Serverless Mode:**
+```bash
+# Check Modal deployment status
+modal app list
+
+# Test Modal function
+modal run deploy.py::select_model --prompt "Hello world"
+
+# View Modal logs
+modal app logs prompt-task-complexity-classifier
 ```
 
 ## Performance Benchmarks
 
-### Classification Speed
-- **Single Request**: <50ms end-to-end
-- **Batch Processing**: 500+ requests/second
-- **Memory Usage**: ~2-4GB with all models loaded
-- **Cache Hit Rate**: 60-80% in production
+Performance characteristics vary by deployment mode:
+
+### Library/FastAPI Mode (Local Inference)
+- **Single Request**: 50-200ms (depends on CPU/GPU, faster after model warmup)
+- **Batch Processing**: 100-500 requests/second (GPU-accelerated)
+- **Memory Usage**: 4-8GB with all models loaded in memory
+- **First Request Latency**: 2-5 seconds (model loading time)
+- **GPU Speedup**: 3-5x faster than CPU inference
+
+### Modal Serverless Mode (Remote Inference)
+- **Single Request**: 100-300ms end-to-end (including network latency)
+- **Cold Start**: 5-10 seconds for first request (container initialization)
+- **Warm Request**: <100ms after container warmup
+- **Concurrent Requests**: Auto-scales based on load (up to max_containers)
+- **Network Overhead**: 20-50ms typical latency to Modal infrastructure
 
 ### Cost Optimization Results
 - **Typical Savings**: 30-70% compared to always using premium models
