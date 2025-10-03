@@ -141,7 +141,7 @@
     ]
   },
   "api": {
-    "baseUrl": "https://www.llmadaptive.uk/api/v1",
+    "baseUrl": "https://www.llmadaptive.uk/api/v1beta",
     "auth": {
       "method": "bearer"
     },
