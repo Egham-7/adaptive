@@ -18,17 +18,17 @@ For documentation needs, use Ref MCP tools:
 
 ## Overview
 
-The adaptive_router service is a unified Python ML package that provides intelligent model selection for the Adaptive LLM infrastructure. It includes the complete NVIDIA prompt-task-complexity-classifier implementation with direct GPU/CPU inference, eliminating the need for external HTTP API calls. The service supports three deployment modes: Library (import and use directly), FastAPI (HTTP API server), and Modal (serverless GPU deployment).
+The adaptive_router service is a unified Python ML package that provides intelligent model selection for the Adaptive LLM infrastructure. It includes the complete NVIDIA prompt-task-complexity-classifier implementation with both local GPU/CPU inference and remote Modal serverless deployment options. The service supports three deployment modes: Library (import and use directly), FastAPI (HTTP API server with local inference), and Modal (serverless GPU deployment with JWT authentication).
 
 ## Key Features
 
-- **Integrated ML Classifier**: Complete NVIDIA prompt-task-complexity-classifier built-in (no external API required)
-- **Direct GPU/CPU Inference**: Local PyTorch inference with automatic GPU detection
+- **Integrated ML Classifier**: Complete NVIDIA prompt-task-complexity-classifier built-in with local PyTorch inference
+- **Flexible Deployment**: Local GPU/CPU inference, FastAPI server, or Modal serverless deployment
 - **Task Classification**: Categorizes prompts by complexity and task type (code, math, creative, etc.)
-- **Multiple Deployment Modes**: Library, FastAPI server, or Modal serverless deployment
+- **Multiple Deployment Modes**: Library import, FastAPI HTTP server, or Modal serverless with JWT authentication
 - **Cost Optimization**: Balances performance vs. cost based on user preferences and prompt analysis
 - **High-Performance API**: FastAPI framework with OpenAPI documentation and structured logging
-- **Library Interface**: Import and use directly in Python code without running a server
+- **Serverless Scale**: Optional Modal deployment for auto-scaling GPU inference with sub-100ms latency
 
 ## Technology Stack
 
@@ -37,8 +37,9 @@ The adaptive_router service is a unified Python ML package that provides intelli
 - **Model**: NVIDIA DeBERTa-based classifier (microsoft/DeBERTa-v3-base backbone)
 - **API Framework**: FastAPI 0.104+ for HTTP server mode
 - **ASGI Server**: Hypercorn 0.17+ with HTTP/1.1, HTTP/2, and WebSocket support
-- **Modal Deployment**: Modal 1.1+ for serverless GPU deployment
-- **Authentication**: python-jose and PyJWT for JWT token handling
+- **Serverless Deployment**: Modal 1.1+ for GPU-accelerated serverless inference
+- **HTTP Client**: httpx for Modal API communication with connection pooling
+- **Authentication**: python-jose and PyJWT for JWT token handling in Modal mode
 - **LLM Integration**: LangChain for orchestration and provider abstraction
 - **Configuration**: Pydantic Settings for type-safe configuration management
 - **Logging**: Standard Python logging with structured JSON output
@@ -63,7 +64,7 @@ adaptive_router/
 │   │   ├── __init__.py
 │   │   ├── prompt_task_complexity_classifier.py  # Complete NVIDIA classifier (ML)
 │   │   ├── model_registry.py                 # Model metadata and capabilities
-│   │   ├── adaptive_router.py                   # Model selection logic
+│   │   ├── model_router.py                   # Model selection logic
 │   │   └── yaml_model_loader.py              # YAML configuration loader
 │   └── utils/                                # Utility functions
 │       ├── __init__.py
@@ -158,8 +159,8 @@ PORT=8001 uv run adaptive-ai
 
 Access API docs at `http://localhost:8000/docs`
 
-### 3. Modal Serverless Mode
-Deploy to Modal for serverless GPU inference:
+### 3. Modal Serverless Mode (Optional)
+Deploy to Modal for serverless GPU inference with auto-scaling:
 
 ```bash
 # Deploy to Modal
@@ -364,34 +365,39 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 
 ## Core Services
 
-### Model Selection Service
-**File**: `adaptive_router/services/model_selector.py`
+### Model Router Service
+**File**: `adaptive_router/services/model_router.py`
 
-- Analyzes prompt characteristics and user preferences
-- Selects optimal models based on task classification and domain
-- Provides cost-performance trade-off analysis
-- Supports both standard LLM and specialized "minion" protocols
+- Intelligent model routing with complexity-aware selection
+- Selects optimal LLM models based on task complexity and cost optimization
+- Integrates with prompt classifier for task analysis
+- Provides model capability matching and filtering
 
-### Prompt Classification Service
-**File**: `adaptive_router/services/prompt_classifier.py`
+### Prompt Task Complexity Classifier Service  
+**File**: `adaptive_router/services/prompt_task_complexity_classifier.py`
 
-- Uses ML models to classify prompt task types (code, math, creative, etc.)
+- Complete NVIDIA transformer-based classifier implementation
+- Uses PyTorch with local GPU/CPU inference capability
+- Classifies prompt task types (code, math, creative, etc.)
 - Determines complexity levels and processing requirements
 - Provides confidence scores for classification decisions
 - Supports batch processing for high throughput
 
-### Domain Classification Service
-**File**: `adaptive_router/services/domain_classifier.py`
+### Model Registry Service
+**File**: `adaptive_router/services/model_registry.py`
 
-- Identifies specialized domains requiring specific model capabilities
-- Maps domains to optimal provider/model combinations
-- Enables domain-specific parameter tuning
-- Supports custom domain extensions
+- Validates model names across all supported providers
+- Manages model availability and capability lookups
+- Provides core model filtering functionality
+- Integrates with YAML model database for metadata
 
-### Cost Optimization Service
-**File**: `adaptive_router/services/cost_optimizer.py`
+### YAML Model Database Service
+**File**: `adaptive_router/services/yaml_model_loader.py`
 
-- Analyzes cost-performance trade-offs across providers
+- Loads provider model configurations from YAML files
+- Provides fast in-memory model metadata lookups
+- Handles model capability definitions and pricing data
+- Supports dynamic provider configuration updates
 - Implements smart fallback strategies
 - Tracks usage patterns and optimizes over time
 - Provides cost savings metrics and recommendations
