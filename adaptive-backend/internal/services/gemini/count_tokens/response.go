@@ -25,7 +25,7 @@ func (rs *ResponseService) SendNonStreamingResponse(
 	fiberlog.Debugf("[%s] Sending count tokens response - tokens: %d", requestID, response.TotalTokens)
 
 	// Create response in Gemini format
-	responseBody := map[string]interface{}{
+	responseBody := map[string]any{
 		"totalTokens": response.TotalTokens,
 	}
 
