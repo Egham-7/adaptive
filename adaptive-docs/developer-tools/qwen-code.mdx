@@ -553,30 +553,38 @@ If you need to remove Qwen Code or revert configuration:
   </Step>
 </Steps>
 
-## Performance Benchmarks
-
-Qwen Code with Adaptive delivers impressive performance gains:
-
-### Terminal-Bench Results
-
-| Agent                | Model               | Accuracy  | Avg Response Time |
-| -------------------- | ------------------- | --------- | ----------------- |
-| Qwen Code + Adaptive | Intelligent Routing | **42.1%** | 1.8s              |
-| Qwen Code + Adaptive | Qwen3-Coder-480A35  | 37.5%     | 2.1s              |
-| Qwen Code + Adaptive | Qwen3-Coder-30BA3B  | 31.3%     | 1.2s              |
-| Qwen Code (Direct)   | Qwen3-Coder-30BA3B  | 31.3%     | 3.2s              |
-
-### Cost Savings with Adaptive
-
-**Real-world usage example** (1M tokens/month):
-
-| Scenario            | Cost without Adaptive | Cost with Adaptive | Savings |
-| ------------------- | --------------------- | ------------------ | ------- |
-| Mixed coding tasks  | $45/month             | $12/month          | **73%** |
-| Simple queries only | $30/month             | $8/month           | **73%** |
-| Complex tasks only  | $60/month             | $18/month          | **70%** |
-
 ## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Monitor Usage & Savings"
+    href="https://www.llmadaptive.uk/dashboard"
+    icon="chart-line"
+  >
+    Track your cost savings and usage analytics in real-time
+  </Card>
+  <Card
+    title="API Documentation"
+    href="/api-reference/chat-completions"
+    icon="book"
+  >
+    Learn about Adaptive's API capabilities and advanced features
+  </Card>
+  <Card
+    title="More CLI Tools"
+    href="/developer-tools/claude-code"
+    icon="terminal"
+  >
+    Explore other CLI tools with Adaptive integration
+  </Card>
+  <Card
+    title="Advanced Routing"
+    href="/features/intelligent-routing"
+    icon="route"
+  >
+    Learn about intelligent model routing and load balancing
+  </Card>
+</CardGroup>
 
 <CardGroup cols={2}>
   <Card
