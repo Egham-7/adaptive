@@ -12,7 +12,7 @@ NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
 GEMINI_PACKAGE="@google/gemini-cli"
 CONFIG_DIR="$HOME/.gemini"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1beta"
+API_BASE_URL="https://www.llmadaptive.uk/api/v1beta/models"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)
