@@ -12,7 +12,7 @@ NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
 GEMINI_PACKAGE="@google/gemini-cli"
 CONFIG_DIR="$HOME/.gemini"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1beta/models"
+API_BASE_URL="https://www.llmadaptive.uk/api"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)
@@ -234,6 +234,7 @@ get_shell_config_file() {
 add_env_to_shell_config() {
   local api_key="$1"
   local model="$2"
+  local base_url="$3"
   local shell_type
   local config_file
 
@@ -254,18 +255,18 @@ add_env_to_shell_config() {
       if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS sed for Fish
         sed -i '' "s|set -x GEMINI_API_KEY.*|set -x GEMINI_API_KEY \"$api_key\"|" "$config_file"
-        sed -i '' "s|set -x GOOGLE_GEMINI_BASE_URL.*|set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"|" "$config_file"
+        sed -i '' "s|set -x GOOGLE_GEMINI_BASE_URL.*|set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"|" "$config_file"
         sed -i '' "s|set -x GEMINI_MODEL.*|set -x GEMINI_MODEL \"$model\"|" "$config_file"
       else
         # Linux sed for Fish
         sed -i "s|set -x GEMINI_API_KEY.*|set -x GEMINI_API_KEY \"$api_key\"|" "$config_file"
-        sed -i "s|set -x GOOGLE_GEMINI_BASE_URL.*|set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"|" "$config_file"
+        sed -i "s|set -x GOOGLE_GEMINI_BASE_URL.*|set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"|" "$config_file"
         sed -i "s|set -x GEMINI_MODEL.*|set -x GEMINI_MODEL \"$model\"|" "$config_file"
       fi
 
       # Add GOOGLE_GEMINI_BASE_URL if it doesn't exist in Fish config
       if ! grep -q "GOOGLE_GEMINI_BASE_URL" "$config_file" 2>/dev/null; then
-        echo "set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
+        echo "set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"" >> "$config_file"
       fi
       # Add GEMINI_MODEL if it doesn't exist in Fish config
       if ! grep -q "GEMINI_MODEL" "$config_file" 2>/dev/null; then
@@ -276,18 +277,18 @@ add_env_to_shell_config() {
       if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS sed for bash/zsh
         sed -i '' "s|export GEMINI_API_KEY=.*|export GEMINI_API_KEY=\"$api_key\"|" "$config_file"
-        sed -i '' "s|export GOOGLE_GEMINI_BASE_URL=.*|export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"|" "$config_file"
+        sed -i '' "s|export GOOGLE_GEMINI_BASE_URL=.*|export GOOGLE_GEMINI_BASE_URL=\"$base_url\"|" "$config_file"
         sed -i '' "s|export GEMINI_MODEL=.*|export GEMINI_MODEL=\"$model\"|" "$config_file"
       else
         # Linux sed for bash/zsh
         sed -i "s|export GEMINI_API_KEY=.*|export GEMINI_API_KEY=\"$api_key\"|" "$config_file"
-        sed -i "s|export GOOGLE_GEMINI_BASE_URL=.*|export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"|" "$config_file"
+        sed -i "s|export GOOGLE_GEMINI_BASE_URL=.*|export GOOGLE_GEMINI_BASE_URL=\"$base_url\"|" "$config_file"
         sed -i "s|export GEMINI_MODEL=.*|export GEMINI_MODEL=\"$model\"|" "$config_file"
       fi
 
       # Add GOOGLE_GEMINI_BASE_URL if it doesn't exist in POSIX shell config
       if ! grep -q "GOOGLE_GEMINI_BASE_URL" "$config_file" 2>/dev/null; then
-        echo "export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+        echo "export GOOGLE_GEMINI_BASE_URL=\"$base_url\"" >> "$config_file"
       fi
       # Add GEMINI_MODEL if it doesn't exist in POSIX shell config
       if ! grep -q "GEMINI_MODEL" "$config_file" 2>/dev/null; then
@@ -300,11 +301,11 @@ add_env_to_shell_config() {
     echo "# Gemini CLI with Adaptive LLM API Configuration (added by gemini-cli installer)" >> "$config_file"
     if [ "$shell_type" = "fish" ]; then
       echo "set -x GEMINI_API_KEY \"$api_key\"" >> "$config_file"
-      echo "set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
+      echo "set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"" >> "$config_file"
       echo "set -x GEMINI_MODEL \"$model\"" >> "$config_file"
     else
       echo "export GEMINI_API_KEY=\"$api_key\"" >> "$config_file"
-      echo "export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+      echo "export GOOGLE_GEMINI_BASE_URL=\"$base_url\"" >> "$config_file"
       echo "export GEMINI_MODEL=\"$model\"" >> "$config_file"
     fi
   fi
@@ -357,6 +358,9 @@ configure_gemini() {
     fi
   fi
 
+  # Use base URL as-is - let Gemini CLI construct the full path
+  local base_url="$API_BASE_URL"
+
   if [ -n "$api_key" ]; then
     log_info "Using API key from ADAPTIVE_API_KEY environment variable"
     if ! validate_api_key "$api_key"; then
@@ -388,7 +392,7 @@ configure_gemini() {
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
     echo "   # Add to your shell config (~/.bashrc, ~/.zshrc, etc.):"
     echo "   echo 'export GEMINI_API_KEY=\"your-api-key-here\"' >> ~/.bashrc"
-    echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api/v1beta/models\"' >> ~/.bashrc"
+    echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api\"' >> ~/.bashrc"
     echo "   echo 'export GEMINI_MODEL=\"\"' >> ~/.bashrc  # Empty for intelligent routing"
     echo ""
     echo "🔗 Get your API key: $API_KEY_URL"
@@ -428,9 +432,10 @@ configure_gemini() {
   ensure_dir_exists "$CONFIG_DIR"
 
   log_success "Gemini CLI configured for Adaptive successfully"
+  log_info "Base URL: $base_url"
 
-  # Add environment variables to shell configuration
-  add_env_to_shell_config "$api_key" "$model"
+  # Add environment variables to shell configuration with the constructed base URL
+  add_env_to_shell_config "$api_key" "$model" "$base_url"
 }
 
 # ========================
@@ -511,7 +516,7 @@ main() {
     echo "   Configuration: Set environment variables in your shell config"
     echo "   Expected variables:"
     echo '   export GEMINI_API_KEY="your-adaptive-api-key"'
-    echo '   export GOOGLE_GEMINI_BASE_URL="https://www.llmadaptive.uk/api/v1beta/models"'
+    echo '   export GOOGLE_GEMINI_BASE_URL="https://www.llmadaptive.uk/api"'
     echo '   export GEMINI_MODEL=""  # Empty for intelligent routing'
     echo ""
     echo "🆘 Get help: https://docs.llmadaptive.uk/troubleshooting"
