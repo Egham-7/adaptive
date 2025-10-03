@@ -411,7 +411,8 @@ Distribute requests across providers for optimal performance:
 - Check npm permissions: `npm config get prefix`
 - Try with sudo (not recommended): `sudo npm install -g @qwen-code/qwen-code`
 - Clear npm cache: `npm cache clean --force`
-  </Accordion>
+
+</Accordion>
 
 <Accordion title="Authentication Errors" icon="key">
 **Problem**: "Unauthorized" or "Invalid API key" errors
@@ -440,7 +441,8 @@ Distribute requests across providers for optimal performance:
 4. Restart your terminal if changes were made to shell config
 5. Verify the base URL is correct: `https://www.llmadaptive.uk/api/v1`
 6. Check for the `# qwen-code` comment to ensure correct environment variables
-   </Accordion>
+
+</Accordion>
 
 <Accordion title="Connection Errors" icon="network-wired">
 **Problem**: Cannot connect to Adaptive API
@@ -517,34 +519,34 @@ Distribute requests across providers for optimal performance:
 
 **Solutions**:
 
-1. Configure higher session limits in `.qwen/settings.json`:
+- Configure higher session limits in `.qwen/settings.json`:
 
-   ```json
-   {
-     "sessionTokenLimit": 64000
-   }
-   ```
+  ```json
+  {
+    "sessionTokenLimit": 64000
+  }
+  ```
 
-2. Use session compression to reduce token usage:
+- Use session compression to reduce token usage:
 
-   ```bash
-   /compress
-   ```
+  ```bash
+  /compress
+  ```
 
-3. Clear conversation history and start fresh:
+- Clear conversation history and start fresh:
 
-   ```bash
-   /clear
-   ```
+  ```bash
+  /clear
+  ```
 
-4. Monitor token usage:
+- Monitor token usage:
 
-   ```bash
-   /stats
-   ```
+  ```bash
+  /stats
+  ```
 
-5. Break large tasks into smaller sessions
-      </Accordion>
+- Break large tasks into smaller sessions
+</Accordion>
 </AccordionGroup>
 
 ## Uninstallation
