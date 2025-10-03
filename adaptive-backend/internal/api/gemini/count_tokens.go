@@ -172,7 +172,7 @@ func (h *CountTokensHandler) selectModelViaRouter(
 		requestID,
 		&resolvedConfig.Services.ModelRouter,
 		h.circuitBreakers,
-		nil,     // tools
+		nil, // tools
 		toolCall,
 	)
 	if err != nil {
