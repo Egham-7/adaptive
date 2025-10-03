@@ -388,7 +388,7 @@ configure_gemini() {
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
     echo "   # Add to your shell config (~/.bashrc, ~/.zshrc, etc.):"
     echo "   echo 'export GEMINI_API_KEY=\"your-api-key-here\"' >> ~/.bashrc"
-    echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api/v1beta\"' >> ~/.bashrc"
+    echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api/v1beta/models\"' >> ~/.bashrc"
     echo "   echo 'export GEMINI_MODEL=\"\"' >> ~/.bashrc  # Empty for intelligent routing"
     echo ""
     echo "🔗 Get your API key: $API_KEY_URL"
@@ -511,7 +511,7 @@ main() {
     echo "   Configuration: Set environment variables in your shell config"
     echo "   Expected variables:"
     echo '   export GEMINI_API_KEY="your-adaptive-api-key"'
-    echo '   export GOOGLE_GEMINI_BASE_URL="https://www.llmadaptive.uk/api/v1beta"'
+    echo '   export GOOGLE_GEMINI_BASE_URL="https://www.llmadaptive.uk/api/v1beta/models"'
     echo '   export GEMINI_MODEL=""  # Empty for intelligent routing'
     echo ""
     echo "🆘 Get help: https://docs.llmadaptive.uk/troubleshooting"
