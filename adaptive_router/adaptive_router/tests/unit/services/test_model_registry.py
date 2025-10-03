@@ -56,8 +56,7 @@ class TestModelRegistry:
         """Test model validation."""
         assert model_registry.is_valid_model("openai:gpt-4") is True
         assert (
-            model_registry.is_valid_model("anthropic:claude-3-5-sonnet-20241022")
-            is True
+            model_registry.is_valid_model("anthropic:claude-3-5-haiku-20241022") is True
         )
 
         assert model_registry.is_valid_model("fake:model") is False
@@ -86,7 +85,7 @@ class TestModelRegistry:
         assert len(model_names) > 0
 
         assert "openai:gpt-4" in model_names
-        assert "anthropic:claude-3-5-sonnet-20241022" in model_names
+        assert "anthropic:claude-3-5-haiku-20241022" in model_names
 
     def test_find_models_matching_criteria(self, model_registry: ModelRegistry) -> None:
         """Test finding models by criteria."""
@@ -155,8 +154,8 @@ class TestModelRegistryPerformance:
         expected_models = [
             "openai:gpt-4",
             "openai:gpt-3.5-turbo",
-            "anthropic:claude-3-5-sonnet-20241022",
-            "anthropic:claude-3-haiku-20240307",
+            "anthropic:claude-3-5-haiku-20241022",
+            "anthropic:claude-sonnet-4-5-20250929",
         ]
 
         for expected in expected_models:

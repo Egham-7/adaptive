@@ -28,7 +28,7 @@ class YAMLModelDatabase:
     def _load_models_from_yaml(self) -> None:
         """Load models from YAML files for supported providers."""
         # Get the model_data directory path
-        current_dir = Path(__file__).parent.parent.parent
+        current_dir = Path(__file__).parent.parent
         yaml_dir = current_dir / "model_data" / "data" / "provider_models"
 
         if not yaml_dir.exists():

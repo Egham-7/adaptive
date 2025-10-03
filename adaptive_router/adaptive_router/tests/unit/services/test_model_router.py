@@ -53,7 +53,7 @@ class TestModelRouter:
         router = ModelRouter(model_registry)
 
         assert hasattr(router, "_calculate_complexity_score")
-        assert hasattr(router, "select_models")
+        assert hasattr(router, "select_model")
 
     def test_initialization_without_params(self) -> None:
         """Test router initialization without parameters."""
