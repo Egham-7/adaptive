@@ -23,31 +23,34 @@ class TestModelRouter:
 
     @pytest.fixture
     def sample_models(self) -> list[ModelCapability]:
-        """Sample models for testing."""
+        """Sample models for testing (from actual model_data YAML files)."""
         return [
             ModelCapability(
                 provider="openai",
-                model_name="gpt-4",
-                cost_per_1m_input_tokens=30.0,
-                cost_per_1m_output_tokens=60.0,
-                max_context_tokens=128000,
+                model_name="gpt-5",
+                cost_per_1m_input_tokens=1.25,
+                cost_per_1m_output_tokens=10.0,
+                max_context_tokens=200000,
                 supports_function_calling=True,
+                task_type="Text Generation",
             ),
             ModelCapability(
                 provider="openai",
-                model_name="gpt-3.5-turbo",
-                cost_per_1m_input_tokens=1.0,
-                cost_per_1m_output_tokens=2.0,
-                max_context_tokens=16000,
+                model_name="gpt-5-nano",
+                cost_per_1m_input_tokens=0.05,
+                cost_per_1m_output_tokens=0.4,
+                max_context_tokens=64000,
                 supports_function_calling=True,
+                task_type="Text Generation",
             ),
             ModelCapability(
                 provider="anthropic",
-                model_name="claude-3-sonnet",
-                cost_per_1m_input_tokens=15.0,
-                cost_per_1m_output_tokens=75.0,
+                model_name="claude-sonnet-4-5-20250929",
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=15.0,
                 max_context_tokens=200000,
-                supports_function_calling=False,
+                supports_function_calling=True,
+                task_type="Code Generation",
             ),
         ]
 
@@ -229,11 +232,12 @@ class TestModelRouterEdgeCases:
         models = [
             ModelCapability(
                 provider="openai",
-                model_name="gpt-4",
-                cost_per_1m_input_tokens=30.0,
-                cost_per_1m_output_tokens=60.0,
-                max_context_tokens=128000,
+                model_name="gpt-5",
+                cost_per_1m_input_tokens=1.25,
+                cost_per_1m_output_tokens=10.0,
+                max_context_tokens=200000,
                 supports_function_calling=True,
+                task_type="Text Generation",
             )
         ]
 
@@ -270,11 +274,12 @@ class TestModelRouterEdgeCases:
         models = [
             ModelCapability(
                 provider="openai",
-                model_name="gpt-4",
-                cost_per_1m_input_tokens=30.0,
-                cost_per_1m_output_tokens=60.0,
-                max_context_tokens=128000,
+                model_name="gpt-5",
+                cost_per_1m_input_tokens=1.25,
+                cost_per_1m_output_tokens=10.0,
+                max_context_tokens=200000,
                 supports_function_calling=True,
+                task_type="Text Generation",
             )
         ]
 
@@ -305,12 +310,12 @@ class TestModelRouterEdgeCases:
         models = [
             ModelCapability(
                 provider="openai",
-                model_name="gpt-4",
-                cost_per_1m_input_tokens=30.0,
-                cost_per_1m_output_tokens=60.0,
-                max_context_tokens=128000,
+                model_name="gpt-5",
+                cost_per_1m_input_tokens=1.25,
+                cost_per_1m_output_tokens=10.0,
+                max_context_tokens=200000,
                 supports_function_calling=True,
-                task_type=None,
+                task_type="Text Generation",
             )
         ]
 
@@ -340,25 +345,25 @@ class TestModelRouterEdgeCases:
         router = ModelRouter(model_registry)
 
         # Provide models with task_type matching what classifier might return
-        # Simple prompts like "Hello" typically classify as "Text Generation" or "Other"
+        # Simple prompts like "Hello" typically classify as "Text Generation" or "Chatbot"
         models = [
             ModelCapability(
                 provider="openai",
-                model_name="gpt-3.5-turbo",
-                cost_per_1m_input_tokens=1.0,
-                cost_per_1m_output_tokens=2.0,
-                max_context_tokens=16000,
+                model_name="gpt-5-nano",
+                cost_per_1m_input_tokens=0.05,
+                cost_per_1m_output_tokens=0.4,
+                max_context_tokens=64000,
                 supports_function_calling=True,
-                task_type="Text Generation",  # Match expected classification
+                task_type="Text Generation",
             ),
             ModelCapability(
                 provider="anthropic",
-                model_name="claude-3-haiku",
-                cost_per_1m_input_tokens=0.5,
-                cost_per_1m_output_tokens=1.0,
+                model_name="claude-3-5-haiku-20241022",
+                cost_per_1m_input_tokens=0.8,
+                cost_per_1m_output_tokens=4.0,
                 max_context_tokens=200000,
                 supports_function_calling=True,
-                task_type="Text Generation",
+                task_type="Chatbot",
             ),
         ]
 
@@ -372,7 +377,7 @@ class TestModelRouterEdgeCases:
 
         # Should successfully select a model
         assert response.provider in ["openai", "anthropic"]
-        assert response.model in ["gpt-3.5-turbo", "claude-3-haiku"]
+        assert response.model in ["gpt-5-nano", "claude-3-5-haiku-20241022"]
 
     def test_alternatives_generation(self, model_registry: ModelRegistry) -> None:
         """Test that alternatives are properly generated."""
@@ -381,19 +386,21 @@ class TestModelRouterEdgeCases:
         models = [
             ModelCapability(
                 provider="openai",
-                model_name="gpt-4",
-                cost_per_1m_input_tokens=30.0,
-                cost_per_1m_output_tokens=60.0,
-                max_context_tokens=128000,
+                model_name="gpt-5",
+                cost_per_1m_input_tokens=1.25,
+                cost_per_1m_output_tokens=10.0,
+                max_context_tokens=200000,
                 supports_function_calling=True,
+                task_type="Code Generation",
             ),
             ModelCapability(
                 provider="anthropic",
-                model_name="claude-3-sonnet",
-                cost_per_1m_input_tokens=15.0,
-                cost_per_1m_output_tokens=75.0,
+                model_name="claude-sonnet-4-5-20250929",
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=15.0,
                 max_context_tokens=200000,
                 supports_function_calling=True,
+                task_type="Code Generation",
             ),
         ]
 
