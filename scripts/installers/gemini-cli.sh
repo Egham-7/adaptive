@@ -185,15 +185,15 @@ validate_api_key() {
 }
 
 detect_shell() {
-  if [ -n "$ZSH_VERSION" ]; then
+  if [ -n "${ZSH_VERSION:-}" ]; then
     echo "zsh"
-  elif [ -n "$BASH_VERSION" ]; then
+  elif [ -n "${BASH_VERSION:-}" ]; then
     echo "bash"
-  elif [ -n "$FISH_VERSION" ]; then
+  elif [ -n "${FISH_VERSION:-}" ]; then
     echo "fish"
   else
     # Fallback to checking SHELL environment variable
-    case "$SHELL" in
+    case "${SHELL:-}" in
       */zsh) echo "zsh" ;;
       */bash) echo "bash" ;;
       */fish) echo "fish" ;;
@@ -230,6 +230,7 @@ get_shell_config_file() {
 
 add_env_to_shell_config() {
   local api_key="$1"
+  local model="$2"
   local shell_type
   local config_file
 
@@ -246,36 +247,48 @@ add_env_to_shell_config() {
     log_info "Gemini environment variables already exist in $config_file, updating..."
 
     if [ "$shell_type" = "fish" ]; then
-      # Fish shell: update both API key and base URL
+      # Fish shell: update API key, base URL, and model
       if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS sed for Fish
         sed -i '' "s|set -x GEMINI_API_KEY.*|set -x GEMINI_API_KEY \"$api_key\"|" "$config_file"
         sed -i '' "s|set -x GOOGLE_GEMINI_BASE_URL.*|set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"|" "$config_file"
+        sed -i '' "s|set -x GEMINI_MODEL.*|set -x GEMINI_MODEL \"$model\"|" "$config_file"
       else
         # Linux sed for Fish
         sed -i "s|set -x GEMINI_API_KEY.*|set -x GEMINI_API_KEY \"$api_key\"|" "$config_file"
         sed -i "s|set -x GOOGLE_GEMINI_BASE_URL.*|set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"|" "$config_file"
+        sed -i "s|set -x GEMINI_MODEL.*|set -x GEMINI_MODEL \"$model\"|" "$config_file"
       fi
 
       # Add GOOGLE_GEMINI_BASE_URL if it doesn't exist in Fish config
       if ! grep -q "GOOGLE_GEMINI_BASE_URL" "$config_file" 2>/dev/null; then
         echo "set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
       fi
+      # Add GEMINI_MODEL if it doesn't exist in Fish config
+      if ! grep -q "GEMINI_MODEL" "$config_file" 2>/dev/null; then
+        echo "set -x GEMINI_MODEL \"$model\"" >> "$config_file"
+      fi
     else
-      # POSIX shells (bash/zsh): update both API key and base URL
+      # POSIX shells (bash/zsh): update API key, base URL, and model
       if [[ "$OSTYPE" == "darwin"* ]]; then
         # macOS sed for bash/zsh
         sed -i '' "s|export GEMINI_API_KEY=.*|export GEMINI_API_KEY=\"$api_key\"|" "$config_file"
         sed -i '' "s|export GOOGLE_GEMINI_BASE_URL=.*|export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"|" "$config_file"
+        sed -i '' "s|export GEMINI_MODEL=.*|export GEMINI_MODEL=\"$model\"|" "$config_file"
       else
         # Linux sed for bash/zsh
         sed -i "s|export GEMINI_API_KEY=.*|export GEMINI_API_KEY=\"$api_key\"|" "$config_file"
         sed -i "s|export GOOGLE_GEMINI_BASE_URL=.*|export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"|" "$config_file"
+        sed -i "s|export GEMINI_MODEL=.*|export GEMINI_MODEL=\"$model\"|" "$config_file"
       fi
 
       # Add GOOGLE_GEMINI_BASE_URL if it doesn't exist in POSIX shell config
       if ! grep -q "GOOGLE_GEMINI_BASE_URL" "$config_file" 2>/dev/null; then
         echo "export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+      fi
+      # Add GEMINI_MODEL if it doesn't exist in POSIX shell config
+      if ! grep -q "GEMINI_MODEL" "$config_file" 2>/dev/null; then
+        echo "export GEMINI_MODEL=\"$model\"" >> "$config_file"
       fi
     fi
   else
@@ -285,13 +298,20 @@ add_env_to_shell_config() {
     if [ "$shell_type" = "fish" ]; then
       echo "set -x GEMINI_API_KEY \"$api_key\"" >> "$config_file"
       echo "set -x GOOGLE_GEMINI_BASE_URL \"$API_BASE_URL\"" >> "$config_file"
+      echo "set -x GEMINI_MODEL \"$model\"" >> "$config_file"
     else
       echo "export GEMINI_API_KEY=\"$api_key\"" >> "$config_file"
       echo "export GOOGLE_GEMINI_BASE_URL=\"$API_BASE_URL\"" >> "$config_file"
+      echo "export GEMINI_MODEL=\"$model\"" >> "$config_file"
     fi
   fi
 
   log_success "Environment variables added to $config_file"
+  if [ -z "$model" ]; then
+    log_info "GEMINI_MODEL set to empty for intelligent routing (automatic model selection)"
+  else
+    log_info "GEMINI_MODEL set to: $model"
+  fi
   if [ "$shell_type" = "fish" ]; then
     log_info "Restart your terminal or run 'source $config_file' to apply changes"
   else
@@ -307,9 +327,9 @@ validate_model_override() {
     return 0
   fi
 
-  # Validate format: model_name (gemini format)
-  if [[ ! "$model" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
-    log_error "Model format invalid. Use format: model_name (e.g., gemini-2.5-pro, gemini-2.5-flash) or empty string for intelligent routing"
+  # Validate format: provider:model_name
+  if [[ ! "$model" =~ ^[a-zA-Z0-9_-]+:[a-zA-Z0-9_.-]+$ ]]; then
+    log_error "Model format invalid. Use format: provider:model_name (e.g., gemini:gemini-2.5-pro, gemini:gemini-2.5-flash, anthropic:claude-sonnet-4-20250514) or empty string for intelligent routing"
     return 1
   fi
   return 0
@@ -357,7 +377,7 @@ configure_gemini() {
     echo ""
     echo "🎯 Option 3: Customize model (Advanced)"
     echo "   export ADAPTIVE_API_KEY='your-api-key-here'"
-    echo "   export ADAPTIVE_MODEL='gemini-2.5-pro'  # or empty for intelligent routing"
+    echo "   export ADAPTIVE_MODEL='gemini:gemini-2.5-flash'  # or empty for intelligent routing"
     echo "   curl -fsSL https://raw.githubusercontent.com/Egham-7/adaptive/main/scripts/installers/gemini-cli.sh | bash"
     echo ""
     echo "⚙️  Option 4: Manual configuration (Advanced users)"
@@ -366,6 +386,7 @@ configure_gemini() {
     echo "   # Add to your shell config (~/.bashrc, ~/.zshrc, etc.):"
     echo "   echo 'export GEMINI_API_KEY=\"your-api-key-here\"' >> ~/.bashrc"
     echo "   echo 'export GOOGLE_GEMINI_BASE_URL=\"https://www.llmadaptive.uk/api/v1beta\"' >> ~/.bashrc"
+    echo "   echo 'export GEMINI_MODEL=\"\"' >> ~/.bashrc  # Empty for intelligent routing"
     echo ""
     echo "🔗 Get your API key: $API_KEY_URL"
     exit 1
@@ -406,7 +427,7 @@ configure_gemini() {
   log_success "Gemini CLI configured for Adaptive successfully"
 
   # Add environment variables to shell configuration
-  add_env_to_shell_config "$api_key"
+  add_env_to_shell_config "$api_key" "$model"
 }
 
 # ========================
@@ -467,8 +488,9 @@ main() {
     echo ""
     echo "💡 Pro Tips:"
     echo "   • Your API key is automatically saved to your shell config"
-    echo "   • Intelligent routing enabled by default for optimal cost/performance"
-    echo "   • Compatible with all Gemini models (gemini-2.5-pro, gemini-2.5-flash, etc.)"
+    echo "   • GEMINI_MODEL set to empty for intelligent routing (optimal cost/performance)"
+    echo "   • Set GEMINI_MODEL='gemini:gemini-2.5-flash' to override with specific model"
+    echo "   • Use provider:model format (e.g., gemini:gemini-2.5-pro, anthropic:claude-sonnet-4-20250514)"
     echo "   • Access to Anthropic Claude, OpenAI, and other providers via Adaptive routing"
     echo ""
     echo "🔄 Load Balancing & Fallbacks:"
@@ -486,7 +508,8 @@ main() {
     echo "   Configuration: Set environment variables in your shell config"
     echo "   Expected variables:"
     echo '   export GEMINI_API_KEY="your-adaptive-api-key"'
-    echo '   export GOOGLE_GEMINI_BASE_URL="https://www.llmadaptive.uk/api/v1"'
+    echo '   export GOOGLE_GEMINI_BASE_URL="https://www.llmadaptive.uk/api/v1beta"'
+    echo '   export GEMINI_MODEL=""  # Empty for intelligent routing'
     echo ""
     echo "🆘 Get help: https://docs.llmadaptive.uk/troubleshooting"
     exit 1

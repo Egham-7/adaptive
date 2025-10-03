@@ -398,22 +398,24 @@ models:
       matching_operator: equals
       available_in_playground: null
   deepseek_deepseek_v3:
-    description: ''
+    description: 'DeepSeek V3.1-Terminus with improved language consistency'
     provider: VERCEL
     model_name: deepseek/deepseek-v3
     cost_per_1m_input_tokens: 0.9
     cost_per_1m_output_tokens: 0.9
-    max_context_tokens: null
-    max_output_tokens: null
-    supports_function_calling: null
-    languages_supported: []
-    model_size_params: ''
-    latency_tier: ''
-    task_type: ''
-    complexity: ''
+    max_context_tokens: 128000
+    max_output_tokens: 4096
+    supports_function_calling: true
+    languages_supported: 
+      - en
+      - zh
+    model_size_params: 'V3.1-Terminus (MoE)'
+    latency_tier: 'medium'
+    task_type: 'Text Generation'
+    complexity: 'high'
     metadata:
       matching_operator: equals
-      available_in_playground: null
+      available_in_playground: true
   google_gemini_2_0_flash:
     description: ''
     provider: VERCEL
