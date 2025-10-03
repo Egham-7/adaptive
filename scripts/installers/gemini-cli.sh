@@ -185,21 +185,24 @@ validate_api_key() {
 }
 
 detect_shell() {
-  if [ -n "${ZSH_VERSION:-}" ]; then
-    echo "zsh"
-  elif [ -n "${BASH_VERSION:-}" ]; then
-    echo "bash"
-  elif [ -n "${FISH_VERSION:-}" ]; then
-    echo "fish"
-  else
-    # Fallback to checking SHELL environment variable
-    case "${SHELL:-}" in
-      */zsh) echo "zsh" ;;
-      */bash) echo "bash" ;;
-      */fish) echo "fish" ;;
-      *) echo "bash" ;; # Default fallback
-    esac
-  fi
+  # Check SHELL environment variable first (most reliable for installer scripts)
+  case "${SHELL:-}" in
+    */zsh) echo "zsh" ;;
+    */bash) echo "bash" ;;
+    */fish) echo "fish" ;;
+    *)
+      # Fallback to checking version variables if SHELL is not set
+      if [ -n "${ZSH_VERSION:-}" ]; then
+        echo "zsh"
+      elif [ -n "${BASH_VERSION:-}" ]; then
+        echo "bash"
+      elif [ -n "${FISH_VERSION:-}" ]; then
+        echo "fish"
+      else
+        echo "bash" # Default fallback
+      fi
+      ;;
+  esac
 }
 
 get_shell_config_file() {
