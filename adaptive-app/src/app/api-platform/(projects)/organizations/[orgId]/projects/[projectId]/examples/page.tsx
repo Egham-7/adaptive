@@ -1,6 +1,7 @@
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
+import { ProjectBreadcrumb } from "@/components/project-breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,6 +43,9 @@ export default async function CodeExamplesPage({
 
 	return (
 		<div className="mx-auto max-w-7xl px-2 py-2 sm:px-4">
+			<div className="mb-6">
+				<ProjectBreadcrumb />
+			</div>
 			{/* Back Navigation */}
 			<div className="mb-6">
 				<Button variant="ghost" size="sm" asChild>

@@ -390,15 +390,15 @@ CMD ["bun", "start"]
 ### Common Issues
 
 **Build failures**
-- Run `pnpm run typecheck` to identify TypeScript errors
+- Run `bun run typecheck` to identify TypeScript errors
 - Check environment variable configuration
-- Verify Prisma schema and generate client: `pnpm prisma generate`
+- Verify Prisma schema and generate client: `bun prisma generate`
 - Clear Next.js cache: `rm -rf .next`
 
 **Database connection errors**
 - Verify DATABASE_URL format and credentials
 - Check database server connectivity
-- Run database migrations: `pnpm run db:generate`
+- Run database migrations: `bun run db:generate`
 - Check Prisma schema for syntax errors
 
 **Authentication issues**
