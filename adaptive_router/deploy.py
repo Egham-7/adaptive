@@ -31,25 +31,32 @@ logger = logging.getLogger(__name__)
 
 
 def get_modal_image() -> modal.Image:
-    """Create Modal image with dependencies."""
+    """Create optimized Modal image with minimal dependencies.
+
+    Only includes packages actually imported by the model router:
+    - torch, transformers, huggingface-hub, numpy: For PromptClassifier ML inference
+    - pydantic, pydantic-settings: For data models and configuration
+    - pyyaml: For YAMLModelDatabase model metadata loading
+    - pyjwt: For JWT authentication (jwt module)
+    - fastapi: For Modal endpoint
+    """
     return (
         modal.Image.debian_slim(python_version="3.13")
         .pip_install(
             [
-                # Core ML dependencies
+                # Core ML dependencies (required for PromptClassifier)
                 "torch",
                 "transformers",
                 "huggingface-hub",
                 "numpy",
-                "accelerate",
-                # API dependencies
+                # Data models and configuration
                 "pydantic",
                 "pydantic-settings",
+                # YAML model database
                 "pyyaml",
-                "cachetools",
                 # JWT authentication
-                "python-jose[cryptography]",
                 "pyjwt",
+                # FastAPI endpoint
                 "fastapi",
             ]
         )
