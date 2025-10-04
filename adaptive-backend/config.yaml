@@ -7,7 +7,6 @@ server:
   allowed_origins: "${ALLOWED_ORIGINS:-http://localhost:3000}"
   environment: "${ENV:-development}"
   log_level: "${LOG_LEVEL:-info}"
-  jwt_secret: "${JWT_SECRET}"
 
 # Endpoint-specific provider configurations
 endpoints:
@@ -83,7 +82,8 @@ services:
       semantic_threshold: 0.95
       openai_api_key: "${OPENAI_API_KEY}" # For embeddings
     client:
-      base_url: "${MODEL_ROUTER_BASE_URL:-http://localhost:8000}"
+      adaptive_router_url: "${ADAPTIVE_ROUTER_URL}"
+      jwt_secret: "${ADAPTIVE_ROUTER_JWT_SECRET}"
       timeout_ms: 3000
       circuit_breaker:
         failure_threshold: 3
