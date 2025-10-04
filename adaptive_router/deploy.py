@@ -45,10 +45,6 @@ def get_modal_image() -> modal.Image:
                 # API dependencies
                 "pydantic",
                 "pydantic-settings",
-                # LLM integration
-                "langchain",
-                "langchain-core",
-                "openai",
                 "pyyaml",
                 "cachetools",
                 # JWT authentication
