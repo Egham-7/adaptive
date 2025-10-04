@@ -75,7 +75,7 @@ MODEL_DIR = "/models"
     scaledown_window=SCALEDOWN_WINDOW,
     min_containers=MIN_CONTAINERS,
     max_containers=MAX_CONTAINERS,
-    secrets=[modal.Secret.from_name("jwt_auth")],
+    secrets=[modal.Secret.from_name("jwt")],
     volumes={MODEL_DIR: model_cache_volume},
 )
 def select_model(
