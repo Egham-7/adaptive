@@ -56,12 +56,17 @@ def get_modal_image() -> modal.Image:
                 "pyjwt",
             ]
         )
+        .env({"HF_HOME": "/models"})
         .add_local_file("config.py", "/root/config.py")
         .add_local_python_source("adaptive_router")
     )
 
 
 app = modal.App(APP_NAME, image=get_modal_image())
+
+# Volume for caching HuggingFace models
+model_cache_volume = modal.Volume.from_name("adaptive-router-volume")
+MODEL_DIR = "/models"
 
 
 @app.function(
@@ -71,6 +76,7 @@ app = modal.App(APP_NAME, image=get_modal_image())
     min_containers=MIN_CONTAINERS,
     max_containers=MAX_CONTAINERS,
     secrets=[modal.Secret.from_name("jwt-auth")],
+    volumes={MODEL_DIR: model_cache_volume},
 )
 def select_model(
     request: ModelSelectionRequest, http_request: Request
