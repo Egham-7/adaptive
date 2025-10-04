@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.13"
   WORKING_DIR: "./adaptive_router"
 
 jobs:
@@ -115,4 +115,3 @@ jobs:
           echo "🚀 Deploying Model Router to dev environment..."
           uv run modal deploy deploy.py
           echo "✅ Deployment to dev completed"
-
