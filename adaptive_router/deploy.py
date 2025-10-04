@@ -61,7 +61,7 @@ def get_modal_image() -> modal.Image:
             ]
         )
         .env({"HF_HOME": "/models"})
-        .add_local_file("config.py", "/root/config.py")
+        .add_local_file("jwt_auth.py", "/root/jwt_auth.py")
         .add_local_python_source("adaptive_router")
     )
 

@@ -1,4 +1,3 @@
-from config import Settings, get_settings
 from adaptive_router.models.llm_classification_models import (
     ClassificationResult,
     ClassifyBatchRequest,
@@ -18,8 +17,6 @@ from adaptive_router.services.yaml_model_loader import YAMLModelDatabase
 __version__ = "0.1.0"
 
 __all__ = [
-    "Settings",
-    "get_settings",
     "PromptClassifier",
     "ClassificationResult",
     "ClassifyRequest",
@@ -31,5 +28,4 @@ __all__ = [
     "ModelRouter",
     "ModelRegistry",
     "YAMLModelDatabase",
-    "verify_jwt_token",
 ]
