@@ -24,10 +24,10 @@ export function MobileHeader() {
 	return (
 		<>
 			{/* Fixed Mobile Header Bar */}
-			<header className="fixed top-0 right-0 left-0 z-50 border-b bg-background/80 backdrop-blur-md lg:hidden">
-				<div className="flex items-center justify-between px-4 py-3">
+			<header className="fixed top-0 right-0 left-0 z-50 border-b bg-background lg:hidden">
+				<div className="flex items-center justify-between px-4">
 					<Link href="/" onClick={closeMenu}>
-						<Logo />
+						<Logo imageWidth={80} imageHeight={67} textSize="base" />
 					</Link>
 
 					<Button
