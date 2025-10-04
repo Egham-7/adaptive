@@ -152,7 +152,7 @@ func (h *CountTokensHandler) selectModelViaRouter(
 
 	// Resolve configuration
 	geminiReq := &models.GeminiGenerateRequest{Contents: req.Contents}
-	resolvedConfig, err := h.cfg.ResolveConfigFromGeminiRequest(geminiReq)
+	resolvedConfig, err := h.cfg.ResolveConfigFromGeminiCountTokensRequest(geminiReq)
 	if err != nil {
 		fiberlog.Errorf("[%s] Config resolution failed: %v", requestID, err)
 		return "", "", c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -203,7 +203,7 @@ func (h *CountTokensHandler) getProviderConfig(
 		Contents: contents,
 	}
 
-	resolvedConfig, err := h.cfg.ResolveConfigFromGeminiRequest(geminiReq)
+	resolvedConfig, err := h.cfg.ResolveConfigFromGeminiCountTokensRequest(geminiReq)
 	if err != nil {
 		fiberlog.Errorf("[%s] Config resolution failed: %v", requestID, err)
 		return models.ProviderConfig{}, err
