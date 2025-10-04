@@ -547,6 +547,32 @@ func (c *Config) ResolveConfigFromGeminiRequest(req *models.GeminiGenerateReques
 	return resolved, nil
 }
 
+// ResolveConfigFromGeminiCountTokensRequest creates a resolved config for count_tokens endpoint
+func (c *Config) ResolveConfigFromGeminiCountTokensRequest(req *models.GeminiGenerateRequest) (*Config, error) {
+	// Create a copy of the original config
+	resolved := &Config{
+		Server:   c.Server,
+		Services: c.Services,
+	}
+
+	// Merge all configs with request overrides
+	resolved.PromptCache = *c.MergePromptCacheConfig(req.PromptCache)
+	resolved.Services.ModelRouter = *c.MergeModelRouterConfig(req.ModelRouterConfig, "count_tokens")
+	resolved.Fallback = *c.MergeFallbackConfig(req.Fallback)
+
+	providers, err := c.MergeProviderConfigs(req.ProviderConfigs, "count_tokens")
+	if err != nil {
+		return nil, err
+	}
+
+	// Set up count_tokens endpoint providers
+	resolved.Endpoints.CountTokens = models.EndpointConfig{
+		Providers: providers,
+	}
+
+	return resolved, nil
+}
+
 // GetModelCapabilitiesFromEndpoint converts endpoint providers to ModelCapability list
 // This allows constraining model router to only available providers for the endpoint
 func (c *Config) GetModelCapabilitiesFromEndpoint(endpoint string) []models.ModelCapability {
