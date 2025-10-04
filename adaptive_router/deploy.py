@@ -78,6 +78,7 @@ MODEL_DIR = "/models"
     secrets=[modal.Secret.from_name("jwt")],
     volumes={MODEL_DIR: model_cache_volume},
 )
+@modal.fastapi_endpoint()
 def select_model(
     request: ModelSelectionRequest, http_request: Request
 ) -> ModelSelectionResponse:
