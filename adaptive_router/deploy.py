@@ -54,6 +54,7 @@ def get_modal_image() -> modal.Image:
                 # JWT authentication
                 "python-jose[cryptography]",
                 "pyjwt",
+                "fastapi",
             ]
         )
         .env({"HF_HOME": "/models"})
