@@ -35,57 +35,16 @@ const scrollToElement = (selectorId: string, fallbackSelector?: string) => {
 
 const apiPlatformTourSteps: TourStep[] = [
   {
-    selectorId: "team-switcher",
+    selectorId: "dashboard-header",
     content: (
       <div>
         <h3 className="font-semibold mb-2">Welcome to Adaptive!</h3>
         <p className="text-sm text-muted-foreground">
-          This is your project area. You can navigate back to your organization
-          from here.
-        </p>
-      </div>
-    ),
-    onBeforeShow: () => scrollToElement("team-switcher"),
-  },
-  {
-    selectorId: "dashboard-header",
-    content: (
-      <div>
-        <h3 className="font-semibold mb-2">Usage Dashboard</h3>
-        <p className="text-sm text-muted-foreground">
-          Filter your data by date ranges and export reports. Use the date
-          picker to view different time periods.
+          This is your usage dashboard. Monitor your API spending, savings, request volume, and token usage in real-time. Use the date picker to filter data by different time periods and export reports.
         </p>
       </div>
     ),
     onBeforeShow: () => scrollToElement("dashboard-header"),
-  },
-  {
-    selectorId: "dashboard-metrics",
-    content: (
-      <div>
-        <h3 className="font-semibold mb-2">Key Performance Metrics</h3>
-        <p className="text-sm text-muted-foreground">
-          Monitor your API spending, savings, request volume, and token usage in
-          real-time.
-        </p>
-      </div>
-    ),
-    onBeforeShow: () => scrollToElement("dashboard-metrics"),
-  },
-  {
-    selectorId: "dashboard-cost-comparison",
-    content: (
-      <div>
-        <h3 className="font-semibold mb-2">Cost Analysis</h3>
-        <p className="text-sm text-muted-foreground">
-          Compare costs across different AI providers and models. See how
-          Adaptive optimizes your spending.
-        </p>
-      </div>
-    ),
-    position: "top",
-    onBeforeShow: () => scrollToElement("dashboard-cost-comparison"),
   },
   {
     selectorId: "api-keys-nav",
@@ -93,12 +52,25 @@ const apiPlatformTourSteps: TourStep[] = [
       <div>
         <h3 className="font-semibold mb-2">API Keys</h3>
         <p className="text-sm text-muted-foreground">
-          Create your first Adaptive API key
+          Click here to navigate to the API Keys page where you can manage your keys.
         </p>
       </div>
     ),
     position: "right",
     onBeforeShow: () => scrollToElement("api-keys-nav", '[href*="/api-keys"]'),
+  },
+  {
+    selectorId: "create-api-key-button",
+    content: (
+      <div>
+        <h3 className="font-semibold mb-2">Create Your First API Key</h3>
+        <p className="text-sm text-muted-foreground">
+          Click this button to create your first Adaptive API key and start integrating with your applications.
+        </p>
+      </div>
+    ),
+    position: "bottom",
+    onBeforeShow: () => scrollToElement("create-api-key-button"),
   },
 ];
 
