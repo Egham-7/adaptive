@@ -47,13 +47,6 @@ dependencies = [
   "python-jose[cryptography]>=3.3.0,<4.0",
   "pyjwt>=2.10.1",
   "python-json-logger>=3.3.0",
-  # Testing
-  "pytest>=8.4.1",
-  "pytest-cov>=6.2.1",
-  "pytest-asyncio>=0.24.0",
-  # Code Quality
-  "ruff>=0.11.13",
-  "black>=25.1.0",
 ]
 
 [project.urls]
@@ -75,7 +68,11 @@ dev = [
   "types-python-jose>=3.5.0.20250531",
   "types-pyjwt>=1.7.1",
 ]
-test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<8"]
+test = [
+  "pytest>=8.4.1,<9",
+  "pytest-cov>=6.2.1,<8",
+  "pytest-asyncio>=0.24.0,<1",
+]
 docs = ["mkdocs>=1.5.0,<2", "mkdocs-material>=9.0.0,<10"]
 
 
