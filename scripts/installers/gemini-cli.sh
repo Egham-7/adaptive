@@ -17,7 +17,7 @@ API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)
 # Empty strings enable intelligent model routing for optimal cost/performance
-DEFAULT_MODEL=""
+DEFAULT_MODEL="intelligent-routing"
 
 # ========================
 #       Utility Functions
@@ -187,21 +187,21 @@ validate_api_key() {
 detect_shell() {
   # Check SHELL environment variable first (most reliable for installer scripts)
   case "${SHELL:-}" in
-    */zsh) echo "zsh" ;;
-    */bash) echo "bash" ;;
-    */fish) echo "fish" ;;
-    *)
-      # Fallback to checking version variables if SHELL is not set
-      if [ -n "${ZSH_VERSION:-}" ]; then
-        echo "zsh"
-      elif [ -n "${BASH_VERSION:-}" ]; then
-        echo "bash"
-      elif [ -n "${FISH_VERSION:-}" ]; then
-        echo "fish"
-      else
-        echo "bash" # Default fallback
-      fi
-      ;;
+  */zsh) echo "zsh" ;;
+  */bash) echo "bash" ;;
+  */fish) echo "fish" ;;
+  *)
+    # Fallback to checking version variables if SHELL is not set
+    if [ -n "${ZSH_VERSION:-}" ]; then
+      echo "zsh"
+    elif [ -n "${BASH_VERSION:-}" ]; then
+      echo "bash"
+    elif [ -n "${FISH_VERSION:-}" ]; then
+      echo "fish"
+    else
+      echo "bash" # Default fallback
+    fi
+    ;;
   esac
 }
 
@@ -209,25 +209,25 @@ get_shell_config_file() {
   local shell_type="$1"
 
   case "$shell_type" in
-    zsh)
-      echo "$HOME/.zshrc"
-      ;;
-    bash)
-      if [ -f "$HOME/.bashrc" ]; then
-        echo "$HOME/.bashrc"
-      elif [ -f "$HOME/.bash_profile" ]; then
-        echo "$HOME/.bash_profile"
-      else
-        echo "$HOME/.bashrc"
-      fi
-      ;;
-    fish)
-      mkdir -p "$HOME/.config/fish"
-      echo "$HOME/.config/fish/config.fish"
-      ;;
-    *)
+  zsh)
+    echo "$HOME/.zshrc"
+    ;;
+  bash)
+    if [ -f "$HOME/.bashrc" ]; then
       echo "$HOME/.bashrc"
-      ;;
+    elif [ -f "$HOME/.bash_profile" ]; then
+      echo "$HOME/.bash_profile"
+    else
+      echo "$HOME/.bashrc"
+    fi
+    ;;
+  fish)
+    mkdir -p "$HOME/.config/fish"
+    echo "$HOME/.config/fish/config.fish"
+    ;;
+  *)
+    echo "$HOME/.bashrc"
+    ;;
   esac
 }
 
@@ -266,11 +266,11 @@ add_env_to_shell_config() {
 
       # Add GOOGLE_GEMINI_BASE_URL if it doesn't exist in Fish config
       if ! grep -q "GOOGLE_GEMINI_BASE_URL" "$config_file" 2>/dev/null; then
-        echo "set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"" >> "$config_file"
+        echo "set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"" >>"$config_file"
       fi
       # Add GEMINI_MODEL if it doesn't exist in Fish config
       if ! grep -q "GEMINI_MODEL" "$config_file" 2>/dev/null; then
-        echo "set -x GEMINI_MODEL \"$model\"" >> "$config_file"
+        echo "set -x GEMINI_MODEL \"$model\"" >>"$config_file"
       fi
     else
       # POSIX shells (bash/zsh): update API key, base URL, and model
@@ -288,25 +288,25 @@ add_env_to_shell_config() {
 
       # Add GOOGLE_GEMINI_BASE_URL if it doesn't exist in POSIX shell config
       if ! grep -q "GOOGLE_GEMINI_BASE_URL" "$config_file" 2>/dev/null; then
-        echo "export GOOGLE_GEMINI_BASE_URL=\"$base_url\"" >> "$config_file"
+        echo "export GOOGLE_GEMINI_BASE_URL=\"$base_url\"" >>"$config_file"
       fi
       # Add GEMINI_MODEL if it doesn't exist in POSIX shell config
       if ! grep -q "GEMINI_MODEL" "$config_file" 2>/dev/null; then
-        echo "export GEMINI_MODEL=\"$model\"" >> "$config_file"
+        echo "export GEMINI_MODEL=\"$model\"" >>"$config_file"
       fi
     fi
   else
     # Add new environment variables based on shell type
-    echo "" >> "$config_file"
-    echo "# Gemini CLI with Adaptive LLM API Configuration (added by gemini-cli installer)" >> "$config_file"
+    echo "" >>"$config_file"
+    echo "# Gemini CLI with Adaptive LLM API Configuration (added by gemini-cli installer)" >>"$config_file"
     if [ "$shell_type" = "fish" ]; then
-      echo "set -x GEMINI_API_KEY \"$api_key\"" >> "$config_file"
-      echo "set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"" >> "$config_file"
-      echo "set -x GEMINI_MODEL \"$model\"" >> "$config_file"
+      echo "set -x GEMINI_API_KEY \"$api_key\"" >>"$config_file"
+      echo "set -x GOOGLE_GEMINI_BASE_URL \"$base_url\"" >>"$config_file"
+      echo "set -x GEMINI_MODEL \"$model\"" >>"$config_file"
     else
-      echo "export GEMINI_API_KEY=\"$api_key\"" >> "$config_file"
-      echo "export GOOGLE_GEMINI_BASE_URL=\"$base_url\"" >> "$config_file"
-      echo "export GEMINI_MODEL=\"$model\"" >> "$config_file"
+      echo "export GEMINI_API_KEY=\"$api_key\"" >>"$config_file"
+      echo "export GOOGLE_GEMINI_BASE_URL=\"$base_url\"" >>"$config_file"
+      echo "export GEMINI_MODEL=\"$model\"" >>"$config_file"
     fi
   fi
 
