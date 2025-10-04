@@ -3,12 +3,12 @@
 ## 🚀 Quick Reference - READ THIS FIRST
 
 **CRITICAL COMMANDS**:
-- Frontend: `cd adaptive-app && pnpm run dev` (port 3000)
+- Frontend: `cd adaptive-app && bun run dev` (port 3000)
 - Backend: `cd adaptive-backend && go run cmd/api/main.go` (port 8080)
 - AI Service: `cd adaptive_ai/model_router && uv run model-router` (port 8000)
 
 **BEFORE EVERY COMMIT**:
-- Frontend: `pnpm run typecheck && pnpm run check`
+- Frontend: `bun run typecheck && bun run check`
 - Backend: `go test ./... && go vet ./... && go fmt ./...`
 - AI Service: `uv run mypy . && uv run ruff check . && uv run black .`
 
@@ -64,16 +64,16 @@ This ensures you always have access to the most current documentation and can re
 ## Common Commands
 
 ### Frontend (adaptive-app/)
-- `pnpm dev` - Start development server with Turbo
-- `pnpm run build` - Build for production (includes Prisma generate and type checking)
-- `pnpm run check` - Run Biome linter/formatter
-- `pnpm run check:write` - Run Biome with auto-fix
-- `pnpm run typecheck` - Run TypeScript type checking
-- `pnpm run db:generate` - Generate Prisma client and run migrations
-- `pnpm run db:push` - Push schema changes to database
-- `pnpm run db:studio` - Open Prisma Studio
-- `pnpm run db:seed-providers` - Seed provider data
-- `pnpm run stripe` - Start Stripe webhook listener
+- `bun dev` - Start development server with Turbo
+- `bun run build` - Build for production (includes Prisma generate and type checking)
+- `bun run check` - Run Biome linter/formatter
+- `bun run check:write` - Run Biome with auto-fix
+- `bun run typecheck` - Run TypeScript type checking
+- `bun run db:generate` - Generate Prisma client and run migrations
+- `bun run db:push` - Push schema changes to database
+- `bun run db:studio` - Open Prisma Studio
+- `bun run db:seed-providers` - Seed provider data
+- `bun run stripe` - Start Stripe webhook listener
 
 ### Backend Go (adaptive-backend/)
 - `go run cmd/api/main.go` - Start Go API server
@@ -101,7 +101,7 @@ This ensures you always have access to the most current documentation and can re
 
 ### Development Workflow
 **CRITICAL STARTUP SEQUENCE** - Start services in this order:
-1. `cd adaptive-app && pnpm run dev` - Frontend (port 3000)
+1. `cd adaptive-app && bun run dev` - Frontend (port 3000)
 2. `cd adaptive-backend && go run cmd/api/main.go` - Backend API (port 8080)
 3. `cd adaptive_ai/model_router && uv run model-router` - AI service (port 8000)
 
@@ -111,7 +111,7 @@ This ensures you always have access to the most current documentation and can re
 
 ### TypeScript/React (Frontend)
 - **YOU MUST**: Use ES modules (import/export) syntax, NEVER CommonJS (require)
-- **YOU MUST**: Use Biome for all code formatting and linting - run `pnpm run check` before committing
+- **YOU MUST**: Use Biome for all code formatting and linting - run `bun run check` before committing
 - **REQUIRED**: Destructure imports when possible: `import { foo } from 'bar'`
 - **REQUIRED**: Follow React 19 patterns with Server Components where appropriate
 - **CRITICAL**: Use TypeScript strict mode - all types must be properly defined
@@ -146,8 +146,8 @@ This ensures you always have access to the most current documentation and can re
 ### Frontend Testing
 - Currently using manual testing and type checking
 - **TODO**: Set up React Testing Library for component tests
-- Run `pnpm run typecheck` before committing
-- Test database operations with `pnpm run db:studio`
+- Run `bun run typecheck` before committing
+- Test database operations with `bun run db:studio`
 
 ### Backend Go Testing
 - Use standard Go testing: `go test ./...`
@@ -171,7 +171,7 @@ This ensures you always have access to the most current documentation and can re
 ## Developer Environment Setup
 
 ### Prerequisites
-- **Node.js** 18+ and **pnpm** latest
+- **Node.js** 18+ and **bun** latest
 - **Go** 1.24+ (specified in go.mod)
 - **Python** 3.10+ with **uv** package manager
 - **Docker** and **Docker Compose**
@@ -182,11 +182,11 @@ This ensures you always have access to the most current documentation and can re
 1. Clone repository and install dependencies:
    ```bash
    # Frontend
-   cd adaptive-app && pnpm install
-   
+   cd adaptive-app && bun install
+
    # Backend Go - dependencies auto-installed
    cd ../adaptive-backend
-   
+
     # AI Service
     cd adaptive_ai/model_router && uv install
    ```
@@ -198,22 +198,22 @@ This ensures you always have access to the most current documentation and can re
 3. Initialize database:
    ```bash
    cd adaptive-app
-   pnpm run db:generate
-   pnpm run db:seed-providers
+   bun run db:generate
+   bun run db:seed-providers
    ```
 
 4. Start services:
    ```bash
    # Option 1: Docker Compose (recommended)
    docker-compose up -d
-   
+
    # Option 2: Individual services
    # Terminal 1: Frontend
-   cd adaptive-app && pnpm run dev
-   
+   cd adaptive-app && bun run dev
+
    # Terminal 2: Go Backend
    cd adaptive-backend && go run cmd/api/main.go
-   
+
     # Terminal 3: AI Service
     cd adaptive_ai/model_router && uv run model-router
    ```
@@ -260,7 +260,7 @@ Each service has its own CLAUDE.md file with specific configuration and developm
   - Real-time usage tracking, cost analysis, and credit management
   - Built with React 19, Next.js 15, Prisma ORM, tRPC, Clerk auth
   - Vercel AI SDK integration for streaming chat
-  - Port: 3000 | Commands: `pnpm dev`, `pnpm run build`, `pnpm run typecheck`
+  - Port: 3000 | Commands: `bun dev`, `bun run build`, `bun run typecheck`
 
 **📊 Supporting Services:**
 - **[analysis/](analysis/CLAUDE.md)** - Cost analysis and performance benchmarking tools
@@ -333,8 +333,8 @@ When working with this codebase, consider the service interactions and data flow
 **Frontend:**
 ```bash
 cd adaptive-app
-pnpm run typecheck  # Must pass
-pnpm run check      # Must pass
+bun run typecheck  # Must pass
+bun run check      # Must pass
 ```
 
 **Backend Go:**
@@ -395,8 +395,8 @@ uv run pytest     # Must pass
 ### Frontend Issues
 - **Database connection errors**: Check DATABASE_URL in .env
 - **Clerk auth issues**: Verify CLERK_* environment variables
-- **Build failures**: Run `pnpm run typecheck` to identify TypeScript errors
-- **Prisma errors**: Run `pnpm run db:generate` after schema changes
+- **Build failures**: Run `bun run typecheck` to identify TypeScript errors
+- **Prisma errors**: Run `bun run db:generate` after schema changes
 
 ### Backend Go Issues
 - **Port conflicts**: Default port 8080, check if already in use

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CostComparison } from "@/app/_components/api-platform/organizations/projects/dashboard/cost-comparison";
 import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
 import { MetricsOverview } from "@/app/_components/api-platform/organizations/projects/dashboard/metrics-overview";
+import { ProjectBreadcrumb } from "@/components/project-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
@@ -83,6 +84,9 @@ export default function DashboardPage() {
 
 	return (
 		<div className="w-full px-6 py-2">
+			<div className="mb-6">
+				<ProjectBreadcrumb />
+			</div>
 			{/* Header Section */}
 			<div className="mb-8" id="dashboard-header">
 				<DashboardHeader
