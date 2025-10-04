@@ -4,7 +4,27 @@ import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-export function Logo() {
+interface LogoProps {
+	imageWidth?: number;
+	imageHeight?: number;
+	textSize?: "sm" | "base" | "lg" | "xl" | "2xl";
+	showText?: boolean;
+}
+
+const textSizeMap = {
+	sm: "text-sm",
+	base: "text-base",
+	lg: "text-lg",
+	xl: "text-xl",
+	"2xl": "text-2xl",
+};
+
+export function Logo({
+	imageWidth = 120,
+	imageHeight = 100,
+	textSize = "xl",
+	showText = true,
+}: LogoProps) {
 	const { resolvedTheme } = useTheme();
 	const [mounted, setMounted] = useState(false);
 
@@ -25,13 +45,17 @@ export function Logo() {
 						: "/logos/adaptive-light.png"
 				}
 				alt="Adaptive Logo"
-				width={120}
-				height={100}
+				width={imageWidth}
+				height={imageHeight}
 				className="mr-2"
 			/>
-			<span className="bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text font-bold font-display text-transparent text-xl">
-				Adaptive
-			</span>
+			{showText && (
+				<span
+					className={`bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text font-bold font-display text-transparent ${textSizeMap[textSize]}`}
+				>
+					Adaptive
+				</span>
+			)}
 		</div>
 	);
 }
