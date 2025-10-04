@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
 
 
 class ModelCapability(BaseModel):
@@ -22,7 +22,7 @@ class ModelCapability(BaseModel):
 
     # Metadata
     description: str | None = None
-    languages_supported: list[str] = Field(default_factory=list)
+    languages_supported: list[str] | None = None
     experimental: bool | None = None
 
     @property

@@ -1,7 +1,5 @@
 from adaptive_router.models.llm_classification_models import (
     ClassificationResult,
-    ClassifyBatchRequest,
-    ClassifyRequest,
 )
 from adaptive_router.models.llm_core_models import (
     Alternative,
@@ -19,8 +17,6 @@ __version__ = "0.1.0"
 __all__ = [
     "PromptClassifier",
     "ClassificationResult",
-    "ClassifyRequest",
-    "ClassifyBatchRequest",
     "ModelSelectionRequest",
     "ModelSelectionResponse",
     "ModelCapability",

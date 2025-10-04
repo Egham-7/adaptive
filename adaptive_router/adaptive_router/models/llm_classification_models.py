@@ -2,15 +2,10 @@
 
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, Field
 
 # Type alias for probability values constrained to [0.0, 1.0] range
 UnitFloat = Annotated[float, Field(ge=0.0, le=1.0)]
-
-# Type alias for individual prompt strings with constraints
-PromptsItem = Annotated[
-    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000)
-]
 
 
 class ClassificationResult(BaseModel):
@@ -80,24 +75,4 @@ class ClassificationResult(BaseModel):
     constraint_ct: UnitFloat = Field(
         description="Constraint complexity detected (0=none, 1=many constraints) (required)",
         examples=[0.2, 0.5],
-    )
-
-
-class ClassifyRequest(BaseModel):
-    """Request model for single prompt classification API.
-
-    Matches prompt-task-complexity-classifier's ClassifyRequest model.
-    """
-
-    prompt: PromptsItem = Field(description="Single prompt to classify")
-
-
-class ClassifyBatchRequest(BaseModel):
-    """Request model for batch prompt classification API.
-
-    Matches prompt-task-complexity-classifier's ClassifyBatchRequest model.
-    """
-
-    prompts: list[PromptsItem] = Field(
-        description="List of prompts to classify", min_length=1, max_length=100
     )
