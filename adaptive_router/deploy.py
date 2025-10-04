@@ -20,7 +20,7 @@ from adaptive_router.models.llm_core_models import (
 from adaptive_router.services.model_router import ModelRouter
 
 # Modal deployment constants
-APP_NAME = "prompt-task-complexity-classifier"
+APP_NAME = "adaptive_router"
 GPU_TYPE = "T4"
 TIMEOUT = 600
 SCALEDOWN_WINDOW = 300
