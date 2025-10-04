@@ -4,20 +4,20 @@ on:
   push:
     branches: [dev]
     paths:
-      - "adaptive_ai/model_router/**"
+      - "adaptive_router/**"
       - ".github/workflows/model-router-dev-ci.yml"
       - ".github/scripts/**"
   pull_request:
     branches: [dev]
     paths:
-      - "adaptive_ai/model_router/**"
+      - "adaptive_router/**"
       - ".github/workflows/model-router-dev-ci.yml"
       - ".github/scripts/**"
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: "3.11"
-  WORKING_DIR: "./adaptive_ai/model_router"
+  PYTHON_VERSION: "3.13"
+  WORKING_DIR: "./adaptive_router"
 
 jobs:
   test:
@@ -37,10 +37,10 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev --group test
+        run: uv sync --all-groups
 
       - name: Run unit tests only
-        run: make test-unit
+        run: uv run pytest adaptive_router/tests/unit/ --cov=adaptive_router --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@v5
@@ -67,7 +67,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --all-groups
 
       - name: Run type checking
         run: uv run mypy .
@@ -78,3 +78,40 @@ jobs:
       - name: Check formatting
         run: uv run black . --check --diff --fast
 
+  deploy-dev:
+    name: Deploy Model Router - Development
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    needs: [test, lint]
+    if: github.ref == 'refs/heads/dev' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    environment: development
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+    env:
+      MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
+      MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
+      MODAL_ENVIRONMENT: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup uv and Python for deployment
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+
+      - name: Install Dependencies
+        run: |
+          uv sync --all-groups
+
+      - name: Deploy to Dev
+        run: |
+          echo "🚀 Deploying Model Router to dev environment..."
+          uv run modal deploy deploy.py
+          echo "✅ Deployment to dev completed"
