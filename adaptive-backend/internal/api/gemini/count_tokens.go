@@ -116,17 +116,20 @@ func (h *CountTokensHandler) resolveProviderAndModel(
 ) (provider, model string, err error) {
 	modelParam := c.Params("model")
 
-	// Try parsing model parameter first
-	if modelParam != "" {
-		provider, model, err = utils.ParseProviderModelWithDefault(modelParam, "gemini")
-		if err == nil {
-			fiberlog.Debugf("[%s] Using parsed model: %s:%s", requestID, provider, model)
-			return provider, model, nil
-		}
-		fiberlog.Debugf("[%s] Failed to parse model '%s': %v, using model router", requestID, modelParam, err)
+	// If no model parameter, use model router
+	if modelParam == "" {
+		return h.selectModelViaRouter(c, req, requestID)
 	}
 
-	// Fallback to model router
+	// Try parsing model parameter with strict format (provider:model)
+	provider, model, parseErr := utils.ParseProviderModel(modelParam)
+	if parseErr == nil {
+		fiberlog.Debugf("[%s] Using parsed model: %s:%s", requestID, provider, model)
+		return provider, model, nil
+	}
+
+	// If parsing fails, check if it's a special routing model or fallback to model router
+	fiberlog.Debugf("[%s] Failed to parse model '%s': %v, using model router", requestID, modelParam, parseErr)
 	return h.selectModelViaRouter(c, req, requestID)
 }
 
