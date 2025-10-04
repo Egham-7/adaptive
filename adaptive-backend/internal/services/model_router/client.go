@@ -84,7 +84,7 @@ func NewModelRouterClientWithConfig(config ModelRouterClientConfig, redisClient 
 		adaptiveRouterURL: config.AdaptiveRouterURL,
 		jwtSecret:         config.JWTSecret,
 		timeout:           config.RequestTimeout,
-		circuitBreaker:    circuitbreaker.NewWithConfig(redisClient, "model_router", config.CircuitBreakerConfig),
+		circuitBreaker:    circuitbreaker.NewWithConfig(redisClient, "adaptive_router", config.CircuitBreakerConfig),
 	}
 }
 

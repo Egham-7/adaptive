@@ -82,8 +82,8 @@ services:
       semantic_threshold: 0.95
       openai_api_key: "${OPENAI_API_KEY}" # For embeddings
     client:
-      adaptive_router_url: "${ADAPTIVE_ROUTER_URL}"
-      jwt_secret: "${ADAPTIVE_ROUTER_JWT_SECRET}"
+      adaptive_router_url: "${ADAPTIVE_ROUTER_URL:-http://localhost:8000}"
+      jwt_secret: "${ADAPTIVE_ROUTER_JWT_SECRET:-dev-secret}"
       timeout_ms: 3000
       circuit_breaker:
         failure_threshold: 3

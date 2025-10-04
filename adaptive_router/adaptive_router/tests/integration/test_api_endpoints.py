@@ -145,7 +145,7 @@ class TestLibraryUsage:
         This test doesn't require any server - just imports and uses the library.
         Note: First run will download the ML model (~500MB).
         """
-        from model_router import PromptClassifier
+        from adaptive_router import PromptClassifier
 
         classifier = PromptClassifier()
         result = classifier.classify_prompt("Write a Python sorting function")
@@ -158,7 +158,7 @@ class TestLibraryUsage:
 
     def test_direct_router_usage(self) -> None:
         """Test using the router directly as a library."""
-        from model_router import ModelRouter, ModelSelectionRequest
+        from adaptive_router import ModelRouter, ModelSelectionRequest
 
         router = ModelRouter()
         request = ModelSelectionRequest(

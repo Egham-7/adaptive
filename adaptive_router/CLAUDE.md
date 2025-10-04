@@ -124,23 +124,24 @@ LOG_LEVEL=INFO                  # Logging level
 Use adaptive_router as a Python library in your code:
 
 ```python
-from adaptive_router import get_prompt_classifier, ModelRouter, model_registry
+from adaptive_router import PromptClassifier, ModelRouter, ModelSelectionRequest
 
 # Initialize classifier
-classifier = get_prompt_classifier()
+classifier = PromptClassifier()
 
 # Classify a prompt
 result = classifier.classify_prompt("Write a Python function to sort a list")
 print(f"Task: {result['task_type_1']}, Complexity: {result['prompt_complexity_score']}")
 
 # Use router for model selection
-router = ModelRouter(model_registry)
-models = router.select_models(
-    task_complexity=result["prompt_complexity_score"],
-    task_type=result["task_type_1"],
+router = ModelRouter()
+request = ModelSelectionRequest(
+    prompt="Write a Python function to sort a list",
     cost_bias=0.5
 )
-print(f"Recommended model: {models[0].provider} / {models[0].model_name}")
+response = router.select_model(request)
+print(f"Recommended model: {response.provider} / {response.model}")
+print(f"Alternatives: {response.alternatives}")
 ```
 
 ### 2. FastAPI Server Mode
@@ -166,15 +167,13 @@ Deploy to Modal for serverless GPU inference with auto-scaling:
 # Deploy to Modal
 modal deploy deploy.py
 
-# Modal will provide URLs for:
-# - POST /classify - Single prompt classification
-# - POST /classify_batch - Batch classification
+# Test the deployed function using Modal SDK
+from modal import Function
 
-# Authenticate requests with JWT Bearer token
-curl -X POST https://your-modal-url/classify \
-  -H "Authorization: Bearer $JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Write a sorting algorithm"}'
+select_model = Function.lookup("prompt-task-complexity-classifier", "select_model")
+request = ModelSelectionRequest(prompt="Write a sorting algorithm", cost_bias=0.5)
+response = select_model.remote(request)
+print(f"Selected: {response.provider} / {response.model}")
 ```
 
 ## Development Commands
@@ -602,10 +601,19 @@ Resource requirements vary significantly by deployment mode:
 ```bash
 # Test local classifier
 python -c "
-from adaptive_router import get_prompt_classifier
-classifier = get_prompt_classifier()
+from adaptive_router import PromptClassifier
+classifier = PromptClassifier()
 result = classifier.classify_prompt('Write a Python sorting function')
 print(result)
+"
+
+# Test model router
+python -c "
+from adaptive_router import ModelRouter, ModelSelectionRequest
+router = ModelRouter()
+request = ModelSelectionRequest(prompt='Explain quantum computing', cost_bias=0.5)
+response = router.select_model(request)
+print(f'Provider: {response.provider}, Model: {response.model}')
 "
 
 # Check GPU availability
@@ -624,7 +632,7 @@ DEBUG=true uv run adaptive-ai
 curl -X GET http://localhost:8000/health
 
 # Test model selection endpoint
-curl -X POST http://localhost:8000/predict \
+curl -X POST http://localhost:8000/select_model \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Write a sorting algorithm", "cost_bias": 0.5}'
 

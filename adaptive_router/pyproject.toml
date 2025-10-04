@@ -57,11 +57,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Egham-7/adaptive-router"
-Repository = "https://github.com/Egham-7/adaptive-router"
-Documentation = "https://docs.adaptive-router.com"
-"Bug Tracker" = "https://github.com/Egham-7/adaptive-router/issues"
-Changelog = "https://github.com/Egham-7/adaptive-router/blob/main/CHANGELOG.md"
+Homepage = "https://llmadaptive.uk"
+Repository = "https://github.com/Egham-7/adaptive"
+Documentation = "https://docs.llmadaptive.uk"
+"Bug Tracker" = "https://github.com/Egham-7/adaptive/issues"
 
 
 
