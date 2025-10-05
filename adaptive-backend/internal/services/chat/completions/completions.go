@@ -10,6 +10,7 @@ import (
 
 	"adaptive-backend/internal/config"
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/services/circuitbreaker"
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/stream/handlers"
@@ -32,10 +33,11 @@ type CompletionService struct {
 	fallbackService *fallback.FallbackService
 	responseService *ResponseService
 	clientCache     *clientcache.Cache[*openai.Client]
+	circuitBreakers map[string]*circuitbreaker.CircuitBreaker
 }
 
 // NewCompletionService creates a new completion service.
-func NewCompletionService(cfg *config.Config, responseService *ResponseService) *CompletionService {
+func NewCompletionService(cfg *config.Config, responseService *ResponseService, circuitBreakers map[string]*circuitbreaker.CircuitBreaker) *CompletionService {
 	if responseService == nil {
 		panic("NewCompletionService: responseService cannot be nil")
 	}
@@ -47,6 +49,7 @@ func NewCompletionService(cfg *config.Config, responseService *ResponseService) 
 		fallbackService: fallback.NewFallbackService(cfg),
 		responseService: responseService,
 		clientCache:     clientcache.NewCache[*openai.Client](),
+		circuitBreakers: circuitBreakers,
 	}
 }
 
@@ -185,6 +188,15 @@ func (cs *CompletionService) createExecuteFunc(
 	resolvedConfig *config.Config,
 ) models.ExecutionFunc {
 	return func(c *fiber.Ctx, provider models.Alternative, reqID string) error {
+		// Check circuit breaker before attempting execution
+		if cb := cs.circuitBreakers[provider.Provider]; cb != nil {
+			if !cb.CanExecute() {
+				fiberlog.Warnf("[%s] Circuit breaker is OPEN for provider %s, skipping", reqID, provider.Provider)
+				return models.NewCircuitBreakerError(provider.Provider)
+			}
+			fiberlog.Debugf("[%s] Circuit breaker check passed for provider %s", reqID, provider.Provider)
+		}
+
 		client, err := cs.createClient(provider.Provider, resolvedConfig, isStream)
 		if err != nil {
 			return fmt.Errorf("client creation failed for provider %s: %w", provider.Provider, err)
@@ -222,6 +234,10 @@ func (cs *CompletionService) executeOpenAICompletion(
 	// Convert request using format adapter
 	openAIParams, err := format_adapter.AdaptiveToOpenAI.ConvertRequest(req)
 	if err != nil {
+		// Record failure in circuit breaker
+		if cb := cs.circuitBreakers[providerName]; cb != nil {
+			cb.RecordFailure()
+		}
 		return fmt.Errorf("failed to convert request to OpenAI parameters: %w", err)
 	}
 
@@ -244,7 +260,22 @@ func (cs *CompletionService) handleStreamingCompletion(
 	fiberlog.Infof("[%s] streaming response from %s", requestID, providerName)
 
 	streamResp := client.Chat.Completions.NewStreaming(c.UserContext(), *openAIParams)
-	return handlers.HandleOpenAI(c, streamResp, requestID, providerName, cacheSource)
+	err := handlers.HandleOpenAI(c, streamResp, requestID, providerName, cacheSource)
+
+	if err != nil {
+		// Record failure in circuit breaker
+		if cb := cs.circuitBreakers[providerName]; cb != nil {
+			cb.RecordFailure()
+		}
+		return err
+	}
+
+	// Record success in circuit breaker
+	if cb := cs.circuitBreakers[providerName]; cb != nil {
+		cb.RecordSuccess()
+	}
+
+	return nil
 }
 
 // handleNonStreamingCompletion handles non-streaming completions
@@ -269,13 +300,26 @@ func (cs *CompletionService) handleNonStreamingCompletion(
 
 	resp, err := client.Chat.Completions.New(ctx, *openAIParams)
 	if err != nil {
+		// Record failure in circuit breaker
+		if cb := cs.circuitBreakers[providerName]; cb != nil {
+			cb.RecordFailure()
+		}
 		return models.NewProviderError(providerName, "completion request failed", err)
 	}
 
 	// Convert response using format adapter with cache source
 	adaptiveResp, err := format_adapter.OpenAIToAdaptive.ConvertResponse(resp, providerName, cacheSource)
 	if err != nil {
+		// Record failure in circuit breaker
+		if cb := cs.circuitBreakers[providerName]; cb != nil {
+			cb.RecordFailure()
+		}
 		return fmt.Errorf("failed to convert response to adaptive format: %w", err)
+	}
+
+	// Record success in circuit breaker
+	if cb := cs.circuitBreakers[providerName]; cb != nil {
+		cb.RecordSuccess()
 	}
 
 	return c.JSON(adaptiveResp)
