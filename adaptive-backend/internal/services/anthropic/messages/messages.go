@@ -67,7 +67,6 @@ func (ms *MessagesService) CreateClient(providerConfig models.ProviderConfig) *a
 		fiberlog.Debugf("Creating new Anthropic client (config hash: %s)", configHash[:8])
 		return ms.buildClient(providerConfig), nil
 	})
-
 	if err != nil {
 		// Should never happen since buildClient doesn't return error, but handle gracefully
 		fiberlog.Warnf("Unexpected error from cache: %v, creating new client", err)

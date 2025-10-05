@@ -64,7 +64,6 @@ func (gs *GenerateService) CreateClient(ctx context.Context, providerConfig mode
 		fiberlog.Debugf("Creating new Gemini client (config hash: %s)", configHash[:8])
 		return gs.buildClient(ctx, providerConfig)
 	})
-
 	if err != nil {
 		return nil, err
 	}

@@ -63,7 +63,6 @@ func (cts *CountTokensService) CreateClient(ctx context.Context, providerConfig 
 		fiberlog.Debugf("Creating new Gemini client (config hash: %s)", configHash[:8])
 		return cts.buildClient(ctx, providerConfig)
 	})
-
 	if err != nil {
 		return nil, err
 	}

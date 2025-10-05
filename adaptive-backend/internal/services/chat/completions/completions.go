@@ -109,7 +109,6 @@ func (cs *CompletionService) createClient(providerName string, resolvedConfig *c
 		fiberlog.Debugf("Creating new OpenAI client for %s (config hash: %s)", providerName, configHash[:8])
 		return cs.buildClient(providerConfig, providerName, isStream)
 	})
-
 	if err != nil {
 		return nil, err
 	}
