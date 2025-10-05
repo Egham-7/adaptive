@@ -468,7 +468,7 @@ def create_benchmark_params(**kwargs: Any) -> BenchmarkParameters:
     """Create BenchmarkParameters from keyword arguments"""
     return BenchmarkParameters(
         url=kwargs.get("url", "http://localhost:8080"),
-        model=kwargs.get("model", "adaptive-go-api"),
+        model=kwargs.get("model", ""),
         concurrency=kwargs.get("concurrency"),
         check_health=kwargs.get("check_health", True),
         audio_length_mean=kwargs.get("audio_length_mean"),
