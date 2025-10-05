@@ -6,15 +6,18 @@ import (
 	"io"
 	"sync"
 
+	"adaptive-backend/internal/utils"
+
 	"github.com/openai/openai-go/v2"
 	ssestream "github.com/openai/openai-go/v2/packages/ssestream"
+	"github.com/valyala/bytebufferpool"
 )
 
 // OpenAIStreamReader provides pure I/O reading from OpenAI streams
 // This reader ONLY reads raw chunk data - no format conversion
 type OpenAIStreamReader struct {
 	stream    *ssestream.Stream[openai.ChatCompletionChunk]
-	buffer    []byte
+	buffer    *bytebufferpool.ByteBuffer
 	done      bool
 	doneMux   sync.RWMutex
 	requestID string
@@ -28,7 +31,7 @@ func NewOpenAIStreamReader(
 ) *OpenAIStreamReader {
 	return &OpenAIStreamReader{
 		stream:    stream,
-		buffer:    make([]byte, 0, 4096), // 4KB initial buffer
+		buffer:    utils.Get(), // Get buffer from pool
 		requestID: requestID,
 	}
 }
@@ -36,9 +39,9 @@ func NewOpenAIStreamReader(
 // Read implements io.Reader - pure I/O operation
 func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 	// Fast path: return buffered data first
-	if len(r.buffer) > 0 {
-		n = copy(p, r.buffer)
-		r.buffer = r.buffer[n:]
+	if len(r.buffer.B) > 0 {
+		n = copy(p, r.buffer.B)
+		r.buffer.B = r.buffer.B[n:]
 		return n, nil
 	}
 
@@ -75,7 +78,7 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 	}
 
 	// Buffer the data
-	r.buffer = append(r.buffer[:0], chunkData...)
+	r.buffer.B = append(r.buffer.B[:0], chunkData...)
 
 	// Check for completion
 	if r.hasFinishReason(&chunk) {
@@ -83,8 +86,8 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 	}
 
 	// Return data from buffer
-	n = copy(p, r.buffer)
-	r.buffer = r.buffer[n:]
+	n = copy(p, r.buffer.B)
+	r.buffer.B = r.buffer.B[n:]
 	return n, nil
 }
 
@@ -96,7 +99,10 @@ func (r *OpenAIStreamReader) Close() error {
 		if r.stream != nil {
 			err = r.stream.Close()
 		}
-		r.buffer = nil
+		if r.buffer != nil {
+			utils.Put(r.buffer) // Return buffer to pool
+			r.buffer = nil
+		}
 	})
 	return err
 }

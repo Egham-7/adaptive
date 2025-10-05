@@ -4,99 +4,13 @@ import (
 	"context"
 	"errors"
 	"io"
-	"sync"
 	"time"
 
 	"adaptive-backend/internal/services/stream/contracts"
+	"adaptive-backend/internal/utils"
 
 	fiberlog "github.com/gofiber/fiber/v2/log"
 )
-
-// BufferConfig holds configuration for streaming buffers
-type BufferConfig struct {
-	DefaultSize   int
-	MaxSize       int
-	ProviderSizes map[string]int // Provider-specific buffer sizes
-}
-
-// DefaultBufferConfig returns default buffer configuration
-func DefaultBufferConfig() *BufferConfig {
-	return &BufferConfig{
-		DefaultSize: 32768, // 32KB default
-		MaxSize:     65536, // 64KB maximum
-		ProviderSizes: map[string]int{
-			"openai":    16384, // 16KB for OpenAI (smaller chunks)
-			"anthropic": 32768, // 32KB for Anthropic (larger chunks)
-			"google":    24576, // 24KB for Google AI
-			"deepseek":  20480, // 20KB for DeepSeek
-			"groq":      8192,  // 8KB for Groq (fast, smaller chunks)
-		},
-	}
-}
-
-// bufferPool manages reusable byte buffers for streaming
-var bufferPool = sync.Pool{
-	New: func() any {
-		buf := make([]byte, DefaultBufferConfig().DefaultSize)
-		return &buf
-	},
-}
-
-// providerBufferPools holds provider-specific buffer pools
-var (
-	providerBufferPools = make(map[string]*sync.Pool)
-	poolInitOnce        sync.Once
-)
-
-// initializeProviderPools sets up provider-specific buffer pools
-func initializeProviderPools() {
-	config := DefaultBufferConfig()
-	for provider, size := range config.ProviderSizes {
-		providerBufferPools[provider] = &sync.Pool{
-			New: func(bufSize int) func() any {
-				return func() any {
-					buf := make([]byte, bufSize)
-					return &buf
-				}
-			}(size),
-		}
-	}
-}
-
-// getBuffer retrieves a buffer from the appropriate pool based on provider
-func getBuffer(provider string) []byte {
-	poolInitOnce.Do(initializeProviderPools)
-
-	if pool, exists := providerBufferPools[provider]; exists {
-		return *pool.Get().(*[]byte)
-	}
-
-	// Fallback to default pool
-	return *bufferPool.Get().(*[]byte)
-}
-
-// putBuffer returns a buffer to the appropriate pool
-func putBuffer(buffer []byte, provider string) {
-	// Clear buffer to prevent data leaks
-	clear(buffer)
-
-	poolInitOnce.Do(initializeProviderPools)
-
-	if pool, exists := providerBufferPools[provider]; exists {
-		// Verify buffer size matches pool expectation
-		config := DefaultBufferConfig()
-		if expectedSize, ok := config.ProviderSizes[provider]; ok && len(buffer) == expectedSize {
-			pool.Put(&buffer)
-			return
-		}
-	}
-
-	// Fallback to default pool if size matches
-	if len(buffer) == DefaultBufferConfig().DefaultSize {
-		bufferPool.Put(&buffer)
-	}
-	// If buffer size doesn't match any pool, let GC handle it
-}
 
 // StreamOrchestrator coordinates the streaming pipeline
 type StreamOrchestrator struct {
@@ -123,9 +37,17 @@ func (s *StreamOrchestrator) Handle(ctx context.Context, writer contracts.Stream
 	providerName := s.processor.Provider()
 	fiberlog.Infof("[%s] Starting stream orchestration for provider: %s", s.requestID, providerName)
 
-	// Get buffer from pool based on provider
-	buffer := getBuffer(providerName)
-	defer putBuffer(buffer, providerName)
+	// Get buffer from pool (bytebufferpool manages size classes automatically)
+	buf := utils.Get()
+	defer utils.Put(buf)
+
+	// Pre-allocate buffer to reasonable size for streaming (32KB)
+	if cap(buf.B) < 32768 {
+		buf.B = make([]byte, 32768)
+	} else {
+		buf.B = buf.B[:32768]
+	}
+	buffer := buf.B
 
 	// Ensure cleanup
 	defer func() {

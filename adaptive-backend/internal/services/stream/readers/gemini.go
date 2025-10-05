@@ -6,6 +6,9 @@ import (
 	"iter"
 	"sync"
 
+	"adaptive-backend/internal/utils"
+
+	"github.com/valyala/bytebufferpool"
 	"google.golang.org/genai"
 )
 
@@ -13,7 +16,7 @@ import (
 // This reader ONLY reads raw chunk data - no format conversion
 type GeminiStreamReader struct {
 	iterator  iter.Seq2[*genai.GenerateContentResponse, error]
-	buffer    []byte
+	buffer    *bytebufferpool.ByteBuffer
 	done      bool
 	doneMux   sync.RWMutex
 	requestID string
@@ -29,7 +32,7 @@ func NewGeminiStreamReader(
 ) *GeminiStreamReader {
 	reader := &GeminiStreamReader{
 		iterator:  streamIter,
-		buffer:    make([]byte, 0, 4096), // 4KB initial buffer
+		buffer:    utils.Get(), // Get buffer from pool
 		requestID: requestID,
 	}
 
@@ -66,9 +69,9 @@ func (r *GeminiStreamReader) setupIterator() {
 // Read implements io.Reader - pure I/O operation
 func (r *GeminiStreamReader) Read(p []byte) (n int, err error) {
 	// Fast path: return buffered data first
-	if len(r.buffer) > 0 {
-		n = copy(p, r.buffer)
-		r.buffer = r.buffer[n:]
+	if len(r.buffer.B) > 0 {
+		n = copy(p, r.buffer.B)
+		r.buffer.B = r.buffer.B[n:]
 		return n, nil
 	}
 
@@ -109,7 +112,7 @@ func (r *GeminiStreamReader) Read(p []byte) (n int, err error) {
 	n = copy(p, chunkData)
 	if n < len(chunkData) {
 		// Buffer remaining data for next read
-		r.buffer = append(r.buffer, chunkData[n:]...)
+		r.buffer.B = append(r.buffer.B, chunkData[n:]...)
 	}
 
 	return n, nil
@@ -125,6 +128,11 @@ func (r *GeminiStreamReader) Close() error {
 
 		if r.stop != nil {
 			r.stop()
+		}
+
+		if r.buffer != nil {
+			utils.Put(r.buffer) // Return buffer to pool
+			r.buffer = nil
 		}
 	})
 	return closeErr

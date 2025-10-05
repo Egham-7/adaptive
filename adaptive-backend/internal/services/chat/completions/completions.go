@@ -2,8 +2,11 @@ package completions
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"adaptive-backend/internal/config"
@@ -28,6 +31,7 @@ const (
 type CompletionService struct {
 	fallbackService *fallback.FallbackService
 	responseService *ResponseService
+	clientCache     sync.Map // Cache for OpenAI clients (key: provider:stream, value: *openai.Client)
 }
 
 // NewCompletionService creates a new completion service.
@@ -45,7 +49,40 @@ func NewCompletionService(cfg *config.Config, responseService *ResponseService) 
 	}
 }
 
-// createClient creates an OpenAI client for the given provider using resolved config
+// generateConfigHash creates a hash of the provider config to detect changes
+func (cs *CompletionService) generateConfigHash(providerConfig models.ProviderConfig, isStream bool) (string, error) {
+	// Create a simplified config struct for hashing (excluding sensitive data from logs)
+	type configForHash struct {
+		BaseURL    string
+		TimeoutMs  int
+		Headers    map[string]string
+		IsStream   bool
+		APIKeyHash string // Hash of API key instead of raw key
+	}
+
+	// Hash the API key separately
+	apiKeyHash := sha256.Sum256([]byte(providerConfig.APIKey))
+
+	hashConfig := configForHash{
+		BaseURL:    providerConfig.BaseURL,
+		TimeoutMs:  providerConfig.TimeoutMs,
+		Headers:    providerConfig.Headers,
+		IsStream:   isStream,
+		APIKeyHash: fmt.Sprintf("%x", apiKeyHash[:8]), // Use first 8 bytes of hash
+	}
+
+	// Marshal to JSON for consistent hashing
+	configJSON, err := json.Marshal(hashConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// Generate SHA256 hash
+	hash := sha256.Sum256(configJSON)
+	return fmt.Sprintf("%x", hash[:16]), nil // Use first 16 bytes for cache key
+}
+
+// createClient creates or retrieves a cached OpenAI client for the given provider
 func (cs *CompletionService) createClient(providerName string, resolvedConfig *config.Config, isStream bool) (*openai.Client, error) {
 	if resolvedConfig == nil {
 		return nil, models.NewInternalError("resolved config is nil", nil)
@@ -57,7 +94,32 @@ func (cs *CompletionService) createClient(providerName string, resolvedConfig *c
 		return nil, models.NewProviderError(providerName, "provider is not configured", nil)
 	}
 
-	return cs.buildClient(providerConfig, providerName, isStream)
+	// Generate cache key based on provider config hash
+	configHash, err := cs.generateConfigHash(providerConfig, isStream)
+	if err != nil {
+		fiberlog.Warnf("Failed to generate config hash for %s: %v, creating new client without caching", providerName, err)
+		return cs.buildClient(providerConfig, providerName, isStream)
+	}
+
+	cacheKey := fmt.Sprintf("%s:%s", providerName, configHash)
+
+	// Try to get cached client
+	if cached, ok := cs.clientCache.Load(cacheKey); ok {
+		fiberlog.Debugf("Using cached OpenAI client for %s (config hash: %s)", providerName, configHash[:8])
+		return cached.(*openai.Client), nil
+	}
+
+	// Build new client if not cached
+	client, err := cs.buildClient(providerConfig, providerName, isStream)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the client for future reuse
+	cs.clientCache.Store(cacheKey, client)
+	fiberlog.Debugf("Created and cached new OpenAI client for %s (config hash: %s)", providerName, configHash[:8])
+
+	return client, nil
 }
 
 func (cs *CompletionService) buildClient(providerConfig models.ProviderConfig, providerName string, isStream bool) (*openai.Client, error) {
