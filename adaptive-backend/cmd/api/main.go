@@ -314,11 +314,18 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, allowedOrigins string) 
 
 	// Request timeout middleware (protects against runaway requests)
 	app.Use(func(c *fiber.Ctx) error {
-		timeout := 30 * time.Second
+		const (
+			defaultTimeout = 30 * time.Second
+			maxTimeout     = 2 * time.Minute
+		)
+
+		timeout := defaultTimeout
 		if customTimeout := c.Get("X-Request-Timeout"); customTimeout != "" {
-			if d, err := time.ParseDuration(customTimeout); err == nil {
-				timeout = d
+			if d, err := time.ParseDuration(customTimeout); err == nil && d > 0 {
+				// Clamp timeout to maxTimeout
+				timeout = min(d, maxTimeout)
 			}
+			// Malformed or non-positive values fall back to defaultTimeout
 		}
 
 		ctx, cancel := context.WithTimeout(c.UserContext(), timeout)

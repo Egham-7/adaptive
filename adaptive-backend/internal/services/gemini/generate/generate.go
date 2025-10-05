@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
-	"sync"
 	"time"
 
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/utils/clientcache"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -18,12 +18,14 @@ import (
 
 // GenerateService handles Gemini GenerateContent API calls using the Gemini SDK
 type GenerateService struct {
-	clientCache sync.Map // Cache for Gemini clients (key: config hash, value: *genai.Client)
+	clientCache *clientcache.Cache[*genai.Client]
 }
 
 // NewGenerateService creates a new GenerateService
 func NewGenerateService() *GenerateService {
-	return &GenerateService{}
+	return &GenerateService{
+		clientCache: clientcache.NewCache[*genai.Client](),
+	}
 }
 
 // generateConfigHash creates a hash of the provider config to detect changes
@@ -57,22 +59,16 @@ func (gs *GenerateService) CreateClient(ctx context.Context, providerConfig mode
 		return gs.buildClient(ctx, providerConfig)
 	}
 
-	// Try to get cached client
-	if cached, ok := gs.clientCache.Load(configHash); ok {
-		fiberlog.Debugf("Using cached Gemini client (config hash: %s)", configHash[:8])
-		return cached.(*genai.Client), nil
-	}
-
-	// Build new client if not cached
-	client, err := gs.buildClient(ctx, providerConfig)
+	// Use type-safe cache with singleflight to prevent duplicate client creation
+	client, err := gs.clientCache.GetOrCreate(configHash, func() (*genai.Client, error) {
+		fiberlog.Debugf("Creating new Gemini client (config hash: %s)", configHash[:8])
+		return gs.buildClient(ctx, providerConfig)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Cache the client for future reuse
-	gs.clientCache.Store(configHash, client)
-	fiberlog.Debugf("Created and cached new Gemini client (config hash: %s)", configHash[:8])
-
+	fiberlog.Debugf("Using Gemini client (config hash: %s)", configHash[:8])
 	return client, nil
 }
 
