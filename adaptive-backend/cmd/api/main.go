@@ -87,6 +87,10 @@ func SetupRoutes(app *fiber.App, cfg *config.Config, redisClient *redis.Client) 
 	messagesHandler := api.NewMessagesHandler(cfg, modelRouter, anthropicPromptCache, circuitBreakers)
 	generateHandler := geminiapi.NewGenerateHandler(cfg, modelRouter, geminiPromptCache, circuitBreakers)
 	countTokensHandler := geminiapi.NewCountTokensHandler(cfg, modelRouter, circuitBreakers)
+	healthHandler := api.NewHealthHandler(cfg, redisClient)
+
+	// Health check endpoint (no authentication needed)
+	app.Get("/health", healthHandler.HealthCheck)
 
 	// Setup v1 routes for internal communication (no authentication needed)
 	v1Group := app.Group("/v1")
