@@ -261,7 +261,6 @@ func (cs *CompletionService) handleStreamingCompletion(
 
 	streamResp := client.Chat.Completions.NewStreaming(c.UserContext(), *openAIParams)
 	err := handlers.HandleOpenAI(c, streamResp, requestID, providerName, cacheSource)
-
 	if err != nil {
 		// Record failure in circuit breaker
 		if cb := cs.circuitBreakers[providerName]; cb != nil {
