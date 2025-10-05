@@ -89,16 +89,24 @@ func (h *HealthHandler) checkAIService() string {
 		return "unknown"
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Use a longer timeout to account for Modal cold starts (can take 10-20 seconds)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// Send a dummy model selection request to warm up the Modal function
+	// Get configured providers from chat_completions endpoint
+	configuredModels := h.cfg.GetModelCapabilitiesFromEndpoint("chat_completions")
+	if len(configuredModels) == 0 {
+		// Fallback to a default if no providers configured
+		configuredModels = []models.ModelCapability{
+			{Provider: "openai", ModelName: "gpt-5"},
+		}
+	}
+
+	// Send a model selection request to warm up the Modal function
 	// This uses the same client and authentication as normal model selection
 	dummyRequest := models.ModelSelectionRequest{
 		Prompt: "health check",
-		Models: []models.ModelCapability{
-			{Provider: "openai", ModelName: "gpt-4o"},
-		},
+		Models: configuredModels,
 	}
 
 	response := h.modelRouterClient.SelectModel(ctx, dummyRequest)
