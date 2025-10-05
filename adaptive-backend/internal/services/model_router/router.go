@@ -54,38 +54,36 @@ func (pm *ModelRouter) SelectModelWithCache(
 	tools any,
 	toolCall any,
 ) (*models.ModelSelectionResponse, string, error) {
-	fiberlog.Debugf("[%s] Starting model selection for user: %s", requestID, userID)
+	fiberlog.Infof("[%s] ═══ Model Selection Started ═══", requestID)
+	fiberlog.Infof("[%s] User: %s | Prompt length: %d chars | Cost bias: %.2f",
+		requestID, userID, len(prompt), modelRouterConfig.CostBias)
 
 	cacheConfigOverride := modelRouterConfig.SemanticCache
-	fiberlog.Debugf("[%s] Using merged model router config - cost bias: %.2f", requestID, modelRouterConfig.CostBias)
-
-	fiberlog.Debugf("[%s] Extracted prompt for caching (length: %d chars)", requestID, len(prompt))
 
 	// 1) Check if cache should be used (either default cache or override config)
 	useCache := cacheConfigOverride.Enabled
-	fiberlog.Debugf("[%s] Cache config override provided: enabled=%t, threshold=%.2f",
-		requestID, cacheConfigOverride.Enabled, cacheConfigOverride.SemanticThreshold)
-
 	if useCache && pm.cache != nil {
-		fiberlog.Debugf("[%s] Checking cache for existing model response", requestID)
+		fiberlog.Infof("[%s] 🔍 Cache enabled - checking semantic cache (threshold: %.2f)",
+			requestID, cacheConfigOverride.SemanticThreshold)
 
 		cacheResult := pm.lookupCache(ctx, prompt, requestID, cacheConfigOverride, cbs)
 		if cacheResult.Hit {
-			fiberlog.Infof("[%s] Cache hit (%s) - returning cached model: %s/%s",
+			fiberlog.Infof("[%s] ✅ CACHE HIT (%s) - serving from cache: %s/%s",
 				requestID, cacheResult.Source, cacheResult.Response.Provider, cacheResult.Response.Model)
+			fiberlog.Infof("[%s] ═══ Model Selection Complete (Cache) ═══", requestID)
 			return cacheResult.Response, cacheResult.Source, nil
 		}
-		fiberlog.Debugf("[%s] Cache miss - proceeding to model selection service", requestID)
+		fiberlog.Infof("[%s] ❌ Cache miss - proceeding to AI service", requestID)
 	} else {
 		if !cacheConfigOverride.Enabled {
-			fiberlog.Debugf("[%s] Cache disabled by request override", requestID)
+			fiberlog.Infof("[%s] ⚠️  Cache disabled by request config", requestID)
 		} else {
-			fiberlog.Debugf("[%s] Cache disabled - proceeding directly to model selection service", requestID)
+			fiberlog.Infof("[%s] ⚠️  Cache not initialized - bypassing", requestID)
 		}
 	}
 
 	// 2) Call Python service for model selection
-	fiberlog.Debugf("[%s] Calling model selection service", requestID)
+	fiberlog.Infof("[%s] 🤖 Calling AI model selection service", requestID)
 
 	// Filter out providers with open circuit breakers if circuit breakers are available
 	if cbs != nil && modelRouterConfig != nil {
@@ -102,8 +100,9 @@ func (pm *ModelRouter) SelectModelWithCache(
 	}
 	resp := pm.client.SelectModel(ctx, req)
 
-	fiberlog.Infof("[%s] Model selected: %s/%s",
+	fiberlog.Infof("[%s] ✅ AI service selected: %s/%s",
 		requestID, resp.Provider, resp.Model)
+	fiberlog.Infof("[%s] ═══ Model Selection Complete (AI Service) ═══", requestID)
 
 	return &resp, "", nil
 }
@@ -117,7 +116,11 @@ func (pm *ModelRouter) StoreSuccessfulModel(
 	modelRouterConfig *models.ModelRouterConfig,
 ) error {
 	if pm.cache != nil && (modelRouterConfig == nil || modelRouterConfig.SemanticCache.Enabled) {
+		fiberlog.Infof("[%s] 💾 Storing successful response in cache: %s/%s",
+			requestID, resp.Provider, resp.Model)
 		pm.cache.StoreAsync(ctx, prompt, resp, requestID)
+	} else {
+		fiberlog.Debugf("[%s] ⏭️  Skipping cache storage (cache disabled or unavailable)", requestID)
 	}
 	return nil
 }
@@ -153,11 +156,14 @@ func (pm *ModelRouter) filterUnavailableProviders(
 
 	originalCount := len(config.Models)
 	availableModels := make([]models.ModelCapability, 0, len(config.Models))
+	filteredProviders := []string{}
 
 	for _, model := range config.Models {
 		providerName := model.Provider
 		if cb, exists := cbs[providerName]; exists && !cb.CanExecute() {
-			fiberlog.Warnf("[%s] Filtering out provider %s due to open circuit breaker", requestID, providerName)
+			fiberlog.Warnf("[%s] 🚫 Filtering out provider %s/%s (circuit breaker open)",
+				requestID, providerName, model.ModelName)
+			filteredProviders = append(filteredProviders, providerName)
 			continue
 		}
 		availableModels = append(availableModels, model)
@@ -165,7 +171,10 @@ func (pm *ModelRouter) filterUnavailableProviders(
 
 	config.Models = availableModels
 	if len(availableModels) < originalCount {
-		fiberlog.Infof("[%s] Filtered providers: %d -> %d available models", requestID, originalCount, len(availableModels))
+		fiberlog.Warnf("[%s] ⚠️  Provider filtering: %d -> %d models (filtered: %v)",
+			requestID, originalCount, len(availableModels), filteredProviders)
+	} else {
+		fiberlog.Debugf("[%s] All %d providers available", requestID, originalCount)
 	}
 }
 
@@ -210,19 +219,31 @@ func (pm *ModelRouter) lookupCache(ctx context.Context, prompt, requestID string
 	threshold := pm.cache.semanticThreshold
 	if cacheConfig.SemanticThreshold > 0 {
 		threshold = float32(cacheConfig.SemanticThreshold)
-		fiberlog.Debugf("[%s] Using threshold override: %.2f", requestID, cacheConfig.SemanticThreshold)
+		fiberlog.Infof("[%s] Using custom semantic threshold: %.2f (default: %.2f)",
+			requestID, cacheConfig.SemanticThreshold, pm.cache.semanticThreshold)
 	}
 
+	fiberlog.Debugf("[%s] Performing cache lookup with threshold: %.2f", requestID, threshold)
 	cachedResponse, source, found := pm.cache.Lookup(ctx, prompt, requestID, threshold)
 	if !found {
+		fiberlog.Debugf("[%s] No matching entry found in cache", requestID)
 		return models.CacheResult{Hit: false}
 	}
+
+	fiberlog.Infof("[%s] Found cache entry from %s: %s/%s",
+		requestID, source, cachedResponse.Provider, cachedResponse.Model)
 
 	validResponse := pm.selectAvailableModel(cachedResponse, cbs, requestID)
 	if validResponse == nil {
-		fiberlog.Debugf("[%s] No available models from cache due to circuit breakers", requestID)
+		fiberlog.Warnf("[%s] ⚠️  All cached models unavailable (circuit breakers open) - invalidating cache entry",
+			requestID)
 		pm.cache.DeleteAsync(ctx, prompt, cachedResponse.Provider, requestID)
 		return models.CacheResult{Hit: false}
+	}
+
+	if validResponse.Provider != cachedResponse.Provider || validResponse.Model != cachedResponse.Model {
+		fiberlog.Infof("[%s] Using alternative from cache: %s/%s (original unavailable)",
+			requestID, validResponse.Provider, validResponse.Model)
 	}
 
 	return models.CacheResult{
@@ -265,12 +286,15 @@ func (pm *ModelRouter) findFirstAvailableModel(candidates []models.Alternative, 
 	for i, candidate := range candidates {
 		if pm.isModelAvailable(candidate.Provider, cbs) {
 			if i > 0 {
-				fiberlog.Debugf("[%s] Using alternative %s/%s due to circuit breaker",
+				fiberlog.Infof("[%s] 🔄 Using alternative %s/%s (primary unavailable)",
+					requestID, candidate.Provider, candidate.Model)
+			} else {
+				fiberlog.Debugf("[%s] Primary model %s/%s available",
 					requestID, candidate.Provider, candidate.Model)
 			}
 			return i
 		}
-		fiberlog.Debugf("[%s] Model %s/%s unavailable due to circuit breaker",
+		fiberlog.Debugf("[%s] 🚫 Model %s/%s unavailable (circuit breaker)",
 			requestID, candidate.Provider, candidate.Model)
 	}
 	return -1
