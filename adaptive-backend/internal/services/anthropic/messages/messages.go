@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"adaptive-backend/internal/models"
+	"adaptive-backend/internal/utils/clientcache"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -19,12 +19,14 @@ import (
 
 // MessagesService handles Anthropic Messages API calls using the Anthropic SDK
 type MessagesService struct {
-	clientCache sync.Map // Cache for Anthropic clients (key: config hash, value: *anthropic.Client)
+	clientCache *clientcache.Cache[*anthropic.Client]
 }
 
 // NewMessagesService creates a new MessagesService
 func NewMessagesService() *MessagesService {
-	return &MessagesService{}
+	return &MessagesService{
+		clientCache: clientcache.NewCache[*anthropic.Client](),
+	}
 }
 
 // generateConfigHash creates a hash of the provider config to detect changes
@@ -60,19 +62,19 @@ func (ms *MessagesService) CreateClient(providerConfig models.ProviderConfig) *a
 		return ms.buildClient(providerConfig)
 	}
 
-	// Try to get cached client
-	if cached, ok := ms.clientCache.Load(configHash); ok {
-		fiberlog.Debugf("Using cached Anthropic client (config hash: %s)", configHash[:8])
-		return cached.(*anthropic.Client)
+	// Use type-safe cache with singleflight to prevent duplicate client creation
+	client, err := ms.clientCache.GetOrCreate(configHash, func() (*anthropic.Client, error) {
+		fiberlog.Debugf("Creating new Anthropic client (config hash: %s)", configHash[:8])
+		return ms.buildClient(providerConfig), nil
+	})
+
+	if err != nil {
+		// Should never happen since buildClient doesn't return error, but handle gracefully
+		fiberlog.Warnf("Unexpected error from cache: %v, creating new client", err)
+		return ms.buildClient(providerConfig)
 	}
 
-	// Build new client if not cached
-	client := ms.buildClient(providerConfig)
-
-	// Cache the client for future reuse
-	ms.clientCache.Store(configHash, client)
-	fiberlog.Debugf("Created and cached new Anthropic client (config hash: %s)", configHash[:8])
-
+	fiberlog.Debugf("Using Anthropic client (config hash: %s)", configHash[:8])
 	return client
 }
 

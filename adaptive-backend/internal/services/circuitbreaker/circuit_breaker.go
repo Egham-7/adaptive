@@ -80,6 +80,7 @@ const (
 	// KEYS[2]: failure_count key
 	// KEYS[3]: last_failure_time key
 	// KEYS[4]: last_state_change key
+	// KEYS[5]: success_count key
 	// ARGV[1]: failure threshold (int)
 	// ARGV[2]: current timestamp (unix seconds)
 	recordFailureScript = `
@@ -92,6 +93,7 @@ const (
 		if shouldTransitionToOpen then
 			redis.call('SET', KEYS[1], 1)  -- Transition to Open
 			redis.call('SET', KEYS[4], ARGV[2])  -- Update last state change
+			redis.call('SET', KEYS[5], '0')  -- Reset success counter
 			return 1  -- Transitioned to Open
 		end
 		return 0  -- Failure recorded, no transition
@@ -271,6 +273,7 @@ func (cb *CircuitBreaker) RecordFailure() {
 		kb.failureCount(),
 		kb.lastFailure(),
 		kb.lastChange(),
+		kb.successCount(),
 	}
 	args := []any{
 		cb.config.FailureThreshold,

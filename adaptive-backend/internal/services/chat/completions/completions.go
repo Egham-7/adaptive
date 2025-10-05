@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"adaptive-backend/internal/config"
@@ -14,6 +13,7 @@ import (
 	"adaptive-backend/internal/services/fallback"
 	"adaptive-backend/internal/services/format_adapter"
 	"adaptive-backend/internal/services/stream/handlers"
+	"adaptive-backend/internal/utils/clientcache"
 
 	"github.com/gofiber/fiber/v2"
 	fiberlog "github.com/gofiber/fiber/v2/log"
@@ -31,7 +31,7 @@ const (
 type CompletionService struct {
 	fallbackService *fallback.FallbackService
 	responseService *ResponseService
-	clientCache     sync.Map // Cache for OpenAI clients (key: provider:stream, value: *openai.Client)
+	clientCache     *clientcache.Cache[*openai.Client]
 }
 
 // NewCompletionService creates a new completion service.
@@ -46,6 +46,7 @@ func NewCompletionService(cfg *config.Config, responseService *ResponseService) 
 	return &CompletionService{
 		fallbackService: fallback.NewFallbackService(cfg),
 		responseService: responseService,
+		clientCache:     clientcache.NewCache[*openai.Client](),
 	}
 }
 
@@ -103,22 +104,17 @@ func (cs *CompletionService) createClient(providerName string, resolvedConfig *c
 
 	cacheKey := fmt.Sprintf("%s:%s", providerName, configHash)
 
-	// Try to get cached client
-	if cached, ok := cs.clientCache.Load(cacheKey); ok {
-		fiberlog.Debugf("Using cached OpenAI client for %s (config hash: %s)", providerName, configHash[:8])
-		return cached.(*openai.Client), nil
-	}
+	// Use type-safe cache with singleflight to prevent duplicate client creation
+	client, err := cs.clientCache.GetOrCreate(cacheKey, func() (*openai.Client, error) {
+		fiberlog.Debugf("Creating new OpenAI client for %s (config hash: %s)", providerName, configHash[:8])
+		return cs.buildClient(providerConfig, providerName, isStream)
+	})
 
-	// Build new client if not cached
-	client, err := cs.buildClient(providerConfig, providerName, isStream)
 	if err != nil {
 		return nil, err
 	}
 
-	// Cache the client for future reuse
-	cs.clientCache.Store(cacheKey, client)
-	fiberlog.Debugf("Created and cached new OpenAI client for %s (config hash: %s)", providerName, configHash[:8])
-
+	fiberlog.Debugf("Using OpenAI client for %s (config hash: %s)", providerName, configHash[:8])
 	return client, nil
 }
 
