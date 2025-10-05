@@ -289,14 +289,12 @@ func main() {
 func setupMiddleware(app *fiber.App, cfg *config.Config, allowedOrigins string) {
 	isProd := cfg.IsProduction()
 
+	// Recover middleware (must be first)
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: !isProd,
 	}))
 
-	app.Use(compress.New(compress.Config{
-		Level: compress.LevelBestSpeed,
-	}))
-
+	// Rate limiter (moved earlier to reject requests faster before expensive operations)
 	app.Use(limiter.New(limiter.Config{
 		Max:               1000,
 		Expiration:        1 * time.Minute,
@@ -314,6 +312,28 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, allowedOrigins string) 
 		},
 	}))
 
+	// Request timeout middleware (protects against runaway requests)
+	app.Use(func(c *fiber.Ctx) error {
+		timeout := 30 * time.Second
+		if customTimeout := c.Get("X-Request-Timeout"); customTimeout != "" {
+			if d, err := time.ParseDuration(customTimeout); err == nil {
+				timeout = d
+			}
+		}
+
+		ctx, cancel := context.WithTimeout(c.UserContext(), timeout)
+		defer cancel()
+		c.SetUserContext(ctx)
+
+		return c.Next()
+	})
+
+	// Compression (after rate limit, before heavy processing)
+	app.Use(compress.New(compress.Config{
+		Level: compress.LevelBestSpeed,
+	}))
+
+	// Logging
 	if isProd {
 		app.Use(logger.New(logger.Config{
 			Format: "${time} ${status} ${method} ${path} ${latency} ${bytesSent}b\n",
@@ -404,9 +424,9 @@ func createRedisClient(cfg *config.Config) (*redis.Client, error) {
 		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
 	}
 
-	// Configure connection pool settings for high-throughput scenarios
-	opt.PoolSize = 20                      // Maximum number of socket connections
-	opt.MinIdleConns = 5                   // Minimum idle connections to maintain
+	// Configure connection pool settings for high-throughput scenarios (1000+ req/s)
+	opt.PoolSize = 50                      // Maximum number of socket connections (increased from 20)
+	opt.MinIdleConns = 10                  // Minimum idle connections to maintain (increased from 5)
 	opt.PoolTimeout = 4 * time.Second      // Connection pool timeout
 	opt.ConnMaxIdleTime = 5 * time.Minute  // Close connections after remaining idle
 	opt.ConnMaxLifetime = 30 * time.Minute // Maximum connection lifetime

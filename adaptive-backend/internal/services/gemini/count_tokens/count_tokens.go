@@ -2,7 +2,10 @@ package count_tokens
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"adaptive-backend/internal/models"
@@ -13,15 +16,67 @@ import (
 )
 
 // CountTokensService handles Gemini CountTokens API calls using the Gemini SDK
-type CountTokensService struct{}
+type CountTokensService struct {
+	clientCache sync.Map // Cache for Gemini clients (key: config hash, value: *genai.Client)
+}
 
 // NewCountTokensService creates a new CountTokensService
 func NewCountTokensService() *CountTokensService {
 	return &CountTokensService{}
 }
 
-// CreateClient creates a Gemini client with the given provider configuration
+// generateConfigHash creates a hash of the provider config to detect changes
+func (cts *CountTokensService) generateConfigHash(providerConfig models.ProviderConfig) (string, error) {
+	type configForHash struct {
+		BaseURL    string
+		APIKeyHash string
+	}
+
+	apiKeyHash := sha256.Sum256([]byte(providerConfig.APIKey))
+	hashConfig := configForHash{
+		BaseURL:    providerConfig.BaseURL,
+		APIKeyHash: fmt.Sprintf("%x", apiKeyHash[:8]),
+	}
+
+	configJSON, err := json.Marshal(hashConfig)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(configJSON)
+	return fmt.Sprintf("%x", hash[:16]), nil
+}
+
+// CreateClient creates or retrieves a cached Gemini client
 func (cts *CountTokensService) CreateClient(ctx context.Context, providerConfig models.ProviderConfig) (*genai.Client, error) {
+	// Generate cache key based on provider config hash
+	configHash, err := cts.generateConfigHash(providerConfig)
+	if err != nil {
+		fiberlog.Warnf("Failed to generate config hash: %v, creating new client without caching", err)
+		return cts.buildClient(ctx, providerConfig)
+	}
+
+	// Try to get cached client
+	if cached, ok := cts.clientCache.Load(configHash); ok {
+		fiberlog.Debugf("Using cached Gemini client (config hash: %s)", configHash[:8])
+		return cached.(*genai.Client), nil
+	}
+
+	// Build new client if not cached
+	client, err := cts.buildClient(ctx, providerConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the client for future reuse
+	cts.clientCache.Store(configHash, client)
+	fiberlog.Debugf("Created and cached new Gemini client (config hash: %s)", configHash[:8])
+
+	return client, nil
+}
+
+// buildClient creates a new Gemini client with the given configuration
+func (cts *CountTokensService) buildClient(ctx context.Context, providerConfig models.ProviderConfig) (*genai.Client, error) {
 	client, err := genai.NewClient(ctx, &genai.ClientConfig{
 		APIKey:  providerConfig.APIKey,
 		Backend: genai.BackendGeminiAPI,

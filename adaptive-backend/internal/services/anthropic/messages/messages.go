@@ -2,6 +2,10 @@ package messages
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"sync"
 	"time"
 
 	"adaptive-backend/internal/models"
@@ -14,15 +18,66 @@ import (
 )
 
 // MessagesService handles Anthropic Messages API calls using the Anthropic SDK
-type MessagesService struct{}
+type MessagesService struct {
+	clientCache sync.Map // Cache for Anthropic clients (key: config hash, value: *anthropic.Client)
+}
 
 // NewMessagesService creates a new MessagesService
 func NewMessagesService() *MessagesService {
 	return &MessagesService{}
 }
 
-// CreateClient creates an Anthropic client with the given provider configuration
+// generateConfigHash creates a hash of the provider config to detect changes
+func (ms *MessagesService) generateConfigHash(providerConfig models.ProviderConfig) (string, error) {
+	type configForHash struct {
+		BaseURL    string
+		Headers    map[string]string
+		APIKeyHash string
+	}
+
+	apiKeyHash := sha256.Sum256([]byte(providerConfig.APIKey))
+	hashConfig := configForHash{
+		BaseURL:    providerConfig.BaseURL,
+		Headers:    providerConfig.Headers,
+		APIKeyHash: fmt.Sprintf("%x", apiKeyHash[:8]),
+	}
+
+	configJSON, err := json.Marshal(hashConfig)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(configJSON)
+	return fmt.Sprintf("%x", hash[:16]), nil
+}
+
+// CreateClient creates or retrieves a cached Anthropic client
 func (ms *MessagesService) CreateClient(providerConfig models.ProviderConfig) *anthropic.Client {
+	// Generate cache key based on provider config hash
+	configHash, err := ms.generateConfigHash(providerConfig)
+	if err != nil {
+		fiberlog.Warnf("Failed to generate config hash: %v, creating new client without caching", err)
+		return ms.buildClient(providerConfig)
+	}
+
+	// Try to get cached client
+	if cached, ok := ms.clientCache.Load(configHash); ok {
+		fiberlog.Debugf("Using cached Anthropic client (config hash: %s)", configHash[:8])
+		return cached.(*anthropic.Client)
+	}
+
+	// Build new client if not cached
+	client := ms.buildClient(providerConfig)
+
+	// Cache the client for future reuse
+	ms.clientCache.Store(configHash, client)
+	fiberlog.Debugf("Created and cached new Anthropic client (config hash: %s)", configHash[:8])
+
+	return client
+}
+
+// buildClient creates a new Anthropic client with the given configuration
+func (ms *MessagesService) buildClient(providerConfig models.ProviderConfig) *anthropic.Client {
 	clientOpts := []option.RequestOption{
 		option.WithAPIKey(providerConfig.APIKey),
 	}

@@ -5,8 +5,11 @@ import (
 	"io"
 	"sync"
 
+	"adaptive-backend/internal/utils"
+
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/packages/ssestream"
+	"github.com/valyala/bytebufferpool"
 )
 
 // AnthropicStreamReader provides pure I/O reading from Anthropic streams
@@ -50,7 +53,7 @@ func (r *AnthropicStreamReader) Close() error {
 // AnthropicNativeStreamReader wraps native Anthropic SDK streams
 type AnthropicNativeStreamReader struct {
 	stream    *ssestream.Stream[anthropic.MessageStreamEventUnion]
-	buffer    []byte
+	buffer    *bytebufferpool.ByteBuffer
 	requestID string
 	closeOnce sync.Once
 }
@@ -59,7 +62,7 @@ type AnthropicNativeStreamReader struct {
 func NewAnthropicNativeStreamReader(stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID string) *AnthropicNativeStreamReader {
 	return &AnthropicNativeStreamReader{
 		stream:    stream,
-		buffer:    make([]byte, 0, 4096),
+		buffer:    utils.Get(), // Get buffer from pool
 		requestID: requestID,
 	}
 }
@@ -67,9 +70,9 @@ func NewAnthropicNativeStreamReader(stream *ssestream.Stream[anthropic.MessageSt
 // Read implements io.Reader
 func (r *AnthropicNativeStreamReader) Read(p []byte) (n int, err error) {
 	// Return buffered data first
-	if len(r.buffer) > 0 {
-		n = copy(p, r.buffer)
-		r.buffer = r.buffer[n:]
+	if len(r.buffer.B) > 0 {
+		n = copy(p, r.buffer.B)
+		r.buffer.B = r.buffer.B[n:]
 		return n, nil
 	}
 
@@ -89,11 +92,11 @@ func (r *AnthropicNativeStreamReader) Read(p []byte) (n int, err error) {
 	}
 
 	// Buffer the data
-	r.buffer = append(r.buffer[:0], eventData...)
+	r.buffer.B = append(r.buffer.B[:0], eventData...)
 
 	// Return data
-	n = copy(p, r.buffer)
-	r.buffer = r.buffer[n:]
+	n = copy(p, r.buffer.B)
+	r.buffer.B = r.buffer.B[n:]
 	return n, nil
 }
 
@@ -104,7 +107,10 @@ func (r *AnthropicNativeStreamReader) Close() error {
 		if r.stream != nil {
 			err = r.stream.Close()
 		}
-		r.buffer = nil
+		if r.buffer != nil {
+			utils.Put(r.buffer) // Return buffer to pool
+			r.buffer = nil
+		}
 	})
 	return err
 }
