@@ -26,7 +26,7 @@ func (c *Cache[T]) GetOrCreate(key string, factory func() (T, error)) (T, error)
 	}
 
 	// Use singleflight to prevent duplicate client creation under concurrent load
-	v, err, _ := c.sfGroup.Do(key, func() (interface{}, error) {
+	v, err, _ := c.sfGroup.Do(key, func() (any, error) {
 		// Double-check cache after acquiring singleflight lock
 		if cached, ok := c.cache.Load(key); ok {
 			return cached.(T), nil
@@ -60,7 +60,7 @@ func (c *Cache[T]) Delete(key string) {
 
 // Clear removes all clients from the cache
 func (c *Cache[T]) Clear() {
-	c.cache.Range(func(key, value interface{}) bool {
+	c.cache.Range(func(key, value any) bool {
 		c.cache.Delete(key)
 		return true
 	})

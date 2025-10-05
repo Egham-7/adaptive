@@ -323,11 +323,7 @@ func setupMiddleware(app *fiber.App, cfg *config.Config, allowedOrigins string) 
 		if customTimeout := c.Get("X-Request-Timeout"); customTimeout != "" {
 			if d, err := time.ParseDuration(customTimeout); err == nil && d > 0 {
 				// Clamp timeout to maxTimeout
-				if d > maxTimeout {
-					timeout = maxTimeout
-				} else {
-					timeout = d
-				}
+				timeout = min(d, maxTimeout)
 			}
 			// Malformed or non-positive values fall back to defaultTimeout
 		}
