@@ -22,7 +22,7 @@
 	"dependencies": {
 		"@adaptive-llm/adaptive-ai-provider": "^1.4.1",
 		"@ai-sdk/provider": "^2.0.0",
-		"@ai-sdk/react": "2.0.59",
+		"@ai-sdk/react": "2.0.60",
 		"@anthropic-ai/sdk": "^0.65.0",
 		"@better-fetch/fetch": "^1.1.18",
 		"@clerk/nextjs": "^6.33.1",
