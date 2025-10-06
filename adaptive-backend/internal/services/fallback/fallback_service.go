@@ -114,10 +114,10 @@ func (fs *FallbackService) executeRace(
 	requestID string,
 	isStream bool,
 ) error {
-	// For streaming, race to first response then cancel others
+	// For streaming, race to establish connection first, then stream from winner
 	if isStream {
-		fiberlog.Infof("[%s] Racing %d providers for streaming (first to respond wins)", requestID, len(providers))
-		return fs.executeStreamingRace(c, providers, executeFunc, requestID)
+		fiberlog.Infof("[%s] Racing %d providers for streaming (first to connect wins)", requestID, len(providers))
+		return fs.executeStreamingRace(c, providers, fallbackConfig, executeFunc, requestID)
 	}
 
 	fiberlog.Infof("[%s] ═══ Race Fallback Started (%d providers) ═══", requestID, len(providers))
@@ -244,86 +244,122 @@ raceComplete:
 	return fmt.Errorf("all providers failed in race: %v", errors)
 }
 
-// executeStreamingRace races providers for streaming - first to respond wins
+// executeStreamingRace races providers for streaming with mutex protection
+// Only the first successful provider gets to execute and stream
 func (fs *FallbackService) executeStreamingRace(
 	c *fiber.Ctx,
 	providers []models.Alternative,
+	fallbackConfig models.FallbackConfig,
 	executeFunc models.ExecutionFunc,
 	requestID string,
 ) error {
-	fiberlog.Infof("[%s] Starting streaming race with %d providers", requestID, len(providers))
+	fiberlog.Infof("[%s] ═══ Streaming Race Started (%d providers) ═══", requestID, len(providers))
 
-	// Channel to receive the first successful result
-	resultCh := make(chan models.FallbackResult, len(providers))
+	// Log all providers upfront
+	fiberlog.Infof("[%s] 🏁 Racing streaming providers:", requestID)
+	for i, p := range providers {
+		if i == 0 {
+			fiberlog.Infof("[%s]    • PRIMARY: %s/%s", requestID, p.Provider, p.Model)
+		} else {
+			fiberlog.Infof("[%s]    • ALTERNATIVE: %s/%s", requestID, p.Provider, p.Model)
+		}
+	}
 
-	// Context to cancel other providers when one succeeds
+	// Shared state protected by mutex
+	var mu sync.Mutex
+	var winner *models.Alternative
+	var winnerErr error
+	doneCh := make(chan struct{})
+
+	// Context with timeout
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Start all providers in goroutines
+	if fallbackConfig.TimeoutMs > 0 {
+		var timeoutCancel context.CancelFunc
+		ctx, timeoutCancel = context.WithTimeout(ctx, time.Duration(fallbackConfig.TimeoutMs)*time.Millisecond)
+		defer timeoutCancel()
+	}
+
+	// Start all providers racing
 	var wg sync.WaitGroup
 	for _, provider := range providers {
 		wg.Add(1)
 		go func(prov models.Alternative) {
 			defer wg.Done()
 
-			// Check if context is already cancelled
+			start := time.Now()
+			fiberlog.Infof("[%s] 🏃 Racing streaming provider %s/%s", requestID, prov.Provider, prov.Model)
+
+			// Try to acquire the lock to be the winner
+			mu.Lock()
+
+			// Check if race already won while we were waiting for lock
 			select {
 			case <-ctx.Done():
-				fiberlog.Debugf("[%s] Provider %s cancelled before starting", requestID, prov.Provider)
+				mu.Unlock()
+				fiberlog.Debugf("[%s] Provider %s/%s cancelled (race already won)", requestID, prov.Provider, prov.Model)
 				return
 			default:
 			}
 
-			start := time.Now()
-			fiberlog.Debugf("[%s] Racing streaming provider %s (%s)", requestID, prov.Provider, prov.Model)
+			if winner != nil {
+				// Someone already won while we waited for lock
+				mu.Unlock()
+				fiberlog.Debugf("[%s] Provider %s/%s lost race (winner already streaming)", requestID, prov.Provider, prov.Model)
+				return
+			}
 
-			// Execute the provider
+			// We're the first to acquire lock - execute the stream
+			// Hold lock during execution to prevent concurrent access to Fiber context
 			err := executeFunc(c, prov, requestID)
 			duration := time.Since(start)
 
 			if err == nil {
-				// Success - this provider wins the race
-				fiberlog.Infof("[%s] Streaming race winner: %s (%s) in %v", requestID, prov.Provider, prov.Model, duration)
-				resultCh <- models.FallbackResult{
-					Success:  true,
-					Provider: prov,
-					Duration: duration,
-				}
+				// Success - we won!
+				winner = &prov
+				winnerErr = nil
+				fiberlog.Infof("[%s] 🏆 STREAMING RACE WINNER: %s/%s (connected in %v)",
+					requestID, prov.Provider, prov.Model, duration)
+				mu.Unlock()
+				cancel() // Cancel other goroutines immediately after unlocking
+				close(doneCh)
 			} else {
-				// Failure - try next provider
-				fiberlog.Warnf("[%s] Streaming provider %s failed in %v: %v", requestID, prov.Provider, duration, err)
-				resultCh <- models.FallbackResult{
-					Success:  false,
-					Provider: prov,
-					Error:    err,
-					Duration: duration,
-				}
+				// Failed - release lock for next provider
+				fiberlog.Warnf("[%s] ❌ Streaming provider %s/%s failed in %v: %v",
+					requestID, prov.Provider, prov.Model, duration, err)
+				mu.Unlock()
 			}
 		}(provider)
 	}
 
-	// Wait for results in a separate goroutine
+	// Wait for either a winner or all to fail
 	go func() {
 		wg.Wait()
-		close(resultCh)
+		mu.Lock()
+		if winner == nil {
+			close(doneCh)
+		}
+		mu.Unlock()
 	}()
 
-	// Process results as they come in
-	var errors []error
-	for result := range resultCh {
-		if result.Success {
-			// First successful provider wins - cancel the rest
-			fiberlog.Infof("[%s] Streaming race complete, cancelling remaining providers", requestID)
-			cancel()
-			return nil
+	// Wait for result
+	select {
+	case <-doneCh:
+		mu.Lock()
+		defer mu.Unlock()
+		if winner != nil {
+			fiberlog.Infof("[%s] ═══ Streaming Race Complete (Winner: %s/%s) ═══",
+				requestID, winner.Provider, winner.Model)
+			return winnerErr
 		}
-		errors = append(errors, result.Error)
+		fiberlog.Errorf("[%s] ❌ All streaming race providers failed", requestID)
+		fiberlog.Infof("[%s] ═══ Streaming Race Complete (All Failed) ═══", requestID)
+		return fmt.Errorf("all streaming race providers failed")
+	case <-ctx.Done():
+		fiberlog.Errorf("[%s] ❌ Streaming race timeout: %v", requestID, ctx.Err())
+		return fmt.Errorf("streaming race timeout: %w", ctx.Err())
 	}
-
-	// All providers failed
-	fiberlog.Errorf("[%s] All streaming providers failed in race: %v", requestID, errors)
-	return fmt.Errorf("all streaming providers failed in race: %v", errors)
 }
 
 // GetFallbackConfig gets the merged fallback configuration from config and request
