@@ -211,6 +211,16 @@ func (h *MessagesHandler) createExecuteFunc(
 		err = h.messagesSvc.HandleAnthropicProvider(c, &reqCopy, providerConfig, isStreaming, reqID, h.responseSvc, provider.Provider, cacheSource)
 		// Check if the error is a retryable provider error that should trigger fallback
 		if err != nil {
+			// Record failure in circuit breaker
+			if cb := h.circuitBreakers[provider.Provider]; cb != nil {
+				cb.RecordFailure()
+				streamType := "non-streaming"
+				if isStreaming {
+					streamType = "streaming"
+				}
+				fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (%s)", reqID, provider.Provider, streamType)
+			}
+
 			if appErr, ok := err.(*models.AppError); ok && appErr.Type == models.ErrorTypeProvider && appErr.Retryable {
 				// Return the provider error to trigger fallback
 				return err
@@ -226,6 +236,16 @@ func (h *MessagesHandler) createExecuteFunc(
 				Message:   fmt.Sprintf("non-retryable error: %v", err),
 				Retryable: false,
 			}
+		}
+
+		// Record success in circuit breaker
+		if cb := h.circuitBreakers[provider.Provider]; cb != nil {
+			cb.RecordSuccess()
+			streamType := "non-streaming"
+			if isStreaming {
+				streamType = "streaming"
+			}
+			fiberlog.Infof("[%s] 🟢 Circuit breaker recorded SUCCESS for provider %s (%s)", reqID, provider.Provider, streamType)
 		}
 
 		// Store successful response in semantic cache
