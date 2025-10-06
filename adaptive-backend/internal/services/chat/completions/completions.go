@@ -285,6 +285,7 @@ func (cs *CompletionService) handleStreamingCompletion(
 		// Record failure in circuit breaker
 		if cb := cs.circuitBreakers[providerName]; cb != nil {
 			cb.RecordFailure()
+			fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (streaming)", requestID, providerName)
 		}
 		return err
 	}
@@ -292,6 +293,7 @@ func (cs *CompletionService) handleStreamingCompletion(
 	// Record success in circuit breaker
 	if cb := cs.circuitBreakers[providerName]; cb != nil {
 		cb.RecordSuccess()
+		fiberlog.Infof("[%s] 🟢 Circuit breaker recorded SUCCESS for provider %s (streaming)", requestID, providerName)
 	}
 
 	return nil
@@ -322,6 +324,7 @@ func (cs *CompletionService) handleNonStreamingCompletion(
 		// Record failure in circuit breaker
 		if cb := cs.circuitBreakers[providerName]; cb != nil {
 			cb.RecordFailure()
+			fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (non-streaming)", requestID, providerName)
 		}
 		return models.NewProviderError(providerName, "completion request failed", err)
 	}
@@ -332,6 +335,7 @@ func (cs *CompletionService) handleNonStreamingCompletion(
 		// Record failure in circuit breaker
 		if cb := cs.circuitBreakers[providerName]; cb != nil {
 			cb.RecordFailure()
+			fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (response conversion)", requestID, providerName)
 		}
 		return fmt.Errorf("failed to convert response to adaptive format: %w", err)
 	}
@@ -339,6 +343,7 @@ func (cs *CompletionService) handleNonStreamingCompletion(
 	// Record success in circuit breaker
 	if cb := cs.circuitBreakers[providerName]; cb != nil {
 		cb.RecordSuccess()
+		fiberlog.Infof("[%s] 🟢 Circuit breaker recorded SUCCESS for provider %s (non-streaming)", requestID, providerName)
 	}
 
 	return c.JSON(adaptiveResp)

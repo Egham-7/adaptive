@@ -359,6 +359,7 @@ func (h *GenerateHandler) executeNonStreamingWithCircuitBreaker(
 		// Record failure in circuit breaker
 		if cb != nil {
 			cb.RecordFailure()
+			fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (non-streaming)", requestID, provider)
 		}
 		fiberlog.Errorf("[%s] Non-streaming provider request failed: %v", requestID, err)
 		return err
@@ -370,6 +371,7 @@ func (h *GenerateHandler) executeNonStreamingWithCircuitBreaker(
 		// Record failure in circuit breaker
 		if cb != nil {
 			cb.RecordFailure()
+			fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (response handling)", requestID, provider)
 		}
 		fiberlog.Errorf("[%s] Non-streaming response handling failed: %v", requestID, err)
 		return err
@@ -378,6 +380,7 @@ func (h *GenerateHandler) executeNonStreamingWithCircuitBreaker(
 	// Record success in circuit breaker
 	if cb != nil {
 		cb.RecordSuccess()
+		fiberlog.Infof("[%s] 🟢 Circuit breaker recorded SUCCESS for provider %s (non-streaming)", requestID, provider)
 	}
 
 	fiberlog.Infof("[%s] Gemini GenerateContent request completed successfully", requestID)
@@ -400,6 +403,7 @@ func (h *GenerateHandler) executeStreamingWithCircuitBreaker(
 		// Record failure in circuit breaker
 		if cb != nil {
 			cb.RecordFailure()
+			fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (streaming)", requestID, provider)
 		}
 		fiberlog.Errorf("[%s] Streaming provider request failed: %v", requestID, err)
 		return h.responseSvc.HandleError(c, err, requestID)
@@ -411,6 +415,7 @@ func (h *GenerateHandler) executeStreamingWithCircuitBreaker(
 		// Record failure in circuit breaker
 		if cb != nil {
 			cb.RecordFailure()
+			fiberlog.Warnf("[%s] 🔴 Circuit breaker recorded FAILURE for provider %s (streaming)", requestID, provider)
 		}
 		fiberlog.Errorf("[%s] Streaming response handling failed: %v", requestID, err)
 		return h.responseSvc.HandleError(c, err, requestID)
@@ -419,6 +424,7 @@ func (h *GenerateHandler) executeStreamingWithCircuitBreaker(
 	// Record success in circuit breaker
 	if cb != nil {
 		cb.RecordSuccess()
+		fiberlog.Infof("[%s] 🟢 Circuit breaker recorded SUCCESS for provider %s (streaming)", requestID, provider)
 	}
 
 	fiberlog.Infof("[%s] Gemini StreamGenerateContent request completed successfully", requestID)
