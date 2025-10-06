@@ -188,7 +188,9 @@ func (ms *MessagesService) HandleAnthropicProvider(
 	client := ms.CreateClient(providerConfig)
 
 	if isStreaming {
-		stream, err := ms.SendStreamingMessage(c.Context(), client, req, requestID)
+		// Use context.Background() for streaming - c.Context() gets canceled too early
+		// The stream handler will monitor fasthttpCtx for actual client disconnects
+		stream, err := ms.SendStreamingMessage(context.Background(), client, req, requestID)
 		if err != nil {
 			return responseSvc.HandleError(c, err, requestID)
 		}

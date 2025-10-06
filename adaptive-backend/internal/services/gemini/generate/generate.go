@@ -152,12 +152,15 @@ func (gs *GenerateService) HandleGeminiStreamingProvider(
 ) (iter.Seq2[*genai.GenerateContentResponse, error], error) {
 	fiberlog.Debugf("[%s] Using native Gemini provider for streaming request", requestID)
 
-	client, err := gs.CreateClient(c.Context(), providerConfig)
+	// Use context.Background() for client creation and streaming
+	// c.Context() gets canceled too early when headers are sent
+	client, err := gs.CreateClient(context.Background(), providerConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	streamIter, err := gs.SendStreamingRequest(c.Context(), client, req, requestID)
+	// Use context.Background() for streaming - the stream handler monitors fasthttpCtx for client disconnects
+	streamIter, err := gs.SendStreamingRequest(context.Background(), client, req, requestID)
 	if err != nil {
 		return nil, err
 	}
