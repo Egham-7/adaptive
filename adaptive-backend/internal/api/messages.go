@@ -149,22 +149,39 @@ func (h *MessagesHandler) Messages(c *fiber.Ctx) error {
 		return h.responseSvc.HandleError(c, err, requestID)
 	}
 
-	// Use fallback service with model router response (system-selected models get fallback)
-	fallbackConfig := h.fallbackService.GetFallbackConfig(req.Fallback)
-
-	// Create provider list with primary and alternatives from model router
-	providers := []models.Alternative{{
-		Provider: modelResp.Provider,
-		Model:    modelResp.Model,
-	}}
-	providers = append(providers, modelResp.Alternatives...)
-
 	// Update request with selected model
 	req.Model = anthropic.Model(modelResp.Model)
 	fiberlog.Infof("[%s] Model router selected - provider: %s, model: %s (with %d alternatives)",
 		requestID, modelResp.Provider, modelResp.Model, len(modelResp.Alternatives))
 
-	return h.fallbackService.Execute(c, providers, fallbackConfig, h.createExecuteFunc(req, isStreaming, cacheSource), requestID, isStreaming)
+	// Try primary provider first
+	primary := models.Alternative{
+		Provider: modelResp.Provider,
+		Model:    modelResp.Model,
+	}
+	executeFunc := h.createExecuteFunc(req, isStreaming, cacheSource)
+
+	fiberlog.Infof("[%s] Trying primary provider: %s/%s", requestID, primary.Provider, primary.Model)
+	err = executeFunc(c, primary, requestID)
+
+	if err == nil {
+		// Primary succeeded
+		fiberlog.Infof("[%s] ✅ Primary provider succeeded: %s/%s", requestID, primary.Provider, primary.Model)
+		return nil
+	}
+
+	// Primary failed - check if we have alternatives
+	if len(modelResp.Alternatives) == 0 {
+		fiberlog.Errorf("[%s] ❌ Primary provider failed and no alternatives available: %v", requestID, err)
+		return err
+	}
+
+	// Use fallback service with alternatives only
+	fiberlog.Warnf("[%s] ⚠️  Primary provider failed: %v", requestID, err)
+	fiberlog.Infof("[%s] Using fallback with %d alternatives", requestID, len(modelResp.Alternatives))
+
+	fallbackConfig := h.fallbackService.GetFallbackConfig(req.Fallback)
+	return h.fallbackService.Execute(c, modelResp.Alternatives, fallbackConfig, executeFunc, requestID, isStreaming)
 }
 
 // createExecuteFunc creates an execution function for the fallback service
