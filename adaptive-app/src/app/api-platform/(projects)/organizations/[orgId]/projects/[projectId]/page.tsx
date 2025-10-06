@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CostComparison } from "@/app/_components/api-platform/organizations/projects/dashboard/cost-comparison";
 import { DashboardHeader } from "@/app/_components/api-platform/organizations/projects/dashboard/dashboard-header";
 import { MetricsOverview } from "@/app/_components/api-platform/organizations/projects/dashboard/metrics-overview";
@@ -9,12 +9,11 @@ import { ProjectBreadcrumb } from "@/components/project-breadcrumb";
 import { Button } from "@/components/ui/button";
 import { useProjectDashboardData } from "@/hooks/usage/use-project-dashboard-data";
 import { useDateRange } from "@/hooks/use-date-range";
-import { setLastProject } from "@/hooks/use-smart-redirect";
 import type { DashboardFilters } from "@/types/api-platform/dashboard";
 
 export default function DashboardPage() {
 	const params = useParams();
-	const orgId = params.orgId as string;
+	const _orgId = params.orgId as string;
 	const projectId = params.projectId as string;
 	const { dateRange, setDateRange } = useDateRange();
 	const [selectedModels, setSelectedModels] = useState<string[]>([
@@ -30,13 +29,6 @@ export default function DashboardPage() {
 	);
 
 	const { data, loading, error } = useProjectDashboardData(projectId, filters);
-
-	// Track project visit for smart redirect
-	useEffect(() => {
-		if (orgId && projectId) {
-			setLastProject(orgId, projectId);
-		}
-	}, [orgId, projectId]);
 
 	const handleExport = () => {
 		if (!data) return;

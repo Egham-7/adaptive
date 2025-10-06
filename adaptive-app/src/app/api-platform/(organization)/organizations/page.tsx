@@ -47,7 +47,6 @@ import { useCreateOrganization } from "@/hooks/organizations/use-create-organiza
 import { useDeleteOrganization } from "@/hooks/organizations/use-delete-organization";
 import { useOrganizations } from "@/hooks/organizations/use-organizations";
 import { useUpdateOrganization } from "@/hooks/organizations/use-update-organization";
-import { clearLastOrganization } from "@/hooks/use-smart-redirect";
 import type { OrganizationListItem } from "@/types";
 
 const createOrganizationSchema = z.object({
@@ -150,15 +149,7 @@ export default function OrganizationsPage() {
 	const handleDeleteOrganization = (id: string, e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		deleteOrganization.mutate(
-			{ id },
-			{
-				onSuccess: () => {
-					// Clear stored organization from localStorage
-					clearLastOrganization();
-				},
-			},
-		);
+		deleteOrganization.mutate({ id });
 	};
 
 	const handleEditOrganization = (

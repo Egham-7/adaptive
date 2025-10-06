@@ -483,4 +483,34 @@ export const projectsRouter = createTRPCRouter({
 				});
 			}
 		}),
+
+	// Get the most recently created project for the current user
+	getMostRecent: protectedProcedure.query(
+		async ({ ctx }): Promise<ProjectWithMembersAndOrganization | null> => {
+			const userId = ctx.clerkAuth.userId;
+
+			try {
+				const project = await ctx.db.project.findFirst({
+					where: {
+						organization: {
+							OR: [{ ownerId: userId }, { members: { some: { userId } } }],
+						},
+					},
+					include: {
+						members: true,
+						organization: true,
+					},
+					orderBy: { createdAt: "desc" },
+				});
+
+				return project as ProjectWithMembersAndOrganization | null;
+			} catch (error) {
+				console.error("Error fetching most recent project:", error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to fetch most recent project",
+				});
+			}
+		},
+	),
 });
