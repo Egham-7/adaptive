@@ -13,7 +13,6 @@ import { Progress } from "@/components/ui/progress";
 import { useCreateProjectApiKey } from "@/hooks/api_keys/use-create-project-api-key";
 import { useCreateOrganization } from "@/hooks/organizations/use-create-organization";
 import { useCreateProject } from "@/hooks/projects/use-create-project";
-import { setLastProject } from "@/hooks/use-smart-redirect";
 import { api } from "@/trpc/react";
 import type {
 	OrganizationCreateResponse,
@@ -70,13 +69,8 @@ export default function OnboardingPage() {
 			{
 				onSuccess: (data) => {
 					setCreatedProject(data);
-					// Update localStorage with the created organization and project
-					if (createdOrganization) {
-						setLastProject(createdOrganization.id, data.id);
-					}
 					setCurrentStep("api-key");
 				},
-
 				onError: (error) => {
 					console.error("Failed to create project: ", error);
 					toast.error(`Failed to create project: ${error.message}`);
