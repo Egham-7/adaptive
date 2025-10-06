@@ -4,20 +4,19 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "bunx prisma generate && next build",
+		"build": "pnpm prisma generate && next build",
 		"check": "biome check .",
 		"check:unsafe": "biome check --write --unsafe .",
 		"check:write": "biome check --write .",
-		"db:generate": "bunx prisma migrate dev",
-		"db:migrate": "bunx prisma migrate deploy",
+		"db:generate": "pnpm prisma migrate dev",
+		"db:migrate": "pnpm prisma migrate deploy",
 		"db:push": "prisma db push",
 		"db:studio": "prisma studio",
-		"db:seed-providers": "bun run scripts/seed-providers.ts",
-		"dev": "bunx prisma generate && next dev --turbo",
-		"preview": "bunx prisma generate && next build && next start",
-		"start": "bunx next start",
-		"typecheck": "tsc --noEmit",
-		"stripe": "stripe listen --forward-to localhost:3000/api/stripe-checkout"
+		"db:seed-providers": "pnpm run scripts/seed-providers.ts",
+		"dev": "pnpm prisma generate && next dev --turbo",
+		"preview": "pnpm prisma generate && next build && next start",
+		"start": "pnpm next start",
+		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
 		"@adaptive-llm/adaptive-ai-provider": "^1.4.1",
