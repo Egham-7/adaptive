@@ -15,21 +15,24 @@ import (
 // GeminiStreamReader provides pure I/O reading from Gemini streams
 // This reader ONLY reads raw chunk data - no format conversion
 type GeminiStreamReader struct {
-	iterator  iter.Seq2[*genai.GenerateContentResponse, error]
-	buffer    *bytebufferpool.ByteBuffer
-	done      bool
-	doneMux   sync.RWMutex
-	requestID string
-	closeOnce sync.Once
-	next      func() (*genai.GenerateContentResponse, error, bool)
-	stop      func()
+	iterator   iter.Seq2[*genai.GenerateContentResponse, error]
+	buffer     *bytebufferpool.ByteBuffer
+	done       bool
+	doneMux    sync.RWMutex
+	requestID  string
+	closeOnce  sync.Once
+	next       func() (*genai.GenerateContentResponse, error, bool)
+	stop       func()
+	firstChunk *genai.GenerateContentResponse // Cached first chunk to replay
+	firstRead  bool                           // Track if first chunk has been read
 }
 
 // NewGeminiStreamReader creates a new Gemini stream reader
+// Validates stream by reading first chunk
 func NewGeminiStreamReader(
 	streamIter iter.Seq2[*genai.GenerateContentResponse, error],
 	requestID string,
-) *GeminiStreamReader {
+) (*GeminiStreamReader, error) {
 	reader := &GeminiStreamReader{
 		iterator:  streamIter,
 		buffer:    utils.Get(), // Get buffer from pool
@@ -39,7 +42,23 @@ func NewGeminiStreamReader(
 	// Set up stateful iterator using iter.Pull2
 	reader.setupIterator()
 
-	return reader
+	// Validate stream by trying to get first chunk
+	firstChunk, err, hasNext := reader.next()
+	if !hasNext || err != nil {
+		if reader.stop != nil {
+			reader.stop()
+		}
+		if err != nil && err != io.EOF {
+			return nil, err
+		}
+		return nil, io.EOF
+	}
+
+	// Store first chunk to replay it
+	reader.firstChunk = firstChunk
+	reader.firstRead = false
+
+	return reader, nil
 }
 
 // setupIterator sets up the stateful iterator using iter.Pull2
@@ -84,8 +103,19 @@ func (r *GeminiStreamReader) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	// Read next chunk from Gemini stream
-	chunk, err, hasNext := r.next()
+	var chunk *genai.GenerateContentResponse
+	var hasNext bool
+
+	// If we have a first chunk and haven't read it yet, use it
+	if r.firstChunk != nil && !r.firstRead {
+		chunk = r.firstChunk
+		err = nil
+		hasNext = true
+		r.firstRead = true
+	} else {
+		// Read next chunk from Gemini stream
+		chunk, err, hasNext = r.next()
+	}
 	if !hasNext || err != nil {
 		r.doneMux.Lock()
 		r.done = true

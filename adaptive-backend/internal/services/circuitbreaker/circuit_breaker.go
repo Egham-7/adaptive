@@ -253,9 +253,9 @@ func (cb *CircuitBreaker) RecordSuccess() {
 	// Log based on result
 	switch result {
 	case 2:
-		fiberlog.Debugf("CircuitBreaker: %s transitioned to Closed state", cb.serviceName)
+		fiberlog.Infof("CircuitBreaker: %s transitioned to Closed state after success", cb.serviceName)
 	case 1:
-		fiberlog.Debugf("CircuitBreaker: %s recorded success in HalfOpen state", cb.serviceName)
+		fiberlog.Infof("CircuitBreaker: %s recorded success in HalfOpen state", cb.serviceName)
 	default:
 		fiberlog.Debugf("CircuitBreaker: %s recorded success", cb.serviceName)
 	}
@@ -288,7 +288,7 @@ func (cb *CircuitBreaker) RecordFailure() {
 
 	// Log based on result
 	if result == 1 {
-		fiberlog.Debugf("CircuitBreaker: %s transitioned to Open state", cb.serviceName)
+		fiberlog.Warnf("CircuitBreaker: %s transitioned to Open state after failure", cb.serviceName)
 	} else {
 		fiberlog.Debugf("CircuitBreaker: %s recorded failure", cb.serviceName)
 	}

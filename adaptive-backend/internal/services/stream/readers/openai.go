@@ -17,24 +17,41 @@ import (
 // OpenAIStreamReader provides pure I/O reading from OpenAI streams
 // This reader ONLY reads raw chunk data - no format conversion
 type OpenAIStreamReader struct {
-	stream    *ssestream.Stream[openai.ChatCompletionChunk]
-	buffer    *bytebufferpool.ByteBuffer
-	done      bool
-	doneMux   sync.RWMutex
-	requestID string
-	closeOnce sync.Once
+	stream     *ssestream.Stream[openai.ChatCompletionChunk]
+	buffer     *bytebufferpool.ByteBuffer
+	done       bool
+	doneMux    sync.RWMutex
+	requestID  string
+	closeOnce  sync.Once
+	firstChunk *openai.ChatCompletionChunk // Cached first chunk to replay
+	firstRead  bool                        // Track if first chunk has been read
 }
 
 // NewOpenAIStreamReader creates a new OpenAI stream reader
+// Validates stream by reading first chunk, returns error if stream is invalid
 func NewOpenAIStreamReader(
 	stream *ssestream.Stream[openai.ChatCompletionChunk],
 	requestID string,
-) *OpenAIStreamReader {
-	return &OpenAIStreamReader{
-		stream:    stream,
-		buffer:    utils.Get(), // Get buffer from pool
-		requestID: requestID,
+) (*OpenAIStreamReader, error) {
+	// Validate stream by trying to get first chunk
+	// This detects provider errors (429, 500, etc.) before starting HTTP stream
+	if !stream.Next() {
+		if err := stream.Err(); err != nil {
+			return nil, err
+		}
+		return nil, errors.New("empty stream from provider")
 	}
+
+	// Get the first chunk - we'll replay it in Read()
+	firstChunk := stream.Current()
+
+	return &OpenAIStreamReader{
+		stream:     stream,
+		buffer:     utils.Get(), // Get buffer from pool
+		requestID:  requestID,
+		firstChunk: &firstChunk,
+		firstRead:  false,
+	}, nil
 }
 
 // Read implements io.Reader - pure I/O operation
@@ -55,27 +72,35 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	// Try to read next chunk from stream
-	if !r.stream.Next() {
-		// Handle stream termination
-		if streamErr := r.stream.Err(); streamErr != nil {
-			if errors.Is(streamErr, io.EOF) {
-				r.setDone()
-				return 0, io.EOF
-			}
-			// Treat context cancellation as normal termination (client disconnect)
-			if errors.Is(streamErr, context.Canceled) || errors.Is(streamErr, context.DeadlineExceeded) {
-				r.setDone()
-				return 0, io.EOF
-			}
-			return 0, streamErr
-		}
-		// No chunks available, return 0 to indicate retry
-		return 0, nil
-	}
+	var chunk openai.ChatCompletionChunk
 
-	// Get current chunk and serialize to JSON for processor
-	chunk := r.stream.Current()
+	// If we have a first chunk and haven't read it yet, use it
+	if r.firstChunk != nil && !r.firstRead {
+		chunk = *r.firstChunk
+		r.firstRead = true
+	} else {
+		// Try to read next chunk from stream
+		if !r.stream.Next() {
+			// Handle stream termination
+			if streamErr := r.stream.Err(); streamErr != nil {
+				if errors.Is(streamErr, io.EOF) {
+					r.setDone()
+					return 0, io.EOF
+				}
+				// Treat context cancellation as normal termination (client disconnect)
+				if errors.Is(streamErr, context.Canceled) || errors.Is(streamErr, context.DeadlineExceeded) {
+					r.setDone()
+					return 0, io.EOF
+				}
+				return 0, streamErr
+			}
+			// No chunks available, return 0 to indicate retry
+			return 0, nil
+		}
+
+		// Get current chunk from stream
+		chunk = r.stream.Current()
+	}
 
 	// Serialize complete chunk for processor layer
 	chunkData, err := json.Marshal(&chunk)

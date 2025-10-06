@@ -12,59 +12,37 @@ import (
 	"github.com/valyala/bytebufferpool"
 )
 
-// AnthropicStreamReader provides pure I/O reading from Anthropic streams
-type AnthropicStreamReader struct {
-	reader    io.Reader
-	closer    io.Closer
-	requestID string
-	closeOnce sync.Once
-}
-
-// NewAnthropicStreamReader creates a new Anthropic stream reader
-func NewAnthropicStreamReader(reader io.Reader, requestID string) *AnthropicStreamReader {
-	var closer io.Closer
-	if readCloser, ok := reader.(io.ReadCloser); ok {
-		closer = readCloser
-	}
-
-	return &AnthropicStreamReader{
-		reader:    reader,
-		closer:    closer,
-		requestID: requestID,
-	}
-}
-
-// Read implements io.Reader - delegates to underlying reader
-func (r *AnthropicStreamReader) Read(p []byte) (n int, err error) {
-	return r.reader.Read(p)
-}
-
-// Close implements io.Closer
-func (r *AnthropicStreamReader) Close() error {
-	var err error
-	r.closeOnce.Do(func() {
-		if r.closer != nil {
-			err = r.closer.Close()
-		}
-	})
-	return err
-}
-
 // AnthropicNativeStreamReader wraps native Anthropic SDK streams
 type AnthropicNativeStreamReader struct {
-	stream    *ssestream.Stream[anthropic.MessageStreamEventUnion]
-	buffer    *bytebufferpool.ByteBuffer
-	requestID string
-	closeOnce sync.Once
+	stream     *ssestream.Stream[anthropic.MessageStreamEventUnion]
+	buffer     *bytebufferpool.ByteBuffer
+	requestID  string
+	closeOnce  sync.Once
+	firstEvent *anthropic.MessageStreamEventUnion // Cached first event to replay
+	firstRead  bool                               // Track if first event has been read
 }
 
 // NewAnthropicNativeStreamReader creates a new native Anthropic stream reader
-func NewAnthropicNativeStreamReader(stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID string) *AnthropicNativeStreamReader {
-	return &AnthropicNativeStreamReader{
-		stream:    stream,
-		buffer:    utils.Get(), // Get buffer from pool
-		requestID: requestID,
+// Validates stream by reading first event
+func NewAnthropicNativeStreamReader(stream *ssestream.Stream[anthropic.MessageStreamEventUnion], requestID string) (*AnthropicNativeStreamReader, error) {
+	// Validate stream by trying to get first event
+	if !stream.Next() {
+		if err := stream.Err(); err != nil {
+			return nil, err
+		}
+		return nil, io.EOF
 	}
+
+	// Get the first event - we'll replay it in Read()
+	firstEvent := stream.Current()
+
+	return &AnthropicNativeStreamReader{
+		stream:     stream,
+		buffer:     utils.Get(), // Get buffer from pool
+		requestID:  requestID,
+		firstEvent: &firstEvent,
+		firstRead:  false,
+	}, nil
 }
 
 // Read implements io.Reader
@@ -76,16 +54,26 @@ func (r *AnthropicNativeStreamReader) Read(p []byte) (n int, err error) {
 		return n, nil
 	}
 
-	// Try to get next event
-	if !r.stream.Next() {
-		if err := r.stream.Err(); err != nil {
-			return 0, err
+	var event anthropic.MessageStreamEventUnion
+
+	// If we have a first event and haven't read it yet, use it
+	if r.firstEvent != nil && !r.firstRead {
+		event = *r.firstEvent
+		r.firstRead = true
+	} else {
+		// Try to get next event
+		if !r.stream.Next() {
+			if err := r.stream.Err(); err != nil {
+				return 0, err
+			}
+			return 0, io.EOF
 		}
-		return 0, io.EOF
+
+		// Get current event from stream
+		event = r.stream.Current()
 	}
 
-	// Get current event and serialize
-	event := r.stream.Current()
+	// Serialize event
 	eventData, err := json.Marshal(&event)
 	if err != nil {
 		return 0, err
