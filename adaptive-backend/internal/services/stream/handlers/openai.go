@@ -17,6 +17,18 @@ import (
 func HandleOpenAI(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatCompletionChunk], requestID, provider, cacheSource string) error {
 	fiberlog.Infof("[%s] Starting OpenAI stream handling", requestID)
 
+	// Create streaming pipeline - validates stream internally by reading first chunk
+	// If validation fails (429, 500, etc.), error is returned BEFORE HTTP streaming starts
+	// This allows fallback to trigger properly
+	factory := NewStreamFactory()
+	handler, err := factory.CreateOpenAIPipeline(resp, requestID, provider, cacheSource)
+	if err != nil {
+		fiberlog.Errorf("[%s] Stream validation failed: %v", requestID, err)
+		return err
+	}
+
+	fiberlog.Infof("[%s] Stream validated successfully, starting HTTP stream", requestID)
+
 	fasthttpCtx := c.Context()
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
@@ -29,10 +41,6 @@ func HandleOpenAI(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatComplet
 
 		// Create HTTP writer (with [DONE] message for OpenAI compatibility)
 		httpWriter := writers.NewHTTPStreamWriter(w, connState, requestID, true)
-
-		// Create streaming pipeline using factory
-		factory := NewStreamFactory()
-		handler := factory.CreateOpenAIPipeline(resp, requestID, provider, cacheSource)
 
 		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {

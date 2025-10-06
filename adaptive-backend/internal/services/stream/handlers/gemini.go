@@ -17,6 +17,17 @@ import (
 func HandleGemini(c *fiber.Ctx, streamIter iter.Seq2[*genai.GenerateContentResponse, error], requestID, provider, cacheSource string) error {
 	fiberlog.Infof("[%s] Starting Gemini stream handling", requestID)
 
+	// Create streaming pipeline - validates stream internally by reading first chunk
+	// If validation fails (429, 500, etc.), error is returned BEFORE HTTP streaming starts
+	factory := NewStreamFactory()
+	handler, err := factory.CreateGeminiPipeline(streamIter, requestID, provider, cacheSource)
+	if err != nil {
+		fiberlog.Errorf("[%s] Stream validation failed: %v", requestID, err)
+		return err
+	}
+
+	fiberlog.Infof("[%s] Stream validated successfully, starting HTTP stream", requestID)
+
 	fasthttpCtx := c.Context()
 	// Use SSE format for Gemini SDK compatibility (matches responseLineRE regex)
 	c.Set("Content-Type", "text/event-stream")
@@ -30,10 +41,6 @@ func HandleGemini(c *fiber.Ctx, streamIter iter.Seq2[*genai.GenerateContentRespo
 
 		// Create HTTP writer for SSE formatting (Gemini SDK expects SSE format without [DONE])
 		sseWriter := writers.NewHTTPStreamWriter(w, connState, requestID, false)
-
-		// Create streaming pipeline using factory
-		factory := NewStreamFactory()
-		handler := factory.CreateGeminiPipeline(streamIter, requestID, provider, cacheSource)
 
 		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, sseWriter); err != nil {

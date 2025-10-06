@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"io"
 	"iter"
 
 	"adaptive-backend/internal/services/stream/contracts"
@@ -24,42 +23,44 @@ func NewStreamFactory() *StreamFactory {
 }
 
 // CreateOpenAIPipeline creates a complete OpenAI streaming pipeline
+// Returns error if stream validation fails (allows fallback before HTTP streaming starts)
 func (f *StreamFactory) CreateOpenAIPipeline(
 	stream *openai_ssestream.Stream[openai.ChatCompletionChunk],
 	requestID, provider, cacheSource string,
-) contracts.StreamHandler {
-	reader := readers.NewOpenAIStreamReader(stream, requestID)
+) (contracts.StreamHandler, error) {
+	reader, err := readers.NewOpenAIStreamReader(stream, requestID)
+	if err != nil {
+		return nil, err
+	}
 	processor := processors.NewOpenAIChunkProcessor(provider, cacheSource, requestID)
-	return NewStreamOrchestrator(reader, processor, requestID)
-}
-
-// CreateAnthropicPipeline creates a complete Anthropic streaming pipeline
-func (f *StreamFactory) CreateAnthropicPipeline(
-	responseBody io.Reader,
-	requestID, provider, cacheSource string,
-) contracts.StreamHandler {
-	reader := readers.NewAnthropicStreamReader(responseBody, requestID)
-	processor := processors.NewAnthropicChunkProcessor(provider, cacheSource, requestID)
-	return NewStreamOrchestrator(reader, processor, requestID)
+	return NewStreamOrchestrator(reader, processor, requestID), nil
 }
 
 // CreateAnthropicNativePipeline creates a complete Anthropic native streaming pipeline
+// Returns error if stream validation fails (allows fallback before HTTP streaming starts)
 func (f *StreamFactory) CreateAnthropicNativePipeline(
 	stream *ssestream.Stream[anthropic.MessageStreamEventUnion],
 	requestID, provider, cacheSource string,
-) contracts.StreamHandler {
-	reader := readers.NewAnthropicNativeStreamReader(stream, requestID)
+) (contracts.StreamHandler, error) {
+	reader, err := readers.NewAnthropicNativeStreamReader(stream, requestID)
+	if err != nil {
+		return nil, err
+	}
 	processor := processors.NewAnthropicChunkProcessor(provider, cacheSource, requestID)
-	return NewStreamOrchestrator(reader, processor, requestID)
+	return NewStreamOrchestrator(reader, processor, requestID), nil
 }
 
 // CreateGeminiPipeline creates a complete Gemini streaming pipeline
+// Returns error if stream validation fails (allows fallback before HTTP streaming starts)
 func (f *StreamFactory) CreateGeminiPipeline(
 	streamIter iter.Seq2[*genai.GenerateContentResponse, error],
 	requestID, provider, cacheSource string,
-) contracts.StreamHandler {
-	reader := readers.NewGeminiStreamReader(streamIter, requestID)
+) (contracts.StreamHandler, error) {
+	reader, err := readers.NewGeminiStreamReader(streamIter, requestID)
+	if err != nil {
+		return nil, err
+	}
 	// Use Gemini processor to format as SSE events for SDK compatibility
 	processor := processors.NewGeminiChunkProcessor(provider, cacheSource, requestID)
-	return NewStreamOrchestrator(reader, processor, requestID)
+	return NewStreamOrchestrator(reader, processor, requestID), nil
 }
