@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 env:
-  BUN_VERSION: "latest"
+  PNPM_VERSION: "10"
   WORKING_DIR: "./adaptive-app"
 
 jobs:
@@ -25,24 +25,29 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          version: ${{ env.BUN_VERSION }}
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: bun prisma generate
+        run: pnpm prisma generate
 
       - name: Run Biome linter
-        run: bun run check
+        run: pnpm run check
 
       - name: Run TypeScript type check
-        run: bun run typecheck
+        run: pnpm run typecheck
 
   build:
     name: Build
@@ -53,18 +58,23 @@ jobs:
         working-directory: ${{ env.WORKING_DIR }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          version: ${{ env.BUN_VERSION }}
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build application
-        run: bun run build
+        run: pnpm run build
         env:
           # Build-time environment variables
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
