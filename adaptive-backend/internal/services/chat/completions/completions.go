@@ -168,16 +168,34 @@ func (cs *CompletionService) HandleCompletion(
 		return models.NewValidationError("invalid input parameters", nil)
 	}
 
-	fallbackConfig := cs.fallbackService.GetFallbackConfig(req.Fallback)
-
-	// Create provider list with primary and alternatives
-	providers := []models.Alternative{{
+	executeFunc := cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig)
+	primary := models.Alternative{
 		Provider: resp.Provider,
 		Model:    resp.Model,
-	}}
-	providers = append(providers, resp.Alternatives...)
+	}
 
-	return cs.fallbackService.Execute(c, providers, fallbackConfig, cs.createExecuteFunc(req, isStream, cacheSource, resolvedConfig), requestID, isStream)
+	// Try primary provider first
+	fiberlog.Infof("[%s] Trying primary provider: %s/%s", requestID, resp.Provider, resp.Model)
+	err := executeFunc(c, primary, requestID)
+
+	if err == nil {
+		// Primary succeeded
+		fiberlog.Infof("[%s] ✅ Primary provider succeeded: %s/%s", requestID, resp.Provider, resp.Model)
+		return nil
+	}
+
+	// Primary failed - check if we have alternatives
+	if len(resp.Alternatives) == 0 {
+		fiberlog.Errorf("[%s] ❌ Primary provider failed and no alternatives available: %v", requestID, err)
+		return err
+	}
+
+	// Use fallback service with alternatives only
+	fiberlog.Warnf("[%s] ⚠️  Primary provider failed: %v", requestID, err)
+	fiberlog.Infof("[%s] Using fallback with %d alternatives", requestID, len(resp.Alternatives))
+
+	fallbackConfig := cs.fallbackService.GetFallbackConfig(req.Fallback)
+	return cs.fallbackService.Execute(c, resp.Alternatives, fallbackConfig, executeFunc, requestID, isStream)
 }
 
 // createExecuteFunc creates an execution function for the fallback service
