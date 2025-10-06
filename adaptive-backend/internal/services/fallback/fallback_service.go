@@ -346,6 +346,7 @@ func (fs *FallbackService) executeStreamingRace(
 	// Wait for result
 	select {
 	case <-doneCh:
+		// Race complete - check if we have a winner
 		mu.Lock()
 		defer mu.Unlock()
 		if winner != nil {
@@ -357,8 +358,24 @@ func (fs *FallbackService) executeStreamingRace(
 		fiberlog.Infof("[%s] ═══ Streaming Race Complete (All Failed) ═══", requestID)
 		return fmt.Errorf("all streaming race providers failed")
 	case <-ctx.Done():
-		fiberlog.Errorf("[%s] ❌ Streaming race timeout: %v", requestID, ctx.Err())
-		return fmt.Errorf("streaming race timeout: %w", ctx.Err())
+		// Check if doneCh was closed before timeout
+		select {
+		case <-doneCh:
+			// Winner found, doneCh closed just before we checked context
+			mu.Lock()
+			defer mu.Unlock()
+			if winner != nil {
+				fiberlog.Infof("[%s] ═══ Streaming Race Complete (Winner: %s/%s) ═══",
+					requestID, winner.Provider, winner.Model)
+				return winnerErr
+			}
+		default:
+			// Actual timeout
+			fiberlog.Errorf("[%s] ❌ Streaming race timeout: %v", requestID, ctx.Err())
+			return fmt.Errorf("streaming race timeout: %w", ctx.Err())
+		}
+		// All failed after context cancelled
+		return fmt.Errorf("all streaming race providers failed")
 	}
 }
 
