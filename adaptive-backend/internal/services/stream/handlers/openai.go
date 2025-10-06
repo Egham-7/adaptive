@@ -23,9 +23,6 @@ func HandleOpenAI(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatComplet
 	c.Set("Connection", "keep-alive")
 	c.Set("Access-Control-Allow-Origin", "*")
 
-	// Channel to capture errors from the async stream handler
-	errCh := make(chan error, 1)
-
 	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
@@ -37,20 +34,15 @@ func HandleOpenAI(c *fiber.Ctx, resp *openai_ssestream.Stream[openai.ChatComplet
 		factory := NewStreamFactory()
 		handler := factory.CreateOpenAIPipeline(resp, requestID, provider, cacheSource)
 
-		// Handle the stream and capture error
+		// Handle the stream
 		if err := handler.Handle(fasthttpCtx, httpWriter); err != nil {
 			if !contracts.IsExpectedError(err) {
 				fiberlog.Errorf("[%s] Stream error: %v", requestID, err)
-				errCh <- err // Send error to channel for caller
 			} else {
 				fiberlog.Infof("[%s] Stream ended: %v", requestID, err)
-				errCh <- nil // Expected error is treated as success
 			}
-		} else {
-			errCh <- nil // No error
 		}
 	}))
 
-	// Wait for the stream to complete and return any error
-	return <-errCh
+	return nil
 }
