@@ -259,7 +259,9 @@ func (cs *CompletionService) handleStreamingCompletion(
 ) error {
 	fiberlog.Infof("[%s] streaming response from %s", requestID, providerName)
 
-	streamResp := client.Chat.Completions.NewStreaming(c.UserContext(), *openAIParams)
+	// Use context.Background() for streaming - c.UserContext() gets canceled too early
+	// The stream handler will monitor fasthttpCtx for actual client disconnects
+	streamResp := client.Chat.Completions.NewStreaming(context.Background(), *openAIParams)
 	err := handlers.HandleOpenAI(c, streamResp, requestID, providerName, cacheSource)
 	if err != nil {
 		// Record failure in circuit breaker

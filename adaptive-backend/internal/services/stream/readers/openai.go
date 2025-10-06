@@ -1,6 +1,7 @@
 package readers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -59,6 +60,11 @@ func (r *OpenAIStreamReader) Read(p []byte) (n int, err error) {
 		// Handle stream termination
 		if streamErr := r.stream.Err(); streamErr != nil {
 			if errors.Is(streamErr, io.EOF) {
+				r.setDone()
+				return 0, io.EOF
+			}
+			// Treat context cancellation as normal termination (client disconnect)
+			if errors.Is(streamErr, context.Canceled) || errors.Is(streamErr, context.DeadlineExceeded) {
 				r.setDone()
 				return 0, io.EOF
 			}
