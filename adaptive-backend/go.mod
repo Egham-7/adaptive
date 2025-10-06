@@ -13,7 +13,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasthttp v1.66.0
 	golang.org/x/sync v0.17.0
-	google.golang.org/genai v1.27.0
+	google.golang.org/genai v1.28.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
