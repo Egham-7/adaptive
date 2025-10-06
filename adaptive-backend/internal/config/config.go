@@ -447,19 +447,22 @@ func (c *Config) MergeModelRouterConfig(override *models.ModelRouterConfig, endp
 // The request override takes precedence over YAML config.
 // Fallback is disabled by default (empty mode), enabled when mode is set.
 func (c *Config) MergeFallbackConfig(override *models.FallbackConfig) *models.FallbackConfig {
-	// Start with defaults (disabled by default)
+	// Start with YAML config values
 	merged := &models.FallbackConfig{
-		Mode: "", // Empty mode = disabled by default
+		Mode:           c.Fallback.Mode,
+		TimeoutMs:      c.Fallback.TimeoutMs,
+		MaxRetries:     c.Fallback.MaxRetries,
+		CircuitBreaker: c.Fallback.CircuitBreaker,
 	}
 
-	// If no override provided, return defaults (disabled)
+	// If no override provided, return YAML config
 	if override == nil {
 		return merged
 	}
 
-	// Apply request overrides
+	// Apply request overrides (request takes precedence)
 	if override.Mode != "" {
-		merged.Mode = override.Mode // Set mode to enable fallback
+		merged.Mode = override.Mode // Override mode
 	}
 	if override.TimeoutMs > 0 {
 		merged.TimeoutMs = override.TimeoutMs
