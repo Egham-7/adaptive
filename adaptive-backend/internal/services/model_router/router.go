@@ -100,8 +100,20 @@ func (pm *ModelRouter) SelectModelWithCache(
 	}
 	resp := pm.client.SelectModel(ctx, req)
 
-	fiberlog.Infof("[%s] ✅ AI service selected: %s/%s",
+	// Log detailed model selection response
+	fiberlog.Infof("[%s] ✅ AI service selected PRIMARY: %s/%s",
 		requestID, resp.Provider, resp.Model)
+
+	if len(resp.Alternatives) > 0 {
+		fiberlog.Infof("[%s] 📋 ALTERNATIVES (%d):", requestID, len(resp.Alternatives))
+		for i, alt := range resp.Alternatives {
+			fiberlog.Infof("[%s]    %d. %s/%s",
+				requestID, i+1, alt.Provider, alt.Model)
+		}
+	} else {
+		fiberlog.Infof("[%s] ℹ️  No alternatives provided", requestID)
+	}
+
 	fiberlog.Infof("[%s] ═══ Model Selection Complete (AI Service) ═══", requestID)
 
 	return &resp, "", nil

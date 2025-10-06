@@ -65,22 +65,44 @@ func (fs *FallbackService) executeSequential(
 	executeFunc models.ExecutionFunc,
 	requestID string,
 ) error {
+	fiberlog.Infof("[%s] ═══ Sequential Fallback Started (%d providers) ═══", requestID, len(providers))
+
+	// Log all providers upfront
+	fiberlog.Infof("[%s] 📋 Provider sequence:", requestID)
+	for i, p := range providers {
+		if i == 0 {
+			fiberlog.Infof("[%s]    1. PRIMARY: %s/%s", requestID, p.Provider, p.Model)
+		} else {
+			fiberlog.Infof("[%s]    %d. FALLBACK: %s/%s", requestID, i+1, p.Provider, p.Model)
+		}
+	}
+
+	// Try each provider
+	var errors []error
 	for i, provider := range providers {
 		providerType := "alternative"
 		if i == 0 {
 			providerType = "primary"
 		}
 
-		fiberlog.Infof("[%s] Using %s provider: %s (%s)", requestID, providerType, provider.Provider, provider.Model)
+		fiberlog.Infof("[%s] 🔄 Trying %s provider [%d/%d]: %s/%s",
+			requestID, providerType, i+1, len(providers), provider.Provider, provider.Model)
 
 		if err := executeFunc(c, provider, requestID); err == nil {
+			fiberlog.Infof("[%s] ✅ SUCCESS with %s provider: %s/%s",
+				requestID, providerType, provider.Provider, provider.Model)
+			fiberlog.Infof("[%s] ═══ Sequential Fallback Complete ═══", requestID)
 			return nil
 		} else {
-			fiberlog.Warnf("[%s] %s provider %s (%s) failed: %v", requestID, providerType, provider.Provider, provider.Model, err)
+			fiberlog.Warnf("[%s] ❌ FAILED %s provider %s/%s: %v",
+				requestID, providerType, provider.Provider, provider.Model, err)
+			errors = append(errors, err)
 		}
 	}
 
-	return fmt.Errorf("all providers failed")
+	fiberlog.Errorf("[%s] 💥 All %d providers failed: %v", requestID, len(providers), errors)
+	fiberlog.Infof("[%s] ═══ Sequential Fallback Complete (All Failed) ═══", requestID)
+	return fmt.Errorf("all providers failed: %v", errors)
 }
 
 // executeRace tries all providers in parallel and returns the first successful result
@@ -98,7 +120,17 @@ func (fs *FallbackService) executeRace(
 		return fs.executeStreamingRace(c, providers, executeFunc, requestID)
 	}
 
-	fiberlog.Infof("[%s] Racing %d providers", requestID, len(providers))
+	fiberlog.Infof("[%s] ═══ Race Fallback Started (%d providers) ═══", requestID, len(providers))
+
+	// Log all providers upfront
+	fiberlog.Infof("[%s] 🏁 Racing providers:", requestID)
+	for i, p := range providers {
+		if i == 0 {
+			fiberlog.Infof("[%s]    • PRIMARY: %s/%s", requestID, p.Provider, p.Model)
+		} else {
+			fiberlog.Infof("[%s]    • ALTERNATIVE: %s/%s", requestID, p.Provider, p.Model)
+		}
+	}
 
 	resultCh := make(chan models.FallbackResult, len(providers))
 
@@ -128,23 +160,27 @@ func (fs *FallbackService) executeRace(
 			}()
 
 			start := time.Now()
-			fiberlog.Debugf("[%s] Racing provider %s (%s)", requestID, prov.Provider, prov.Model)
+			fiberlog.Infof("[%s] 🏃 Racing provider %s/%s", requestID, prov.Provider, prov.Model)
 
 			if err := executeFunc(c, prov, requestID); err == nil {
-				fiberlog.Infof("[%s] Race winner: %s (%s)", requestID, prov.Provider, prov.Model)
+				duration := time.Since(start)
+				fiberlog.Infof("[%s] 🏆 RACE WINNER: %s/%s (completed in %v)",
+					requestID, prov.Provider, prov.Model, duration)
 				resultCh <- models.FallbackResult{
 					Success:  true,
 					Provider: prov,
 					Error:    nil,
-					Duration: time.Since(start),
+					Duration: duration,
 				}
 			} else {
-				fiberlog.Warnf("[%s] Race provider %s (%s) failed: %v", requestID, prov.Provider, prov.Model, err)
+				duration := time.Since(start)
+				fiberlog.Warnf("[%s] ❌ Race provider %s/%s failed in %v: %v",
+					requestID, prov.Provider, prov.Model, duration, err)
 				resultCh <- models.FallbackResult{
 					Success:  false,
 					Provider: prov,
 					Error:    err,
-					Duration: time.Since(start),
+					Duration: duration,
 				}
 			}
 		}(provider)
