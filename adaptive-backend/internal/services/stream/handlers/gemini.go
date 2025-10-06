@@ -24,6 +24,9 @@ func HandleGemini(c *fiber.Ctx, streamIter iter.Seq2[*genai.GenerateContentRespo
 	c.Set("Connection", "keep-alive")
 	c.Set("Access-Control-Allow-Origin", "*")
 
+	// Channel to capture errors from the async stream handler
+	errCh := make(chan error, 1)
+
 	fasthttpCtx.SetBodyStreamWriter(fasthttp.StreamWriter(func(w *bufio.Writer) {
 		// Create connection state tracker
 		connState := writers.NewFastHTTPConnectionState(fasthttpCtx)
@@ -35,15 +38,20 @@ func HandleGemini(c *fiber.Ctx, streamIter iter.Seq2[*genai.GenerateContentRespo
 		factory := NewStreamFactory()
 		handler := factory.CreateGeminiPipeline(streamIter, requestID, provider, cacheSource)
 
-		// Handle the stream
+		// Handle the stream and capture error
 		if err := handler.Handle(fasthttpCtx, sseWriter); err != nil {
 			if !contracts.IsExpectedError(err) {
 				fiberlog.Errorf("[%s] Stream error: %v", requestID, err)
+				errCh <- err // Send error to channel for caller
 			} else {
 				fiberlog.Infof("[%s] Stream ended: %v", requestID, err)
+				errCh <- nil // Expected error is treated as success
 			}
+		} else {
+			errCh <- nil // No error
 		}
 	}))
 
-	return nil
+	// Wait for the stream to complete and return any error
+	return <-errCh
 }
