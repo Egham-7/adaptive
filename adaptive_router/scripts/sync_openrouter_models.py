@@ -613,7 +613,7 @@ async def main_async(
     async with async_session() as session:
         inserted, skipped = await bulk_insert_models(session, models_with_endpoints)
 
-    logger.info(f"✓ Database sync complete:")
+    logger.info("✓ Database sync complete:")
     logger.info(f"  • Inserted: {inserted} new models")
     logger.info(f"  • Skipped: {skipped} existing models")
 
