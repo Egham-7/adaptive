@@ -35,6 +35,7 @@ dependencies = [
   "modal>=1.1.4",
   # Utilities
   "pyyaml>=6.0.2,<7",
+  "fastapi>=0.118.2",
 ]
 
 [project.urls]
@@ -42,7 +43,6 @@ Homepage = "https://llmadaptive.uk"
 Repository = "https://github.com/Egham-7/adaptive"
 Documentation = "https://docs.llmadaptive.uk"
 "Bug Tracker" = "https://github.com/Egham-7/adaptive/issues"
-
 
 
 [dependency-groups]
@@ -53,11 +53,7 @@ dev = [
   "types-pyyaml>=6.0.12.20250516,<7",
   "types-pyjwt>=1.7.1",
 ]
-test = [
-  "pytest>=8.4.1,<9",
-  "pytest-cov>=6.2.1,<8",
-  "pytest-asyncio>=0.24.0,<1",
-]
+test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<8", "pytest-asyncio>=0.24.0,<1"]
 docs = ["mkdocs>=1.5.0,<2", "mkdocs-material>=9.0.0,<10"]
 # Optional: Data enrichment tools (model_data/agent)
 enrichment = [
@@ -70,10 +66,10 @@ enrichment = [
   "types-cachetools>=5.3.0,<7",
 ]
 sync = [
-    "asyncpg>=0.30.0",
-    "httpx>=0.28.1",
-    "polars>=1.34.0",
-    "sqlalchemy>=2.0.43",
+  "asyncpg>=0.30.0",
+  "httpx>=0.28.1",
+  "polars>=1.34.0",
+  "sqlalchemy>=2.0.43",
 ]
 
 
@@ -96,10 +92,7 @@ extend-exclude = '''
 
 
 [tool.mypy]
-exclude = [
-  "model_data/",
-  "tests/integration/",
-]
+exclude = ["model_data/", "tests/integration/"]
 
 [[tool.mypy.overrides]]
 module = [
