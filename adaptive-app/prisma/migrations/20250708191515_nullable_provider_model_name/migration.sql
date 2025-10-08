@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "ApiUsage" ALTER COLUMN "model" DROP NOT NULL,
-ALTER COLUMN "provider" DROP NOT NULL;
