@@ -7,11 +7,10 @@ OpenAI-compatible API with DeepSeek's endpoint.
 
 import logging
 import time
-from typing import Any
 
 from langchain_openai import ChatOpenAI
 
-from .base import APIError, BaseEvaluator, MultipleChoiceAnswer
+from .base import APIError, BaseEvaluator
 
 logger = logging.getLogger(__name__)
 

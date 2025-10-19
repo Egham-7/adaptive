@@ -32,10 +32,9 @@ import logging
 import pickle
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List
 
 import numpy as np
-from sklearn.metrics import silhouette_score
 
 # Add adaptive_router to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -375,7 +374,7 @@ def cluster_with_k(
     engine.fit(questions)
     cluster_info = engine.get_cluster_info()
 
-    logger.info(f"\nClustering complete!")
+    logger.info("\nClustering complete!")
     logger.info(f"  Silhouette score: {cluster_info['silhouette_score']:.6f}")
     logger.info(
         f"  Cluster size range: {cluster_info['min_cluster_size']} - {cluster_info['max_cluster_size']}"

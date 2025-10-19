@@ -7,7 +7,6 @@ langchain_google_genai's ChatGoogleGenerativeAI client.
 
 import logging
 import time
-from typing import Any
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 

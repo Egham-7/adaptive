@@ -46,7 +46,7 @@ for model_id, error_rates in sorted(data.items(), key=lambda x: sum(x[1]) / len(
     print(f"  Cost: ${cost:.3f} per 1M tokens")
     print(f"  Average Error Rate: {avg_error:.1%} (Accuracy: {(1-avg_error):.1%})")
     print(f"  Range: {min_error:.1%} - {max_error:.1%}")
-    print(f"  Per-Cluster Errors:")
+    print("  Per-Cluster Errors:")
 
     for i, err in enumerate(error_rates):
         print(f"    Cluster {i:2d}: {err:5.1%}", end="")

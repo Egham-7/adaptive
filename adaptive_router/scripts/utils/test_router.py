@@ -22,7 +22,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, cast
 
 from rich.console import Console
 from rich.table import Table
@@ -32,7 +32,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 # Add parent directory to path to import adaptive_router
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adaptive_router import ModelRouter, ModelSelectionRequest, ModelCapability
+from adaptive_router import ModelRouter, ModelSelectionRequest
 
 console = Console()
 
@@ -123,11 +123,22 @@ def test_cost_bias_variation(
     table.add_column("Time", style="magenta")
 
     for result in results:
+        cost_bias = cast(float, result["cost_bias"])
+        selected_model = str(result["selected_model"])
+        alternatives = result["alternatives"]
+        routing_time_ms = cast(float, result["routing_time_ms"])
+
+        # Ensure alternatives is a list of strings
+        if isinstance(alternatives, list):
+            alt_str = ", ".join(str(alt) for alt in alternatives[:2])
+        else:
+            alt_str = ""
+
         table.add_row(
-            f"{result['cost_bias']:.1f}",
-            result["selected_model"],
-            ", ".join(result["alternatives"][:2]),
-            f"{result['routing_time_ms']:.1f}ms",
+            f"{cost_bias:.1f}",
+            selected_model,
+            alt_str,
+            f"{routing_time_ms:.1f}ms",
         )
 
     console.print(table)
@@ -201,10 +212,14 @@ def test_provider_filtering(
     table.add_column("Time", style="magenta")
 
     for result in results:
+        provider_group = result["provider_group"]
+        selected_model = result["selected_model"]
+        routing_time_ms = result["routing_time_ms"]
+
         table.add_row(
-            result["provider_group"],
-            result["selected_model"],
-            f"{result['routing_time_ms']:.1f}ms",
+            str(provider_group),
+            str(selected_model),
+            f"{routing_time_ms:.1f}ms",
         )
 
     console.print(table)
@@ -263,15 +278,19 @@ def test_prompt_variety(
     table.add_column("Time", style="magenta")
 
     for result in results:
+        prompt_type = str(result["prompt_type"])
+        prompt = str(result["prompt"])
+        selected_model = str(result["selected_model"])
+        routing_time_ms = cast(float, result["routing_time_ms"])
+
+        # Truncate prompt if needed
+        truncated_prompt = prompt[:47] + "..." if len(prompt) > 50 else prompt
+
         table.add_row(
-            result["prompt_type"],
-            (
-                result["prompt"][:47] + "..."
-                if len(result["prompt"]) > 50
-                else result["prompt"]
-            ),
-            result["selected_model"],
-            f"{result['routing_time_ms']:.1f}ms",
+            prompt_type,
+            truncated_prompt,
+            selected_model,
+            f"{routing_time_ms:.1f}ms",
         )
 
     console.print(table)
@@ -358,7 +377,7 @@ def test_performance(
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task(f"Benchmarking routing...", total=iterations)
+        task = progress.add_task("Benchmarking routing...", total=iterations)
 
         for i in range(iterations):
             start_time = time.perf_counter()
@@ -396,17 +415,18 @@ def test_performance(
     console.print(table)
 
     # Validation
-    if result["p99_ms"] < 50:
+    p99_ms = cast(float, result["p99_ms"])
+    if p99_ms < 50:
         console.print(
-            f"\n✅ [green]Excellent performance![/green] P99 latency: {result['p99_ms']:.2f}ms"
+            f"\n✅ [green]Excellent performance![/green] P99 latency: {p99_ms:.2f}ms"
         )
-    elif result["p99_ms"] < 100:
+    elif p99_ms < 100:
         console.print(
-            f"\n✅ [yellow]Good performance[/yellow] P99 latency: {result['p99_ms']:.2f}ms"
+            f"\n✅ [yellow]Good performance[/yellow] P99 latency: {p99_ms:.2f}ms"
         )
     else:
         console.print(
-            f"\n⚠️  [red]Performance warning[/red] P99 latency: {result['p99_ms']:.2f}ms (expected <50ms)"
+            f"\n⚠️  [red]Performance warning[/red] P99 latency: {p99_ms:.2f}ms (expected <50ms)"
         )
 
     return result
@@ -443,41 +463,51 @@ def run_all_tests(args: argparse.Namespace) -> Dict[str, Any]:
         console.print(f"❌ [red]Failed to initialize router: {e}[/red]")
         sys.exit(1)
 
-    all_results = {
+    all_results: Dict[str, Any] = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "tests": {},
     }
 
     # Test 1: Cost Bias Variation
     if args.test_all or args.test == "cost_bias":
-        test_prompt = args.prompt or TEST_PROMPTS["coding_simple"]
+        test_prompt = str(args.prompt or TEST_PROMPTS["coding_simple"])
         results = test_cost_bias_variation(router, test_prompt, args.verbose)
-        all_results["tests"]["cost_bias_variation"] = results
+        test_dict = all_results["tests"]
+        assert isinstance(test_dict, dict)
+        test_dict["cost_bias_variation"] = results
 
     # Test 2: Provider Filtering
     if args.test_all or args.test == "providers":
-        test_prompt = args.prompt or TEST_PROMPTS["technical"]
+        test_prompt = str(args.prompt or TEST_PROMPTS["technical"])
         results = test_provider_filtering(router, test_prompt, args.verbose)
-        all_results["tests"]["provider_filtering"] = results
+        test_dict = all_results["tests"]
+        assert isinstance(test_dict, dict)
+        test_dict["provider_filtering"] = results
 
     # Test 3: Prompt Variety
     if args.test_all or args.test == "prompts":
-        cost_bias = args.cost_bias if args.cost_bias is not None else 0.5
+        cost_bias = float(args.cost_bias if args.cost_bias is not None else 0.5)
         results = test_prompt_variety(router, cost_bias, args.verbose)
-        all_results["tests"]["prompt_variety"] = results
+        test_dict = all_results["tests"]
+        assert isinstance(test_dict, dict)
+        test_dict["prompt_variety"] = results
 
     # Test 4: Determinism
     if args.test_all or args.test == "determinism":
-        test_prompt = args.prompt or TEST_PROMPTS["coding_simple"]
-        cost_bias = args.cost_bias if args.cost_bias is not None else 0.5
+        test_prompt = str(args.prompt or TEST_PROMPTS["coding_simple"])
+        cost_bias = float(args.cost_bias if args.cost_bias is not None else 0.5)
         result = test_determinism(router, test_prompt, cost_bias, args.iterations)
-        all_results["tests"]["determinism"] = result
+        test_dict = all_results["tests"]
+        assert isinstance(test_dict, dict)
+        test_dict["determinism"] = result
 
     # Test 5: Performance
     if args.test_all or args.test == "performance":
-        test_prompt = args.prompt or TEST_PROMPTS["coding_simple"]
+        test_prompt = str(args.prompt or TEST_PROMPTS["coding_simple"])
         result = test_performance(router, test_prompt, args.iterations)
-        all_results["tests"]["performance"] = result
+        test_dict = all_results["tests"]
+        assert isinstance(test_dict, dict)
+        test_dict["performance"] = result
 
     return all_results
 

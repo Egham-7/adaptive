@@ -7,7 +7,6 @@ langchain_groq's ChatGroq client with ultra-fast inference.
 
 import logging
 import time
-from typing import Any
 
 from langchain_groq import ChatGroq
 

@@ -7,7 +7,6 @@ OpenAI-compatible API with custom base URL.
 
 import logging
 import time
-from typing import Any
 
 from langchain_openai import ChatOpenAI
 

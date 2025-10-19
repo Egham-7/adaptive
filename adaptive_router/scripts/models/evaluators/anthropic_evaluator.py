@@ -7,7 +7,6 @@ langchain_anthropic's ChatAnthropic client with structured outputs.
 
 import logging
 import time
-from typing import Any
 
 from langchain_anthropic import ChatAnthropic
 
