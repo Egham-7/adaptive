@@ -75,7 +75,7 @@ class MulticlassHead(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through classification head."""
-        return self.fc(x)  # type: ignore[no-any-return]
+        return self.fc(x)
 
 
 class CustomModel(nn.Module, PyTorchModelHubMixin):
@@ -199,7 +199,7 @@ class CustomModel(nn.Module, PyTorchModelHubMixin):
         for target, target_logits in classifications:
             target_results = self.compute_results(target_logits, target=target)
             if isinstance(target_results, list):
-                result[target] = target_results  # type: ignore[assignment]
+                result[target] = target_results
 
         return result
 

@@ -26,16 +26,36 @@ dependencies = [
   # Data Validation
   "pydantic>=2.11.5,<3",
   # ML Framework & Models
-  "torch>=2.2.0,<2.9.0",
-  "transformers>=4.52.4,<5",
+  "torch>=2.2.0,<2.3.0", # Limited to 2.2.x for Intel macOS x86_64 compatibility
+  "transformers>=4.44.0,<4.45", # Pin to 4.44.x for macOS compatibility with sentence-transformers
   "huggingface-hub>=0.32.0,<1.0",
-  "numpy>=1.24.0,<3.0",
+  "numpy>=1.24.0,<2.0", # torch 2.2.x requires NumPy 1.x
   "accelerate>=1.8.1,<2",
+  # UniRouter ML Dependencies
+  "sentence-transformers>=2.7.0,<3", # Pin to 2.x for macOS compatibility with transformers 4.44
+  "scikit-learn>=1.5.0,<2",
   # Modal Deployment
   "modal>=1.1.4",
+  # LLM Integration
+  "langchain>=0.3.26,<0.4",
+  "langchain-core>=0.3.66,<0.4",
+  "langchain-openai>=0.3.0,<0.4",
+  "langchain-anthropic>=0.3.0,<0.4",
+  "langchain-groq>=0.3.0,<0.4",
+  "langchain-google-genai>=2.0.0,<3",
+  "openai>=1.97.1",
+  "anthropic>=0.39.0",
+  "groq>=0.11.0",
+  # Evaluation Dependencies
+  "tqdm>=4.66.0,<5",
   # Utilities
   "pyyaml>=6.0.2,<7",
   "fastapi>=0.118.2",
+  "cachetools>=5.3.0,<7",
+  "python-jose[cryptography]>=3.3.0,<4.0",
+  "pyjwt>=2.10.1",
+  "python-json-logger>=3.3.0",
+  "datasets>=4.2.0",
 ]
 
 [project.urls]
@@ -92,7 +112,14 @@ extend-exclude = '''
 
 
 [tool.mypy]
-exclude = ["model_data/", "tests/integration/"]
+exclude = [
+  "model_data/",
+  "tests/",
+  "scripts/models/",
+]
+no_implicit_optional = true
+warn_return_any = false
+warn_unused_ignores = true
 
 [[tool.mypy.overrides]]
 module = [
@@ -101,6 +128,9 @@ module = [
   "langchain.*",
   "langchain_core.*",
   "langchain_openai.*",
+  "langchain_anthropic.*",
+  "langchain_groq.*",
+  "langchain_google_genai.*",
   "hypercorn.*",
   "fastapi.*",
   "httpx.*",
@@ -110,6 +140,11 @@ module = [
   "torch.*",
   "huggingface_hub.*",
   "accelerate.*",
+  "pytest.*",
+  "sentence_transformers.*",
+  "sklearn.*",
+  "datasets.*",
+  "tqdm.*",
 ]
 ignore_missing_imports = true
 

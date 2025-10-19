@@ -1,7 +1,7 @@
-"""Modal deployment for Model Router Service.
+"""Modal deployment for UniRouter Model Selection Service.
 
-This module deploys the model router as a single Modal function with:
-- GPU acceleration for ML inference (NVIDIA T4)
+This module deploys the UniRouter-based model router as a single Modal function with:
+- Cluster-based intelligent routing with per-cluster error rates
 - Auto-scaling with configurable min/max containers
 - Direct function call interface
 - JWT authentication for security
@@ -11,17 +11,9 @@ import logging
 import time
 
 import modal
-from fastapi import HTTPException, Request
-
-from adaptive_router.models.llm_core_models import (
-    ModelSelectionRequest,
-    ModelSelectionResponse,
-)
-from adaptive_router.services.model_router import ModelRouter
 
 # Modal deployment constants
 APP_NAME = "adaptive_router"
-GPU_TYPE = "T4"
 TIMEOUT = 600
 SCALEDOWN_WINDOW = 300
 MIN_CONTAINERS = 0
@@ -31,41 +23,46 @@ logger = logging.getLogger(__name__)
 
 
 def get_modal_image() -> modal.Image:
-    """Create optimized Modal image with minimal dependencies.
+    """Create optimized Modal image with UniRouter dependencies.
 
-    Only includes packages actually imported by the model router:
-    - torch, transformers, huggingface-hub, numpy: For PromptClassifier ML inference
+    Includes packages required by UniRouter:
+    - sentence-transformers: For semantic embeddings in clustering
+    - scikit-learn: For K-means clustering and silhouette scoring
     - pydantic, pydantic-settings: For data models and configuration
-    - pyyaml: For YAMLModelDatabase model metadata loading
-    - pyjwt: For JWT authentication (jwt module)
+    - pyyaml: For configuration file loading
+    - pyjwt: For JWT authentication
     - fastapi: For Modal endpoint
     """
     return (
         modal.Image.debian_slim(python_version="3.13")
         .pip_install(
             [
-                # Core ML dependencies (required for PromptClassifier)
-                "torch",
-                "transformers",
-                "huggingface-hub",
-                "numpy",
+                # UniRouter ML dependencies
+                "sentence-transformers>=2.7.0,<3",  # Pin to 2.x for compatibility
+                "transformers>=4.44.0,<4.45",  # Pin to 4.44.x for compatibility
+                "scikit-learn>=1.5.0,<2",
+                "numpy>=1.24.0,<2.0",
                 # Data models and configuration
-                "pydantic",
-                "pydantic-settings",
-                # YAML model database
-                "pyyaml",
+                "pydantic>=2.11.5,<3",
+                "pydantic-settings>=2.9.1,<3",
+                # YAML configuration
+                "pyyaml>=6.0.2,<7",
                 # JWT authentication
-                "pyjwt",
+                "pyjwt>=2.10.1",
                 # FastAPI endpoint
-                "fastapi",
+                "fastapi>=0.104.0,<1.0",
             ]
         )
         .env({"HF_HOME": "/models"})
         .add_local_file("jwt_auth.py", "/root/jwt_auth.py")
         .add_local_python_source("adaptive_router")
         .add_local_dir(
-            "adaptive_router/model_data",
-            remote_path="/root/adaptive_router/model_data",
+            "adaptive_router/config",
+            remote_path="/root/adaptive_router/config",
+        )
+        .add_local_dir(
+            "adaptive_router/data",
+            remote_path="/root/adaptive_router/data",
         )
     )
 
@@ -78,7 +75,6 @@ MODEL_DIR = "/models"
 
 
 @app.function(
-    gpu=GPU_TYPE,
     timeout=TIMEOUT,
     scaledown_window=SCALEDOWN_WINDOW,
     min_containers=MIN_CONTAINERS,
@@ -87,9 +83,7 @@ MODEL_DIR = "/models"
     volumes={MODEL_DIR: model_cache_volume},
 )
 @modal.fastapi_endpoint(method="POST")
-def select_model(
-    request: ModelSelectionRequest, http_request: Request
-) -> ModelSelectionResponse:
+def select_model(request, http_request):
     """Select optimal model based on prompt analysis.
 
     Requires JWT authentication via Authorization header.
@@ -106,6 +100,9 @@ def select_model(
         ValueError: If validation fails or no eligible models found
         RuntimeError: If inference or routing errors occur
     """
+    # Import inside function to avoid local environment dependency issues
+    from fastapi import HTTPException
+    from adaptive_router.services.model_router import ModelRouter
     import jwt_auth
 
     # Verify JWT token
@@ -153,12 +150,12 @@ def select_model(
 if __name__ == "__main__":
     import os
 
-    print("🚀 Adaptive Router - Modal Deployment")
+    print("🚀 Adaptive Router - Modal Deployment (UniRouter)")
     print("=" * 60)
     print("✨ Features:")
-    print(f"  • 🧠 ML inference with GPU acceleration ({GPU_TYPE})")
+    print("  • 🧠 UniRouter cluster-based intelligent routing")
     print("  • ⚡ Auto-scaling serverless deployment")
-    print("  • 🎯 Intelligent model selection")
+    print("  • 🎯 Per-cluster error rate optimization")
     print("  • 🔒 JWT authentication for security")
     print("")
     print("🚀 Deploy: modal deploy deploy.py")
@@ -174,7 +171,6 @@ if __name__ == "__main__":
     print("")
     print("⚙️  Configuration:")
     print(f"  • App name: {APP_NAME}")
-    print(f"  • GPU: {GPU_TYPE}")
     print(f"  • Timeout: {TIMEOUT}s")
     print(f"  • Scale down: {SCALEDOWN_WINDOW}s")
     print(f"  • Min containers: {MIN_CONTAINERS}")
