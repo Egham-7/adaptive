@@ -228,9 +228,7 @@ Select the letter of the correct answer."""
 
         return predictions, accuracy, error_rate
 
-    def save_predictions(
-        self, predictions: Dict[str, str], output_dir: Path
-    ) -> Path:
+    def save_predictions(self, predictions: Dict[str, str], output_dir: Path) -> Path:
         """Save predictions to JSON file.
 
         Args:

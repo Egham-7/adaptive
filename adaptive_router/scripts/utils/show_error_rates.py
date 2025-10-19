@@ -5,14 +5,21 @@ import json
 from pathlib import Path
 
 # Load error rates
-profiles_file = Path(__file__).parent.parent / "adaptive_router" / "data" / "unirouter" / "clusters" / "llm_profiles.json"
+profiles_file = (
+    Path(__file__).parent.parent
+    / "adaptive_router"
+    / "data"
+    / "unirouter"
+    / "clusters"
+    / "llm_profiles.json"
+)
 
 with open(profiles_file) as f:
     data = json.load(f)
 
-print('=' * 100)
-print('MODEL ERROR RATES ACROSS 20 CLUSTERS')
-print('=' * 100)
+print("=" * 100)
+print("MODEL ERROR RATES ACROSS 20 CLUSTERS")
+print("=" * 100)
 print()
 
 # Load costs for comparison
@@ -29,31 +36,31 @@ costs = {
     "anthropic:claude-haiku-4-5-20251001": 1.6,
 }
 
-for model_id, error_rates in sorted(data.items(), key=lambda x: sum(x[1])/len(x[1])):
+for model_id, error_rates in sorted(data.items(), key=lambda x: sum(x[1]) / len(x[1])):
     avg_error = sum(error_rates) / len(error_rates)
     min_error = min(error_rates)
     max_error = max(error_rates)
     cost = costs.get(model_id, 0.0)
 
-    print(f'Model: {model_id}')
-    print(f'  Cost: ${cost:.3f} per 1M tokens')
-    print(f'  Average Error Rate: {avg_error:.1%} (Accuracy: {(1-avg_error):.1%})')
-    print(f'  Range: {min_error:.1%} - {max_error:.1%}')
-    print(f'  Per-Cluster Errors:')
+    print(f"Model: {model_id}")
+    print(f"  Cost: ${cost:.3f} per 1M tokens")
+    print(f"  Average Error Rate: {avg_error:.1%} (Accuracy: {(1-avg_error):.1%})")
+    print(f"  Range: {min_error:.1%} - {max_error:.1%}")
+    print(f"  Per-Cluster Errors:")
 
     for i, err in enumerate(error_rates):
-        print(f'    Cluster {i:2d}: {err:5.1%}', end='')
+        print(f"    Cluster {i:2d}: {err:5.1%}", end="")
         if (i + 1) % 5 == 0:
             print()
         else:
-            print('  ', end='')
+            print("  ", end="")
     if len(error_rates) % 5 != 0:
         print()
     print()
 
-print('=' * 100)
-print('QUALITY TIERS (by average accuracy)')
-print('=' * 100)
+print("=" * 100)
+print("QUALITY TIERS (by average accuracy)")
+print("=" * 100)
 print()
 
 tiers = []

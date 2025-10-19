@@ -195,7 +195,9 @@ async def call_llm_async(
             try:
                 # Use ainvoke for async call
                 response = await llm.ainvoke(prompt)
-                text = response.content if hasattr(response, "content") else str(response)
+                text = (
+                    response.content if hasattr(response, "content") else str(response)
+                )
                 answer = extract_answer_from_text(text)
                 return question_id, answer
 
@@ -254,7 +256,9 @@ async def evaluate_async(
     results = []
 
     # Use asyncio.gather with progress tracking
-    for coro in atqdm.as_completed(tasks, total=len(tasks), desc=f"Evaluating {provider}/{model}"):
+    for coro in atqdm.as_completed(
+        tasks, total=len(tasks), desc=f"Evaluating {provider}/{model}"
+    ):
         result = await coro
         results.append(result)
 
@@ -275,10 +279,10 @@ async def evaluate_async(
     logger.info(f"  Correct: {correct}/{len(questions)}")
     logger.info(f"  Accuracy: {accuracy:.3f}")
     logger.info(f"  Error Rate: {error_rate:.3f}")
+    logger.info(f"  Time: {elapsed:.1f}s ({elapsed/len(questions):.2f}s per question)")
     logger.info(
-        f"  Time: {elapsed:.1f}s ({elapsed/len(questions):.2f}s per question)"
+        f"  Speedup: ~{len(questions) * 15 / elapsed:.1f}x (vs 15s/question baseline)"
     )
-    logger.info(f"  Speedup: ~{len(questions) * 15 / elapsed:.1f}x (vs 15s/question baseline)")
     logger.info(f"{'='*80}\n")
 
     return predictions

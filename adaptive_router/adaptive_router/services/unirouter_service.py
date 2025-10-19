@@ -168,12 +168,16 @@ class UniRouterService:
 
                     device = "cpu"
                     model_name = cluster_engine.feature_extractor.embedding_model_name
-                    cluster_engine.feature_extractor.embedding_model = SentenceTransformer(
-                        model_name, device=device, trust_remote_code=True
+                    cluster_engine.feature_extractor.embedding_model = (
+                        SentenceTransformer(
+                            model_name, device=device, trust_remote_code=True
+                        )
                     )
                     logger.info(f"Reloaded embedding model on {device}")
             except Exception as e:
-                logger.warning(f"Could not reload embedding model, continuing anyway: {e}")
+                logger.warning(
+                    f"Could not reload embedding model, continuing anyway: {e}"
+                )
         else:
             raise FileNotFoundError(
                 f"No cluster data found in {cluster_dir}\n"
@@ -262,10 +266,11 @@ class UniRouterService:
 
         import torch
         from sentence_transformers import SentenceTransformer
-        from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.preprocessing import StandardScaler
 
-        from adaptive_router.services.unirouter.feature_extractor import FeatureExtractor
+        from adaptive_router.services.unirouter.feature_extractor import (
+            FeatureExtractor,
+        )
 
         cluster_centers_file = cluster_dir / "cluster_centers.json"
         tfidf_vocab_file = cluster_dir / "tfidf_vocabulary.json"
@@ -282,9 +287,7 @@ class UniRouterService:
         device = (
             "cpu"
             if platform.system() == "Darwin"
-            else "cuda"
-            if torch.cuda.is_available()
-            else "cpu"
+            else "cuda" if torch.cuda.is_available() else "cpu"
         )
         logger.info(f"Loading embedding model on device: {device}")
 
@@ -308,9 +311,46 @@ class UniRouterService:
         feature_extractor.tfidf_vectorizer.vocabulary_ = tfidf_data["vocabulary"]
         feature_extractor.tfidf_vectorizer.idf_ = np.array(tfidf_data["idf"])
 
-        # Initialize scalers (they'll be fit during transform if needed)
-        feature_extractor.embedding_scaler = StandardScaler()
-        feature_extractor.tfidf_scaler = StandardScaler()
+        # Restore scaler parameters from JSON (if available)
+        scaler_params_file = cluster_dir / "scaler_parameters.json"
+        if scaler_params_file.exists():
+            logger.info("Loading scaler parameters from JSON...")
+            with open(scaler_params_file) as f:
+                scaler_data = json.load(f)
+
+            # Restore embedding scaler
+            feature_extractor.embedding_scaler = StandardScaler()
+            feature_extractor.embedding_scaler.mean_ = np.array(
+                scaler_data["embedding_scaler"]["mean"]
+            )
+            feature_extractor.embedding_scaler.scale_ = np.array(
+                scaler_data["embedding_scaler"]["scale"]
+            )
+            feature_extractor.embedding_scaler.n_features_in_ = len(
+                feature_extractor.embedding_scaler.mean_
+            )
+
+            # Restore TF-IDF scaler
+            feature_extractor.tfidf_scaler = StandardScaler()
+            feature_extractor.tfidf_scaler.mean_ = np.array(
+                scaler_data["tfidf_scaler"]["mean"]
+            )
+            feature_extractor.tfidf_scaler.scale_ = np.array(
+                scaler_data["tfidf_scaler"]["scale"]
+            )
+            feature_extractor.tfidf_scaler.n_features_in_ = len(
+                feature_extractor.tfidf_scaler.mean_
+            )
+            logger.info("✅ Scaler parameters restored from JSON")
+        else:
+            # Fallback: create unfitted scalers (for backward compatibility)
+            logger.warning(
+                "Scaler parameters file not found. Routing may fail. "
+                "Run migration script to generate scaler_parameters.json"
+            )
+            feature_extractor.embedding_scaler = StandardScaler()
+            feature_extractor.tfidf_scaler = StandardScaler()
+
         feature_extractor.is_fitted = True
 
         # Create ClusterEngine
@@ -323,7 +363,13 @@ class UniRouterService:
         cluster_engine.feature_extractor = feature_extractor
 
         # Restore K-means cluster centers
-        cluster_engine.kmeans.cluster_centers_ = np.array(cluster_data["cluster_centers"])
+        cluster_engine.kmeans.cluster_centers_ = np.array(
+            cluster_data["cluster_centers"]
+        )
+        # Set required K-means attributes
+        cluster_engine.kmeans._n_threads = 1
+        cluster_engine.kmeans.n_iter_ = 0  # Already fitted
+
         cluster_engine.is_fitted = True
         cluster_engine.silhouette = metadata.get("silhouette_score", 0.0)
 

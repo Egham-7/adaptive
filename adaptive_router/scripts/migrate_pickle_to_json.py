@@ -104,7 +104,8 @@ def main():
 
     # Convert vocabulary to native Python types (numpy int64 -> int)
     vocabulary_native = {
-        str(k): int(v) for k, v in engine.feature_extractor.tfidf_vectorizer.vocabulary_.items()
+        str(k): int(v)
+        for k, v in engine.feature_extractor.tfidf_vectorizer.vocabulary_.items()
     }
 
     tfidf_data = {
@@ -119,6 +120,25 @@ def main():
     tfidf_vocab_size = tfidf_vocab_file.stat().st_size / 1024
     logger.info(f"✅ Saved tfidf_vocabulary.json ({tfidf_vocab_size:.1f} KB)")
 
+    # 2b. Save scaler parameters as JSON
+    logger.info("\nSaving scaler parameters to JSON...")
+    scaler_params_file = clusters_dir / "scaler_parameters.json"
+    scaler_data = {
+        "embedding_scaler": {
+            "mean": engine.feature_extractor.embedding_scaler.mean_.tolist(),
+            "scale": engine.feature_extractor.embedding_scaler.scale_.tolist(),
+        },
+        "tfidf_scaler": {
+            "mean": engine.feature_extractor.tfidf_scaler.mean_.tolist(),
+            "scale": engine.feature_extractor.tfidf_scaler.scale_.tolist(),
+        },
+    }
+    with open(scaler_params_file, "w") as f:
+        json.dump(scaler_data, f, indent=2)
+
+    scaler_params_size = scaler_params_file.stat().st_size / 1024
+    logger.info(f"✅ Saved scaler_parameters.json ({scaler_params_size:.1f} KB)")
+
     # 3. Update metadata with enhanced config info
     logger.info("\nUpdating metadata.json...")
     metadata_file = clusters_dir / "metadata.json"
@@ -131,7 +151,9 @@ def main():
         "embedding_model": engine.feature_extractor.embedding_model_name,
         "embedding_dim": engine.feature_extractor.embedding_dim,
         "tfidf_max_features": engine.feature_extractor.tfidf_vectorizer.max_features,
-        "tfidf_ngram_range": list(engine.feature_extractor.tfidf_vectorizer.ngram_range),
+        "tfidf_ngram_range": list(
+            engine.feature_extractor.tfidf_vectorizer.ngram_range
+        ),
         "total_features": engine.feature_extractor.embedding_dim
         + engine.feature_extractor.tfidf_vectorizer.max_features,
         "cluster_sizes": cluster_info["cluster_sizes"],
@@ -144,7 +166,9 @@ def main():
     logger.info(f"✅ Updated metadata.json ({metadata_size:.1f} KB)")
 
     # Summary
-    total_json_size = cluster_centers_size + tfidf_vocab_size + metadata_size
+    total_json_size = (
+        cluster_centers_size + tfidf_vocab_size + scaler_params_size + metadata_size
+    )
     size_reduction = (1 - (total_json_size / 1024) / pickle_size) * 100
 
     logger.info("\n" + "=" * 80)
@@ -155,10 +179,16 @@ def main():
     logger.info(f"Size reduction for Git: {size_reduction:.1f}%")
     logger.info("\n📝 Next steps:")
     logger.info("1. Test that routing works with JSON files:")
-    logger.info("   python -c 'from adaptive_router import ModelRouter; r = ModelRouter()'")
+    logger.info(
+        "   python -c 'from adaptive_router import ModelRouter; r = ModelRouter()'"
+    )
     logger.info("\n2. Add and commit JSON files:")
-    logger.info("   git add adaptive_router/data/unirouter/clusters/cluster_centers.json")
-    logger.info("   git add adaptive_router/data/unirouter/clusters/tfidf_vocabulary.json")
+    logger.info(
+        "   git add adaptive_router/data/unirouter/clusters/cluster_centers.json"
+    )
+    logger.info(
+        "   git add adaptive_router/data/unirouter/clusters/tfidf_vocabulary.json"
+    )
     logger.info("   git add adaptive_router/data/unirouter/clusters/metadata.json")
     logger.info("   git commit -m 'feat: add lightweight JSON cluster files'")
     logger.info("\n3. Push to remote (should work instantly now!):")

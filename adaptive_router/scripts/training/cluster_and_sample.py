@@ -377,7 +377,9 @@ def cluster_with_k(
 
     logger.info(f"\nClustering complete!")
     logger.info(f"  Silhouette score: {cluster_info['silhouette_score']:.6f}")
-    logger.info(f"  Cluster size range: {cluster_info['min_cluster_size']} - {cluster_info['max_cluster_size']}")
+    logger.info(
+        f"  Cluster size range: {cluster_info['min_cluster_size']} - {cluster_info['max_cluster_size']}"
+    )
     logger.info(f"  Average cluster size: {cluster_info['avg_cluster_size']:.1f}")
 
     return engine
@@ -499,7 +501,8 @@ def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
 
     # Convert vocabulary to native Python types (numpy int64 -> int)
     vocabulary_native = {
-        str(k): int(v) for k, v in engine.feature_extractor.tfidf_vectorizer.vocabulary_.items()
+        str(k): int(v)
+        for k, v in engine.feature_extractor.tfidf_vectorizer.vocabulary_.items()
     }
 
     tfidf_data = {
@@ -514,6 +517,25 @@ def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
     tfidf_vocab_size = tfidf_vocab_file.stat().st_size / 1024
     logger.info(f"✅ Saved tfidf_vocabulary.json ({tfidf_vocab_size:.1f} KB)")
 
+    # 2b. Save scaler parameters as JSON (Git-friendly)
+    logger.info("Saving scaler parameters...")
+    scaler_params_file = output_dir / "scaler_parameters.json"
+    scaler_data = {
+        "embedding_scaler": {
+            "mean": engine.feature_extractor.embedding_scaler.mean_.tolist(),
+            "scale": engine.feature_extractor.embedding_scaler.scale_.tolist(),
+        },
+        "tfidf_scaler": {
+            "mean": engine.feature_extractor.tfidf_scaler.mean_.tolist(),
+            "scale": engine.feature_extractor.tfidf_scaler.scale_.tolist(),
+        },
+    }
+    with open(scaler_params_file, "w") as f:
+        json.dump(scaler_data, f, indent=2)
+
+    scaler_params_size = scaler_params_file.stat().st_size / 1024
+    logger.info(f"✅ Saved scaler_parameters.json ({scaler_params_size:.1f} KB)")
+
     # 3. Save metadata with enhanced config info
     cluster_info = engine.get_cluster_info()
     metadata = {
@@ -523,7 +545,9 @@ def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
         "embedding_model": engine.feature_extractor.embedding_model_name,
         "embedding_dim": engine.feature_extractor.embedding_dim,
         "tfidf_max_features": engine.feature_extractor.tfidf_vectorizer.max_features,
-        "tfidf_ngram_range": list(engine.feature_extractor.tfidf_vectorizer.ngram_range),
+        "tfidf_ngram_range": list(
+            engine.feature_extractor.tfidf_vectorizer.ngram_range
+        ),
         "total_features": engine.feature_extractor.embedding_dim
         + engine.feature_extractor.tfidf_vectorizer.max_features,
         "cluster_sizes": cluster_info["cluster_sizes"],
@@ -541,12 +565,21 @@ def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
         pickle.dump(engine, f)
 
     pickle_size = pickle_file.stat().st_size / 1024 / 1024
-    logger.info(f"✅ Saved cluster_engine.pkl ({pickle_size:.1f} MB) [local only, gitignored]")
+    logger.info(
+        f"✅ Saved cluster_engine.pkl ({pickle_size:.1f} MB) [local only, gitignored]"
+    )
 
-    total_json_size = cluster_centers_size + tfidf_vocab_size + (metadata_file.stat().st_size / 1024)
+    total_json_size = (
+        cluster_centers_size
+        + tfidf_vocab_size
+        + scaler_params_size
+        + (metadata_file.stat().st_size / 1024)
+    )
     logger.info(f"\n📊 Total JSON size: {total_json_size:.1f} KB (Git-tracked)")
     logger.info(f"📊 Pickle size: {pickle_size:.1f} MB (local only)")
-    logger.info(f"📊 Size reduction for Git: {(1 - total_json_size / 1024 / pickle_size) * 100:.1f}%")
+    logger.info(
+        f"📊 Size reduction for Git: {(1 - total_json_size / 1024 / pickle_size) * 100:.1f}%"
+    )
 
 
 def main():
@@ -663,9 +696,7 @@ def main():
 
             logger.info("\n📌 NEXT STEPS:")
             logger.info("1. Backup old evaluation data:")
-            logger.info(
-                "   mkdir -p adaptive_router/data/unirouter/predictions_backup"
-            )
+            logger.info("   mkdir -p adaptive_router/data/unirouter/predictions_backup")
             logger.info(
                 "   cp -r adaptive_router/data/unirouter/predictions/* predictions_backup/"
             )

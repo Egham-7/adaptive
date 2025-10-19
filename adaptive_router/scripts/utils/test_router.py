@@ -86,7 +86,7 @@ def test_cost_bias_variation(
     """
     console.print("\n[bold cyan]Test 1: Cost Bias Variation[/bold cyan]")
     console.print("─" * 80)
-    console.print(f"Prompt: [italic]\"{prompt}\"[/italic]\n")
+    console.print(f'Prompt: [italic]"{prompt}"[/italic]\n')
 
     results = []
 
@@ -160,7 +160,7 @@ def test_provider_filtering(
     """
     console.print("\n[bold cyan]Test 2: Provider Filtering[/bold cyan]")
     console.print("─" * 80)
-    console.print(f"Prompt: [italic]\"{prompt}\"[/italic]\n")
+    console.print(f'Prompt: [italic]"{prompt}"[/italic]\n')
 
     results = []
 
@@ -265,7 +265,11 @@ def test_prompt_variety(
     for result in results:
         table.add_row(
             result["prompt_type"],
-            result["prompt"][:47] + "..." if len(result["prompt"]) > 50 else result["prompt"],
+            (
+                result["prompt"][:47] + "..."
+                if len(result["prompt"]) > 50
+                else result["prompt"]
+            ),
             result["selected_model"],
             f"{result['routing_time_ms']:.1f}ms",
         )
@@ -422,11 +426,13 @@ def run_all_tests(args: argparse.Namespace) -> Dict[str, Any]:
     Returns:
         Dictionary containing all test results
     """
-    console.print(Panel.fit(
-        "[bold cyan]🧪 UniRouter Testing Suite[/bold cyan]\n"
-        "[dim]Testing routing logic without making any API calls[/dim]",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold cyan]🧪 UniRouter Testing Suite[/bold cyan]\n"
+            "[dim]Testing routing logic without making any API calls[/dim]",
+            border_style="cyan",
+        )
+    )
 
     # Initialize router
     console.print("\n[bold]Initializing router...[/bold]")
@@ -537,10 +543,12 @@ Examples:
         console.print(f"\n💾 Results saved to: [bold]{output_path}[/bold]")
 
     # Summary
-    console.print(Panel.fit(
-        "[bold green]✅ All tests completed successfully![/bold green]",
-        border_style="green"
-    ))
+    console.print(
+        Panel.fit(
+            "[bold green]✅ All tests completed successfully![/bold green]",
+            border_style="green",
+        )
+    )
 
 
 if __name__ == "__main__":

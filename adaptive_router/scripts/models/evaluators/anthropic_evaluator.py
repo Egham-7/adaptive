@@ -87,11 +87,13 @@ class AnthropicEvaluator(BaseEvaluator):
         for attempt in range(self.max_retries):
             try:
                 # Try structured output first
-                structured_llm = self.client.with_structured_output(MultipleChoiceAnswer)
+                structured_llm = self.client.with_structured_output(
+                    MultipleChoiceAnswer
+                )
                 response = structured_llm.invoke(prompt)
 
                 # Validate response
-                if not response or not hasattr(response, 'answer'):
+                if not response or not hasattr(response, "answer"):
                     logger.warning(f"Invalid structured response: {response}")
                     raise ValueError("Structured output returned invalid response")
 
@@ -131,9 +133,7 @@ class AnthropicEvaluator(BaseEvaluator):
                     logger.info(f"Retrying in {wait_time}s...")
                     time.sleep(wait_time)
                 else:
-                    logger.error(
-                        f"All attempts failed. Last error: {e}"
-                    )
+                    logger.error(f"All attempts failed. Last error: {e}")
                     raise APIError(
                         f"Anthropic API failed after {self.max_retries} attempts: {e}"
                     ) from e
