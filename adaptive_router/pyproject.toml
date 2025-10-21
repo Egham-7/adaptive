@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
   # Data Validation
   "pydantic>=2.11.5,<3",
+  "pydantic-settings>=2.0.0,<3",
   # ML Framework & Models
   "torch>=2.2.0,<2.3.0", # Limited to 2.2.x for Intel macOS x86_64 compatibility
   "transformers>=4.44.0,<4.45", # Pin to 4.44.x for macOS compatibility with sentence-transformers
@@ -56,6 +57,8 @@ dependencies = [
   "pyjwt>=2.10.1",
   "python-json-logger>=3.3.0",
   "datasets>=4.2.0",
+  # S3 Storage
+  "boto3>=1.34.0,<2",
 ]
 
 [project.urls]

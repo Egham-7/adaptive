@@ -67,7 +67,8 @@ Thumbs.db
 hf_cache/
 .ipynb_checkpoints/
 
-# UniRouter generated data
+# UniRouter generated data (keep locally, load from S3 in production)
+adaptive_router/data/unirouter/clusters/
 adaptive_router/data/unirouter/predictions/
 adaptive_router/data/unirouter/validation/
 adaptive_router/data/unirouter/batch/

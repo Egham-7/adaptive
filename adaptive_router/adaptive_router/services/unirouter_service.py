@@ -4,19 +4,19 @@ This service bridges UniRouter's cluster-based routing with adaptive_router's
 ModelSelectionRequest/Response API.
 """
 
-import json
 import logging
-import pickle
 from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
 import yaml
 
+from adaptive_router.core.storage_config import MinIOSettings
 from adaptive_router.models.llm_core_models import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
+from adaptive_router.services.storage_profile_loader import StorageProfileLoader
 from adaptive_router.services.unirouter.cluster_engine import ClusterEngine
 from adaptive_router.services.unirouter.router import UniRouter
 from adaptive_router.services.unirouter.schemas import (
@@ -26,60 +26,34 @@ from adaptive_router.services.unirouter.schemas import (
 logger = logging.getLogger(__name__)
 
 
-class ModulePathUnpickler(pickle.Unpickler):
-    """Custom unpickler that handles module path changes from unirouter.* to adaptive_router.services.unirouter.*"""
-
-    def find_class(self, module, name):
-        """Override find_class to redirect old unirouter paths."""
-        if module.startswith("unirouter."):
-            # Map old paths to new paths
-            old_to_new = {
-                "unirouter.clustering.cluster_engine": "adaptive_router.services.unirouter.cluster_engine",
-                "unirouter.clustering.feature_extractor": "adaptive_router.services.unirouter.feature_extractor",
-                "unirouter.models.schemas": "adaptive_router.services.unirouter.schemas",
-            }
-
-            new_module = old_to_new.get(
-                module,
-                module.replace("unirouter.", "adaptive_router.services.unirouter."),
-            )
-            logger.debug(f"Remapping pickle module: {module} -> {new_module}")
-            return super().find_class(new_module, name)
-
-        return super().find_class(module, name)
-
-
 class UniRouterService:
     """Service layer for UniRouter integration with adaptive_router.
 
     This service:
-    1. Loads UniRouter from saved artifacts (cluster engine, model features, config)
+    1. Loads UniRouter from MinIO S3 bucket (no local files used)
     2. Provides model selection compatible with adaptive_router API
     3. Optionally supports Modal GPU for feature extraction (future enhancement)
     """
 
     def __init__(
         self,
-        data_dir: Path | None = None,
         config_file: Path | None = None,
         use_modal_gpu: bool = False,
     ):
         """Initialize UniRouter service.
 
+        All profile data is loaded from MinIO S3 bucket (Railway deployment).
+        No local data files are used in production.
+
         Args:
-            data_dir: Path to UniRouter data directory with clusters/
             config_file: Path to UniRouter models YAML config
             use_modal_gpu: If True, attempt to use Modal GPU for feature extraction
         """
-        # Auto-detect paths relative to this file
-        if data_dir is None:
-            service_dir = Path(__file__).parent.parent  # adaptive_router/
-            data_dir = service_dir / "data" / "unirouter"
+        # Auto-detect config file path
         if config_file is None:
             service_dir = Path(__file__).parent.parent  # adaptive_router/
             config_file = service_dir / "config" / "unirouter_models.yaml"
 
-        self.data_dir = Path(data_dir)
         self.config_file = Path(config_file)
         self.use_modal_gpu = use_modal_gpu
         self.modal_feature_extractor = None
@@ -105,96 +79,70 @@ class UniRouterService:
         )
 
     def _load_router(self) -> UniRouter:
-        """Load UniRouter from saved artifacts (prefers JSON over pickle).
+        """Load UniRouter from MinIO S3 storage (Railway deployment).
+
+        This method loads all profile data from the MinIO bucket:
+        - Cluster centers (K-means centroids)
+        - Model error rates per cluster
+        - TF-IDF vocabulary
+        - Scaler parameters
+
+        Local data files in adaptive_router/data/ are NOT used.
 
         Returns:
             Initialized UniRouter instance
 
         Raises:
-            FileNotFoundError: If required data files are missing
-            ValueError: If data files are corrupted or incompatible
+            FileNotFoundError: If profile not found in MinIO
+            ValueError: If MinIO configuration is invalid or profile data is corrupted
         """
-        cluster_dir = self.data_dir / "clusters"
-        cluster_pkl = cluster_dir / "cluster_engine.pkl"
-        cluster_centers_json = cluster_dir / "cluster_centers.json"
-        tfidf_vocab_json = cluster_dir / "tfidf_vocabulary.json"
-        metadata_file = cluster_dir / "metadata.json"
-        profiles_file = cluster_dir / "llm_profiles.json"
+        logger.info("Loading UniRouter profile from MinIO storage...")
 
-        # Verify required files exist
-        if not metadata_file.exists():
-            raise FileNotFoundError(
-                f"Required file not found: {metadata_file}\n"
-                f"Run training first or check data directory: {self.data_dir}"
+        # Load MinIO settings (Railway native)
+        try:
+            # Pydantic Settings loads from environment variables automatically
+            minio_settings = MinIOSettings()  # type: ignore[call-arg]
+            storage_loader = StorageProfileLoader.from_minio_settings(minio_settings)
+            logger.info(
+                f"MinIO storage configured: bucket={minio_settings.bucket_name}, "
+                f"endpoint={minio_settings.endpoint_url}"
             )
-        if not profiles_file.exists():
-            raise FileNotFoundError(
-                f"Required file not found: {profiles_file}\n"
-                f"Run training first or check data directory: {self.data_dir}"
+        except Exception as e:
+            raise ValueError(
+                f"MinIO configuration error. Required environment variables:\n"
+                f"  - S3_BUCKET_NAME (required)\n"
+                f"  - MINIO_PUBLIC_ENDPOINT (required, e.g., https://minio.railway.app)\n"
+                f"  - MINIO_ROOT_USER (required)\n"
+                f"  - MINIO_ROOT_PASSWORD (required)\n"
+                f"\n"
+                f"Error: {e}"
             )
 
-        # Load metadata
-        with open(metadata_file) as f:
-            metadata = json.load(f)
+        # Load profile from storage
+        profile_data = storage_loader.load_global_profile()
+
+        # Extract components from profile
+        cluster_centers_data = profile_data["cluster_centers"]
+        model_profiles = profile_data["llm_profiles"]
+        tfidf_data = profile_data["tfidf_vocabulary"]
+        scaler_data = profile_data["scaler_parameters"]
+        metadata = profile_data["metadata"]
 
         n_clusters = metadata["n_clusters"]
-        logger.info(f"Loading UniRouter with K={n_clusters} clusters")
+        logger.info(f"Loaded profile from MinIO: {n_clusters} clusters")
 
-        # Try loading from JSON first (preferred), fall back to pickle
-        if cluster_centers_json.exists() and tfidf_vocab_json.exists():
-            logger.info("Loading cluster engine from JSON files (preferred method)...")
-            cluster_engine = self._load_cluster_engine_from_json(cluster_dir, metadata)
-        elif cluster_pkl.exists():
-            logger.warning(
-                "Loading from pickle (deprecated). "
-                "Run training to generate JSON files for better Git performance."
-            )
-            # Load cluster engine from pickle using custom unpickler
-            with open(cluster_pkl, "rb") as f:
-                cluster_engine = ModulePathUnpickler(f).load()
-
-            if not isinstance(cluster_engine, ClusterEngine):
-                raise ValueError(
-                    f"Loaded cluster engine has wrong type: {type(cluster_engine)}"
-                )
-
-            # WORKAROUND for macOS: Reload the embedding model fresh to avoid version conflicts
-            try:
-                import platform
-
-                if platform.system() == "Darwin":
-                    logger.info("Reloading embedding model for macOS compatibility...")
-                    from sentence_transformers import SentenceTransformer
-
-                    device = "cpu"
-                    model_name = cluster_engine.feature_extractor.embedding_model_name
-                    cluster_engine.feature_extractor.embedding_model = (
-                        SentenceTransformer(
-                            model_name, device=device, trust_remote_code=True
-                        )
-                    )
-                    logger.info(f"Reloaded embedding model on {device}")
-            except Exception as e:
-                logger.warning(
-                    f"Could not reload embedding model, continuing anyway: {e}"
-                )
-        else:
-            raise FileNotFoundError(
-                f"No cluster data found in {cluster_dir}\n"
-                f"Expected either:\n"
-                f"  - JSON files: cluster_centers.json + tfidf_vocabulary.json (preferred)\n"
-                f"  - Pickle file: cluster_engine.pkl (deprecated)\n"
-                f"Run training to generate cluster data."
-            )
-
-        logger.info(
-            f"Loaded cluster engine: {n_clusters} clusters, "
-            f"silhouette score: {metadata.get('silhouette_score', 'N/A')}"
+        # Build cluster engine from MinIO data
+        cluster_engine = self._build_cluster_engine_from_data(
+            cluster_centers_data=cluster_centers_data,
+            tfidf_data=tfidf_data,
+            scaler_data=scaler_data,
+            metadata=metadata,
         )
 
-        # Load model features (per-cluster error rates)
-        with open(profiles_file) as f:
-            model_profiles = json.load(f)
+        logger.info(
+            f"Loaded cluster engine from storage: {n_clusters} clusters, "
+            f"silhouette score: {metadata.get('silhouette_score', 'N/A')}"
+        )
 
         # Load models config
         with open(self.config_file) as f:
@@ -204,11 +152,10 @@ class UniRouterService:
         models = [ModelConfig(**m) for m in models_config["gpt5_models"]]
 
         # Prepare model_features dict combining error rates and cost
-        # Note: profiles may use model names without provider prefix
         model_features = {}
         for model in models:
-            model_id = model.id  # e.g., "openai:gpt-5-codex"
-            model_name = model.name  # e.g., "gpt-5-codex"
+            model_id = model.id
+            model_name = model.name
 
             # Try to find profile by ID first, then by name
             profile = model_profiles.get(model_id) or model_profiles.get(model_name)
@@ -225,7 +172,7 @@ class UniRouterService:
                 )
 
         if not model_features:
-            raise ValueError("No valid model features found in llm_profiles.json")
+            raise ValueError("No valid model features found in llm_profiles")
 
         # Get routing config
         routing_config = models_config.get("routing", {})
@@ -241,26 +188,29 @@ class UniRouterService:
         )
 
         logger.info(
-            f"UniRouter initialized: {len(models)} models, "
+            f"UniRouter initialized from storage: {len(models)} models, "
             f"lambda range [{router.lambda_min}, {router.lambda_max}]"
         )
 
         return router
 
-    def _load_cluster_engine_from_json(
-        self, cluster_dir: Path, metadata: dict
+    def _build_cluster_engine_from_data(
+        self,
+        cluster_centers_data: dict,
+        tfidf_data: dict,
+        scaler_data: dict,
+        metadata: dict,
     ) -> ClusterEngine:
-        """Load ClusterEngine from JSON files (preferred method).
+        """Build ClusterEngine from storage profile data.
 
         Args:
-            cluster_dir: Directory containing JSON files
+            cluster_centers_data: Cluster centers and assignments
+            tfidf_data: TF-IDF vocabulary and IDF scores
+            scaler_data: StandardScaler parameters
             metadata: Metadata dictionary with config info
 
         Returns:
             Reconstructed ClusterEngine
-
-        Raises:
-            FileNotFoundError: If required JSON files are missing
         """
         import platform
 
@@ -271,17 +221,6 @@ class UniRouterService:
         from adaptive_router.services.unirouter.feature_extractor import (
             FeatureExtractor,
         )
-
-        cluster_centers_file = cluster_dir / "cluster_centers.json"
-        tfidf_vocab_file = cluster_dir / "tfidf_vocabulary.json"
-
-        # Load cluster centers
-        with open(cluster_centers_file) as f:
-            cluster_data = json.load(f)
-
-        # Load TF-IDF vocabulary
-        with open(tfidf_vocab_file) as f:
-            tfidf_data = json.load(f)
 
         # Determine device (CPU for macOS, CUDA if available otherwise)
         device = (
@@ -307,55 +246,43 @@ class UniRouterService:
         # Replace the embedding model (already loaded above)
         feature_extractor.embedding_model = embedding_model
 
-        # Restore TF-IDF vocabulary from JSON
+        # Restore TF-IDF vocabulary
         feature_extractor.tfidf_vectorizer.vocabulary_ = tfidf_data["vocabulary"]
         feature_extractor.tfidf_vectorizer.idf_ = np.array(tfidf_data["idf"])
 
-        # Restore scaler parameters from JSON (if available)
-        scaler_params_file = cluster_dir / "scaler_parameters.json"
-        if scaler_params_file.exists():
-            logger.info("Loading scaler parameters from JSON...")
-            with open(scaler_params_file) as f:
-                scaler_data = json.load(f)
+        # Restore scaler parameters
+        logger.info("Restoring scaler parameters from MinIO data...")
 
-            # Restore embedding scaler
-            feature_extractor.embedding_scaler = StandardScaler()
-            feature_extractor.embedding_scaler.mean_ = np.array(
-                scaler_data["embedding_scaler"]["mean"]
-            )
-            feature_extractor.embedding_scaler.scale_ = np.array(
-                scaler_data["embedding_scaler"]["scale"]
-            )
-            feature_extractor.embedding_scaler.n_features_in_ = len(
-                feature_extractor.embedding_scaler.mean_
-            )
+        # Restore embedding scaler
+        feature_extractor.embedding_scaler = StandardScaler()
+        feature_extractor.embedding_scaler.mean_ = np.array(
+            scaler_data["embedding_scaler"]["mean"]
+        )
+        feature_extractor.embedding_scaler.scale_ = np.array(
+            scaler_data["embedding_scaler"]["scale"]
+        )
+        feature_extractor.embedding_scaler.n_features_in_ = len(
+            feature_extractor.embedding_scaler.mean_
+        )
 
-            # Restore TF-IDF scaler
-            feature_extractor.tfidf_scaler = StandardScaler()
-            feature_extractor.tfidf_scaler.mean_ = np.array(
-                scaler_data["tfidf_scaler"]["mean"]
-            )
-            feature_extractor.tfidf_scaler.scale_ = np.array(
-                scaler_data["tfidf_scaler"]["scale"]
-            )
-            feature_extractor.tfidf_scaler.n_features_in_ = len(
-                feature_extractor.tfidf_scaler.mean_
-            )
-            logger.info("✅ Scaler parameters restored from JSON")
-        else:
-            # Fallback: create unfitted scalers (for backward compatibility)
-            logger.warning(
-                "Scaler parameters file not found. Routing may fail. "
-                "Run migration script to generate scaler_parameters.json"
-            )
-            feature_extractor.embedding_scaler = StandardScaler()
-            feature_extractor.tfidf_scaler = StandardScaler()
+        # Restore TF-IDF scaler
+        feature_extractor.tfidf_scaler = StandardScaler()
+        feature_extractor.tfidf_scaler.mean_ = np.array(
+            scaler_data["tfidf_scaler"]["mean"]
+        )
+        feature_extractor.tfidf_scaler.scale_ = np.array(
+            scaler_data["tfidf_scaler"]["scale"]
+        )
+        feature_extractor.tfidf_scaler.n_features_in_ = len(
+            feature_extractor.tfidf_scaler.mean_
+        )
+        logger.info("✅ Scaler parameters restored")
 
         feature_extractor.is_fitted = True
 
         # Create ClusterEngine
         cluster_engine = ClusterEngine(
-            n_clusters=cluster_data["n_clusters"],
+            n_clusters=cluster_centers_data["n_clusters"],
             embedding_model=embedding_model_name,
             tfidf_max_features=metadata.get("tfidf_max_features", 5000),
             tfidf_ngram_range=tuple(metadata.get("tfidf_ngram_range", [1, 2])),
@@ -364,7 +291,7 @@ class UniRouterService:
 
         # Restore K-means cluster centers
         cluster_engine.kmeans.cluster_centers_ = np.array(
-            cluster_data["cluster_centers"]
+            cluster_centers_data["cluster_centers"]
         )
         # Set required K-means attributes
         cluster_engine.kmeans._n_threads = 1
@@ -374,8 +301,8 @@ class UniRouterService:
         cluster_engine.silhouette = metadata.get("silhouette_score", 0.0)
 
         logger.info(
-            f"Loaded cluster engine from JSON: {cluster_data['n_clusters']} clusters, "
-            f"{cluster_data['feature_dim']} features"
+            f"Built cluster engine from storage data: {cluster_centers_data['n_clusters']} clusters, "
+            f"{cluster_centers_data['feature_dim']} features"
         )
 
         return cluster_engine
@@ -416,10 +343,17 @@ class UniRouterService:
 
         # Parse model ID to extract provider and model name
         # Format: "openai:gpt-5-mini" -> provider="openai", model="gpt-5-mini"
-        selected_model_parts = decision.selected_model_id.split(":", 1)
-        if len(selected_model_parts) != 2:
+        if ":" not in decision.selected_model_id:
             raise ValueError(
                 f"Invalid model ID format: {decision.selected_model_id}. "
+                f"Expected format: 'provider:model_name' (e.g., 'openai:gpt-4')"
+            )
+
+        selected_model_parts = decision.selected_model_id.split(":", 1)
+        if len(selected_model_parts) != 2 or not all(selected_model_parts):
+            raise ValueError(
+                f"Invalid model ID format: {decision.selected_model_id}. "
+                f"Both provider and model_name must be non-empty. "
                 f"Expected format: 'provider:model_name'"
             )
 

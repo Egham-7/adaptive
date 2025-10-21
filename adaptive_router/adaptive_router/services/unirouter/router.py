@@ -9,6 +9,11 @@ from adaptive_router.services.unirouter.schemas import ModelConfig, RoutingDecis
 
 logger = logging.getLogger(__name__)
 
+# Cost estimation constants
+ESTIMATED_TOKEN_COUNT = 2000  # Assumed average token count for cost estimation
+TOKENS_PER_MILLION = 1_000_000  # Tokens per million for pricing calculations
+EPSILON = 1e-10  # Small value for floating point comparisons to avoid division issues
+
 
 class UniRouter:
     """Intelligent router using cluster-based error rates."""
@@ -129,7 +134,9 @@ class UniRouter:
             selected_model_name=model.name,
             routing_score=best_scores["score"],
             predicted_accuracy=best_scores["accuracy"],
-            estimated_cost=best_scores["cost"] * 2000 / 1_000_000,  # ~2K tokens
+            estimated_cost=best_scores["cost"]
+            * ESTIMATED_TOKEN_COUNT
+            / TOKENS_PER_MILLION,
             cluster_id=cluster_id,
             cluster_confidence=1.0 / (1.0 + distance),  # Convert distance to confidence
             lambda_param=lambda_param,
@@ -163,10 +170,11 @@ class UniRouter:
         Returns:
             Normalized cost
         """
-        if self.max_cost == self.min_cost:
+        cost_range = self.max_cost - self.min_cost
+        if cost_range < EPSILON:
             return 0.0
 
-        return float((cost - self.min_cost) / (self.max_cost - self.min_cost))
+        return float((cost - self.min_cost) / cost_range)
 
     def _generate_reasoning(
         self,
