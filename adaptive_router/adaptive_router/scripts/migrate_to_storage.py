@@ -23,9 +23,9 @@ import logging
 import sys
 from pathlib import Path
 
-import boto3
-from botocore.client import Config
-from botocore.exceptions import ClientError
+import boto3  # type: ignore[import-untyped]
+from botocore.client import Config  # type: ignore[import-untyped]
+from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 
 from adaptive_router.core.storage_config import MinIOSettings
 

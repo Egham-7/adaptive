@@ -4,9 +4,9 @@ import json
 import logging
 from typing import Any, Dict
 
-import boto3
-from botocore.config import Config
-from botocore.exceptions import ClientError
+import boto3  # type: ignore[import-untyped]
+from botocore.config import Config  # type: ignore[import-untyped]
+from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 
 from adaptive_router.core.storage_config import MinIOSettings
 
