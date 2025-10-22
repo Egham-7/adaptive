@@ -32,8 +32,8 @@ import numpy as np
 # Add adaptive_router to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adaptive_router.services.unirouter.cluster_engine import ClusterEngine
-from adaptive_router.services.unirouter.schemas import CodeQuestion
+from adaptive_router.services.cluster_engine import ClusterEngine
+from adaptive_router.services.routing_schemas import CodeQuestion
 
 # Set up logging
 logging.basicConfig(
