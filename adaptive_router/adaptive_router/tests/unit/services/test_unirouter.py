@@ -1,4 +1,4 @@
-"""Unit tests for UniRouter cluster-based routing."""
+"""Unit tests for Router cluster-based routing."""
 
 import json
 import tempfile
@@ -9,8 +9,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from adaptive_router.services.unirouter.cluster_engine import ClusterEngine
-from adaptive_router.services.unirouter.schemas import CodeQuestion
+from adaptive_router.services.cluster_engine import ClusterEngine
+from adaptive_router.services.routing_schemas import CodeQuestion
 
 
 @pytest.fixture

@@ -1,11 +1,11 @@
-"""UniRouter: Intelligent routing based on cluster-specific error rates."""
+"""Intelligent routing based on cluster-specific error rates."""
 
 import logging
 import time
 from typing import Any, Dict, List
 
-from adaptive_router.services.unirouter.cluster_engine import ClusterEngine
-from adaptive_router.services.unirouter.schemas import ModelConfig, RoutingDecision
+from adaptive_router.services.cluster_engine import ClusterEngine
+from adaptive_router.services.routing_schemas import ModelConfig, RoutingDecision
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ TOKENS_PER_MILLION = 1_000_000  # Tokens per million for pricing calculations
 EPSILON = 1e-10  # Small value for floating point comparisons to avoid division issues
 
 
-class UniRouter:
+class Router:
     """Intelligent router using cluster-based error rates."""
 
     def __init__(
@@ -27,7 +27,7 @@ class UniRouter:
         lambda_max: float = 1.0,
         default_cost_preference: float = 0.5,
     ) -> None:
-        """Initialize UniRouter.
+        """Initialize Router.
 
         Args:
             cluster_engine: Fitted ClusterEngine for question assignment
@@ -53,7 +53,7 @@ class UniRouter:
         self.min_cost = min(all_costs)
         self.max_cost = max(all_costs)
 
-        logger.info(f"UniRouter initialized with {len(models)} models")
+        logger.info(f"Router initialized with {len(models)} models")
 
     def route(
         self,

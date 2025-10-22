@@ -14,8 +14,8 @@ from adaptive_router.services.model_router import ModelRouter
 
 
 @pytest.fixture
-def mock_unirouter_service():
-    """Create a mock UniRouterService to avoid loading actual cluster data."""
+def mock_router_service():
+    """Create a mock RouterService to avoid loading actual cluster data."""
     mock_service = Mock()
 
     # Default response for model selection
@@ -39,9 +39,9 @@ def mock_unirouter_service():
 class TestModelRouter:
     """Test ModelRouter class logic without external dependencies."""
 
-    def test_initialization(self, mock_unirouter_service: Mock) -> None:
+    def test_initialization(self, mock_router_service: Mock) -> None:
         """Test router initialization creates a functional instance."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         # Test that the router can perform its main function
         request = ModelSelectionRequest(
@@ -55,11 +55,11 @@ class TestModelRouter:
         assert response.model
         assert isinstance(response.alternatives, list)
         # Verify the service was called
-        mock_unirouter_service.select_model.assert_called_once()
+        mock_router_service.select_model.assert_called_once()
 
-    def test_initialization_without_params(self, mock_unirouter_service: Mock) -> None:
+    def test_initialization_without_params(self, mock_router_service: Mock) -> None:
         """Test router delegates to UniRouterService."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         # Test that the router works with mock service
         request = ModelSelectionRequest(
@@ -71,11 +71,11 @@ class TestModelRouter:
         # Verify valid response
         assert response.provider
         assert response.model
-        mock_unirouter_service.select_model.assert_called()
+        mock_router_service.select_model.assert_called()
 
-    def test_select_model_with_full_models(self, mock_unirouter_service: Mock) -> None:
+    def test_select_model_with_full_models(self, mock_router_service: Mock) -> None:
         """Test model selection when full models are provided."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         sample_models = [
             ModelCapability(
@@ -101,9 +101,9 @@ class TestModelRouter:
         assert response.model
         assert isinstance(response.alternatives, list)
 
-    def test_select_model_cost_bias_low(self, mock_unirouter_service: Mock) -> None:
+    def test_select_model_cost_bias_low(self, mock_router_service: Mock) -> None:
         """Test that cost bias is passed to service."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         # Low cost bias (0.1)
         request = ModelSelectionRequest(
@@ -115,11 +115,11 @@ class TestModelRouter:
         assert response.provider
         assert response.model
         # Verify request was passed to service
-        mock_unirouter_service.select_model.assert_called_with(request)
+        mock_router_service.select_model.assert_called_with(request)
 
-    def test_select_model_cost_bias_high(self, mock_unirouter_service: Mock) -> None:
+    def test_select_model_cost_bias_high(self, mock_router_service: Mock) -> None:
         """Test that high cost bias is passed to service."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         # High cost bias (0.9)
         request = ModelSelectionRequest(
@@ -130,11 +130,11 @@ class TestModelRouter:
 
         assert response.provider
         assert response.model
-        mock_unirouter_service.select_model.assert_called_with(request)
+        mock_router_service.select_model.assert_called_with(request)
 
-    def test_select_model_empty_input(self, mock_unirouter_service: Mock) -> None:
+    def test_select_model_empty_input(self, mock_router_service: Mock) -> None:
         """Test selecting models when no models are provided."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         request = ModelSelectionRequest(
             prompt="Explain quantum computing",
@@ -148,9 +148,9 @@ class TestModelRouter:
         assert response.model
         assert isinstance(response.alternatives, list)
 
-    def test_partial_model_filtering(self, mock_unirouter_service: Mock) -> None:
+    def test_partial_model_filtering(self, mock_router_service: Mock) -> None:
         """Test filtering with partial ModelCapability."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         partial_models = [
             ModelCapability(
@@ -174,9 +174,9 @@ class TestModelRouter:
         assert response.provider
         assert response.model
 
-    def test_model_selection_code_task(self, mock_unirouter_service: Mock) -> None:
+    def test_model_selection_code_task(self, mock_router_service: Mock) -> None:
         """Test model selection for code generation tasks."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         request = ModelSelectionRequest(
             prompt="Write a Python function to implement binary search",
@@ -187,9 +187,9 @@ class TestModelRouter:
         assert response.provider
         assert response.model
 
-    def test_model_selection_creative_task(self, mock_unirouter_service: Mock) -> None:
+    def test_model_selection_creative_task(self, mock_router_service: Mock) -> None:
         """Test model selection for creative writing tasks."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         request = ModelSelectionRequest(
             prompt="Write a short poem about nature",
@@ -243,11 +243,9 @@ class TestModelRouterEdgeCases:
             or "validation" in str(exc_info.value).lower()
         )
 
-    def test_valid_cost_bias_boundary_values(
-        self, mock_unirouter_service: Mock
-    ) -> None:
+    def test_valid_cost_bias_boundary_values(self, mock_router_service: Mock) -> None:
         """Test that boundary values 0.0 and 1.0 are accepted."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         # Test cost_bias = 0.0 (minimum)
         request_min = ModelSelectionRequest(
@@ -267,9 +265,9 @@ class TestModelRouterEdgeCases:
         assert response_max.provider
         assert response_max.model
 
-    def test_complex_prompt_handling(self, mock_unirouter_service: Mock) -> None:
+    def test_complex_prompt_handling(self, mock_router_service: Mock) -> None:
         """Test handling of very complex prompts."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         # Very long and complex prompt
         complex_prompt = """
@@ -291,9 +289,9 @@ class TestModelRouterEdgeCases:
         assert response.provider
         assert response.model
 
-    def test_simple_prompt_handling(self, mock_unirouter_service: Mock) -> None:
+    def test_simple_prompt_handling(self, mock_router_service: Mock) -> None:
         """Test handling of very simple prompts."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         request = ModelSelectionRequest(
             prompt="Hello, how are you?",
@@ -306,9 +304,9 @@ class TestModelRouterEdgeCases:
         assert response.model
         assert isinstance(response.alternatives, list)
 
-    def test_alternatives_generation(self, mock_unirouter_service: Mock) -> None:
+    def test_alternatives_generation(self, mock_router_service: Mock) -> None:
         """Test that alternatives are properly generated."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         request = ModelSelectionRequest(
             prompt="Write a complex algorithm",
@@ -322,9 +320,9 @@ class TestModelRouterEdgeCases:
         # Should have alternatives
         assert isinstance(response.alternatives, list)
 
-    def test_no_models_raises_error(self, mock_unirouter_service: Mock) -> None:
+    def test_no_models_raises_error(self, mock_router_service: Mock) -> None:
         """Test that providing empty models list is handled."""
-        router = ModelRouter(unirouter_service=mock_unirouter_service)
+        router = ModelRouter(router_service=mock_router_service)
 
         # Empty models list should be handled by service
         request = ModelSelectionRequest(
