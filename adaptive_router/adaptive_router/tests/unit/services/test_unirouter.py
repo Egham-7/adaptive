@@ -410,15 +410,15 @@ class TestClusterEngineEdgeCases:
 
 
 @pytest.mark.unit
-class TestUniRouterServiceMocked:
-    """Test UniRouterService with mocked dependencies (no real ML models)."""
+class TestRouterServiceMocked:
+    """Test RouterService with mocked dependencies (no real ML models)."""
 
-    @patch("adaptive_router.services.unirouter_service.UniRouter")
-    @patch("adaptive_router.services.unirouter_service.ClusterEngine")
+    @patch("adaptive_router.services.router_service.Router")
+    @patch("adaptive_router.services.router_service.ClusterEngine")
     def test_initialization_mocked(
-        self, mock_cluster_engine_class, mock_unirouter_class
+        self, mock_cluster_engine_class, mock_router_class
     ) -> None:
-        """Test UniRouterService initialization with mocked components."""
+        """Test RouterService initialization with mocked components."""
 
         # Mock the data directory to avoid file access
         with tempfile.TemporaryDirectory() as tmpdir:
