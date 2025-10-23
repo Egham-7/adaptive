@@ -12,7 +12,7 @@ NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
 QWEN_PACKAGE="@qwen-code/qwen-code"
 CONFIG_DIR="$HOME/.qwen"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1"
+API_BASE_URL="https://api.llmadaptive.uk/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)
