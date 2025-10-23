@@ -298,6 +298,12 @@ Supported providers:
 3. Run quality checks: `make quality`
 4. Submit PR with documentation updates
 
+## References
+
+This implementation is based on the UniRouter algorithm described in:
+
+**Jitkrittum, W., et al. (2025).** "Universal Model Routing for Efficient LLM Inference." *arXiv preprint arXiv:2502.08773*. Available at: https://arxiv.org/abs/2502.08773
+
 ## License
 
 MIT

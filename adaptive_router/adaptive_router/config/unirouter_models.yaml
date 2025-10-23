@@ -1,0 +1,161 @@
+gpt5_models:
+- id: openai:gpt-5-codex
+  name: gpt-5-codex
+  provider: openai
+  cost_per_1m_tokens: 5.625
+  description: Highest quality, highest cost
+- id: openai:gpt-5-mini
+  name: gpt-5-mini
+  provider: openai
+  cost_per_1m_tokens: 1.125
+  description: Balanced quality and cost
+- id: openai:gpt-5-nano
+  name: gpt-5-nano
+  provider: openai
+  cost_per_1m_tokens: 0.225
+  description: Cost-optimized, high throughput
+- id: openai:gpt-4.1-nano
+  name: gpt-4.1-nano
+  provider: openai
+  cost_per_1m_tokens: 0.25
+  description: Budget model with variable performance
+- id: anthropic:claude-3-5-haiku-20241022
+  name: claude-3-5-haiku-20241022
+  provider: anthropic
+  cost_per_1m_tokens: 1.6
+  description: Auto-added anthropic model
+- id: anthropic:claude-sonnet-4-5-20250929
+  name: claude-sonnet-4-5-20250929
+  provider: anthropic
+  cost_per_1m_tokens: 6.0
+  description: Auto-added anthropic model
+- id: anthropic:claude-opus-4-1-20250805
+  name: claude-opus-4-1-20250805
+  provider: anthropic
+  cost_per_1m_tokens: 30.0
+  description: Auto-added anthropic model
+- id: deepseek:deepseek-chat
+  name: deepseek-chat
+  provider: deepseek
+  cost_per_1m_tokens: 0.0175
+  description: Auto-added deepseek model
+anthropic_models:
+- id: anthropic:claude-sonnet-4-5-20250929
+  name: claude-sonnet-4-5-20250929
+  provider: anthropic
+  cost_per_1m_tokens: 6.0
+  description: Latest Claude Sonnet, balanced performance
+- id: anthropic:claude-opus-4-1-20250805
+  name: claude-opus-4-1-20250805
+  provider: anthropic
+  cost_per_1m_tokens: 30.0
+  description: Highest quality Claude model, premium cost
+- id: anthropic:claude-3-5-haiku-20241022
+  name: claude-3-5-haiku-20241022
+  provider: anthropic
+  cost_per_1m_tokens: 1.6
+  description: Fast and cost-effective Claude model
+gemini_models:
+- id: gemini:gemini-2.5-pro
+  name: gemini-2.5-pro
+  provider: gemini
+  cost_per_1m_tokens: 3.4375
+  description: Google's premium multimodal model
+- id: gemini:gemini-2.5-flash
+  name: gemini-2.5-flash
+  provider: gemini
+  cost_per_1m_tokens: 0.2625
+  description: Fast Gemini model, good cost-performance ratio
+- id: gemini:gemini-2.5-flash-lite
+  name: gemini-2.5-flash-lite
+  provider: gemini
+  cost_per_1m_tokens: 0.13125
+  description: Ultra-lightweight Gemini, lowest cost
+deepseek_models:
+- id: deepseek:deepseek-chat
+  name: deepseek-chat
+  provider: deepseek
+  cost_per_1m_tokens: 0.0175
+  description: General purpose chat model, extremely low cost
+- id: deepseek:deepseek-reasoner
+  name: deepseek-reasoner
+  provider: deepseek
+  cost_per_1m_tokens: 0.96
+  description: Reasoning-focused model with chain-of-thought
+grok_models:
+- id: grok:grok-code-fast-1
+  name: grok-code-fast-1
+  provider: grok
+  cost_per_1m_tokens: 0.525
+  description: Fast code generation model by X.AI
+- id: grok:grok-4-fast-reasoning
+  name: grok-4-fast-reasoning
+  provider: grok
+  cost_per_1m_tokens: 0.275
+  description: Fast reasoning model with good performance
+- id: grok:grok-4-fast-non-reasoning
+  name: grok-4-fast-non-reasoning
+  provider: grok
+  cost_per_1m_tokens: 0.275
+  description: Fast general purpose model without reasoning
+- id: grok:grok-4-0709
+  name: grok-4-0709
+  provider: grok
+  cost_per_1m_tokens: 6.0
+  description: Premium Grok model, highest quality
+groq_models:
+- id: groq:deepseek-r1-distill-llama-70b
+  name: deepseek-r1-distill-llama-70b
+  provider: groq
+  cost_per_1m_tokens: 0.765
+  description: DeepSeek reasoning distilled into Llama 70B
+- id: groq:llama-3.3-70b-versatile
+  name: llama-3.3-70b-versatile
+  provider: groq
+  cost_per_1m_tokens: 0.64
+  description: Versatile Llama 3.3 70B with balanced capabilities
+- id: groq:llama-4-maverick-17b-128e-instruct
+  name: meta-llama/llama-4-maverick-17b-128e-instruct
+  provider: groq
+  cost_per_1m_tokens: 0.3
+  description: Llama 4 Maverick with extended expert capabilities
+- id: groq:llama-4-scout-17b-16e-instruct
+  name: meta-llama/llama-4-scout-17b-16e-instruct
+  provider: groq
+  cost_per_1m_tokens: 0.1675
+  description: Llama 4 Scout, fast and efficient
+- id: groq:qwen3-32b
+  name: qwen/qwen3-32b
+  provider: groq
+  cost_per_1m_tokens: 0.365
+  description: Qwen3 32B, strong multilingual capabilities
+- id: groq:mixtral-8x7b-32768
+  name: mixtral-8x7b-32768
+  provider: groq
+  cost_per_1m_tokens: 0.255
+  description: Mixtral 8x7B MoE model (deprecated March 2025)
+clustering:
+  n_clusters: 5
+  max_iter: 300
+  random_state: 42
+  n_init: 10
+  embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  tfidf_max_features: 192
+  tfidf_ngram_range:
+  - 1
+  - 2
+  feature_weights:
+    embeddings: 0.667
+    tfidf: 0.333
+evaluation:
+  questions_per_cluster: 8
+  total_questions: 160
+  temperature: 0.0
+  max_tokens: 1000
+  checkpoint_interval: 10
+  rate_limit_delay: 0.5
+routing:
+  lambda_min: 0.0
+  lambda_max: 1.0
+  default_cost_preference: 0.5
+  quality_threshold: 0.8
