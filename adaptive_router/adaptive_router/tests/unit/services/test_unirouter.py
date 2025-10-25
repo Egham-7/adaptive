@@ -9,8 +9,8 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
+from adaptive_router.models import CodeQuestion
 from adaptive_router.services.cluster_engine import ClusterEngine
-from adaptive_router.services.routing_schemas import CodeQuestion
 
 
 @pytest.fixture
@@ -411,14 +411,14 @@ class TestClusterEngineEdgeCases:
 
 @pytest.mark.unit
 class TestRouterServiceMocked:
-    """Test RouterService with mocked dependencies (no real ML models)."""
+    """Test ModelRouter with mocked dependencies (no real ML models)."""
 
-    @patch("adaptive_router.services.router_service.Router")
-    @patch("adaptive_router.services.router_service.ClusterEngine")
+    @patch("adaptive_router.services.model_router._Router")
+    @patch("adaptive_router.services.model_router.ClusterEngine")
     def test_initialization_mocked(
         self, mock_cluster_engine_class, mock_router_class
     ) -> None:
-        """Test RouterService initialization with mocked components."""
+        """Test ModelRouter initialization with mocked components."""
 
         # Mock the data directory to avoid file access
         with tempfile.TemporaryDirectory() as tmpdir:

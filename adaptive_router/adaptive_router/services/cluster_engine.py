@@ -10,8 +10,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
+from adaptive_router.models import ClusterMetadata, CodeQuestion
 from adaptive_router.services.feature_extractor import FeatureExtractor
-from adaptive_router.services.routing_schemas import ClusterMetadata, CodeQuestion
 
 logger = logging.getLogger(__name__)
 

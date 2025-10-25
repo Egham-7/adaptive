@@ -9,7 +9,7 @@ from sentence_transformers import SentenceTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import StandardScaler
 
-from adaptive_router.services.routing_schemas import CodeQuestion
+from adaptive_router.models import CodeQuestion
 
 logger = logging.getLogger(__name__)
 
