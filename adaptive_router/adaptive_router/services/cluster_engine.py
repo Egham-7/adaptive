@@ -28,8 +28,6 @@ class ClusterEngine:
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
         tfidf_max_features: int = 5000,
         tfidf_ngram_range: Tuple[int, int] = (1, 2),
-        embedding_weight: float = 0.7,
-        tfidf_weight: float = 0.3,
     ) -> None:
         """Initialize clustering engine.
 
@@ -41,8 +39,6 @@ class ClusterEngine:
             embedding_model: HuggingFace model for semantic embeddings
             tfidf_max_features: Maximum TF-IDF features
             tfidf_ngram_range: N-gram range for TF-IDF
-            embedding_weight: Weight for embedding features
-            tfidf_weight: Weight for TF-IDF features
         """
         logger.info(f"Initializing ClusterEngine with K={n_clusters}")
 
@@ -51,8 +47,6 @@ class ClusterEngine:
             embedding_model=embedding_model,
             tfidf_max_features=tfidf_max_features,
             tfidf_ngram_range=tfidf_ngram_range,
-            embedding_weight=embedding_weight,
-            tfidf_weight=tfidf_weight,
         )
 
         # K-means clusterer with spherical k-means (normalize features)
@@ -163,7 +157,7 @@ class ClusterEngine:
         """Assign a single question to the nearest cluster.
 
         Args:
-            question_text: Question text
+            question_text: Raw question text
 
         Returns:
             Tuple of (cluster_id, distance_to_centroid)
@@ -174,16 +168,14 @@ class ClusterEngine:
         if not self.is_fitted:
             raise ValueError("Must call fit before assign_question")
 
-        # Create temporary CodeQuestion
-        temp_question = CodeQuestion(
-            question_id="temp",
-            question=question_text,
-            choices=["A", "B", "C", "D"],
-            answer="A",
-        )
+        # Extract features directly from text (no wrapper needed)
+        features = self.feature_extractor.transform([question_text])
 
-        # Extract features
-        features = self.feature_extractor.transform([temp_question])
+        # Normalize if using spherical k-means (consistency with fit/predict)
+        if self.use_spherical:
+            from sklearn.preprocessing import normalize
+
+            features = normalize(features, norm="l2")
 
         # Predict cluster and compute distance
         cluster_id = int(self.kmeans.predict(features)[0])

@@ -1,7 +1,7 @@
 """Feature extraction for clustering: TF-IDF + Semantic Embeddings."""
 
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -22,8 +22,6 @@ class FeatureExtractor:
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
         tfidf_max_features: int = 5000,
         tfidf_ngram_range: Tuple[int, int] = (1, 2),
-        embedding_weight: float = 0.7,
-        tfidf_weight: float = 0.3,
     ) -> None:
         """Initialize feature extractor.
 
@@ -31,8 +29,6 @@ class FeatureExtractor:
             embedding_model: HuggingFace model for semantic embeddings
             tfidf_max_features: Maximum TF-IDF features
             tfidf_ngram_range: N-gram range for TF-IDF
-            embedding_weight: Weight for embedding features (0.0-1.0)
-            tfidf_weight: Weight for TF-IDF features (0.0-1.0)
         """
         logger.info(f"Initializing FeatureExtractor with model: {embedding_model}")
 
@@ -74,10 +70,6 @@ class FeatureExtractor:
         # Scalers for normalization
         self.embedding_scaler = StandardScaler()
         self.tfidf_scaler = StandardScaler()
-
-        # Feature weights
-        self.embedding_weight = embedding_weight
-        self.tfidf_weight = tfidf_weight
 
         self.is_fitted = False
 
@@ -129,25 +121,36 @@ class FeatureExtractor:
         logger.info(f"Feature extraction complete! Shape: {hybrid_features.shape}")
         return hybrid_features
 
-    def transform(self, questions: List[CodeQuestion]) -> np.ndarray:
-        """Transform questions to hybrid features (must call fit_transform first).
+    def transform(self, questions: Union[List[CodeQuestion], List[str]]) -> np.ndarray:
+        """Transform questions or raw text to hybrid features.
+
+        Accepts either CodeQuestion objects (for training) or raw text strings
+        (for production API). This eliminates the need to wrap text in dummy
+        CodeQuestion objects during inference.
 
         Args:
-            questions: List of CodeQuestion objects
+            questions: Either List[CodeQuestion] or List[str]
 
         Returns:
             Numpy array of shape (n_questions, n_features)
 
         Raises:
-            ValueError: If transform is called before fit_transform
+            ValueError: If transform is called before fit_transform or empty input
         """
         if not self.is_fitted:
             raise ValueError("Must call fit_transform before transform")
 
-        logger.info(f"Transforming {len(questions)} questions...")
+        if not questions:
+            raise ValueError("Cannot transform empty list")
 
-        # Extract question texts
-        texts = [q.question for q in questions]
+        # Extract texts based on input type
+        if isinstance(questions[0], str):
+            texts = questions  # Already raw text
+        else:
+            # mypy knows this branch has CodeQuestion objects
+            texts = [q.question for q in questions]  # type: ignore[union-attr]
+
+        logger.info(f"Transforming {len(texts)} questions...")
 
         # 1. Generate semantic embeddings
         embeddings = self.embedding_model.encode(
@@ -183,8 +186,6 @@ class FeatureExtractor:
             "tfidf_vocabulary_size": (
                 len(self.tfidf_vectorizer.vocabulary_) if self.is_fitted else 0
             ),
-            "embedding_weight": self.embedding_weight,
-            "tfidf_weight": self.tfidf_weight,
             "total_features": (self.embedding_dim + self.tfidf_vectorizer.max_features),
             "is_fitted": self.is_fitted,
         }
