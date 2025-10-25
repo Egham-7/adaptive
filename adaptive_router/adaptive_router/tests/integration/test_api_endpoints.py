@@ -13,12 +13,6 @@ Test Categories:
 
 import pytest
 
-from adaptive_router.models.llm_core_models import (
-    ModelCapability,
-    ModelSelectionRequest,
-    ModelSelectionResponse,
-)
-
 
 @pytest.mark.integration
 class TestFastAPIEndpoints:

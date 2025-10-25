@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import numpy as np
 import yaml
@@ -60,7 +60,9 @@ class ModelRouter:
         # Backwards compatibility: if router_service provided (from tests), use it
         if router_service is not None:
             self._router = router_service.router
-            logger.info("ModelRouter initialized with provided router_service (test mode)")
+            logger.info(
+                "ModelRouter initialized with provided router_service (test mode)"
+            )
             return
 
         # Auto-detect config file path
@@ -221,9 +223,7 @@ class ModelRouter:
         device = (
             "cpu"
             if platform.system() == "Darwin"
-            else "cuda"
-            if torch.cuda.is_available()
-            else "cpu"
+            else "cuda" if torch.cuda.is_available() else "cpu"
         )
         logger.info(f"Loading embedding model on device: {device}")
 
@@ -293,6 +293,9 @@ class ModelRouter:
         # Set required K-means attributes
         cluster_engine.kmeans._n_threads = 1
         cluster_engine.kmeans.n_iter_ = 0  # Already fitted
+        cluster_engine.kmeans.n_features_in_ = (
+            cluster_engine.kmeans.cluster_centers_.shape[1]
+        )
 
         cluster_engine.is_fitted = True
         cluster_engine.silhouette = metadata.get("silhouette_score", 0.0)
@@ -560,9 +563,7 @@ class _Router:
                 "accuracy": scores["accuracy"],
                 "cost": scores["cost"],
             }
-            for mid, scores in sorted(
-                model_scores.items(), key=lambda x: x[1]["score"]
-            )
+            for mid, scores in sorted(model_scores.items(), key=lambda x: x[1]["score"])
             if mid != best_model_id
         ]
 

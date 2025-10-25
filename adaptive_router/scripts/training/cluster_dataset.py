@@ -32,8 +32,8 @@ import numpy as np
 # Add adaptive_router to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from adaptive_router.models import CodeQuestion
 from adaptive_router.services.cluster_engine import ClusterEngine
-from adaptive_router.services.routing_schemas import CodeQuestion
 
 # Set up logging
 logging.basicConfig(
@@ -322,8 +322,6 @@ def run_clustering(
         embedding_model="sentence-transformers/all-MiniLM-L6-v2",
         tfidf_max_features=tfidf_dim,
         tfidf_ngram_range=(1, 2),
-        embedding_weight=0.7,  # Stored but not used (implicit via dimensions)
-        tfidf_weight=0.3,  # Stored but not used (implicit via dimensions)
     )
 
     # Perform clustering

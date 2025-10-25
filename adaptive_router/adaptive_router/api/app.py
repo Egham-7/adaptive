@@ -133,7 +133,9 @@ def create_app() -> FastAPI:
                     "prompt_length": len(request.prompt),
                     "cost_bias": request.cost_bias,
                     "models_count": len(request.models) if request.models else 0,
-                    "client_ip": http_request.client.host if http_request.client else "unknown",
+                    "client_ip": (
+                        http_request.client.host if http_request.client else "unknown"
+                    ),
                 },
             )
 

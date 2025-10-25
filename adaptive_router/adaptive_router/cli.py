@@ -6,7 +6,21 @@ Starts the FastAPI server using Hypercorn ASGI server.
 import logging
 import os
 import sys
-from typing import Optional
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env file from current directory or parent directories
+env_file = Path(".env")
+if env_file.exists():
+    load_dotenv(env_file)
+    print(f"✅ Loaded environment variables from {env_file.absolute()}")
+else:
+    # Try parent directory
+    parent_env = Path("../.env")
+    if parent_env.exists():
+        load_dotenv(parent_env)
+        print(f"✅ Loaded environment variables from {parent_env.absolute()}")
 
 # Configure logging
 logging.basicConfig(
@@ -78,7 +92,7 @@ def main() -> None:
         # Start server
         import asyncio
 
-        asyncio.run(serve(app, config))
+        asyncio.run(serve(app, config))  # type: ignore[arg-type]
 
     except KeyboardInterrupt:
         logger.info("\n👋 Shutting down gracefully...")
