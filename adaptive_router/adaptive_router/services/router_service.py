@@ -32,13 +32,11 @@ class RouterService:
     This service:
     1. Loads Router from MinIO S3 bucket (no local files used)
     2. Provides model selection compatible with adaptive_router API
-    3. Optionally supports Modal GPU for feature extraction (future enhancement)
     """
 
     def __init__(
         self,
         config_file: Path | None = None,
-        use_modal_gpu: bool = False,
     ):
         """Initialize Router service.
 
@@ -47,7 +45,6 @@ class RouterService:
 
         Args:
             config_file: Path to Router models YAML config
-            use_modal_gpu: If True, attempt to use Modal GPU for feature extraction
         """
         # Auto-detect config file path
         if config_file is None:
@@ -55,21 +52,6 @@ class RouterService:
             config_file = service_dir / "config" / "unirouter_models.yaml"
 
         self.config_file = Path(config_file)
-        self.use_modal_gpu = use_modal_gpu
-        self.modal_feature_extractor = None
-
-        # Try to connect to Modal if requested
-        if use_modal_gpu:
-            try:
-                from modal import Function
-
-                self.modal_feature_extractor = Function.lookup(
-                    "unirouter-feature-extractor", "extract_features"
-                )
-                logger.info("Using Modal GPU for feature extraction")
-            except Exception as e:
-                logger.warning(f"Modal GPU unavailable, falling back to local: {e}")
-                self.use_modal_gpu = False
 
         # Load Router
         self.router = self._load_router()
@@ -410,28 +392,3 @@ class RouterService:
             "default_cost_preference": self.router.default_cost_preference,
         }
 
-    def _extract_features_remote(self, question_text: str) -> np.ndarray:
-        """Extract features via Modal GPU service (future enhancement).
-
-        Args:
-            question_text: Question to extract features for
-
-        Returns:
-            5384D feature vector
-
-        Raises:
-            RuntimeError: If Modal call fails
-        """
-        if not self.modal_feature_extractor:
-            raise RuntimeError("Modal feature extractor not available")
-
-        try:
-            result = self.modal_feature_extractor.remote([question_text])
-            features = np.array(result["features"][0])
-            logger.debug(
-                f"Modal feature extraction: {result['inference_time_ms']:.1f}ms"
-            )
-            return features
-        except Exception as e:
-            logger.error(f"Modal feature extraction failed: {e}")
-            raise RuntimeError(f"Modal feature extraction failed: {e}") from e

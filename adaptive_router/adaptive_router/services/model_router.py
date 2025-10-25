@@ -28,16 +28,14 @@ class ModelRouter:
     def __init__(
         self,
         router_service: Optional[RouterService] = None,
-        use_modal_gpu: bool = False,
     ) -> None:
         """Initialize router with RouterService.
 
         Args:
             router_service: Optional RouterService instance. If not provided, creates one internally.
-            use_modal_gpu: If True, attempt to use Modal GPU for feature extraction (default: False).
         """
         if router_service is None:
-            router_service = RouterService(use_modal_gpu=use_modal_gpu)
+            router_service = RouterService()
 
         self._router = router_service
         logger.info("ModelRouter initialized with Router (cluster-based routing)")

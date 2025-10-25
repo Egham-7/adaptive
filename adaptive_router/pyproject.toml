@@ -35,8 +35,6 @@ dependencies = [
   # UniRouter ML Dependencies
   "sentence-transformers>=2.7.0,<3", # Pin to 2.x for macOS compatibility with transformers 4.44
   "scikit-learn>=1.5.0,<2",
-  # Modal Deployment
-  "modal>=1.1.4",
   # LLM Integration
   "langchain>=0.3.26,<0.4",
   "langchain-core>=0.3.66,<0.4",
@@ -52,9 +50,8 @@ dependencies = [
   # Utilities
   "pyyaml>=6.0.2,<7",
   "fastapi>=0.118.2",
+  "hypercorn>=0.17.0,<1.0",
   "cachetools>=5.3.0,<7",
-  "python-jose[cryptography]>=3.3.0,<4.0",
-  "pyjwt>=2.10.1",
   "python-json-logger>=3.3.0",
   "datasets>=4.2.0",
   # S3 Storage
@@ -66,6 +63,9 @@ Homepage = "https://llmadaptive.uk"
 Repository = "https://github.com/Egham-7/adaptive"
 Documentation = "https://docs.llmadaptive.uk"
 "Bug Tracker" = "https://github.com/Egham-7/adaptive/issues"
+
+[project.scripts]
+adaptive-router = "adaptive_router.cli:main"
 
 
 [dependency-groups]

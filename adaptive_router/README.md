@@ -37,27 +37,15 @@ uv run adaptive-router
 # Docs at http://localhost:8000/docs
 ```
 
-### Modal Deployment
-
-```bash
-# Deploy to Modal for serverless GPU inference
-modal deploy deploy.py
-
-# Use deployed function
-from modal import Function
-
-select_model = Function.lookup("prompt-task-complexity-classifier", "select_model")
-response = select_model.remote(request)
-```
 
 ## Features
 
-- **Integrated ML Classifier**: Built-in NVIDIA prompt-task-complexity-classifier
-- **Direct GPU/CPU Inference**: Local PyTorch inference, no external API calls
-- **Task Classification**: Categorizes prompts by complexity and task type
+- **Cluster-Based Routing**: UniRouter algorithm with K-means clustering
+- **Local Feature Extraction**: Sentence transformers + TF-IDF (no external API calls)
 - **Cost Optimization**: Balances performance vs. cost based on user preferences
-- **Multiple Deployment Modes**: Library, FastAPI server, or Modal serverless
-- **Smart Model Selection**: Considers task complexity, type, and model capabilities
+- **Two Deployment Modes**: Python library or FastAPI HTTP server
+- **MinIO S3 Integration**: Loads cluster profiles from Railway-hosted storage
+- **Smart Model Selection**: Per-cluster error rates for optimal routing
 - **YAML-Based Model Database**: Easy configuration of models and pricing
 
 ## Architecture
@@ -65,17 +53,20 @@ response = select_model.remote(request)
 ```
 adaptive_router/
 ├── adaptive_router/          # Main package
+│   ├── api/                 # FastAPI server
+│   │   └── app.py           # HTTP endpoints
+│   ├── cli.py               # CLI entry point
 │   ├── models/              # Pydantic models
-│   ├── services/            # Core business logic
-│   │   ├── model_router.py              # Main router (public API)
-│   │   ├── model_registry.py            # Model metadata
-│   │   ├── yaml_model_loader.py         # YAML config loader
-│   │   └── prompt_task_complexity_classifier.py  # ML classifier
-│   └── utils/               # JWT, helpers
-├── model_data/              # YAML model definitions
-├── deploy.py               # Modal deployment
-├── config.py              # Configuration
-└── tests/                 # Unit & integration tests
+│   ├── services/            # Core routing logic
+│   │   ├── model_router.py              # Public API
+│   │   ├── router_service.py            # Router integration
+│   │   ├── router.py                    # Core routing
+│   │   ├── cluster_engine.py            # K-means clustering
+│   │   ├── feature_extractor.py         # ML feature extraction
+│   │   └── storage_profile_loader.py    # MinIO S3 loader
+│   └── config/              # YAML configurations
+├── tests/                   # Unit & integration tests
+└── pyproject.toml           # Dependencies + CLI script
 ```
 
 ## API
@@ -153,43 +144,40 @@ HOST=0.0.0.0
 PORT=8000
 
 # FastAPI
-FASTAPI_WORKERS=1
 FASTAPI_ACCESS_LOG=true
 FASTAPI_LOG_LEVEL=info
 
-# ML Classifier
-CLASSIFIER__MODEL_NAME=nvidia/prompt-task-and-complexity-classifier
-CLASSIFIER__DEVICE=cuda  # or cpu
-CLASSIFIER__MAX_LENGTH=512
+# MinIO S3 Storage (Railway deployment)
+S3_BUCKET_NAME=adaptive-router-profiles
+MINIO_PUBLIC_ENDPOINT=https://minio.railway.app
+MINIO_ROOT_USER=your_minio_user
+MINIO_ROOT_PASSWORD=your_minio_password
 
-# Modal (for serverless deployment)
-MODAL_DEPLOYMENT__APP_NAME=prompt-task-complexity-classifier
-MODAL_DEPLOYMENT__GPU_TYPE=T4
-MODAL_DEPLOYMENT__TIMEOUT=600
-JWT_SECRET=your_jwt_secret
+# Debug
+DEBUG=false
+LOG_LEVEL=INFO
 ```
 
 ## How It Works
 
-1. **Prompt Classification**: NVIDIA DeBERTa-based model analyzes prompt complexity and task type
-2. **Model Filtering**: Filters available models based on task requirements
-3. **Cost-Performance Ranking**: Ranks models using cost bias and complexity score
+1. **Feature Extraction**: Sentence transformers (384D embeddings) + TF-IDF (5000D features)
+2. **Cluster Assignment**: K-means predicts which of K clusters the prompt belongs to
+3. **Model Ranking**: For assigned cluster, ranks models by: `score = accuracy - λ * cost`
 4. **Selection**: Returns best model with alternatives
 
-### Complexity Scoring
+### Cluster-Based Routing
 
-The classifier analyzes prompts across multiple dimensions:
-- Task type (code, creative, analysis, etc.)
-- Complexity score (0.0-1.0)
-- Domain knowledge requirements
-- Reasoning and creativity needs
-- Contextual knowledge requirements
+The router uses pre-trained clusters stored in MinIO:
+- **Clusters**: K clusters learned from historical prompts (typically K=10-50)
+- **Error Rates**: Each model has per-cluster error rates from past performance
+- **Features**: Combined semantic + lexical features for robust clustering
+- **Scaling**: StandardScaler normalization for consistent clustering
 
-### Cost Bias
+### Cost Preference (λ)
 
-- `0.0`: Prefer cheapest models
-- `0.5`: Balance cost and capability
-- `1.0`: Prefer most capable models
+- `0.0`: Prefer cheapest models (prioritize cost savings)
+- `0.5`: Balance accuracy and cost
+- `1.0`: Prefer most accurate models (prioritize quality)
 
 ## Development
 
@@ -275,21 +263,21 @@ Supported providers:
 
 ## Tech Stack
 
-- **ML Framework**: PyTorch 2.2+ with CUDA support
-- **Transformers**: HuggingFace Transformers 4.52+
-- **Model**: NVIDIA DeBERTa-based classifier
-- **API Framework**: FastAPI 0.104+
+- **ML Framework**: PyTorch 2.2+ with sentence-transformers
+- **Clustering**: scikit-learn K-means
+- **API Framework**: FastAPI 0.118+
 - **ASGI Server**: Hypercorn 0.17+
-- **Modal**: Serverless GPU deployment
+- **Storage**: boto3 for MinIO S3
 - **Configuration**: Pydantic Settings
 - **Testing**: pytest with coverage
 
 ## Performance
 
-- **Classification**: <50ms per request
-- **Model Selection**: <10ms
-- **Memory**: ~2-4GB with ML model loaded
-- **Throughput**: 500+ requests/second
+- **Feature Extraction**: 20-50ms per request
+- **Cluster Assignment + Selection**: <10ms
+- **Total Latency**: 30-60ms per request
+- **Memory**: 2-4GB (sentence transformers + cluster profiles)
+- **Throughput**: 100-500 requests/second
 
 ## Contributing
 
