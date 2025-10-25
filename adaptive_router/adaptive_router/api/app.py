@@ -41,7 +41,11 @@ def create_app() -> FastAPI:
 
     if allowed_origins_str:
         # Parse comma-separated origins
-        allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+        allowed_origins = [
+            origin.strip()
+            for origin in allowed_origins_str.split(",")
+            if origin.strip()
+        ]
     else:
         # Default: Allow all origins but disable credentials for security
         allowed_origins = ["*"]
@@ -51,7 +55,9 @@ def create_app() -> FastAPI:
     if allowed_origins != ["*"]:
         # Specific origins provided - credentials are allowed
         use_credentials = True
-        logger.info(f"CORS: Allowing credentials for specific origins: {allowed_origins}")
+        logger.info(
+            f"CORS: Allowing credentials for specific origins: {allowed_origins}"
+        )
     else:
         # Wildcard origin - credentials must be disabled per CORS spec
         logger.warning(
