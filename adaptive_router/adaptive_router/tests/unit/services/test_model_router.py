@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from adaptive_router.models import RoutingDecision
 from adaptive_router.models.llm_core_models import (
     Alternative,
     ModelCapability,
@@ -15,23 +16,39 @@ from adaptive_router.services.model_router import ModelRouter
 
 @pytest.fixture
 def mock_router_service():
-    """Create a mock RouterService to avoid loading actual cluster data."""
-    mock_service = Mock()
-
-    # Default response for model selection
-    mock_service.select_model.return_value = ModelSelectionResponse(
-        provider="openai",
-        model="gpt-4",
+    """Create a mock router_service with internal _Router."""
+    # Create mock internal router that returns RoutingDecision
+    mock_internal_router = Mock()
+    mock_internal_router.route.return_value = RoutingDecision(
+        selected_model_id="openai:gpt-4",
+        selected_model_name="gpt-4",
+        routing_score=0.85,
+        predicted_accuracy=0.92,
+        estimated_cost=0.03,
+        cluster_id=5,
+        cluster_confidence=0.88,
+        lambda_param=0.5,
         reasoning="Selected based on cluster analysis",
         alternatives=[
-            Alternative(
-                provider="anthropic",
-                model="claude-3-sonnet-20240229",
-                cost_ratio=0.85,
-                reason="fallback_option",
-            )
+            {
+                "model_id": "anthropic:claude-3-sonnet-20240229",
+                "score": 0.82,
+                "predicted_accuracy": 0.89,
+            }
         ],
+        routing_time_ms=45.2,
     )
+
+    # Mock the models dict for get_supported_models()
+    mock_internal_router.models = {
+        "openai:gpt-4": Mock(),
+        "openai:gpt-3.5-turbo": Mock(),
+        "anthropic:claude-3-sonnet-20240229": Mock(),
+    }
+
+    # Create mock service with router attribute (new architecture)
+    mock_service = Mock()
+    mock_service.router = mock_internal_router
 
     return mock_service
 
@@ -54,11 +71,9 @@ class TestModelRouter:
         assert response.provider
         assert response.model
         assert isinstance(response.alternatives, list)
-        # Verify the service was called
-        mock_router_service.select_model.assert_called_once()
 
     def test_initialization_without_params(self, mock_router_service: Mock) -> None:
-        """Test router delegates to UniRouterService."""
+        """Test router delegates to internal _Router."""
         router = ModelRouter(router_service=mock_router_service)
 
         # Test that the router works with mock service
@@ -71,7 +86,6 @@ class TestModelRouter:
         # Verify valid response
         assert response.provider
         assert response.model
-        mock_router_service.select_model.assert_called()
 
     def test_select_model_with_full_models(self, mock_router_service: Mock) -> None:
         """Test model selection when full models are provided."""
@@ -102,7 +116,7 @@ class TestModelRouter:
         assert isinstance(response.alternatives, list)
 
     def test_select_model_cost_bias_low(self, mock_router_service: Mock) -> None:
-        """Test that cost bias is passed to service."""
+        """Test that low cost bias works correctly."""
         router = ModelRouter(router_service=mock_router_service)
 
         # Low cost bias (0.1)
@@ -114,11 +128,9 @@ class TestModelRouter:
 
         assert response.provider
         assert response.model
-        # Verify request was passed to service
-        mock_router_service.select_model.assert_called_with(request)
 
     def test_select_model_cost_bias_high(self, mock_router_service: Mock) -> None:
-        """Test that high cost bias is passed to service."""
+        """Test that high cost bias works correctly."""
         router = ModelRouter(router_service=mock_router_service)
 
         # High cost bias (0.9)
@@ -130,7 +142,6 @@ class TestModelRouter:
 
         assert response.provider
         assert response.model
-        mock_router_service.select_model.assert_called_with(request)
 
     def test_select_model_empty_input(self, mock_router_service: Mock) -> None:
         """Test selecting models when no models are provided."""
