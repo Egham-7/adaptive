@@ -49,6 +49,7 @@ dependencies = [
   "tqdm>=4.66.0,<5",
   # Utilities
   "pyyaml>=6.0.2,<7",
+  "python-dotenv>=1.0.0,<2",
   "fastapi>=0.118.2",
   "hypercorn>=0.17.0,<1.0",
   "cachetools>=5.3.0,<7",
