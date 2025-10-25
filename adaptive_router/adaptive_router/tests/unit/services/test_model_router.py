@@ -6,10 +6,8 @@ import pytest
 
 from adaptive_router.models import RoutingDecision
 from adaptive_router.models.llm_core_models import (
-    Alternative,
     ModelCapability,
     ModelSelectionRequest,
-    ModelSelectionResponse,
 )
 from adaptive_router.services.model_router import ModelRouter
 

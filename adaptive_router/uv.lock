@@ -65,6 +65,9 @@ dependencies = [
 dev = [
     { name = "black" },
     { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
     { name = "ruff" },
     { name = "types-pyjwt" },
     { name = "types-pyyaml" },
@@ -129,6 +132,9 @@ requires-dist = [
 dev = [
     { name = "black", specifier = ">=25.1.0,<26" },
     { name = "mypy", specifier = ">=1.15.0,<2" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-asyncio", specifier = ">=0.26.0" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "ruff", specifier = ">=0.11.11,<0.14" },
     { name = "types-pyjwt", specifier = ">=1.7.1" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20250516,<7" },
