@@ -162,7 +162,7 @@ LOG_LEVEL=INFO
 
 1. **Feature Extraction**: Sentence transformers (384D embeddings) + TF-IDF (5000D features)
 2. **Cluster Assignment**: K-means predicts which of K clusters the prompt belongs to
-3. **Model Ranking**: For assigned cluster, ranks models by: `score = accuracy - λ * cost`
+3. **Model Ranking**: For assigned cluster, ranks models by minimizing: `routing_score = error_rate + λ × normalized_cost` (lower is better)
 4. **Selection**: Returns best model with alternatives
 
 ### Cluster-Based Routing

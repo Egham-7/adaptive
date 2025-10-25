@@ -79,3 +79,6 @@ adaptive_router/data/unirouter/checkpoints/
 test_unirouter_minio.py
 scripts/migrate_pickle_to_json.py
 adaptive_router/scripts/migrate_to_storage.py
+
+# Setup documentation (project-specific, not tracked)
+S3_SETUP.md

@@ -4,6 +4,7 @@ Provides HTTP API endpoints for intelligent model selection using cluster-based 
 """
 
 import logging
+import os
 import time
 from typing import Dict
 
@@ -35,11 +36,33 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
     )
 
-    # Add CORS middleware
+    # Configure CORS middleware with security validation
+    allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
+
+    if allowed_origins_str:
+        # Parse comma-separated origins
+        allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+    else:
+        # Default: Allow all origins but disable credentials for security
+        allowed_origins = ["*"]
+
+    # Security validation: credentials cannot be used with wildcard origins
+    use_credentials = False
+    if allowed_origins != ["*"]:
+        # Specific origins provided - credentials are allowed
+        use_credentials = True
+        logger.info(f"CORS: Allowing credentials for specific origins: {allowed_origins}")
+    else:
+        # Wildcard origin - credentials must be disabled per CORS spec
+        logger.warning(
+            "CORS: Using wildcard origin ['*'] - credentials disabled for security. "
+            "Set ALLOWED_ORIGINS environment variable to enable credentials."
+        )
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure as needed for production
-        allow_credentials=True,
+        allow_origins=allowed_origins,
+        allow_credentials=use_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
