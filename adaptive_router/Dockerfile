@@ -31,10 +31,14 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH"
 
-# Install runtime dependencies (if any system packages needed)
+# Install runtime dependencies for ML libraries and health checks
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
+    libgomp1 \
+    libopenblas-base \
+    liblapack3 \
+    libgfortran5 \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user for security
