@@ -54,12 +54,13 @@ COPY --chown=appuser:appuser . .
 # Switch to non-root user
 USER appuser
 
-# Expose port
+# Expose port (Railway will assign via $PORT env var)
 EXPOSE 8000
 
-# Health check
+# Health check (uses PORT env var if set, defaults to 8000)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # Run the application using Hypercorn
-CMD ["hypercorn", "adaptive_router.api.app:app", "--bind", "0.0.0.0:8000"]
+# Railway will provide PORT environment variable
+CMD hypercorn adaptive_router.api.app:app --bind 0.0.0.0:${PORT:-8000}
