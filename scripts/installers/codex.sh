@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_NAME="OpenAI Codex Adaptive Installer"
 SCRIPT_VERSION="1.0.0"
 CONFIG_DIR="$HOME/.codex"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1"
+API_BASE_URL="https://api.llmadaptive.uk/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)

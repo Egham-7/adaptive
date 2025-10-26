@@ -12,7 +12,7 @@ NODE_INSTALL_VERSION=22
 NVM_VERSION="v0.40.3"
 GROK_PACKAGE="@vibe-kit/grok-cli@0.0.16"
 CONFIG_DIR="$HOME/.grok"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1"
+API_BASE_URL="https://api.llmadaptive.uk/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults (can be overridden by environment variables)

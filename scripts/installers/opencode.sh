@@ -18,7 +18,7 @@ NVM_VERSION="v0.40.3"
 OPENCODE_PACKAGE="opencode-ai"
 
 CONFIG_FILE="opencode.json"
-API_BASE_URL="https://www.llmadaptive.uk/api/v1"
+API_BASE_URL="https://api.llmadaptive.uk/v1"
 API_KEY_URL="https://www.llmadaptive.uk/dashboard"
 
 # Model override defaults:
