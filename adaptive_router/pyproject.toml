@@ -65,9 +65,6 @@ Repository = "https://github.com/Egham-7/adaptive"
 Documentation = "https://docs.llmadaptive.uk"
 "Bug Tracker" = "https://github.com/Egham-7/adaptive/issues"
 
-[project.scripts]
-adaptive-router = "adaptive_router.cli:main"
-
 
 [dependency-groups]
 dev = [

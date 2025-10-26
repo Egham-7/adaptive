@@ -5,9 +5,12 @@ Provides HTTP API endpoints for intelligent model selection using cluster-based 
 
 import logging
 import os
+import sys
 import time
+from pathlib import Path
 from typing import Dict
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -17,6 +20,25 @@ from adaptive_router.models.llm_core_models import (
     ModelSelectionResponse,
 )
 from adaptive_router.services.model_router import ModelRouter
+
+# Load .env file from current directory or parent directories
+env_file = Path(".env")
+if env_file.exists():
+    load_dotenv(env_file)
+    print(f"✅ Loaded environment variables from {env_file.absolute()}")
+else:
+    # Try parent directory
+    parent_env = Path("../.env")
+    if parent_env.exists():
+        load_dotenv(parent_env)
+        print(f"✅ Loaded environment variables from {parent_env.absolute()}")
+
+# Configure logging early
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +115,27 @@ def create_app() -> FastAPI:
     async def startup_event():
         """Initialize router on startup."""
         try:
+            # Log startup configuration
+            host = os.getenv("HOST", "0.0.0.0")
+            port = os.getenv("PORT", "8000")
+
+            logger.info("=" * 60)
+            logger.info("🚀 Starting Adaptive Router FastAPI Server")
+            logger.info("=" * 60)
+            logger.info(f"📍 Server: http://{host}:{port}")
+            logger.info(f"📖 API Docs: http://{host}:{port}/docs")
+            logger.info(f"📚 ReDoc: http://{host}:{port}/redoc")
+            logger.info("=" * 60)
+            logger.info("✨ Features:")
+            logger.info("  • Cluster-based intelligent model routing")
+            logger.info("  • Cost optimization with configurable bias")
+            logger.info("  • MinIO S3 storage for cluster profiles")
+            logger.info("  • OpenAI-compatible request/response format")
+            logger.info("=" * 60)
+
             get_router()
             logger.info("FastAPI application started successfully")
+            logger.info("=" * 60)
         except Exception as e:
             logger.error(f"Failed to initialize router: {e}")
             raise
