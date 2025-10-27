@@ -326,16 +326,18 @@ class TestClusterEngineSaveLoad:
             with open(metadata_file) as f:
                 metadata = json.load(f)
 
+            # Check fields that ProfileMetadata actually contains
             assert "n_clusters" in metadata
-            assert "n_questions" in metadata
-            assert "clustering_method" in metadata
             assert "embedding_model" in metadata
-            assert "timestamp" in metadata
+            assert "tfidf_max_features" in metadata
+            assert "tfidf_ngram_range" in metadata
             assert "silhouette_score" in metadata
 
             assert metadata["n_clusters"] == engine.n_clusters
-            assert metadata["n_questions"] == len(sample_questions)
-            assert metadata["clustering_method"] == "K-means"
+            assert (
+                metadata["embedding_model"]
+                == engine.feature_extractor.embedding_model_name
+            )
 
 
 @pytest.mark.unit
