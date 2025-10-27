@@ -33,6 +33,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from adaptive_router import ModelRouter, ModelSelectionRequest
+from adaptive_router.models.api import ModelCapability
 
 console = Console()
 
@@ -175,16 +176,36 @@ def test_provider_filtering(
 
     results = []
 
+    # Get all available models from the router
+    available_models = (
+        router.get_supported_models()
+    )  # Returns ["provider:model_name", ...]
+
     # Test with different provider groups
     for group_name, providers in PROVIDER_GROUPS.items():
         if providers is None:
-            # All providers
+            # All providers - no filtering
             request = ModelSelectionRequest(prompt=prompt, cost_bias=0.5)
         else:
-            # Filtered providers - need to get actual models from router
-            # For simplicity, we'll just test without explicit model constraints
-            # and verify the selected model is from expected providers
-            request = ModelSelectionRequest(prompt=prompt, cost_bias=0.5)
+            # Filter models by provider
+            filtered_model_ids = [
+                model_id
+                for model_id in available_models
+                if any(model_id.split(":")[0] == provider for provider in providers)
+            ]
+
+            # Convert filtered model IDs to ModelCapability objects
+            filtered_models = [
+                ModelCapability(
+                    provider=model_id.split(":")[0], model_name=model_id.split(":")[1]
+                )
+                for model_id in filtered_model_ids
+            ]
+
+            # Create request with filtered models
+            request = ModelSelectionRequest(
+                prompt=prompt, cost_bias=0.5, models=filtered_models
+            )
 
         start_time = time.perf_counter()
         response = router.select_model(request)
@@ -200,9 +221,20 @@ def test_provider_filtering(
         }
         results.append(result)
 
+        # Validate that selected model matches provider constraint
+        if providers is not None:
+            selected_provider = response.provider
+            if selected_provider not in providers:
+                console.print(
+                    f"[red]WARNING: Selected provider '{selected_provider}' "
+                    f"not in allowed providers {providers}[/red]"
+                )
+
         if verbose:
+            provider_info = f" (from {providers})" if providers else " (all providers)"
             console.print(
-                f"Provider Group '{group_name}': [green]{result['selected_model']}[/green]"
+                f"Provider Group '{group_name}'{provider_info}: "
+                f"[green]{result['selected_model']}[/green]"
             )
 
     # Create results table

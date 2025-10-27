@@ -2,6 +2,7 @@
 
 import json
 import logging
+import pickle
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -9,7 +10,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-from adaptive_router.models import ProfileMetadata, CodeQuestion
+from adaptive_router.models import CodeQuestion
 from adaptive_router.core.feature_extractor import FeatureExtractor
 
 logger = logging.getLogger(__name__)
@@ -183,11 +184,14 @@ class ClusterEngine:
 
         return cluster_id, distance
 
-    def save(self, output_dir: Path) -> Dict[str, str]:
-        """Save clustering artifacts as lightweight JSON.
+    def save(self, output_dir: Path, save_pickle: bool = False) -> Dict[str, str]:
+        """Save clustering artifacts as lightweight JSON (+ optional pickle).
+
+        Saves lightweight JSON files for Git tracking and optionally full pickle for local use.
 
         Args:
             output_dir: Directory to save artifacts
+            save_pickle: Whether to save pickle file (for local use, gitignored)
 
         Returns:
             Dictionary with file paths
@@ -197,51 +201,122 @@ class ClusterEngine:
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Saving clustering artifacts to {output_dir}")
+        logger.info(f"\nSaving cluster engine to {output_dir}")
 
-        # Prepare cluster centers (lightweight)
-        cluster_centers = self.kmeans.cluster_centers_.tolist()
-
-        # Prepare cluster assignments with question IDs
+        # 1. Save cluster centers as JSON (Git-friendly)
+        cluster_centers_file = output_dir / "cluster_centers.json"
         cluster_data = {
-            "cluster_centers": cluster_centers,
+            "cluster_centers": self.kmeans.cluster_centers_.tolist(),
             "cluster_assignments": {
                 q.question_id: int(cluster_id)
                 for q, cluster_id in zip(self.questions, self.cluster_assignments)
             },
             "n_clusters": self.n_clusters,
+            "feature_dim": self.kmeans.cluster_centers_.shape[1],
             "feature_info": self.feature_extractor.get_feature_info(),
         }
-
-        # Save cluster data
-        cluster_file = output_dir / "cluster_centers.json"
-        with open(cluster_file, "w") as f:
+        with open(cluster_centers_file, "w") as f:
             json.dump(cluster_data, f, indent=2)
 
-        # Save metadata
-        metadata = ProfileMetadata(
-            n_clusters=self.n_clusters,
-            embedding_model=self.feature_extractor.embedding_model_name,
-            tfidf_max_features=self.feature_extractor.tfidf_vectorizer.max_features,
-            tfidf_ngram_range=list(self.feature_extractor.tfidf_vectorizer.ngram_range),
-            silhouette_score=self.silhouette,
-        )
+        cluster_centers_size = cluster_centers_file.stat().st_size / 1024
+        logger.info(f"✅ Saved cluster_centers.json ({cluster_centers_size:.1f} KB)")
+
+        # 2. Save TF-IDF vocabulary as JSON (Git-friendly)
+        tfidf_vocab_file = output_dir / "tfidf_vocabulary.json"
+
+        # Convert vocabulary to native Python types (numpy int64 -> int)
+        vocabulary_native = {
+            str(k): int(v)
+            for k, v in self.feature_extractor.tfidf_vectorizer.vocabulary_.items()
+        }
+
+        tfidf_data = {
+            "vocabulary": vocabulary_native,
+            "idf": self.feature_extractor.tfidf_vectorizer.idf_.tolist(),
+            "max_features": int(self.feature_extractor.tfidf_vectorizer.max_features),
+            "ngram_range": list(self.feature_extractor.tfidf_vectorizer.ngram_range),
+        }
+        with open(tfidf_vocab_file, "w") as f:
+            json.dump(tfidf_data, f, indent=2)
+
+        tfidf_vocab_size = tfidf_vocab_file.stat().st_size / 1024
+        logger.info(f"✅ Saved tfidf_vocabulary.json ({tfidf_vocab_size:.1f} KB)")
+
+        # 3. Save scaler parameters as JSON (Git-friendly)
+        logger.info("Saving scaler parameters...")
+        scaler_params_file = output_dir / "scaler_parameters.json"
+        scaler_data = {
+            "embedding_scaler": {
+                "mean": self.feature_extractor.embedding_scaler.mean_.tolist(),
+                "scale": self.feature_extractor.embedding_scaler.scale_.tolist(),
+            },
+            "tfidf_scaler": {
+                "mean": self.feature_extractor.tfidf_scaler.mean_.tolist(),
+                "scale": self.feature_extractor.tfidf_scaler.scale_.tolist(),
+            },
+        }
+        with open(scaler_params_file, "w") as f:
+            json.dump(scaler_data, f, indent=2)
+
+        scaler_params_size = scaler_params_file.stat().st_size / 1024
+        logger.info(f"✅ Saved scaler_parameters.json ({scaler_params_size:.1f} KB)")
+
+        # 4. Save metadata with enhanced config info
+        cluster_info = self.get_cluster_info()
+        metadata = {
+            "n_clusters": cluster_info["n_clusters"],
+            "n_train_questions": cluster_info["n_questions"],
+            "silhouette_score": cluster_info["silhouette_score"],
+            "embedding_model": self.feature_extractor.embedding_model_name,
+            "embedding_dim": self.feature_extractor.embedding_dim,
+            "tfidf_max_features": self.feature_extractor.tfidf_vectorizer.max_features,
+            "tfidf_ngram_range": list(
+                self.feature_extractor.tfidf_vectorizer.ngram_range
+            ),
+            "total_features": self.feature_extractor.embedding_dim
+            + self.feature_extractor.tfidf_vectorizer.max_features,
+            "cluster_sizes": cluster_info["cluster_sizes"],
+        }
 
         metadata_file = output_dir / "metadata.json"
         with open(metadata_file, "w") as f:
-            json.dump(metadata.model_dump(), f, indent=2)
+            json.dump(metadata, f, indent=2)
 
-        logger.info(
-            f"Saved cluster_centers.json ({cluster_file.stat().st_size / 1024:.1f} KB)"
-        )
-        logger.info(
-            f"Saved metadata.json ({metadata_file.stat().st_size / 1024:.1f} KB)"
-        )
+        logger.info("✅ Saved metadata.json")
 
-        return {
-            "cluster_file": str(cluster_file),
+        # Prepare return dictionary
+        result = {
+            "cluster_file": str(cluster_centers_file),
+            "tfidf_vocab_file": str(tfidf_vocab_file),
+            "scaler_params_file": str(scaler_params_file),
             "metadata_file": str(metadata_file),
         }
+
+        # 5. Optionally save pickle for local use (will be gitignored)
+        if save_pickle:
+            pickle_file = output_dir / "cluster_engine.pkl"
+            with open(pickle_file, "wb") as f:
+                pickle.dump(self, f)
+
+            pickle_size = pickle_file.stat().st_size / 1024 / 1024
+            logger.info(
+                f"✅ Saved cluster_engine.pkl ({pickle_size:.1f} MB) [local only, gitignored]"
+            )
+            result["pickle_file"] = str(pickle_file)
+
+            total_json_size = (
+                cluster_centers_size
+                + tfidf_vocab_size
+                + scaler_params_size
+                + (metadata_file.stat().st_size / 1024)
+            )
+            logger.info(f"\n📊 Total JSON size: {total_json_size:.1f} KB (Git-tracked)")
+            logger.info(f"📊 Pickle size: {pickle_size:.1f} MB (local only)")
+            logger.info(
+                f"📊 Size reduction for Git: {(1 - total_json_size / 1024 / pickle_size) * 100:.1f}%"
+            )
+
+        return result
 
     def _log_cluster_distribution(self) -> None:
         """Log distribution of questions across clusters."""

@@ -29,7 +29,6 @@ Usage:
 import argparse
 import json
 import logging
-import pickle
 import sys
 from pathlib import Path
 from typing import List
@@ -472,7 +471,9 @@ def save_validation_set(questions: List[CodeQuestion], output_file: Path) -> Non
     logger.info(f"✅ Saved {len(questions)} questions ({file_size:.2f} MB)")
 
 
-def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
+def save_cluster_engine(
+    engine: ClusterEngine, output_dir: Path, save_pickle: bool = True
+) -> None:
     """Save cluster engine to JSON files (+ pickle for local use).
 
     Saves lightweight JSON files for Git tracking and full pickle for local use.
@@ -480,108 +481,9 @@ def save_cluster_engine(engine: ClusterEngine, output_dir: Path) -> None:
     Args:
         engine: Fitted ClusterEngine
         output_dir: Directory to save model
+        save_pickle: Whether to save pickle file (default: True for local use)
     """
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    logger.info(f"\nSaving cluster engine to {output_dir}")
-
-    # 1. Save cluster centers as JSON (Git-friendly)
-    cluster_centers_file = output_dir / "cluster_centers.json"
-    cluster_data = {
-        "cluster_centers": engine.kmeans.cluster_centers_.tolist(),
-        "n_clusters": engine.n_clusters,
-        "feature_dim": engine.kmeans.cluster_centers_.shape[1],
-    }
-    with open(cluster_centers_file, "w") as f:
-        json.dump(cluster_data, f, indent=2)
-
-    cluster_centers_size = cluster_centers_file.stat().st_size / 1024
-    logger.info(f"✅ Saved cluster_centers.json ({cluster_centers_size:.1f} KB)")
-
-    # 2. Save TF-IDF vocabulary as JSON (Git-friendly)
-    tfidf_vocab_file = output_dir / "tfidf_vocabulary.json"
-
-    # Convert vocabulary to native Python types (numpy int64 -> int)
-    vocabulary_native = {
-        str(k): int(v)
-        for k, v in engine.feature_extractor.tfidf_vectorizer.vocabulary_.items()
-    }
-
-    tfidf_data = {
-        "vocabulary": vocabulary_native,
-        "idf": engine.feature_extractor.tfidf_vectorizer.idf_.tolist(),
-        "max_features": int(engine.feature_extractor.tfidf_vectorizer.max_features),
-        "ngram_range": list(engine.feature_extractor.tfidf_vectorizer.ngram_range),
-    }
-    with open(tfidf_vocab_file, "w") as f:
-        json.dump(tfidf_data, f, indent=2)
-
-    tfidf_vocab_size = tfidf_vocab_file.stat().st_size / 1024
-    logger.info(f"✅ Saved tfidf_vocabulary.json ({tfidf_vocab_size:.1f} KB)")
-
-    # 2b. Save scaler parameters as JSON (Git-friendly)
-    logger.info("Saving scaler parameters...")
-    scaler_params_file = output_dir / "scaler_parameters.json"
-    scaler_data = {
-        "embedding_scaler": {
-            "mean": engine.feature_extractor.embedding_scaler.mean_.tolist(),
-            "scale": engine.feature_extractor.embedding_scaler.scale_.tolist(),
-        },
-        "tfidf_scaler": {
-            "mean": engine.feature_extractor.tfidf_scaler.mean_.tolist(),
-            "scale": engine.feature_extractor.tfidf_scaler.scale_.tolist(),
-        },
-    }
-    with open(scaler_params_file, "w") as f:
-        json.dump(scaler_data, f, indent=2)
-
-    scaler_params_size = scaler_params_file.stat().st_size / 1024
-    logger.info(f"✅ Saved scaler_parameters.json ({scaler_params_size:.1f} KB)")
-
-    # 3. Save metadata with enhanced config info
-    cluster_info = engine.get_cluster_info()
-    metadata = {
-        "n_clusters": cluster_info["n_clusters"],
-        "n_train_questions": cluster_info["n_questions"],
-        "silhouette_score": cluster_info["silhouette_score"],
-        "embedding_model": engine.feature_extractor.embedding_model_name,
-        "embedding_dim": engine.feature_extractor.embedding_dim,
-        "tfidf_max_features": engine.feature_extractor.tfidf_vectorizer.max_features,
-        "tfidf_ngram_range": list(
-            engine.feature_extractor.tfidf_vectorizer.ngram_range
-        ),
-        "total_features": engine.feature_extractor.embedding_dim
-        + engine.feature_extractor.tfidf_vectorizer.max_features,
-        "cluster_sizes": cluster_info["cluster_sizes"],
-    }
-
-    metadata_file = output_dir / "metadata.json"
-    with open(metadata_file, "w") as f:
-        json.dump(metadata, f, indent=2)
-
-    logger.info("✅ Saved metadata.json")
-
-    # 4. Save pickle for local use (will be gitignored)
-    pickle_file = output_dir / "cluster_engine.pkl"
-    with open(pickle_file, "wb") as f:
-        pickle.dump(engine, f)
-
-    pickle_size = pickle_file.stat().st_size / 1024 / 1024
-    logger.info(
-        f"✅ Saved cluster_engine.pkl ({pickle_size:.1f} MB) [local only, gitignored]"
-    )
-
-    total_json_size = (
-        cluster_centers_size
-        + tfidf_vocab_size
-        + scaler_params_size
-        + (metadata_file.stat().st_size / 1024)
-    )
-    logger.info(f"\n📊 Total JSON size: {total_json_size:.1f} KB (Git-tracked)")
-    logger.info(f"📊 Pickle size: {pickle_size:.1f} MB (local only)")
-    logger.info(
-        f"📊 Size reduction for Git: {(1 - total_json_size / 1024 / pickle_size) * 100:.1f}%"
-    )
+    engine.save(output_dir, save_pickle=save_pickle)
 
 
 def main():
@@ -683,7 +585,7 @@ def main():
             logger.info(f"Would save cluster engine with K={optimal_k}")
         else:
             save_validation_set(sampled_questions, VALIDATION_FILE)
-            save_cluster_engine(cluster_engine, CLUSTERS_DIR)
+            save_cluster_engine(cluster_engine, CLUSTERS_DIR, save_pickle=True)
 
             logger.info("\n✅ CLUSTERING & SAMPLING COMPLETE!")
             logger.info(f"\n{'='*80}")
