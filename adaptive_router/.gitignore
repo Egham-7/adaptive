@@ -66,3 +66,19 @@ Thumbs.db
 *.ckpt
 hf_cache/
 .ipynb_checkpoints/
+
+# UniRouter generated data (keep locally, load from S3 in production)
+adaptive_router/data/unirouter/clusters/
+adaptive_router/data/unirouter/predictions/
+adaptive_router/data/unirouter/validation/
+adaptive_router/data/unirouter/batch/
+adaptive_router/data/unirouter/checkpoints/
+*.pkl
+
+# Local testing and migration scripts (one-time use, not needed in repo)
+test_unirouter_minio.py
+scripts/migrate_pickle_to_json.py
+adaptive_router/scripts/migrate_to_storage.py
+
+# Setup documentation (project-specific, not tracked)
+S3_SETUP.md

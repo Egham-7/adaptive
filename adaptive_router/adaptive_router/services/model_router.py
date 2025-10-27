@@ -1,60 +1,318 @@
-"""Model routing service with complexity-aware intelligent selection."""
+"""Intelligent model routing using cluster-based selection.
+
+This module provides the ModelRouter class for selecting optimal LLM models
+based on cluster-specific error rates, cost optimization, and model capabilities.
+
+All routing logic is consolidated here: MinIO loading, cluster-based routing,
+and response conversion.
+"""
 
 from __future__ import annotations
 
 import logging
+import time
+from pathlib import Path
+from typing import Any, Dict, List
 
+import numpy as np
+import yaml
+
+from adaptive_router.core.storage_config import MinIOSettings
 from adaptive_router.models.llm_core_models import (
-    ModelCapability,
+    Alternative,
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_router.services.model_registry import ModelRegistry
-from adaptive_router.services.yaml_model_loader import YAMLModelDatabase
-from adaptive_router.services.prompt_task_complexity_classifier import (
-    PromptClassifier,
-)
+from adaptive_router.models import ModelConfig, RoutingDecision
+from adaptive_router.services.cluster_engine import ClusterEngine
+from adaptive_router.services.storage_profile_loader import StorageProfileLoader
 
 logger = logging.getLogger(__name__)
 
+# Cost estimation constants
+_ESTIMATED_TOKEN_COUNT = 2000  # Assumed average token count for cost estimation
+_TOKENS_PER_MILLION = 1_000_000  # Tokens per million for pricing calculations
+_EPSILON = 1e-10  # Small value for floating point comparisons
+
 
 class ModelRouter:
-    """Intelligent model routing with complexity-aware selection.
+    """Intelligent model routing using cluster-based selection.
 
-    Selects optimal LLM models based on task complexity, cost optimization,
-    and model capability matching.
+    Selects optimal LLM models based on cluster-specific error rates,
+    cost optimization, and model capability matching.
+
+    Loads cluster profiles from MinIO S3 storage and performs intelligent
+    routing using the UniRouter algorithm with per-cluster error rates.
     """
-
-    _DEFAULT_COST = 1.0
 
     def __init__(
         self,
-        model_registry: ModelRegistry | None = None,
-        yaml_db: YAMLModelDatabase | None = None,
-        prompt_classifier: PromptClassifier | None = None,
+        config_file: Path | None = None,
+        router_service: Any = None,  # For backwards compatibility with tests
     ) -> None:
-        """Initialize router with model registry and classifier.
+        """Initialize ModelRouter.
 
         Args:
-            model_registry: Optional ModelRegistry instance. If not provided, creates one internally.
-            yaml_db: Optional YAMLModelDatabase instance. Used only if model_registry is not provided.
-            prompt_classifier: Optional PromptClassifier instance. If not provided, creates one internally.
+            config_file: Path to Router models YAML config. If None, uses default.
+            router_service: Deprecated. Kept for backwards compatibility with tests.
+                           If provided, uses its internal router instead of loading.
         """
-        if model_registry is None:
-            if yaml_db is None:
-                yaml_db = YAMLModelDatabase()
-            model_registry = ModelRegistry(yaml_db)
-        self._model_registry = model_registry
+        # Backwards compatibility: if router_service provided (from tests), use it
+        if router_service is not None:
+            self._router = router_service.router
+            logger.info(
+                "ModelRouter initialized with provided router_service (test mode)"
+            )
+            return
 
-        if prompt_classifier is None:
+        # Auto-detect config file path
+        if config_file is None:
+            service_dir = Path(__file__).parent.parent  # adaptive_router/
+            config_file = service_dir / "config" / "unirouter_models.yaml"
 
-            prompt_classifier = PromptClassifier()
-        self._prompt_classifier = prompt_classifier
+        self.config_file = Path(config_file)
+
+        # Load Router from MinIO
+        self._router = self._load_router()
+        logger.info(
+            f"ModelRouter initialized with {len(self._router.models)} models, "
+            f"K={self._router.cluster_engine.n_clusters} clusters"
+        )
+
+    def _load_router(self) -> _Router:
+        """Load Router from MinIO S3 storage (Railway deployment).
+
+        This method loads all profile data from the MinIO bucket:
+        - Cluster centers (K-means centroids)
+        - Model error rates per cluster
+        - TF-IDF vocabulary
+        - Scaler parameters
+
+        Returns:
+            Initialized _Router instance
+
+        Raises:
+            FileNotFoundError: If profile not found in MinIO
+            ValueError: If MinIO configuration is invalid or profile data is corrupted
+        """
+        logger.info("Loading Router profile from MinIO storage...")
+
+        # Load MinIO settings (Railway native)
+        try:
+            # Pydantic Settings loads from environment variables automatically
+            minio_settings = MinIOSettings()  # type: ignore[call-arg]
+            storage_loader = StorageProfileLoader.from_minio_settings(minio_settings)
+            logger.info(
+                f"MinIO storage configured: bucket={minio_settings.bucket_name}, "
+                f"endpoint={minio_settings.endpoint_url}"
+            )
+        except Exception as e:
+            raise ValueError(
+                f"MinIO configuration error. Required environment variables:\n"
+                f"  - S3_BUCKET_NAME (required)\n"
+                f"  - MINIO_PUBLIC_ENDPOINT (required, e.g., https://minio.railway.app)\n"
+                f"  - MINIO_ROOT_USER (required)\n"
+                f"  - MINIO_ROOT_PASSWORD (required)\n"
+                f"\n"
+                f"Error: {e}"
+            )
+
+        # Load profile from storage
+        profile_data = storage_loader.load_global_profile()
+
+        # Extract components from profile
+        cluster_centers_data = profile_data["cluster_centers"]
+        model_profiles = profile_data["llm_profiles"]
+        tfidf_data = profile_data["tfidf_vocabulary"]
+        scaler_data = profile_data["scaler_parameters"]
+        metadata = profile_data["metadata"]
+
+        n_clusters = metadata["n_clusters"]
+        logger.info(f"Loaded profile from MinIO: {n_clusters} clusters")
+
+        # Build cluster engine from MinIO data
+        cluster_engine = self._build_cluster_engine_from_data(
+            cluster_centers_data=cluster_centers_data,
+            tfidf_data=tfidf_data,
+            scaler_data=scaler_data,
+            metadata=metadata,
+        )
+
+        logger.info(
+            f"Loaded cluster engine from storage: {n_clusters} clusters, "
+            f"silhouette score: {metadata.get('silhouette_score', 'N/A')}"
+        )
+
+        # Load models config
+        with open(self.config_file) as f:
+            models_config = yaml.safe_load(f)
+
+        # Parse models
+        models = [ModelConfig(**m) for m in models_config["gpt5_models"]]
+
+        # Prepare model_features dict combining error rates and cost
+        model_features = {}
+        for model in models:
+            model_id = model.id
+            model_name = model.name
+
+            # Try to find profile by ID first, then by name
+            profile = model_profiles.get(model_id) or model_profiles.get(model_name)
+
+            if profile:
+                model_features[model_id] = {
+                    "error_rates": profile,
+                    "cost_per_1m_tokens": model.cost_per_1m_tokens,
+                }
+                logger.debug(f"Loaded profile for {model_id}")
+            else:
+                logger.warning(
+                    f"Model {model_id} ({model_name}) not in profiles, skipping"
+                )
+
+        if not model_features:
+            raise ValueError("No valid model features found in llm_profiles")
+
+        # Get routing config
+        routing_config = models_config.get("routing", {})
+
+        # Initialize Router
+        router = _Router(
+            cluster_engine=cluster_engine,
+            model_features=model_features,
+            models=models,
+            lambda_min=routing_config.get("lambda_min", 0.0),
+            lambda_max=routing_config.get("lambda_max", 1.0),
+            default_cost_preference=routing_config.get("default_cost_preference", 0.5),
+        )
+
+        logger.info(
+            f"Router initialized from storage: {len(models)} models, "
+            f"lambda range [{router.lambda_min}, {router.lambda_max}]"
+        )
+
+        return router
+
+    def _build_cluster_engine_from_data(
+        self,
+        cluster_centers_data: dict,
+        tfidf_data: dict,
+        scaler_data: dict,
+        metadata: dict,
+    ) -> ClusterEngine:
+        """Build ClusterEngine from storage profile data.
+
+        Args:
+            cluster_centers_data: Cluster centers and assignments
+            tfidf_data: TF-IDF vocabulary and IDF scores
+            scaler_data: StandardScaler parameters
+            metadata: Metadata dictionary with config info
+
+        Returns:
+            Reconstructed ClusterEngine
+        """
+        import platform
+
+        import torch
+        from sentence_transformers import SentenceTransformer
+        from sklearn.preprocessing import StandardScaler
+
+        from adaptive_router.services.feature_extractor import FeatureExtractor
+
+        # Determine device (CPU for macOS, CUDA if available otherwise)
+        device = (
+            "cpu"
+            if platform.system() == "Darwin"
+            else "cuda" if torch.cuda.is_available() else "cpu"
+        )
+        logger.info(f"Loading embedding model on device: {device}")
+
+        # Create fresh SentenceTransformer model
+        embedding_model_name = metadata["embedding_model"]
+        embedding_model = SentenceTransformer(
+            embedding_model_name, device=device, trust_remote_code=True
+        )
+
+        # Create FeatureExtractor with fresh model
+        feature_extractor = FeatureExtractor(
+            embedding_model=embedding_model_name,
+            tfidf_max_features=metadata.get("tfidf_max_features", 5000),
+            tfidf_ngram_range=tuple(metadata.get("tfidf_ngram_range", [1, 2])),
+        )
+
+        # Replace the embedding model (already loaded above)
+        feature_extractor.embedding_model = embedding_model
+
+        # Restore TF-IDF vocabulary
+        feature_extractor.tfidf_vectorizer.vocabulary_ = tfidf_data["vocabulary"]
+        feature_extractor.tfidf_vectorizer.idf_ = np.array(tfidf_data["idf"])
+
+        # Restore scaler parameters
+        logger.info("Restoring scaler parameters from MinIO data...")
+
+        # Restore embedding scaler
+        feature_extractor.embedding_scaler = StandardScaler()
+        feature_extractor.embedding_scaler.mean_ = np.array(
+            scaler_data["embedding_scaler"]["mean"]
+        )
+        feature_extractor.embedding_scaler.scale_ = np.array(
+            scaler_data["embedding_scaler"]["scale"]
+        )
+        feature_extractor.embedding_scaler.n_features_in_ = len(
+            feature_extractor.embedding_scaler.mean_
+        )
+
+        # Restore TF-IDF scaler
+        feature_extractor.tfidf_scaler = StandardScaler()
+        feature_extractor.tfidf_scaler.mean_ = np.array(
+            scaler_data["tfidf_scaler"]["mean"]
+        )
+        feature_extractor.tfidf_scaler.scale_ = np.array(
+            scaler_data["tfidf_scaler"]["scale"]
+        )
+        feature_extractor.tfidf_scaler.n_features_in_ = len(
+            feature_extractor.tfidf_scaler.mean_
+        )
+        logger.info("✅ Scaler parameters restored")
+
+        feature_extractor.is_fitted = True
+
+        # Create ClusterEngine
+        cluster_engine = ClusterEngine(
+            n_clusters=cluster_centers_data["n_clusters"],
+            embedding_model=embedding_model_name,
+            tfidf_max_features=metadata.get("tfidf_max_features", 5000),
+            tfidf_ngram_range=tuple(metadata.get("tfidf_ngram_range", [1, 2])),
+        )
+        cluster_engine.feature_extractor = feature_extractor
+
+        # Restore K-means cluster centers
+        cluster_engine.kmeans.cluster_centers_ = np.array(
+            cluster_centers_data["cluster_centers"]
+        )
+        # Set required K-means attributes
+        cluster_engine.kmeans._n_threads = 1
+        cluster_engine.kmeans.n_iter_ = 0  # Already fitted
+        cluster_engine.kmeans.n_features_in_ = (
+            cluster_engine.kmeans.cluster_centers_.shape[1]
+        )
+
+        cluster_engine.is_fitted = True
+        cluster_engine.silhouette = metadata.get("silhouette_score", 0.0)
+
+        logger.info(
+            f"Built cluster engine from storage data: {cluster_centers_data['n_clusters']} clusters, "
+            f"{cluster_centers_data['feature_dim']} features"
+        )
+
+        return cluster_engine
 
     def select_model(self, request: ModelSelectionRequest) -> ModelSelectionResponse:
         """Select optimal model based on prompt analysis.
 
-        This is the main public API method. It handles classification and selection internally.
+        This is the main public API method. Uses cluster-based routing to select
+        the best model based on prompt characteristics, cost preferences, and
+        historical per-cluster error rates.
 
         Args:
             request: ModelSelectionRequest with prompt and optional models/cost_bias
@@ -63,295 +321,337 @@ class ModelRouter:
             ModelSelectionResponse with selected provider, model, and alternatives
 
         Raises:
-            ValueError: If no eligible models found or validation fails
-            RuntimeError: If classification or routing fails
+            ValueError: If requested models are not supported or validation fails
+            RuntimeError: If routing fails
         """
-        classification_dict = self._prompt_classifier.classify_prompt(request.prompt)
+        # Extract and validate allowed models if provided
+        allowed_model_ids: List[str] | None = None
+        if request.models:
+            supported = self.get_supported_models()
 
-        from adaptive_router.models.llm_classification_models import (
-            ClassificationResult,
-        )
+            # Build list of requested model IDs
+            # Note: For filtering, we only need provider:model_name, even if other fields are missing
+            requested = []
+            for m in request.models:
+                if m.provider and m.model_name:
+                    # Construct ID in the same format as router uses
+                    model_id = f"{m.provider.lower()}:{m.model_name.lower()}"
+                    requested.append(model_id)
 
-        classification = ClassificationResult(**classification_dict)
-
-        task_type = (
-            classification.task_type_1 if classification.task_type_1 else "Other"
-        )
-        task_complexity = (
-            classification.prompt_complexity_score
-            if classification.prompt_complexity_score is not None
-            else 0.5
-        )
-
-        selected_models = self._select_models(
-            task_complexity,
-            task_type,
-            request.models,
-            request.cost_bias if request.cost_bias is not None else 0.5,
-        )
-
-        if not selected_models:
-            raise ValueError("No eligible models found")
-
-        best_model = selected_models[0]
-        if not best_model.provider or not best_model.model_name:
-            raise ValueError("Selected model missing provider or model_name")
-
-        from adaptive_router.models.llm_core_models import Alternative
-
-        alternatives = [
-            Alternative(provider=alt.provider, model=alt.model_name)
-            for alt in selected_models[1:]
-            if alt.provider and alt.model_name
-        ]
-
-        return ModelSelectionResponse(
-            provider=best_model.provider,
-            model=best_model.model_name,
-            alternatives=alternatives,
-        )
-
-    def _select_models(
-        self,
-        task_complexity: float,
-        task_type: str,
-        models_input: list[ModelCapability] | None = None,
-        cost_bias: float = 0.5,
-    ) -> list[ModelCapability]:
-        """Select best models with complexity-aware routing."""
-        if not 0.0 <= task_complexity <= 1.0:
-            raise ValueError(f"task_complexity must be 0.0-1.0, got {task_complexity}")
-
-        candidates = self._get_candidate_models(models_input, task_type)
-        logger.debug(
-            "Found candidate models",
-            extra={"candidates_count": len(candidates), "task_type": task_type},
-        )
-
-        return self._rank_models(candidates, task_complexity, cost_bias)
-
-    def _get_candidate_models(
-        self, models_input: list[ModelCapability] | None, task_type: str
-    ) -> list[ModelCapability]:
-        """Get candidate models from input, handling full vs partial specs."""
-        if not models_input:
-            return self._get_all_models_for_task(task_type)
-
-        candidates = []
-        for model in models_input:
-            if model.is_partial:
-                matching = self._model_registry.find_models_matching_criteria(model)
-                self._validate_resolved_models(matching)
-                candidates.extend(matching)
-            else:
-                registry_model = self._model_registry.get_model_capability(
-                    model.unique_id
-                )
-                candidates.append(registry_model or model)
-
-        # Remove duplicates and filter by task type
-        unique_models = self._deduplicate_models(candidates)
-        return self._filter_by_task_type(unique_models, task_type)
-
-    def _get_all_models_for_task(self, task_type: str) -> list[ModelCapability]:
-        """Get all available models filtered by task type."""
-        all_names = self._model_registry.get_all_model_names()
-        models = []
-        for name in all_names:
-            model = self._model_registry.get_model_capability(name)
-            if model:
-                models.append(model)
-        return self._filter_by_task_type(models, task_type)
-
-    def _validate_resolved_models(self, models: list[ModelCapability]) -> None:
-        """Validate that registry returned complete models."""
-        for model in models:
-            if model.is_partial:
+            # Validate all requested models are supported
+            unsupported = [m for m in requested if m not in supported]
+            if unsupported:
                 raise ValueError(
-                    f"Registry returned partial model: {model}. "
-                    "Registry data incomplete or resolution logic failed."
+                    f"Models not supported by Router: {unsupported}. "
+                    f"Supported models: {supported}"
                 )
 
-    def _deduplicate_models(
-        self, models: list[ModelCapability]
-    ) -> list[ModelCapability]:
-        """Remove duplicate models while preserving order."""
-        seen = set()
-        result = []
-        for model in models:
-            if model.unique_id not in seen:
-                seen.add(model.unique_id)
-                result.append(model)
-        return result
+            # Pass the validated model IDs to router
+            allowed_model_ids = requested
 
-    def _filter_by_task_type(
-        self, models: list[ModelCapability], task_type: str
-    ) -> list[ModelCapability]:
-        """Filter models based on task type compatibility."""
-        if not task_type:
-            return models
+        # Map cost_bias (0.0=cheap, 1.0=quality) to cost_preference
+        cost_preference = request.cost_bias if request.cost_bias is not None else None
 
-        filtered = [m for m in models if self._supports_task_type(m, task_type)]
-        logger.debug(
-            "Task filtering completed",
-            extra={
-                "task_type": task_type,
-                "input_models": len(models),
-                "filtered_models": len(filtered),
-            },
+        # Route the question using internal Router
+        decision = self._router.route(
+            question_text=request.prompt,
+            cost_preference=cost_preference,
+            allowed_models=allowed_model_ids,
         )
-        return filtered
 
-    def _supports_task_type(self, model: ModelCapability, task_type: str) -> bool:
-        """Check if a model supports a specific task type."""
-        if not model.task_type:
-            return True
+        # Parse model ID to extract provider and model name
+        # Format: "openai:gpt-5-mini" -> provider="openai", model="gpt-5-mini"
+        if ":" not in decision.selected_model_id:
+            raise ValueError(
+                f"Invalid model ID format: {decision.selected_model_id}. "
+                f"Expected format: 'provider:model_name' (e.g., 'openai:gpt-4')"
+            )
 
-        model_task = str(model.task_type).lower().strip()
-        target_task = str(task_type).lower().strip()
+        selected_model_parts = decision.selected_model_id.split(":", 1)
+        if len(selected_model_parts) != 2 or not all(selected_model_parts):
+            raise ValueError(
+                f"Invalid model ID format: {decision.selected_model_id}. "
+                f"Both provider and model_name must be non-empty. "
+                f"Expected format: 'provider:model_name'"
+            )
 
-        # Special compatibility rules
-        if target_task == "other":
-            return True
-        if model_task == "text generation":
-            return True  # Most general category
-        if model_task == "code generation" and target_task == "text generation":
-            return True
+        provider, model_name = selected_model_parts
 
-        return model_task == target_task
+        # Convert alternatives to Alternative objects
+        alternatives_list = []
+        for alt in decision.alternatives[:3]:  # Limit to top 3 alternatives
+            alt_model_id = alt["model_id"]
+            alt_parts = alt_model_id.split(":", 1)
+            if len(alt_parts) == 2:
+                alternatives_list.append(
+                    Alternative(provider=alt_parts[0], model=alt_parts[1])
+                )
 
-    def _rank_models(
+        # Convert RoutingDecision to ModelSelectionResponse
+        response = ModelSelectionResponse(
+            provider=provider,
+            model=model_name,
+            alternatives=alternatives_list,
+        )
+
+        logger.info(
+            f"Selected model: {provider}/{model_name} "
+            f"(cluster {decision.cluster_id}, "
+            f"accuracy {decision.predicted_accuracy:.2%}, "
+            f"score {decision.routing_score:.3f})"
+        )
+
+        return response
+
+    def get_supported_models(self) -> List[str]:
+        """Get list of models this router supports.
+
+        Returns:
+            List of model IDs in format "provider:model_name"
+        """
+        return list(self._router.models.keys())
+
+    def get_cluster_info(self) -> Dict[str, Any]:
+        """Get information about loaded clusters.
+
+        Returns:
+            Dictionary with cluster statistics including n_clusters,
+            embedding_model, supported_models, and lambda parameters
+        """
+        return {
+            "n_clusters": self._router.cluster_engine.n_clusters,
+            "embedding_model": self._router.cluster_engine.feature_extractor.embedding_model_name,
+            "supported_models": self.get_supported_models(),
+            "lambda_min": self._router.lambda_min,
+            "lambda_max": self._router.lambda_max,
+            "default_cost_preference": self._router.default_cost_preference,
+        }
+
+
+class _Router:
+    """Internal routing engine using cluster-based error rates.
+
+    This is a private implementation class. Use ModelRouter instead.
+    """
+
+    def __init__(
         self,
-        models: list[ModelCapability],
-        task_complexity: float,
-        cost_bias: float,
-    ) -> list[ModelCapability]:
-        """Rank models by complexity suitability and cost bias."""
-        if not models:
-            return models
+        cluster_engine: ClusterEngine,
+        model_features: Dict[str, Any],
+        models: List[ModelConfig],
+        lambda_min: float = 0.0,
+        lambda_max: float = 1.0,
+        default_cost_preference: float = 0.5,
+    ) -> None:
+        """Initialize internal Router.
 
-        # Filter unsuitable models for complex tasks
-        filtered = self._filter_by_complexity_threshold(models, task_complexity)
-        if not filtered:
-            filtered = models  # Fallback if filtering removes everything
+        Args:
+            cluster_engine: Fitted ClusterEngine for question assignment
+            model_features: Model feature vectors (error rates + cost)
+            models: List of available models
+            lambda_min: Minimum lambda parameter
+            lambda_max: Maximum lambda parameter
+            default_cost_preference: Default cost-quality trade-off (0.0-1.0)
+        """
+        self.cluster_engine = cluster_engine
+        self.model_features = model_features
+        self.models = {m.id: m for m in models}
 
-        # Calculate scores and sort
-        scored = [
-            (self._calculate_model_score(m, filtered, task_complexity, cost_bias), m)
-            for m in filtered
+        # Lambda parameter range [0.0, 1.0]
+        # 0.0 = no cost penalty (pure quality)
+        # 1.0 = equal weight to error rate and cost (both normalized)
+        self.lambda_min = lambda_min
+        self.lambda_max = lambda_max
+        self.default_cost_preference = default_cost_preference
+
+        # Pre-compute normalized costs
+        all_costs = [f["cost_per_1m_tokens"] for f in model_features.values()]
+        self.min_cost = min(all_costs)
+        self.max_cost = max(all_costs)
+
+        logger.info(f"Internal Router initialized with {len(models)} models")
+
+    def route(
+        self,
+        question_text: str,
+        cost_preference: float | None = None,
+        allowed_models: List[str] | None = None,
+    ) -> RoutingDecision:
+        """Route a question to the optimal model.
+
+        Args:
+            question_text: Question to route
+            cost_preference: 0.0=cheap, 1.0=quality (default from config)
+            allowed_models: Optional list of model IDs to restrict routing to.
+                           If None, considers all available models.
+
+        Returns:
+            RoutingDecision with selected model and reasoning
+        """
+        start_time = time.time()
+
+        # Use default if not specified
+        if cost_preference is None:
+            cost_preference = self.default_cost_preference
+
+        # 1. Assign to cluster
+        cluster_id, distance = self.cluster_engine.assign_question(question_text)
+
+        # 2. Calculate lambda parameter
+        lambda_param = self._calculate_lambda(cost_preference)
+
+        # 3. Determine which models to consider
+        if allowed_models is not None:
+            # Filter to only allowed models
+            allowed_set = set(allowed_models)
+            models_to_score = {
+                model_id: features
+                for model_id, features in self.model_features.items()
+                if model_id in allowed_set
+            }
+
+            if not models_to_score:
+                raise ValueError(
+                    f"No valid models found in allowed list. "
+                    f"Allowed: {allowed_models}, Available: {list(self.model_features.keys())}"
+                )
+        else:
+            # Use all available models
+            models_to_score = self.model_features
+
+        # 4. Compute routing scores for each model
+        model_scores = {}
+
+        for model_id, features in models_to_score.items():
+            error_rate = features["error_rates"][cluster_id]
+            cost = features["cost_per_1m_tokens"]
+
+            normalized_cost = self._normalize_cost(cost)
+            score = error_rate + lambda_param * normalized_cost
+
+            model_scores[model_id] = {
+                "score": score,
+                "error_rate": error_rate,
+                "accuracy": 1.0 - error_rate,
+                "cost": cost,
+                "normalized_cost": normalized_cost,
+            }
+
+        # 5. Select best model (lowest score)
+        best_model_id = min(model_scores, key=lambda k: model_scores[k]["score"])
+        best_scores = model_scores[best_model_id]
+
+        # 6. Prepare decision
+        model = self.models[best_model_id]
+
+        routing_time = (time.time() - start_time) * 1000
+
+        # Generate reasoning
+        reasoning = self._generate_reasoning(
+            cluster_id=cluster_id,
+            cost_preference=cost_preference,
+            lambda_param=lambda_param,
+            selected_scores=best_scores,
+        )
+
+        # Prepare alternatives
+        alternatives = [
+            {
+                "model_id": mid,
+                "model_name": self.models[mid].name,
+                "score": scores["score"],
+                "accuracy": scores["accuracy"],
+                "cost": scores["cost"],
+            }
+            for mid, scores in sorted(model_scores.items(), key=lambda x: x[1]["score"])
+            if mid != best_model_id
         ]
 
-        return [model for _, model in sorted(scored, key=self._sort_key, reverse=True)]
+        return RoutingDecision(
+            selected_model_id=best_model_id,
+            selected_model_name=model.name,
+            routing_score=best_scores["score"],
+            predicted_accuracy=best_scores["accuracy"],
+            estimated_cost=best_scores["cost"]
+            * _ESTIMATED_TOKEN_COUNT
+            / _TOKENS_PER_MILLION,
+            cluster_id=cluster_id,
+            cluster_confidence=1.0 / (1.0 + distance),  # Convert distance to confidence
+            lambda_param=lambda_param,
+            reasoning=reasoning,
+            alternatives=alternatives,
+            routing_time_ms=routing_time,
+        )
 
-    def _filter_by_complexity_threshold(
-        self, models: list[ModelCapability], task_complexity: float
-    ) -> list[ModelCapability]:
-        """Filter out models that can't handle the required complexity."""
-        if task_complexity <= 0.5:
-            return models
+    def _calculate_lambda(self, cost_preference: float) -> float:
+        """Calculate lambda parameter.
 
-        threshold_context = 8000 if task_complexity > 0.7 else 4000
-        min_complexity = 0.2 if task_complexity > 0.7 else 0.0
+        Args:
+            cost_preference: 0.0=cheap, 1.0=quality
 
-        filtered = []
-        for model in models:
-            if task_complexity > 0.7:
-                model_complexity = self._get_model_complexity(model, models)
-                if (model.max_context_tokens or 0) < threshold_context:
-                    continue
-                if model_complexity < min_complexity:
-                    continue
-            elif (model.max_context_tokens or 0) < threshold_context:
-                continue
+        Returns:
+            Lambda parameter (higher = more cost penalty)
+        """
+        # Invert: high quality preference = low lambda (cost matters less)
+        lambda_param = self.lambda_max - cost_preference * (
+            self.lambda_max - self.lambda_min
+        )
 
-            filtered.append(model)
+        return lambda_param
 
-        return filtered
+    def _normalize_cost(self, cost: float) -> float:
+        """Normalize cost to [0, 1] range.
 
-    def _calculate_model_score(
+        Args:
+            cost: Model cost per 1M tokens
+
+        Returns:
+            Normalized cost
+        """
+        cost_range = self.max_cost - self.min_cost
+        if cost_range < _EPSILON:
+            return 0.0
+
+        return float((cost - self.min_cost) / cost_range)
+
+    def _generate_reasoning(
         self,
-        model: ModelCapability,
-        models: list[ModelCapability],
-        task_complexity: float,
-        cost_bias: float,
-    ) -> float:
-        """Calculate overall model score combining complexity and cost factors."""
-        complexity_score = self._calculate_complexity_score(
-            model, models, task_complexity
-        )
-        cost_score = self._calculate_cost_score(model, models)
+        cluster_id: int,
+        cost_preference: float,
+        lambda_param: float,
+        selected_scores: Dict[str, Any],
+    ) -> str:
+        """Generate human-readable reasoning for routing decision.
 
-        # Blend scores based on cost bias
-        return (1 - cost_bias) * cost_score + cost_bias * complexity_score
+        Args:
+            cluster_id: Assigned cluster
+            cost_preference: User's cost preference
+            lambda_param: Calculated lambda
+            selected_scores: Scores for selected model
 
-    def _calculate_complexity_score(
-        self,
-        model: ModelCapability,
-        models: list[ModelCapability],
-        task_complexity: float,
-    ) -> float:
-        """Calculate how well model complexity matches task requirements."""
-        model_complexity = self._get_model_complexity(model, models)
+        Returns:
+            Reasoning string
+        """
+        parts = []
 
-        # Alignment score (closer to task complexity is better)
-        alignment = 1.0 - abs(task_complexity - model_complexity)
+        # Cluster info
+        parts.append(f"Question assigned to cluster {cluster_id}")
 
-        # Capability bonus (can handle required complexity)
-        if model_complexity >= task_complexity:
-            capability_bonus = 0.2 * (1.0 - abs(task_complexity - model_complexity))
-            alignment += capability_bonus
+        # Preference info
+        if cost_preference < 0.3:
+            parts.append(f"Cost-optimized routing (λ={lambda_param:.2f})")
+        elif cost_preference < 0.7:
+            parts.append(f"Balanced cost-accuracy routing (λ={lambda_param:.2f})")
+        else:
+            parts.append(f"Quality-optimized routing (λ={lambda_param:.2f})")
 
-        return alignment
+        # Performance info
+        accuracy = selected_scores["accuracy"]
+        if accuracy >= 0.95:
+            parts.append(f"Excellent predicted accuracy ({accuracy:.0%})")
+        elif accuracy >= 0.75:
+            parts.append(f"Strong predicted accuracy ({accuracy:.0%})")
+        else:
+            parts.append(f"Best available option ({accuracy:.0%} predicted)")
 
-    def _calculate_cost_score(
-        self, model: ModelCapability, models: list[ModelCapability]
-    ) -> float:
-        """Calculate cost efficiency score (higher = more cost efficient)."""
-        model_cost = (model.cost_per_1m_input_tokens or 0) + (
-            model.cost_per_1m_output_tokens or 0
-        )
-        model_capability = model.max_context_tokens or 0
-
-        # Normalize against other models
-        costs = [
-            (m.cost_per_1m_input_tokens or 0) + (m.cost_per_1m_output_tokens or 0)
-            for m in models
-        ]
-        capabilities = [m.max_context_tokens or 0 for m in models]
-
-        max_cost = max(costs) if costs else 1
-        max_capability = max(capabilities) if capabilities else 1
-
-        # Cost score (lower cost = higher score)
-        cost_efficiency = 1 - (model_cost / max_cost if max_cost > 0 else 0)
-
-        # Capability score
-        capability_score = (
-            model_capability / max_capability if max_capability > 0 else 0
-        )
-
-        # Balanced score
-        return 0.6 * cost_efficiency + 0.4 * capability_score
-
-    def _get_model_complexity(
-        self, model: ModelCapability, models: list[ModelCapability]
-    ) -> float:
-        """Get model complexity score, using cost as proxy if not specified."""
-        if model.complexity is not None:
-            return model.complexity_score
-
-        # Use cost as complexity proxy
-        valid_costs = [
-            m.cost_per_1m_input_tokens
-            for m in models
-            if m.cost_per_1m_input_tokens is not None
-        ]
-        max_cost = max(valid_costs) if valid_costs else self._DEFAULT_COST
-
-        return (model.cost_per_1m_input_tokens or 0) / max_cost if max_cost > 0 else 0.5
-
-    @staticmethod
-    def _sort_key(scored_model: tuple[float, ModelCapability]) -> tuple[float, str]:
-        """Generate sort key for stable sorting."""
-        score, model = scored_model
-        return (score, model.model_name or "")
+        return "; ".join(parts)

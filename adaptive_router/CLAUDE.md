@@ -18,28 +18,24 @@ For documentation needs, use Ref MCP tools:
 
 ## Overview
 
-The adaptive_router service is a unified Python ML package that provides intelligent model selection for the Adaptive LLM infrastructure. It includes the complete NVIDIA prompt-task-complexity-classifier implementation with both local GPU/CPU inference and remote Modal serverless deployment options. The service supports three deployment modes: Library (import and use directly), FastAPI (HTTP API server with local inference), and Modal (serverless GPU deployment with JWT authentication).
+The adaptive_router service is a unified Python ML package that provides intelligent model selection for the Adaptive LLM infrastructure. It uses cluster-based intelligent routing with per-cluster error rates to select optimal LLM models. The service supports two deployment modes: Library (import and use directly in Python code) and FastAPI (HTTP API server with local GPU/CPU inference).
 
 ## Key Features
 
-- **Integrated ML Classifier**: Complete NVIDIA prompt-task-complexity-classifier built-in with local PyTorch inference
-- **Flexible Deployment**: Local GPU/CPU inference, FastAPI server, or Modal serverless deployment
-- **Task Classification**: Categorizes prompts by complexity and task type (code, math, creative, etc.)
-- **Multiple Deployment Modes**: Library import, FastAPI HTTP server, or Modal serverless with JWT authentication
-- **Cost Optimization**: Balances performance vs. cost based on user preferences and prompt analysis
-- **High-Performance API**: FastAPI framework with OpenAPI documentation and structured logging
-- **Serverless Scale**: Optional Modal deployment for auto-scaling GPU inference with sub-100ms latency
+- **Cluster-Based Routing**: UniRouter algorithm with K-means clustering and per-cluster error rates
+- **Flexible Deployment**: Python library import or FastAPI HTTP server
+- **Cost Optimization**: Balances performance vs. cost based on configurable preferences
+- **High-Performance API**: FastAPI framework with Hypercorn ASGI server, OpenAPI documentation
+- **MinIO S3 Storage**: Loads cluster profiles from Railway-hosted MinIO storage
+- **Local ML Inference**: Sentence transformers and scikit-learn for feature extraction and clustering
 
 ## Technology Stack
 
-- **ML Framework**: PyTorch 2.2+ with CUDA support for GPU acceleration
-- **Transformers**: HuggingFace Transformers 4.52+ for model loading
-- **Model**: NVIDIA DeBERTa-based classifier (microsoft/DeBERTa-v3-base backbone)
-- **API Framework**: FastAPI 0.104+ for HTTP server mode
+- **ML Framework**: PyTorch 2.2+ with sentence-transformers for semantic embeddings
+- **Clustering**: scikit-learn for K-means clustering and feature scaling
+- **API Framework**: FastAPI 0.118+ for HTTP server mode
 - **ASGI Server**: Hypercorn 0.17+ with HTTP/1.1, HTTP/2, and WebSocket support
-- **Serverless Deployment**: Modal 1.1+ for GPU-accelerated serverless inference
-- **HTTP Client**: httpx for Modal API communication with connection pooling
-- **Authentication**: python-jose and PyJWT for JWT token handling in Modal mode
+- **Storage**: boto3 for MinIO S3 integration (Railway deployment)
 - **LLM Integration**: LangChain for orchestration and provider abstraction
 - **Configuration**: Pydantic Settings for type-safe configuration management
 - **Logging**: Standard Python logging with structured JSON output
@@ -50,28 +46,31 @@ The adaptive_router service is a unified Python ML package that provides intelli
 adaptive_router/
 ├── adaptive_router/
 │   ├── __init__.py                           # Library exports for Python import
-│   ├── main.py                               # FastAPI server entry point
-│   ├── deploy.py                             # Modal deployment entry point
+│   ├── cli.py                                # CLI entry point (starts FastAPI server)
+│   ├── api/                                  # FastAPI server implementation
+│   │   ├── __init__.py
+│   │   └── app.py                            # FastAPI application with endpoints
 │   ├── core/
 │   │   ├── __init__.py
-│   │   └── config.py                         # Unified configuration (classifier + API + Modal)
+│   │   └── storage_config.py                 # MinIO S3 configuration
 │   ├── models/                               # Data models and schemas
 │   │   ├── __init__.py
 │   │   ├── llm_core_models.py                # Core request/response models
-│   │   ├── llm_classification_models.py      # Classification result models (shared)
-│   │   └── ...
-│   ├── services/                             # Core services and ML
+│   │   └── routing_schemas.py                # Routing decision models
+│   ├── services/                             # Core routing services
 │   │   ├── __init__.py
-│   │   ├── prompt_task_complexity_classifier.py  # Complete NVIDIA classifier (ML)
-│   │   ├── model_registry.py                 # Model metadata and capabilities
-│   │   ├── model_router.py                   # Model selection logic
+│   │   ├── model_router.py                   # Public API (uses RouterService)
+│   │   ├── router_service.py                 # Router integration layer
+│   │   ├── router.py                         # Core routing logic
+│   │   ├── cluster_engine.py                 # K-means clustering
+│   │   ├── feature_extractor.py              # Sentence transformers + TF-IDF
+│   │   ├── storage_profile_loader.py         # MinIO S3 profile loading
 │   │   └── yaml_model_loader.py              # YAML configuration loader
-│   └── utils/                                # Utility functions
-│       ├── __init__.py
-│       └── jwt.py                            # JWT authentication for Modal
-├── deploy.py                                 # Modal deployment script (root level)
+│   ├── config/                               # Configuration files
+│   │   └── unirouter_models.yaml             # Model definitions and routing config
+│   └── data/                                 # (Local data not used in production)
 ├── tests/                                    # Test suite (unit + integration)
-├── pyproject.toml                            # Dependencies (PyTorch + FastAPI + Modal)
+├── pyproject.toml                            # Dependencies and CLI entry point
 ├── uv.lock                                   # Dependency lock file
 └── README.md                                 # Service documentation
 ```
@@ -91,18 +90,11 @@ FASTAPI_RELOAD=false             # Auto-reload on code changes (dev only - not s
 FASTAPI_ACCESS_LOG=true          # Enable access logging
 FASTAPI_LOG_LEVEL=info           # Hypercorn log level
 
-# ML Classifier Configuration (for local inference)
-CLASSIFIER__MODEL_NAME=nvidia/prompt-task-and-complexity-classifier  # HuggingFace model
-CLASSIFIER__DEVICE=cuda          # Device: cuda or cpu (auto-detected by default)
-CLASSIFIER__MAX_LENGTH=512       # Maximum token length
-
-# Modal Deployment Configuration (for Modal mode only)
-MODAL_DEPLOYMENT__APP_NAME=prompt-task-complexity-classifier  # Modal app name
-MODAL_DEPLOYMENT__GPU_TYPE=T4    # GPU type: T4, A10G, A100, etc.
-MODAL_DEPLOYMENT__TIMEOUT=600    # Container timeout in seconds
-MODAL_DEPLOYMENT__MIN_CONTAINERS=0  # Minimum containers to keep warm
-MODAL_DEPLOYMENT__MAX_CONTAINERS=1  # Maximum containers for auto-scaling
-JWT_SECRET=your_jwt_secret       # JWT secret for Modal authentication
+# MinIO S3 Storage Configuration (Railway deployment)
+S3_BUCKET_NAME=adaptive-router-profiles  # MinIO bucket name
+MINIO_PUBLIC_ENDPOINT=https://minio.railway.app  # MinIO endpoint URL
+MINIO_ROOT_USER=your_minio_user          # MinIO access key
+MINIO_ROOT_PASSWORD=your_minio_password  # MinIO secret key
 ```
 
 ### Optional Configuration
@@ -124,57 +116,50 @@ LOG_LEVEL=INFO                  # Logging level
 Use adaptive_router as a Python library in your code:
 
 ```python
-from adaptive_router import PromptClassifier, ModelRouter, ModelSelectionRequest
+from adaptive_router import ModelRouter, ModelSelectionRequest
 
-# Initialize classifier
-classifier = PromptClassifier()
-
-# Classify a prompt
-result = classifier.classify_prompt("Write a Python function to sort a list")
-print(f"Task: {result['task_type_1']}, Complexity: {result['prompt_complexity_score']}")
-
-# Use router for model selection
+# Initialize router (loads cluster profiles from MinIO automatically)
 router = ModelRouter()
+
+# Select optimal model based on prompt
 request = ModelSelectionRequest(
     prompt="Write a Python function to sort a list",
-    cost_bias=0.5
+    cost_bias=0.5  # 0.0 = cheapest, 1.0 = most capable
 )
 response = router.select_model(request)
-print(f"Recommended model: {response.provider} / {response.model}")
+print(f"Selected: {response.provider} / {response.model}")
 print(f"Alternatives: {response.alternatives}")
 ```
 
 ### 2. FastAPI Server Mode
-Run as HTTP API server with local GPU/CPU inference:
+Run as HTTP API server for production deployment:
 
 ```bash
 # Install dependencies
 uv install
 
-# Start FastAPI server (local GPU/CPU inference)
-uv run adaptive-ai
+# Start FastAPI server (development mode with auto-reload)
+fastapi dev adaptive_router/api/app.py
 
-# Or with custom settings
-PORT=8001 uv run adaptive-ai
+# Or use Hypercorn for production
+hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
+
+# Server starts on http://0.0.0.0:8000
+# API docs available at http://localhost:8000/docs
+# ReDoc available at http://localhost:8000/redoc
+
+# Custom port
+PORT=8001 hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8001
+
+# Enable debug logging
+DEBUG=true hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
 ```
 
-Access API docs at `http://localhost:8000/docs`
+**API Endpoints:**
+- `POST /select_model` - Select optimal model based on prompt
+- `GET /health` - Health check endpoint
 
-### 3. Modal Serverless Mode (Optional)
-Deploy to Modal for serverless GPU inference with auto-scaling:
-
-```bash
-# Deploy to Modal
-modal deploy deploy.py
-
-# Test the deployed function using Modal SDK
-from modal import Function
-
-select_model = Function.lookup("prompt-task-complexity-classifier", "select_model")
-request = ModelSelectionRequest(prompt="Write a sorting algorithm", cost_bias=0.5)
-response = select_model.remote(request)
-print(f"Selected: {response.provider} / {response.model}")
-```
+Access interactive API docs at `http://localhost:8000/docs`
 
 ## Development Commands
 
@@ -183,17 +168,20 @@ print(f"Selected: {response.provider} / {response.model}")
 # Install dependencies
 uv install
 
-# Start the service
-uv run adaptive-ai
+# Start the FastAPI server (development mode with auto-reload)
+fastapi dev adaptive_router/api/app.py
 
-# Start with development settings
-DEBUG=true uv run adaptive-ai
+# Or use Hypercorn directly (production mode)
+hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
 
-# Start on custom port
-PORT=8001 uv run adaptive-ai
+# Start with custom configuration
+HOST=0.0.0.0 PORT=8001 hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8001
 
-# Note: Hypercorn workers setting is ignored in programmatic mode
-# For multi-process deployment, use a process manager like gunicorn or supervisord
+# Start with debug logging
+DEBUG=true hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
+
+# For multi-process deployment
+hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000 --workers 4
 ```
 
 ### Code Quality
@@ -402,47 +390,47 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 - Provides cost savings metrics and recommendations
 
 
-## ML Models and Classification (via Modal)
+## Routing Algorithm
 
-### Task Classification
-- **Model Type**: NVIDIA transformer model deployed on Modal GPU infrastructure
-- **Input**: Last message content from chat completion request
-- **Output**: Task categories (code, math, creative, analysis, etc.) with confidence scores
-- **Deployment**: Modal T4 GPU with JWT authentication
-- **Performance**: Sub-100ms inference time including network latency
+### Cluster-Based Selection (UniRouter)
+- **Algorithm**: K-means clustering of prompts based on semantic features
+- **Features**: Sentence transformer embeddings (384D) + TF-IDF features (5000D)
+- **Clusters**: Prompts grouped into K clusters (configurable, typically K=10-50)
+- **Error Rates**: Each model has per-cluster error rates learned from historical data
+- **Selection**: Combines error rates + cost + user preferences to rank models
 
-### Domain Classification
-- **Model Type**: NVIDIA model with contextual understanding
-- **Input**: Full conversation context and prompt content
-- **Output**: Domain categories (software, science, business, etc.) with confidence
-- **Features**: GPU-accelerated inference on Modal infrastructure
-- **Accuracy**: >90% on domain-specific benchmarks
+### Feature Extraction
+- **Embeddings**: Sentence transformers (all-MiniLM-L6-v2) for semantic similarity
+- **TF-IDF**: Term frequency-inverse document frequency for lexical patterns
+- **Scaling**: StandardScaler normalization for both feature types
+- **Concatenation**: Combined 5384D feature vector per prompt
 
-### Cost-Performance Modeling
-- **Approach**: Multi-objective optimization using historical performance data
-- **Metrics**: Cost per token, response quality, latency, success rate
-- **Learning**: Continuous adaptation based on user feedback and outcomes
-- **Optimization**: Pareto-optimal trade-offs between cost and quality
+### Cost-Performance Trade-off
+- **Cost Preference**: λ parameter (0.0 = cheapest, 1.0 = most accurate)
+- **Routing Score**: Weighted combination of predicted accuracy and normalized cost
+- **Formula**: `score = predicted_accuracy - λ * normalized_cost`
+- **Optimization**: Selects model with highest routing score for assigned cluster
 
 ## Caching and Performance
 
 ### API Performance
 - **Framework**: FastAPI with async/await for optimal performance
-- **HTTP Client**: httpx with connection pooling for Modal API calls
-- **Authentication**: JWT token caching to minimize overhead
-- **Retry Logic**: Exponential backoff for resilient Modal communication
+- **ASGI Server**: Hypercorn with HTTP/1.1 and HTTP/2 support
+- **CORS**: Configured middleware for cross-origin requests
+- **Error Handling**: Global exception handlers with structured logging
 
-### Modal Integration
-- **Connection**: HTTP/HTTPS with JWT authentication
-- **Timeout**: Configurable request timeout (default: 30s)
-- **Retries**: Configurable retry attempts with exponential backoff
-- **Health Checks**: Regular Modal service health monitoring
+### Storage Integration
+- **MinIO S3**: Loads cluster profiles from Railway-hosted MinIO on startup
+- **Profile Caching**: Cluster centers, error rates, and scalers loaded once at init
+- **Connection Pooling**: boto3 handles S3 connection pooling automatically
+- **Health Checks**: Validates MinIO connectivity during startup
 
 ### Request Processing
-- **Async Processing**: Native FastAPI async for concurrent requests
-- **Error Handling**: Graceful fallbacks when Modal API is unavailable
-- **Response Time**: <100ms end-to-end including Modal API latency
-- **Throughput**: Limited by Modal service capacity, not local processing
+- **Feature Extraction**: Local sentence transformers + TF-IDF (no external API calls)
+- **Cluster Assignment**: Fast K-means predict using pre-loaded centroids
+- **Model Selection**: In-memory scoring of models based on cluster assignment
+- **Response Time**: <100ms end-to-end for typical requests
+- **Throughput**: 100+ requests/second on standard hardware
 
 ## Configuration
 
@@ -523,26 +511,18 @@ The service is included in the root `docker-compose.yml` with proper networking 
 
 ### Resource Requirements
 
-Resource requirements vary significantly by deployment mode:
+#### Library Mode
+- **CPU**: 2-4 cores for feature extraction and clustering
+- **GPU**: Optional (macOS uses CPU, Linux can use CUDA if available)
+- **Memory**: 2-4GB RAM for sentence transformers and scikit-learn
+- **Storage**: 1-2GB for HuggingFace model cache (~500MB for all-MiniLM-L6-v2)
 
-#### Library Mode (Local Inference)
-- **CPU**: 2-4 cores recommended for ML inference
-- **GPU**: NVIDIA GPU with CUDA support recommended (optional, falls back to CPU)
-- **Memory**: 4-8GB RAM for PyTorch models and transformers
-- **Storage**: 2-3GB for HuggingFace model cache and application code
-
-#### FastAPI Server Mode (Local Inference)
-- **CPU**: 2-4 cores for concurrent request handling + ML inference
-- **GPU**: NVIDIA GPU with CUDA support recommended for production workloads
-- **Memory**: 4-8GB RAM for ML models, API server, and request processing
-- **Storage**: 2-3GB for models, application, and logs
-
-#### Modal Serverless Mode (Remote Inference)
-- **CPU**: 1-2 cores sufficient (no local ML inference, only API routing)
-- **Memory**: 512MB-1GB RAM (minimal local processing)
-- **Storage**: 1GB for application and logs
-- **Network**: Reliable internet connection for Modal API calls
-- **Modal Resources**: T4 GPU (or configured GPU type) managed by Modal
+#### FastAPI Server Mode
+- **CPU**: 2-4 cores for concurrent requests + feature extraction
+- **GPU**: Optional (sentence transformers work well on CPU)
+- **Memory**: 2-4GB RAM for models, API server, and request processing
+- **Storage**: 1-2GB for models, cluster profiles, and logs
+- **Network**: Connection to MinIO S3 (Railway) for loading cluster profiles
 
 ### Hypercorn Benefits
 - **Protocol Support**: HTTP/1.1, HTTP/2, WebSockets out of the box
@@ -558,55 +538,41 @@ Resource requirements vary significantly by deployment mode:
 - Check Python version (3.10+ required)
 - Verify all dependencies installed: `uv install`
 - Check port availability (default: 8000)
-- Review environment variable configuration
-- Verify Hypercorn is correctly installed: `uv run hypercorn --version`
+- Review environment variable configuration (especially MinIO settings)
+- Verify Hypercorn is correctly installed: `hypercorn --version`
+- Ensure you're using the correct command: `fastapi dev adaptive_router/api/app.py` or `hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000`
 
-**Local ML model loading failures** (Library/FastAPI modes)
-- Verify PyTorch and transformers are installed: `uv sync`
+**MinIO connection failures**
+- Verify S3_BUCKET_NAME environment variable is set
+- Check MINIO_PUBLIC_ENDPOINT is accessible from your deployment
+- Validate MINIO_ROOT_USER and MINIO_ROOT_PASSWORD credentials
+- Test MinIO connectivity: use boto3 client to list buckets
+- Check Railway MinIO service status if using Railway deployment
+
+**Model loading failures**
+- Verify sentence-transformers is installed: `uv sync`
 - Check HuggingFace Hub connectivity for model downloads
 - Verify CUDA drivers if using GPU: `python -c "import torch; print(torch.cuda.is_available())"`
-- Check available disk space for model cache (~2-3GB required)
-- Review CLASSIFIER__DEVICE setting (auto, cuda, or cpu)
+- Check available disk space for model cache (~500MB for all-MiniLM-L6-v2)
+- On macOS, CPU mode is used automatically (no CUDA required)
 
-**Modal API connection failures** (Modal mode only)
-- Verify Modal deployment is active: `modal app list`
-- Check JWT_SECRET environment variable matches Modal secret
-- Verify network connectivity to Modal service
-- Check Modal service health status
-
-**Classification errors** (All modes)
-- Verify input format matches expected schema
-- Check prompt length is within model limits (default: 512 tokens)
-- Review classification result structure
-- Enable debug logging: `DEBUG=true uv run adaptive-ai`
+**Routing errors**
+- Verify input format matches ModelSelectionRequest schema
+- Check prompt length is reasonable (no hard limit, but very long prompts are slower)
+- Ensure MinIO profile data contains required cluster centers and error rates
+- Enable debug logging: `DEBUG=true uv run adaptive-router`
 
 **Performance issues**
-
-*Library/FastAPI modes (local inference):*
-- Monitor GPU utilization: `nvidia-smi` (if using CUDA)
-- Check CPU usage and available cores
-- Verify model is loaded in memory (first inference is slower)
-- Consider reducing CLASSIFIER__MAX_LENGTH for faster processing
-- Review batch size if processing multiple prompts
-
-*Modal mode (remote inference):*
-- Check Modal API response times
-- Verify JWT token generation overhead
-- Monitor network latency to Modal service
-- Consider adjusting request timeout settings
+- Monitor CPU usage during feature extraction
+- Check memory usage (sentence transformers ~1-2GB)
+- Verify cluster profile loaded successfully at startup (check logs)
+- For production, consider using CUDA if available (Linux only)
+- Review batch processing if handling multiple requests concurrently
 
 ### Debug Commands
 
 **Library Mode:**
 ```bash
-# Test local classifier
-python -c "
-from adaptive_router import PromptClassifier
-classifier = PromptClassifier()
-result = classifier.classify_prompt('Write a Python sorting function')
-print(result)
-"
-
 # Test model router
 python -c "
 from adaptive_router import ModelRouter, ModelSelectionRequest
@@ -616,7 +582,7 @@ response = router.select_model(request)
 print(f'Provider: {response.provider}, Model: {response.model}')
 "
 
-# Check GPU availability
+# Check CUDA availability (Linux only)
 python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
 
 # Monitor memory usage
@@ -625,8 +591,8 @@ python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
 
 **FastAPI Server Mode:**
 ```bash
-# Enable debug logging
-DEBUG=true uv run adaptive-ai
+# Start with debug logging
+DEBUG=true hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
 
 # Check service health
 curl -X GET http://localhost:8000/health
@@ -636,45 +602,37 @@ curl -X POST http://localhost:8000/select_model \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Write a sorting algorithm", "cost_bias": 0.5}'
 
-# Monitor GPU usage (if CUDA enabled)
-nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv -l 1
-```
-
-**Modal Serverless Mode:**
-```bash
-# Check Modal deployment status
-modal app list
-
-# Test Modal function
-modal run deploy.py::select_model --prompt "Hello world"
-
-# View Modal logs
-modal app logs prompt-task-complexity-classifier
+# Check MinIO connectivity
+python -c "
+from adaptive_router.core.storage_config import MinIOSettings
+from adaptive_router.services.storage_profile_loader import StorageProfileLoader
+settings = MinIOSettings()
+loader = StorageProfileLoader.from_minio_settings(settings)
+print('MinIO connection successful')
+"
 ```
 
 ## Performance Benchmarks
 
-Performance characteristics vary by deployment mode:
+### Library/FastAPI Mode
+- **Feature Extraction**: 20-50ms per request (sentence transformers + TF-IDF)
+- **Cluster Assignment**: <5ms (K-means predict on pre-loaded centroids)
+- **Model Selection**: <5ms (scoring and ranking models)
+- **Total Latency**: 30-60ms end-to-end per request
+- **Throughput**: 100-500 requests/second (depends on CPU cores)
+- **Memory Usage**: 2-4GB (sentence transformers + cluster profiles)
+- **First Request**: Slower (~2-5s) due to loading models from HuggingFace
 
-### Library/FastAPI Mode (Local Inference)
-- **Single Request**: 50-200ms (depends on CPU/GPU, faster after model warmup)
-- **Batch Processing**: 100-500 requests/second (GPU-accelerated)
-- **Memory Usage**: 4-8GB with all models loaded in memory
-- **First Request Latency**: 2-5 seconds (model loading time)
-- **GPU Speedup**: 3-5x faster than CPU inference
+### Startup Performance
+- **MinIO Profile Load**: 1-3 seconds (downloads cluster centers, error rates, scalers)
+- **Model Download**: 5-10 seconds first time (HuggingFace cache), instant after that
+- **Total Startup**: 5-15 seconds depending on network and cache state
 
-### Modal Serverless Mode (Remote Inference)
-- **Single Request**: 100-300ms end-to-end (including network latency)
-- **Cold Start**: 5-10 seconds for first request (container initialization)
-- **Warm Request**: <100ms after container warmup
-- **Concurrent Requests**: Auto-scales based on load (up to max_containers)
-- **Network Overhead**: 20-50ms typical latency to Modal infrastructure
-
-### Cost Optimization Results
-- **Typical Savings**: 30-70% compared to always using premium models
-- **Quality Retention**: >95% user satisfaction with selected models
-- **Accuracy**: >90% optimal model selection for classified tasks
-- **Latency Impact**: <100ms additional latency vs. direct routing
+### Routing Quality
+- **Cost Savings**: 30-70% compared to always using most capable models
+- **Accuracy Retention**: >90% of optimal model selection vs. oracle routing
+- **Cluster Silhouette**: Typically 0.3-0.5 (good cluster separation)
+- **Per-Cluster Accuracy**: Varies by cluster, tracked in profile metadata
 
 ## Contributing
 
