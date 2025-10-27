@@ -36,7 +36,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
     libgomp1 \
-    libopenblas-base \
+    libopenblas0 \
     liblapack3 \
     libgfortran5 \
     && rm -rf /var/lib/apt/lists/*
