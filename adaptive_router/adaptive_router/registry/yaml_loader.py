@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from adaptive_router.models.llm_core_models import ModelCapability
+from adaptive_router.models.api import ModelCapability
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,6 @@ class YAMLModelDatabase:
 
     def _load_models_from_yaml(self) -> None:
         """Load models from YAML files for supported providers."""
-        # Get the model_data directory path
         current_dir = Path(__file__).parent.parent
         yaml_dir = current_dir / "model_data" / "data" / "provider_models"
 

@@ -4,8 +4,8 @@ Model registry service for validating model names across all providers.
 
 import logging
 
-from adaptive_router.models.llm_core_models import ModelCapability
-from adaptive_router.services.yaml_model_loader import YAMLModelDatabase
+from adaptive_router.models.api import ModelCapability
+from adaptive_router.registry.yaml_loader import YAMLModelDatabase
 
 logger = logging.getLogger(__name__)
 

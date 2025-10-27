@@ -2,7 +2,6 @@
 
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -10,8 +9,8 @@ import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-from adaptive_router.models import ClusterMetadata, CodeQuestion
-from adaptive_router.services.feature_extractor import FeatureExtractor
+from adaptive_router.models import ProfileMetadata, CodeQuestion
+from adaptive_router.core.feature_extractor import FeatureExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -220,12 +219,11 @@ class ClusterEngine:
             json.dump(cluster_data, f, indent=2)
 
         # Save metadata
-        metadata = ClusterMetadata(
+        metadata = ProfileMetadata(
             n_clusters=self.n_clusters,
-            n_questions=len(self.questions),
-            clustering_method="K-means",
             embedding_model=self.feature_extractor.embedding_model_name,
-            timestamp=datetime.now().isoformat(),
+            tfidf_max_features=self.feature_extractor.tfidf_vectorizer.max_features,
+            tfidf_ngram_range=list(self.feature_extractor.tfidf_vectorizer.ngram_range),
             silhouette_score=self.silhouette,
         )
 

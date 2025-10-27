@@ -41,7 +41,7 @@ from pathlib import Path
 import yaml
 
 # Add adaptive_router to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Configure logging
 logging.basicConfig(
@@ -51,10 +51,12 @@ logger = logging.getLogger(__name__)
 
 # Paths
 SCRIPTS_DIR = Path(__file__).parent.parent
-ADAPTIVE_ROUTER_DIR = SCRIPTS_DIR.parent / "adaptive_router"
+ADAPTIVE_ROUTER_DIR = SCRIPTS_DIR.parent
 CONFIG_DIR = ADAPTIVE_ROUTER_DIR / "config"
 MODELS_CONFIG_FILE = CONFIG_DIR / "unirouter_models.yaml"
-CLUSTERS_DIR = ADAPTIVE_ROUTER_DIR / "data" / "unirouter" / "clusters"
+CLUSTERS_DIR = (
+    ADAPTIVE_ROUTER_DIR / "adaptive_router" / "data" / "unirouter" / "clusters"
+)
 PROFILES_FILE = CLUSTERS_DIR / "llm_profiles.json"
 
 
@@ -186,11 +188,11 @@ def test_routing(model_id: str):
     logger.info(f"{'='*80}")
 
     try:
-        from adaptive_router.services.unirouter_service import UniRouterService
-        from adaptive_router.models.llm_core_models import ModelSelectionRequest
+        from adaptive_router.core.router import ModelRouter
+        from adaptive_router.models.api import ModelSelectionRequest
 
-        # Initialize UniRouter service
-        service = UniRouterService()
+        # Initialize ModelRouter
+        router = ModelRouter()
 
         # Test routing with a sample question
         test_prompt = "Write a Python function to calculate the factorial of a number."
@@ -200,7 +202,7 @@ def test_routing(model_id: str):
             cost_bias=0.5,  # Balanced cost preference
         )
 
-        response = service.select_model(request)
+        response = router.select_model(request)
 
         logger.info("\n✅ Routing test successful!")
         logger.info(f"   Test prompt: {test_prompt}")

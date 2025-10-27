@@ -10,7 +10,8 @@ import numpy as np
 import pytest
 
 from adaptive_router.models import CodeQuestion
-from adaptive_router.services.cluster_engine import ClusterEngine
+from adaptive_router.core.cluster_engine import ClusterEngine
+from adaptive_router.core.router import ModelRouter
 
 
 @pytest.fixture
@@ -413,83 +414,58 @@ class TestClusterEngineEdgeCases:
 class TestRouterServiceMocked:
     """Test ModelRouter with mocked dependencies (no real ML models)."""
 
-    @patch("adaptive_router.services.model_router._Router")
-    @patch("adaptive_router.services.model_router.ClusterEngine")
-    def test_initialization_mocked(
-        self, mock_cluster_engine_class, mock_router_class
-    ) -> None:
+    def test_initialization_mocked(self) -> None:
         """Test ModelRouter initialization with mocked components."""
+        from adaptive_router.models.storage import (
+            RouterProfile,
+            ProfileMetadata,
+            ClusterCentersData,
+            TFIDFVocabularyData,
+            ScalerParameters,
+            ScalerParametersData,
+        )
 
-        # Mock the data directory to avoid file access
-        with tempfile.TemporaryDirectory() as tmpdir:
-            data_dir = Path(tmpdir)
+        mock_profile = RouterProfile(
+            metadata=ProfileMetadata(
+                n_clusters=5,
+                silhouette_score=0.5,
+                embedding_model="all-MiniLM-L6-v2",
+                tfidf_max_features=100,
+                tfidf_ngram_range=[1, 2],
+            ),
+            cluster_centers=ClusterCentersData(
+                n_clusters=5,
+                feature_dim=100,
+                cluster_centers=[[0.0] * 100 for _ in range(5)],
+            ),
+            llm_profiles={
+                "openai:gpt-4": [0.08] * 5,
+            },
+            tfidf_vocabulary=TFIDFVocabularyData(
+                vocabulary={"test": 0},
+                idf=[1.0],
+            ),
+            scaler_parameters=ScalerParameters(
+                embedding_scaler=ScalerParametersData(
+                    mean=[0.0] * 100,
+                    scale=[1.0] * 100,
+                ),
+                tfidf_scaler=ScalerParametersData(
+                    mean=[0.0],
+                    scale=[1.0],
+                ),
+            ),
+        )
 
-            # Create required directory structure
-            cluster_dir = data_dir / "clusters"
-            cluster_dir.mkdir(parents=True)
+        mock_costs = {"openai:gpt-4": 30.0}
 
-            # Create minimal metadata file
-            metadata = {
-                "n_clusters": 5,
-                "silhouette_score": 0.5,
-                "embedding_model": "test-model",
-            }
-            with open(cluster_dir / "metadata.json", "w") as f:
-                json.dump(metadata, f)
+        with patch.object(ModelRouter, "_build_cluster_engine_from_data"):
+            router = ModelRouter(profile=mock_profile, model_costs=mock_costs)
 
-            # Create minimal profiles file
-            profiles = {
-                "openai:gpt-5": [0.1, 0.2, 0.15, 0.18, 0.12],
-            }
-            with open(cluster_dir / "llm_profiles.json", "w") as f:
-                json.dump(profiles, f)
-
-            # Create config file
-            config_dir = data_dir.parent / "config"
-            config_dir.mkdir(parents=True, exist_ok=True)
-            config = {
-                "gpt5_models": [
-                    {
-                        "id": "openai:gpt-5",
-                        "name": "gpt-5",
-                        "provider": "openai",
-                        "cost_per_1m_tokens": 1.25,
-                    }
-                ],
-                "routing": {
-                    "lambda_min": 0.0,
-                    "lambda_max": 1.0,
-                    "default_cost_preference": 0.5,
-                },
-            }
-            import yaml
-
-            with open(config_dir / "unirouter_models.yaml", "w") as f:
-                yaml.dump(config, f)
-
-            # Create JSON cluster files
-            cluster_centers_data = {
-                "n_clusters": 5,
-                "cluster_centers": [[0.1] * 384] * 5,  # Dummy centers
-                "feature_dim": 384,
-            }
-            with open(cluster_dir / "cluster_centers.json", "w") as f:
-                json.dump(cluster_centers_data, f)
-
-            tfidf_vocab = {
-                "vocabulary": {"test": 0, "word": 1},
-                "idf": [1.0, 1.5],
-            }
-            with open(cluster_dir / "tfidf_vocabulary.json", "w") as f:
-                json.dump(tfidf_vocab, f)
-
-            # Initialization should use the mocked classes
-            # This test verifies the service can be initialized
-            # (actual functionality would need real ML models)
+            assert router is not None
 
     def test_select_model_validates_request(self) -> None:
         """Test that select_model validates the request."""
-        # This would test validation logic without requiring full ML stack
         pass
 
 

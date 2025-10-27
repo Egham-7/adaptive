@@ -457,7 +457,29 @@ def run_all_tests(args: argparse.Namespace) -> Dict[str, Any]:
     # Initialize router
     console.print("\n[bold]Initializing router...[/bold]")
     try:
-        router = ModelRouter()
+        config_file = (
+            Path(__file__).parent.parent.parent
+            / "adaptive_router"
+            / "config"
+            / "unirouter_models.yaml"
+        )
+        profile_path = (
+            Path(__file__).parent.parent.parent / "data" / "global_profile.json"
+        )
+
+        with open(config_file) as f:
+            import yaml
+
+            config = yaml.safe_load(f)
+            model_costs = {
+                model["id"]: model["cost_per_1m_tokens"]
+                for model in config.get("gpt5_models", [])
+            }
+
+        router = ModelRouter.from_local_file(
+            profile_path=profile_path,
+            model_costs=model_costs,
+        )
         console.print("✅ [green]Router initialized successfully[/green]\n")
     except Exception as e:
         console.print(f"❌ [red]Failed to initialize router: {e}[/red]")

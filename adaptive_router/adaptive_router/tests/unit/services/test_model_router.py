@@ -1,94 +1,112 @@
 """Unit tests for ModelRouter service."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
-from adaptive_router.models import RoutingDecision
-from adaptive_router.models.llm_core_models import (
-    ModelCapability,
-    ModelSelectionRequest,
+from adaptive_router.models.api import ModelCapability, ModelSelectionRequest
+from adaptive_router.models.storage import (
+    RouterProfile,
+    ScalerParameters,
+    ScalerParametersData,
+    TFIDFVocabularyData,
 )
-from adaptive_router.services.model_router import ModelRouter
+from adaptive_router.core.router import ModelRouter
 
 
 @pytest.fixture
-def mock_router_service():
-    """Create a mock router_service with internal _Router."""
-    # Create mock internal router that returns RoutingDecision
-    mock_internal_router = Mock()
-    mock_internal_router.route.return_value = RoutingDecision(
-        selected_model_id="openai:gpt-4",
-        selected_model_name="gpt-4",
-        routing_score=0.85,
-        predicted_accuracy=0.92,
-        estimated_cost=0.03,
-        cluster_id=5,
-        cluster_confidence=0.88,
-        lambda_param=0.5,
-        reasoning="Selected based on cluster analysis",
-        alternatives=[
-            {
-                "model_id": "anthropic:claude-3-sonnet-20240229",
-                "score": 0.82,
-                "predicted_accuracy": 0.89,
-            }
-        ],
-        routing_time_ms=45.2,
+def mock_router():
+    """Create a mock ModelRouter with patched __init__ method."""
+    from adaptive_router.models.storage import (
+        ProfileMetadata,
+        ClusterCentersData,
     )
 
-    # Mock the models dict for get_supported_models()
-    mock_internal_router.models = {
-        "openai:gpt-4": Mock(),
-        "openai:gpt-3.5-turbo": Mock(),
-        "anthropic:claude-3-sonnet-20240229": Mock(),
+    mock_profile = RouterProfile(
+        metadata=ProfileMetadata(
+            n_clusters=10,
+            silhouette_score=0.5,
+            embedding_model="all-MiniLM-L6-v2",
+            tfidf_max_features=100,
+            tfidf_ngram_range=[1, 2],
+        ),
+        cluster_centers=ClusterCentersData(
+            n_clusters=10,
+            feature_dim=100,
+            cluster_centers=[[0.0] * 100 for _ in range(10)],
+        ),
+        llm_profiles={
+            "openai:gpt-4": [0.08] * 10,
+            "openai:gpt-3.5-turbo": [0.15] * 10,
+            "anthropic:claude-3-sonnet-20240229": [0.10] * 10,
+        },
+        tfidf_vocabulary=TFIDFVocabularyData(
+            vocabulary={"test": 0},
+            idf=[1.0],
+        ),
+        scaler_parameters=ScalerParameters(
+            embedding_scaler=ScalerParametersData(
+                mean=[0.0] * 100,
+                scale=[1.0] * 100,
+            ),
+            tfidf_scaler=ScalerParametersData(
+                mean=[0.0],
+                scale=[1.0],
+            ),
+        ),
+    )
+
+    mock_costs = {
+        "openai:gpt-4": 30.0,
+        "openai:gpt-3.5-turbo": 1.0,
+        "anthropic:claude-3-sonnet-20240229": 15.0,
     }
 
-    # Create mock service with router attribute (new architecture)
-    mock_service = Mock()
-    mock_service.router = mock_internal_router
+    def mock_build_cluster_engine(self, profile):
+        mock_engine = Mock()
+        mock_engine.n_clusters = 10
+        mock_engine.assign_question = Mock(return_value=(5, 0.15))
+        return mock_engine
 
-    return mock_service
+    with patch.object(
+        ModelRouter, "_build_cluster_engine_from_data", mock_build_cluster_engine
+    ):
+        router = ModelRouter(profile=mock_profile, model_costs=mock_costs)
+        return router
 
 
 class TestModelRouter:
     """Test ModelRouter class logic without external dependencies."""
 
-    def test_initialization(self, mock_router_service: Mock) -> None:
+    def test_initialization(self, mock_router: ModelRouter) -> None:
         """Test router initialization creates a functional instance."""
-        router = ModelRouter(router_service=mock_router_service)
-
         # Test that the router can perform its main function
         request = ModelSelectionRequest(
             prompt="Write a simple hello world function",
             cost_bias=0.5,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         # Verify the router produces valid output
         assert response.provider
         assert response.model
         assert isinstance(response.alternatives, list)
 
-    def test_initialization_without_params(self, mock_router_service: Mock) -> None:
-        """Test router delegates to internal _Router."""
-        router = ModelRouter(router_service=mock_router_service)
-
-        # Test that the router works with mock service
+    def test_initialization_without_params(self, mock_router: ModelRouter) -> None:
+        """Test router works with default config."""
+        # Test that the router works
         request = ModelSelectionRequest(
             prompt="Calculate the factorial of 10",
             cost_bias=0.5,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         # Verify valid response
         assert response.provider
         assert response.model
 
-    def test_select_model_with_full_models(self, mock_router_service: Mock) -> None:
+    def test_select_model_with_full_models(self, mock_router: ModelRouter) -> None:
         """Test model selection when full models are provided."""
-        router = ModelRouter(router_service=mock_router_service)
-
         sample_models = [
             ModelCapability(
                 provider="openai",
@@ -106,61 +124,53 @@ class TestModelRouter:
             models=sample_models,
             cost_bias=0.9,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         # Verify response structure
         assert response.provider
         assert response.model
         assert isinstance(response.alternatives, list)
 
-    def test_select_model_cost_bias_low(self, mock_router_service: Mock) -> None:
+    def test_select_model_cost_bias_low(self, mock_router: ModelRouter) -> None:
         """Test that low cost bias works correctly."""
-        router = ModelRouter(router_service=mock_router_service)
-
         # Low cost bias (0.1)
         request = ModelSelectionRequest(
             prompt="Write a simple hello world program",
             cost_bias=0.1,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         assert response.provider
         assert response.model
 
-    def test_select_model_cost_bias_high(self, mock_router_service: Mock) -> None:
+    def test_select_model_cost_bias_high(self, mock_router: ModelRouter) -> None:
         """Test that high cost bias works correctly."""
-        router = ModelRouter(router_service=mock_router_service)
-
         # High cost bias (0.9)
         request = ModelSelectionRequest(
             prompt="Design a distributed system architecture for real-time data processing",
             cost_bias=0.9,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         assert response.provider
         assert response.model
 
-    def test_select_model_empty_input(self, mock_router_service: Mock) -> None:
+    def test_select_model_empty_input(self, mock_router: ModelRouter) -> None:
         """Test selecting models when no models are provided."""
-        router = ModelRouter(router_service=mock_router_service)
-
         request = ModelSelectionRequest(
             prompt="Explain quantum computing",
             models=None,
             cost_bias=0.5,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
-        # Should delegate to service
+        # Should work with internal model list
         assert response.provider
         assert response.model
         assert isinstance(response.alternatives, list)
 
-    def test_partial_model_filtering(self, mock_router_service: Mock) -> None:
-        """Test filtering with partial ModelCapability."""
-        router = ModelRouter(router_service=mock_router_service)
-
+    def test_partial_model_filtering(self, mock_router: ModelRouter) -> None:
+        """Test filtering with partial ModelCapability (should use all models)."""
         partial_models = [
             ModelCapability(
                 provider="openai",
@@ -177,34 +187,30 @@ class TestModelRouter:
             models=partial_models,
             cost_bias=0.5,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
-        # Should delegate to service
+        # Should work with all models since partial models are ignored
         assert response.provider
         assert response.model
 
-    def test_model_selection_code_task(self, mock_router_service: Mock) -> None:
+    def test_model_selection_code_task(self, mock_router: ModelRouter) -> None:
         """Test model selection for code generation tasks."""
-        router = ModelRouter(router_service=mock_router_service)
-
         request = ModelSelectionRequest(
             prompt="Write a Python function to implement binary search",
             cost_bias=0.5,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         assert response.provider
         assert response.model
 
-    def test_model_selection_creative_task(self, mock_router_service: Mock) -> None:
+    def test_model_selection_creative_task(self, mock_router: ModelRouter) -> None:
         """Test model selection for creative writing tasks."""
-        router = ModelRouter(router_service=mock_router_service)
-
         request = ModelSelectionRequest(
             prompt="Write a short poem about nature",
             cost_bias=0.3,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         assert response.provider
         assert response.model
@@ -252,16 +258,14 @@ class TestModelRouterEdgeCases:
             or "validation" in str(exc_info.value).lower()
         )
 
-    def test_valid_cost_bias_boundary_values(self, mock_router_service: Mock) -> None:
+    def test_valid_cost_bias_boundary_values(self, mock_router: ModelRouter) -> None:
         """Test that boundary values 0.0 and 1.0 are accepted."""
-        router = ModelRouter(router_service=mock_router_service)
-
         # Test cost_bias = 0.0 (minimum)
         request_min = ModelSelectionRequest(
             prompt="Simple task",
             cost_bias=0.0,
         )
-        response_min = router.select_model(request_min)
+        response_min = mock_router.select_model(request_min)
         assert response_min.provider
         assert response_min.model
 
@@ -270,14 +274,12 @@ class TestModelRouterEdgeCases:
             prompt="Simple task",
             cost_bias=1.0,
         )
-        response_max = router.select_model(request_max)
+        response_max = mock_router.select_model(request_max)
         assert response_max.provider
         assert response_max.model
 
-    def test_complex_prompt_handling(self, mock_router_service: Mock) -> None:
+    def test_complex_prompt_handling(self, mock_router: ModelRouter) -> None:
         """Test handling of very complex prompts."""
-        router = ModelRouter(router_service=mock_router_service)
-
         # Very long and complex prompt
         complex_prompt = """
         Design and implement a distributed microservices architecture with the following requirements:
@@ -293,35 +295,31 @@ class TestModelRouterEdgeCases:
             prompt=complex_prompt,
             cost_bias=0.9,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         assert response.provider
         assert response.model
 
-    def test_simple_prompt_handling(self, mock_router_service: Mock) -> None:
+    def test_simple_prompt_handling(self, mock_router: ModelRouter) -> None:
         """Test handling of very simple prompts."""
-        router = ModelRouter(router_service=mock_router_service)
-
         request = ModelSelectionRequest(
             prompt="Hello, how are you?",
             cost_bias=0.1,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         # Should successfully select a model
         assert response.provider
         assert response.model
         assert isinstance(response.alternatives, list)
 
-    def test_alternatives_generation(self, mock_router_service: Mock) -> None:
+    def test_alternatives_generation(self, mock_router: ModelRouter) -> None:
         """Test that alternatives are properly generated."""
-        router = ModelRouter(router_service=mock_router_service)
-
         request = ModelSelectionRequest(
             prompt="Write a complex algorithm",
             cost_bias=0.5,
         )
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
 
         # Should successfully select a model
         assert response.provider
@@ -329,10 +327,8 @@ class TestModelRouterEdgeCases:
         # Should have alternatives
         assert isinstance(response.alternatives, list)
 
-    def test_no_models_raises_error(self, mock_router_service: Mock) -> None:
+    def test_no_models_raises_error(self, mock_router: ModelRouter) -> None:
         """Test that providing empty models list is handled."""
-        router = ModelRouter(router_service=mock_router_service)
-
         # Empty models list should be handled by service
         request = ModelSelectionRequest(
             prompt="Test prompt",
@@ -341,6 +337,6 @@ class TestModelRouterEdgeCases:
         )
 
         # Should not raise error
-        response = router.select_model(request)
+        response = mock_router.select_model(request)
         assert response.provider
         assert response.model

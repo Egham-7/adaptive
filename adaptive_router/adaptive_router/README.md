@@ -147,14 +147,6 @@ models:
 - `ModelCapability`: Model metadata and capabilities
 - `Alternative`: Alternative model recommendation
 
-### Classification Models
-
-**File**: `models/llm_classification_models.py`
-
-- `ClassificationResult`: ML classifier output
-- `ClassifyRequest`: Single prompt classification request
-- `ClassifyBatchRequest`: Batch classification request
-
 ## Design Principles
 
 1. **Single Entry Point**: `ModelRouter` is the only class users need

@@ -26,7 +26,7 @@ import numpy as np
 # Add adaptive_router to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from adaptive_router.services.unirouter.cluster_engine import ClusterEngine
+from adaptive_router.core.cluster_engine import ClusterEngine
 
 # Configure logging
 logging.basicConfig(
@@ -54,15 +54,25 @@ class ModulePathUnpickler(pickle.Unpickler):
         if module.startswith("unirouter."):
             # Map old paths to new paths
             old_to_new = {
-                "unirouter.clustering.cluster_engine": "adaptive_router.services.unirouter.cluster_engine",
-                "unirouter.clustering.feature_extractor": "adaptive_router.services.unirouter.feature_extractor",
-                "unirouter.models.schemas": "adaptive_router.services.unirouter.schemas",
+                "unirouter.clustering.cluster_engine": "adaptive_router.core.cluster_engine",
+                "unirouter.clustering.feature_extractor": "adaptive_router.core.feature_extractor",
+                "unirouter.models.schemas": "adaptive_router.models",
+                "adaptive_router.services.unirouter.cluster_engine": "adaptive_router.core.cluster_engine",
+                "adaptive_router.services.unirouter.feature_extractor": "adaptive_router.core.feature_extractor",
+                "adaptive_router.services.unirouter.schemas": "adaptive_router.models",
             }
 
-            new_module = old_to_new.get(
-                module,
-                module.replace("unirouter.", "adaptive_router.services.unirouter."),
-            )
+            new_module = old_to_new.get(module)
+            if not new_module:
+                # Fallback for other unirouter.* imports
+                if "unirouter." in module:
+                    new_module = module.replace("unirouter.", "adaptive_router.core.")
+                elif "adaptive_router.services.unirouter." in module:
+                    new_module = module.replace(
+                        "adaptive_router.services.unirouter.", "adaptive_router.core."
+                    )
+                else:
+                    new_module = module
             logger.debug(f"Remapping pickle module: {module} -> {new_module}")
             return super().find_class(new_module, name)
 
@@ -144,7 +154,7 @@ def assign_to_clusters(
     logger.info("Assigning validation questions to clusters...")
 
     # Convert questions to CodeQuestion objects for cluster_engine
-    from adaptive_router.services.unirouter.schemas import CodeQuestion
+    from adaptive_router.models import CodeQuestion
 
     code_questions = [
         CodeQuestion(

@@ -116,6 +116,7 @@ extend-exclude = '''
 
 
 [tool.mypy]
+plugins = ["pydantic.mypy"]
 exclude = [
   "model_data/",
   "tests/",
@@ -151,6 +152,8 @@ module = [
   "tqdm.*",
   "polars.*",
   "rich.*",
+  "boto3.*",
+  "botocore.*",
 ]
 ignore_missing_imports = true
 

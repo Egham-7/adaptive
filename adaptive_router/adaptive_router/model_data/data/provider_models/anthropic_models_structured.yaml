@@ -1,8 +1,8 @@
 provider_info:
   name: ANTHROPIC
-  total_models: 15
+  total_models: 16
   data_source: https://helicone.ai/api/llm-costs?provider=anthropic
-  last_updated: "2025-09-30"
+  last_updated: "2025-10-27"
   currency: USD
   pricing_unit: per 1 million tokens
 models:
@@ -110,5 +110,40 @@ models:
     metadata:
       source: anthropic_docs
       last_updated: "2025-09-30"
+      matching_operator: equals
+      available_in_playground: true
+  claude_haiku_4_5_20251001:
+    description:
+      Claude Haiku 4.5 is Anthropic's fast and efficient model optimized for speed,
+      featuring improved reasoning and tool use capabilities.
+    provider: ANTHROPIC
+    model_name: claude-haiku-4-5-20251001
+    cost_per_1m_input_tokens: 1
+    cost_per_1m_output_tokens: 5
+    max_context_tokens: 200000
+    max_output_tokens: 8192
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: null
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - fr
+      - de
+      - es
+      - it
+      - pt
+      - zh
+      - ja
+    model_size_params: Unknown
+    latency_tier: fast
+    task_type: Chatbot
+    complexity: medium
+    release_date: "2025-10-01"
+    training_data_cutoff: "2025-08"
+    metadata:
+      source: helicone_api
+      last_updated: "2025-10-27"
       matching_operator: equals
       available_in_playground: true

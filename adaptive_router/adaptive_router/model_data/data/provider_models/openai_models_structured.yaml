@@ -1,8 +1,8 @@
 provider_info:
   name: OPENAI
-  total_models: 25
+  total_models: 27
   data_source: https://platform.openai.com/docs/models
-  last_updated: "2025-09-01"
+  last_updated: "2025-10-27"
   currency: USD
   pricing_unit: per 1 million tokens
   note: Chat completion models only - excludes embedding, TTS, transcription, image generation, moderation, and realtime models
@@ -113,6 +113,80 @@ models:
     metadata:
       source: platform_openai_docs
       last_updated: "2025-09-01"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: frontier
+  gpt-4.1-nano:
+    description: An improved version of GPT-4 with smaller size and faster processing
+    provider: OPENAI
+    model_name: gpt-4.1-nano
+    cost_per_1m_input_tokens: 0.1
+    cost_per_1m_output_tokens: 0.4
+    max_context_tokens: 128000
+    max_output_tokens: 16000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
+    model_size_params: Unknown
+    latency_tier: low
+    task_type: Text Generation
+    complexity: medium
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: "2025-10-27"
+      matching_operator: equals
+      available_in_playground: true
+      status: available
+      category: standard
+  gpt-5-codex:
+    description: GPT-5 specialized for code generation and programming tasks
+    provider: OPENAI
+    model_name: gpt-5-codex
+    cost_per_1m_input_tokens: 1.25
+    cost_per_1m_output_tokens: 10
+    max_context_tokens: 200000
+    max_output_tokens: 100000
+    supports_streaming: true
+    supports_function_calling: true
+    supports_vision: false
+    multimodal_capabilities:
+      - text
+    languages_supported:
+      - en
+      - es
+      - fr
+      - de
+      - ja
+      - ko
+      - zh
+      - pt
+      - it
+      - ru
+    model_size_params: Unknown
+    latency_tier: medium
+    task_type: Code Generation
+    complexity: high
+    release_date: null
+    training_data_cutoff: null
+    metadata:
+      source: helicone_api
+      last_updated: "2025-10-27"
       matching_operator: equals
       available_in_playground: true
       status: available

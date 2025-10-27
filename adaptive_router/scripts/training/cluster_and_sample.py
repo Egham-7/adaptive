@@ -40,7 +40,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from adaptive_router.models import CodeQuestion
-from adaptive_router.services.cluster_engine import ClusterEngine
+from adaptive_router.core.cluster_engine import ClusterEngine
 
 # Set up logging
 logging.basicConfig(
@@ -50,11 +50,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Paths
-ADAPTIVE_ROUTER_DIR = Path(__file__).parent.parent / "adaptive_router"
+ADAPTIVE_ROUTER_DIR = Path(__file__).parent.parent
 VALIDATION_FILE = (
-    ADAPTIVE_ROUTER_DIR / "data" / "unirouter" / "validation" / "validation.json"
+    ADAPTIVE_ROUTER_DIR
+    / "adaptive_router"
+    / "data"
+    / "unirouter"
+    / "validation"
+    / "validation.json"
 )
-CLUSTERS_DIR = ADAPTIVE_ROUTER_DIR / "data" / "unirouter" / "clusters"
+CLUSTERS_DIR = (
+    ADAPTIVE_ROUTER_DIR / "adaptive_router" / "data" / "unirouter" / "clusters"
+)
 CONFIG_FILE = ADAPTIVE_ROUTER_DIR / "config" / "unirouter_models.yaml"
 
 # MMLU subjects to include

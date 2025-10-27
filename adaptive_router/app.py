@@ -7,27 +7,27 @@ import logging
 import os
 import sys
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Dict
+from typing import AsyncIterator, Dict
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from adaptive_router.models.llm_core_models import (
+from adaptive_router.models.api import (
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
-from adaptive_router.services.model_router import ModelRouter
+from adaptive_router.core.router import ModelRouter
+from adaptive_router.registry.registry import ModelRegistry
+from adaptive_router.models.storage import MinIOSettings
+from adaptive_router.registry.yaml_loader import YAMLModelDatabase
 
-# Load environment variables
 env_file = Path(".env")
 if env_file.exists():
     load_dotenv(env_file)
-elif (parent_env := Path("../.env")).exists():
-    load_dotenv(parent_env)
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -37,12 +37,97 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def create_app() -> FastAPI:
-    """Create and configure FastAPI application.
+def load_model_costs_from_registry() -> Dict[str, float]:
+    """Load model costs from ModelRegistry."""
+    logger.info("Loading model costs from ModelRegistry...")
 
-    Returns:
-        Configured FastAPI application instance
-    """
+    yaml_db = YAMLModelDatabase()
+    model_registry = ModelRegistry(yaml_db)
+
+    if not model_registry.is_healthy():
+        raise ValueError("ModelRegistry failed to load models")
+
+    logger.info(f"Loaded ModelRegistry: {model_registry.get_stats()}")
+
+    model_costs: Dict[str, float] = {}
+
+    for model_id in model_registry.get_all_model_names():
+        model_capability = model_registry.get_model_capability(model_id)
+
+        if not model_capability:
+            logger.warning(f"Model {model_id} not found in ModelRegistry, skipping")
+            continue
+
+        if (
+            model_capability.cost_per_1m_input_tokens is not None
+            and model_capability.cost_per_1m_output_tokens is not None
+        ):
+            avg_cost = (
+                model_capability.cost_per_1m_input_tokens
+                + model_capability.cost_per_1m_output_tokens
+            ) / 2.0
+        else:
+            logger.warning(
+                f"Model {model_id} missing cost data, using default cost of 1.0"
+            )
+            avg_cost = 1.0
+
+        model_costs[model_id] = avg_cost
+
+    logger.info(f"Loaded costs for {len(model_costs)} models")
+
+    return model_costs
+
+
+def create_model_router() -> ModelRouter:
+    """Create ModelRouter with MinIO and ModelRegistry integration."""
+    logger.info("Creating ModelRouter...")
+
+    model_costs = load_model_costs_from_registry()
+
+    minio_settings = MinIOSettings(
+        endpoint_url=os.getenv("MINIO_PUBLIC_ENDPOINT", "http://localhost:9000"),
+        root_user=os.getenv("MINIO_ROOT_USER", "minioadmin"),
+        root_password=os.getenv("MINIO_ROOT_PASSWORD", "minioadmin"),
+        bucket_name=os.getenv("S3_BUCKET_NAME", "adaptive-router-profiles"),
+        region=os.getenv("S3_REGION", "us-east-1"),
+        profile_key=os.getenv("S3_PROFILE_KEY", "global/profile.json"),
+        connect_timeout=int(os.getenv("S3_CONNECT_TIMEOUT", "5")),
+        read_timeout=int(os.getenv("S3_READ_TIMEOUT", "30")),
+    )
+
+    router = ModelRouter.from_minio(
+        settings=minio_settings,
+        model_costs=model_costs,
+    )
+
+    logger.info("ModelRouter created successfully")
+
+    return router
+
+
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application."""
+    router_instance = None
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        """Lifespan event handler for startup/shutdown."""
+        nonlocal router_instance
+        try:
+            host = os.getenv("HOST", "0.0.0.0")
+            port = os.getenv("PORT", "8000")
+            logger.info(f"Starting Adaptive Router on http://{host}:{port}")
+            logger.info(f"API Docs: http://{host}:{port}/docs")
+            logger.info("Initializing ModelRouter...")
+            router_instance = create_model_router()
+            logger.info("ModelRouter initialized successfully")
+            logger.info("FastAPI application started successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize router: {e}")
+            raise
+        yield
+
     app = FastAPI(
         title="Adaptive Router",
         description="Intelligent LLM model selection API with cluster-based routing",
@@ -50,9 +135,9 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        lifespan=lifespan,
     )
 
-    # Configure CORS
     allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
     allowed_origins = (
         [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
@@ -68,39 +153,18 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Initialize model router (singleton pattern)
-    router_instance = None
-
     def get_router() -> ModelRouter:
         """Get or create ModelRouter instance."""
         nonlocal router_instance
         if router_instance is None:
             logger.info("Initializing ModelRouter...")
-            router_instance = ModelRouter()
+            router_instance = create_model_router()
             logger.info("ModelRouter initialized successfully")
         return router_instance
 
-    @app.on_event("startup")
-    async def startup_event():
-        """Initialize router on startup."""
-        try:
-            host = os.getenv("HOST", "0.0.0.0")
-            port = os.getenv("PORT", "8000")
-            logger.info(f"Starting Adaptive Router on http://{host}:{port}")
-            logger.info(f"API Docs: http://{host}:{port}/docs")
-            get_router()
-            logger.info("FastAPI application started successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize router: {e}")
-            raise
-
     @app.get("/health")
     async def health_check() -> Dict[str, str]:
-        """Health check endpoint.
-
-        Returns:
-            Dictionary with health status
-        """
+        """Health check endpoint."""
         return {"status": "healthy"}
 
     @app.post("/select-model", response_model=ModelSelectionResponse)
@@ -108,21 +172,7 @@ def create_app() -> FastAPI:
         request: ModelSelectionRequest,
         http_request: Request,
     ) -> ModelSelectionResponse:
-        """Select optimal model based on prompt analysis.
-
-        Uses cluster-based intelligent routing to select the best LLM model
-        based on prompt characteristics, cost preferences, and model capabilities.
-
-        Args:
-            request: Model selection request with prompt and preferences
-            http_request: FastAPI Request object for logging
-
-        Returns:
-            ModelSelectionResponse with selected model and alternatives
-
-        Raises:
-            HTTPException: If validation fails or routing error occurs
-        """
+        """Select optimal model based on prompt analysis."""
         start_time = time.perf_counter()
 
         try:
@@ -178,5 +228,4 @@ def create_app() -> FastAPI:
     return app
 
 
-# Create application instance
 app = create_app()
