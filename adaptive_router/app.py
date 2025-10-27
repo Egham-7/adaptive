@@ -85,8 +85,12 @@ def create_model_router() -> ModelRouter:
 
     model_costs = load_model_costs_from_registry()
 
+    endpoint_url: str = os.getenv(
+        "MINIO_PRIVATE_ENDPOINT", "http://localhost:9000"
+    ) or os.getenv("MINIO_ENDPOINT", "http://localhost:9000")
+
     minio_settings = MinIOSettings(
-        endpoint_url=os.getenv("MINIO_PUBLIC_ENDPOINT", "http://localhost:9000"),
+        endpoint_url=endpoint_url,
         root_user=os.getenv("MINIO_ROOT_USER", "minioadmin"),
         root_password=os.getenv("MINIO_ROOT_PASSWORD", "minioadmin"),
         bucket_name=os.getenv("S3_BUCKET_NAME", "adaptive-router-profiles"),
