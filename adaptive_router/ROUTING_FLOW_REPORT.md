@@ -177,7 +177,7 @@ The Adaptive Router is an intelligent LLM model selection system that uses **clu
 
 ### Phase 1: Request Reception (FastAPI Layer)
 
-**File:** `adaptive_router/api/app.py`
+**File:** `adaptive_router/app.py`
 
 ```python
 # Line 90-143
@@ -603,7 +603,7 @@ return hybrid_features  # Shape: (n_questions, 576)
 
 ### Phase 6: Response Construction
 
-**Back to FastAPI** (`adaptive_router/api/app.py` lines 143-157)
+**Back to FastAPI** (`adaptive_router/app.py` lines 143-157)
 
 **Step 1: Receive Response from ModelRouter**
 ```python

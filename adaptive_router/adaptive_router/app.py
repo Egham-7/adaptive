@@ -13,7 +13,6 @@ from typing import Dict
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from adaptive_router.models.llm_core_models import (
     ModelSelectionRequest,
@@ -21,19 +20,14 @@ from adaptive_router.models.llm_core_models import (
 )
 from adaptive_router.services.model_router import ModelRouter
 
-# Load .env file from current directory or parent directories
+# Load environment variables
 env_file = Path(".env")
 if env_file.exists():
     load_dotenv(env_file)
-    print(f"✅ Loaded environment variables from {env_file.absolute()}")
-else:
-    # Try parent directory
-    parent_env = Path("../.env")
-    if parent_env.exists():
-        load_dotenv(parent_env)
-        print(f"✅ Loaded environment variables from {parent_env.absolute()}")
+elif (parent_env := Path("../.env")).exists():
+    load_dotenv(parent_env)
 
-# Configure logging early
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -58,39 +52,18 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
     )
 
-    # Configure CORS middleware with security validation
+    # Configure CORS
     allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "")
-
-    if allowed_origins_str:
-        # Parse comma-separated origins
-        allowed_origins = [
-            origin.strip()
-            for origin in allowed_origins_str.split(",")
-            if origin.strip()
-        ]
-    else:
-        # Default: Allow all origins but disable credentials for security
-        allowed_origins = ["*"]
-
-    # Security validation: credentials cannot be used with wildcard origins
-    use_credentials = False
-    if allowed_origins != ["*"]:
-        # Specific origins provided - credentials are allowed
-        use_credentials = True
-        logger.info(
-            f"CORS: Allowing credentials for specific origins: {allowed_origins}"
-        )
-    else:
-        # Wildcard origin - credentials must be disabled per CORS spec
-        logger.warning(
-            "CORS: Using wildcard origin ['*'] - credentials disabled for security. "
-            "Set ALLOWED_ORIGINS environment variable to enable credentials."
-        )
+    allowed_origins = (
+        [origin.strip() for origin in allowed_origins_str.split(",") if origin.strip()]
+        if allowed_origins_str
+        else ["*"]
+    )
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
-        allow_credentials=use_credentials,
+        allow_credentials=allowed_origins != ["*"],
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -99,11 +72,7 @@ def create_app() -> FastAPI:
     router_instance = None
 
     def get_router() -> ModelRouter:
-        """Get or create ModelRouter instance.
-
-        Returns:
-            ModelRouter instance
-        """
+        """Get or create ModelRouter instance."""
         nonlocal router_instance
         if router_instance is None:
             logger.info("Initializing ModelRouter...")
@@ -115,27 +84,12 @@ def create_app() -> FastAPI:
     async def startup_event():
         """Initialize router on startup."""
         try:
-            # Log startup configuration
             host = os.getenv("HOST", "0.0.0.0")
             port = os.getenv("PORT", "8000")
-
-            logger.info("=" * 60)
-            logger.info("🚀 Starting Adaptive Router FastAPI Server")
-            logger.info("=" * 60)
-            logger.info(f"📍 Server: http://{host}:{port}")
-            logger.info(f"📖 API Docs: http://{host}:{port}/docs")
-            logger.info(f"📚 ReDoc: http://{host}:{port}/redoc")
-            logger.info("=" * 60)
-            logger.info("✨ Features:")
-            logger.info("  • Cluster-based intelligent model routing")
-            logger.info("  • Cost optimization with configurable bias")
-            logger.info("  • MinIO S3 storage for cluster profiles")
-            logger.info("  • OpenAI-compatible request/response format")
-            logger.info("=" * 60)
-
+            logger.info(f"Starting Adaptive Router on http://{host}:{port}")
+            logger.info(f"API Docs: http://{host}:{port}/docs")
             get_router()
             logger.info("FastAPI application started successfully")
-            logger.info("=" * 60)
         except Exception as e:
             logger.error(f"Failed to initialize router: {e}")
             raise
@@ -146,18 +100,10 @@ def create_app() -> FastAPI:
 
         Returns:
             Dictionary with health status
-
-        Example:
-            ```
-            GET /health
-            {
-                "status": "healthy"
-            }
-            ```
         """
         return {"status": "healthy"}
 
-    @app.post("/select_model", response_model=ModelSelectionResponse)
+    @app.post("/select-model", response_model=ModelSelectionResponse)
     async def select_model(
         request: ModelSelectionRequest,
         http_request: Request,
@@ -176,21 +122,6 @@ def create_app() -> FastAPI:
 
         Raises:
             HTTPException: If validation fails or routing error occurs
-
-        Example:
-            ```
-            POST /select_model
-            {
-                "prompt": "Write a Python function to calculate factorial",
-                "cost_bias": 0.5,
-                "models": [
-                    {
-                        "provider": "openai",
-                        "model_name": "gpt-4"
-                    }
-                ]
-            }
-            ```
         """
         start_time = time.perf_counter()
 
@@ -209,9 +140,7 @@ def create_app() -> FastAPI:
                 },
             )
 
-            # Perform model selection
             response = router.select_model(request)
-
             elapsed = time.perf_counter() - start_time
 
             logger.info(
@@ -245,30 +174,6 @@ def create_app() -> FastAPI:
                 status_code=500,
                 detail=f"Internal server error during model selection: {str(e)}",
             )
-
-    @app.exception_handler(Exception)
-    async def global_exception_handler(request: Request, exc: Exception):
-        """Global exception handler for unexpected errors.
-
-        Args:
-            request: FastAPI Request object
-            exc: Exception that was raised
-
-        Returns:
-            JSON response with error details
-        """
-        logger.error(
-            f"Unhandled exception: {exc}",
-            extra={
-                "path": request.url.path,
-                "method": request.method,
-            },
-            exc_info=True,
-        )
-        return JSONResponse(
-            status_code=500,
-            content={"detail": "Internal server error"},
-        )
 
     return app
 

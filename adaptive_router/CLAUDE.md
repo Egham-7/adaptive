@@ -139,20 +139,20 @@ Run as HTTP API server for production deployment:
 uv install
 
 # Start FastAPI server (development mode with auto-reload)
-fastapi dev adaptive_router/api/app.py
+fastapi dev adaptive_router/app.py
 
 # Or use Hypercorn for production
-hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
+hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
 
 # Server starts on http://0.0.0.0:8000
 # API docs available at http://localhost:8000/docs
 # ReDoc available at http://localhost:8000/redoc
 
 # Custom port
-PORT=8001 hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8001
+PORT=8001 hypercorn adaptive_router.app:app --bind 0.0.0.0:8001
 
 # Enable debug logging
-DEBUG=true hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
+DEBUG=true hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
 ```
 
 **API Endpoints:**
@@ -169,19 +169,19 @@ Access interactive API docs at `http://localhost:8000/docs`
 uv install
 
 # Start the FastAPI server (development mode with auto-reload)
-fastapi dev adaptive_router/api/app.py
+fastapi dev adaptive_router/app.py
 
 # Or use Hypercorn directly (production mode)
-hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
+hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
 
 # Start with custom configuration
-HOST=0.0.0.0 PORT=8001 hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8001
+HOST=0.0.0.0 PORT=8001 hypercorn adaptive_router.app:app --bind 0.0.0.0:8001
 
 # Start with debug logging
-DEBUG=true hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
+DEBUG=true hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
 
 # For multi-process deployment
-hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000 --workers 4
+hypercorn adaptive_router.app:app --bind 0.0.0.0:8000 --workers 4
 ```
 
 ### Code Quality
@@ -540,7 +540,7 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - Check port availability (default: 8000)
 - Review environment variable configuration (especially MinIO settings)
 - Verify Hypercorn is correctly installed: `hypercorn --version`
-- Ensure you're using the correct command: `fastapi dev adaptive_router/api/app.py` or `hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000`
+- Ensure you're using the correct command: `fastapi dev adaptive_router/app.py` or `hypercorn adaptive_router.app:app --bind 0.0.0.0:8000`
 
 **MinIO connection failures**
 - Verify S3_BUCKET_NAME environment variable is set
@@ -592,7 +592,7 @@ python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
 **FastAPI Server Mode:**
 ```bash
 # Start with debug logging
-DEBUG=true hypercorn adaptive_router.api.app:app --bind 0.0.0.0:8000
+DEBUG=true hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
 
 # Check service health
 curl -X GET http://localhost:8000/health
