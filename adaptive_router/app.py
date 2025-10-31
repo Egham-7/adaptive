@@ -96,8 +96,8 @@ def create_model_router() -> ModelRouter:
         bucket_name=os.getenv("S3_BUCKET_NAME", "adaptive-router-profiles"),
         region=os.getenv("S3_REGION", "us-east-1"),
         profile_key=os.getenv("S3_PROFILE_KEY", "global/profile.json"),
-        connect_timeout=int(os.getenv("S3_CONNECT_TIMEOUT", "5")),
-        read_timeout=int(os.getenv("S3_READ_TIMEOUT", "30")),
+        connect_timeout=os.getenv("S3_CONNECT_TIMEOUT") or "5",
+        read_timeout=os.getenv("S3_READ_TIMEOUT") or "30",
     )
 
     router = ModelRouter.from_minio(
