@@ -214,8 +214,11 @@ def create_app() -> FastAPI:
             logger.error(
                 f"Validation error: {e}",
                 extra={"elapsed_ms": round(elapsed * 1000, 2)},
+                exc_info=True,
             )
-            raise HTTPException(status_code=400, detail=str(e))
+            raise HTTPException(
+                status_code=400, detail="Invalid request: validation failed"
+            )
 
         except Exception as e:
             elapsed = time.perf_counter() - start_time
