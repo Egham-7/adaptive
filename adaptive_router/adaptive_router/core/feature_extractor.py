@@ -22,6 +22,7 @@ class FeatureExtractor:
         embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
         tfidf_max_features: int = 5000,
         tfidf_ngram_range: Tuple[int, int] = (1, 2),
+        allow_trust_remote_code: bool = False,
     ) -> None:
         """Initialize feature extractor.
 
@@ -29,6 +30,10 @@ class FeatureExtractor:
             embedding_model: HuggingFace model for semantic embeddings
             tfidf_max_features: Maximum TF-IDF features
             tfidf_ngram_range: N-gram range for TF-IDF
+            allow_trust_remote_code: Allow execution of remote code in embedding models.
+                                   WARNING: Enabling this allows arbitrary code execution from
+                                   remote sources and should only be used with trusted models.
+                                   Defaults to False for security.
         """
         logger.info(f"Initializing FeatureExtractor with model: {embedding_model}")
 
@@ -48,13 +53,20 @@ class FeatureExtractor:
         # Load with trust_remote_code for compatibility
         try:
             self.embedding_model = SentenceTransformer(
-                embedding_model, device=device, trust_remote_code=True
+                embedding_model,
+                device=device,
+                trust_remote_code=allow_trust_remote_code,
             )
         except Exception as e:
+            if allow_trust_remote_code:
+                # If explicitly enabled, re-raise the error
+                raise
             logger.warning(
-                f"Failed to load with trust_remote_code, trying without: {e}"
+                f"Failed to load with trust_remote_code=False, trying with trust_remote_code=True: {e}"
             )
-            self.embedding_model = SentenceTransformer(embedding_model, device=device)
+            self.embedding_model = SentenceTransformer(
+                embedding_model, device=device, trust_remote_code=True
+            )
 
         self.embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
 

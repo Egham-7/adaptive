@@ -51,6 +51,7 @@ class ModelRouter:
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
+        allow_trust_remote_code: bool = False,
     ) -> None:
         """Initialize ModelRouter with injected dependencies.
 
@@ -60,6 +61,10 @@ class ModelRouter:
             lambda_min: Minimum lambda value for cost-quality tradeoff (default: 0.0)
             lambda_max: Maximum lambda value for cost-quality tradeoff (default: 2.0)
             default_cost_preference: Default cost preference when not specified (default: 0.5)
+            allow_trust_remote_code: Allow execution of remote code in embedding models.
+                                   WARNING: Enabling this allows arbitrary code execution from
+                                   remote sources and should only be used with trusted models.
+                                   Defaults to False for security.
 
         Raises:
             ValueError: If model_costs don't match profile.llm_profiles
@@ -67,7 +72,15 @@ class ModelRouter:
         n_clusters = profile.metadata.n_clusters
         logger.info(f"Initializing ModelRouter with {n_clusters} clusters")
 
-        self.cluster_engine = self._build_cluster_engine_from_data(profile)
+        if allow_trust_remote_code:
+            logger.warning(
+                "WARNING: allow_trust_remote_code=True enables execution of remote code "
+                "from embedding models. This should only be used with trusted models."
+            )
+
+        self.cluster_engine = self._build_cluster_engine_from_data(
+            profile, allow_trust_remote_code
+        )
 
         logger.info(
             f"Loaded cluster engine: {n_clusters} clusters, "
@@ -109,6 +122,7 @@ class ModelRouter:
     def _build_cluster_engine_from_data(
         self,
         profile: RouterProfile,
+        allow_trust_remote_code: bool,
     ) -> ClusterEngine:
         """Build ClusterEngine from storage profile data.
 
@@ -137,7 +151,9 @@ class ModelRouter:
         # Create fresh SentenceTransformer model
         embedding_model_name = profile.metadata.embedding_model
         embedding_model = SentenceTransformer(
-            embedding_model_name, device=device, trust_remote_code=True
+            embedding_model_name,
+            device=device,
+            trust_remote_code=allow_trust_remote_code,
         )
 
         # Create FeatureExtractor with fresh model
@@ -145,6 +161,7 @@ class ModelRouter:
             embedding_model=embedding_model_name,
             tfidf_max_features=profile.metadata.tfidf_max_features,
             tfidf_ngram_range=tuple(profile.metadata.tfidf_ngram_range),  # type: ignore[arg-type]
+            allow_trust_remote_code=allow_trust_remote_code,
         )
 
         # Replace the embedding model (already loaded above)
@@ -389,6 +406,7 @@ class ModelRouter:
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
+        allow_trust_remote_code: bool = False,
     ) -> ModelRouter:
         return cls(
             profile=profile,
@@ -396,6 +414,7 @@ class ModelRouter:
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
+            allow_trust_remote_code=allow_trust_remote_code,
         )
 
     @classmethod
@@ -406,6 +425,7 @@ class ModelRouter:
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
+        allow_trust_remote_code: bool = False,
     ) -> ModelRouter:
         loader = MinIOProfileLoader.from_settings(settings)
         profile = loader.load_profile()
@@ -415,6 +435,7 @@ class ModelRouter:
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
+            allow_trust_remote_code=allow_trust_remote_code,
         )
 
     @classmethod
@@ -425,6 +446,7 @@ class ModelRouter:
         lambda_min: float = 0.0,
         lambda_max: float = 2.0,
         default_cost_preference: float = 0.5,
+        allow_trust_remote_code: bool = False,
     ) -> ModelRouter:
         loader = LocalFileProfileLoader(profile_path=Path(profile_path))
         profile = loader.load_profile()
@@ -434,6 +456,7 @@ class ModelRouter:
             lambda_min=lambda_min,
             lambda_max=lambda_max,
             default_cost_preference=default_cost_preference,
+            allow_trust_remote_code=allow_trust_remote_code,
         )
 
     def _calculate_lambda(self, cost_preference: float) -> float:
