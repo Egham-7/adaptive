@@ -5,9 +5,10 @@ All profile components (cluster centers, TF-IDF vocabulary, scaler parameters, e
 strongly typed to catch data corruption early and provide better IDE support.
 """
 
+import math
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class ClusterCentersData(BaseModel):
@@ -105,6 +106,89 @@ class RouterProfile(BaseModel):
     tfidf_vocabulary: TFIDFVocabularyData = Field(..., description="TF-IDF vocabulary")
     scaler_parameters: ScalerParameters = Field(..., description="Scaler parameters")
     metadata: ProfileMetadata = Field(..., description="Profile metadata")
+
+    @field_validator("llm_profiles", mode="after")
+    @classmethod
+    def validate_error_rates(
+        cls, llm_profiles: Dict[str, List[float]], info: ValidationInfo
+    ) -> Dict[str, List[float]]:
+        """Validate error rates for all models.
+
+        Ensures:
+        1. Each model has error_rates with length matching n_clusters
+        2. All error rates are finite numbers within [0.0, 1.0]
+
+        Args:
+            llm_profiles: Dictionary of model_id -> error_rates
+            info: ValidationInfo containing other field values
+
+        Returns:
+            Validated llm_profiles dictionary
+
+        Raises:
+            ValueError: If validation fails for any model
+        """
+        # Get n_clusters from metadata (if available)
+        metadata = info.data.get("metadata")
+        if metadata is None:
+            # metadata hasn't been validated yet, skip cluster count validation
+            # (will be caught if metadata is missing/invalid)
+            return llm_profiles
+
+        expected_clusters = metadata.n_clusters
+
+        # Track invalid models for comprehensive error reporting
+        validation_errors = []
+
+        for model_id, error_rates in llm_profiles.items():
+            # Check 1: Verify error_rates is a list
+            if not isinstance(error_rates, list):
+                validation_errors.append(
+                    f"Model '{model_id}': error_rates must be a list, got {type(error_rates).__name__}"
+                )
+                continue
+
+            # Check 2: Verify length matches n_clusters
+            if len(error_rates) != expected_clusters:
+                validation_errors.append(
+                    f"Model '{model_id}': error_rates length mismatch - "
+                    f"expected {expected_clusters} clusters, got {len(error_rates)}"
+                )
+                continue
+
+            # Check 3: Validate each error rate value
+            for i, rate in enumerate(error_rates):
+                # Check if it's a number
+                if not isinstance(rate, (int, float)):
+                    validation_errors.append(
+                        f"Model '{model_id}': error_rates[{i}] is not a number - "
+                        f"got {type(rate).__name__}"
+                    )
+                    break
+
+                # Check if finite (not NaN or Inf)
+                if not math.isfinite(rate):
+                    validation_errors.append(
+                        f"Model '{model_id}': error_rates[{i}] is not finite - "
+                        f"got {rate}"
+                    )
+                    break
+
+                # Check range [0.0, 1.0]
+                if not (0.0 <= rate <= 1.0):
+                    validation_errors.append(
+                        f"Model '{model_id}': error_rates[{i}] out of range [0.0, 1.0] - "
+                        f"got {rate}"
+                    )
+                    break
+
+        if validation_errors:
+            error_msg = "LLM profiles validation failed:\n" + "\n".join(
+                f"  - {err}" for err in validation_errors
+            )
+            raise ValueError(error_msg)
+
+        return llm_profiles
 
 
 class MinIOSettings(BaseModel):
