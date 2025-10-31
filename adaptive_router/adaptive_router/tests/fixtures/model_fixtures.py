@@ -2,8 +2,7 @@
 
 import pytest
 
-from adaptive_router.models.llm_classification_models import ClassificationResult
-from adaptive_router.models.llm_core_models import (
+from adaptive_router.models.api import (
     Alternative,
     ModelCapability,
     ModelSelectionRequest,
@@ -72,45 +71,6 @@ def sample_model_selection_response() -> ModelSelectionResponse:
             Alternative(provider="anthropic", model="claude-3-sonnet"),
             Alternative(provider="openai", model="gpt-3.5-turbo"),
         ],
-    )
-
-
-@pytest.fixture
-def sample_classification_result() -> ClassificationResult:
-    """Sample ClassificationResult for testing."""
-    return ClassificationResult(
-        # Required fields
-        task_type_1="code",
-        prompt_complexity_score=0.75,
-        # Optional fields
-        task_type_2="generation",
-        task_type_prob=0.75,
-        creativity_scope=0.4,
-        reasoning=0.8,
-        contextual_knowledge=0.6,
-        domain_knowledge=0.5,
-        number_of_few_shots=0.0,
-        no_label_reason=0.9,
-        constraint_ct=0.3,
-    )
-
-
-@pytest.fixture
-def empty_classification_result() -> ClassificationResult:
-    """Minimal ClassificationResult for testing edge cases."""
-    return ClassificationResult(
-        # All fields are required now, use minimal valid values
-        task_type_1="Other",
-        task_type_2="NA",
-        task_type_prob=0.0,
-        creativity_scope=0.0,
-        reasoning=0.0,
-        contextual_knowledge=0.0,
-        prompt_complexity_score=0.0,
-        domain_knowledge=0.0,
-        number_of_few_shots=0.0,
-        no_label_reason=0.0,
-        constraint_ct=0.0,
     )
 
 

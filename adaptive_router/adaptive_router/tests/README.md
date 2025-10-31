@@ -49,12 +49,12 @@ uv run pytest -m unit
 
 **Location**: `tests/integration/`
 **Marker**: `@pytest.mark.integration`
-**Dependencies**: Running services (FastAPI, Modal)
+**Dependencies**: Running services (FastAPI server)
 
 Tests that verify end-to-end workflows:
 - HTTP API endpoints
-- Modal function calls
 - Library usage patterns
+- Request/response validation
 
 **Run**:
 ```bash

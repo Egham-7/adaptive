@@ -5,10 +5,10 @@
 # Each provider has its own structured YAML file with complete pricing
 # 
 # 📊 Database Statistics:
-#   • Total Providers: 20
-#   • Total Models: 952 (947 + 5 adaptive_ai hardcoded models)
+#   • Total Providers: 21
+#   • Total Models: 956 (952 + 4 newly added models)
 #   • Data Source: Live Helicone API + adaptive_ai config
-#   • Last Updated: 2025-09-22
+#   • Last Updated: 2025-10-27
 # 
 # 💡 Usage:
 #   1. Check this file for provider overview
@@ -19,15 +19,15 @@
 database_info:
   title: Helicone AI Models - Complete Database
   description: Live pricing data for all AI models across major providers
-  total_providers: 20
-  total_models: 952
+  total_providers: 21
+  total_models: 956
   data_source: https://helicone.ai/api/llm-costs
-  last_updated: '2025-09-22'
+  last_updated: '2025-10-27'
   currency: USD
   pricing_unit: per 1 million tokens
 providers:
   anthropic:
-    total_models: 15
+    total_models: 16
     yaml_file: anthropic_models_structured.yaml
     api_endpoint: https://helicone.ai/api/llm-costs?provider=anthropic
     sample_models:
@@ -35,7 +35,7 @@ providers:
     - claude_2_0
     - claude_3_5_haiku_20241022
     - claude_sonnet_4_5_20250929
-    - '... and 11 more'
+    - '... and 12 more'
   avian:
     total_models: 4
     yaml_file: avian_models_structured.yaml
@@ -142,14 +142,14 @@ providers:
     - deepseek_deepseek_r1_distill_llama_70b
     - '... and 32 more'
   openai:
-    total_models: 150
+    total_models: 152
     yaml_file: openai_models_structured.yaml
     api_endpoint: https://helicone.ai/api/llm-costs?provider=openai
     sample_models:
     - ada
     - ada_batch
     - babbage
-    - '... and 145 more'
+    - '... and 147 more'
   openrouter:
     total_models: 312
     yaml_file: openrouter_models_structured.yaml
@@ -201,3 +201,9 @@ providers:
     - grok_2_vision_1212
     - grok_3
     - '... and 6 more'
+  zai:
+    total_models: 1
+    yaml_file: zai_models_structured.yaml
+    api_endpoint: https://helicone.ai/api/llm-costs
+    sample_models:
+    - glm_4_6

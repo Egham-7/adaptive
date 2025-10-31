@@ -1,10 +1,30 @@
+"""Public API models for model selection requests and responses.
+
+This module contains the public-facing API models that external users interact with
+when making model selection requests to the adaptive router service.
+"""
+
 from typing import Any
 
 from pydantic import BaseModel, field_validator
 
 
 class ModelCapability(BaseModel):
-    """Unified model capability supporting both partial and full specifications."""
+    """Unified model capability supporting both partial and full specifications.
+
+    Attributes:
+        provider: Model provider (e.g., "openai", "anthropic")
+        model_name: Model name (e.g., "gpt-4", "claude-3-sonnet")
+        cost_per_1m_input_tokens: Input cost per million tokens
+        cost_per_1m_output_tokens: Output cost per million tokens
+        max_context_tokens: Maximum context window size
+        supports_function_calling: Whether model supports function calling
+        task_type: Type of task this model is optimized for
+        complexity: Task complexity level ("easy", "medium", "hard")
+        description: Human-readable description
+        languages_supported: List of supported languages
+        experimental: Whether this is an experimental model
+    """
 
     # Required fields
     provider: str | None = None
@@ -70,9 +90,20 @@ class ModelCapability(BaseModel):
 
 
 class ModelSelectionRequest(BaseModel):
-    """
-    Model selection request that contains the prompt and context information
-    needed for intelligent model routing, including tool usage detection.
+    """Model selection request for intelligent routing.
+
+    Contains the prompt and context information needed for intelligent model
+    routing, including tool usage detection and user preferences.
+
+    Attributes:
+        prompt: The user prompt to analyze
+        tool_call: Current tool call being made (for function calling detection)
+        tools: Available tool definitions
+        user_id: User identifier for tracking
+        models: Optional list of models to restrict routing to
+        cost_bias: Cost preference (0.0=cheap, 1.0=quality)
+        complexity_threshold: Complexity threshold for model selection
+        token_threshold: Token count threshold for model selection
     """
 
     # The user prompt to analyze
@@ -106,6 +137,13 @@ class ModelSelectionRequest(BaseModel):
 
 
 class Alternative(BaseModel):
+    """Alternative model option for routing.
+
+    Attributes:
+        provider: Model provider
+        model: Model name
+    """
+
     provider: str
     model: str
 
@@ -125,7 +163,13 @@ class Alternative(BaseModel):
 
 
 class ModelSelectionResponse(BaseModel):
-    """Simplified response with just the selected model and alternatives."""
+    """Simplified response with just the selected model and alternatives.
+
+    Attributes:
+        provider: Selected model provider
+        model: Selected model name
+        alternatives: List of alternative model options
+    """
 
     provider: str
     model: str

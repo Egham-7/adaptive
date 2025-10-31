@@ -4,8 +4,8 @@ Model registry service for validating model names across all providers.
 
 import logging
 
-from adaptive_router.models.llm_core_models import ModelCapability
-from adaptive_router.services.yaml_model_loader import YAMLModelDatabase
+from adaptive_router.models.api import ModelCapability
+from adaptive_router.registry.yaml_loader import YAMLModelDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -27,15 +27,30 @@ class ModelRegistry:
         self._load_models(yaml_model_db)
 
     def _load_models(self, yaml_model_db: YAMLModelDatabase) -> None:
-        """Load model definitions from YAML database."""
+        """Load model definitions from YAML database.
+
+        Raises:
+            RuntimeError: If critical error occurs during model loading
+        """
         try:
             yaml_models = yaml_model_db.get_all_models()
             self._models.update(yaml_models)
+
+            if not self._models:
+                logger.error(
+                    "No models loaded from YAML database. Check that YAML files exist "
+                    "and are properly formatted in adaptive_router/model_data/data/provider_models/"
+                )
         except Exception as e:
-            logger.warning(
-                "Could not load YAML models",
-                extra={"error": str(e), "error_type": type(e).__name__},
+            logger.error(
+                "Failed to load YAML models",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "hint": "Check that YAML files exist and are valid in model_data/data/provider_models/",
+                },
             )
+            # Don't raise here - allow service to start with empty models for better debugging
 
     # Core model lookup methods
     def get_model_capability(self, unique_id: str) -> ModelCapability | None:
@@ -81,6 +96,31 @@ class ModelRegistry:
     def get_all_model_names(self) -> list[str]:
         """Get all unique_ids of models in the registry."""
         return list(self._models.keys())
+
+    def is_healthy(self) -> bool:
+        """Check if model registry is healthy (has models loaded).
+
+        Returns:
+            True if models are loaded, False otherwise
+
+        Example:
+            >>> registry = ModelRegistry(yaml_db)
+            >>> if not registry.is_healthy():
+            ...     logger.error("Model registry failed to load models!")
+        """
+        return len(self._models) > 0
+
+    def get_stats(self) -> dict[str, int]:
+        """Get registry statistics.
+
+        Returns:
+            Dictionary with model counts by provider
+        """
+        stats: dict[str, int] = {}
+        for model in self._models.values():
+            if model.provider:
+                stats[model.provider] = stats.get(model.provider, 0) + 1
+        return stats
 
     # Core filtering functionality - this is the main value-add
     def find_models_matching_criteria(
@@ -183,6 +223,18 @@ class ModelRegistry:
             # Extract only non-None fields from the partial model
             criteria = partial_model.model_dump(exclude_none=True)
             criteria_str = ", ".join(f"{k}={v}" for k, v in criteria.items())
-            raise ValueError(f"No models found matching criteria: {criteria_str}")
+
+            # Get available providers to help user debug
+            available_providers = sorted(
+                set(m.provider for m in all_models if m.provider)
+            )
+
+            raise ValueError(
+                f"No models found matching criteria: {criteria_str}\n"
+                f"Available providers: {available_providers}\n"
+                f"Total models in registry: {len(all_models)}\n"
+                f"Hint: Check provider name spelling and model availability. "
+                f"Use get_stats() to see models by provider."
+            )
 
         return matching_models

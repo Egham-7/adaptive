@@ -4,8 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from adaptive_router.models.llm_classification_models import ClassificationResult
-from adaptive_router.models.llm_core_models import ModelCapability
+from adaptive_router.models.api import ModelCapability
 
 
 @pytest.fixture
@@ -39,36 +38,32 @@ def mock_prompt_classifier() -> Mock:
     """Mock prompt classifier service."""
     classifier = Mock()
     classifier.classify_prompts.return_value = [
-        ClassificationResult(
-            # Required fields
-            task_type_1="code",
-            prompt_complexity_score=0.75,
-            # Optional fields
-            task_type_2="generation",
-            task_type_prob=0.85,
-            creativity_scope=0.4,
-            reasoning=0.8,
-            contextual_knowledge=0.6,
-            domain_knowledge=0.5,
-            number_of_few_shots=0.0,
-            no_label_reason=0.9,
-            constraint_ct=0.3,
-        ),
-        ClassificationResult(
-            # Required fields
-            task_type_1="analysis",
-            prompt_complexity_score=0.65,
-            # Optional fields
-            task_type_2="problem_solving",
-            task_type_prob=0.72,
-            creativity_scope=0.6,
-            reasoning=0.9,
-            contextual_knowledge=0.7,
-            domain_knowledge=0.4,
-            number_of_few_shots=0.0,
-            no_label_reason=0.8,
-            constraint_ct=0.2,
-        ),
+        {
+            "task_type_1": "code",
+            "prompt_complexity_score": 0.75,
+            "task_type_2": "generation",
+            "task_type_prob": 0.85,
+            "creativity_scope": 0.4,
+            "reasoning": 0.8,
+            "contextual_knowledge": 0.6,
+            "domain_knowledge": 0.5,
+            "number_of_few_shots": 0.0,
+            "no_label_reason": 0.9,
+            "constraint_ct": 0.3,
+        },
+        {
+            "task_type_1": "analysis",
+            "prompt_complexity_score": 0.65,
+            "task_type_2": "problem_solving",
+            "task_type_prob": 0.72,
+            "creativity_scope": 0.6,
+            "reasoning": 0.9,
+            "contextual_knowledge": 0.7,
+            "domain_knowledge": 0.4,
+            "number_of_few_shots": 0.0,
+            "no_label_reason": 0.8,
+            "constraint_ct": 0.2,
+        },
     ]
     return classifier
 

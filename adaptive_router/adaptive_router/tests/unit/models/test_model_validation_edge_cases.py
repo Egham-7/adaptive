@@ -3,7 +3,7 @@
 from pydantic import ValidationError
 import pytest
 
-from adaptive_router.models.llm_core_models import (
+from adaptive_router.models.api import (
     Alternative,
     ModelCapability,
     ModelSelectionRequest,
