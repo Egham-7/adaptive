@@ -100,7 +100,17 @@ class ClusterEngine:
 
         # Compute silhouette score
         logger.info("Computing silhouette score...")
-        self.silhouette = float(silhouette_score(features, self.cluster_assignments))
+        unique_labels = np.unique(self.cluster_assignments)
+
+        if len(unique_labels) > 1:
+            self.silhouette = float(
+                silhouette_score(features, self.cluster_assignments)
+            )
+        else:
+            self.silhouette = float("nan")
+            logger.warning(
+                "Silhouette score is undefined: all points assigned to a single cluster"
+            )
 
         self.is_fitted = True
 
