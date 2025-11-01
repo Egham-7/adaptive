@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator, Dict
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,9 +21,14 @@ from adaptive_router.models.api import (
     ModelSelectionResponse,
 )
 from adaptive_router.core.router import ModelRouter
-from adaptive_router.registry.registry import ModelRegistry
 from adaptive_router.models.storage import MinIOSettings
-from adaptive_router.registry.yaml_loader import YAMLModelDatabase
+from adaptive_router.models.registry import (
+    RegistryClientConfig,
+    RegistryConnectionError,
+    RegistryError,
+    RegistryResponseError,
+)
+from adaptive_router.registry import RegistryClient
 
 env_file = Path(".env")
 if env_file.exists():
@@ -37,44 +43,115 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _env_float(key: str, default: float) -> float:
+    raw = os.getenv(key)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        logger.warning(
+            "Invalid float value for %s=%s, falling back to %s", key, raw, default
+        )
+        return default
+
+
+def _registry_headers_from_env() -> Dict[str, str]:
+    headers: Dict[str, str] = {}
+
+    api_key = os.getenv("MODEL_REGISTRY_API_KEY")
+    if api_key:
+        header_name = os.getenv("MODEL_REGISTRY_AUTH_HEADER", "Authorization")
+        if header_name.lower() == "authorization" and not api_key.lower().startswith(
+            "bearer "
+        ):
+            headers[header_name] = f"Bearer {api_key}"
+        else:
+            headers[header_name] = api_key
+
+    extra_headers = os.getenv("MODEL_REGISTRY_HEADERS")
+    if extra_headers:
+        pairs = [pair.strip() for pair in extra_headers.split(",") if pair.strip()]
+        for pair in pairs:
+            if ":" not in pair:
+                logger.warning(
+                    "Ignoring invalid header format in MODEL_REGISTRY_HEADERS: %s", pair
+                )
+                continue
+            name, value = pair.split(":", 1)
+            headers[name.strip()] = value.strip()
+
+    return headers
+
+
+def _build_registry_client() -> tuple[RegistryClient, RegistryClientConfig]:
+    """Build RegistryClient with configuration and HTTP client.
+
+    Returns:
+        Tuple of (RegistryClient, RegistryClientConfig)
+    """
+    base_url = os.getenv("MODEL_REGISTRY_BASE_URL", "http://localhost:3000")
+    timeout = _env_float("MODEL_REGISTRY_TIMEOUT", 5.0)
+    headers = _registry_headers_from_env()
+
+    config = RegistryClientConfig(
+        base_url=base_url,
+        timeout=timeout,
+        default_headers=headers or None,
+    )
+
+    # Create httpx.Client with timeout configuration
+    http_client = httpx.Client(timeout=timeout)
+
+    return RegistryClient(config, http_client), config
+
+
 def load_model_costs_from_registry() -> Dict[str, float]:
-    """Load model costs from ModelRegistry."""
-    logger.info("Loading model costs from ModelRegistry...")
+    """Load model costs from the Adaptive model registry."""
+    client, client_config = _build_registry_client()
+    logger.info("Loading model costs from registry at %s", client_config.base_url)
 
-    yaml_db = YAMLModelDatabase()
-    model_registry = ModelRegistry(yaml_db)
+    try:
+        client.health_check()
+    except (RegistryConnectionError, RegistryResponseError) as err:
+        raise ValueError(f"Model registry health check failed: {err}") from err
 
-    if not model_registry.is_healthy():
-        raise ValueError("ModelRegistry failed to load models")
+    try:
+        models = client.list_models()
+    except RegistryError as err:
+        raise ValueError(f"Failed to fetch models from registry: {err}") from err
 
-    logger.info(f"Loaded ModelRegistry: {model_registry.get_stats()}")
+    if not models:
+        raise ValueError("Model registry returned no models")
 
+    provider_stats: Dict[str, int] = {}
     model_costs: Dict[str, float] = {}
 
-    for model_id in model_registry.get_all_model_names():
-        model_capability = model_registry.get_model_capability(model_id)
+    for model in models:
+        provider = (model.provider or "").strip().lower()
+        if provider:
+            provider_stats[provider] = provider_stats.get(provider, 0) + 1
 
-        if not model_capability:
-            logger.warning(f"Model {model_id} not found in ModelRegistry, skipping")
+        try:
+            model_id = model.unique_id()
+        except RegistryError as err:
+            logger.warning("Skipping registry model without identifier: %s", err)
             continue
 
-        if (
-            model_capability.cost_per_1m_input_tokens is not None
-            and model_capability.cost_per_1m_output_tokens is not None
-        ):
-            avg_cost = (
-                model_capability.cost_per_1m_input_tokens
-                + model_capability.cost_per_1m_output_tokens
-            ) / 2.0
-        else:
+        avg_cost = model.average_price()
+        if avg_cost is None:
             logger.warning(
-                f"Model {model_id} missing cost data, using default cost of 1.0"
+                "Model %s missing pricing data, defaulting cost to 1.0", model_id
             )
             avg_cost = 1.0
 
         model_costs[model_id] = avg_cost
 
-    logger.info(f"Loaded costs for {len(model_costs)} models")
+    logger.info(
+        "Loaded costs for %d models across %d providers",
+        len(model_costs),
+        len(provider_stats),
+    )
 
     return model_costs
 

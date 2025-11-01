@@ -20,7 +20,7 @@ tests/
 │   └── services/                  # Service layer tests
 │       ├── test_model_router.py   # Router logic
 │       ├── test_prompt_classifier.py  # ML classifier
-│       ├── test_model_registry.py     # Model registry
+│       ├── test_registry_service.py   # Registry cache backed by HTTP client
 │       └── test_yaml_model_loader.py  # YAML loader
 └── integration/                   # Integration tests (require services)
     └── test_api_endpoints.py      # End-to-end API tests

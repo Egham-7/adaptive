@@ -1,4 +1,19 @@
+from adaptive_router.models.registry import (
+    RegistryClientConfig,
+    RegistryConnectionError,
+    RegistryError,
+    RegistryModel,
+    RegistryResponseError,
+)
+from adaptive_router.registry.client import RegistryClient
 from adaptive_router.registry.registry import ModelRegistry
-from adaptive_router.registry.yaml_loader import YAMLModelDatabase
 
-__all__ = ["ModelRegistry", "YAMLModelDatabase"]
+__all__ = [
+    "RegistryClient",
+    "RegistryClientConfig",
+    "RegistryError",
+    "RegistryConnectionError",
+    "RegistryResponseError",
+    "RegistryModel",
+    "ModelRegistry",
+]

@@ -33,7 +33,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from adaptive_router import ModelRouter, ModelSelectionRequest
-from adaptive_router.models.api import ModelCapability
+from adaptive_router.models.registry import RegistryModel
 
 console = Console()
 
@@ -194,9 +194,9 @@ def test_provider_filtering(
                 if any(model_id.split(":")[0] == provider for provider in providers)
             ]
 
-            # Convert filtered model IDs to ModelCapability objects
+            # Convert filtered model IDs to RegistryModel objects
             filtered_models = [
-                ModelCapability(
+                RegistryModel(
                     provider=model_id.split(":")[0], model_name=model_id.split(":")[1]
                 )
                 for model_id in filtered_model_ids

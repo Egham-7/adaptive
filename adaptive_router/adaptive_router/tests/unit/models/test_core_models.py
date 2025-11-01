@@ -5,218 +5,170 @@ import pytest
 
 from adaptive_router.models.api import (
     Alternative,
-    ModelCapability,
     ModelSelectionRequest,
     ModelSelectionResponse,
 )
+from adaptive_router.models.registry import RegistryModel, RegistryError
 
 
-class TestModelCapability:
-    """Test ModelCapability model validation and functionality."""
+class TestRegistryModel:
+    """Test RegistryModel validation and functionality."""
 
-    def test_minimal_model_capability(self) -> None:
-        """Test creating ModelCapability with minimal required fields."""
-        model = ModelCapability(provider="openai", model_name="gpt-4")
+    def test_minimal_registry_model(self) -> None:
+        """Test creating RegistryModel with minimal required fields."""
+        model = RegistryModel(provider="openai", model_name="gpt-4")
         assert model.provider == "openai"
         assert model.model_name == "gpt-4"
-        assert model.cost_per_1m_input_tokens is None
+        assert model.pricing is None
 
-    def test_full_model_capability(self) -> None:
-        """Test creating ModelCapability with all fields."""
-        model = ModelCapability(
+    def test_full_registry_model(self) -> None:
+        """Test creating RegistryModel with all fields."""
+        model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            cost_per_1m_input_tokens=30.0,
-            cost_per_1m_output_tokens=60.0,
-            max_context_tokens=128000,
-            supports_function_calling=True,
-            task_type="Code Generation",
-            complexity="medium",
-            description="GPT-4 model for general tasks",
+            description="GPT-4 model",
+            context_length=128000,
+            pricing={"prompt": "0.00003", "completion": "0.00006"},
         )
         assert model.provider == "openai"
         assert model.model_name == "gpt-4"
-        assert model.cost_per_1m_input_tokens == 30.0
-        assert model.cost_per_1m_output_tokens == 60.0
-        assert model.max_context_tokens == 128000
-        assert model.supports_function_calling is True
-        assert model.task_type == "Code Generation"
-        assert model.complexity == "medium"
+        assert model.description == "GPT-4 model"
+        assert model.context_length == 128000
+        assert model.pricing == {"prompt": "0.00003", "completion": "0.00006"}
 
-    def test_partial_model_capability(self) -> None:
-        """Test ModelCapability can be created with partial information."""
-        model = ModelCapability(
-            provider="anthropic",
-            cost_per_1m_input_tokens=15.0,
-            # Missing model_name and other fields
+    def test_unique_id(self) -> None:
+        """Test unique_id generation."""
+        model = RegistryModel(provider="openai", model_name="gpt-4")
+        assert model.unique_id() == "openai:gpt-4"
+
+    def test_unique_id_with_provider_prefix(self) -> None:
+        """Test unique_id removes provider prefix."""
+        model = RegistryModel(provider="openai", model_name="openai/gpt-4")
+        assert model.unique_id() == "openai:gpt-4"
+
+    def test_unique_id_missing_provider(self) -> None:
+        """Test unique_id raises error when provider is missing."""
+        model = RegistryModel(provider="", model_name="gpt-4")
+        with pytest.raises(RegistryError, match="missing provider"):
+            model.unique_id()
+
+    def test_average_price(self) -> None:
+        """Test average_price calculation."""
+        model = RegistryModel(
+            provider="openai",
+            model_name="gpt-4",
+            pricing={"prompt": "0.00003", "completion": "0.00006"},
         )
-        assert model.provider == "anthropic"
-        assert model.model_name is None
-        assert model.cost_per_1m_input_tokens == 15.0
+        avg = model.average_price()
+        assert avg is not None
+        assert avg == pytest.approx(0.000045)
 
-    def test_task_type_string_conversion(self) -> None:
-        """Test that task_type accepts both enum and string values."""
-        # Test with enum
-        model1 = ModelCapability(task_type="Classification")
-        assert model1.task_type == "Classification"
+    def test_average_price_no_pricing(self) -> None:
+        """Test average_price returns None when no pricing."""
+        model = RegistryModel(provider="openai", model_name="gpt-4")
+        assert model.average_price() is None
 
-        # Test with string
-        model2 = ModelCapability(task_type="analysis")
-        assert model2.task_type == "analysis"
+    def test_average_price_zero_costs(self) -> None:
+        """Test average_price returns None when costs are zero."""
+        model = RegistryModel(
+            provider="openai",
+            model_name="gpt-4",
+            pricing={"prompt": "0", "completion": "0"},
+        )
+        assert model.average_price() is None
 
 
 class TestModelSelectionRequest:
-    """Test ModelSelectionRequest model validation."""
+    """Test ModelSelectionRequest validation."""
 
-    def test_minimal_request(self) -> None:
-        """Test creating request with minimal required fields."""
-        request = ModelSelectionRequest(prompt="Hello world")
-        assert request.prompt == "Hello world"
-        assert request.cost_bias is None
-        assert request.models is None
-
-    def test_full_request(self) -> None:
-        """Test creating request with all fields."""
-        models = [
-            ModelCapability(provider="openai", model_name="gpt-4"),
-            ModelCapability(provider="anthropic", model_name="claude-3-sonnet"),
-        ]
-
+    def test_valid_model_selection_request(self) -> None:
+        """Test creating valid ModelSelectionRequest."""
         request = ModelSelectionRequest(
-            prompt="Write a Python function",
-            models=models,
-            cost_bias=0.7,
-            user_id="test_user",
+            prompt="Test prompt",
+            cost_bias=0.5,
         )
+        assert request.prompt == "Test prompt"
+        assert request.cost_bias == 0.5
 
-        assert request.prompt == "Write a Python function"
-        if request.models:
-            assert len(request.models) == 2
-        assert request.cost_bias == 0.7
-        assert request.user_id == "test_user"
-
-    def test_empty_prompt_validation(self) -> None:
-        """Test that empty prompt raises validation error."""
+    def test_prompt_validation_empty(self) -> None:
+        """Test prompt cannot be empty."""
         with pytest.raises(ValidationError):
             ModelSelectionRequest(prompt="")
 
+    def test_prompt_validation_whitespace(self) -> None:
+        """Test prompt cannot be only whitespace."""
+        with pytest.raises(ValidationError):
+            ModelSelectionRequest(prompt="   ")
+
     def test_cost_bias_validation(self) -> None:
         """Test cost_bias must be between 0 and 1."""
-        # Valid cost_bias values
-        ModelSelectionRequest(prompt="test", cost_bias=0.0)
-        ModelSelectionRequest(prompt="test", cost_bias=0.5)
-        ModelSelectionRequest(prompt="test", cost_bias=1.0)
+        with pytest.raises(ValidationError):
+            ModelSelectionRequest(prompt="test", cost_bias=1.5)
 
-        # Invalid cost_bias values should raise ValidationError
         with pytest.raises(ValidationError):
             ModelSelectionRequest(prompt="test", cost_bias=-0.1)
 
-        with pytest.raises(ValidationError):
-            ModelSelectionRequest(prompt="test", cost_bias=1.1)
+    def test_with_registry_models(self) -> None:
+        """Test ModelSelectionRequest with RegistryModel list."""
+        models = [
+            RegistryModel(provider="openai", model_name="gpt-4"),
+            RegistryModel(provider="anthropic", model_name="claude-3-sonnet"),
+        ]
+        request = ModelSelectionRequest(prompt="Test prompt", models=models)
+        assert len(request.models) == 2
+        assert request.models[0].provider == "openai"
 
 
 class TestModelSelectionResponse:
-    """Test ModelSelectionResponse model validation."""
+    """Test ModelSelectionResponse validation."""
 
-    def test_minimal_response(self) -> None:
-        """Test creating response with required fields."""
-        response = ModelSelectionResponse(
-            provider="openai", model="gpt-4", alternatives=[]
-        )
-        assert response.provider == "openai"
-        assert response.model == "gpt-4"
-        assert response.alternatives == []
-
-    def test_response_with_alternatives(self) -> None:
-        """Test response with alternative models."""
-        alternatives = [
-            Alternative(provider="anthropic", model="claude-3-sonnet"),
-            Alternative(provider="openai", model="gpt-3.5-turbo"),
-        ]
-
-        response = ModelSelectionResponse(
-            provider="openai", model="gpt-4", alternatives=alternatives
-        )
-
-        assert response.provider == "openai"
-        assert response.model == "gpt-4"
-        assert len(response.alternatives) == 2
-        assert response.alternatives[0].provider == "anthropic"
-        assert response.alternatives[1].model == "gpt-3.5-turbo"
-
-    def test_empty_provider_validation(self) -> None:
-        """Test that empty provider raises validation error."""
-        with pytest.raises(ValidationError):
-            ModelSelectionResponse(provider="", model="gpt-4", alternatives=[])
-
-    def test_empty_model_validation(self) -> None:
-        """Test that empty model raises validation error."""
-        with pytest.raises(ValidationError):
-            ModelSelectionResponse(provider="openai", model="", alternatives=[])
-
-
-class TestAlternative:
-    """Test Alternative model validation."""
-
-    def test_valid_alternative(self) -> None:
-        """Test creating valid alternative."""
-        alt = Alternative(provider="anthropic", model="claude-3-haiku")
-        assert alt.provider == "anthropic"
-        assert alt.model == "claude-3-haiku"
-
-    def test_alternative_validation(self) -> None:
-        """Test alternative field validation."""
-        # Valid alternatives
-        Alternative(provider="openai", model="gpt-3.5-turbo")
-
-        # Invalid alternatives should raise ValidationError
-        with pytest.raises(ValidationError):
-            Alternative(provider="", model="gpt-4")
-
-        with pytest.raises(ValidationError):
-            Alternative(provider="openai", model="")
-
-
-@pytest.mark.unit
-class TestModelSerialization:
-    """Test model serialization and deserialization."""
-
-    def test_model_capability_json_serialization(self) -> None:
-        """Test ModelCapability can be serialized to/from JSON."""
-        original = ModelCapability(
-            provider="openai",
-            model_name="gpt-4",
-            cost_per_1m_input_tokens=30.0,
-            task_type="Code Generation",
-        )
-
-        # Serialize to dict
-        data = original.model_dump()
-        assert data["provider"] == "openai"
-        assert data["task_type"] == "Code Generation"  # Enum serialized as string
-
-        # Deserialize from dict
-        restored = ModelCapability(**data)
-        assert restored.provider == original.provider
-        assert restored.model_name == original.model_name
-        assert restored.cost_per_1m_input_tokens == original.cost_per_1m_input_tokens
-
-    def test_request_response_serialization(self) -> None:
-        """Test request/response models can be serialized."""
-        # Test request serialization
-        request = ModelSelectionRequest(prompt="Test prompt", cost_bias=0.5)
-        request_data = request.model_dump()
-        restored_request = ModelSelectionRequest(**request_data)
-        assert restored_request.prompt == request.prompt
-        assert restored_request.cost_bias == request.cost_bias
-
-        # Test response serialization
+    def test_valid_response(self) -> None:
+        """Test creating valid ModelSelectionResponse."""
         response = ModelSelectionResponse(
             provider="openai",
             model="gpt-4",
-            alternatives=[Alternative(provider="anthropic", model="claude-3-sonnet")],
+            alternatives=[
+                Alternative(provider="anthropic", model="claude-3-sonnet"),
+            ],
         )
-        response_data = response.model_dump()
-        restored_response = ModelSelectionResponse(**response_data)
-        assert restored_response.provider == response.provider
-        assert len(restored_response.alternatives) == 1
+        assert response.provider == "openai"
+        assert response.model == "gpt-4"
+        assert len(response.alternatives) == 1
+
+    def test_empty_provider_validation(self) -> None:
+        """Test provider cannot be empty."""
+        with pytest.raises(ValidationError):
+            ModelSelectionResponse(
+                provider="",
+                model="gpt-4",
+                alternatives=[],
+            )
+
+    def test_empty_model_validation(self) -> None:
+        """Test model cannot be empty."""
+        with pytest.raises(ValidationError):
+            ModelSelectionResponse(
+                provider="openai",
+                model="",
+                alternatives=[],
+            )
+
+
+class TestAlternative:
+    """Test Alternative model."""
+
+    def test_valid_alternative(self) -> None:
+        """Test creating valid Alternative."""
+        alt = Alternative(provider="openai", model="gpt-3.5-turbo")
+        assert alt.provider == "openai"
+        assert alt.model == "gpt-3.5-turbo"
+
+    def test_empty_provider_validation(self) -> None:
+        """Test provider cannot be empty."""
+        with pytest.raises(ValidationError):
+            Alternative(provider="", model="gpt-4")
+
+    def test_empty_model_validation(self) -> None:
+        """Test model cannot be empty."""
+        with pytest.raises(ValidationError):
+            Alternative(provider="openai", model="")

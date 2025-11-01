@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from adaptive_router.models.api import ModelCapability, ModelSelectionRequest
+from adaptive_router.models.api import ModelSelectionRequest
+from adaptive_router.models.registry import RegistryModel
 from adaptive_router.models.storage import (
     RouterProfile,
     ScalerParameters,
@@ -108,14 +109,11 @@ class TestModelRouter:
     def test_select_model_with_full_models(self, mock_router: ModelRouter) -> None:
         """Test model selection when full models are provided."""
         sample_models = [
-            ModelCapability(
+            RegistryModel(
                 provider="openai",
                 model_name="gpt-4",
-                cost_per_1m_input_tokens=1.25,
-                cost_per_1m_output_tokens=10.0,
-                max_context_tokens=200000,
-                supports_function_calling=True,
-                task_type="Text Generation",
+                context_length=200000,
+                pricing={"prompt": "0.00000125", "completion": "0.0000100"},
             ),
         ]
 
@@ -170,15 +168,12 @@ class TestModelRouter:
         assert isinstance(response.alternatives, list)
 
     def test_partial_model_filtering(self, mock_router: ModelRouter) -> None:
-        """Test filtering with partial ModelCapability (should use all models)."""
+        """Test filtering with partial RegistryModel (minimal fields)."""
         partial_models = [
-            ModelCapability(
+            RegistryModel(
                 provider="openai",
-                model_name=None,
-                cost_per_1m_input_tokens=None,
-                cost_per_1m_output_tokens=None,
-                max_context_tokens=None,
-                supports_function_calling=None,
+                model_name="gpt-4",
+                # Missing optional fields like pricing, context_length
             )
         ]
 
@@ -223,14 +218,11 @@ class TestModelRouterEdgeCases:
         """Test that invalid cost bias values raise validation errors."""
 
         models = [
-            ModelCapability(
+            RegistryModel(
                 provider="openai",
                 model_name="gpt-5",
-                cost_per_1m_input_tokens=1.25,
-                cost_per_1m_output_tokens=10.0,
-                max_context_tokens=200000,
-                supports_function_calling=True,
-                task_type="Text Generation",
+                context_length=200000,
+                pricing={"prompt": "0.00000125", "completion": "0.0000100"},
             )
         ]
 
