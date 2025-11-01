@@ -89,51 +89,29 @@ result = classifier.classify_prompt("Write a sorting algorithm")
 
 ### ModelRegistry
 
-**File**: `services/model_registry.py`
+**File**: `registry/registry.py`
 
-Manages model metadata and capabilities.
+Caches model metadata fetched from the Adaptive model registry service.
 
 **Features**:
-- Model lookup by unique_id (provider:model_name)
-- Model filtering by criteria
-- Provider availability checking
+- Fetches canonical model definitions via `RegistryClient`
+- In-memory lookup by unique identifier or model name
+- Lightweight filtering helpers for local routing logic
 
 **Usage**:
 ```python
-from adaptive_router import ModelRegistry, YAMLModelDatabase
-
-yaml_db = YAMLModelDatabase()
-registry = ModelRegistry(yaml_db)
-
-# Get model
-model = registry.get_model_capability("openai:gpt-4")
-
-# Find models by criteria
-models = registry.find_models_matching_criteria(
-    ModelCapability(provider="openai", max_context_tokens=8000)
+from adaptive_router.registry import (
+    ModelRegistry,
+    RegistryClient,
+    RegistryClientConfig,
 )
-```
 
-### YAMLModelDatabase
+client = RegistryClient(RegistryClientConfig(base_url="http://localhost:3000"))
+registry = ModelRegistry(client)
 
-**File**: `services/yaml_model_loader.py`
-
-Loads model definitions from YAML files.
-
-**Features**:
-- Parses YAML model configs
-- Validates model metadata
-- Provides fast in-memory lookup
-
-**YAML Format**:
-```yaml
-models:
-  gpt-4:
-    model_name: "gpt-4"
-    cost_per_1m_input_tokens: 30.0
-    cost_per_1m_output_tokens: 60.0
-    max_context_tokens: 8192
-    supports_function_calling: true
+model = registry.get("openai:gpt-4")
+providers = registry.providers_for_model("gpt-4")
+high_context = registry.filter(min_context=120_000)
 ```
 
 ## Models
@@ -173,7 +151,7 @@ To customize classification:
 
 Unit tests in `../tests/unit/`:
 - `test_model_router.py`: Router logic tests
-- `test_model_registry.py`: Registry tests
+- `test_registry_service.py`: Registry cache backed by HTTP client
 - `test_prompt_classifier.py`: Classifier tests
 
 Integration tests in `../tests/integration/`:
