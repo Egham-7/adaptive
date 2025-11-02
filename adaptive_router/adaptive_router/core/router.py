@@ -25,12 +25,11 @@ from adaptive_router.models.api import (
 )
 from adaptive_router.models.routing import ModelFeatureVector
 from adaptive_router.models.storage import RouterProfile, MinIOSettings
+from adaptive_router.models.registry import RegistryModel
 from adaptive_router.core.cluster_engine import ClusterEngine
 
 logger = logging.getLogger(__name__)
 
-_ESTIMATED_TOKEN_COUNT = 2000
-_TOKENS_PER_MILLION = 1_000_000
 _EPSILON = 1e-10
 
 
@@ -255,27 +254,7 @@ class ModelRouter:
         # Extract and validate allowed models if provided
         allowed_model_ids: List[str] | None = None
         if request.models:
-            supported = self.get_supported_models()
-
-            # Build list of requested model IDs
-            requested = []
-            for m in request.models:
-                if m.provider and m.model_name:
-                    model_id = f"{m.provider.lower()}:{m.model_name.lower()}"
-                    requested.append(model_id)
-
-            # If we got valid model IDs, validate them
-            if requested:
-                # Validate all requested models are supported
-                unsupported = [m for m in requested if m not in supported]
-                if unsupported:
-                    raise ValueError(
-                        f"Models not supported by Router: {unsupported}. "
-                        f"Supported models: {supported}"
-                    )
-
-                allowed_model_ids = requested
-            # else: partial models with no valid IDs, use all models (allowed_model_ids stays None)
+            allowed_model_ids = self._filter_models_by_request(request.models)
 
         # Map cost_bias (0.0=cheap, 1.0=quality) to cost_preference
         cost_preference = (
@@ -458,6 +437,94 @@ class ModelRouter:
             default_cost_preference=default_cost_preference,
             allow_trust_remote_code=allow_trust_remote_code,
         )
+
+    def _filter_models_by_request(
+        self, models: List[RegistryModel]
+    ) -> List[str] | None:
+        """Filter supported models based on request model specifications.
+
+        This method provides a scalable filtering mechanism that can handle:
+        - Full model specifications (provider + model_name)
+        - Provider-only filters (just provider specified)
+        - Future filters (e.g., cost thresholds, capabilities, etc.)
+
+        Args:
+            models: List of RegistryModel objects with filter criteria
+
+        Returns:
+            List of allowed model IDs in "provider:model_name" format,
+            or None if no filtering should be applied
+
+        Raises:
+            ValueError: If requested models are not supported or no models match filters
+        """
+        supported = self.get_supported_models()
+
+        # Separate full model specs from partial filters
+        explicit_models = []
+        provider_filters = []
+
+        for m in models:
+            if m.provider and m.model_name:
+                # Full model specification - exact match required
+                model_id = f"{m.provider.lower()}:{m.model_name.lower()}"
+                explicit_models.append(model_id)
+            elif m.provider:
+                # Provider-only filter - match all models from this provider
+                provider_filters.append(m.provider.lower())
+            # Future: Add more filter types here (e.g., cost_threshold, supports_function_calling, etc.)
+
+        # Apply filters in order of specificity
+        allowed_model_ids = []
+
+        # 1. Explicit model specifications take highest priority
+        if explicit_models:
+            # Validate all requested models are supported
+            unsupported = [m for m in explicit_models if m not in supported]
+            if unsupported:
+                raise ValueError(
+                    f"Models not supported by Router: {unsupported}. "
+                    f"Supported models: {supported}"
+                )
+            allowed_model_ids.extend(explicit_models)
+
+        # 2. Apply provider filters
+        if provider_filters:
+            provider_filtered = [
+                model_id
+                for model_id in supported
+                if any(
+                    model_id.startswith(f"{provider}:") for provider in provider_filters
+                )
+            ]
+            if not provider_filtered:
+                raise ValueError(
+                    f"No supported models found for providers: {provider_filters}. "
+                    f"Supported models: {supported}"
+                )
+            allowed_model_ids.extend(provider_filtered)
+
+        # 3. Future filters can be added here (e.g., capability filters, cost filters)
+        # Example:
+        # if cost_threshold_filters:
+        #     cost_filtered = [
+        #         model_id for model_id in supported
+        #         if self.model_features[model_id].cost_per_1m_tokens <= threshold
+        #     ]
+        #     allowed_model_ids.extend(cost_filtered)
+
+        # Remove duplicates while preserving order
+        if allowed_model_ids:
+            seen = set()
+            unique_models = []
+            for model_id in allowed_model_ids:
+                if model_id not in seen:
+                    seen.add(model_id)
+                    unique_models.append(model_id)
+            return unique_models
+
+        # No filters specified - use all models
+        return None
 
     def _calculate_lambda(self, cost_preference: float) -> float:
         """Calculate lambda parameter.

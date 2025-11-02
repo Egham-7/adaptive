@@ -73,7 +73,7 @@ class RegistryModel(BaseModel):
     id: int | None = None
     openrouter_id: str | None = Field(default=None, alias="openrouter_id")
     provider: str
-    model_name: str
+    model_name: str | None = None
     display_name: str | None = Field(default=None, alias="display_name")
     description: str | None = None
     context_length: int | None = Field(default=None, alias="context_length")
