@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from adaptive_router.models.api import ModelCapability
+from adaptive_router.models.registry import RegistryModel
 
 
 @pytest.fixture
@@ -73,23 +73,17 @@ def mock_model_router() -> Mock:
     """Mock model router service."""
     router = Mock()
     router.select_models.return_value = [
-        ModelCapability(
+        RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            cost_per_1m_input_tokens=30.0,
-            cost_per_1m_output_tokens=60.0,
-            max_context_tokens=128000,
-            supports_function_calling=True,
-            task_type="Code Generation",
+            context_length=128000,
+            pricing={"prompt": "0.00003", "completion": "0.00006"},
         ),
-        ModelCapability(
+        RegistryModel(
             provider="anthropic",
             model_name="claude-3-sonnet-20240229",
-            cost_per_1m_input_tokens=15.0,
-            cost_per_1m_output_tokens=75.0,
-            max_context_tokens=200000,
-            supports_function_calling=False,
-            task_type="Text Generation",
+            context_length=200000,
+            pricing={"prompt": "0.000015", "completion": "0.000075"},
         ),
     ]
     return router
@@ -100,13 +94,10 @@ def mock_model_registry() -> Mock:
     """Mock model registry service."""
     registry = Mock()
     registry.get_models_by_task.return_value = [
-        ModelCapability(
-            provider="openai", model_name="gpt-4", task_type="Code Generation"
-        ),
-        ModelCapability(
+        RegistryModel(provider="openai", model_name="gpt-4"),
+        RegistryModel(
             provider="anthropic",
             model_name="claude-3-sonnet",
-            task_type="Code Generation",
         ),
     ]
     registry.get_all_models.return_value = {
