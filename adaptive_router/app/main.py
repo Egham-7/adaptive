@@ -19,15 +19,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from adaptive_router.core.router import ModelRouter
 from adaptive_router.models.api import (
     ModelSelectionAPIRequest,
-    ModelSelectionResponse,
 )
 from adaptive_router.models.registry import (
     RegistryConnectionError,
     RegistryError,
     RegistryResponseError,
+    RegistryModel,
 )
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
+from app.models import ModelSelectionAPIResponse
 from app.registry import RegistryClient
 from app.registry.registry import ModelRegistry
 from app.utils import enhance_model_costs_with_fuzzy_keys, resolve_models
@@ -462,7 +463,7 @@ def create_app() -> FastAPI:
     # Model selection endpoint
     @app.post(
         "/select-model",
-        response_model=ModelSelectionResponse,
+        response_model=ModelSelectionAPIResponse,
         status_code=status.HTTP_200_OK,
         responses={
             400: {"description": "Invalid request"},
@@ -473,7 +474,7 @@ def create_app() -> FastAPI:
         request: ModelSelectionAPIRequest,
         http_request: Request,
         router: Annotated[ModelRouter, Depends(get_router)],
-    ) -> ModelSelectionResponse:
+    ) -> ModelSelectionAPIResponse:
         """Select optimal model based on prompt analysis.
 
         Args:
@@ -490,9 +491,15 @@ def create_app() -> FastAPI:
         start_time = time.perf_counter()
 
         try:
+            if app_state.registry is None:
+                raise HTTPException(
+                    detail="Model registry not initialized",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
             # Resolve model specifications to RegistryModel objects
             resolved_models = None
-            all_models = app_state.registry.list_models() if app_state.registry else []
+            all_models = app_state.registry.list_models()
             if request.models:
                 try:
                     resolved_models = resolve_models(request.models, all_models)
@@ -533,7 +540,38 @@ def create_app() -> FastAPI:
                 },
             )
 
-            return response
+            # Transform library response to API response with full RegistryModel data
+            selected_model_id = f"{response.provider}:{response.model}"
+            selected_registry_model = app_state.registry.get(selected_model_id)
+
+            if selected_registry_model is None:
+                logger.warning(
+                    f"Selected model {selected_model_id} not found in registry, using minimal data"
+                )
+                # Fallback: create minimal RegistryModel
+                selected_registry_model = RegistryModel(
+                    provider=response.provider,
+                    model_name=response.model,
+                )
+
+            # Lookup alternatives in registry
+            alternative_registry_models = []
+            for alt in response.alternatives:
+                alt_model_id = f"{alt.provider}:{alt.model}"
+                alt_registry_model = app_state.registry.get(alt_model_id)
+
+                if alt_registry_model is None:
+                    logger.warning(
+                        f"Alternative model {alt_model_id} not found in registry, skipping"
+                    )
+                    continue
+
+                alternative_registry_models.append(alt_registry_model)
+
+            return ModelSelectionAPIResponse(
+                selected_model=selected_registry_model,
+                alternatives=alternative_registry_models,
+            )
 
         except ValueError as e:
             elapsed = time.perf_counter() - start_time
