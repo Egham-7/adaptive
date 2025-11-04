@@ -2,20 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import Mock
+
 import pytest
 
-from adaptive_router.registry.client import RegistryModel
-from adaptive_router.registry.registry import ModelRegistry
-
-
-class _FakeRegistryClient:
-    def __init__(self, models: list[RegistryModel]) -> None:
-        self._models = models
-        self.calls = 0
-
-    def list_models(self, *_, **__) -> list[RegistryModel]:
-        self.calls += 1
-        return list(self._models)
+from adaptive_router.models.registry import RegistryModel
+from app.registry.registry import ModelRegistry
 
 
 @pytest.fixture
@@ -45,18 +37,21 @@ def registry_models() -> list[RegistryModel]:
 
 
 @pytest.fixture
-def fake_client(registry_models: list[RegistryModel]) -> _FakeRegistryClient:
-    return _FakeRegistryClient(registry_models)
+def mock_client(registry_models: list[RegistryModel]) -> Mock:
+    """Mock RegistryClient that returns the test models."""
+    client = Mock()
+    client.list_models.return_value = registry_models
+    return client
 
 
 @pytest.fixture
-def model_registry(fake_client: _FakeRegistryClient) -> ModelRegistry:
-    return ModelRegistry(fake_client)
+def model_registry(mock_client: Mock) -> ModelRegistry:
+    return ModelRegistry(mock_client)
 
 
-def test_refresh_fetches_models(fake_client: _FakeRegistryClient) -> None:
-    registry = ModelRegistry(fake_client)
-    assert fake_client.calls == 1
+def test_refresh_fetches_models(mock_client: Mock) -> None:
+    registry = ModelRegistry(mock_client)
+    mock_client.list_models.assert_called_once()
     assert len(registry.list_models()) == 2
 
 
@@ -83,8 +78,8 @@ def test_filter_supports_function_calling(model_registry: ModelRegistry) -> None
     assert results[0].provider == "openai"
 
 
-def test_refresh_replaces_cache(fake_client: _FakeRegistryClient) -> None:
-    registry = ModelRegistry(fake_client)
+def test_refresh_replaces_cache(mock_client: Mock) -> None:
+    registry = ModelRegistry(mock_client)
 
     replacement = RegistryModel.model_validate(
         {
@@ -94,7 +89,7 @@ def test_refresh_replaces_cache(fake_client: _FakeRegistryClient) -> None:
         }
     )
 
-    fake_client._models = [replacement]
+    mock_client.list_models.return_value = [replacement]
     registry.refresh()
 
     assert registry.get("mistral:mistral-large") is not None

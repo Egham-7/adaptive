@@ -154,6 +154,9 @@ class ModelRouter:
             device=device,
             trust_remote_code=allow_trust_remote_code,
         )
+        # Fix future warning: explicitly set clean_up_tokenization_spaces to False
+        # This will be the default in transformers v4.45+
+        embedding_model.tokenizer.clean_up_tokenization_spaces = False
 
         # Create FeatureExtractor with fresh model
         feature_extractor = FeatureExtractor(

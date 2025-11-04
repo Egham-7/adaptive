@@ -57,6 +57,22 @@ class FeatureExtractor:
                 device=device,
                 trust_remote_code=allow_trust_remote_code,
             )
+            # Fix future warning: explicitly set clean_up_tokenization_spaces to False
+            # This will be the default in transformers v4.45+
+            self.embedding_model.tokenizer.clean_up_tokenization_spaces = False
+        except Exception as e:
+            if allow_trust_remote_code:
+                # If explicitly enabled, re-raise the error
+                raise
+            logger.warning(
+                f"Failed to load with trust_remote_code=False, trying with trust_remote_code=True: {e}"
+            )
+            self.embedding_model = SentenceTransformer(
+                embedding_model, device=device, trust_remote_code=True
+            )
+            # Fix future warning: explicitly set clean_up_tokenization_spaces to False
+            # This will be the default in transformers v4.45+
+            self.embedding_model.tokenizer.clean_up_tokenization_spaces = False
         except Exception as e:
             if allow_trust_remote_code:
                 # If explicitly enabled, re-raise the error
