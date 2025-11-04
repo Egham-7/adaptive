@@ -12,6 +12,12 @@ from app.config import FUZZY_MATCH_SIMILARITY_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
+# Provider aliases mapping - maps canonical provider names to known aliases
+PROVIDER_ALIASES = {
+    "google": ["gemini"],  # google models can be referenced as gemini
+    "gemini": ["google"],  # gemini models can be referenced as google
+}
+
 
 def normalize_model_id(model_id: str) -> list[str]:
     """Generate normalized variants of a model ID for fuzzy matching.
@@ -25,6 +31,8 @@ def normalize_model_id(model_id: str) -> list[str]:
         2. Without date suffixes (e.g., -20250929, -2024-04-09)
         3. Without version suffixes (e.g., -latest, -preview, -v1)
         4. With dots instead of hyphens in version numbers
+        5. With alternative separators (: <-> /)
+        6. With provider aliases (e.g., google <-> gemini)
 
     Examples:
         >>> normalize_model_id("anthropic:claude-sonnet-4-5-20250929")
@@ -39,6 +47,14 @@ def normalize_model_id(model_id: str) -> list[str]:
             "openai:gpt-4-turbo-2024-04-09",
             "openai:gpt-4-turbo",
             "openai:gpt-4-turbo"
+        ]
+
+        >>> normalize_model_id("google:gemini-2.5-flash-lite")
+        [
+            "google:gemini-2.5-flash-lite",
+            "google/gemini-2.5-flash-lite",
+            "gemini:gemini-2.5-flash-lite",  # Provider alias variant
+            "gemini/gemini-2.5-flash-lite"   # Provider alias with / separator
         ]
     """
     # Apply transformations sequentially
@@ -79,6 +95,30 @@ def normalize_model_id(model_id: str) -> list[str]:
             cross_separator_variants.append(variant.replace("/", ":"))
 
     for variant in cross_separator_variants:
+        if variant not in seen:
+            seen.add(variant)
+            variants.append(variant)
+
+    # Add provider alias variants (e.g., google <-> gemini)
+    provider_alias_variants: list[str] = []
+    for variant in variants:
+        # Split on both : and / separators
+        if ":" in variant:
+            provider, model_name = variant.split(":", 1)
+            separator = ":"
+        elif "/" in variant:
+            provider, model_name = variant.split("/", 1)
+            separator = "/"
+        else:
+            continue
+
+        # Check if this provider has aliases
+        if provider.lower() in PROVIDER_ALIASES:
+            for alias in PROVIDER_ALIASES[provider.lower()]:
+                aliased_variant = f"{alias}{separator}{model_name}"
+                provider_alias_variants.append(aliased_variant)
+
+    for variant in provider_alias_variants:
         if variant not in seen:
             seen.add(variant)
             variants.append(variant)
