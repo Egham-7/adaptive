@@ -125,31 +125,27 @@ class TestModelSelectionResponse:
     def test_valid_response(self) -> None:
         """Test creating valid ModelSelectionResponse."""
         response = ModelSelectionResponse(
-            provider="openai",
-            model="gpt-4",
+            model_id="openai:gpt-4",
             alternatives=[
-                Alternative(provider="anthropic", model="claude-3-sonnet"),
+                Alternative(model_id="anthropic:claude-3-sonnet"),
             ],
         )
-        assert response.provider == "openai"
-        assert response.model == "gpt-4"
+        assert response.model_id == "openai:gpt-4"
         assert len(response.alternatives) == 1
 
-    def test_empty_provider_validation(self) -> None:
-        """Test provider cannot be empty."""
+    def test_empty_model_id_validation(self) -> None:
+        """Test model_id cannot be empty."""
         with pytest.raises(ValidationError):
             ModelSelectionResponse(
-                provider="",
-                model="gpt-4",
+                model_id="",
                 alternatives=[],
             )
 
-    def test_empty_model_validation(self) -> None:
-        """Test model cannot be empty."""
+    def test_whitespace_model_id_validation(self) -> None:
+        """Test model_id cannot be whitespace only."""
         with pytest.raises(ValidationError):
             ModelSelectionResponse(
-                provider="openai",
-                model="",
+                model_id="   ",
                 alternatives=[],
             )
 
@@ -159,16 +155,15 @@ class TestAlternative:
 
     def test_valid_alternative(self) -> None:
         """Test creating valid Alternative."""
-        alt = Alternative(provider="openai", model="gpt-3.5-turbo")
-        assert alt.provider == "openai"
-        assert alt.model == "gpt-3.5-turbo"
+        alt = Alternative(model_id="openai:gpt-3.5-turbo")
+        assert alt.model_id == "openai:gpt-3.5-turbo"
 
-    def test_empty_provider_validation(self) -> None:
-        """Test provider cannot be empty."""
+    def test_empty_model_id_validation(self) -> None:
+        """Test model_id cannot be empty."""
         with pytest.raises(ValidationError):
-            Alternative(provider="", model="gpt-4")
+            Alternative(model_id="")
 
-    def test_empty_model_validation(self) -> None:
-        """Test model cannot be empty."""
+    def test_whitespace_model_id_validation(self) -> None:
+        """Test model_id cannot be whitespace only."""
         with pytest.raises(ValidationError):
-            Alternative(provider="openai", model="")
+            Alternative(model_id="   ")

@@ -122,20 +122,17 @@ class TestModelSelectionResponseValidation:
     """Test ModelSelectionResponse validation edge cases."""
 
     def test_whitespace_trimming(self) -> None:
-        """Test provider and model whitespace is trimmed."""
+        """Test model_id whitespace is trimmed."""
         response = ModelSelectionResponse(
-            provider="  openai  ",
-            model="  gpt-4  ",
+            model_id="  openai:gpt-4  ",
             alternatives=[],
         )
-        assert response.provider == "openai"
-        assert response.model == "gpt-4"
+        assert response.model_id == "openai:gpt-4"
 
     def test_empty_alternatives(self) -> None:
         """Test empty alternatives list is valid."""
         response = ModelSelectionResponse(
-            provider="openai",
-            model="gpt-4",
+            model_id="openai:gpt-4",
             alternatives=[],
         )
         assert response.alternatives == []
@@ -145,7 +142,6 @@ class TestAlternativeValidation:
     """Test Alternative validation edge cases."""
 
     def test_whitespace_trimming(self) -> None:
-        """Test provider and model whitespace is trimmed."""
-        alt = Alternative(provider="  openai  ", model="  gpt-4  ")
-        assert alt.provider == "openai"
-        assert alt.model == "gpt-4"
+        """Test model_id whitespace is trimmed."""
+        alt = Alternative(model_id="  openai:gpt-4  ")
+        assert alt.model_id == "openai:gpt-4"
