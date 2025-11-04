@@ -67,4 +67,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Run the application using Hypercorn
 # Railway will provide PORT environment variable
-CMD hypercorn app:app --bind [::]:${PORT:-8000}
+CMD hypercorn app.main:app --bind [::]:${PORT:-8000}
