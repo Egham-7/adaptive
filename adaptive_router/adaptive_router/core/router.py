@@ -152,7 +152,11 @@ class ModelRouter:
         embedding_model_name = profile.metadata.embedding_model
         # Suppress the clean_up_tokenization_spaces warning during model loading
         with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", message=".*clean_up_tokenization_spaces.*", category=FutureWarning)
+            warnings.filterwarnings(
+                "ignore",
+                message=".*clean_up_tokenization_spaces.*",
+                category=FutureWarning,
+            )
             embedding_model = SentenceTransformer(
                 embedding_model_name,
                 device=device,

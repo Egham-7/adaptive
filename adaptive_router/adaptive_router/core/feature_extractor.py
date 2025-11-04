@@ -55,7 +55,11 @@ class FeatureExtractor:
         try:
             # Suppress the clean_up_tokenization_spaces warning during model loading
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message=".*clean_up_tokenization_spaces.*", category=FutureWarning)
+                warnings.filterwarnings(
+                    "ignore",
+                    message=".*clean_up_tokenization_spaces.*",
+                    category=FutureWarning,
+                )
                 self.embedding_model = SentenceTransformer(
                     embedding_model,
                     device=device,
@@ -72,7 +76,11 @@ class FeatureExtractor:
             )
             # Suppress the clean_up_tokenization_spaces warning during model loading
             with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message=".*clean_up_tokenization_spaces.*", category=FutureWarning)
+                warnings.filterwarnings(
+                    "ignore",
+                    message=".*clean_up_tokenization_spaces.*",
+                    category=FutureWarning,
+                )
                 self.embedding_model = SentenceTransformer(
                     embedding_model, device=device, trust_remote_code=True
                 )

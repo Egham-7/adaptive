@@ -34,7 +34,12 @@ def resolve_models(
             candidates = [
                 m
                 for m in registry_models
-                if m.provider == provider and m.model_name == model_name
+                if (m.provider and provider and m.provider.lower() == provider.lower())
+                and (
+                    m.model_name
+                    and model_name
+                    and m.model_name.lower() == model_name.lower()
+                )
             ]
         except Exception as e:
             raise ValueError(
