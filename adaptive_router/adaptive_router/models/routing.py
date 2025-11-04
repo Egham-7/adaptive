@@ -1,12 +1,13 @@
-"""Internal routing models for router implementation.
+"""Routing models for the adaptive router library.
 
-This module contains models used internally by the routing engine for scoring
-models, tracking routing decisions, and managing model feature vectors.
+This module contains models used by the routing engine for scoring models,
+tracking routing decisions, and managing model metadata. These are the public
+API types exposed to library users.
 """
 
 from typing import Any, Dict, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ModelFeatureVector(BaseModel):
@@ -78,3 +79,42 @@ class RoutingDecision(BaseModel):
     reasoning: str
     alternatives: List[Dict[str, Any]]  # Other models and their scores
     routing_time_ms: float
+
+
+# ============================================================================
+# Public Library API Types
+# ============================================================================
+
+
+class ModelInfo(BaseModel):
+    """Public API: Clean model metadata for routing decisions.
+
+    Attributes:
+        model_id: Unique model identifier (e.g., "anthropic:claude-sonnet-4-5")
+        cost_per_1m_tokens: Average cost per million tokens
+        context_length: Maximum context window size in tokens
+        tokenizer: Tokenizer type (e.g., "GPT", "Llama3", "Nova", "Claude")
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    model_id: str
+    cost_per_1m_tokens: float
+    context_length: int
+    tokenizer: str | None = None
+
+
+class ModelPricing(BaseModel):
+    """Public API: Model pricing information.
+
+    Attributes:
+        prompt_cost: Cost per 1M input tokens
+        completion_cost: Cost per 1M output tokens
+        average_cost: Average cost per 1M tokens
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    prompt_cost: float
+    completion_cost: float
+    average_cost: float

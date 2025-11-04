@@ -102,10 +102,8 @@ def test_cost_bias_variation(
             "test": "cost_bias_variation",
             "prompt": prompt,
             "cost_bias": cost_bias,
-            "selected_model": f"{response.provider}:{response.model}",
-            "alternatives": [
-                f"{alt.provider}:{alt.model}" for alt in response.alternatives[:3]
-            ],
+            "selected_model": response.model_id,
+            "alternatives": [alt.model_id for alt in response.alternatives[:3]],
             "routing_time_ms": round(routing_time, 2),
         }
         results.append(result)
@@ -216,14 +214,14 @@ def test_provider_filtering(
             "provider_group": group_name,
             "providers": providers,
             "prompt": prompt,
-            "selected_model": f"{response.provider}:{response.model}",
+            "selected_model": response.model_id,
             "routing_time_ms": round(routing_time, 2),
         }
         results.append(result)
 
         # Validate that selected model matches provider constraint
         if providers is not None:
-            selected_provider = response.provider
+            selected_provider = response.model_id.split(":", 1)[0]
             if selected_provider not in providers:
                 console.print(
                     f"[red]WARNING: Selected provider '{selected_provider}' "
@@ -291,7 +289,7 @@ def test_prompt_variety(
             "prompt_type": prompt_type,
             "prompt": prompt,
             "cost_bias": cost_bias,
-            "selected_model": f"{response.provider}:{response.model}",
+            "selected_model": response.model_id,
             "routing_time_ms": round(routing_time, 2),
         }
         results.append(result)
@@ -354,7 +352,7 @@ def test_determinism(
     selected_models = []
     for i in range(iterations):
         response = router.select_model(request)
-        selected_models.append(f"{response.provider}:{response.model}")
+        selected_models.append(response.model_id)
 
     # Check if all selections are identical
     is_deterministic = len(set(selected_models)) == 1

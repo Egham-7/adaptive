@@ -5,6 +5,6 @@ Adaptive model registry service.
 """
 
 from app.registry.client import RegistryClient
-from app.registry.registry import ModelRegistry
+from app.registry.models import ModelRegistry
 
 __all__ = ["RegistryClient", "ModelRegistry"]

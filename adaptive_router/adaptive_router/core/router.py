@@ -358,27 +358,20 @@ class ModelRouter:
                 f"Expected format: 'provider:model_name'"
             )
 
-        provider, model_name = selected_model_parts
-
         # Convert alternatives to Alternative objects
         alternatives_list = []
         for alt in alternatives_data[:3]:  # Limit to top 3 alternatives
             alt_model_id: str = alt["model_id"]  # type: ignore[assignment]
-            alt_parts = alt_model_id.split(":", 1)
-            if len(alt_parts) == 2:
-                alternatives_list.append(
-                    Alternative(provider=alt_parts[0], model=alt_parts[1])
-                )
+            alternatives_list.append(Alternative(model_id=alt_model_id))
 
         # Convert to ModelSelectionResponse
         response = ModelSelectionResponse(
-            provider=provider,
-            model=model_name,
+            model_id=best_model_id,
             alternatives=alternatives_list,
         )
 
         logger.info(
-            f"Selected model: {provider}/{model_name} "
+            f"Selected model: {best_model_id} "
             f"(cluster {cluster_id}, "
             f"accuracy {best_scores['accuracy']:.2%}, "
             f"score {best_scores['score']:.3f}, "

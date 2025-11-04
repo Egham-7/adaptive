@@ -29,8 +29,7 @@ from adaptive_router.models.registry import (
 from app.config import AppSettings
 from app.health import HealthCheckResponse, HealthStatus, ServiceHealth
 from app.models import ModelSelectionAPIResponse
-from app.registry import RegistryClient
-from app.registry.registry import ModelRegistry
+from app.registry import RegistryClient, ModelRegistry
 from app.utils import enhance_model_costs_with_fuzzy_keys, resolve_models
 from adaptive_router.models.registry import RegistryClientConfig
 
@@ -534,30 +533,30 @@ def create_app() -> FastAPI:
                 "Model selection completed",
                 extra={
                     "elapsed_ms": round(elapsed * 1000, 2),
-                    "selected_provider": response.provider,
-                    "selected_model": response.model,
+                    "selected_model_id": response.model_id,
                     "alternatives_count": len(response.alternatives),
                 },
             )
 
             # Transform library response to API response with full RegistryModel data
-            selected_model_id = f"{response.provider}:{response.model}"
+            selected_model_id = response.model_id
             selected_registry_model = app_state.registry.get(selected_model_id)
 
             if selected_registry_model is None:
                 logger.warning(
                     f"Selected model {selected_model_id} not found in registry, using minimal data"
                 )
-                # Fallback: create minimal RegistryModel
+                # Fallback: create minimal RegistryModel by parsing model_id
+                parts = selected_model_id.split(":", 1)
                 selected_registry_model = RegistryModel(
-                    provider=response.provider,
-                    model_name=response.model,
+                    provider=parts[0] if len(parts) == 2 else "unknown",
+                    model_name=parts[1] if len(parts) == 2 else selected_model_id,
                 )
 
             # Lookup alternatives in registry
             alternative_registry_models = []
             for alt in response.alternatives:
-                alt_model_id = f"{alt.provider}:{alt.model}"
+                alt_model_id = alt.model_id
                 alt_registry_model = app_state.registry.get(alt_model_id)
 
                 if alt_registry_model is None:

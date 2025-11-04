@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import pytest
 
 from adaptive_router.models.registry import RegistryModel
-from app.registry.registry import ModelRegistry
+from app.registry.models import ModelRegistry
 
 
 @pytest.fixture

@@ -89,8 +89,8 @@ class TestModelRouter:
         response = mock_router.select_model(request)
 
         # Verify the router produces valid output
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
         assert isinstance(response.alternatives, list)
 
     def test_initialization_without_params(self, mock_router: ModelRouter) -> None:
@@ -103,8 +103,8 @@ class TestModelRouter:
         response = mock_router.select_model(request)
 
         # Verify valid response
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
 
     def test_select_model_with_full_models(self, mock_router: ModelRouter) -> None:
         """Test model selection when full models are provided."""
@@ -125,8 +125,8 @@ class TestModelRouter:
         response = mock_router.select_model(request)
 
         # Verify response structure
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
         assert isinstance(response.alternatives, list)
 
     def test_select_model_cost_bias_low(self, mock_router: ModelRouter) -> None:
@@ -138,8 +138,8 @@ class TestModelRouter:
         )
         response = mock_router.select_model(request)
 
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
 
     def test_select_model_cost_bias_high(self, mock_router: ModelRouter) -> None:
         """Test that high cost bias works correctly."""
@@ -150,8 +150,8 @@ class TestModelRouter:
         )
         response = mock_router.select_model(request)
 
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
 
     def test_select_model_empty_input(self, mock_router: ModelRouter) -> None:
         """Test selecting models when no models are provided."""
@@ -163,8 +163,8 @@ class TestModelRouter:
         response = mock_router.select_model(request)
 
         # Should work with internal model list
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
         assert isinstance(response.alternatives, list)
 
     def test_partial_model_filtering(self, mock_router: ModelRouter) -> None:
@@ -185,8 +185,8 @@ class TestModelRouter:
         response = mock_router.select_model(request)
 
         # Should work with all models since partial models are ignored
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
 
     def test_model_selection_code_task(self, mock_router: ModelRouter) -> None:
         """Test model selection for code generation tasks."""
@@ -196,8 +196,8 @@ class TestModelRouter:
         )
         response = mock_router.select_model(request)
 
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
 
     def test_model_selection_creative_task(self, mock_router: ModelRouter) -> None:
         """Test model selection for creative writing tasks."""
@@ -207,8 +207,8 @@ class TestModelRouter:
         )
         response = mock_router.select_model(request)
 
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
 
 
 class TestModelRouterEdgeCases:
@@ -258,8 +258,8 @@ class TestModelRouterEdgeCases:
             cost_bias=0.0,
         )
         response_min = mock_router.select_model(request_min)
-        assert response_min.provider
-        assert response_min.model
+        assert response_min.model_id
+        assert response_min.model_id
 
         # Test cost_bias = 1.0 (maximum)
         request_max = ModelSelectionRequest(
@@ -267,8 +267,8 @@ class TestModelRouterEdgeCases:
             cost_bias=1.0,
         )
         response_max = mock_router.select_model(request_max)
-        assert response_max.provider
-        assert response_max.model
+        assert response_max.model_id
+        assert response_max.model_id
 
     def test_complex_prompt_handling(self, mock_router: ModelRouter) -> None:
         """Test handling of very complex prompts."""
@@ -289,8 +289,8 @@ class TestModelRouterEdgeCases:
         )
         response = mock_router.select_model(request)
 
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
 
     def test_simple_prompt_handling(self, mock_router: ModelRouter) -> None:
         """Test handling of very simple prompts."""
@@ -301,8 +301,8 @@ class TestModelRouterEdgeCases:
         response = mock_router.select_model(request)
 
         # Should successfully select a model
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
         assert isinstance(response.alternatives, list)
 
     def test_alternatives_generation(self, mock_router: ModelRouter) -> None:
@@ -314,8 +314,8 @@ class TestModelRouterEdgeCases:
         response = mock_router.select_model(request)
 
         # Should successfully select a model
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id
         # Should have alternatives
         assert isinstance(response.alternatives, list)
 
@@ -330,5 +330,5 @@ class TestModelRouterEdgeCases:
 
         # Should not raise error
         response = mock_router.select_model(request)
-        assert response.provider
-        assert response.model
+        assert response.model_id
+        assert response.model_id

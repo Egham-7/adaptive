@@ -47,6 +47,9 @@ def normalize_model_id(model_id: str) -> list[str]:
         lambda x: re.sub(r"-\d{8}$", "", x),  # Remove YYYYMMDD
         lambda x: re.sub(r"-\d{4}-\d{2}-\d{2}$", "", x),  # Remove YYYY-MM-DD
         lambda x: re.sub(
+            r"-(preview|alpha|beta)-\d{2}-\d{4}$", "", x
+        ),  # Remove preview/alpha/beta with MM-YYYY dates
+        lambda x: re.sub(
             r"-(latest|preview|alpha|beta|v\d+)$", "", x
         ),  # Remove version suffixes
         lambda x: re.sub(
