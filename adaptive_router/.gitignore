@@ -82,3 +82,6 @@ adaptive_router/scripts/migrate_to_storage.py
 
 # Setup documentation (project-specific, not tracked)
 S3_SETUP.md
+
+.tessl/
+.mcp.json
