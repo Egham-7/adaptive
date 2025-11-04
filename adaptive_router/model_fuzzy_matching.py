@@ -41,32 +41,34 @@ def normalize_model_id(model_id: str) -> list[str]:
             "openai:gpt-4-turbo"
         ]
     """
-    variants = [model_id]  # Always include original
+    # Apply transformations sequentially
+    transformations = [
+        lambda x: x,  # Original
+        lambda x: re.sub(r"-\d{8}$", "", x),  # Remove YYYYMMDD
+        lambda x: re.sub(r"-\d{4}-\d{2}-\d{2}$", "", x),  # Remove YYYY-MM-DD
+        lambda x: re.sub(
+            r"-(latest|preview|alpha|beta|v\d+)$", "", x
+        ),  # Remove version suffixes
+        lambda x: re.sub(
+            r"(\w+)-(\d+)-(\d+)", r"\1-\2.\3", x
+        ),  # Convert hyphens to dots in versions
+    ]
 
-    # Pattern 1: Remove date suffixes (YYYYMMDD or YYYY-MM-DD format)
-    without_date = re.sub(r"-\d{8}$", "", model_id)  # -20250929
-    without_date = re.sub(r"-\d{4}-\d{2}-\d{2}$", "", without_date)  # -2024-04-09
-    if without_date != model_id and without_date not in variants:
-        variants.append(without_date)
+    # Apply all transformations and deduplicate while preserving order
+    seen: set[str] = set()
+    variants: list[str] = []
 
-    # Pattern 2: Remove common version/variant suffixes
-    without_suffix = re.sub(r"-(latest|preview|alpha|beta|v\d+)$", "", without_date)
-    if without_suffix != without_date and without_suffix not in variants:
-        variants.append(without_suffix)
-
-    # Pattern 3: Convert version numbers to use dots (e.g., 4-5 -> 4.5)
-    # Match version-like patterns: word-digit-digit
-    with_dots = re.sub(r"(\w+)-(\d+)-(\d+)", r"\1-\2.\3", without_suffix)
-    if with_dots != without_suffix and with_dots not in variants:
-        variants.append(with_dots)
+    for transform in transformations:
+        variant = transform(model_id)
+        if variant not in seen:
+            seen.add(variant)
+            variants.append(variant)
 
     return variants
 
 
 def calculate_similarity(a: str, b: str) -> float:
-    """Calculate similarity score between two strings.
-
-    Uses SequenceMatcher for fuzzy string matching.
+    """Calculate similarity score between two strings using SequenceMatcher.
 
     Args:
         a: First string
@@ -93,19 +95,17 @@ def find_best_match(
     Returns:
         Tuple of (best_match_id, similarity_score) or (None, 0.0) if no match
     """
-    best_match = None
-    best_score = 0.0
+    if not available_ids:
+        return None, 0.0
 
-    for available_id in available_ids:
-        score = calculate_similarity(target_id, available_id)
-        if score > best_score:
-            best_score = score
-            best_match = available_id
+    # Find ID with highest similarity score
+    similarities = [
+        (available_id, calculate_similarity(target_id, available_id))
+        for available_id in available_ids
+    ]
+    best_match, best_score = max(similarities, key=lambda x: x[1])
 
-    if best_score >= threshold:
-        return best_match, best_score
-
-    return None, 0.0
+    return (best_match, best_score) if best_score >= threshold else (None, 0.0)
 
 
 def enhance_model_costs_with_fuzzy_keys(
@@ -129,23 +129,35 @@ def enhance_model_costs_with_fuzzy_keys(
             "anthropic:claude-sonnet-4.5": 5.0,
         }
     """
-    enhanced: dict[str, float] = dict(model_costs)  # Start with original
-    variants_added = 0
+    # Generate all variants for all models
+    variant_mappings = [
+        (variant, model_id, cost)
+        for model_id, cost in model_costs.items()
+        for variant in normalize_model_id(model_id)
+    ]
 
-    for model_id, cost in model_costs.items():
-        variants = normalize_model_id(model_id)
+    # Build enhanced dict with variants (excluding duplicates)
+    enhanced = dict(model_costs)
+    new_variants = {
+        variant: cost
+        for variant, model_id, cost in variant_mappings
+        if variant not in enhanced and variant != model_id
+    }
+    enhanced.update(new_variants)
 
-        for variant in variants:
-            # Add variant if not already present
-            if variant not in enhanced:
-                enhanced[variant] = cost
-                if variant != model_id:  # Don't log the original
-                    logger.debug(
-                        f"Fuzzy variant: '{variant}' -> '{model_id}' (cost: {cost})"
-                    )
-                    variants_added += 1
+    # Log new variants
+    if new_variants:
+        for variant, cost in new_variants.items():
+            # Find original model_id for this variant
+            original = next(
+                model_id
+                for model_id, original_cost in model_costs.items()
+                if original_cost == cost and variant in normalize_model_id(model_id)
+            )
+            logger.debug(f"Fuzzy variant: '{variant}' -> '{original}' (cost: {cost})")
 
-    if variants_added > 0:
-        logger.info(f"Added {variants_added} fuzzy matching variants for model lookup")
+        logger.info(
+            f"Added {len(new_variants)} fuzzy matching variants for model lookup"
+        )
 
     return enhanced
