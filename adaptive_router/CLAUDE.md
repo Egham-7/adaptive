@@ -5,14 +5,18 @@
 **IMPORTANT**: When working on this service, remember to:
 
 ### Memory Management
+
 Use ByteRover MCP for persistent memory across sessions:
+
 - **Before adding memories**: Always search first with `mcp__byterover-mcp__byterover-retrieve-knowledge` to avoid duplicates
 - **Add memories**: Use `mcp__byterover-mcp__byterover-store-knowledge` for ML model configurations, training results, troubleshooting solutions
 - **Search memories**: Use `mcp__byterover-mcp__byterover-retrieve-knowledge` to recall previous conversations and solutions
 - **Best practices for memory storage**: Only commit meaningful, reusable information like ML model patterns, PyTorch configurations, classification algorithms, cost optimization strategies, and implementation details that provide value beyond common knowledge
 
 ### Documentation
+
 For documentation needs, use Ref MCP tools:
+
 - **Search docs**: Use `mcp__Ref__ref_search_documentation` for Python, FastAPI, PyTorch, HuggingFace, scikit-learn documentation
 - **Read specific docs**: Use `mcp__Ref__ref_read_url` to read documentation pages
 
@@ -44,33 +48,61 @@ The adaptive_router service is a unified Python ML package that provides intelli
 
 ```
 adaptive_router/
-├── adaptive_router/
+├── adaptive_router/                          # Core ML library package
 │   ├── __init__.py                           # Library exports for Python import
-│   ├── cli.py                                # CLI entry point (starts FastAPI server)
-│   ├── api/                                  # FastAPI server implementation
+│   ├── core/                                 # Core ML routing components
 │   │   ├── __init__.py
-│   │   └── app.py                            # FastAPI application with endpoints
-│   ├── core/
+│   │   ├── router.py                         # ModelRouter - main routing logic
+│   │   ├── cluster_engine.py                 # ClusterEngine - K-means clustering
+│   │   └── feature_extractor.py              # FeatureExtractor - sentence transformers + TF-IDF
+│   ├── loaders/                              # Profile loading implementations
 │   │   ├── __init__.py
-│   │   └── storage_config.py                 # MinIO S3 configuration
-│   ├── models/                               # Data models and schemas
+│   │   ├── base.py                           # ProfileLoader base class
+│   │   ├── local.py                          # LocalFileProfileLoader
+│   │   └── minio.py                          # MinIOProfileLoader - S3 profile loading
+│   ├── models/                               # Pydantic data models and schemas
 │   │   ├── __init__.py
-│   │   ├── llm_core_models.py                # Core request/response models
-│   │   └── routing_schemas.py                # Routing decision models
-│   ├── services/                             # Core routing services
+│   │   ├── api.py                            # Request/response models
+│   │   ├── config.py                         # YAML configuration models
+│   │   ├── evaluation.py                     # Evaluation metrics models
+│   │   ├── health.py                         # Health check models
+│   │   ├── registry.py                       # Model registry models
+│   │   ├── routing.py                        # Routing decision models
+│   │   └── storage.py                        # Storage/profile models
+│   ├── utils/                                # Utility modules
 │   │   ├── __init__.py
-│   │   ├── model_router.py                   # Public API (uses RouterService)
-│   │   ├── router_service.py                 # Router integration layer
-│   │   ├── router.py                         # Core routing logic
-│   │   ├── cluster_engine.py                 # K-means clustering
-│   │   ├── feature_extractor.py              # Sentence transformers + TF-IDF
-│   │   ├── storage_profile_loader.py         # MinIO S3 profile loading
-│   │   └── yaml_model_loader.py              # YAML configuration loader
-│   ├── config/                               # Configuration files
-│   │   └── unirouter_models.yaml             # Model definitions and routing config
-│   └── data/                                 # (Local data not used in production)
-├── tests/                                    # Test suite (unit + integration)
-├── pyproject.toml                            # Dependencies and CLI entry point
+│   │   └── model_parser.py                   # Model name parsing utilities
+│   └── tests/                                # Test suite (inside package)
+│       ├── fixtures/                         # Test fixtures
+│       │   ├── ml_fixtures.py
+│       │   ├── model_fixtures.py
+│       │   └── request_fixtures.py
+│       ├── integration/                      # Integration tests
+│       │   ├── test_api_endpoints.py
+│       │   ├── test_cost_optimization.py
+│       │   ├── test_model_selection_flows.py
+│       │   └── test_task_routing.py
+│       └── unit/                             # Unit tests
+│           ├── models/
+│           └── services/
+├── app/                                      # FastAPI HTTP server (separate package)
+│   ├── __init__.py
+│   ├── main.py                               # FastAPI application factory (create_app)
+│   ├── config.py                             # App configuration (env vars)
+│   ├── health.py                             # Health check endpoints
+│   ├── models.py                             # API-specific models
+│   ├── registry/                             # External model registry integration
+│   │   ├── __init__.py
+│   │   ├── client.py                         # HTTP client for registry API
+│   │   └── models.py                         # Registry model cache
+│   └── utils/                                # App-specific utilities
+│       ├── fuzzy_matching.py                 # Fuzzy model name matching
+│       └── model_resolver.py                 # Model resolution logic
+├── scripts/                                  # Utility scripts
+│   ├── models/                               # Model management scripts
+│   ├── training/                             # Training scripts
+│   └── utils/                                # Utility scripts
+├── pyproject.toml                            # Dependencies and package configuration
 ├── uv.lock                                   # Dependency lock file
 └── README.md                                 # Service documentation
 ```
@@ -113,25 +145,32 @@ LOG_LEVEL=INFO                  # Logging level
 ## Deployment Modes
 
 ### 1. Library Mode (Python Import)
+
 Use adaptive_router as a Python library in your code:
 
 ```python
-from adaptive_router import ModelRouter, ModelSelectionRequest
+from adaptive_router.core.router import ModelRouter
+from adaptive_router.models.routing import RoutingRequest
+from adaptive_router.loaders.minio import MinIOProfileLoader
 
-# Initialize router (loads cluster profiles from MinIO automatically)
-router = ModelRouter()
+# Initialize profile loader from MinIO
+loader = MinIOProfileLoader.from_env()
+
+# Initialize router with loaded profile
+router = ModelRouter(loader)
 
 # Select optimal model based on prompt
-request = ModelSelectionRequest(
+request = RoutingRequest(
     prompt="Write a Python function to sort a list",
-    cost_bias=0.5  # 0.0 = cheapest, 1.0 = most capable
+    cost_preference=0.5  # 0.0 = cheapest, 1.0 = most capable
 )
-response = router.select_model(request)
+response = router.route(request)
 print(f"Selected: {response.provider} / {response.model}")
-print(f"Alternatives: {response.alternatives}")
+print(f"Reasoning: {response.reasoning}")
 ```
 
 ### 2. FastAPI Server Mode
+
 Run as HTTP API server for production deployment:
 
 ```bash
@@ -139,23 +178,25 @@ Run as HTTP API server for production deployment:
 uv install
 
 # Start FastAPI server (development mode with auto-reload)
-fastapi dev adaptive_router/app.py
+fastapi dev app/main.py
 
 # Or use Hypercorn for production
-hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
+hypercorn app.main:create_app() --bind 0.0.0.0:8000
 
 # Server starts on http://0.0.0.0:8000
 # API docs available at http://localhost:8000/docs
 # ReDoc available at http://localhost:8000/redoc
+# Health check at http://localhost:8000/health
 
 # Custom port
-PORT=8001 hypercorn adaptive_router.app:app --bind 0.0.0.0:8001
+PORT=8001 hypercorn app.main:create_app() --bind 0.0.0.0:8001
 
 # Enable debug logging
-DEBUG=true hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
+DEBUG=true hypercorn app.main:create_app() --bind 0.0.0.0:8000
 ```
 
 **API Endpoints:**
+
 - `POST /select_model` - Select optimal model based on prompt
 - `GET /health` - Health check endpoint
 
@@ -164,27 +205,29 @@ Access interactive API docs at `http://localhost:8000/docs`
 ## Development Commands
 
 ### Local Development
+
 ```bash
 # Install dependencies
 uv install
 
 # Start the FastAPI server (development mode with auto-reload)
-fastapi dev adaptive_router/app.py
+fastapi dev app/main.py
 
 # Or use Hypercorn directly (production mode)
-hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
+hypercorn app.main:create_app() --bind 0.0.0.0:8000
 
 # Start with custom configuration
-HOST=0.0.0.0 PORT=8001 hypercorn adaptive_router.app:app --bind 0.0.0.0:8001
+HOST=0.0.0.0 PORT=8001 hypercorn app.main:create_app() --bind 0.0.0.0:8001
 
 # Start with debug logging
-DEBUG=true hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
+DEBUG=true hypercorn app.main:create_app() --bind 0.0.0.0:8000
 
 # For multi-process deployment
-hypercorn adaptive_router.app:app --bind 0.0.0.0:8000 --workers 4
+hypercorn app.main:create_app() --bind 0.0.0.0:8000 --workers 4
 ```
 
 ### Code Quality
+
 ```bash
 # Format code with Black
 uv run black .
@@ -207,6 +250,7 @@ uv run black . && uv run ruff check . && uv run mypy .
 We provide multiple convenient ways to run tests:
 
 #### Using Make Commands (Recommended)
+
 ```bash
 # Show all available commands
 make help
@@ -241,11 +285,12 @@ make quality         # All quality checks
 ```
 
 #### Using Shell Script
+
 ```bash
 # Run all tests
 ./scripts/test.sh
 
-# Run unit tests only  
+# Run unit tests only
 ./scripts/test.sh unit
 
 # Run integration tests only
@@ -259,6 +304,7 @@ make quality         # All quality checks
 ```
 
 #### Using uv run directly
+
 ```bash
 # Run unit tests only (CI-safe, no external dependencies)
 uv run pytest -m "unit"
@@ -287,6 +333,7 @@ uv run pytest --cov --cov-report=html
 The service exposes a FastAPI REST API that accepts model selection requests and returns orchestration responses. The API includes automatic OpenAPI documentation available at `/docs`.
 
 ### Request Format
+
 ```python
 {
     "chat_completion_request": {
@@ -328,6 +375,7 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 ```
 
 ### Response Format
+
 ```python
 {
     "selection": {
@@ -352,47 +400,99 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 
 ## Core Services
 
-### Model Router Service
-**File**: `adaptive_router/services/model_router.py`
+### Model Router
 
-- Intelligent model routing with complexity-aware selection
-- Selects optimal LLM models based on task complexity and cost optimization
-- Integrates with prompt classifier for task analysis
-- Provides model capability matching and filtering
+**File**: `adaptive_router/core/router.py`
 
-### Prompt Task Complexity Classifier Service  
-**File**: `adaptive_router/services/prompt_task_complexity_classifier.py`
+The `ModelRouter` class is the main entry point for intelligent model selection:
+- Cluster-based routing using UniRouter algorithm
+- Accepts `RoutingRequest` with prompt and cost preference
+- Returns `RoutingResponse` with selected model and reasoning
+- Uses pre-loaded cluster profiles from MinIO S3
+- Combines feature extraction, cluster assignment, and cost optimization
+- Supports multiple provider models with per-cluster error rates
 
-- Complete NVIDIA transformer-based classifier implementation
-- Uses PyTorch with local GPU/CPU inference capability
-- Classifies prompt task types (code, math, creative, etc.)
-- Determines complexity levels and processing requirements
-- Provides confidence scores for classification decisions
-- Supports batch processing for high throughput
+### Cluster Engine
 
-### Model Registry Service
-**File**: `adaptive_router/services/model_registry.py`
+**File**: `adaptive_router/core/cluster_engine.py`
 
-- Validates model names across all supported providers
-- Manages model availability and capability lookups
-- Provides core model filtering functionality
-- Integrates with YAML model database for metadata
+The `ClusterEngine` handles K-means clustering operations:
+- Loads pre-trained cluster centers from storage profiles
+- Assigns prompts to clusters using K-means prediction
+- Manages cluster metadata and silhouette scores
+- Provides fast cluster assignment (<5ms per request)
+- Supports configurable number of clusters (typically 10-50)
 
-### YAML Model Database Service
-**File**: `adaptive_router/services/yaml_model_loader.py`
+### Feature Extractor
 
-- Loads provider model configurations from YAML files
-- Provides fast in-memory model metadata lookups
-- Handles model capability definitions and pricing data
-- Supports dynamic provider configuration updates
-- Implements smart fallback strategies
-- Tracks usage patterns and optimizes over time
-- Provides cost savings metrics and recommendations
+**File**: `adaptive_router/core/feature_extractor.py`
 
+The `FeatureExtractor` converts prompts to feature vectors:
+- Sentence transformer embeddings using `all-MiniLM-L6-v2` (384D)
+- TF-IDF features for lexical patterns (5000D)
+- StandardScaler normalization for both feature types
+- Concatenated 5384D feature vectors
+- Local GPU/CPU inference (no external API calls)
+- Cached models for fast subsequent requests
+
+### Profile Loaders
+
+**Files**: `adaptive_router/loaders/`
+
+Profile loading system with multiple implementations:
+
+**Base Loader** (`loaders/base.py`):
+- `ProfileLoader` abstract base class
+- Defines interface for loading cluster profiles
+- Returns `ClusterProfile` with centers, error rates, scalers
+
+**MinIO Loader** (`loaders/minio.py`):
+- `MinIOProfileLoader` for S3-compatible storage
+- Loads profiles from Railway-hosted MinIO
+- Supports environment-based configuration
+- Connection pooling and retry logic
+
+**Local Loader** (`loaders/local.py`):
+- `LocalFileProfileLoader` for file-based profiles
+- Used for testing and offline development
+- Supports pickle and JSON formats
+
+### External Model Registry Integration
+
+**Files**: `app/registry/`
+
+Integration with external model registry service for model metadata:
+
+**Registry Client** (`app/registry/client.py`):
+- HTTP client for model registry API
+- Fetches model metadata (pricing, capabilities, context limits)
+- Supports provider/model validation
+- Caching layer for performance
+
+**Registry Models** (`app/registry/models.py`):
+- Model cache with TTL expiration
+- Provider model listings
+- Fuzzy matching support for model resolution
+- Replaces legacy YAML-based model database
+
+### Model Resolution Utilities
+
+**Files**: `app/utils/`
+
+**Fuzzy Matching** (`app/utils/fuzzy_matching.py`):
+- Fuzzy model name matching using string similarity
+- Handles common typos and variations
+- Provider-specific model name normalization
+
+**Model Resolver** (`app/utils/model_resolver.py`):
+- Resolves model names to canonical forms
+- Integrates registry client with fuzzy matching
+- Provides fallback strategies for unknown models
 
 ## Routing Algorithm
 
 ### Cluster-Based Selection (UniRouter)
+
 - **Algorithm**: K-means clustering of prompts based on semantic features
 - **Features**: Sentence transformer embeddings (384D) + TF-IDF features (5000D)
 - **Clusters**: Prompts grouped into K clusters (configurable, typically K=10-50)
@@ -400,12 +500,14 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 - **Selection**: Combines error rates + cost + user preferences to rank models
 
 ### Feature Extraction
+
 - **Embeddings**: Sentence transformers (all-MiniLM-L6-v2) for semantic similarity
 - **TF-IDF**: Term frequency-inverse document frequency for lexical patterns
 - **Scaling**: StandardScaler normalization for both feature types
 - **Concatenation**: Combined 5384D feature vector per prompt
 
 ### Cost-Performance Trade-off
+
 - **Cost Preference**: λ parameter (0.0 = cheapest, 1.0 = most accurate)
 - **Routing Score**: Weighted combination of predicted accuracy and normalized cost
 - **Formula**: `score = predicted_accuracy - λ * normalized_cost`
@@ -414,18 +516,21 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 ## Caching and Performance
 
 ### API Performance
+
 - **Framework**: FastAPI with async/await for optimal performance
 - **ASGI Server**: Hypercorn with HTTP/1.1 and HTTP/2 support
 - **CORS**: Configured middleware for cross-origin requests
 - **Error Handling**: Global exception handlers with structured logging
 
 ### Storage Integration
+
 - **MinIO S3**: Loads cluster profiles from Railway-hosted MinIO on startup
 - **Profile Caching**: Cluster centers, error rates, and scalers loaded once at init
 - **Connection Pooling**: boto3 handles S3 connection pooling automatically
 - **Health Checks**: Validates MinIO connectivity during startup
 
 ### Request Processing
+
 - **Feature Extraction**: Local sentence transformers + TF-IDF (no external API calls)
 - **Cluster Assignment**: Fast K-means predict using pre-loaded centroids
 - **Model Selection**: In-memory scoring of models based on cluster assignment
@@ -434,57 +539,62 @@ The service exposes a FastAPI REST API that accepts model selection requests and
 
 ## Configuration
 
-### Provider Configuration
-**File**: `adaptive_router/config/providers.py`
+### Model Metadata Configuration
 
-```python
-PROVIDERS = {
-    "openai": {
-        "models": ["gpt-4", "gpt-3.5-turbo"],
-        "pricing": {"input": 0.03, "output": 0.06},
-        "capabilities": ["general", "code", "analysis"],
-        "max_tokens": 4096
-    },
-    "anthropic": {
-        "models": ["claude-3-sonnet", "claude-3-haiku"],
-        "pricing": {"input": 0.015, "output": 0.075},
-        "capabilities": ["general", "analysis", "creative"],
-        "max_tokens": 8192
-    }
+Model metadata (pricing, capabilities, context limits) is now fetched from an **external model registry service** via HTTP API, replacing the legacy YAML-based configuration system.
+
+**Registry Client Configuration** (`app/config.py`):
+- `REGISTRY_API_URL` - Base URL for model registry service
+- `REGISTRY_CACHE_TTL` - Cache time-to-live for model metadata (seconds)
+- `REGISTRY_TIMEOUT` - HTTP request timeout for registry calls (seconds)
+
+**Example Registry Response**:
+```json
+{
+  "provider": "openai",
+  "model_name": "gpt-4",
+  "cost_per_1m_input_tokens": 30.0,
+  "cost_per_1m_output_tokens": 60.0,
+  "max_context_tokens": 128000,
+  "supports_function_calling": true,
+  "capabilities": ["general", "code", "analysis"]
 }
 ```
 
-### Task Mappings
-**File**: `adaptive_router/config/task_mappings.py`
+### Cluster Profile Configuration
 
-```python
-TASK_MODEL_MAPPINGS = {
-    "code": {
-        "preferred_models": ["gpt-4", "claude-3-sonnet"],
-        "parameters": {"temperature": 0.1, "max_tokens": 2048}
-    },
-    "creative": {
-        "preferred_models": ["claude-3-sonnet", "gpt-4"],
-        "parameters": {"temperature": 0.8, "max_tokens": 1024}
-    }
-}
-```
+Cluster profiles (centers, error rates, scalers) are loaded from **MinIO S3 storage** via the profile loader system:
+
+**MinIO Configuration** (Environment Variables):
+- `S3_BUCKET_NAME` - MinIO bucket name for cluster profiles
+- `MINIO_PUBLIC_ENDPOINT` - MinIO endpoint URL
+- `MINIO_ROOT_USER` - MinIO access key
+- `MINIO_ROOT_PASSWORD` - MinIO secret key
+
+**Profile Structure**:
+- `cluster_centers.pkl` - K-means cluster centroids (numpy array)
+- `error_rates.json` - Per-cluster error rates for each model
+- `scaler.pkl` - StandardScaler for feature normalization
+- `metadata.json` - Cluster quality metrics and metadata
 
 ## Monitoring and Observability
 
 ### Metrics
+
 - **Classification Accuracy**: Track prediction confidence and user feedback
 - **Model Selection Success**: Monitor downstream API success rates
 - **Cost Optimization**: Track actual vs. projected cost savings
 - **Performance**: Request latency, throughput, error rates
 
 ### Logging
+
 - **Structured Logging**: JSON-formatted logs with request correlation
 - **Classification Results**: Log task types, domains, and confidence scores
 - **Model Selection**: Log selected providers, models, and reasoning
 - **Performance Metrics**: Log inference times and batch processing stats
 
 ### Health Checks
+
 - **Model Loading**: Verify all ML models are loaded and functional
 - **Memory Usage**: Monitor memory consumption and detect leaks
 - **Cache Performance**: Track cache hit rates and eviction patterns
@@ -493,6 +603,7 @@ TASK_MODEL_MAPPINGS = {
 ## Deployment
 
 ### Docker
+
 ```dockerfile
 FROM pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime
 
@@ -507,17 +618,20 @@ CMD ["uv", "run", "adaptive-ai"]
 ```
 
 ### Docker Compose
+
 The service is included in the root `docker-compose.yml` with proper networking and resource allocation.
 
 ### Resource Requirements
 
 #### Library Mode
+
 - **CPU**: 2-4 cores for feature extraction and clustering
 - **GPU**: Optional (macOS uses CPU, Linux can use CUDA if available)
 - **Memory**: 2-4GB RAM for sentence transformers and scikit-learn
 - **Storage**: 1-2GB for HuggingFace model cache (~500MB for all-MiniLM-L6-v2)
 
 #### FastAPI Server Mode
+
 - **CPU**: 2-4 cores for concurrent requests + feature extraction
 - **GPU**: Optional (sentence transformers work well on CPU)
 - **Memory**: 2-4GB RAM for models, API server, and request processing
@@ -525,6 +639,7 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - **Network**: Connection to MinIO S3 (Railway) for loading cluster profiles
 
 ### Hypercorn Benefits
+
 - **Protocol Support**: HTTP/1.1, HTTP/2, WebSockets out of the box
 - **Future-Ready**: HTTP/3 support available with `hypercorn[h3]` extra
 - **Graceful Shutdown**: Built-in signal handling and graceful shutdown support
@@ -535,14 +650,16 @@ The service is included in the root `docker-compose.yml` with proper networking 
 ### Common Issues
 
 **Service won't start**
+
 - Check Python version (3.10+ required)
 - Verify all dependencies installed: `uv install`
 - Check port availability (default: 8000)
 - Review environment variable configuration (especially MinIO settings)
 - Verify Hypercorn is correctly installed: `hypercorn --version`
-- Ensure you're using the correct command: `fastapi dev adaptive_router/app.py` or `hypercorn adaptive_router.app:app --bind 0.0.0.0:8000`
+- Ensure you're using the correct command: `fastapi dev app/main.py` or `hypercorn app.main:create_app() --bind 0.0.0.0:8000`
 
 **MinIO connection failures**
+
 - Verify S3_BUCKET_NAME environment variable is set
 - Check MINIO_PUBLIC_ENDPOINT is accessible from your deployment
 - Validate MINIO_ROOT_USER and MINIO_ROOT_PASSWORD credentials
@@ -550,6 +667,7 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - Check Railway MinIO service status if using Railway deployment
 
 **Model loading failures**
+
 - Verify sentence-transformers is installed: `uv sync`
 - Check HuggingFace Hub connectivity for model downloads
 - Verify CUDA drivers if using GPU: `python -c "import torch; print(torch.cuda.is_available())"`
@@ -557,12 +675,14 @@ The service is included in the root `docker-compose.yml` with proper networking 
 - On macOS, CPU mode is used automatically (no CUDA required)
 
 **Routing errors**
-- Verify input format matches ModelSelectionRequest schema
+
+- Verify input format matches RoutingRequest schema
 - Check prompt length is reasonable (no hard limit, but very long prompts are slower)
 - Ensure MinIO profile data contains required cluster centers and error rates
-- Enable debug logging: `DEBUG=true uv run adaptive-router`
+- Enable debug logging: `DEBUG=true fastapi dev app/main.py`
 
 **Performance issues**
+
 - Monitor CPU usage during feature extraction
 - Check memory usage (sentence transformers ~1-2GB)
 - Verify cluster profile loaded successfully at startup (check logs)
@@ -572,14 +692,20 @@ The service is included in the root `docker-compose.yml` with proper networking 
 ### Debug Commands
 
 **Library Mode:**
+
 ```bash
 # Test model router
 python -c "
-from adaptive_router import ModelRouter, ModelSelectionRequest
-router = ModelRouter()
-request = ModelSelectionRequest(prompt='Explain quantum computing', cost_bias=0.5)
-response = router.select_model(request)
+from adaptive_router.core.router import ModelRouter
+from adaptive_router.models.routing import RoutingRequest
+from adaptive_router.loaders.minio import MinIOProfileLoader
+
+loader = MinIOProfileLoader.from_env()
+router = ModelRouter(loader)
+request = RoutingRequest(prompt='Explain quantum computing', cost_preference=0.5)
+response = router.route(request)
 print(f'Provider: {response.provider}, Model: {response.model}')
+print(f'Reasoning: {response.reasoning}')
 "
 
 # Check CUDA availability (Linux only)
@@ -590,9 +716,10 @@ python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
 ```
 
 **FastAPI Server Mode:**
+
 ```bash
 # Start with debug logging
-DEBUG=true hypercorn adaptive_router.app:app --bind 0.0.0.0:8000
+DEBUG=true hypercorn app.main:create_app() --bind 0.0.0.0:8000
 
 # Check service health
 curl -X GET http://localhost:8000/health
@@ -600,21 +727,21 @@ curl -X GET http://localhost:8000/health
 # Test model selection endpoint
 curl -X POST http://localhost:8000/select_model \
   -H "Content-Type: application/json" \
-  -d '{"prompt": "Write a sorting algorithm", "cost_bias": 0.5}'
+  -d '{"prompt": "Write a sorting algorithm", "cost_preference": 0.5}'
 
 # Check MinIO connectivity
 python -c "
-from adaptive_router.core.storage_config import MinIOSettings
-from adaptive_router.services.storage_profile_loader import StorageProfileLoader
-settings = MinIOSettings()
-loader = StorageProfileLoader.from_minio_settings(settings)
-print('MinIO connection successful')
+from adaptive_router.loaders.minio import MinIOProfileLoader
+loader = MinIOProfileLoader.from_env()
+profile = loader.load_profile()
+print(f'MinIO connection successful - loaded {len(profile.cluster_centers)} clusters')
 "
 ```
 
 ## Performance Benchmarks
 
 ### Library/FastAPI Mode
+
 - **Feature Extraction**: 20-50ms per request (sentence transformers + TF-IDF)
 - **Cluster Assignment**: <5ms (K-means predict on pre-loaded centroids)
 - **Model Selection**: <5ms (scoring and ranking models)
@@ -624,11 +751,13 @@ print('MinIO connection successful')
 - **First Request**: Slower (~2-5s) due to loading models from HuggingFace
 
 ### Startup Performance
+
 - **MinIO Profile Load**: 1-3 seconds (downloads cluster centers, error rates, scalers)
 - **Model Download**: 5-10 seconds first time (HuggingFace cache), instant after that
 - **Total Startup**: 5-15 seconds depending on network and cache state
 
 ### Routing Quality
+
 - **Cost Savings**: 30-70% compared to always using most capable models
 - **Accuracy Retention**: >90% of optimal model selection vs. oracle routing
 - **Cluster Silhouette**: Typically 0.3-0.5 (good cluster separation)
@@ -637,18 +766,21 @@ print('MinIO connection successful')
 ## Contributing
 
 ### Code Style
+
 - **Formatting**: Black with 88-character line length
 - **Linting**: Ruff with comprehensive rule set
 - **Type Checking**: mypy with strict configuration
 - **Import Sorting**: Ruff isort with first-party module recognition
 
 ### Testing Requirements
+
 - **Unit Tests**: All services and utilities must have unit tests
 - **Integration Tests**: End-to-end testing with mock ML models
 - **Performance Tests**: Benchmark classification speed and accuracy
 - **Coverage**: Minimum 80% test coverage required
 
 ### Documentation Updates
+
 **IMPORTANT**: When making changes to this service, always update documentation:
 
 1. **Update this CLAUDE.md** when:
@@ -670,8 +802,21 @@ print('MinIO connection successful')
    - Modifying provider integration or routing logic
 
 ### Pull Request Process
+
 1. Create feature branch from `dev`
 2. Implement changes with comprehensive tests
 3. Run full quality checks: `uv run black . && uv run ruff check . && uv run mypy . && uv run pytest --cov`
 4. **Update relevant documentation** (CLAUDE.md files, adaptive-docs/, README)
 5. Submit PR with performance impact analysis and documentation updates
+
+# Usage Specs <!-- tessl-managed -->
+
+[Usage specs](.tessl/framework/usage-specs.md) provide important context for third-party dependencies: @.tessl/framework/usage-specs.md
+
+# Agent Rules <!-- tessl-managed -->
+
+@RULES.md follow the [instructions](RULES.md)
+
+# Knowledge Index <!-- tessl-managed -->
+
+Documentation for dependencies and processes can be found in the [Knowledge Index](./KNOWLEDGE.md)
