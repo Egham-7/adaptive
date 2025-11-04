@@ -13,7 +13,7 @@ from collections import defaultdict
 from typing import Iterable, List
 
 from adaptive_router.models.registry import RegistryError, RegistryModel
-from adaptive_router.registry.client import RegistryClient
+from app.registry.client import RegistryClient
 
 logger = logging.getLogger(__name__)
 

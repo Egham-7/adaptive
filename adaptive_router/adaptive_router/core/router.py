@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import time
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -149,11 +150,20 @@ class ModelRouter:
 
         # Create fresh SentenceTransformer model
         embedding_model_name = profile.metadata.embedding_model
-        embedding_model = SentenceTransformer(
-            embedding_model_name,
-            device=device,
-            trust_remote_code=allow_trust_remote_code,
-        )
+        # Suppress the clean_up_tokenization_spaces warning during model loading
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=".*clean_up_tokenization_spaces.*",
+                category=FutureWarning,
+            )
+            embedding_model = SentenceTransformer(
+                embedding_model_name,
+                device=device,
+                trust_remote_code=allow_trust_remote_code,
+            )
+        # Explicitly set clean_up_tokenization_spaces to False for future compatibility
+        embedding_model.tokenizer.clean_up_tokenization_spaces = False
 
         # Create FeatureExtractor with fresh model
         feature_extractor = FeatureExtractor(

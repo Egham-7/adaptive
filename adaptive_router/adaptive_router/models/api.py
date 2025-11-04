@@ -58,6 +58,58 @@ class ModelSelectionRequest(BaseModel):
         return v
 
 
+class ModelSelectionAPIRequest(BaseModel):
+    """API request model that accepts model specifications as strings.
+
+    This is the external API model that accepts "provider:model_name" strings,
+    which are then resolved to RegistryModel objects internally.
+    """
+
+    # The user prompt to analyze
+    prompt: str
+
+    # Tool-related fields for function calling detection
+    tool_call: dict[str, Any] | None = None  # Current tool call being made
+    tools: list[dict[str, Any]] | None = None  # Available tool definitions
+
+    # Our custom parameters for model selection
+    user_id: str | None = None
+
+    models: list[str] | None = None
+    cost_bias: float | None = None
+    complexity_threshold: float | None = None
+    token_threshold: int | None = None
+
+    @field_validator("prompt")
+    @classmethod
+    def validate_prompt(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("Prompt cannot be empty or whitespace only")
+        return v.strip()
+
+    @field_validator("cost_bias")
+    @classmethod
+    def validate_cost_bias(cls, v: float | None) -> float | None:
+        if v is not None and (v < 0.0 or v > 1.0):
+            raise ValueError("Cost bias must be between 0.0 and 1.0")
+        return v
+
+    def to_internal_request(
+        self, resolved_models: list[RegistryModel] | None
+    ) -> ModelSelectionRequest:
+        """Convert to internal ModelSelectionRequest with resolved models."""
+        return ModelSelectionRequest(
+            prompt=self.prompt,
+            tool_call=self.tool_call,
+            tools=self.tools,
+            user_id=self.user_id,
+            models=resolved_models,
+            cost_bias=self.cost_bias,
+            complexity_threshold=self.complexity_threshold,
+            token_threshold=self.token_threshold,
+        )
+
+
 class Alternative(BaseModel):
     """Alternative model option for routing.
 

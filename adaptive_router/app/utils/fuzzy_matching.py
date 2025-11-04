@@ -8,7 +8,7 @@ import logging
 import re
 from difflib import SequenceMatcher
 
-from app_config import FUZZY_MATCH_SIMILARITY_THRESHOLD
+from app.config import FUZZY_MATCH_SIMILARITY_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,10 @@ def normalize_model_id(model_id: str) -> list[str]:
         ),  # Remove version suffixes
         lambda x: re.sub(
             r"(\w+)-(\d+)-(\d+)", r"\1-\2.\3", x
-        ),  # Convert hyphens to dots in versions
+        ),  # Convert hyphens to dots in versions (4-5 -> 4.5)
+        lambda x: re.sub(
+            r"(\w+)-(\d+)\.(\d+)", r"\1-\2-\3", x
+        ),  # Convert dots to hyphens in versions (4.5 -> 4-5)
     ]
 
     # Apply all transformations and deduplicate while preserving order
@@ -60,6 +63,19 @@ def normalize_model_id(model_id: str) -> list[str]:
 
     for transform in transformations:
         variant = transform(model_id)
+        if variant not in seen:
+            seen.add(variant)
+            variants.append(variant)
+
+    # Add cross-separator variants (: <-> /) for better matching between systems
+    cross_separator_variants: list[str] = []
+    for variant in variants:
+        if ":" in variant:
+            cross_separator_variants.append(variant.replace(":", "/"))
+        elif "/" in variant:
+            cross_separator_variants.append(variant.replace("/", ":"))
+
+    for variant in cross_separator_variants:
         if variant not in seen:
             seen.add(variant)
             variants.append(variant)
