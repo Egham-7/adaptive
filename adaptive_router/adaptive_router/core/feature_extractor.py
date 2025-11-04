@@ -1,6 +1,7 @@
 """Feature extraction for clustering: TF-IDF + Semantic Embeddings."""
 
 import logging
+import warnings
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
@@ -52,13 +53,15 @@ class FeatureExtractor:
 
         # Load with trust_remote_code for compatibility
         try:
-            self.embedding_model = SentenceTransformer(
-                embedding_model,
-                device=device,
-                trust_remote_code=allow_trust_remote_code,
-            )
-            # Fix future warning: explicitly set clean_up_tokenization_spaces to False
-            # This will be the default in transformers v4.45+
+            # Suppress the clean_up_tokenization_spaces warning during model loading
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*clean_up_tokenization_spaces.*", category=FutureWarning)
+                self.embedding_model = SentenceTransformer(
+                    embedding_model,
+                    device=device,
+                    trust_remote_code=allow_trust_remote_code,
+                )
+            # Explicitly set clean_up_tokenization_spaces to False for future compatibility
             self.embedding_model.tokenizer.clean_up_tokenization_spaces = False
         except Exception as e:
             if allow_trust_remote_code:
@@ -67,11 +70,13 @@ class FeatureExtractor:
             logger.warning(
                 f"Failed to load with trust_remote_code=False, trying with trust_remote_code=True: {e}"
             )
-            self.embedding_model = SentenceTransformer(
-                embedding_model, device=device, trust_remote_code=True
-            )
-            # Fix future warning: explicitly set clean_up_tokenization_spaces to False
-            # This will be the default in transformers v4.45+
+            # Suppress the clean_up_tokenization_spaces warning during model loading
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message=".*clean_up_tokenization_spaces.*", category=FutureWarning)
+                self.embedding_model = SentenceTransformer(
+                    embedding_model, device=device, trust_remote_code=True
+                )
+            # Explicitly set clean_up_tokenization_spaces to False for future compatibility
             self.embedding_model.tokenizer.clean_up_tokenization_spaces = False
         except Exception as e:
             if allow_trust_remote_code:
