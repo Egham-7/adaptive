@@ -482,14 +482,16 @@ class ModelRouter:
 
         # 1. Explicit model specifications take highest priority
         if explicit_models:
-            # Validate all requested models are supported
+            # Filter to only supported models instead of raising error
             unsupported = [m for m in explicit_models if m not in supported]
             if unsupported:
-                raise ValueError(
-                    f"Models not supported by Router: {unsupported}. "
+                logger.warning(
+                    f"Dropping unsupported models from request: {unsupported}. "
                     f"Supported models: {supported}"
                 )
-            allowed_model_ids.extend(explicit_models)
+            # Only add models that are actually supported
+            supported_explicit = [m for m in explicit_models if m in supported]
+            allowed_model_ids.extend(supported_explicit)
 
         # 2. Apply provider filters
         if provider_filters:
@@ -524,6 +526,14 @@ class ModelRouter:
                 if model_id not in seen:
                     seen.add(model_id)
                     unique_models.append(model_id)
+
+            # Ensure we have at least one model after filtering
+            if not unique_models:
+                raise ValueError(
+                    f"No supported models remain after filtering. "
+                    f"Requested models were filtered out. "
+                    f"Supported models: {supported}"
+                )
             return unique_models
 
         # No filters specified - use all models
