@@ -65,20 +65,10 @@ class ModelSelectionAPIRequest(BaseModel):
     which are then resolved to RegistryModel objects internally.
     """
 
-    # The user prompt to analyze
     prompt: str
-
-    # Tool-related fields for function calling detection
-    tool_call: dict[str, Any] | None = None  # Current tool call being made
-    tools: list[dict[str, Any]] | None = None  # Available tool definitions
-
-    # Our custom parameters for model selection
     user_id: str | None = None
-
     models: list[str] | None = None
     cost_bias: float | None = None
-    complexity_threshold: float | None = None
-    token_threshold: int | None = None
 
     @field_validator("prompt")
     @classmethod
@@ -100,13 +90,9 @@ class ModelSelectionAPIRequest(BaseModel):
         """Convert to internal ModelSelectionRequest with resolved models."""
         return ModelSelectionRequest(
             prompt=self.prompt,
-            tool_call=self.tool_call,
-            tools=self.tools,
             user_id=self.user_id,
             models=resolved_models,
             cost_bias=self.cost_bias,
-            complexity_threshold=self.complexity_threshold,
-            token_threshold=self.token_threshold,
         )
 
 
@@ -114,51 +100,33 @@ class Alternative(BaseModel):
     """Alternative model option for routing.
 
     Attributes:
-        provider: Model provider
-        model: Model name
+        model_id: Model identifier (e.g., "anthropic:claude-sonnet-4-5")
     """
 
-    provider: str
-    model: str
+    model_id: str
 
-    @field_validator("provider")
+    @field_validator("model_id")
     @classmethod
-    def validate_provider(cls, v: str) -> str:
+    def validate_model_id(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Provider cannot be empty or whitespace only")
-        return v.strip()
-
-    @field_validator("model")
-    @classmethod
-    def validate_model(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Model cannot be empty or whitespace only")
+            raise ValueError("Model ID cannot be empty or whitespace only")
         return v.strip()
 
 
 class ModelSelectionResponse(BaseModel):
-    """Simplified response with just the selected model and alternatives.
+    """Clean response with selected model and alternatives.
 
     Attributes:
-        provider: Selected model provider
-        model: Selected model name
+        model_id: Selected model identifier (e.g., "anthropic:claude-sonnet-4-5")
         alternatives: List of alternative model options
     """
 
-    provider: str
-    model: str
+    model_id: str
     alternatives: list[Alternative]
 
-    @field_validator("provider")
+    @field_validator("model_id")
     @classmethod
-    def validate_provider(cls, v: str) -> str:
+    def validate_model_id(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Provider cannot be empty or whitespace only")
-        return v.strip()
-
-    @field_validator("model")
-    @classmethod
-    def validate_model(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Model cannot be empty or whitespace only")
+            raise ValueError("Model ID cannot be empty or whitespace only")
         return v.strip()
