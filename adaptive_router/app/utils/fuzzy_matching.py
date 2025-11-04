@@ -8,7 +8,7 @@ import logging
 import re
 from difflib import SequenceMatcher
 
-from app_config import FUZZY_MATCH_SIMILARITY_THRESHOLD
+from app.config import FUZZY_MATCH_SIMILARITY_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
