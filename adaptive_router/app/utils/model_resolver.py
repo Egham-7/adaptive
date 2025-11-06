@@ -11,7 +11,9 @@ from app.utils.fuzzy_matching import normalize_model_id
 logger = logging.getLogger(__name__)
 
 
-def _registry_model_to_model(registry_model: RegistryModel, default_cost: float) -> Model:
+def _registry_model_to_model(
+    registry_model: RegistryModel, default_cost: float
+) -> Model:
     """Convert a RegistryModel to a Model for library compatibility."""
     # Extract pricing information (costs are per token, convert to per million tokens)
     prompt_cost_per_million = 0.0
@@ -50,7 +52,9 @@ def _registry_model_to_model(registry_model: RegistryModel, default_cost: float)
 
 
 def resolve_models(
-    model_specs: List[str], registry_models: List[RegistryModel], default_cost: float = 1.0
+    model_specs: List[str],
+    registry_models: List[RegistryModel],
+    default_cost: float = 1.0,
 ) -> List[Model]:
     """Resolve a list of model specifications to Model objects.
 
@@ -100,7 +104,9 @@ def resolve_models(
                     f"Multiple models found for '{spec}': "
                     f"{[m.unique_id() for m in candidates]}"
                 )
-            resolved_models.append(_registry_model_to_model(candidates[0], default_cost))
+            resolved_models.append(
+                _registry_model_to_model(candidates[0], default_cost)
+            )
             continue
 
         # No exact match - try fuzzy matching
@@ -147,7 +153,9 @@ def resolve_models(
                 f"Fuzzy match: '{spec}' resolved to '{matched_model.unique_id()}' "
                 f"(provider: {matched_model.provider}, model: {matched_model.model_name})"
             )
-            resolved_models.append(_registry_model_to_model(matched_model, default_cost))
+            resolved_models.append(
+                _registry_model_to_model(matched_model, default_cost)
+            )
             continue
 
         # No match found at all - provide helpful error message

@@ -1,6 +1,5 @@
 """Tests for model_resolver utilities."""
 
-import pytest
 
 from app.models import RegistryModel
 from app.utils.model_resolver import _registry_model_to_model, resolve_models
@@ -11,11 +10,13 @@ class TestRegistryModelToModel:
 
     def test_converts_valid_pricing(self):
         """Test conversion of model with valid pricing."""
-        registry_model = RegistryModel.model_validate({
-            "provider": "openai",
-            "model_name": "gpt-4",
-            "pricing": {"prompt_cost": "0.03", "completion_cost": "0.06"},
-        })
+        registry_model = RegistryModel.model_validate(
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "pricing": {"prompt_cost": "0.03", "completion_cost": "0.06"},
+            }
+        )
 
         model = _registry_model_to_model(registry_model, default_cost=1.0)
 
@@ -26,11 +27,13 @@ class TestRegistryModelToModel:
 
     def test_uses_default_cost_when_pricing_missing(self, caplog):
         """Test that default cost is used when pricing is missing."""
-        registry_model = RegistryModel.model_validate({
-            "provider": "openai",
-            "model_name": "gpt-4",
-            "pricing": None,
-        })
+        registry_model = RegistryModel.model_validate(
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "pricing": None,
+            }
+        )
 
         model = _registry_model_to_model(registry_model, default_cost=2.5)
 
@@ -43,11 +46,16 @@ class TestRegistryModelToModel:
 
     def test_uses_default_cost_when_pricing_parsing_fails(self, caplog):
         """Test that default cost is used when pricing parsing fails."""
-        registry_model = RegistryModel.model_validate({
-            "provider": "openai",
-            "model_name": "gpt-4",
-            "pricing": {"prompt_cost": "invalid", "completion_cost": "also_invalid"},
-        })
+        registry_model = RegistryModel.model_validate(
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "pricing": {
+                    "prompt_cost": "invalid",
+                    "completion_cost": "also_invalid",
+                },
+            }
+        )
 
         model = _registry_model_to_model(registry_model, default_cost=1.5)
 
@@ -60,11 +68,13 @@ class TestRegistryModelToModel:
 
     def test_handles_none_pricing_values(self):
         """Test that None pricing values are treated as 0."""
-        registry_model = RegistryModel.model_validate({
-            "provider": "openai",
-            "model_name": "gpt-4",
-            "pricing": {"prompt_cost": None, "completion_cost": None},
-        })
+        registry_model = RegistryModel.model_validate(
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "pricing": {"prompt_cost": None, "completion_cost": None},
+            }
+        )
 
         model = _registry_model_to_model(registry_model, default_cost=1.0)
 
@@ -79,11 +89,13 @@ class TestResolveModels:
     def test_accepts_default_cost_parameter(self):
         """Test that resolve_models accepts default_cost parameter."""
         models = [
-            RegistryModel.model_validate({
-                "provider": "openai",
-                "model_name": "gpt-4",
-                "pricing": {"prompt_cost": "0.03", "completion_cost": "0.06"},
-            })
+            RegistryModel.model_validate(
+                {
+                    "provider": "openai",
+                    "model_name": "gpt-4",
+                    "pricing": {"prompt_cost": "0.03", "completion_cost": "0.06"},
+                }
+            )
         ]
 
         # Should work with default parameter
