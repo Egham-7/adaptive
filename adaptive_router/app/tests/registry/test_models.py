@@ -19,7 +19,10 @@ def registry_models() -> list[RegistryModel]:
                 "model_name": "gpt-4",
                 "pricing": {"prompt_cost": "0.00001", "completion_cost": "0.00002"},
                 "context_length": 128_000,
-                "supported_parameters": ["tools", "max_tokens"],
+                "supported_parameters": [
+                    {"parameter_name": "tools"},
+                    {"parameter_name": "max_tokens"},
+                ],
             }
         ),
         RegistryModel.model_validate(
@@ -28,7 +31,7 @@ def registry_models() -> list[RegistryModel]:
                 "model_name": "claude-3-sonnet",
                 "pricing": {"prompt_cost": "0.00002", "completion_cost": "0.00001"},
                 "context_length": 200_000,
-                "supported_parameters": ["temperature"],
+                "supported_parameters": [{"parameter_name": "temperature"}],
             }
         ),
     ]

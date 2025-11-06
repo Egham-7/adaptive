@@ -39,9 +39,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
-       - name: Run unit tests (module-specific tests)
-         run: |
-           uv run pytest \
+      - name: Run unit tests (module-specific tests)
+        run: |
+          uv run pytest \
              adaptive_router/tests/ \
              app/tests/ \
              --cov=adaptive_router \

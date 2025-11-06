@@ -72,15 +72,15 @@ class RegistryModel(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int | None = None
-    provider: str
-    model_name: str
-    display_name: str | None = Field(default=None, alias="display_name")
-    description: str | None = None
-    context_length: int | None = Field(default=None, alias="context_length")
+    provider: str  # REQUIRED
+    model_name: str  # REQUIRED
+    display_name: str | None = Field(default=None, alias="display_name")  # OPTIONAL
+    description: str | None = None  # OPTIONAL
+    context_length: int | None = Field(default=None, alias="context_length")  # OPTIONAL
     pricing: PricingModel | None = None
     architecture: ArchitectureModel | None = None
     top_provider: TopProviderModel | None = Field(default=None, alias="top_provider")
-    supported_parameters: list[str] | None = Field(
+    supported_parameters: list[SupportedParameterModel] | None = Field(
         default=None, alias="supported_parameters"
     )
     default_parameters: Dict[str, Any] | None = Field(
@@ -150,49 +150,76 @@ class RegistryModel(BaseModel):
 class PricingModel(BaseModel):
     """Pricing structure for model usage (matches Go Pricing struct)."""
 
+    id: int | None = None
+    model_id: int | None = None
     prompt_cost: str | None = None  # Cost per token for input
     completion_cost: str | None = None  # Cost per token for output
-    request_cost: str | None = None  # Cost per request (optional)
-    image_cost: str | None = None  # Cost per image (optional)
-    image_output: str | None = None  # Cost per output image (optional)
-    web_search: str | None = None  # Cost for web search (optional)
-    internal_reasoning: str | None = None  # Cost for reasoning (optional)
-    discount: float = 0.0  # Discount percentage
+    request_cost: str | None = None  # Cost per request
+    image_cost: str | None = None  # Cost per image
+    web_search_cost: str | None = None  # Cost for web search
+    internal_reasoning_cost: str | None = None  # Cost for reasoning
+
+
+class ArchitectureModalityModel(BaseModel):
+    """Architecture modality configuration (matches Go ModelArchitectureModality struct)."""
+
+    id: int | None = None
+    architecture_id: int | None = None
+    modality_type: str  # REQUIRED - "input" or "output"
+    modality_value: str  # REQUIRED - e.g., "text", "image"
 
 
 class ArchitectureModel(BaseModel):
     """Model architecture and capabilities (matches Go Architecture struct)."""
 
-    modality: str | None = None  # e.g., "text+image->text"
-    input_modalities: list[str] | None = None  # e.g., ["text", "image"]
-    output_modalities: list[str] | None = None  # e.g., ["text"]
-    tokenizer: str | None = None  # e.g., "GPT", "Llama3", "Nova"
-    instruct_type: str | None = None  # e.g., "chatml"
+    id: int | None = None
+    model_id: int | None = None
+    modality: str  # REQUIRED - e.g., "text+image->text"
+    tokenizer: str  # REQUIRED - e.g., "GPT", "Llama3", "Nova"
+    instruct_type: str | None = None  # OPTIONAL - e.g., "chatml"
+    modalities: list[ArchitectureModalityModel] | None = (
+        None  # OPTIONAL - Nested modality relationships
+    )
 
 
 class TopProviderModel(BaseModel):
     """Top provider configuration (matches Go TopProvider struct)."""
 
+    id: int | None = None
+    model_id: int | None = None
     context_length: int | None = None
     max_completion_tokens: int | None = None
-    is_moderated: bool = False
+    is_moderated: str | None = None  # stored as string "true"/"false" in database
+
+
+class SupportedParameterModel(BaseModel):
+    """Supported parameter configuration (matches Go ModelSupportedParameter struct)."""
+
+    id: int | None = None
+    model_id: int | None = None
+    parameter_name: str  # REQUIRED
 
 
 class EndpointModel(BaseModel):
     """Provider endpoint configuration (matches Go Endpoint struct)."""
 
-    name: str
-    model_name: str
-    context_length: int
-    pricing: PricingModel
-    provider_name: str
-    tag: str
-    quantization: str | None = None
-    max_completion_tokens: int | None = None
-    max_prompt_tokens: int | None = None
-    supported_parameters: list[str] | None = None
-    uptime_last_30m: float | None = None
-    supports_implicit_caching: bool = False
+    id: int | None = None
+    model_id: int | None = None
+    name: str  # REQUIRED
+    endpoint_model_name: str  # REQUIRED
+    context_length: int  # REQUIRED
+    provider_name: str  # REQUIRED
+    tag: str  # REQUIRED
+    status: int  # REQUIRED
+    quantization: str | None = None  # OPTIONAL
+    max_completion_tokens: int | None = None  # OPTIONAL
+    max_prompt_tokens: int | None = None  # OPTIONAL
+    uptime_last_30m: str | None = None  # OPTIONAL - stored as string in database
+    supports_implicit_caching: str | None = (
+        None  # OPTIONAL - stored as string "true"/"false" in database
+    )
+    pricing: PricingModel | None = None  # OPTIONAL - ModelEndpointPricing relationship
+    supported_parameters: list[SupportedParameterModel] | None = None  # OPTIONAL
 
 
 # ============================================================================
