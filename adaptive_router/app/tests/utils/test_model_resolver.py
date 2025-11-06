@@ -152,7 +152,10 @@ class TestResolveModels:
                 {
                     "provider": "google",
                     "model_name": "gemini-2.0-flash-exp:free",
-                    "pricing": {"prompt_cost": "0.000001", "completion_cost": "0.000001"},  # Very small but positive pricing
+                    "pricing": {
+                        "prompt_cost": "0.000001",
+                        "completion_cost": "0.000001",
+                    },  # Very small but positive pricing
                 }
             ),
             RegistryModel.model_validate(
