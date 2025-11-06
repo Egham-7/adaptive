@@ -4,7 +4,7 @@ This package provides HTTP client functionality for communicating with the
 Adaptive model registry service.
 """
 
-from app.registry.client import RegistryClient
+from app.registry.client import RegistryClient, AsyncRegistryClient
 from app.registry.models import ModelRegistry
 
-__all__ = ["RegistryClient", "ModelRegistry"]
+__all__ = ["RegistryClient", "AsyncRegistryClient", "ModelRegistry"]

@@ -134,7 +134,7 @@ class RegistryModel(BaseModel):
             completion_cost = float(self.pricing.completion_cost or 0)
 
             if prompt_cost == 0 and completion_cost == 0:
-                return None
+                return 0.0
 
             return (prompt_cost + completion_cost) / 2.0
 

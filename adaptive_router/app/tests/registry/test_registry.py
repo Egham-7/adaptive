@@ -9,6 +9,8 @@ from app.models import (
     RegistryClientConfig,
     RegistryConnectionError,
     RegistryResponseError,
+    PricingModel,
+    SupportedParameterModel,
 )
 
 
@@ -30,10 +32,10 @@ class TestRegistryModel:
             model_name="gpt-4",
             description="GPT-4 model",
             context_length=128000,
-            pricing={"prompt_cost": "0.00003", "completion_cost": "0.00006"},
+            pricing=PricingModel(prompt_cost="0.00003", completion_cost="0.00006"),
             supported_parameters=[
-                {"parameter_name": "temperature"},
-                {"parameter_name": "max_tokens"},
+                SupportedParameterModel(parameter_name="temperature"),
+                SupportedParameterModel(parameter_name="max_tokens"),
             ],
         )
         assert model.provider == "openai"
@@ -68,7 +70,7 @@ class TestRegistryModel:
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt_cost": "0.00003", "completion_cost": "0.00006"},
+            pricing=PricingModel(prompt_cost="0.00003", completion_cost="0.00006"),
         )
         avg = model.average_price()
         assert avg is not None
@@ -80,20 +82,22 @@ class TestRegistryModel:
         assert model.average_price() is None
 
     def test_average_price_zero_costs(self) -> None:
-        """Test average_price returns None for zero costs."""
+        """Test average_price returns 0.0 for zero costs."""
+        from app.models import PricingModel
+
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt_cost": "0", "completion_cost": "0"},
+            pricing=PricingModel(prompt_cost="0", completion_cost="0"),
         )
-        assert model.average_price() is None
+        assert model.average_price() == 0.0
 
     def test_average_price_invalid_pricing(self) -> None:
         """Test average_price handles invalid pricing strings."""
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt_cost": "invalid", "completion_cost": "0.00006"},
+            pricing=PricingModel(prompt_cost="invalid", completion_cost="0.00006"),
         )
         assert model.average_price() is None
 
