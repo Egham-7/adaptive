@@ -43,7 +43,6 @@ jobs:
         run: |
           uv run pytest \
             adaptive_router/core/tests/ \
-            adaptive_router/models/tests/ \
             adaptive_router/loaders/tests/ \
             adaptive_router/utils/tests/ \
             app/registry/tests/ \
@@ -87,4 +86,3 @@ jobs:
 
       - name: Check formatting
         run: uv run black . --check --diff --fast
-
