@@ -136,6 +136,17 @@ def load_models_from_registry(settings: AppSettings) -> list[Model]:
             prompt_cost_per_million = 1.0  # DEFAULT_MODEL_COST
             completion_cost_per_million = 1.0  # DEFAULT_MODEL_COST
 
+        # Skip models with invalid (negative or zero) pricing
+        if prompt_cost_per_million <= 0 or completion_cost_per_million <= 0:
+            logger.warning(
+                "Skipping model %s:%s with invalid pricing (prompt: %.6f, completion: %.6f)",
+                reg_model.provider,
+                reg_model.model_name,
+                prompt_cost_per_million,
+                completion_cost_per_million,
+            )
+            continue
+
         # Create typed Model object
         router_model = Model(
             provider=reg_model.provider,
