@@ -219,19 +219,16 @@ async def load_models_for_profile_async(
 
             return router_model
 
-        except RegistryError as err:
+        except Exception as err:
             logger.warning("Failed to fetch model %s: %s", model_id, err)
             return None
 
     # Fetch all models concurrently
     tasks = [fetch_model(model_id) for model_id in model_ids]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    results = await asyncio.gather(*tasks)
 
     router_models = []
-    for model_id, result in zip(model_ids, results):
-        if isinstance(result, Exception):
-            logger.warning("Exception fetching model %s: %s", model_id, result)
-            continue
+    for result in results:
         if result is not None:
             router_models.append(result)
 
