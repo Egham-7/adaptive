@@ -92,10 +92,16 @@ class RegistryClient:
             RegistryConnectionError: If registry cannot be reached
             RegistryResponseError: If registry returns invalid response
         """
+        # Strip whitespace from inputs
+        provider = provider.strip() if provider else ""
+        name = name.strip() if name else ""
+
+        # Validate after stripping
         if not provider:
             raise ValueError("provider must be provided")
         if not name:
             raise ValueError("name must be provided")
+
         return self._get_model(f"/models/{provider}/{name}")
 
     def _get_model(self, path: str) -> RegistryModel | None:
