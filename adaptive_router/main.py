@@ -510,6 +510,7 @@ def create_app() -> FastAPI:
         request: ModelSelectionAPIRequest,
         http_request: Request,
         router: Annotated[ModelRouter, Depends(get_router)],
+        settings: Annotated[AppSettings, Depends(get_settings)],
     ) -> ModelSelectionAPIResponse:
         """Select optimal model based on prompt analysis.
 
@@ -538,7 +539,7 @@ def create_app() -> FastAPI:
             all_models = app_state.registry.list_models()
             if request.models:
                 try:
-                    resolved_models = resolve_models(request.models, all_models)
+                    resolved_models = resolve_models(request.models, all_models, settings.default_model_cost)
                 except ValueError as e:
                     logger.error("Model resolution failed: %s", e, exc_info=True)
                     raise HTTPException(
