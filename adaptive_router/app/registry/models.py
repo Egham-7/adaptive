@@ -182,7 +182,15 @@ def _supports_function_calling(model: RegistryModel) -> bool:
     if isinstance(params, dict):
         values = [str(item) for pair in params.items() for item in pair]
     elif isinstance(params, (list, tuple, set)):
-        values = [str(item) for item in params]
+        # Handle list of SupportedParameterModel objects
+        values = []
+        for item in params:
+            # If it's a SupportedParameterModel, extract parameter_name
+            if hasattr(item, "parameter_name"):
+                values.append(item.parameter_name)
+            else:
+                # Fallback to string conversion for backward compatibility
+                values.append(str(item))
     else:
         values = [str(params)]
 

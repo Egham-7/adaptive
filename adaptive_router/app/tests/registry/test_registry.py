@@ -31,7 +31,10 @@ class TestRegistryModel:
             description="GPT-4 model",
             context_length=128000,
             pricing={"prompt_cost": "0.00003", "completion_cost": "0.00006"},
-            supported_parameters=["temperature", "max_tokens"],
+            supported_parameters=[
+                {"parameter_name": "temperature"},
+                {"parameter_name": "max_tokens"},
+            ],
         )
         assert model.provider == "openai"
         assert model.description == "GPT-4 model"
