@@ -19,8 +19,8 @@ def _registry_model_to_model(registry_model: RegistryModel) -> Model:
 
     if registry_model.pricing:
         try:
-            prompt_cost = float(registry_model.pricing.get("prompt_cost", 0))
-            completion_cost = float(registry_model.pricing.get("completion_cost", 0))
+            prompt_cost = float(registry_model.pricing.prompt_cost or 0)
+            completion_cost = float(registry_model.pricing.completion_cost or 0)
             # Convert from per-token to per-million-tokens
             prompt_cost_per_million = prompt_cost * 1_000_000
             completion_cost_per_million = completion_cost * 1_000_000

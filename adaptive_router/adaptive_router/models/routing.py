@@ -61,10 +61,10 @@ class ModelFeatureVector(BaseModel):
 
     error_rates: List[float] = Field(..., description="K error rates per cluster")
     cost_per_1m_input_tokens: float = Field(
-        ..., gt=0, description="Cost per 1M input tokens"
+        ..., ge=0, description="Cost per 1M input tokens"
     )
     cost_per_1m_output_tokens: float = Field(
-        ..., gt=0, description="Cost per 1M output tokens"
+        ..., ge=0, description="Cost per 1M output tokens"
     )
 
     @property

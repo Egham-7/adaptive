@@ -122,8 +122,8 @@ def load_models_from_registry(settings: AppSettings) -> list[Model]:
 
         if reg_model.pricing:
             try:
-                prompt_cost = float(reg_model.pricing.get("prompt_cost", 0))
-                completion_cost = float(reg_model.pricing.get("completion_cost", 0))
+                prompt_cost = float(reg_model.pricing.prompt_cost or 0)
+                completion_cost = float(reg_model.pricing.completion_cost or 0)
                 # Convert from per-token to per-million-tokens
                 prompt_cost_per_million = prompt_cost * 1_000_000
                 completion_cost_per_million = completion_cost * 1_000_000

@@ -77,14 +77,16 @@ class RegistryModel(BaseModel):
     display_name: str | None = Field(default=None, alias="display_name")
     description: str | None = None
     context_length: int | None = Field(default=None, alias="context_length")
-    pricing: Dict[str, Any] | None = None
-    architecture: Dict[str, Any] | None = None
-    top_provider: Dict[str, Any] | None = Field(default=None, alias="top_provider")
-    supported_parameters: Any | None = Field(default=None, alias="supported_parameters")
+    pricing: PricingModel | None = None
+    architecture: ArchitectureModel | None = None
+    top_provider: TopProviderModel | None = Field(default=None, alias="top_provider")
+    supported_parameters: list[str] | None = Field(
+        default=None, alias="supported_parameters"
+    )
     default_parameters: Dict[str, Any] | None = Field(
         default=None, alias="default_parameters"
     )
-    endpoints: Any | None = None
+    endpoints: list[EndpointModel] | None = None
     created_at: datetime | None = Field(default=None, alias="created_at")
     last_updated: datetime | None = Field(default=None, alias="last_updated")
 
@@ -128,8 +130,8 @@ class RegistryModel(BaseModel):
 
         try:
             # Updated field names for normalized schema
-            prompt_cost = float(self.pricing.get("prompt_cost", 0))
-            completion_cost = float(self.pricing.get("completion_cost", 0))
+            prompt_cost = float(self.pricing.prompt_cost or 0)
+            completion_cost = float(self.pricing.completion_cost or 0)
 
             if prompt_cost == 0 and completion_cost == 0:
                 return None
@@ -148,10 +150,10 @@ class RegistryModel(BaseModel):
 class PricingModel(BaseModel):
     """Pricing structure for model usage (matches Go Pricing struct)."""
 
-    prompt: str | None = None  # Cost per token for input
-    completion: str | None = None  # Cost per token for output
-    request: str | None = None  # Cost per request (optional)
-    image: str | None = None  # Cost per image (optional)
+    prompt_cost: str | None = None  # Cost per token for input
+    completion_cost: str | None = None  # Cost per token for output
+    request_cost: str | None = None  # Cost per request (optional)
+    image_cost: str | None = None  # Cost per image (optional)
     image_output: str | None = None  # Cost per output image (optional)
     web_search: str | None = None  # Cost for web search (optional)
     internal_reasoning: str | None = None  # Cost for reasoning (optional)

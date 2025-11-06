@@ -25,10 +25,10 @@ class Model(BaseModel):
     provider: str
     model_name: str
     cost_per_1m_input_tokens: float = Field(
-        ..., gt=0, description="Cost per 1M input tokens"
+        ..., ge=0, description="Cost per 1M input tokens"
     )
     cost_per_1m_output_tokens: float = Field(
-        ..., gt=0, description="Cost per 1M output tokens"
+        ..., ge=0, description="Cost per 1M output tokens"
     )
 
     @property
