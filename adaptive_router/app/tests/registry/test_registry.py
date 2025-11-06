@@ -44,12 +44,12 @@ class TestRegistryModel:
     def test_unique_id_generation(self) -> None:
         """Test unique_id generates correct format."""
         model = RegistryModel(provider="openai", model_name="gpt-4")
-        assert model.unique_id() == "openai:gpt-4"
+        assert model.unique_id() == "openai/gpt-4"
 
     def test_unique_id_lowercase_normalization(self) -> None:
         """Test unique_id normalizes to lowercase."""
         model = RegistryModel(provider="OpenAI", model_name="GPT-4")
-        assert model.unique_id() == "openai:gpt-4"
+        assert model.unique_id() == "openai/gpt-4"
 
     def test_unique_id_missing_provider(self) -> None:
         """Test unique_id raises error when provider is empty."""
