@@ -190,7 +190,7 @@ def test_provider_filtering(
             filtered_model_ids = [
                 model_id
                 for model_id in available_models
-                if any(model_id.split(":")[0] == provider for provider in providers)
+                if any(model_id.split("/")[0] == provider for provider in providers)
             ]
 
             # Convert filtered model IDs to RegistryModel objects

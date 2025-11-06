@@ -86,7 +86,7 @@ def resolve_models(
     Uses exact matching first, then falls back to fuzzy matching if no exact match is found.
 
     Args:
-        model_specs: List of model specifications in "provider:model_name" format
+        model_specs: List of model specifications in "provider/model_name" or "provider/model_name:variant" format
         registry_models: List of all available registry models
 
     Returns:
@@ -99,7 +99,7 @@ def resolve_models(
 
     for spec in model_specs:
         try:
-            provider, model_name = parse_model_spec(spec)
+            provider, model_name, variant = parse_model_spec(spec)
         except ValueError as e:
             raise ValueError(f"Invalid model specification '{spec}': {e}") from e
 
@@ -149,7 +149,9 @@ def resolve_models(
         fuzzy_candidates = []
         for variant in spec_variants:
             try:
-                variant_provider, variant_model = parse_model_spec(variant)
+                variant_provider, variant_model, variant_variant = parse_model_spec(
+                    variant
+                )
             except ValueError:
                 continue
 

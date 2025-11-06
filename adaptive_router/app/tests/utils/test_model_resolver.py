@@ -126,7 +126,7 @@ class TestResolveModels:
             )
         ]
 
-        result = resolve_models(["openai:gpt-4"], models)
+        result = resolve_models(["openai/gpt-4"], models)
         assert len(result) == 1
         assert result[0].cost_per_1m_input_tokens == 30000.0
 
@@ -143,4 +143,4 @@ class TestResolveModels:
         ]
 
         with pytest.raises(ValueError, match="invalid/missing pricing"):
-            resolve_models(["openai:gpt-4"], models)
+            resolve_models(["openai/gpt-4"], models)

@@ -23,7 +23,7 @@ def normalize_model_id(model_id: str) -> list[str]:
     """Generate normalized variants of a model ID for fuzzy matching.
 
     Args:
-        model_id: Original model ID (e.g., "anthropic:claude-sonnet-4-5-20250929")
+        model_id: Original model ID (e.g., "anthropic/claude-sonnet-4-5-20250929")
 
     Returns:
         List of normalized variants for matching, ordered by specificity:
@@ -35,24 +35,24 @@ def normalize_model_id(model_id: str) -> list[str]:
         6. With provider aliases (e.g., google <-> gemini)
 
     Examples:
-        >>> normalize_model_id("anthropic:claude-sonnet-4-5-20250929")
+        >>> normalize_model_id("anthropic/claude-sonnet-4-5-20250929")
         [
-            "anthropic:claude-sonnet-4-5-20250929",
-            "anthropic:claude-sonnet-4-5",
-            "anthropic:claude-sonnet-4.5"
+            "anthropic/claude-sonnet-4-5-20250929",
+            "anthropic/claude-sonnet-4-5",
+            "anthropic/claude-sonnet-4.5"
         ]
 
-        >>> normalize_model_id("openai:gpt-4-turbo-2024-04-09")
+        >>> normalize_model_id("openai/gpt-4-turbo-2024-04-09")
         [
-            "openai:gpt-4-turbo-2024-04-09",
-            "openai:gpt-4-turbo",
-            "openai:gpt-4-turbo"
+            "openai/gpt-4-turbo-2024-04-09",
+            "openai/gpt-4-turbo",
+            "openai/gpt-4-turbo"
         ]
 
-        >>> normalize_model_id("google:gemini-2.5-flash-lite")
+        >>> normalize_model_id("google/gemini-2.5-flash-lite")
         [
-            "google:gemini-2.5-flash-lite",
             "google/gemini-2.5-flash-lite",
+            "google:gemini-2.5-flash-lite",
             "gemini:gemini-2.5-flash-lite",  # Provider alias variant
             "gemini/gemini-2.5-flash-lite"   # Provider alias with / separator
         ]

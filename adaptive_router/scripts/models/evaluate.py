@@ -309,10 +309,10 @@ def save_predictions(model_id: str, predictions: Dict[str, str]):
     """Save predictions to JSON file.
 
     Args:
-        model_id: Model identifier (e.g., "openai:gpt-4o-mini")
+        model_id: Model identifier (e.g., "openai/gpt-4o-mini")
         predictions: Dictionary mapping question_id to predicted answer
     """
-    filename = model_id.replace(":", "_") + "_predictions.json"
+    filename = model_id.replace("/", "_") + "_predictions.json"
     output_file = PREDICTIONS_DIR / filename
 
     output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -413,7 +413,7 @@ async def main_async():
 
         # Save predictions
         model_name = args.output_name if args.output_name else args.model
-        model_id = f"{args.provider}:{model_name}"
+        model_id = f"{args.provider}/{model_name}"
         save_predictions(model_id, predictions)
 
         logger.info("\n" + "=" * 80)

@@ -10,27 +10,33 @@ class TestParseModelSpec:
 
     def test_parse_valid_model_spec(self) -> None:
         """Test parsing valid model specification."""
-        provider, model_name = parse_model_spec("openai:gpt-4")
+        provider, model_name, variant = parse_model_spec("openai/gpt-4")
         assert provider == "openai"
         assert model_name == "gpt-4"
+        assert variant is None
 
     def test_parse_with_whitespace(self) -> None:
         """Test parsing trims whitespace."""
-        provider, model_name = parse_model_spec("  openai : gpt-4  ")
+        provider, model_name, variant = parse_model_spec("  openai / gpt-4  ")
         assert provider == "openai"
         assert model_name == "gpt-4"
+        assert variant is None
 
     def test_parse_with_hyphens(self) -> None:
         """Test parsing model names with hyphens."""
-        provider, model_name = parse_model_spec("anthropic:claude-3-sonnet-20240229")
+        provider, model_name, variant = parse_model_spec(
+            "anthropic/claude-3-sonnet-20240229"
+        )
         assert provider == "anthropic"
         assert model_name == "claude-3-sonnet-20240229"
+        assert variant is None
 
     def test_parse_with_dots(self) -> None:
         """Test parsing model names with dots."""
-        provider, model_name = parse_model_spec("google:gemini-1.5-pro")
+        provider, model_name, variant = parse_model_spec("google/gemini-1.5-pro")
         assert provider == "google"
         assert model_name == "gemini-1.5-pro"
+        assert variant is None
 
     def test_parse_empty_string_raises_error(self) -> None:
         """Test parsing empty string raises ValueError."""
@@ -42,35 +48,35 @@ class TestParseModelSpec:
         with pytest.raises(ValueError, match="cannot be empty"):
             parse_model_spec("   ")
 
-    def test_parse_no_colon_raises_error(self) -> None:
-        """Test parsing string without colon raises ValueError."""
+    def test_parse_no_slash_raises_error(self) -> None:
+        """Test parsing string without slash raises ValueError."""
         with pytest.raises(ValueError, match="Invalid model specification format"):
             parse_model_spec("openai-gpt-4")
 
-    def test_parse_multiple_colons_raises_error(self) -> None:
-        """Test parsing string with multiple colons raises ValueError."""
+    def test_parse_multiple_slashes_raises_error(self) -> None:
+        """Test parsing string with multiple slashes raises ValueError."""
         with pytest.raises(ValueError, match="Invalid model specification format"):
-            parse_model_spec("openai:gpt:4")
+            parse_model_spec("openai/gpt/4/extra")
 
     def test_parse_empty_provider_raises_error(self) -> None:
         """Test parsing with empty provider raises ValueError."""
         with pytest.raises(ValueError, match="Provider cannot be empty"):
-            parse_model_spec(":gpt-4")
+            parse_model_spec("/gpt-4")
 
     def test_parse_whitespace_provider_raises_error(self) -> None:
         """Test parsing with whitespace-only provider raises ValueError."""
         with pytest.raises(ValueError, match="Provider cannot be empty"):
-            parse_model_spec("  :gpt-4")
+            parse_model_spec("  /gpt-4")
 
     def test_parse_empty_model_name_raises_error(self) -> None:
         """Test parsing with empty model name raises ValueError."""
         with pytest.raises(ValueError, match="Model name cannot be empty"):
-            parse_model_spec("openai:")
+            parse_model_spec("openai/")
 
     def test_parse_whitespace_model_name_raises_error(self) -> None:
         """Test parsing with whitespace-only model name raises ValueError."""
         with pytest.raises(ValueError, match="Model name cannot be empty"):
-            parse_model_spec("openai:  ")
+            parse_model_spec("openai/  ")
 
 
 class TestParseModelSpecEdgeCases:
@@ -78,25 +84,49 @@ class TestParseModelSpecEdgeCases:
 
     def test_parse_with_numbers(self) -> None:
         """Test parsing with numeric characters."""
-        provider, model_name = parse_model_spec("openai:gpt-4-turbo-2024-04-09")
+        provider, model_name, variant = parse_model_spec(
+            "openai/gpt-4-turbo-2024-04-09"
+        )
         assert provider == "openai"
         assert model_name == "gpt-4-turbo-2024-04-09"
+        assert variant is None
 
     def test_parse_with_underscores(self) -> None:
         """Test parsing model names with underscores."""
-        provider, model_name = parse_model_spec("mistral:mistral_7b_instruct")
+        provider, model_name, variant = parse_model_spec("mistral/mistral_7b_instruct")
         assert provider == "mistral"
         assert model_name == "mistral_7b_instruct"
+        assert variant is None
 
     def test_parse_short_names(self) -> None:
         """Test parsing very short provider and model names."""
-        provider, model_name = parse_model_spec("a:b")
+        provider, model_name, variant = parse_model_spec("a/b")
         assert provider == "a"
         assert model_name == "b"
+        assert variant is None
 
     def test_parse_long_names(self) -> None:
         """Test parsing very long model specifications."""
-        long_spec = "very-long-provider-name:very-long-model-name-with-many-segments"
-        provider, model_name = parse_model_spec(long_spec)
+        long_spec = "very-long-provider-name/very-long-model-name-with-many-segments"
+        provider, model_name, variant = parse_model_spec(long_spec)
         assert provider == "very-long-provider-name"
         assert model_name == "very-long-model-name-with-many-segments"
+        assert variant is None
+
+    def test_parse_with_variant(self) -> None:
+        """Test parsing model specifications with variants."""
+        provider, model_name, variant = parse_model_spec(
+            "anthropic/claude-3.7-sonnet:thinking"
+        )
+        assert provider == "anthropic"
+        assert model_name == "claude-3.7-sonnet"
+        assert variant == "thinking"
+
+    def test_parse_with_variant_whitespace(self) -> None:
+        """Test parsing model specifications with variants and whitespace."""
+        provider, model_name, variant = parse_model_spec(
+            "  openai / gpt-4o : extended  "
+        )
+        assert provider == "openai"
+        assert model_name == "gpt-4o"
+        assert variant == "extended"

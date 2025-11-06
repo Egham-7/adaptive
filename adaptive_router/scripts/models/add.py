@@ -120,7 +120,7 @@ def update_models_config(
         config = yaml.safe_load(f)
 
     # Create model entry
-    model_id = f"{provider}:{model}"
+    model_id = f"{provider}/{model}"
     new_model = {
         "id": model_id,
         "name": model,
@@ -157,7 +157,7 @@ def verify_profile(model_id: str) -> bool:
     """Verify that model profile was created successfully.
 
     Args:
-        model_id: Model identifier (e.g., "openai:gpt-4o-mini")
+        model_id: Model identifier (e.g., "openai/gpt-4o-mini")
 
     Returns:
         True if profile exists and is valid
@@ -187,7 +187,7 @@ def test_routing(model_id: str):
     """Test routing with the new model.
 
     Args:
-        model_id: Model identifier (e.g., "openai:gpt-4o-mini")
+        model_id: Model identifier (e.g., "openai/gpt-4o-mini")
     """
     logger.info(f"\n{'='*80}")
     logger.info("Testing UniRouter with new model")
@@ -296,7 +296,7 @@ def main():
     logger.info(f"Output Cost: ${args.output_cost} per 1M tokens")
     logger.info("=" * 80)
 
-    model_id = f"{args.provider}:{args.model}"
+    model_id = f"{args.provider}/{args.model}"
 
     # Step 1: Evaluate model (unless skipped)
     if not args.skip_evaluation:
