@@ -1,5 +1,6 @@
 """Tests for model_resolver utilities."""
 
+import pytest
 
 from app.models import RegistryModel
 from app.utils.model_resolver import _registry_model_to_model, resolve_models
@@ -18,15 +19,16 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, default_cost=1.0)
+        model = _registry_model_to_model(registry_model, raise_on_error=True)
 
+        assert model is not None
         assert model.provider == "openai"
         assert model.model_name == "gpt-4"
         assert model.cost_per_1m_input_tokens == 30000.0  # 0.03 * 1_000_000
         assert model.cost_per_1m_output_tokens == 60000.0  # 0.06 * 1_000_000
 
-    def test_uses_default_cost_when_pricing_missing(self, caplog):
-        """Test that default cost is used when pricing is missing."""
+    def test_raises_error_when_pricing_missing_explicit(self):
+        """Test that error is raised when pricing is missing for explicit models."""
         registry_model = RegistryModel.model_validate(
             {
                 "provider": "openai",
@@ -35,17 +37,27 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, default_cost=2.5)
+        with pytest.raises(ValueError, match="No pricing information"):
+            _registry_model_to_model(registry_model, raise_on_error=True)
 
-        assert model.cost_per_1m_input_tokens == 2.5
-        assert model.cost_per_1m_output_tokens == 2.5
+    def test_returns_none_when_pricing_missing_implicit(self, caplog):
+        """Test that None is returned when pricing is missing for implicit models."""
+        registry_model = RegistryModel.model_validate(
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "pricing": None,
+            }
+        )
 
+        model = _registry_model_to_model(registry_model, raise_on_error=False)
+
+        assert model is None
         # Check that warning was logged
         assert "No pricing information" in caplog.text
-        assert "$2.5 per 1M tokens" in caplog.text
 
-    def test_uses_default_cost_when_pricing_parsing_fails(self, caplog):
-        """Test that default cost is used when pricing parsing fails."""
+    def test_raises_error_when_pricing_parsing_fails_explicit(self):
+        """Test that error is raised when pricing parsing fails for explicit models."""
         registry_model = RegistryModel.model_validate(
             {
                 "provider": "openai",
@@ -57,14 +69,27 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, default_cost=1.5)
+        with pytest.raises(ValueError, match="Failed to parse pricing"):
+            _registry_model_to_model(registry_model, raise_on_error=True)
 
-        assert model.cost_per_1m_input_tokens == 1.5
-        assert model.cost_per_1m_output_tokens == 1.5
+    def test_returns_none_when_pricing_parsing_fails_implicit(self, caplog):
+        """Test that None is returned when pricing parsing fails for implicit models."""
+        registry_model = RegistryModel.model_validate(
+            {
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "pricing": {
+                    "prompt_cost": "invalid",
+                    "completion_cost": "also_invalid",
+                },
+            }
+        )
 
+        model = _registry_model_to_model(registry_model, raise_on_error=False)
+
+        assert model is None
         # Check that warning was logged
         assert "Failed to parse pricing" in caplog.text
-        assert "$1.5 per 1M tokens" in caplog.text
 
     def test_handles_none_pricing_values(self):
         """Test that None pricing values are treated as 0."""
@@ -76,8 +101,9 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, default_cost=1.0)
+        model = _registry_model_to_model(registry_model, raise_on_error=True)
 
+        assert model is not None
         # Should convert None to 0, then to 0 * 1_000_000 = 0
         assert model.cost_per_1m_input_tokens == 0.0
         assert model.cost_per_1m_output_tokens == 0.0
@@ -86,8 +112,8 @@ class TestRegistryModelToModel:
 class TestResolveModels:
     """Test resolve_models function."""
 
-    def test_accepts_default_cost_parameter(self):
-        """Test that resolve_models accepts default_cost parameter."""
+    def test_resolves_valid_models(self):
+        """Test that resolve_models works with valid models."""
         models = [
             RegistryModel.model_validate(
                 {
@@ -98,11 +124,21 @@ class TestResolveModels:
             )
         ]
 
-        # Should work with default parameter
         result = resolve_models(["openai:gpt-4"], models)
         assert len(result) == 1
-
-        # Should work with explicit parameter
-        result = resolve_models(["openai:gpt-4"], models, default_cost=2.0)
-        assert len(result) == 1
         assert result[0].cost_per_1m_input_tokens == 30000.0
+
+    def test_raises_error_for_missing_pricing(self):
+        """Test that resolve_models raises error for models with missing pricing."""
+        models = [
+            RegistryModel.model_validate(
+                {
+                    "provider": "openai",
+                    "model_name": "gpt-4",
+                    "pricing": None,
+                }
+            )
+        ]
+
+        with pytest.raises(ValueError, match="No pricing information"):
+            resolve_models(["openai:gpt-4"], models)
