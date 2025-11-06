@@ -19,7 +19,7 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, raise_on_error=True)
+        model = _registry_model_to_model(registry_model)
 
         assert model is not None
         assert model.provider == "openai"
@@ -27,8 +27,8 @@ class TestRegistryModelToModel:
         assert model.cost_per_1m_input_tokens == 30000.0  # 0.03 * 1_000_000
         assert model.cost_per_1m_output_tokens == 60000.0  # 0.06 * 1_000_000
 
-    def test_raises_error_when_pricing_missing_explicit(self):
-        """Test that error is raised when pricing is missing for explicit models."""
+    def test_raises_error_when_pricing_missing_explicit(self, caplog):
+        """Test that None is returned when pricing is missing."""
         registry_model = RegistryModel.model_validate(
             {
                 "provider": "openai",
@@ -37,8 +37,10 @@ class TestRegistryModelToModel:
             }
         )
 
-        with pytest.raises(ValueError, match="No pricing information"):
-            _registry_model_to_model(registry_model, raise_on_error=True)
+        model = _registry_model_to_model(registry_model)
+
+        assert model is None
+        assert "no pricing information" in caplog.text.lower()
 
     def test_returns_none_when_pricing_missing_implicit(self, caplog):
         """Test that None is returned when pricing is missing for implicit models."""
@@ -50,14 +52,14 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, raise_on_error=False)
+        model = _registry_model_to_model(registry_model)
 
         assert model is None
         # Check that warning was logged
-        assert "No pricing information" in caplog.text
+        assert "no pricing information" in caplog.text.lower()
 
-    def test_raises_error_when_pricing_parsing_fails_explicit(self):
-        """Test that error is raised when pricing parsing fails for explicit models."""
+    def test_raises_error_when_pricing_parsing_fails_explicit(self, caplog):
+        """Test that None is returned when pricing parsing fails."""
         registry_model = RegistryModel.model_validate(
             {
                 "provider": "openai",
@@ -69,8 +71,10 @@ class TestRegistryModelToModel:
             }
         )
 
-        with pytest.raises(ValueError, match="Failed to parse pricing"):
-            _registry_model_to_model(registry_model, raise_on_error=True)
+        model = _registry_model_to_model(registry_model)
+
+        assert model is None
+        assert "failed to parse pricing" in caplog.text.lower()
 
     def test_returns_none_when_pricing_parsing_fails_implicit(self, caplog):
         """Test that None is returned when pricing parsing fails for implicit models."""
@@ -85,14 +89,14 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, raise_on_error=False)
+        model = _registry_model_to_model(registry_model)
 
         assert model is None
         # Check that warning was logged
-        assert "Failed to parse pricing" in caplog.text
+        assert "failed to parse pricing" in caplog.text.lower()
 
     def test_handles_none_pricing_values(self):
-        """Test that None pricing values are treated as 0."""
+        """Test that None pricing values are rejected (returns None)."""
         registry_model = RegistryModel.model_validate(
             {
                 "provider": "openai",
@@ -101,12 +105,10 @@ class TestRegistryModelToModel:
             }
         )
 
-        model = _registry_model_to_model(registry_model, raise_on_error=True)
+        model = _registry_model_to_model(registry_model)
 
-        assert model is not None
-        # Should convert None to 0, then to 0 * 1_000_000 = 0
-        assert model.cost_per_1m_input_tokens == 0.0
-        assert model.cost_per_1m_output_tokens == 0.0
+        # None/zero pricing should be rejected
+        assert model is None
 
 
 class TestResolveModels:
@@ -140,5 +142,5 @@ class TestResolveModels:
             )
         ]
 
-        with pytest.raises(ValueError, match="No pricing information"):
+        with pytest.raises(ValueError, match="invalid/missing pricing"):
             resolve_models(["openai:gpt-4"], models)

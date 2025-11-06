@@ -460,7 +460,14 @@ class TestRouterServiceMocked:
             ),
         )
 
-        mock_models = [Model(provider="openai", model_name="gpt-4", cost=30.0)]
+        mock_models = [
+            Model(
+                provider="openai",
+                model_name="gpt-4",
+                cost_per_1m_input_tokens=30.0,
+                cost_per_1m_output_tokens=60.0,
+            )
+        ]
 
         with patch.object(ModelRouter, "_build_cluster_engine_from_data"):
             router = ModelRouter(profile=mock_profile, models=mock_models)

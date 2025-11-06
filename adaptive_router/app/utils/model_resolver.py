@@ -12,20 +12,21 @@ logger = logging.getLogger(__name__)
 
 
 def _registry_model_to_model(
-    registry_model: RegistryModel, raise_on_error: bool = False
+    registry_model: RegistryModel,
 ) -> Optional[Model]:
     """Convert a RegistryModel to a Model for library compatibility.
 
     Args:
         registry_model: The registry model to convert
-        raise_on_error: If True, raise ValueError on missing/invalid pricing.
-                        If False, log warning and return None.
 
     Returns:
-        Model object if conversion succeeds, None if pricing is missing/invalid and raise_on_error=False
+        Model object if conversion succeeds, None if pricing is missing/invalid
 
-    Raises:
-        ValueError: If pricing is missing/invalid and raise_on_error=True
+    Note:
+        Returns None (with warning logged) for models with:
+        - Missing pricing information
+        - Invalid pricing values (None, negative, or zero)
+        - Unparseable pricing strings
     """
     # Extract pricing information (costs are per token, convert to per million tokens)
     prompt_cost_per_million = 0.0
@@ -35,28 +36,38 @@ def _registry_model_to_model(
         try:
             prompt_cost = float(registry_model.pricing.prompt_cost or 0)
             completion_cost = float(registry_model.pricing.completion_cost or 0)
+
+            # Check for invalid (negative or zero) pricing values
+            # Registry uses negative values like -1000000.0 as sentinel for "no pricing"
+            if prompt_cost <= 0 or completion_cost <= 0:
+                logger.warning(
+                    "Skipping model '%s' with invalid pricing: "
+                    "prompt_cost=%s, completion_cost=%s (must be positive)",
+                    registry_model.unique_id(),
+                    prompt_cost,
+                    completion_cost,
+                )
+                return None
+
             # Convert from per-token to per-million-tokens
             prompt_cost_per_million = prompt_cost * 1_000_000
             completion_cost_per_million = completion_cost * 1_000_000
         except (ValueError, TypeError) as e:
-            error_msg = (
-                f"Failed to parse pricing for model '{registry_model.unique_id()}': "
-                f"prompt_cost='{registry_model.pricing.prompt_cost}', "
-                f"completion_cost='{registry_model.pricing.completion_cost}'"
+            logger.warning(
+                "Skipping model '%s' - failed to parse pricing: "
+                "prompt_cost='%s', completion_cost='%s' (%s)",
+                registry_model.unique_id(),
+                registry_model.pricing.prompt_cost,
+                registry_model.pricing.completion_cost,
+                e,
             )
-            if raise_on_error:
-                raise ValueError(error_msg) from e
-            else:
-                logger.warning(error_msg)
-                return None
+            return None
     else:
         # If pricing is missing entirely
-        error_msg = f"No pricing information for model '{registry_model.unique_id()}'"
-        if raise_on_error:
-            raise ValueError(error_msg)
-        else:
-            logger.warning(error_msg)
-            return None
+        logger.warning(
+            "Skipping model '%s' - no pricing information", registry_model.unique_id()
+        )
+        return None
 
     return Model(
         provider=registry_model.provider,
@@ -117,8 +128,11 @@ def resolve_models(
                     f"Multiple models found for '{spec}': "
                     f"{[m.unique_id() for m in candidates]}"
                 )
-            model = _registry_model_to_model(candidates[0], raise_on_error=True)
-            assert model is not None  # Should never be None when raise_on_error=True
+            model = _registry_model_to_model(candidates[0])
+            if model is None:
+                raise ValueError(
+                    f"Model '{spec}' found in registry but has invalid/missing pricing"
+                )
             resolved_models.append(model)
             continue
 
@@ -166,8 +180,11 @@ def resolve_models(
                 f"Fuzzy match: '{spec}' resolved to '{matched_model.unique_id()}' "
                 f"(provider: {matched_model.provider}, model: {matched_model.model_name})"
             )
-            model = _registry_model_to_model(matched_model, raise_on_error=True)
-            assert model is not None  # Should never be None when raise_on_error=True
+            model = _registry_model_to_model(matched_model)
+            if model is None:
+                raise ValueError(
+                    f"Model '{spec}' found in registry but has invalid/missing pricing"
+                )
             resolved_models.append(model)
             continue
 

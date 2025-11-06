@@ -118,23 +118,9 @@ def load_models_from_registry(settings: AppSettings) -> list[Model]:
             continue
 
         # Convert registry model to router model (skip on pricing errors)
-        router_model = _registry_model_to_model(reg_model, raise_on_error=False)
+        router_model = _registry_model_to_model(reg_model)
         if router_model is None:
-            # Model was skipped due to missing/invalid pricing
-            continue
-
-        # Skip models with invalid (negative or zero) pricing
-        if (
-            router_model.cost_per_1m_input_tokens <= 0
-            or router_model.cost_per_1m_output_tokens <= 0
-        ):
-            logger.warning(
-                "Skipping model %s:%s with invalid pricing (prompt: %.6f, completion: %.6f)",
-                router_model.provider,
-                router_model.model_name,
-                router_model.cost_per_1m_input_tokens,
-                router_model.cost_per_1m_output_tokens,
-            )
+            # Model was skipped due to missing/invalid pricing (warning already logged)
             continue
 
         router_models.append(router_model)
