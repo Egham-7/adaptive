@@ -27,34 +27,15 @@ dependencies = [
   "pydantic>=2.11.5,<3",
   "pydantic-settings>=2.0.0,<3",
   # ML Framework & Models
-  "torch>=2.2.0,<2.3.0", # Limited to 2.2.x for Intel macOS x86_64 compatibility
-  "transformers>=4.44.0,<4.45", # Pin to 4.44.x for macOS compatibility with sentence-transformers
-  "huggingface-hub>=0.32.0,<1.0",
-  "numpy>=1.24.0,<2.0", # torch 2.2.x requires NumPy 1.x
-  "accelerate>=1.8.1,<2",
+  "torch>=2.2.0,<2.3.0",
+  "numpy>=1.24.0,<2.0",
   # UniRouter ML Dependencies
-  "sentence-transformers>=2.7.0,<3", # Pin to 2.x for macOS compatibility with transformers 4.44
+  "sentence-transformers>=2.7.0,<3",
   "scikit-learn>=1.5.0,<2",
-  # LLM Integration
-  "langchain>=0.3.26,<0.4",
-  "langchain-core>=0.3.66,<0.4",
-  "langchain-openai>=0.3.0,<0.4",
-  "langchain-anthropic>=0.3.0,<0.4",
-  "langchain-groq>=0.3.0,<0.4",
-  "langchain-google-genai>=2.0.0,<3",
-  "openai>=1.97.1",
-  "anthropic>=0.39.0",
-  "groq>=0.11.0",
-  # Evaluation Dependencies
-  "tqdm>=4.66.0,<5",
   # Utilities
-  "pyyaml>=6.0.2,<7",
   "python-dotenv>=1.0.0,<2",
   "fastapi>=0.118.2",
   "hypercorn>=0.17.0,<1.0",
-  "cachetools>=5.3.0,<7",
-  "python-json-logger>=3.3.0",
-  "datasets>=4.2.0",
   # S3 Storage
   "boto3>=1.34.0,<2",
 ]
@@ -65,6 +46,21 @@ Repository = "https://github.com/Egham-7/adaptive"
 Documentation = "https://docs.llmadaptive.uk"
 "Bug Tracker" = "https://github.com/Egham-7/adaptive/issues"
 
+[project.optional-dependencies]
+scripts = [
+  # LLM Integration for evaluation scripts
+  "langchain>=0.3.26,<0.4",
+  "langchain-openai>=0.3.0,<0.4",
+  "langchain-anthropic>=0.3.0,<0.4",
+  "langchain-groq>=0.3.0,<0.4",
+  "langchain-google-genai>=2.0.0,<3",
+  "openai>=1.97.1",
+  "anthropic>=0.39.0",
+  "groq>=0.11.0",
+  # Script utilities
+  "tqdm>=4.66.0,<5",
+  "pyyaml>=6.0.2,<7",
+]
 
 [dependency-groups]
 dev = [
@@ -79,22 +75,6 @@ dev = [
 ]
 test = ["pytest>=8.4.1,<9", "pytest-cov>=6.2.1,<8", "pytest-asyncio>=0.24.0,<1"]
 docs = ["mkdocs>=1.5.0,<2", "mkdocs-material>=9.0.0,<10"]
-# Optional: Data enrichment tools (model_data/agent)
-enrichment = [
-  "langchain>=0.3.26,<0.4",
-  "langchain-core>=0.3.66,<0.4",
-  "openai>=1.97.1",
-  "requests>=2.31.0,<3",
-  "cachetools>=5.3.0,<7",
-  "types-requests>=2.32.0.20250611,<3",
-  "types-cachetools>=5.3.0,<7",
-]
-sync = [
-  "asyncpg>=0.30.0",
-  "httpx>=0.28.1",
-  "polars>=1.34.0",
-  "sqlalchemy>=2.0.43",
-]
 
 
 [tool.black]
@@ -118,10 +98,10 @@ extend-exclude = '''
 [tool.mypy]
 plugins = ["pydantic.mypy"]
 exclude = [
-   "model_data/",
-   "adaptive_router/tests/",
-   "app/tests/",
-   "scripts/models/",
+  "model_data/",
+  "adaptive_router/tests/",
+  "app/tests/",
+  "scripts/models/",
 ]
 no_implicit_optional = true
 warn_return_any = false

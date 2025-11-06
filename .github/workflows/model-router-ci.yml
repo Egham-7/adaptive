@@ -34,7 +34,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --group dev --group test
 
       - name: Run unit tests (module-specific tests)
         run: |
@@ -71,7 +71,7 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        run: uv sync --all-groups
+        run: uv sync --group dev
 
       - name: Run type checking
         run: uv run mypy .
