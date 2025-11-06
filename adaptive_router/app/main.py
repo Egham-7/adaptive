@@ -613,10 +613,6 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
 
     # Run hypercorn using subprocess, same as Dockerfile
-    cmd = [
-        sys.executable, "-m", "hypercorn",
-        "app.main:app",
-        "--bind", f"[::]:{port}"
-    ]
+    cmd = [sys.executable, "-m", "hypercorn", "app.main:app", "--bind", f"[::]:{port}"]
 
     subprocess.run(cmd)
