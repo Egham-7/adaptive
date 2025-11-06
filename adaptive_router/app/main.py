@@ -603,16 +603,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-
-if __name__ == "__main__":
-    import subprocess
-    import sys
-
-    # Get port from environment or default to 8000
-    port = int(os.getenv("PORT", 8000))
-
-    # Run hypercorn using subprocess, same as Dockerfile
-    cmd = [sys.executable, "-m", "hypercorn", "app.main:app", "--bind", f"[::]:{port}"]
-
-    subprocess.run(cmd)
