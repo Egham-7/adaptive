@@ -3,7 +3,11 @@
 import pytest
 from pydantic import ValidationError
 
-from adaptive_router.models.config import ModelConfig, YAMLRoutingConfig, YAMLModelsConfig
+from adaptive_router.models.config import (
+    ModelConfig,
+    YAMLRoutingConfig,
+    YAMLModelsConfig,
+)
 
 
 class TestModelConfig:

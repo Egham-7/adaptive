@@ -13,7 +13,9 @@ def sample_questions() -> list[CodeQuestion]:
     return [
         CodeQuestion(question="How do I sort a list in Python?", language="python"),
         CodeQuestion(question="What is a lambda function?", language="python"),
-        CodeQuestion(question="How to reverse a string in JavaScript?", language="javascript"),
+        CodeQuestion(
+            question="How to reverse a string in JavaScript?", language="javascript"
+        ),
         CodeQuestion(question="Explain async/await in Python", language="python"),
         CodeQuestion(question="How to use map in JavaScript?", language="javascript"),
     ]
@@ -35,7 +37,9 @@ class TestFeatureExtractorInitialization:
     def test_default_initialization(self) -> None:
         """Test FeatureExtractor initializes with default parameters."""
         extractor = FeatureExtractor()
-        assert extractor.embedding_model_name == "sentence-transformers/all-MiniLM-L6-v2"
+        assert (
+            extractor.embedding_model_name == "sentence-transformers/all-MiniLM-L6-v2"
+        )
         assert not extractor.is_fitted
 
     def test_custom_parameters(self) -> None:
@@ -69,7 +73,9 @@ class TestFeatureExtractorFit:
         result = feature_extractor.fit(sample_questions)
         assert result is feature_extractor
 
-    def test_fit_with_empty_questions(self, feature_extractor: FeatureExtractor) -> None:
+    def test_fit_with_empty_questions(
+        self, feature_extractor: FeatureExtractor
+    ) -> None:
         """Test fit handles empty questions list."""
         with pytest.raises((ValueError, AttributeError)):
             feature_extractor.fit([])
@@ -169,7 +175,10 @@ class TestFeatureExtractorPersistence:
         loaded_extractor = FeatureExtractor.load(save_path)
 
         assert loaded_extractor.is_fitted
-        assert loaded_extractor.embedding_model_name == feature_extractor.embedding_model_name
+        assert (
+            loaded_extractor.embedding_model_name
+            == feature_extractor.embedding_model_name
+        )
 
         # Test that loaded extractor produces same features
         test_question = sample_questions[0]

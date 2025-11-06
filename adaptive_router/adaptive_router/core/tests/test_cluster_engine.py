@@ -13,7 +13,9 @@ def sample_questions() -> list[CodeQuestion]:
     return [
         CodeQuestion(question="How do I sort a list in Python?", language="python"),
         CodeQuestion(question="What is a lambda function?", language="python"),
-        CodeQuestion(question="How to reverse a string in JavaScript?", language="javascript"),
+        CodeQuestion(
+            question="How to reverse a string in JavaScript?", language="javascript"
+        ),
         CodeQuestion(question="Explain async/await in Python", language="python"),
         CodeQuestion(question="How to use map in JavaScript?", language="javascript"),
     ]
@@ -190,7 +192,9 @@ class TestClusterEnginePersistence:
             loaded_engine.cluster_assignments, cluster_engine.cluster_assignments
         )
 
-    def test_load_unfitted_engine(self, cluster_engine: ClusterEngine, tmp_path) -> None:
+    def test_load_unfitted_engine(
+        self, cluster_engine: ClusterEngine, tmp_path
+    ) -> None:
         """Test saving and loading unfitted engine."""
         save_path = tmp_path / "unfitted_engine"
         cluster_engine.save(save_path)
