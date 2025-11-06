@@ -41,9 +41,18 @@ class Model(BaseModel):
 
         Returns:
             Unique identifier in format "provider:model_name"
+
+        Raises:
+            ValueError: If provider or model_name is empty
         """
         provider = (self.provider or "").strip().lower()
+        if not provider:
+            raise ValueError("Model missing provider field")
+        
         model_name = self.model_name.strip().lower()
+        if not model_name:
+            raise ValueError(f"Model '{provider}' missing model_name")
+        
         return f"{provider}:{model_name}"
 
 
