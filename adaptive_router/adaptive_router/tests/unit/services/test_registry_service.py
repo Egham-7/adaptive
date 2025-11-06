@@ -17,8 +17,7 @@ def registry_models() -> list[RegistryModel]:
             {
                 "provider": "openai",
                 "model_name": "gpt-4",
-                "openrouter_id": "openai/gpt-4",
-                "pricing": {"prompt": "0.00001", "completion": "0.00002"},
+                "pricing": {"prompt_cost": "0.00001", "completion_cost": "0.00002"},
                 "context_length": 128_000,
                 "supported_parameters": ["tools", "max_tokens"],
             }
@@ -27,8 +26,7 @@ def registry_models() -> list[RegistryModel]:
             {
                 "provider": "anthropic",
                 "model_name": "claude-3-sonnet",
-                "openrouter_id": "anthropic/claude-3-sonnet",
-                "pricing": {"prompt": "0.00002"},
+                "pricing": {"prompt_cost": "0.00002", "completion_cost": "0.00001"},
                 "context_length": 200_000,
                 "supported_parameters": ["temperature"],
             }
@@ -64,7 +62,8 @@ def test_get_by_unique_id(model_registry: ModelRegistry) -> None:
 def test_get_by_name(model_registry: ModelRegistry) -> None:
     models = model_registry.get_by_name("gpt-4")
     assert len(models) == 1
-    assert models[0].openrouter_id == "openai/gpt-4"
+    assert models[0].provider == "openai"
+    assert models[0].model_name == "gpt-4"
 
 
 def test_providers_for_model(model_registry: ModelRegistry) -> None:
@@ -85,7 +84,6 @@ def test_refresh_replaces_cache(mock_client: Mock) -> None:
         {
             "provider": "mistral",
             "model_name": "mistral-large",
-            "openrouter_id": "mistral/mistral-large",
         }
     )
 

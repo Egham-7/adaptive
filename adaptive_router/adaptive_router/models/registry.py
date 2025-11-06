@@ -48,22 +48,21 @@ class RegistryClientConfig(BaseModel):
 
 # Registry model
 class RegistryModel(BaseModel):
-    """Pydantic representation of the Go registry Model struct.
+    """Pydantic representation of the normalized Go registry Model struct.
 
     Attributes:
         id: Database ID
-        openrouter_id: OpenRouter model identifier
         provider: Model provider (e.g., "openai", "anthropic")
         model_name: Model name
         display_name: Human-readable display name
         description: Model description
         context_length: Maximum context window size
-        pricing: Pricing information (input/output costs)
-        architecture: Model architecture details
-        top_provider: Top provider information
-        supported_parameters: Supported API parameters
-        default_parameters: Default parameter values
-        endpoints: API endpoint information
+        pricing: Normalized pricing information (ModelPricing entity)
+        architecture: Normalized architecture details (ModelArchitecture entity)
+        top_provider: Top provider information (ModelTopProvider entity)
+        supported_parameters: List of ModelSupportedParameter entities
+        default_parameters: ModelDefaultParameters entity with JSONB parameters
+        endpoints: List of ModelEndpoint entities with nested pricing
         created_at: Creation timestamp
         last_updated: Last update timestamp
     """
@@ -71,9 +70,8 @@ class RegistryModel(BaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
     id: int | None = None
-    openrouter_id: str | None = Field(default=None, alias="openrouter_id")
     provider: str
-    model_name: str | None = None
+    model_name: str
     display_name: str | None = Field(default=None, alias="display_name")
     description: str | None = None
     context_length: int | None = Field(default=None, alias="context_length")
@@ -101,29 +99,22 @@ class RegistryModel(BaseModel):
         if not provider:
             raise RegistryError("registry model missing provider field")
 
-        candidate = self.openrouter_id or self.model_name
-        if not candidate:
-            raise RegistryError(
-                f"registry model '{provider}' missing model_name/openrouter_id"
-            )
+        if not self.model_name:
+            raise RegistryError(f"registry model '{provider}' missing model_name")
 
-        identifier = candidate.strip().lower()
+        model_name = self.model_name.strip().lower()
 
-        prefix = f"{provider}/"
-        if identifier.startswith(prefix):
-            identifier = identifier[len(prefix) :]
-
-        return f"{provider}:{identifier}"
+        return f"{provider}:{model_name}"
 
     def average_price(self) -> float | None:
         """Calculate average price from available pricing fields.
 
-        Pricing format from registry:
+        Pricing format from normalized registry (ModelPricing entity):
         {
-            "prompt": "0.000015",
-            "completion": "0.00012",
-            "request": "0",
-            "image": "0",
+            "prompt_cost": "0.000015",
+            "completion_cost": "0.00012",
+            "request_cost": "0",
+            "image_cost": "0",
             ...
         }
 
@@ -134,8 +125,9 @@ class RegistryModel(BaseModel):
             return None
 
         try:
-            prompt_cost = float(self.pricing.get("prompt", 0))
-            completion_cost = float(self.pricing.get("completion", 0))
+            # Updated field names for normalized schema
+            prompt_cost = float(self.pricing.get("prompt_cost", 0))
+            completion_cost = float(self.pricing.get("completion_cost", 0))
 
             if prompt_cost == 0 and completion_cost == 0:
                 return None

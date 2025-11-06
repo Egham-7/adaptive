@@ -41,14 +41,12 @@ class RegistryClient:
         *,
         provider: str | None = None,
         model_name: str | None = None,
-        openrouter_id: str | None = None,
     ) -> List[RegistryModel]:
         """List models from registry with optional filtering.
 
         Args:
             provider: Filter by provider name
             model_name: Filter by model name
-            openrouter_id: Filter by OpenRouter ID
 
         Returns:
             List of registry models matching filters
@@ -60,7 +58,6 @@ class RegistryClient:
         params = {
             "provider": provider,
             "model_name": model_name,
-            "openrouter_id": openrouter_id,
         }
         resp = self._request("GET", "/models", params=params)
         payload = resp.json()
@@ -78,41 +75,28 @@ class RegistryClient:
                 logger.warning("invalid model entry from registry: %s", err)
         return models
 
-    def get_by_name(self, name: str) -> RegistryModel | None:
-        """Get model by name.
+    def get_by_provider_and_name(
+        self, provider: str, name: str
+    ) -> RegistryModel | None:
+        """Get model by provider and model name.
 
         Args:
-            name: Model name to look up
+            provider: Provider name
+            name: Model name
 
         Returns:
             RegistryModel if found, None otherwise
 
         Raises:
-            ValueError: If name is empty
+            ValueError: If provider or name is empty
             RegistryConnectionError: If registry cannot be reached
             RegistryResponseError: If registry returns invalid response
         """
+        if not provider:
+            raise ValueError("provider must be provided")
         if not name:
             raise ValueError("name must be provided")
-        return self._get_model(f"/models/{name}")
-
-    def get_by_openrouter_id(self, identifier: str) -> RegistryModel | None:
-        """Get model by OpenRouter ID.
-
-        Args:
-            identifier: OpenRouter identifier to look up
-
-        Returns:
-            RegistryModel if found, None otherwise
-
-        Raises:
-            ValueError: If identifier is empty
-            RegistryConnectionError: If registry cannot be reached
-            RegistryResponseError: If registry returns invalid response
-        """
-        if not identifier:
-            raise ValueError("identifier must be provided")
-        return self._get_model(f"/models/openrouter/{identifier}")
+        return self._get_model(f"/models/{provider}/{name}")
 
     def _get_model(self, path: str) -> RegistryModel | None:
         """Get a single model from the registry.

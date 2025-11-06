@@ -33,14 +33,12 @@ class TestRegistryModelValidation:
         model = RegistryModel(provider="Anthropic", model_name="Claude-3-Sonnet")
         assert model.unique_id() == "anthropic:claude-3-sonnet"
 
-    def test_unique_id_removes_provider_prefix(self) -> None:
-        """Test unique_id removes provider prefix from model name."""
-        model = RegistryModel(provider="openai", model_name="openai/gpt-4")
+    def test_unique_id_with_normalized_model_names(self) -> None:
+        """Test unique_id with normalized model names (no slashes in schema)."""
+        model = RegistryModel(provider="openai", model_name="gpt-4")
         assert model.unique_id() == "openai:gpt-4"
 
-        model = RegistryModel(
-            provider="anthropic", model_name="anthropic/claude-3-sonnet"
-        )
+        model = RegistryModel(provider="anthropic", model_name="claude-3-sonnet")
         assert model.unique_id() == "anthropic:claude-3-sonnet"
 
     def test_unique_id_error_cases(self) -> None:
@@ -61,7 +59,7 @@ class TestRegistryModelValidation:
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt": "0.00003", "completion": "0.00006"},
+            pricing={"prompt_cost": "0.00003", "completion_cost": "0.00006"},
         )
         assert model.average_price() == pytest.approx(0.000045)
 
@@ -69,7 +67,7 @@ class TestRegistryModelValidation:
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt": "0", "completion": "0"},
+            pricing={"prompt_cost": "0", "completion_cost": "0"},
         )
         assert model.average_price() is None
 
@@ -81,7 +79,7 @@ class TestRegistryModelValidation:
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt": "invalid", "completion": "0.00006"},
+            pricing={"prompt_cost": "invalid", "completion_cost": "0.00006"},
         )
         assert model.average_price() is None
 
