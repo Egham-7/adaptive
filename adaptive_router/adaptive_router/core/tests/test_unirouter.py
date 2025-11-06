@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from adaptive_router.models import CodeQuestion
+from adaptive_router.models.api import Model
 from adaptive_router.core.cluster_engine import ClusterEngine
 from adaptive_router.core.router import ModelRouter
 
@@ -459,10 +460,10 @@ class TestRouterServiceMocked:
             ),
         )
 
-        mock_costs = {"openai:gpt-4": 30.0}
+        mock_models = [Model(provider="openai", model_name="gpt-4", cost=30.0)]
 
         with patch.object(ModelRouter, "_build_cluster_engine_from_data"):
-            router = ModelRouter(profile=mock_profile, model_costs=mock_costs)
+            router = ModelRouter(profile=mock_profile, models=mock_models)
 
             assert router is not None
 

@@ -6,22 +6,35 @@ when making model selection requests to the adaptive router service.
 
 from typing import Any
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class Model(BaseModel):
-    """Basic model representation for routing and filtering.
+    """Model specification for routing with cost information.
 
-    Contains only the essential fields needed for model identification
-    and routing decisions, without registry-specific metadata.
+    Contains the essential fields needed for model identification
+    and routing decisions, including mandatory cost data.
 
     Attributes:
         provider: Model provider (e.g., "openai", "anthropic")
         model_name: Model name (e.g., "gpt-4", "claude-sonnet-4-5")
+        cost_per_1m_input_tokens: Cost per 1M input tokens
+        cost_per_1m_output_tokens: Cost per 1M output tokens
     """
 
     provider: str
     model_name: str
+    cost_per_1m_input_tokens: float = Field(
+        ..., gt=0, description="Cost per 1M input tokens"
+    )
+    cost_per_1m_output_tokens: float = Field(
+        ..., gt=0, description="Cost per 1M output tokens"
+    )
+
+    @property
+    def cost_per_1m_tokens(self) -> float:
+        """Average cost per million tokens (for routing calculations)."""
+        return (self.cost_per_1m_input_tokens + self.cost_per_1m_output_tokens) / 2.0
 
     def unique_id(self) -> str:
         """Construct the router-compatible unique identifier.

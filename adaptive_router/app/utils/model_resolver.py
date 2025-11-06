@@ -13,9 +13,26 @@ logger = logging.getLogger(__name__)
 
 def _registry_model_to_model(registry_model: RegistryModel) -> Model:
     """Convert a RegistryModel to a Model for library compatibility."""
+    # Extract pricing information (costs are per token, convert to per million tokens)
+    prompt_cost_per_million = 0.0
+    completion_cost_per_million = 0.0
+
+    if registry_model.pricing:
+        try:
+            prompt_cost = float(registry_model.pricing.get("prompt_cost", 0))
+            completion_cost = float(registry_model.pricing.get("completion_cost", 0))
+            # Convert from per-token to per-million-tokens
+            prompt_cost_per_million = prompt_cost * 1_000_000
+            completion_cost_per_million = completion_cost * 1_000_000
+        except (ValueError, TypeError):
+            # If pricing parsing fails, use default values
+            pass
+
     return Model(
         provider=registry_model.provider,
         model_name=registry_model.model_name,
+        cost_per_1m_input_tokens=prompt_cost_per_million,
+        cost_per_1m_output_tokens=completion_cost_per_million,
     )
 
 

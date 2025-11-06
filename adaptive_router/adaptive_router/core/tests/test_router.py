@@ -57,11 +57,11 @@ def mock_router():
         ),
     )
 
-    mock_costs = {
-        "openai:gpt-4": 30.0,
-        "openai:gpt-3.5-turbo": 1.0,
-        "anthropic:claude-3-sonnet-20240229": 15.0,
-    }
+    mock_models = [
+        Model(provider="openai", model_name="gpt-4", cost=30.0),
+        Model(provider="openai", model_name="gpt-3.5-turbo", cost=1.0),
+        Model(provider="anthropic", model_name="claude-3-sonnet-20240229", cost=15.0),
+    ]
 
     def mock_build_cluster_engine(self, profile, allow_trust_remote_code):
         mock_engine = Mock()
@@ -72,7 +72,7 @@ def mock_router():
     with patch.object(
         ModelRouter, "_build_cluster_engine_from_data", mock_build_cluster_engine
     ):
-        router = ModelRouter(profile=mock_profile, model_costs=mock_costs)
+        router = ModelRouter(profile=mock_profile, models=mock_models)
         return router
 
 
@@ -112,6 +112,7 @@ class TestModelRouter:
             Model(
                 provider="openai",
                 model_name="gpt-4",
+                cost=30.0,
             ),
         ]
 
@@ -171,6 +172,7 @@ class TestModelRouter:
             Model(
                 provider="openai",
                 model_name="gpt-4",
+                cost=30.0,
             )
         ]
 
@@ -218,6 +220,7 @@ class TestModelRouterEdgeCases:
             Model(
                 provider="openai",
                 model_name="gpt-5",
+                cost=30.0,
             )
         ]
 

@@ -95,7 +95,8 @@ def run_command(cmd: list[str], description: str) -> bool:
 def update_models_config(
     provider: str,
     model: str,
-    cost_per_1m_tokens: float,
+    cost_per_1m_input_tokens: float,
+    cost_per_1m_output_tokens: float,
     description: str | None = None,
 ):
     """Update unirouter_models.yaml with new model.
@@ -103,7 +104,8 @@ def update_models_config(
     Args:
         provider: Provider name
         model: Model name
-        cost_per_1m_tokens: Cost per 1M tokens
+        cost_per_1m_input_tokens: Cost per 1M input tokens
+        cost_per_1m_output_tokens: Cost per 1M output tokens
         description: Optional model description
     """
     logger.info(f"\n{'='*80}")
@@ -120,7 +122,8 @@ def update_models_config(
         "id": model_id,
         "name": model,
         "provider": provider,
-        "cost_per_1m_tokens": cost_per_1m_tokens,
+        "cost_per_1m_input_tokens": cost_per_1m_input_tokens,
+        "cost_per_1m_output_tokens": cost_per_1m_output_tokens,
         "description": description or f"Auto-added {provider} model",
     }
 
@@ -248,10 +251,16 @@ def main():
         help="Model name (e.g., gpt-4o-mini, claude-3-5-sonnet-20241022)",
     )
     parser.add_argument(
-        "--cost",
+        "--input-cost",
         type=float,
         required=True,
-        help="Cost per 1M tokens (input + output combined average)",
+        help="Cost per 1M input tokens",
+    )
+    parser.add_argument(
+        "--output-cost",
+        type=float,
+        required=True,
+        help="Cost per 1M output tokens",
     )
     parser.add_argument(
         "--api-key",
@@ -331,7 +340,8 @@ def main():
         update_models_config(
             provider=args.provider,
             model=args.model,
-            cost_per_1m_tokens=args.cost,
+            cost_per_1m_input_tokens=args.input_cost,
+            cost_per_1m_output_tokens=args.output_cost,
             description=args.description,
         )
     except Exception as e:
