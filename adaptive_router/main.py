@@ -133,8 +133,17 @@ def load_models_from_registry(settings: AppSettings) -> list[Model]:
 
         # If we couldn't extract pricing, use defaults
         if prompt_cost_per_million == 0 and completion_cost_per_million == 0:
-            prompt_cost_per_million = 1.0  # DEFAULT_MODEL_COST
-            completion_cost_per_million = 1.0  # DEFAULT_MODEL_COST
+            logger.warning(
+                "Model %s:%s has missing registry pricing (prompt: %.6f, completion: %.6f). "
+                "Using configurable default cost of %.6f per 1M tokens for both input and output.",
+                reg_model.provider,
+                reg_model.model_name,
+                prompt_cost_per_million,
+                completion_cost_per_million,
+                settings.default_model_cost,
+            )
+            prompt_cost_per_million = settings.default_model_cost
+            completion_cost_per_million = settings.default_model_cost
 
         # Skip models with invalid (negative or zero) pricing
         if prompt_cost_per_million <= 0 or completion_cost_per_million <= 0:

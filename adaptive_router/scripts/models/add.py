@@ -13,21 +13,24 @@ Usage:
     uv run python scripts/models/add.py \
         --provider openai \
         --model gpt-4o-mini \
-        --cost 0.15 \
+        --input-cost 0.075 \
+        --output-cost 0.075 \
         --api-key $OPENAI_API_KEY
 
     # Anthropic model
     uv run python scripts/models/add.py \
         --provider anthropic \
         --model claude-3-5-sonnet-20241022 \
-        --cost 3.0 \
+        --input-cost 1.5 \
+        --output-cost 1.5 \
         --api-key $ANTHROPIC_API_KEY
 
     # Groq model
     uv run python scripts/models/add.py \
         --provider groq \
         --model llama-3.1-70b-versatile \
-        --cost 0.0 \
+        --input-cost 0.0 \
+        --output-cost 0.0 \
         --api-key $GROQ_API_KEY
 """
 
@@ -209,14 +212,12 @@ def test_routing(model_id: str):
 
         logger.info("\n✅ Routing test successful!")
         logger.info(f"   Test prompt: {test_prompt}")
-        logger.info(f"   Selected model: {response.provider}/{response.model}")
-        logger.info(
-            f"   Alternatives: {[f'{a.provider}/{a.model}' for a in response.alternatives]}"
-        )
+        logger.info(f"   Selected model: {response.model_id}")
+        logger.info(f"   Alternatives: {[a.model_id for a in response.alternatives]}")
 
         # Check if new model appears in routing
-        all_models = [f"{response.provider}:{response.model}"]
-        all_models.extend([f"{a.provider}:{a.model}" for a in response.alternatives])
+        all_models = [response.model_id]
+        all_models.extend([a.model_id for a in response.alternatives])
 
         if model_id in all_models:
             logger.info(f"\n✅ New model {model_id} is available for routing!")
@@ -291,7 +292,8 @@ def main():
     logger.info("=" * 80)
     logger.info(f"Provider: {args.provider}")
     logger.info(f"Model: {args.model}")
-    logger.info(f"Cost: ${args.cost} per 1M tokens")
+    logger.info(f"Input Cost: ${args.input_cost} per 1M tokens")
+    logger.info(f"Output Cost: ${args.output_cost} per 1M tokens")
     logger.info("=" * 80)
 
     model_id = f"{args.provider}:{args.model}"

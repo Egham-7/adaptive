@@ -58,9 +58,24 @@ def mock_router():
     )
 
     mock_models = [
-        Model(provider="openai", model_name="gpt-4", cost=30.0),
-        Model(provider="openai", model_name="gpt-3.5-turbo", cost=1.0),
-        Model(provider="anthropic", model_name="claude-3-sonnet-20240229", cost=15.0),
+        Model(
+            provider="openai",
+            model_name="gpt-4",
+            cost_per_1m_input_tokens=3.0,
+            cost_per_1m_output_tokens=27.0,
+        ),
+        Model(
+            provider="openai",
+            model_name="gpt-3.5-turbo",
+            cost_per_1m_input_tokens=0.2,
+            cost_per_1m_output_tokens=0.8,
+        ),
+        Model(
+            provider="anthropic",
+            model_name="claude-3-sonnet-20240229",
+            cost_per_1m_input_tokens=2.25,
+            cost_per_1m_output_tokens=12.75,
+        ),
     ]
 
     def mock_build_cluster_engine(self, profile, allow_trust_remote_code):
@@ -112,7 +127,8 @@ class TestModelRouter:
             Model(
                 provider="openai",
                 model_name="gpt-4",
-                cost=30.0,
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=27.0,
             ),
         ]
 
@@ -172,7 +188,8 @@ class TestModelRouter:
             Model(
                 provider="openai",
                 model_name="gpt-4",
-                cost=30.0,
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=27.0,
             )
         ]
 
@@ -220,7 +237,8 @@ class TestModelRouterEdgeCases:
             Model(
                 provider="openai",
                 model_name="gpt-5",
-                cost=30.0,
+                cost_per_1m_input_tokens=3.0,
+                cost_per_1m_output_tokens=27.0,
             )
         ]
 
