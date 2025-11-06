@@ -1,7 +1,7 @@
 """Model resolution utilities for the Adaptive Router application."""
 
 import logging
-from typing import List
+from typing import List, Optional
 
 from app.models import RegistryModel
 from adaptive_router.models.api import Model
@@ -11,8 +11,22 @@ from app.utils.fuzzy_matching import normalize_model_id
 logger = logging.getLogger(__name__)
 
 
-def _registry_model_to_model(registry_model: RegistryModel) -> Model:
-    """Convert a RegistryModel to a Model for library compatibility."""
+def _registry_model_to_model(
+    registry_model: RegistryModel, raise_on_error: bool = False
+) -> Optional[Model]:
+    """Convert a RegistryModel to a Model for library compatibility.
+
+    Args:
+        registry_model: The registry model to convert
+        raise_on_error: If True, raise ValueError on missing/invalid pricing.
+                        If False, log warning and return None.
+
+    Returns:
+        Model object if conversion succeeds, None if pricing is missing/invalid and raise_on_error=False
+
+    Raises:
+        ValueError: If pricing is missing/invalid and raise_on_error=True
+    """
     # Extract pricing information (costs are per token, convert to per million tokens)
     prompt_cost_per_million = 0.0
     completion_cost_per_million = 0.0
@@ -24,9 +38,25 @@ def _registry_model_to_model(registry_model: RegistryModel) -> Model:
             # Convert from per-token to per-million-tokens
             prompt_cost_per_million = prompt_cost * 1_000_000
             completion_cost_per_million = completion_cost * 1_000_000
-        except (ValueError, TypeError):
-            # If pricing parsing fails, use default values
-            pass
+        except (ValueError, TypeError) as e:
+            error_msg = (
+                f"Failed to parse pricing for model '{registry_model.unique_id()}': "
+                f"prompt_cost='{registry_model.pricing.prompt_cost}', "
+                f"completion_cost='{registry_model.pricing.completion_cost}'"
+            )
+            if raise_on_error:
+                raise ValueError(error_msg) from e
+            else:
+                logger.warning(error_msg)
+                return None
+    else:
+        # If pricing is missing entirely
+        error_msg = f"No pricing information for model '{registry_model.unique_id()}'"
+        if raise_on_error:
+            raise ValueError(error_msg)
+        else:
+            logger.warning(error_msg)
+            return None
 
     return Model(
         provider=registry_model.provider,
@@ -37,7 +67,8 @@ def _registry_model_to_model(registry_model: RegistryModel) -> Model:
 
 
 def resolve_models(
-    model_specs: List[str], registry_models: List[RegistryModel]
+    model_specs: List[str],
+    registry_models: List[RegistryModel],
 ) -> List[Model]:
     """Resolve a list of model specifications to Model objects.
 
@@ -51,7 +82,7 @@ def resolve_models(
         List of resolved Model objects
 
     Raises:
-        ValueError: If any model specification is invalid or cannot be resolved
+        ValueError: If any model specification is invalid, cannot be resolved, or has missing/invalid pricing
     """
     resolved_models = []
 
@@ -86,7 +117,9 @@ def resolve_models(
                     f"Multiple models found for '{spec}': "
                     f"{[m.unique_id() for m in candidates]}"
                 )
-            resolved_models.append(_registry_model_to_model(candidates[0]))
+            model = _registry_model_to_model(candidates[0], raise_on_error=True)
+            assert model is not None  # Should never be None when raise_on_error=True
+            resolved_models.append(model)
             continue
 
         # No exact match - try fuzzy matching
@@ -133,7 +166,9 @@ def resolve_models(
                 f"Fuzzy match: '{spec}' resolved to '{matched_model.unique_id()}' "
                 f"(provider: {matched_model.provider}, model: {matched_model.model_name})"
             )
-            resolved_models.append(_registry_model_to_model(matched_model))
+            model = _registry_model_to_model(matched_model, raise_on_error=True)
+            assert model is not None  # Should never be None when raise_on_error=True
+            resolved_models.append(model)
             continue
 
         # No match found at all - provide helpful error message

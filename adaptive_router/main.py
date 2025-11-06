@@ -35,6 +35,7 @@ from app.registry import RegistryClient, ModelRegistry
 from app.utils import (
     resolve_models,
 )
+from app.utils.model_resolver import _registry_model_to_model
 
 
 env_file = Path(".env")
@@ -116,53 +117,26 @@ def load_models_from_registry(settings: AppSettings) -> list[Model]:
             logger.warning("Skipping registry model without identifier: %s", err)
             continue
 
-        # Extract pricing information (costs are per token, convert to per million tokens)
-        prompt_cost_per_million = 0.0
-        completion_cost_per_million = 0.0
-
-        if reg_model.pricing:
-            try:
-                prompt_cost = float(reg_model.pricing.prompt_cost or 0)
-                completion_cost = float(reg_model.pricing.completion_cost or 0)
-                # Convert from per-token to per-million-tokens
-                prompt_cost_per_million = prompt_cost * 1_000_000
-                completion_cost_per_million = completion_cost * 1_000_000
-            except (ValueError, TypeError):
-                # If pricing parsing fails, use default values
-                pass
-
-        # If we couldn't extract pricing, use defaults
-        if prompt_cost_per_million == 0 and completion_cost_per_million == 0:
-            logger.warning(
-                "Model %s:%s has missing registry pricing (prompt: %.6f, completion: %.6f). "
-                "Using configurable default cost of %.6f per 1M tokens for both input and output.",
-                reg_model.provider,
-                reg_model.model_name,
-                prompt_cost_per_million,
-                completion_cost_per_million,
-                settings.default_model_cost,
-            )
-            prompt_cost_per_million = settings.default_model_cost
-            completion_cost_per_million = settings.default_model_cost
+        # Convert registry model to router model (skip on pricing errors)
+        router_model = _registry_model_to_model(reg_model, raise_on_error=False)
+        if router_model is None:
+            # Model was skipped due to missing/invalid pricing
+            continue
 
         # Skip models with invalid (negative or zero) pricing
-        if prompt_cost_per_million <= 0 or completion_cost_per_million <= 0:
+        if (
+            router_model.cost_per_1m_input_tokens <= 0
+            or router_model.cost_per_1m_output_tokens <= 0
+        ):
             logger.warning(
                 "Skipping model %s:%s with invalid pricing (prompt: %.6f, completion: %.6f)",
-                reg_model.provider,
-                reg_model.model_name,
-                prompt_cost_per_million,
-                completion_cost_per_million,
+                router_model.provider,
+                router_model.model_name,
+                router_model.cost_per_1m_input_tokens,
+                router_model.cost_per_1m_output_tokens,
             )
             continue
 
-        # Create typed Model object
-        router_model = Model(
-            provider=reg_model.provider,
-            model_name=reg_model.model_name,
-            cost_per_1m_input_tokens=prompt_cost_per_million,
-            cost_per_1m_output_tokens=completion_cost_per_million,
-        )
         router_models.append(router_model)
 
     logger.info(
@@ -510,6 +484,7 @@ def create_app() -> FastAPI:
         request: ModelSelectionAPIRequest,
         http_request: Request,
         router: Annotated[ModelRouter, Depends(get_router)],
+        settings: Annotated[AppSettings, Depends(get_settings)],
     ) -> ModelSelectionAPIResponse:
         """Select optimal model based on prompt analysis.
 
