@@ -105,14 +105,17 @@ def resolve_models(
 
         # Try exact matching first
         try:
+            # Compare the full model spec (minus provider) against registry model_name
+            # This handles variants that are stored as part of the model_name in the registry
+            full_model_spec = spec.split("/", 1)[1]  # Everything after the first '/'
             candidates = [
                 m
                 for m in registry_models
                 if (m.provider and provider and m.provider.lower() == provider.lower())
                 and (
                     m.model_name
-                    and model_name
-                    and m.model_name.lower() == model_name.lower()
+                    and full_model_spec
+                    and m.model_name.lower() == full_model_spec.lower()
                 )
             ]
         except Exception as e:
@@ -155,6 +158,10 @@ def resolve_models(
             except ValueError:
                 continue
 
+            # Compare the full variant spec (minus provider) against registry model_name
+            full_variant_spec = variant.split("/", 1)[
+                1
+            ]  # Everything after the first '/'
             matches = [
                 m
                 for m in registry_models
@@ -165,8 +172,8 @@ def resolve_models(
                 )
                 and (
                     m.model_name
-                    and variant_model
-                    and m.model_name.lower() == variant_model.lower()
+                    and full_variant_spec
+                    and m.model_name.lower() == full_variant_spec.lower()
                 )
             ]
 
