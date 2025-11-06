@@ -8,8 +8,8 @@ This creates a K-dimensional feature vector for each LLM representing its
 performance profile across different prompt types.
 
 Usage:
-    uv run python scripts/models/profile.py --model openai:gpt-4o-mini
-    uv run python scripts/models/profile.py --model anthropic:claude-3-5-sonnet-20241022 --update-config
+    uv run python scripts/models/profile.py --model openai/gpt-4o-mini
+    uv run python scripts/models/profile.py --model anthropic/claude-3-5-sonnet-20241022 --update-config
 """
 
 import argparse
@@ -196,8 +196,8 @@ def load_predictions(model_id: str) -> Dict[str, str]:
     Returns:
         Dictionary mapping question_id to predicted answer
     """
-    # Convert model_id to filename: provider:model -> provider_model_predictions.json
-    filename = model_id.replace(":", "_") + "_predictions.json"
+    # Convert model_id to filename: provider/model -> provider_model_predictions.json
+    filename = model_id.replace("/", "_") + "_predictions.json"
     predictions_file = PREDICTIONS_DIR / filename
 
     if not predictions_file.exists():

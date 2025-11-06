@@ -31,8 +31,7 @@ def normalize_model_id(model_id: str) -> list[str]:
         2. Without date suffixes (e.g., -20250929, -2024-04-09)
         3. Without version suffixes (e.g., -latest, -preview, -v1)
         4. With dots instead of hyphens in version numbers
-        5. With alternative separators (: <-> /)
-        6. With provider aliases (e.g., google <-> gemini)
+        5. With provider aliases (e.g., google <-> gemini)
 
     Examples:
         >>> normalize_model_id("anthropic/claude-sonnet-4-5-20250929")
@@ -49,13 +48,11 @@ def normalize_model_id(model_id: str) -> list[str]:
             "openai/gpt-4-turbo"
         ]
 
-        >>> normalize_model_id("google/gemini-2.5-flash-lite")
-        [
-            "google/gemini-2.5-flash-lite",
-            "google:gemini-2.5-flash-lite",
-            "gemini:gemini-2.5-flash-lite",  # Provider alias variant
-            "gemini/gemini-2.5-flash-lite"   # Provider alias with / separator
-        ]
+         >>> normalize_model_id("google/gemini-2.5-flash-lite")
+         [
+             "google/gemini-2.5-flash-lite",
+             "gemini/gemini-2.5-flash-lite"   # Provider alias variant
+         ]
     """
     # Apply transformations sequentially
     transformations = [
@@ -86,27 +83,11 @@ def normalize_model_id(model_id: str) -> list[str]:
             seen.add(variant)
             variants.append(variant)
 
-    # Add cross-separator variants (: <-> /) for better matching between systems
-    cross_separator_variants: list[str] = []
-    for variant in variants:
-        if ":" in variant:
-            cross_separator_variants.append(variant.replace(":", "/"))
-        elif "/" in variant:
-            cross_separator_variants.append(variant.replace("/", ":"))
-
-    for variant in cross_separator_variants:
-        if variant not in seen:
-            seen.add(variant)
-            variants.append(variant)
-
     # Add provider alias variants (e.g., google <-> gemini)
     provider_alias_variants: list[str] = []
     for variant in variants:
-        # Split on both : and / separators
-        if ":" in variant:
-            provider, model_name = variant.split(":", 1)
-            separator = ":"
-        elif "/" in variant:
+        # Split on slash separator only
+        if "/" in variant:
             provider, model_name = variant.split("/", 1)
             separator = "/"
         else:

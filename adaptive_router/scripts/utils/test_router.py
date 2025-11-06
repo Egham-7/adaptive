@@ -196,7 +196,7 @@ def test_provider_filtering(
             # Convert filtered model IDs to RegistryModel objects
             filtered_models = [
                 RegistryModel(
-                    provider=model_id.split(":")[0], model_name=model_id.split(":")[1]
+                    provider=model_id.split("/")[0], model_name=model_id.split("/")[1]
                 )
                 for model_id in filtered_model_ids
             ]

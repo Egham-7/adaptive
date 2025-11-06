@@ -470,7 +470,7 @@ class ModelRouter:
             models: List of Model objects with filter criteria
 
         Returns:
-            List of allowed model IDs in "provider:model_name" format,
+            List of allowed model IDs in "provider/model_name" format,
             or None if no filtering should be applied
 
         Raises:
@@ -514,7 +514,7 @@ class ModelRouter:
                 model_id
                 for model_id in supported
                 if any(
-                    model_id.startswith(f"{provider}:") for provider in provider_filters
+                    model_id.startswith(f"{provider}/") for provider in provider_filters
                 )
             ]
             if not provider_filtered:
@@ -631,7 +631,7 @@ class ModelRouter:
         """Get list of models this router supports.
 
         Returns:
-            List of model IDs in format "provider:model_name"
+            List of model IDs in format "provider/model_name"
         """
         return list(self.model_features.keys())
 
