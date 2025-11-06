@@ -28,13 +28,13 @@ class TestRegistryModel:
             model_name="gpt-4",
             description="GPT-4 model",
             context_length=128000,
-            pricing={"prompt": "0.00003", "completion": "0.00006"},
+            pricing={"prompt_cost": "0.00003", "completion_cost": "0.00006"},
         )
         assert model.provider == "openai"
         assert model.model_name == "gpt-4"
         assert model.description == "GPT-4 model"
         assert model.context_length == 128000
-        assert model.pricing == {"prompt": "0.00003", "completion": "0.00006"}
+        assert model.pricing == {"prompt_cost": "0.00003", "completion_cost": "0.00006"}
 
     def test_unique_id(self) -> None:
         """Test unique_id generation."""
@@ -42,8 +42,8 @@ class TestRegistryModel:
         assert model.unique_id() == "openai:gpt-4"
 
     def test_unique_id_with_provider_prefix(self) -> None:
-        """Test unique_id removes provider prefix."""
-        model = RegistryModel(provider="openai", model_name="openai/gpt-4")
+        """Test unique_id with model_name (no slashes in normalized schema)."""
+        model = RegistryModel(provider="openai", model_name="gpt-4")
         assert model.unique_id() == "openai:gpt-4"
 
     def test_unique_id_missing_provider(self) -> None:
@@ -57,7 +57,7 @@ class TestRegistryModel:
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt": "0.00003", "completion": "0.00006"},
+            pricing={"prompt_cost": "0.00003", "completion_cost": "0.00006"},
         )
         avg = model.average_price()
         assert avg is not None
@@ -73,7 +73,7 @@ class TestRegistryModel:
         model = RegistryModel(
             provider="openai",
             model_name="gpt-4",
-            pricing={"prompt": "0", "completion": "0"},
+            pricing={"prompt_cost": "0", "completion_cost": "0"},
         )
         assert model.average_price() is None
 
