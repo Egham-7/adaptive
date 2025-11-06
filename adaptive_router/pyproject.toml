@@ -118,9 +118,10 @@ extend-exclude = '''
 [tool.mypy]
 plugins = ["pydantic.mypy"]
 exclude = [
-  "model_data/",
-  "tests/",
-  "scripts/models/",
+   "model_data/",
+   "adaptive_router/tests/",
+   "app/tests/",
+   "scripts/models/",
 ]
 no_implicit_optional = true
 warn_return_any = false

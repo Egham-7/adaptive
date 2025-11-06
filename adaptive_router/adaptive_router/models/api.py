@@ -48,11 +48,11 @@ class Model(BaseModel):
         provider = (self.provider or "").strip().lower()
         if not provider:
             raise ValueError("Model missing provider field")
-        
+
         model_name = self.model_name.strip().lower()
         if not model_name:
             raise ValueError(f"Model '{provider}' missing model_name")
-        
+
         return f"{provider}:{model_name}"
 
 

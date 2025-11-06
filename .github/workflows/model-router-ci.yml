@@ -36,17 +36,15 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-groups
 
-      - name: Run unit tests (module-specific tests)
-        run: |
-          uv run pytest \
-            adaptive_router/core/tests/ \
-            adaptive_router/loaders/tests/ \
-            adaptive_router/utils/tests/ \
-            app/registry/tests/ \
-            --cov=adaptive_router \
-            --cov=app \
-            --cov-report=xml \
-            -v
+       - name: Run unit tests (module-specific tests)
+         run: |
+           uv run pytest \
+             adaptive_router/tests/ \
+             app/tests/ \
+             --cov=adaptive_router \
+             --cov=app \
+             --cov-report=xml \
+             -v
 
       - name: Upload coverage
         uses: codecov/codecov-action@v5
